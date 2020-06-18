@@ -74,12 +74,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         {
                             [KubernetesConstants.K8sEdgeModuleLabel] = moduleIdentities[module.Key].DeploymentName(),
                             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
-                            [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
                         });
                 var deviceOnlyLabels = new Dictionary<string, string>
                 {
                     [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
-                    [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
                 };
 
                 var desiredServiceAccounts = desiredModules.Modules
@@ -290,13 +288,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 return false;
             }
 
-            if (!labels.ContainsKey(KubernetesConstants.K8sEdgeDeviceLabel) || !labels.ContainsKey(KubernetesConstants.K8sEdgeHubNameLabel))
+            if (!labels.ContainsKey(KubernetesConstants.K8sEdgeDeviceLabel))
             {
                 return false;
             }
 
-            return labels[KubernetesConstants.K8sEdgeDeviceLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId) &&
-                    labels[KubernetesConstants.K8sEdgeHubNameLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.Hostname);
+            return labels[KubernetesConstants.K8sEdgeDeviceLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId);
         }
 
         static IEqualityComparer<V1PersistentVolumeClaim> KubernetesPvcByValueEqualityComparer { get; } = new KubernetesPvcByValueEqualityComparer();

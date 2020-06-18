@@ -1,37 +1,39 @@
-use std::convert::{TryFrom, TryInto};
+use std::{
+    convert::{TryFrom, TryInto},
+    error::Error as StdError,
+};
 
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
-use mqtt_broker_core::auth::{AuthId, Authenticator, Credentials};
+use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
 
 const API_VERSION: &str = "2020-04-20";
 
 #[derive(Clone)]
-pub struct EdgeHubAuthenticator(Client, String);
+pub struct EdgeHubAuthenticator {
+    client: Client,
+    url: String,
+}
 
 impl EdgeHubAuthenticator {
     pub fn new(url: String) -> Self {
-        let client = reqwest::Client::new();
-        Self(client, url)
+        let client = Client::new();
+        Self { client, url }
     }
-}
-
-#[async_trait]
-impl Authenticator for EdgeHubAuthenticator {
-    type Error = AuthenticateError;
 
     async fn authenticate(
         &self,
-        username: Option<String>,
-        credentials: Credentials,
-    ) -> Result<Option<AuthId>, Self::Error> {
+        context: AuthenticationContext,
+    ) -> Result<Option<AuthId>, AuthenticateError> {
+        let req = EdgeHubAuthRequest::from_auth(&context);
+
         let response = self
-            .0
-            .post(&self.1)
-            .json(&EdgeHubAuthRequest::new(username, credentials))
+            .client
+            .post(&self.url)
+            .json(&req)
             .send()
             .await
             .map_err(AuthenticateError::SendRequest)?;
@@ -53,27 +55,37 @@ impl Authenticator for EdgeHubAuthenticator {
     }
 }
 
+#[async_trait]
+impl Authenticator for EdgeHubAuthenticator {
+    type Error = Box<dyn StdError>;
+
+    async fn authenticate(
+        &self,
+        context: AuthenticationContext,
+    ) -> Result<Option<AuthId>, Self::Error> {
+        let auth_id = self.authenticate(context).await?;
+        Ok(auth_id)
+    }
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
-pub struct EdgeHubAuthRequest {
-    version: String,
-    username: Option<String>,
-    password: Option<String>,
+pub struct EdgeHubAuthRequest<'a> {
+    version: &'a str,
+    username: Option<&'a str>,
+    password: Option<&'a str>,
     certificate: Option<String>,
     certificate_chain: Option<Vec<String>>,
 }
 
-impl EdgeHubAuthRequest {
-    fn new(username: Option<String>, credentials: Credentials) -> Self {
-        let (password, certificate) = match credentials {
-            Credentials::Password(p) => (p, None),
-            Credentials::ClientCertificate(c) => (None, Some(base64::encode(c))),
-        };
+impl<'a> EdgeHubAuthRequest<'a> {
+    fn from_auth(context: &'a AuthenticationContext) -> Self {
+        let certificate = context.certificate().map(base64::encode);
 
-        EdgeHubAuthRequest {
-            version: API_VERSION.to_string(),
-            username,
-            password,
+        Self {
+            version: API_VERSION,
+            username: context.username(),
+            password: context.password(),
             certificate,
             certificate_chain: None,
         }
@@ -128,9 +140,10 @@ mod tests {
     use base64::decode;
     use mockito::{mock, Matcher};
 
-    use mqtt_broker_core::auth::{AuthId, Authenticator, Certificate, Credentials};
+    use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Certificate};
 
-    use crate::authentication::EdgeHubAuthenticator;
+    use crate::auth::EdgeHubAuthenticator;
+    use std::net::SocketAddr;
 
     const CERT: &str = "MIIBLjCB1AIJAOTg4Zxl8B7jMAoGCCqGSM49BAMCMB8xHTAbBgNVBAMMFFRodW1i\
                         cHJpbnQgVGVzdCBDZXJ0MB4XDTIwMDQyMzE3NTgwN1oXDTMzMTIzMTE3NTgwN1ow\
@@ -149,15 +162,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await
-            .unwrap()
-            .unwrap();
+        let result = authenticator.authenticate(context).await.unwrap().unwrap();
 
         let s = "somehub/somedevice".to_string();
         assert_eq!(result, AuthId::Identity(s));
@@ -170,13 +180,12 @@ mod tests {
             .with_body(r#"{"result": 200,"version": "2020-04-20"}"#)
             .create();
 
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_err());
     }
@@ -188,14 +197,12 @@ mod tests {
             .with_body(r#"{"result": 403, "version": "2020-04-20"}"#)
             .create();
 
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await
-            .unwrap();
+        let result = authenticator.authenticate(context).await.unwrap();
 
         assert!(result.is_none());
     }
@@ -209,13 +216,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_err());
     }
@@ -229,13 +235,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_err());
     }
@@ -247,13 +252,12 @@ mod tests {
             .with_body(r#"{"identity":"somehub/somedevice","version": "2222-22-22"}"#)
             .create();
 
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_err());
     }
@@ -268,13 +272,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_ok());
     }
@@ -289,16 +292,12 @@ mod tests {
             )
             .create();
 
-        let credentials =
-            Credentials::ClientCertificate(Certificate::from(decode(CERT.to_string()).unwrap()));
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_certificate(Certificate::from(decode(CERT.to_string()).unwrap()));
 
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                credentials,
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_ok());
     }
@@ -316,13 +315,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_ok());
     }
@@ -331,7 +329,7 @@ mod tests {
         EdgeHubAuthenticator::new(mockito::server_url() + "/authenticate/")
     }
 
-    fn password(password: &str) -> Credentials {
-        Credentials::Password(Some(password.to_string()))
+    fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
     }
 }

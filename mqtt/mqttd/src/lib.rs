@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{error::Error as StdError, fmt};
 
 use mqtt_broker::Error;
 
@@ -12,7 +12,7 @@ pub struct Terminate {
 impl fmt::Debug for Terminate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.error)?;
-        let mut current: &dyn std::error::Error = &self.error;
+        let mut current: &dyn StdError = &self.error;
         while let Some(source) = current.source() {
             write!(f, "\n\tcaused by: {}", source)?;
             current = source;

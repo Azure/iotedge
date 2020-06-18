@@ -29,13 +29,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ICredentialsCache credentialsCache;
         readonly IIdentityProvider identityProvider;
         readonly IDeviceConnectivityManager connectivityManager;
+        readonly bool closeCloudConnectionOnDeviceDisconnect;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
             IIdentityProvider identityProvider,
             IDeviceConnectivityManager connectivityManager,
-            int maxClients = DefaultMaxClients)
+            int maxClients = DefaultMaxClients,
+            bool closeCloudConnectionOnDeviceDisconnect = true)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
@@ -44,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.connectivityManager = Preconditions.CheckNotNull(connectivityManager, nameof(connectivityManager));
             this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
             Util.Metrics.MetricsV0.RegisterGaugeCallback(() => MetricsV0.SetConnectedClientCountGauge(this));
+            this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
         }
 
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -75,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RemoveDeviceConnection(string id)
         {
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
-                ? this.RemoveDeviceConnection(device, false)
+                ? this.RemoveDeviceConnection(device, this.closeCloudConnectionOnDeviceDisconnect)
                 : Task.CompletedTask;
         }
 
@@ -178,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task RemoveDeviceConnection(ConnectedDevice device, bool removeCloudConnection)
         {
+            Events.RemovingDeviceConnection(device.Identity.Id, removeCloudConnection);
             await device.DeviceConnection.Filter(dp => dp.IsActive)
                 .ForEachAsync(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {device.Identity.Id}.")));
 
@@ -250,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 }
                                 else
                                 {
-                                    await this.RemoveDeviceConnection(device, false);
+                                    await this.RemoveDeviceConnection(device, this.closeCloudConnectionOnDeviceDisconnect);
                                 }
                             });
                     }
@@ -466,6 +470,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 CreateNewCloudConnection = IdStart,
                 NewDeviceConnection,
+                RemovingDeviceConnection,
                 RemoveDeviceConnection,
                 CreateNewCloudConnectionError,
                 ObtainedCloudConnection,
@@ -493,6 +498,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void NewDeviceConnection(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.NewDeviceConnection, Invariant($"New device connection for device {identity.Id}"));
+            }
+
+            public static void RemovingDeviceConnection(string id, bool removeCloudConnection)
+            {
+                Log.LogInformation((int)EventIds.RemovingDeviceConnection, Invariant($"Removing device connection for device {id} with removeCloudConnection flag '{removeCloudConnection}'."));
             }
 
             public static void RemoveDeviceConnection(string id)

@@ -168,11 +168,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     enableNonPersistentStorageBackup,
                     backupFolder,
                     Option.None<ulong>(),
-                    Option.None<StorageLogLevel>()));
+                    Option.None<StorageLogLevel>(),
+                    false));
 
             builder.RegisterModule(
                 new RoutingModule(
                     iotHubConnectionStringBuilder.HostName,
+                    Option.None<string>(),
                     iotHubConnectionStringBuilder.DeviceId,
                     iotHubConnectionStringBuilder.ModuleId,
                     Option.Some(edgeHubConnectionString),
@@ -198,7 +200,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     TimeSpan.FromHours(1),
                     checkEntireQueueOnCleanup,
-                    experimentalFeatures));
+                    experimentalFeatures,
+                    true));
 
             builder.RegisterModule(new HttpModule());
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -26,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const int ConnectionPoolSize = 10;
         static readonly IMessageConverterProvider MessageConverterProvider = Mock.Of<IMessageConverterProvider>();
         static readonly ITokenProvider TokenProvider = Mock.Of<ITokenProvider>();
-        static readonly IDeviceScopeIdentitiesCache DeviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
         static readonly ICredentialsCache CredentialsCache = Mock.Of<ICredentialsCache>();
         static readonly IIdentity EdgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "device1/$edgeHub");
 
@@ -130,13 +130,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
                 ConnectionPoolSize,
                 GetMockDeviceClientProvider(),
                 Option.None<UpstreamProtocol>(),
                 TokenProvider,
-                DeviceScopeIdentitiesCache,
+                deviceScopeIdentitiesCache.Object,
                 CredentialsCache,
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
@@ -146,7 +148,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
+
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
+                .ReturnsAsync(Option.Some(deviceIdentity.Id));
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
             var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, false);
 
@@ -174,13 +179,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Returns(deviceClient.Object);
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
                 ConnectionPoolSize,
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 TokenProvider,
-                DeviceScopeIdentitiesCache,
+                deviceScopeIdentitiesCache.Object,
                 CredentialsCache,
                 EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
@@ -190,7 +197,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
+
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
+                .ReturnsAsync(Option.Some(deviceIdentity.Id));
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
             var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, false);
 
@@ -210,8 +220,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
             var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id), false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.Some(deviceServiceIdentity));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
+                .ReturnsAsync(Option.Some(deviceIdentity.Id));
+
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
@@ -250,8 +263,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
             var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id), false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.Some(deviceServiceIdentity));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
+                .ReturnsAsync(Option.Some(deviceIdentity.Id));
 
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
             credentialsCache.Setup(c => c.Get(deviceIdentity)).ReturnsAsync(Option.Some((IClientCredentials)tokenCreds));
@@ -293,8 +308,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, false);
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id), false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.None<ServiceIdentity>());
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
+                .ReturnsAsync(Option.Some(deviceIdentity.Id));
 
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
             credentialsCache.Setup(c => c.Get(deviceIdentity)).ReturnsAsync(Option.Some((IClientCredentials)tokenCreds));
@@ -331,7 +348,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [MemberData(nameof(UpstreamProtocolTransportSettingsData))]
         public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, ITransportSettings[] expectedTransportSettingsList, bool useServerHeartbeat)
         {
-            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy, useServerHeartbeat);
+            const string expectedAuthChain = "e3;e2;e1";
+            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy, useServerHeartbeat, expectedAuthChain);
 
             Assert.NotNull(transportSettingsList);
             Assert.Equal(expectedTransportSettingsList.Length, transportSettingsList.Length);
@@ -342,6 +360,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
                 Assert.Equal(expectedTransportSettings.GetType(), transportSettings.GetType());
                 Assert.Equal(expectedTransportSettings.GetTransportType(), transportSettings.GetTransportType());
+
+                // Check authchain via Reflection
+                string authChain = (string)transportSettings.GetType()
+                    .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(transportSettings);
+
+                Assert.Equal(authChain, expectedAuthChain);
+
                 switch (expectedTransportSettings)
                 {
                     case AmqpTransportSettings _:

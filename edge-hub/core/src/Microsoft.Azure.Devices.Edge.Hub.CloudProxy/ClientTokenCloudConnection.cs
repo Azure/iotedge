@@ -93,6 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         ///             b. If not, then it creates a new cloud proxy (and device client) and closes the existing one
         ///         ii. Else, if there is no cloud proxy, then opens a device client and creates a cloud proxy.
         /// </summary>
+        /// <param name="newTokenCredentials">New token credentials.</param>
+        /// <returns>task of ICloudProxy interface.</returns>
         public async Task<ICloudProxy> UpdateTokenAsync(ITokenCredentials newTokenCredentials)
         {
             Preconditions.CheckNotNull(newTokenCredentials, nameof(newTokenCredentials));
@@ -115,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                 // complete the tokenGetter
                                 if (this.tokenGetter.HasValue)
                                 {
-                                    if (TokenHelper.IsTokenExpired(this.Identity.IotHubHostName, newTokenCredentials.Token))
+                                    if (TokenHelper.IsTokenExpired(this.Identity.IotHubHostname, newTokenCredentials.Token))
                                     {
                                         throw new InvalidOperationException($"Token for client {this.Identity.Id} is expired");
                                     }
@@ -193,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 // We have to catch UnauthorizedAccessException, because on IsTokenUsable, we call parse from
                 // Device Client and it throws if the token is expired.
-                if (IsTokenUsable(this.Identity.IotHubHostName, token))
+                if (IsTokenUsable(this.Identity.IotHubHostname, token))
                 {
                     if (retrying)
                     {
@@ -294,7 +296,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void TokenNotUsable(IIdentity identity, string newToken)
             {
-                TimeSpan timeRemaining = TokenHelper.GetTokenExpiryTimeRemaining(identity.IotHubHostName, newToken);
+                TimeSpan timeRemaining = TokenHelper.GetTokenExpiryTimeRemaining(identity.IotHubHostname, newToken);
                 Log.LogDebug((int)EventIds.ObtainedNewToken, Invariant($"Token received for client {identity.Id} expires in {timeRemaining}, and so is not usable. Getting a fresh token..."));
             }
 
@@ -315,7 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             internal static void NewTokenObtained(IIdentity identity, string newToken)
             {
-                TimeSpan timeRemaining = TokenHelper.GetTokenExpiryTimeRemaining(identity.IotHubHostName, newToken);
+                TimeSpan timeRemaining = TokenHelper.GetTokenExpiryTimeRemaining(identity.IotHubHostname, newToken);
                 Log.LogInformation((int)EventIds.ObtainedNewToken, Invariant($"Obtained new token for client {identity.Id} that expires in {timeRemaining}"));
             }
 

@@ -10,7 +10,7 @@ use mqtt_broker::{
     Auth, BrokerBuilder, ClientEvent, ConnReq, ConnectionHandle, Message,
 };
 use mqtt_broker_core::{
-    auth::{authorize_fn_ok, AuthId},
+    auth::{authorize_fn_ok, AuthId, Authorization},
     ClientId,
 };
 
@@ -41,7 +41,7 @@ proptest! {
 
 async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEvent>) {
     let mut broker = BrokerBuilder::default()
-        .authorizer(authorize_fn_ok(|_| (true)))
+        .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
         .build();
 
     let mut model = BrokerModel::default();
@@ -89,6 +89,7 @@ fn into_events(
             let connection_handle = ConnectionHandle::from_sender(tx);
             let connreq = ConnReq::new(
                 client_id.clone(),
+                "127.0.0.1:12345".parse().expect("peer_addr"),
                 connect.clone(),
                 Auth::Identity(AuthId::Anonymous),
                 connection_handle,

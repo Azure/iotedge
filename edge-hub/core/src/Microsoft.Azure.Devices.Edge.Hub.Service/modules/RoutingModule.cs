@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     public class RoutingModule : Module
     {
         readonly string iotHubName;
+        readonly Option<string> gatewayHostname;
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
         readonly Option<string> connectionString;
@@ -55,9 +56,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan configUpdateFrequency;
         readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
+        readonly bool closeCloudConnectionOnDeviceDisconnect;
 
         public RoutingModule(
             string iotHubName,
+            Option<string> gatewayHostname,
             string edgeDeviceId,
             string edgeModuleId,
             Option<string> connectionString,
@@ -83,9 +86,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
             bool checkEntireQueueOnCleanup,
-            ExperimentalFeatures experimentalFeatures)
+            ExperimentalFeatures experimentalFeatures,
+            bool closeCloudConnectionOnDeviceDisconnect)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
+            this.gatewayHostname = gatewayHostname;
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.connectionString = Preconditions.CheckNotNull(connectionString, nameof(connectionString));
             this.routes = Preconditions.CheckNotNull(routes, nameof(routes));
@@ -112,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.configUpdateFrequency = configUpdateFrequency;
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
+            this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -198,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                     {
-                        IClientProvider underlyingClientProvider = new ClientProvider();
+                        IClientProvider underlyingClientProvider = new ClientProvider(this.gatewayHostname);
                         IClientProvider connectivityAwareClientProvider = new ConnectivityAwareClientProvider(underlyingClientProvider, c.Resolve<IDeviceConnectivityManager>());
                         return connectivityAwareClientProvider;
                     })
@@ -259,7 +265,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             credentialsCache,
                             identityProvider,
                             deviceConnectivityManager,
-                            this.maxConnectedClients);
+                            this.maxConnectedClients,
+                            this.closeCloudConnectionOnDeviceDisconnect);
                         return connectionManager;
                     })
                 .As<Task<IConnectionManager>>()

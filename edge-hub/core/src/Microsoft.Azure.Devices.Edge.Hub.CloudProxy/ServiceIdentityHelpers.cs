@@ -16,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return new ServiceIdentity(
                 device.Id,
                 null,
+                device.Scope,
+                device.ParentScopes != null ? device.ParentScopes : Enumerable.Empty<string>(),
                 device.GenerationId,
                 device.Capabilities.ToServiceCapabilities(),
                 device.Authentication.ToServiceAuthentication(),
@@ -28,6 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return new ServiceIdentity(
                 module.DeviceId,
                 module.Id,
+                null,
+                Enumerable.Empty<string>(),
                 module.GenerationId,
                 Enumerable.Empty<string>(),
                 module.Authentication.ToServiceAuthentication(),

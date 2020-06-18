@@ -25,10 +25,12 @@ if ($Arm) {
 
 cd (Get-MqttFolder)
 
-$buildCommand = "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { "--release --target-dir ${Env:BUILD_BINARIESDIRECTORY}/Microsoft.Azure.Devices.Edge.Hub.Service/broker-target" })"
+Write-Host "$cargo build --workspace $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' })"
+Invoke-Expression "$cargo build --workspace $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' })"
 
-Write-Host $buildCommand
-Invoke-Expression $buildCommand
+Write-Host "$cargo build --manifest-path mqttd/Cargo.toml --no-default-features $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' })"
+Invoke-Expression "$cargo build --manifest-path mqttd/Cargo.toml --no-default-features $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' })"
+
 
 if ($LastExitCode -ne 0) {
     Throw "cargo build failed with exit code $LastExitCode"

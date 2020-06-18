@@ -23,10 +23,7 @@ pub struct InlineResponse2002 {
 
 impl InlineResponse2002 {
     pub fn new(path: String, kind: i32) -> Self {
-        InlineResponse2002 {
-            path: path,
-            kind: kind,
-        }
+        InlineResponse2002 { path, kind }
     }
 
     pub fn set_path(&mut self, path: String) {

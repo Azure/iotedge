@@ -1,19 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class ModuleIdentityProviderServiceBuilder
     {
-        readonly string iotHubHostName;
+        readonly string iotHubHostname;
         readonly string deviceId;
-        readonly string gatewayHostname;
 
-        public ModuleIdentityProviderServiceBuilder(string iotHubHostName, string deviceId, string gatewayHostname)
+        public ModuleIdentityProviderServiceBuilder(string iotHubHostname, string deviceId)
         {
-            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
+            this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.gatewayHostname = gatewayHostname;
         }
 
         public IModuleIdentity Create(string moduleId, string generationId, string providerUri)
@@ -23,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             Preconditions.CheckNonWhiteSpace(providerUri, nameof(providerUri));
 
             ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, generationId);
-            return new ModuleIdentity(this.iotHubHostName, this.gatewayHostname, this.deviceId, moduleId, credentials);
+            return new ModuleIdentity(this.iotHubHostname, this.deviceId, moduleId, credentials);
         }
 
         public IModuleIdentity Create(string moduleId, string generationId, string providerUri, string authScheme)
@@ -34,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             Preconditions.CheckNonWhiteSpace(authScheme, nameof(authScheme));
 
             ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, generationId, authScheme);
-            return new ModuleIdentity(this.iotHubHostName, this.gatewayHostname, this.deviceId, moduleId, credentials);
+            return new ModuleIdentity(this.iotHubHostname, this.deviceId, moduleId, credentials);
         }
     }
 }

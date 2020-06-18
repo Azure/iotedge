@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<string> storageBackupPath;
         readonly Option<ulong> storageMaxTotalWalSize;
         readonly Option<StorageLogLevel> storageLogLevel;
+        readonly bool nestedEdgeEnabled;
 
         public CommonModule(
             string productInfo,
@@ -69,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool useBackupAndRestore,
             Option<string> storageBackupPath,
             Option<ulong> storageMaxTotalWalSize,
-            Option<StorageLogLevel> storageLogLevel)
+            Option<StorageLogLevel> storageLogLevel,
+            bool nestedEdgeEnabled)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -93,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.storageBackupPath = storageBackupPath;
             this.storageMaxTotalWalSize = storageMaxTotalWalSize;
             this.storageLogLevel = storageLogLevel;
+            this.nestedEdgeEnabled = nestedEdgeEnabled;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -286,10 +289,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
-                            IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
-                            IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
+                            var serviceIdentityTree = new ServiceIdentityTree(this.edgeDeviceId);
+                            IDeviceScopeApiClientProvider securityScopesApiClientProvider = new DeviceScopeApiClientProvider(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, serviceIdentityTree, proxy);
+                            IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClientProvider, this.nestedEdgeEnabled);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
-                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
+                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityTree, serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                         }
                         else
                         {

@@ -86,9 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
 
-            // Temporarly make metrics default to off for windows. This is only until the dotnet 3.1 work is completed
-            // This temp fix is needed to fix all e2e tests since edgehub currently crashes
-            MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"), !RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
+            MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
@@ -159,10 +157,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
+            Option<string> gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
+            bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
 
             builder.RegisterModule(
                 new RoutingModule(
                     this.iotHubHostname,
+                    gatewayHostname,
                     this.edgeDeviceId,
                     this.edgeModuleId,
                     this.connectionString,
@@ -188,7 +189,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     encryptTwinStore,
                     configUpdateFrequency,
                     checkEntireQueueOnCleanup,
-                    experimentalFeatures));
+                    experimentalFeatures,
+                    closeCloudConnectionOnDeviceDisconnect));
         }
 
         void RegisterCommonModule(
@@ -201,6 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
@@ -237,7 +240,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.useBackupAndRestore,
                     storeAndForward.storageBackupPath,
                     storeAndForward.storageMaxTotalWalSize,
-                    storeAndForward.storageLogLevel));
+                    storeAndForward.storageLogLevel,
+                    nestedEdgeEnabled));
         }
 
         static string GetProductInfo()

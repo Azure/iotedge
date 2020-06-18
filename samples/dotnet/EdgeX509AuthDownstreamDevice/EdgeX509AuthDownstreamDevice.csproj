@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.23.1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.26.0" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.5" />
   </ItemGroup>
 

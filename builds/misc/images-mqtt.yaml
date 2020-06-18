@@ -33,9 +33,9 @@ jobs:
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
           buildContext: mqtt/.
-          tags: $(Build.BuildId)-$(os)-$(arch)
+          tags: $(Build.BuildNumber)-$(os)-$(arch)
       
-      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > artifactInfo.txt
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
         displayName: Create image name
       
       - publish: artifactInfo.txt
@@ -69,9 +69,9 @@ jobs:
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
           buildContext: mqtt/.
-          tags: $(Build.BuildId)-$(os)-$(arch)
+          tags: $(Build.BuildNumber)-$(os)-$(arch)
 
-      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > artifactInfo.txt
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
         displayName: Create image name
       
       - publish: artifactInfo.txt

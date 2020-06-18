@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
@@ -104,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .ConfigureServices(s => s.TryAddSingleton(usernameParser))
                           .ConfigureServices(s => s.TryAddSingleton(clientCredentialsFactory))
                           .ConfigureServices(s => s.TryAddSingleton(config))
-                          .ConfigureServices(s => s.AddControllers())
+                          .ConfigureServices(s => s.AddControllers().AddNewtonsoftJson())
                           .ConfigureLogging(c => c.ClearProviders())
                           .Build();
         }
