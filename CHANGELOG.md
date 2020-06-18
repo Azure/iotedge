@@ -1,3 +1,14 @@
+# 1.0.9.3 (2020-06-18)
+## Edge Agent
+### Bug Fixes
+* Remove device cloud connection upon device disconnection ([60b125e](https://github.com/Azure/iotedge/commit/60b125ee5116e23fc4ba6d86a1bb4971f231d6ce))
+* Upgrade Microsoft.Azure.Devices.Client from 1.23.1 to 1.23.2 ([0e58900](https://github.com/Azure/iotedge/commit/0e58900f58251ddfd6e69dc09484ea798f266f10))
+
+## Edge Hub
+### Bug Fixes
+* Remove device cloud connection upon device disconnection ([fb33e62](https://github.com/Azure/iotedge/commit/fb33e62cb58937009fa2c491021e9629b99cbe29))
+* Upgrade Microsoft.Azure.Devices.Client from 1.23.1 to 1.23.2 ([0e58900](https://github.com/Azure/iotedge/commit/0e58900f58251ddfd6e69dc09484ea798f266f10))
+
 # 1.0.9.2 (2020-05-26)
 ## Edge Hub
 ### Features
