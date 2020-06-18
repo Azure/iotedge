@@ -547,6 +547,8 @@ mod tests {
 
         remaining_length_encode_inner_too_high(0x1000_0000);
         remaining_length_encode_inner_too_high(0xFFFF_FFFF);
+
+        #[cfg(target_pointer_width = "64")]
         remaining_length_encode_inner_too_high(0xFFFF_FFFF_FFFF_FFFF);
     }
 

@@ -29,7 +29,7 @@ mod imp {
     use std::error::Error as StdError;
 
     use mqtt_broker_core::auth::{
-        authenticate_fn_ok, authorize_fn_ok, AuthId, Authenticator, Authorizer,
+        authenticate_fn_ok, authorize_fn_ok, AuthId, Authenticator, Authorization, Authorizer,
     };
 
     pub(super) fn authenticator() -> impl Authenticator<Error = Box<dyn StdError>> {
@@ -37,6 +37,6 @@ mod imp {
     }
 
     pub(super) fn authorizer() -> impl Authorizer {
-        authorize_fn_ok(|_| true)
+        authorize_fn_ok(|_| Authorization::Allowed)
     }
 }
