@@ -7,8 +7,7 @@ all:
 	$(CARGO) build $(CARGOFLAGS)
 
 release:
-	$(CARGO) build $(CARGOFLAGS) --release -p mqttd
+	$(CARGO) build $(CARGOFLAGS) --release -p watchdog
 
 clean:
 	rm -rf $(TARGET)
-
