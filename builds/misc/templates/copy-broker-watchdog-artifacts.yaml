@@ -1,3 +1,6 @@
+# TODO: var for base paths
+# TODO: strip in dockerfile
+
 # This template will move the mqtt and watchdog artifacts into the EdgeHub dotnet publish folder
 # EdgeHub's dotnet target folder will serve as a minimal build context for the image
 steps:
@@ -9,38 +12,10 @@ steps:
   - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32'
   - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64'
 
-  - task: Bash@3
-    displayName: Copy broker artifact - amd64
-    inputs:
-      filePath: scripts/linux/strip-and-copy-binary.sh
-      arguments: --src mqtt/target/release/mqttd --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
+  - bash: cp mqtt/target/release/mqttd target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
+  - bash: cp mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
+  - bash: cp mqtt/target/aarch64-unknown-linux-gnu/release/mqttd target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
 
-  - task: Bash@3
-    displayName: Copy broker artifact - arm32
-    inputs:
-      filePath: scripts/linux/strip-and-copy-binary.sh
-      arguments: --src mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
-
-  - task: Bash@3
-    displayName: Copy broker artifact - arm64
-    inputs:
-      filePath: scripts/linux/strip-and-copy-binary.sh
-      arguments: --src mqtt/target/aarch64-unknown-linux-gnu/release/mqttd --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
-
-  - task: Bash@3
-    displayName: Copy watchdog artifact - amd64
-    inputs:
-      filePath: scripts/linux/strip-and-copy-binary.sh
-      arguments: --src edge-hub/watchdog/linux/target/release/watchdog --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
-
-  - task: Bash@3
-    displayName: Copy watchdog artifact - arm32
-    inputs:
-      filePath: scripts/linux/strip-and-copy-binary.sh
-      arguments: --src edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/mqttd --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
-
-  - task: Bash@3
-    displayName: Copy watchdog artifact - arm64
-    inputs:
-      filePath: scripts/linux/strip-and-copy-binary.sh
-      arguments: --src edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/mqttd --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
+  - bash: cp edge-hub/watchdog/linux/target/release/watchdog target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
+  - bash: cp edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/mqttd target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
+  - bash: cp edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/mqttd target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
