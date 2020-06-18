@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::panic;
 
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, info_span, warn};
 
 use mqtt3::proto;
@@ -28,8 +28,8 @@ macro_rules! try_send {
 }
 
 pub struct Broker<Z> {
-    sender: Sender<Message>,
-    messages: Receiver<Message>,
+    sender: UnboundedSender<Message>,
+    messages: UnboundedReceiver<Message>,
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
@@ -986,7 +986,7 @@ where
             None => (HashMap::default(), HashMap::default()),
         };
 
-        let (sender, messages) = mpsc::channel(1024);
+        let (sender, messages) = mpsc::unbounded_channel();
 
         Broker {
             sender,
@@ -1003,11 +1003,11 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct BrokerHandle(Sender<Message>);
+pub struct BrokerHandle(UnboundedSender<Message>);
 
 impl BrokerHandle {
-    pub async fn send(&mut self, message: Message) -> Result<(), Error> {
-        self.0.send(message).await.map_err(Error::SendBrokerMessage)
+    pub fn send(&mut self, message: Message) -> Result<(), Error> {
+        self.0.send(message).map_err(Error::SendBrokerMessage)
     }
 }
 
