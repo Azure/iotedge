@@ -1,7 +1,7 @@
 # 1.0.9.3 (2020-06-18)
 ## Edge Agent
 ### Bug Fixes
-* GetTwinAsync closes and reopen module client if the exception is not a timeout exception ([60b125e](https://github.com/Azure/iotedge/commit/60b125ee5116e23fc4ba6d86a1bb4971f231d6ce))
+* GetTwinAsync closes and reopens module client if an exception is not a timeout exception ([60b125e](https://github.com/Azure/iotedge/commit/60b125ee5116e23fc4ba6d86a1bb4971f231d6ce))
 * Upgrade Microsoft.Azure.Devices.Client from 1.23.1 to 1.23.2 ([0e58900](https://github.com/Azure/iotedge/commit/0e58900f58251ddfd6e69dc09484ea798f266f10))
 
 ## Edge Hub
