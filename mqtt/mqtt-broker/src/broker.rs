@@ -1,8 +1,9 @@
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::panic;
+use std::{collections::HashMap, convert::TryInto, panic};
 
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::{
+    sync::mpsc::{self, error::TryRecvError, Receiver, Sender, UnboundedReceiver, UnboundedSender},
+    task,
+};
 use tracing::{debug, error, info, info_span, warn};
 
 use mqtt3::proto;
@@ -30,6 +31,8 @@ macro_rules! try_send {
 pub struct Broker<Z> {
     sender: Sender<Message>,
     messages: Receiver<Message>,
+    ack_sender: UnboundedSender<Message>,
+    ack_receiver: UnboundedReceiver<Message>,
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
@@ -44,48 +47,65 @@ where
     Z: Authorizer,
 {
     pub fn handle(&self) -> BrokerHandle {
-        BrokerHandle(self.sender.clone())
+        BrokerHandle(self.sender.clone(), self.ack_sender.clone())
     }
 
     pub async fn run(mut self) -> Result<BrokerSnapshot, Error> {
-        while let Some(message) = self.messages.recv().await {
-            match message {
-                Message::Client(client_id, event) => {
-                    let span = info_span!("broker", client_id = %client_id, event="client");
-                    let _enter = span.enter();
-                    if let Err(e) = self.process_message(client_id, event) {
-                        warn!(message = "an error occurred processing a message", error = %e);
+        loop {
+            while let Ok(message) = self.ack_receiver.try_recv() {
+                self.run_iter(message);
+            }
+
+            match self.messages.try_recv() {
+                Ok(message) => {
+                    if !self.run_iter(message) {
+                        break;
                     }
                 }
-                Message::System(event) => {
-                    let span = info_span!("broker", event = "system");
-                    let _enter = span.enter();
-                    match event {
-                        SystemEvent::Shutdown => {
-                            info!("gracefully shutting down the broker...");
-                            debug!("closing sessions...");
-                            if let Err(e) = self.process_shutdown() {
-                                warn!(message = "an error occurred shutting down the broker", error = %e);
-                            }
-                            break;
-                        }
-                        SystemEvent::StateSnapshot(mut handle) => {
-                            let state = self.snapshot();
-                            let _guard = span.enter();
-                            info!("asking snapshotter to persist state...");
-                            if let Err(e) = handle.try_send(state) {
-                                warn!(message = "an error occurred communicating with the snapshotter", error = %e);
-                            } else {
-                                info!("sent state to snapshotter.");
-                            }
-                        }
-                    }
-                }
+                Err(TryRecvError::Empty) => task::yield_now().await,
+                Err(TryRecvError::Closed) => break,
             }
         }
 
         info!("broker is shutdown.");
         Ok(self.snapshot())
+    }
+
+    fn run_iter(&mut self, message: Message) -> bool {
+        match message {
+            Message::Client(client_id, event) => {
+                let span = info_span!("broker", client_id = %client_id, event="client");
+                let _enter = span.enter();
+                if let Err(e) = self.process_message(client_id, event) {
+                    warn!(message = "an error occurred processing a message", error = %e);
+                }
+            }
+            Message::System(event) => {
+                let span = info_span!("broker", event = "system");
+                let _enter = span.enter();
+                match event {
+                    SystemEvent::Shutdown => {
+                        info!("gracefully shutting down the broker...");
+                        debug!("closing sessions...");
+                        if let Err(e) = self.process_shutdown() {
+                            warn!(message = "an error occurred shutting down the broker", error = %e);
+                        }
+                        return false;
+                    }
+                    SystemEvent::StateSnapshot(mut handle) => {
+                        let state = self.snapshot();
+                        let _guard = span.enter();
+                        info!("asking snapshotter to persist state...");
+                        if let Err(e) = handle.try_send(state) {
+                            warn!(message = "an error occurred communicating with the snapshotter", error = %e);
+                        } else {
+                            info!("sent state to snapshotter.");
+                        }
+                    }
+                }
+            }
+        }
+        true
     }
 
     fn snapshot(&self) -> BrokerSnapshot {
@@ -987,10 +1007,13 @@ where
         };
 
         let (sender, messages) = mpsc::channel(1024);
+        let (ack_sender, ack_receiver) = mpsc::unbounded_channel();
 
         Broker {
             sender,
             messages,
+            ack_sender,
+            ack_receiver,
             sessions,
             retained,
             authorizer: self.authorizer,
@@ -1003,11 +1026,19 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct BrokerHandle(Sender<Message>);
+pub struct BrokerHandle(Sender<Message>, UnboundedSender<Message>);
 
 impl BrokerHandle {
     pub async fn send(&mut self, message: Message) -> Result<(), Error> {
-        self.0.send(message).await.map_err(Error::SendBrokerMessage)
+        match &message {
+            Message::Client(_, ClientEvent::PingReq(_))
+            | Message::Client(_, ClientEvent::PubAck0(_))
+            | Message::Client(_, ClientEvent::PubAck(_))
+            | Message::Client(_, ClientEvent::PubRec(_))
+            | Message::Client(_, ClientEvent::PubComp(_)) => self.1.send(message),
+            _ => self.0.send(message).await,
+        }
+        .map_err(Error::SendBrokerMessage)
     }
 }
 
