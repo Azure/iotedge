@@ -7,8 +7,8 @@ ENV RUST_LOG=info
 EXPOSE 1883/tcp
 EXPOSE 8883/tcp
 
-ADD ./watchdog/release/watchdog /usr/bin/local/watchdog
-ADD ./mqtt/mqttd/release/mqttd /usr/local/bin/mqttd
+ADD ./watchdog/amd64/watchdog /usr/bin/local/watchdog
+ADD ./mqtt/amd64/mqttd /usr/local/bin/mqttd
 
 ARG EXE_DIR=.	
 
@@ -40,5 +40,5 @@ EXPOSE 443/tcp
 
 USER edgehubuser	
 
-CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \	
+CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
     /usr/local/bin/watchdog

@@ -1,6 +1,9 @@
 ARG base_tag=1.0.5-linux-arm32v7
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
+ADD ./watchdog/arm32/watchdog /usr/bin/local/watchdog
+ADD ./mqtt/arm32/mqttd /usr/local/bin/mqttd
+
 ARG EXE_DIR=.
 
 WORKDIR /app
@@ -16,4 +19,4 @@ USER edgehubuser
 ENV OptimizeForPerformance false
 ENV MqttEventsProcessorThreadCount 1
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
-    exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
+    /usr/local/bin/watchdog
