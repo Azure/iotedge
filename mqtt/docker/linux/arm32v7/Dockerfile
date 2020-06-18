@@ -10,6 +10,11 @@ FROM ${BASE_IMAGE} AS builder
 # Add our source code.
 ADD . ./
 
+# Force add tartget platform in case 
+# rust-toolchain file contains version other than 'stable'.
+# Otherwise it's noop.
+RUN rustup target add armv7-unknown-linux-musleabihf
+
 # Build our application.
 RUN cargo build --release --manifest-path mqttd/Cargo.toml --no-default-features \ 
     && musl-strip /home/rust/src/target/armv7-unknown-linux-musleabihf/release/mqttd
