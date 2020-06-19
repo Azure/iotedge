@@ -52,24 +52,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return true;
             }
 
+            var id1 = match.Groups["id1"];
+            var id2 = match.Groups["id2"];
+
+            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
+
+            var proxy = default(IDeviceListener);
+            var proxyMaybe = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
+
+            if (!proxyMaybe.HasValue)
+            {
+                return true;
+            }
+            else
+            {
+                proxy = proxyMaybe.Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
+            }
+
             foreach (var watcher in this.components.SubscriptionWatchers)
             {
-                var id1 = match.Groups["id1"];
-                var id2 = match.Groups["id2"];
-
-                var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
-
-                var proxy = default(IDeviceListener);
-                try
-                {
-                    proxy = (await this.connectionRegistry.GetUpstreamProxyAsync(identity)).Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
-                }
-                catch (Exception)
-                {
-                    Events.MissingProxy(identity.Id);
-                    return true;
-                }
-
                 foreach (var subscriptionPattern in watcher.WatchedSubscriptions)
                 {
                     var subscribes = false;
@@ -104,14 +105,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             static readonly ILogger Log = Logger.Factory.CreateLogger<SubscriptionChangeHandler>();
 
             enum EventIds
-            {
-                MissingProxy = IdStart,
-                BadPayloadFormat,
+            {             
+                BadPayloadFormat = IdStart,
                 FailedToChangeSubscriptionState,
                 HandlingSubscriptionChange,
             }
 
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing proxy for [{id}]");
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToChangeSubscriptionState(Exception e, string subscription, string id) => Log.LogError((int)EventIds.FailedToChangeSubscriptionState, e, $"Failed to change subscrition status [{subscription}] for [{id}]");
             public static void HandlingSubscriptionChange(string content) => Log.LogDebug((int)EventIds.HandlingSubscriptionChange, $"Handling subscription change [{content}]");
