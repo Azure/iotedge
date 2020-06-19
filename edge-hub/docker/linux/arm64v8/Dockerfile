@@ -1,7 +1,7 @@
 ARG base_tag=1.0.5-linux-arm64v8
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
-ADD ./watchdog/arm64/watchdog /usr/bin/local/watchdog
+ADD ./watchdog/arm64/watchdog /usr/local/bin/watchdog
 ADD ./mqtt/arm64/mqttd /usr/local/bin/mqttd
 
 ARG EXE_DIR=.

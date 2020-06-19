@@ -98,9 +98,9 @@ if [ -z "$DOCKER_IMAGE" ]; then
 fi
 
 case "$PACKAGE_ARCH" in
-    # TODO: Does this apply / work for alpine?
     'amd64')
         MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i'"
+        RUST_TARGET='x86_64-unknown-linux-musl'
         ;;
 
     'arm32v7')
@@ -125,6 +125,7 @@ fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
     alpine.amd64)
+        # TODO: How do we handle these important dependencies so that they get updated?
         # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/master/Dockerfile.
         # The beginning of the below setup specifies versions for other dependencies.
         # Here are the places to check for new releases:
@@ -133,6 +134,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         # - https://github.com/EmbarkStudios/cargo-about/releases
         # - https://github.com/EmbarkStudios/cargo-deny/releases
         SETUP_COMMAND=$'
+            OPENSSL_VERSION=1.1.1g
             MDBOOK_VERSION=0.3.7
             CARGO_ABOUT_VERSION=0.2.2
             CARGO_DENY_VERSION=0.6.7
@@ -319,6 +321,7 @@ case "$PACKAGE_OS" in
     *)
         case "$PACKAGE_ARCH" in
             amd64)
+                MAKE_FLAGS="'CARGOFLAGS=--target x86_64-unknown-linux-musl'"
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
@@ -350,12 +353,12 @@ docker run --rm \
 
         $SETUP_COMMAND
 
+        cd /project/$BUILD_PATH && 
         echo 'Installing rustup' &&
         curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
         . ~/.cargo/env &&
 
         # build artifacts
-        cd /project/$BUILD_PATH &&
         $RUST_TARGET_COMMAND
         $MAKE_COMMAND
     "

@@ -36,4 +36,4 @@ COPY --from=builder \
 
 USER mqttduser
 
-ENTRYPOINT ["/usr/local/bin/mqttd"]
+CMD sleep 1000

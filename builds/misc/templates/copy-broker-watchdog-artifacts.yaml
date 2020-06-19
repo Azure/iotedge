@@ -12,10 +12,10 @@ steps:
   - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32'
   - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64'
 
-  - bash: cp mqtt/target/release/mqttd target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
-  - bash: cp mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
-  - bash: cp mqtt/target/aarch64-unknown-linux-gnu/release/mqttd target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
+  - bash: cp mqtt/target/target/x86_64-unknown-linux-musl/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
+  - bash: cp mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
+  - bash: cp mqtt/target/aarch64-unknown-linux-gnu/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
 
-  - bash: cp edge-hub/watchdog/linux/target/release/watchdog target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
-  - bash: cp edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/watchdog target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
-  - bash: cp edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/watchdog target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
+  - bash: cp edge-hub/watchdog/linux/target/x86_64-unknown-linux-musl/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
+  - bash: cp edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
+  - bash: cp edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
