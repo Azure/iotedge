@@ -15,7 +15,6 @@
         "max_message_size": "256kb",
         "max_inflight_messages": 16,
         "max_queued_messages": 1000,
-        "max_queued_size": "10mb",
         "when_full": "drop_new"
     }
 }

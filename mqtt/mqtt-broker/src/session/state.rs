@@ -1,7 +1,7 @@
 use std::{
     cmp,
     collections::{HashMap, HashSet, VecDeque},
-    num::{NonZeroU64, NonZeroUsize},
+    num::NonZeroUsize,
 };
 
 use tracing::debug;
@@ -344,18 +344,18 @@ impl From<SessionState> for SessionSnapshot {
 pub(super) struct BoundedQueue {
     inner: VecDeque<proto::Publication>,
     max_len: Option<NonZeroUsize>,
-    max_size: Option<NonZeroU64>,
+    max_size: Option<NonZeroUsize>,
     when_full: QueueFullAction,
-    current_size: u64,
+    current_size: usize,
 }
 
 impl BoundedQueue {
     pub fn new(
         max_len: Option<NonZeroUsize>,
-        max_size: Option<NonZeroU64>,
+        max_size: Option<NonZeroUsize>,
         when_full: QueueFullAction,
     ) -> Self {
-        BoundedQueue {
+        Self {
             inner: VecDeque::new(),
             max_len,
             max_size,
@@ -371,7 +371,7 @@ impl BoundedQueue {
     pub fn dequeue(&mut self) -> Option<proto::Publication> {
         match self.inner.pop_front() {
             Some(publication) => {
-                self.current_size -= publication.payload.len() as u64;
+                self.current_size -= publication.payload.len();
                 Some(publication)
             }
             None => None,
@@ -386,13 +386,13 @@ impl BoundedQueue {
         }
 
         if let Some(max_size) = self.max_size {
-            let pub_len = publication.payload.len() as u64;
+            let pub_len = publication.payload.len();
             if self.current_size + pub_len > max_size.get() {
                 return self.handle_queue_limit(publication);
             }
         }
 
-        self.current_size += publication.payload.len() as u64;
+        self.current_size += publication.payload.len();
         self.inner.push_back(publication);
     }
 
@@ -413,7 +413,7 @@ impl BoundedQueue {
             }
             QueueFullAction::DropOld => {
                 let _ = self.dequeue();
-                self.current_size += publication.payload.len() as u64;
+                self.current_size += publication.payload.len();
                 self.inner.push_back(publication);
             }
         };
@@ -436,7 +436,10 @@ mod tests {
     use mqtt3::proto;
 
     use super::SessionState;
-    use crate::{configuration::QueueFullAction, ClientId, SessionConfig, Subscription};
+    use crate::{
+        configuration::{HumanSize, QueueFullAction},
+        ClientId, SessionConfig, Subscription,
+    };
 
     #[test]
     fn test_publish_to_inflight() {
@@ -447,10 +450,10 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             max_queued,
-            0,
+            None,
             QueueFullAction::DropNew,
         );
 
@@ -476,10 +479,10 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             max_queued,
-            0,
+            None,
             QueueFullAction::DropNew,
         );
 
@@ -506,10 +509,10 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             max_queued,
-            0,
+            None,
             QueueFullAction::DropNew,
         );
 
@@ -544,15 +547,15 @@ mod tests {
     fn test_publish_to_drops_new_message_when_queue_size_limit_reached() {
         let client_id = ClientId::from("id1");
         let max_inflight = 2;
-        let max_size = 10;
+        let max_size = HumanSize::new(10);
         let topic = "topic/new";
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             0,
-            max_size,
+            Some(max_size),
             QueueFullAction::DropNew,
         );
 
@@ -591,10 +594,10 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             max_queued,
-            0,
+            None,
             QueueFullAction::DropOld,
         );
 
@@ -629,15 +632,15 @@ mod tests {
     fn test_publish_to_drops_old_message_when_queue_size_limit_reached() {
         let client_id = ClientId::from("id1");
         let max_inflight = 2;
-        let max_size = 10;
+        let max_size = HumanSize::new(10);
         let topic = "topic/new";
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             0,
-            max_size,
+            Some(max_size),
             QueueFullAction::DropOld,
         );
 
@@ -677,10 +680,10 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             max_queued,
-            0,
+            None,
             QueueFullAction::DropOld,
         );
 
@@ -720,10 +723,10 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             max_queued,
-            0,
+            None,
             QueueFullAction::DropNew,
         );
 
@@ -750,10 +753,10 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             max_inflight,
             max_queued,
-            0,
+            None,
             QueueFullAction::DropNew,
         );
 
