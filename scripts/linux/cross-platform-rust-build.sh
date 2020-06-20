@@ -13,6 +13,7 @@ usage()
     echo "options"
     echo " --os                Desired os for build"
     echo " --arch              Desired arch for build"
+    echo " --build-path              Desired arch for build"
     echo " -h, --help          Print this help and exit."
     exit 1;
 }
@@ -50,6 +51,7 @@ process_args "$@"
 
 [[ -z "$PACKAGE_OS" ]] && { print_error 'OS is a required parameter'; exit 1; }
 [[ -z "$PACKAGE_ARCH" ]] && { print_error 'Arch is a required parameter'; exit 1; }
+[[ -z "$BUILD_PATH" ]] && { print_error 'Build path is a required parameter'; exit 1; }
 
 set -e
 
@@ -188,17 +190,17 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             sudo make install && \
             sudo rm /usr/local/musl/include/linux /usr/local/musl/include/asm /usr/local/musl/include/asm-generic && \
             rm -r /tmp/*
-            OPENSSL_DIR=/usr/local/musl/ \
-            OPENSSL_INCLUDE_DIR=/usr/local/musl/include/ \
-            DEP_OPENSSL_INCLUDE=/usr/local/musl/include/ \
-            OPENSSL_LIB_DIR=/usr/local/musl/lib/ \
-            OPENSSL_STATIC=1 \
-            PQ_LIB_STATIC_X86_64_UNKNOWN_LINUX_MUSL=1 \
-            PG_CONFIG_X86_64_UNKNOWN_LINUX_GNU=/usr/bin/pg_config \
-            PKG_CONFIG_ALLOW_CROSS=true \
-            PKG_CONFIG_ALL_STATIC=true \
-            LIBZ_SYS_STATIC=1 \
-            TARGET=musl
+            export OPENSSL_DIR=/usr/local/musl/
+            export OPENSSL_INCLUDE_DIR=/usr/local/musl/include/
+            export DEP_OPENSSL_INCLUDE=/usr/local/musl/include/
+            export OPENSSL_LIB_DIR=/usr/local/musl/lib/
+            export OPENSSL_STATIC=1
+            export PQ_LIB_STATIC_X86_64_UNKNOWN_LINUX_MUSL=1
+            export PG_CONFIG_X86_64_UNKNOWN_LINUX_GNU=/usr/bin/pg_config
+            export PKG_CONFIG_ALLOW_CROSS=true
+            export PKG_CONFIG_ALL_STATIC=true
+            export LIBZ_SYS_STATIC=1
+            export TARGET=musl
         '
         ;;
 
