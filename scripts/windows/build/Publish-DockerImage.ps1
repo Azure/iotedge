@@ -88,7 +88,6 @@ if ($BaseTag) {
 }
 $BuildCommand = "docker build $BuildOptions $ProjectDirectory"
 Write-Host "Running docker build."
-
 Invoke-Expression $BuildCommand
 if ($LASTEXITCODE) {
     throw "'$BuildCommand' failed with exit code $LASTEXITCODE."
