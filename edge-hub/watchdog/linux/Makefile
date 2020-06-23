@@ -3,6 +3,7 @@ CARGOFLAGS=--manifest-path=$(SRCDIR)/Cargo.toml
 CARGO=cargo
 SRCDIR?=.
 
+# TODO: should we have a make target that doesn't build release?
 all:
 	$(CARGO) build $(CARGOFLAGS)
 
