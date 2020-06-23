@@ -1,6 +1,5 @@
 extern crate nix;
 
-// TODO: standardize imports
 use signal_hook::{iterator::Signals, SIGTERM};
 use std::{error::Error, thread};
 use std::process::{Command, Stdio, Child};
@@ -13,6 +12,16 @@ use nix::sys::signal::{self, Signal};
 const LOG_HEADER: &'static str = "[WATCHDOG]:";
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let signals = Signals::new(&[SIGTERM])?;
+    let has_received_sigterm = Arc::new(AtomicBool::new(true));
+    let sigterm_listener = has_received_sigterm.clone();
+    thread::spawn(move || {
+        for _sig in signals.forever() {
+            println!("{:?} Received SIGTERM for watchdog", LOG_HEADER);
+            sigterm_listener.store(false, Ordering::Relaxed);
+        }
+    });
+
     let mut edgehub = Command::new("dotnet")
             .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
             .stdout(Stdio::inherit())
@@ -23,16 +32,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             .stdout(Stdio::inherit())
             .spawn()
             .expect("failed to execute MQTT broker process");
-   
-    let signals = Signals::new(&[SIGTERM])?;
-    let has_received_sigterm = Arc::new(AtomicBool::new(true));
-    let sigterm_listener = has_received_sigterm.clone();
-    thread::spawn(move || {
-        for _sig in signals.forever() {
-            println!("{:?} Received SIGTERM for watchdog", LOG_HEADER);
-            sigterm_listener.store(false, Ordering::Relaxed);
-        }
-    });
 
     println!("{:?} launched Edge Hub process with pid {:?}", LOG_HEADER, edgehub.id());
     println!("{:?} launched MQTT Broker process with pid {:?}", LOG_HEADER, broker.id());
@@ -75,11 +74,11 @@ fn shutdown(mut edgehub: &mut Child, mut broker: &mut Child) {
     is_edgehub_running = is_child_process_running(&mut edgehub);
     is_broker_running = is_child_process_running(&mut broker);
     if is_edgehub_running {
-        println!("Killing Edge Hub");
+        println!("{:?} Killing Edge Hub", LOG_HEADER);
         edgehub.kill().unwrap();
     }
     if !is_broker_running {
-        println!("Killing MQTT Broker");
+        println!("{:?} Killing MQTT Broker", LOG_HEADER);
         broker.kill().unwrap();
     }
 }
