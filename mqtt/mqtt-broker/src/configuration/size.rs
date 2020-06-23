@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer};
 pub struct HumanSize(usize);
 
 impl HumanSize {
-    pub const fn new(bytes: usize) -> Self {
+    pub const fn new_bytes(bytes: usize) -> Self {
         Self(bytes)
     }
 
@@ -47,7 +47,7 @@ impl FromStr for HumanSize {
             .map_err(|_| ParseHumanSizeError::Value(captures[1].to_string()))?;
 
         match captures[2].to_lowercase().as_str() {
-            "b" => Ok(Some(Self::new(value))),
+            "b" => Ok(Some(Self::new_bytes(value))),
             "kb" => Ok(Self::new_kilobytes(value)),
             "mb" => Ok(Self::new_megabytes(value)),
             "gb" => Ok(Self::new_gigabytes(value)),
@@ -96,12 +96,12 @@ mod tests {
 
     #[test]
     fn it_creates_size() {
-        assert_eq!(HumanSize::new(1000).get(), 1000);
-        assert_eq!(HumanSize::new(usize::MAX).get(), usize::MAX);
+        assert_eq!(HumanSize::new_bytes(1000).get(), 1000);
+        assert_eq!(HumanSize::new_bytes(usize::MAX).get(), usize::MAX);
 
         assert_eq!(
             HumanSize::new_kilobytes(1000),
-            Some(HumanSize::new(1000 * 1024))
+            Some(HumanSize::new_bytes(1000 * 1024))
         );
         assert_eq!(HumanSize::new_kilobytes(usize::MAX), None);
         assert_eq!(
@@ -116,7 +116,7 @@ mod tests {
         assert_eq!(HumanSize::new_gigabytes(usize::MAX), None);
     }
 
-    #[test_case("123b", HumanSize::new(123); "when using bytes")]
+    #[test_case("123b", HumanSize::new_bytes(123); "when using bytes")]
     #[test_case("123kb", HumanSize::new_kilobytes(123).unwrap(); "when using kilobytes")]
     #[test_case("123mb", HumanSize::new_megabytes(123).unwrap(); "when using megabytes")]
     #[test_case("123gb", HumanSize::new_gigabytes(123).unwrap(); "when using gigabytes")]

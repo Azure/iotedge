@@ -547,7 +547,7 @@ mod tests {
     fn test_publish_to_drops_new_message_when_queue_size_limit_reached() {
         let client_id = ClientId::from("id1");
         let max_inflight = 2;
-        let max_size = HumanSize::new(10);
+        let max_size = HumanSize::new_bytes(10);
         let topic = "topic/new";
 
         let config = SessionConfig::new(
@@ -632,7 +632,7 @@ mod tests {
     fn test_publish_to_drops_old_message_when_queue_size_limit_reached() {
         let client_id = ClientId::from("id1");
         let max_inflight = 2;
-        let max_size = HumanSize::new(10);
+        let max_size = HumanSize::new_bytes(10);
         let topic = "topic/new";
 
         let config = SessionConfig::new(
