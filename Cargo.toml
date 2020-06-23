@@ -1,0 +1,15 @@
+[package]
+name = "secret-store"
+version = "0.1.0"
+authors = ["R25l84IHeXjIxy6HO1QXn0y0Dq9mt8EN <67037013+R25l84IHeXjIxy6HO1QXn0y0Dq9mt8EN@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bindgen = "^0.54"
+bytes = "^0.5"
+hyper = "^0.13"
+hyper-tls = "^0.4"
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
