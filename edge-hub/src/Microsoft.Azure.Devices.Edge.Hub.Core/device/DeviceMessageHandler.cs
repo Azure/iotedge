@@ -26,14 +26,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         readonly IConnectionManager connectionManager;
         readonly TimeSpan messageAckTimeout;
         readonly AsyncLock serializeMessagesLock = new AsyncLock();
+        readonly Option<string> modelId;
         IDeviceProxy underlyingProxy;
 
-        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, TimeSpan messageAckTimeout)
+        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, TimeSpan messageAckTimeout, Option<string> modelId)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageAckTimeout = messageAckTimeout;
+            this.modelId = modelId;
         }
 
         public IIdentity Identity { get; }
@@ -179,9 +181,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        public Task ProcessDeviceMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);
+        public Task ProcessDeviceMessageAsync(IMessage message)
+        {
+            this.modelId.ForEach(modelId => message.SystemProperties[SystemProperties.ModelId] = modelId);
+            return this.edgeHub.ProcessDeviceMessage(this.Identity, message);
+        }
 
-        public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> messages) => this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messages);
+        public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> messages)
+        {
+            this.modelId.ForEach(modelId =>
+            {
+                foreach (IMessage message in messages)
+                {
+                    message.SystemProperties[SystemProperties.ModelId] = modelId;
+                }
+            });
+
+            return this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messages);
+        }
 
         public async Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId)
         {

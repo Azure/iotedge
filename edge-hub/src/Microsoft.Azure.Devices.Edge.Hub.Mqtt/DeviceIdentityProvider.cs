@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     {
         const string ApiVersionKey = "api-version";
         const string DeviceClientTypeKey = "DeviceClientType";
+        const string ModelIdKey = "digital-twin-model-id";
         readonly IAuthenticator authenticator;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(username, nameof(username));
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
-                (string deviceId, string moduleId, string deviceClientType) = ParseUserName(username);
+                (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = ParseUserName(username);
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
@@ -88,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, deviceClientType);
                 Events.Success(clientId, username);
-                return new ProtocolGatewayIdentity(deviceCredentials);
+                return new ProtocolGatewayIdentity(deviceCredentials, modelId);
             }
             catch (Exception ex)
             {
@@ -103,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.remoteCertificateChain = Preconditions.CheckNotNull(chain, nameof(chain));
         }
 
-        internal static (string deviceId, string moduleId, string deviceClientType) ParseUserName(string username)
+        internal static (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) ParseUserName(string username)
         {
             // Username is of one of the 2 forms:
             //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "/?" properties
@@ -112,9 +113,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "/" properties
             //   properties = property *("&" property)
             //   property   = name "=" value
-            // We recognize two property names:
+            // We recognize three property names:
             //   "api-version" [mandatory]
             //   "DeviceClientType" [optional]
+            //   "digital-twin-model-id" [optional]
             // We ignore any properties we don't recognize.
             // Note - this logic does not check the query parameters for special characters, and '?' is treated as a valid value
             // and not used as a separator, unless it is the first character of the last segment
@@ -198,7 +200,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 deviceClientType = string.Empty;
             }
 
-            return (deviceId, moduleId, deviceClientType);
+            Option<string> modelIdOption = Option.None<string>();
+            if (queryParameters.TryGetValue(ModelIdKey, out string modelId) && !string.IsNullOrWhiteSpace(modelId))
+            {
+                modelIdOption = Option.Some(modelId);
+            }
+
+            return (deviceId, moduleId, deviceClientType, modelIdOption);
         }
 
         static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)
