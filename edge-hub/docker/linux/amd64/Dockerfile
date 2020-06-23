@@ -27,7 +27,6 @@ WORKDIR /app
 
 # Copy edge hub artifacts and remove unnecessary items, leaving just edge hub core dlls
 COPY $EXE_DIR/ ./
-RUN rm -rf docker watchdog mqtt
 
 # Set broker log level
 ENV RUST_LOG=info
