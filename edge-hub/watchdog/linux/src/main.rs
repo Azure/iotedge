@@ -1,47 +1,18 @@
 extern crate nix;
 
 // TODO: standardize imports
+use signal_hook::{iterator::Signals, SIGTERM};
+use std::{error::Error, thread};
 use std::process::{Command, Stdio, Child};
 use std::sync::{Arc};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use nix::unistd::Pid;
 use nix::sys::signal::{self, Signal};
-use std::{error::Error, thread};
-use signal_hook::{iterator::Signals, SIGTERM};
-use std::sync::atomic::{AtomicBool, Ordering};
 
-fn shutdown(edgehub: &mut Child, broker: &mut Child) {
-    println!("Initiating shutdown of broker and edgehub");
-
-    let mut is_edgehub_stopped = edgehub.try_wait().unwrap().is_some();
-    let mut is_broker_stopped = broker.try_wait().unwrap().is_some();
-    if !is_edgehub_stopped {
-        signal::kill(Pid::from_raw(edgehub.id() as i32), Signal::SIGTERM).unwrap();
-        println!("sigterm edgehub");
-    }
-    if !is_broker_stopped {
-        signal::kill(Pid::from_raw(broker.id() as i32), Signal::SIGTERM).unwrap();
-        println!("sigterm broker");
-    }
-    thread::sleep(Duration::from_secs(10)); // TODO: configure wait time
-
-    // TODO: we need to unwrap signal::kill at least to verify if end sigkill succeeded. How do we do this guaranteeing no panic from already killed process (i.e. from earlier slow sigterm)
-    is_edgehub_stopped = edgehub.try_wait().unwrap().is_some();
-    is_broker_stopped = broker.try_wait().unwrap().is_some();
-    if !is_edgehub_stopped {
-        println!("kill edgehub");
-        edgehub.kill().unwrap();
-    }
-    if !is_broker_stopped {
-        println!("kill broker");
-        broker.kill().unwrap();
-    }
-
-    is_edgehub_stopped = edgehub.try_wait().unwrap().is_some();
-    is_broker_stopped = edgehub.try_wait().unwrap().is_some();
-    println!("edgehub stopped: {:?}", is_edgehub_stopped);
-    println!("broker stopped: {:?}", is_broker_stopped);
-}
+// TODO: should we set up logging more formally with dependency
+// TODO: if not, then we can add info / error
+const LOG_HEADER: &'static str = "[WATCHDOG]:";
 
 fn main() -> Result<(), Box<dyn Error>> {
     // TODO: find way to clean up
@@ -50,33 +21,33 @@ fn main() -> Result<(), Box<dyn Error>> {
             .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
             .stdout(Stdio::inherit())
             .spawn()
-            .expect("failed to execute process");
+            .expect("failed to execute Edge Hub process");
     
     let mut broker = Command::new("/usr/local/bin/mqttd")
             .stdout(Stdio::inherit())
             .spawn()
-            .expect("failed to execute process");
+            .expect("failed to execute MQTT broker process");
    
     // TODO: confirm desirable to wait for edgehub and broker processes to be created first
     let signals = Signals::new(&[SIGTERM])?;
-    let should_main_process_continue = Arc::new(AtomicBool::new(true));
-    let should_main_process_continue_listener = should_main_process_continue.clone();
+    let has_received_sigterm = Arc::new(AtomicBool::new(true));
+    let sigterm_listener = has_received_sigterm.clone();
     thread::spawn(move || {
-        for sig in signals.forever() {
-            println!("Received signal {:?}", sig);
-            should_main_process_continue_listener.store(false, Ordering::Relaxed); // TODO: figure out best ordering
+        for _sig in signals.forever() {
+            println!("{:?} Received SIGTERM for watchdog", LOG_HEADER);
+            sigterm_listener.store(false, Ordering::Relaxed); // TODO: figure out best Ordering
         }
     });
 
-    println!("{:?}", edgehub.id());
-    println!("{:?}", broker.id());
+    println!("{:?} launched Edge Hub process with pid {:?}", LOG_HEADER, edgehub.id());
+    println!("{:?} launched MQTT Broker process with pid {:?}", LOG_HEADER, broker.id());
     let mut is_edgehub_running: bool = !edgehub.try_wait().unwrap().is_some(); // TODO: extract logic into func
     let mut is_broker_running: bool = !broker.try_wait().unwrap().is_some();
-    while should_main_process_continue.load(Ordering::Relaxed) && is_edgehub_running && is_broker_running {
-        is_edgehub_running = !edgehub.try_wait().unwrap().is_some(); // TODO: don't define this var twice
-        is_broker_running = !broker.try_wait().unwrap().is_some();
+    while has_received_sigterm.load(Ordering::Relaxed) && is_edgehub_running && is_broker_running {
+        is_edgehub_running = is_child_process_running(&mut edgehub);
+        is_broker_running = is_child_process_running(&mut broker);
 
-        thread::sleep(Duration::from_secs(4)); // TODO: configure wait time
+        thread::sleep(Duration::from_secs(4)); // TODO: configure wait time for poll
     }
 
     shutdown(&mut edgehub, &mut broker);
@@ -84,3 +55,38 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Exiting");
     Ok(())
 }
+
+fn is_child_process_running(child_process: &mut Child) -> bool
+{
+    return !child_process.try_wait().unwrap().is_some();
+}
+
+fn shutdown(mut edgehub: &mut Child, mut broker: &mut Child) {
+    println!("{:?} Initiating shutdown of MQTT Broker and Edge Hub", LOG_HEADER);
+
+    let mut is_edgehub_running = is_child_process_running(&mut edgehub);
+    let mut is_broker_running = is_child_process_running(&mut broker);
+    if is_edgehub_running {
+        println!("{:?} Sending SIGTERM to Edge Hub", LOG_HEADER);
+        signal::kill(Pid::from_raw(edgehub.id() as i32), Signal::SIGTERM).unwrap();
+    }
+    if is_broker_running {
+        println!("{:?} Sending SIGTERM to MQTT Broker", LOG_HEADER);
+        signal::kill(Pid::from_raw(broker.id() as i32), Signal::SIGTERM).unwrap();
+    }
+
+    thread::sleep(Duration::from_secs(10)); // TODO: configure wait time
+
+    // TODO: we need to unwrap signal::kill at least to verify if end sigkill succeeded. How do we do this guaranteeing no panic from already killed process (i.e. from earlier slow sigterm)
+    is_edgehub_running = is_child_process_running(&mut edgehub);
+    is_broker_running = is_child_process_running(&mut broker);
+    if is_edgehub_running {
+        println!("Killing Edge Hub");
+        edgehub.kill().unwrap();
+    }
+    if !is_broker_running {
+        println!("Killing MQTT Broker");
+        broker.kill().unwrap();
+    }
+}
+
