@@ -1,7 +1,7 @@
+ARG base_tag=3.1.4-alpine3.11
 FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as hub-builder
 
-# TODO: figure out why we cannot use arg directly
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.4-alpine3.11
+FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 ENV RUST_LOG=info
 EXPOSE 1883/tcp
