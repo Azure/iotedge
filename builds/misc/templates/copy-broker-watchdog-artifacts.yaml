@@ -5,12 +5,12 @@
 # EdgeHub's dotnet target folder will serve as a minimal build context for the image
 steps:
   - bash: |
-      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
-      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
-      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
-      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
-      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
-      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
+      mkdir -p $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
+      mkdir -p $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
+      mkdir -p $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
+      mkdir -p $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
+      mkdir -p $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
+      mkdir -p $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
       cp edge-hub/watchdog/linux/target/x86_64-unknown-linux-musl/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
       cp edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
       cp edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
