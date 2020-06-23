@@ -11,6 +11,7 @@ WORKDIR /app
 COPY $EXE_DIR/ ./
 
 # Expose MQTT, AMQP and HTTPS ports
+EXPOSE 1883/tcp
 EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp

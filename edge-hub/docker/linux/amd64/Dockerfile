@@ -34,11 +34,13 @@ COPY $EXE_DIR/ ./
 RUN rm -rf docker watchdog mqtt
 
 # Expose MQTT, AMQP and HTTPS ports	
+EXPOSE 1883/tcp
 EXPOSE 8883/tcp	
 EXPOSE 5671/tcp	
 EXPOSE 443/tcp	
 
 USER edgehubuser	
 
+# TODO: fix broker state persistence
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
     /usr/local/bin/watchdog
