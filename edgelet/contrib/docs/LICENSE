@@ -14,7 +14,7 @@ devices or applications to copy and distribute the software as embedded in
 your devices or applications.
 	a)	Distribution Requirements. For any code you distribute, you must:
 		i. require distributors and external end users to agree to terms that protect it and Microsoft at least as much as this agreement; and
-		ii. indemnify, defend, and hold harmless Microsoft from any claims, including attorneys’ fees, related to the distribution or use of your devices, except to the extent that any claim is based solely on the unmodified distributable code.
+		ii. indemnify, defend, and hold harmless Microsoft from any claims, including attorneys’ fees, related to the distribution or use of your devices or applications, except to the extent that any claim is based solely on the unmodified distributable code.
 	b)	Distribution Restrictions. You may not:
 		i. use Microsoft’s trademarks or trade dress in your device or application in any way that suggests your device or application comes from or is endorsed by Microsoft (unless your device or application is certified by Microsoft pursuant to a formal certification program and subject to separate agreement); or
 		ii. modify or distribute the source code made available with the software so that any part of it becomes subject to any license that requires that any part of the software, or any of Microsoft’s other intellectual property be disclosed or distributed in source code form, or that others have the right to modify it.
