@@ -24,7 +24,7 @@ impl HumanSize {
         gigabytes.checked_mul(1024 * 1024 * 1024).map(Self)
     }
 
-    pub const fn get(&self) -> usize {
+    pub const fn get(self) -> usize {
         self.0
     }
 }
