@@ -4,18 +4,17 @@
 # This template will move the mqtt and watchdog artifacts into the EdgeHub dotnet publish folder
 # EdgeHub's dotnet target folder will serve as a minimal build context for the image
 steps:
-  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64'
-  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32'
-  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64'
-
-  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64'
-  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32'
-  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64'
-
-  - bash: cp mqtt/target/target/x86_64-unknown-linux-musl/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
-  - bash: cp mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
-  - bash: cp mqtt/target/aarch64-unknown-linux-gnu/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
-
-  - bash: cp edge-hub/watchdog/linux/target/x86_64-unknown-linux-musl/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
-  - bash: cp edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
-  - bash: cp edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
+  - bash: |
+      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
+      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
+      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
+      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
+      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
+      mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
+      cp edge-hub/watchdog/linux/target/x86_64-unknown-linux-musl/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64
+      cp edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm32
+      cp edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/watchdog $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/arm64
+      cp mqtt/target/x86_64-unknown-linux-musl/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
+      cp mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
+      cp mqtt/target/aarch64-unknown-linux-gnu/release/mqttd $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
+    displayName: Copy watchdog and broker artifacts to dockerfile build context
