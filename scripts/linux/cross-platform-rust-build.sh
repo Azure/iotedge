@@ -9,12 +9,14 @@
 usage()
 {
     echo "$SCRIPT_NAME [options]"
+    echo "This script is used for building a few rust components (i.e. broker, edge hub watchdog)."
+    echo "The logic here is similar to the edgelet packaging."
     echo ""
     echo "options"
-    echo " --os                Desired os for build"
-    echo " --arch              Desired arch for build"
+    echo " --os                      Desired os for build"
+    echo " --arch                    Desired arch for build"
     echo " --build-path              Desired arch for build"
-    echo " -h, --help          Print this help and exit."
+    echo " -h, --help                Print this help and exit."
     exit 1;
 }
 
@@ -61,6 +63,8 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}")"
 
 REVISION="${REVISION:-1}"
+
+# TODO: We won't need if we are removing the DPACK used for iotedged packaging
 DEFAULT_VERSION="1.0.0"
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
@@ -341,6 +345,7 @@ case "$PACKAGE_OS" in
         ;;
 esac
 
+# TODO: why do we have to manually specify release here
 docker run --rm \
     --user root \
     -e 'USER=root' \
