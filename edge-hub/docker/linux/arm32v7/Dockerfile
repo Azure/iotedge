@@ -9,6 +9,10 @@ ARG EXE_DIR=.
 WORKDIR /app
 
 COPY $EXE_DIR/ ./
+RUN rm -rf docker watchdog mqtt
+
+# Set broker log level
+ENV RUST_LOG=info
 
 # Expose MQTT, AMQP and HTTPS ports
 EXPOSE 1883/tcp
