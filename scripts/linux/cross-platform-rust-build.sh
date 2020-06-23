@@ -78,19 +78,11 @@ case "$PACKAGE_OS" in
         DOCKER_IMAGE='ubuntu:18.04'
         ;;
 
-    'ubuntu16.04')
-        DOCKER_IMAGE='ubuntu:16.04'
-
-        # TODO: Do we need?
-        # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
-        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION-$REVISION'"
-        CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.0.0'"
-        ;;
-
     'ubuntu18.04')
         DOCKER_IMAGE='ubuntu:18.04'
 
+        # TODO: Do we need?
+        # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
         CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
         CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
         CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
@@ -208,7 +200,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu16.04.amd64|ubuntu18.04.amd64)
+    ubuntu18.04.amd64)
         SETUP_COMMAND=$'
             apt-get update &&
             apt-get upgrade -y &&
@@ -219,7 +211,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu16.04.arm32v7|ubuntu18.04.arm32v7)
+    ubuntu18.04.arm32v7)
         SETUP_COMMAND=$'
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
@@ -230,20 +222,6 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                     -e \'s| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
                     -e \'s| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
                     >> /etc/apt/sources.list &&
-        '
-        case "$PACKAGE_OS" in
-            ubuntu16.04)
-                SETUP_COMMAND="
-                    $SETUP_COMMAND
-
-                    # Add 14.04 repos because 16.04\'s libc6-dev:armhf cannot coexist with libc6-dev
-                    echo 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ trusty main universe' > /etc/apt/sources.list.d/trusty.list &&
-                    echo 'deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports/ trusty main universe' >> /etc/apt/sources.list.d/trusty.list &&
-                "
-                ;;
-        esac
-        SETUP_COMMAND="
-            $SETUP_COMMAND
 
             dpkg --add-architecture armhf &&
             apt-get update &&
@@ -259,7 +237,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             echo 'linker = \"arm-linux-gnueabihf-gcc\"' >> ~/.cargo/config &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_LIB_DIR=/usr/lib/arm-linux-gnueabihf &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include &&
-        "
+        '
 
         # Indicate to cmake that we're cross-compiling
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1"
@@ -268,7 +246,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++"
         ;;
 
-    ubuntu16.04.aarch64|ubuntu18.04.aarch64)
+    ubuntu18.04.aarch64)
         SETUP_COMMAND=$'
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
             # Update existing repos to be specifically for amd64
@@ -279,20 +257,6 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                     -e \'s| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
                     -e \'s| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
                     >> /etc/apt/sources.list &&
-        '
-        case "$PACKAGE_OS" in
-            ubuntu16.04)
-                SETUP_COMMAND="
-                    $SETUP_COMMAND
-
-                    # Add 14.04 repos because 16.04\'s libc6-dev:arm64 cannot coexist with libc6-dev
-                    echo 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ trusty main universe' > /etc/apt/sources.list.d/trusty.list &&
-                    echo 'deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ trusty main universe' >> /etc/apt/sources.list.d/trusty.list &&
-                "
-                ;;
-        esac
-        SETUP_COMMAND="
-            $SETUP_COMMAND
 
             dpkg --add-architecture arm64 &&
             apt-get update &&
@@ -308,7 +272,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             echo 'linker = \"aarch64-linux-gnu-gcc\"' >> ~/.cargo/config &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
-        "
+        '
 
         # Indicate to cmake that we're cross-compiling
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1"
