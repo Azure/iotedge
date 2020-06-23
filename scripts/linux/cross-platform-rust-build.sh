@@ -158,7 +158,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             sudo ln -s /usr/include/x86_64-linux-gnu/asm /usr/local/musl/include/asm && \
             sudo ln -s /usr/include/asm-generic /usr/local/musl/include/asm-generic && \
             cd /tmp && \
-            short_version="$(echo "$OPENSSL_VERSION" | sed s'/[a-z]$//' )" && \
+            short_version="$(echo "$OPENSSL_VERSION" | sed s\'/[a-z]$//\' )" && \
             curl -fLO "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz" || \
                 curl -fLO "https://www.openssl.org/source/old/$short_version/openssl-$OPENSSL_VERSION.tar.gz" && \
             tar xvzf "openssl-$OPENSSL_VERSION.tar.gz" && cd "openssl-$OPENSSL_VERSION" && \
@@ -215,8 +215,8 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 libcurl4-openssl-dev:armhf libssl-dev:armhf uuid-dev:armhf &&
 
             mkdir -p ~/.cargo &&
-            echo '[target.armv7-unknown-linux-gnueabihf]' > ~/.cargo/config &&
-            echo 'linker = \"arm-linux-gnueabihf-gcc\"' >> ~/.cargo/config &&
+            echo \'[target.armv7-unknown-linux-gnueabihf]\' > ~/.cargo/config &&
+            echo \'linker = \"arm-linux-gnueabihf-gcc\"\' >> ~/.cargo/config &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_LIB_DIR=/usr/lib/arm-linux-gnueabihf &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include &&
         '
@@ -250,8 +250,8 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 libcurl4-openssl-dev:arm64 libssl-dev:arm64 uuid-dev:arm64 &&
 
             mkdir -p ~/.cargo &&
-            echo '[target.aarch64-unknown-linux-gnu]' > ~/.cargo/config &&
-            echo 'linker = \"aarch64-linux-gnu-gcc\"' >> ~/.cargo/config &&
+            echo \'[target.aarch64-unknown-linux-gnu]\' > ~/.cargo/config &&
+            echo \'linker = \"aarch64-linux-gnu-gcc\"\' >> ~/.cargo/config &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
         '
