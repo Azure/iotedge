@@ -1,7 +1,10 @@
 ARG base_tag=3.1.4-alpine3.11
-FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
+FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as hub-builder
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
+
+ADD ./watchdog/amd64/watchdog /usr/local/bin/watchdog
+ADD ./mqtt/amd64/mqttd /usr/local/bin/mqttd
 
 ARG EXE_DIR=.	
 
@@ -18,18 +21,25 @@ RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser
 RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet	
 
 # Install RocksDB	
-COPY --from=builder publish/* /usr/local/lib/	
+COPY --from=hub-builder publish/* /usr/local/lib/	
 
 WORKDIR /app	
 
-COPY $EXE_DIR/ ./	
+# Copy edge hub artifacts and remove unnecessary items, leaving just edge hub core dlls
+COPY $EXE_DIR/ ./
+RUN rm -rf docker watchdog mqtt
+
+# Set broker log level
+ENV RUST_LOG=info
 
 # Expose MQTT, AMQP and HTTPS ports	
+EXPOSE 1883/tcp
 EXPOSE 8883/tcp	
 EXPOSE 5671/tcp	
 EXPOSE 443/tcp	
 
 USER edgehubuser	
 
-CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \	
-    exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
+# TODO: fix broker state persistence
+CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
+    /usr/local/bin/watchdog
