@@ -1,8 +1,5 @@
-# TODO: var for base paths
-# TODO: strip in dockerfile
-
 # This template will move the mqtt and watchdog artifacts into the EdgeHub dotnet publish folder
-# EdgeHub's dotnet target folder will serve as a minimal build context for the image
+# EdgeHub's dotnet publish folder will serve as a minimal build context for the image
 steps:
   - bash: |
       mkdir -p $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service/watchdog/amd64

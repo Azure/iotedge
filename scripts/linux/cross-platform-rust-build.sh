@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# TODO: remove amd64 steps as they are not for alpine
-# TODO: remove ubuntu 18
-
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
@@ -105,7 +102,6 @@ fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
     alpine.amd64)
-        # TODO: How do we handle these important dependencies so that they get updated?
         # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/master/Dockerfile.
         # The beginning of the below setup specifies versions for other dependencies.
         # Here are the places to check for new releases:
@@ -289,7 +285,6 @@ case "$PACKAGE_OS" in
         ;;
 esac
 
-# TODO: why do we have to manually specify release here
 docker run --rm \
     --user root \
     -e 'USER=root' \

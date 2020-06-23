@@ -10,13 +10,9 @@ use std::time::Duration;
 use nix::unistd::Pid;
 use nix::sys::signal::{self, Signal};
 
-// TODO: should we set up logging more formally with dependency
-// TODO: if not, then we can add info / error
 const LOG_HEADER: &'static str = "[WATCHDOG]:";
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // TODO: find way to clean up
-    // TODO: document fact that tried to clean up duplicated stdout -> expect
     let mut edgehub = Command::new("dotnet")
             .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
             .stdout(Stdio::inherit())
@@ -28,14 +24,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             .spawn()
             .expect("failed to execute MQTT broker process");
    
-    // TODO: confirm desirable to wait for edgehub and broker processes to be created first
     let signals = Signals::new(&[SIGTERM])?;
     let has_received_sigterm = Arc::new(AtomicBool::new(true));
     let sigterm_listener = has_received_sigterm.clone();
     thread::spawn(move || {
         for _sig in signals.forever() {
             println!("{:?} Received SIGTERM for watchdog", LOG_HEADER);
-            sigterm_listener.store(false, Ordering::Relaxed); // TODO: figure out best Ordering
+            sigterm_listener.store(false, Ordering::Relaxed);
         }
     });
 
@@ -47,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         is_edgehub_running = is_child_process_running(&mut edgehub);
         is_broker_running = is_child_process_running(&mut broker);
 
-        thread::sleep(Duration::from_secs(4)); // TODO: configure wait time for poll
+        thread::sleep(Duration::from_secs(4));
     }
 
     shutdown(&mut edgehub, &mut broker);
@@ -75,9 +70,8 @@ fn shutdown(mut edgehub: &mut Child, mut broker: &mut Child) {
         signal::kill(Pid::from_raw(broker.id() as i32), Signal::SIGTERM).unwrap();
     }
 
-    thread::sleep(Duration::from_secs(10)); // TODO: configure wait time
+    thread::sleep(Duration::from_secs(10));
 
-    // TODO: we need to unwrap signal::kill at least to verify if end sigkill succeeded. How do we do this guaranteeing no panic from already killed process (i.e. from earlier slow sigterm)
     is_edgehub_running = is_child_process_running(&mut edgehub);
     is_broker_running = is_child_process_running(&mut broker);
     if is_edgehub_running {

@@ -40,6 +40,5 @@ EXPOSE 443/tcp
 
 USER edgehubuser	
 
-# TODO: fix broker state persistence
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
     /usr/local/bin/watchdog
