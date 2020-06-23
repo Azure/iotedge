@@ -3,10 +3,6 @@ FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as hub-builder
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
-ENV RUST_LOG=info
-EXPOSE 1883/tcp
-EXPOSE 8883/tcp
-
 ADD ./watchdog/amd64/watchdog /usr/local/bin/watchdog
 ADD ./mqtt/amd64/mqttd /usr/local/bin/mqttd
 
@@ -32,6 +28,9 @@ WORKDIR /app
 # Copy edge hub artifacts and remove unnecessary items, leaving just edge hub core dlls
 COPY $EXE_DIR/ ./
 RUN rm -rf docker watchdog mqtt
+
+# Set broker log level
+ENV RUST_LOG=info
 
 # Expose MQTT, AMQP and HTTPS ports	
 EXPOSE 1883/tcp
