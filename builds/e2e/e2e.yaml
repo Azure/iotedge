@@ -131,3 +131,24 @@ jobs:
       displayName: Prefer IPv4
 
     - template: templates/e2e-run.yaml
+
+################################################################################	
+    - job: centos7_amd64
+################################################################################	
+      displayName: CentOs7 amd64
+  
+      pool:
+        name: Azure-IoT-Edge-Core
+        demands:
+          - Agent.OS -equals Linux
+          - Agent.OSArchitecture -equals X64
+          - run-new-e2e-tests -equals true
+  
+      variables:
+        os: centos7
+        arch: amd64
+        artifactName: iotedged-centos7-amd64
+
+      steps:
+      - template: templates/e2e-setup.yaml
+      - template: templates/e2e-run.yaml
