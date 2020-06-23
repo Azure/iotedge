@@ -138,7 +138,7 @@ jobs:
       displayName: CentOs7 amd64
   
       pool:
-        name: Azure-IoT-Edge-Core
+        name: $(pool.name)
         demands:
           - Agent.OS -equals Linux
           - Agent.OSArchitecture -equals X64
