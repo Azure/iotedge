@@ -64,10 +64,6 @@ BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..
 
 REVISION="${REVISION:-1}"
 
-# TODO: We won't need if we are removing the DPACK used for iotedged packaging
-DEFAULT_VERSION="1.0.0"
-VERSION="${VERSION:-$DEFAULT_VERSION}"
-
 CMAKE_ARGS='-DCMAKE_BUILD_TYPE=Release'
 CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid=On -Duse_emulator=Off -Duse_http=Off"
 
@@ -80,13 +76,6 @@ case "$PACKAGE_OS" in
 
     'ubuntu18.04')
         DOCKER_IMAGE='ubuntu:18.04'
-
-        # TODO: Do we need?
-        # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
-        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION'"
-        CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_DEBIAN_PACKAGE_RELEASE=$REVISION'"
-        CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.1'"
         ;;
 esac
 
@@ -97,21 +86,14 @@ fi
 
 case "$PACKAGE_ARCH" in
     'amd64')
-        MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i'"
         RUST_TARGET='x86_64-unknown-linux-musl'
         ;;
 
     'arm32v7')
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=armhf"
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_RPM_PACKAGE_ARCHITECTURE=armv7hl"
-
         RUST_TARGET='armv7-unknown-linux-gnueabihf'
         ;;
 
     'aarch64')
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=arm64"
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_RPM_PACKAGE_ARCHITECTURE=aarch64"
-
         RUST_TARGET='aarch64-unknown-linux-gnu'
         ;;
 esac
@@ -296,16 +278,14 @@ case "$PACKAGE_OS" in
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/armv7-unknown-linux-gnueabihf/release'"
-                MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i --host-arch armhf'"
                 ;;
             aarch64)
                 MAKE_FLAGS="'CARGOFLAGS=--target aarch64-unknown-linux-gnu'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/aarch64-unknown-linux-gnu/release'"
-                MAKE_FLAGS="$MAKE_FLAGS 'DPKGFLAGS=-b -us -uc -i --host-arch arm64 --host-type aarch64-linux-gnu --target-type aarch64-linux-gnu'"
                 ;;
         esac
 
-        MAKE_COMMAND="make release 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
+        MAKE_COMMAND="make release $MAKE_FLAGS"
         ;;
 esac
 
