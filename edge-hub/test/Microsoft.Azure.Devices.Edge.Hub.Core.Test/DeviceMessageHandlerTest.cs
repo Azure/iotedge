@@ -66,6 +66,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        public async Task ProcessMessageAsync_WithModelIdAsyncTest()
+        {
+            var cloudProxy = Mock.Of<ICloudProxy>();
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var identity = Mock.Of<IDeviceIdentity>();
+            var message = new EdgeMessage(new byte[] { }, new Dictionary<string, string>(), new Dictionary<string, string>());
+            Mock.Get(connectionManager).Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy)));
+            var deviceListener = new DeviceMessageHandler(identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.Some("testModelId"));
+            await deviceListener.ProcessDeviceMessageAsync(message);
+
+            Mock.Get(edgeHub).Verify(eh => eh.ProcessDeviceMessage(identity, It.IsAny<IMessage>()), Times.Once());
+            Assert.Equal("testModelId", message.SystemProperties[SystemProperties.ModelId]);
+        }
+
+        [Fact]
         public async Task ProcessMessageBatchAsync_RouteAsyncTest()
         {
             var cloudProxy = Mock.Of<ICloudProxy>();

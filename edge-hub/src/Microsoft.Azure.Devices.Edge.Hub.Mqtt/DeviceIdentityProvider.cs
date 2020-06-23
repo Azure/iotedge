@@ -201,12 +201,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
 
             Option<string> modelIdOption = Option.None<string>();
-            if (queryParameters.TryGetValue(ModelIdKey, out string modelId))
+            if (queryParameters.TryGetValue(ModelIdKey, out string modelId) && !string.IsNullOrWhiteSpace(modelId))
             {
-                if (!string.IsNullOrWhiteSpace(modelId))
-                {
-                    modelIdOption = Option.Some(modelId);
-                }
+                modelIdOption = Option.Some(modelId);
             }
 
             return (deviceId, moduleId, deviceClientType, modelIdOption);
