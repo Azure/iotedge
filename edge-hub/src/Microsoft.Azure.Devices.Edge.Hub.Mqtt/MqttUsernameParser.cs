@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     {
         const string ApiVersionKey = "api-version";
         const string DeviceClientTypeKey = "DeviceClientType";
+        const string ModelIdKey = "digital-twin-model-id";
 
         public ClientInfo Parse(string username)
         {
@@ -21,9 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "/" properties
             //   properties = property *("&" property)
             //   property   = name "=" value
-            // We recognize two property names:
+            // We recognize three property names:
             //   "api-version" [mandatory]
             //   "DeviceClientType" [optional]
+            //   "digital-twin-model-id" [optional] 
             // We ignore any properties we don't recognize.
             // Note - this logic does not check the query parameters for special characters, and '?' is treated as a valid value
             // and not used as a separator, unless it is the first character of the last segment
@@ -107,7 +109,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 deviceClientType = string.Empty;
             }
 
-            return new ClientInfo(deviceId, moduleId, deviceClientType);
+            Option<string> modelIdOption = Option.None<string>();
+            if (queryParameters.TryGetValue(ModelIdKey, out string modelId) && !string.IsNullOrWhiteSpace(modelId))
+            {
+                modelIdOption = Option.Some(modelId);
+            }
+
+            return new ClientInfo(deviceId, moduleId, deviceClientType, modelIdOption);
         }
 
         static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)

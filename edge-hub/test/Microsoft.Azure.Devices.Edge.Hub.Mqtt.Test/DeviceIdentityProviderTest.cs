@@ -122,7 +122,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.IsAssignableFrom(expectedType, deviceIdentity);
         }
 
-            modelId.ForEach(mId => Assert.Equal(expectedModelId, mId));
         [Fact]
         [Unit]
         public async Task GetIdentityCertAuthNotEnabled()

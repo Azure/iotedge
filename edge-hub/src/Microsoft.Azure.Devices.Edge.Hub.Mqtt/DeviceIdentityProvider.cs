@@ -14,8 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using static System.FormattableString;
 
     public class DeviceIdentityProvider : IDeviceIdentityProvider
-    {
-        const string ModelIdKey = "digital-twin-model-id";
+    {        
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
@@ -89,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, clientInfo.DeviceClientType);
                 Events.Success(clientId, username);
-                return new ProtocolGatewayIdentity(deviceCredentials, modelId);
+                return new ProtocolGatewayIdentity(deviceCredentials, clientInfo.ModelId);
             }
             catch (Exception ex)
             {
@@ -103,8 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.remoteCertificate = Option.Some(Preconditions.CheckNotNull(certificate, nameof(certificate)));
             this.remoteCertificateChain = Preconditions.CheckNotNull(chain, nameof(chain));
         }
-
-
 
         static class Events
         {
