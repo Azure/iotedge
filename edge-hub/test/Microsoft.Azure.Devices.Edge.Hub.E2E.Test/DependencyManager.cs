@@ -201,7 +201,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     TimeSpan.FromHours(1),
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
-                    true));
+                    true,
+                    false));
 
             builder.RegisterModule(new HttpModule());
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));
