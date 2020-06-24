@@ -36,14 +36,8 @@ fn main() -> Result<(), Error> {
 
     info!("Launched Edge Hub process with pid {:?}", edgehub.id());
     info!("Launched MQTT Broker process with pid {:?}", broker.id());
-    let mut is_edgehub_running = is_child_process_running(&mut edgehub);
-    let mut is_broker_running = is_child_process_running(&mut broker);
-    while has_received_sigterm.load(Ordering::Relaxed) && is_edgehub_running && is_broker_running {
-        is_edgehub_running = is_child_process_running(&mut edgehub);
-        is_broker_running = is_child_process_running(&mut broker);
 
-        thread::sleep(Duration::from_secs(4));
-    }
+    wait_for_sigterm_or_processes_to_shutdown(&mut edgehub, &mut broker, has_received_sigterm);
 
     shutdown(&mut edgehub, &mut broker);
 
@@ -72,6 +66,17 @@ fn register_sigterm_listener() -> Result<Arc<std::sync::atomic::AtomicBool>, Err
     });
 
     Ok(has_received_sigterm)
+}
+
+fn wait_for_sigterm_or_processes_to_shutdown(mut edgehub: &mut Child, mut broker: &mut Child, has_received_sigterm: Arc<std::sync::atomic::AtomicBool>) {
+    let mut is_edgehub_running = is_child_process_running(&mut edgehub);
+    let mut is_broker_running = is_child_process_running(&mut broker);
+    while has_received_sigterm.load(Ordering::Relaxed) && is_edgehub_running && is_broker_running {
+        is_edgehub_running = is_child_process_running(&mut edgehub);
+        is_broker_running = is_child_process_running(&mut broker);
+
+        thread::sleep(Duration::from_secs(4));
+    }
 }
 
 fn is_child_process_running(child_process: &mut Child) -> bool
