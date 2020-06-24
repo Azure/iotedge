@@ -67,10 +67,6 @@ CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid
 DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
-    'alpine')
-        DOCKER_IMAGE='ubuntu:18.04'
-        ;;
-
     'ubuntu18.04')
         DOCKER_IMAGE='ubuntu:18.04'
         ;;
@@ -101,7 +97,7 @@ fi
 
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
-    alpine.amd64)
+    ubuntu18.04.amd64)
         # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/master/Dockerfile.
         # The beginning of the below setup specifies versions for other dependencies.
         # Here are the places to check for new releases:
@@ -175,17 +171,6 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             export PKG_CONFIG_ALL_STATIC=true
             export LIBZ_SYS_STATIC=1
             export TARGET=musl
-        '
-        ;;
-
-    ubuntu18.04.amd64)
-        SETUP_COMMAND=$'
-            apt-get update &&
-            apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git make \
-                gcc g++ pkg-config \
-                libcurl4-openssl-dev libssl-dev uuid-dev &&
         '
         ;;
 
