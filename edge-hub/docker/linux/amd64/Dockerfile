@@ -1,5 +1,5 @@
 ARG base_tag=3.1.4-alpine3.11
-FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as hub-builder
+FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
@@ -21,7 +21,7 @@ RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser
 RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet	
 
 # Install RocksDB	
-COPY --from=hub-builder publish/* /usr/local/lib/	
+COPY --from=builder publish/* /usr/local/lib/	
 
 WORKDIR /app	
 
