@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 new string[0],
                 new ServiceAuthentication(new X509ThumbprintAuthentication(primaryCertificate.Thumbprint, secondaryCertificate.Thumbprint)),
                 ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(serviceIdentity));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(deviceId));
 
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 new string[0],
                 new ServiceAuthentication(new X509ThumbprintAuthentication(primaryCertificate.Thumbprint, secondaryCertificate.Thumbprint)),
                 ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(serviceIdentity));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(deviceId));
 
@@ -257,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 new string[0],
                 new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority),
                 ServiceIdentityStatus.Enabled);
-            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
+            var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(serviceIdentity));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(deviceId));
 
