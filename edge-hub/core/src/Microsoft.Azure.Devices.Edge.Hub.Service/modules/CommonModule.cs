@@ -337,7 +337,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                         // by default regardless of how the authenticationMode, X.509 certificate validation will always be scoped
                         deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                        certificateAuthenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, new NullAuthenticator(), this.trustBundle, true);
+                        certificateAuthenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache, new NullAuthenticator(), this.trustBundle, true, this.nestedEdgeEnabled);
                         switch (this.authenticationMode)
                         {
                             case AuthenticationMode.Cloud:
@@ -345,12 +345,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 break;
 
                             case AuthenticationMode.Scope:
-                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), true, true);
+                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, new NullAuthenticator(), true, true, this.nestedEdgeEnabled);
                                 break;
 
                             default:
                                 IAuthenticator cloudTokenAuthenticator = await this.GetCloudTokenAuthenticator(c);
-                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator, true, true);
+                                tokenAuthenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache, this.iothubHostName, this.edgeDeviceHostName, cloudTokenAuthenticator, true, true, this.nestedEdgeEnabled);
                                 break;
                         }
 

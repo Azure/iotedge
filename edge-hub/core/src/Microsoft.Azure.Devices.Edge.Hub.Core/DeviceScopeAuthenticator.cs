@@ -16,17 +16,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IAuthenticator underlyingAuthenticator;
         readonly bool allowDeviceAuthForModule;
         readonly bool syncServiceIdentityOnFailure;
+        readonly bool nestedEdgeEnabled;
 
         protected DeviceScopeAuthenticator(
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             IAuthenticator underlyingAuthenticator,
             bool allowDeviceAuthForModule,
-            bool syncServiceIdentityOnFailure)
+            bool syncServiceIdentityOnFailure,
+            bool nestedEdgeEnabled)
         {
             this.underlyingAuthenticator = Preconditions.CheckNotNull(underlyingAuthenticator, nameof(underlyingAuthenticator));
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.allowDeviceAuthForModule = allowDeviceAuthForModule;
             this.syncServiceIdentityOnFailure = syncServiceIdentityOnFailure;
+            this.nestedEdgeEnabled = nestedEdgeEnabled;
         }
 
         public async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
@@ -103,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentityId);
 
-            if (!authChain.HasValue)
+            if (this.nestedEdgeEnabled && !authChain.HasValue)
             {
                 // The identity is not within our nested hierarchy
                 return (false, false);

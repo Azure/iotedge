@@ -159,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             Option<string> gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -190,7 +191,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     configUpdateFrequency,
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
-                    closeCloudConnectionOnDeviceDisconnect));
+                    closeCloudConnectionOnDeviceDisconnect,
+                    nestedEdgeEnabled));
         }
 
         void RegisterCommonModule(

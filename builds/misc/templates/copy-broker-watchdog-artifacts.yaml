@@ -1,6 +1,6 @@
 # This template will move the mqtt and watchdog artifacts into the EdgeHub dotnet publish folder
 # EdgeHub's dotnet publish folder will serve as a minimal build context for the image
-variables:
+parameters:
   edgehub.build.path: 'publish/Microsoft.Azure.Devices.Edge.Hub.Service'
 
 steps:

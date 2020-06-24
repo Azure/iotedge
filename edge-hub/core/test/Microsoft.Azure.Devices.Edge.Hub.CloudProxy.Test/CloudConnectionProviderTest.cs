@@ -146,7 +146,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                productInfoStore);
+                productInfoStore,
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
@@ -195,7 +196,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                productInfoStore);
+                productInfoStore,
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
@@ -241,7 +243,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                productInfoStore);
+                productInfoStore,
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -286,7 +289,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                productInfoStore);
+                productInfoStore,
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -331,7 +335,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                productInfoStore);
+                productInfoStore,
+                true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
