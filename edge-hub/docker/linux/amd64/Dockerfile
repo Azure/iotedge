@@ -25,7 +25,6 @@ COPY --from=builder publish/* /usr/local/lib/
 
 WORKDIR /app	
 
-# Copy edge hub artifacts and remove unnecessary items, leaving just edge hub core dlls
 COPY $EXE_DIR/ ./
 
 # Set broker log level
