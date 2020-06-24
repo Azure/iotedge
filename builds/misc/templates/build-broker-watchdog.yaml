@@ -4,7 +4,7 @@ steps:
     displayName: Build watchdog - amd64
     inputs:
       filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os alpine --arch amd64 --build-path edge-hub/watchdog/linux
+      arguments: --os ubuntu18.04 --arch amd64 --build-path edge-hub/watchdog/linux
   - task: Bash@3
     displayName: Build watchdog - arm32
     inputs:
@@ -20,7 +20,7 @@ steps:
     displayName: Build MQTT Broker - amd64
     inputs:
       filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os alpine --arch amd64 --build-path mqtt/mqttd
+      arguments: --os ubuntu18.04 --arch amd64 --build-path mqtt/mqttd
   - task: Bash@3
     displayName: Build MQTT Broker - arm32
     inputs:
