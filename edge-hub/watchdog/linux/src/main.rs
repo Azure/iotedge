@@ -33,8 +33,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .spawn()
             .expect("failed to execute MQTT broker process");
 
-    println!("{:?} launched Edge Hub process with pid {:?}", LOG_HEADER, edgehub.id());
-    println!("{:?} launched MQTT Broker process with pid {:?}", LOG_HEADER, broker.id());
+    println!("{:?} Launched Edge Hub process with pid {:?}", LOG_HEADER, edgehub.id());
+    println!("{:?} Launched MQTT Broker process with pid {:?}", LOG_HEADER, broker.id());
     let mut is_edgehub_running = is_child_process_running(&mut edgehub);
     let mut  is_broker_running = is_child_process_running(&mut broker);
     while has_received_sigterm.load(Ordering::Relaxed) && is_edgehub_running && is_broker_running {
@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     shutdown(&mut edgehub, &mut broker);
 
-    println!("Exiting");
+    println!("{:?} Exiting", LOG_HEADER);
     Ok(())
 }
 
