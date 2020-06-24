@@ -1,6 +1,5 @@
 ARG base_tag=3.1.4-alpine3.11
-# base dockerfile is located at \edge-util\docker\linux\amd64
-FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
+FROM azureiotedge/azureiotedge-runtime-base:1.1-linux-amd64 as builder
 
 FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
 
