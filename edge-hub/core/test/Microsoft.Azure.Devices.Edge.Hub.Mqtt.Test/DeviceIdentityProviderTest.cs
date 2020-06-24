@@ -95,7 +95,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
         }
 
-
         [Theory]
         [Integration]
         [MemberData(nameof(GetIdentityProviderInputs))]

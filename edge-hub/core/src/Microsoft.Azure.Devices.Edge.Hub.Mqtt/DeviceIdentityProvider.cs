@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using static System.FormattableString;
 
     public class DeviceIdentityProvider : IDeviceIdentityProvider
-    {        
+    {
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
