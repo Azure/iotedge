@@ -1,3 +1,4 @@
-use std::sync::Mutex;
+use zeroize::Zeroize;
 
-let write_lock = Mutex::new();
+pub async fn get_secret(id: &str) -> &str {
+}
