@@ -1,0 +1,3 @@
+[submodule "extern/iotedge"]
+	path = extern/iotedge
+	url = https://github.com/Azure/iotedge.git
