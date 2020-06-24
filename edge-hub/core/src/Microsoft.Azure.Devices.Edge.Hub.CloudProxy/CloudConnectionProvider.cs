@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IIdentity edgeHubIdentity;
         readonly TimeSpan operationTimeout;
         readonly IProductInfoStore productInfoStore;
+        readonly bool nestedEdgeEnabled;
         Option<IEdgeHub> edgeHub;
 
         public CloudConnectionProvider(
@@ -49,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan operationTimeout,
             bool useServerHeartbeat,
             Option<IWebProxy> proxy,
-            IProductInfoStore productInfoStore)
+            IProductInfoStore productInfoStore,
+            bool nestedEdgeEnabled = false)
         {
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
@@ -66,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             this.operationTimeout = operationTimeout;
             this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
+            this.nestedEdgeEnabled = nestedEdgeEnabled;
         }
 
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
@@ -83,14 +86,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), clientCredentials.Identity.Id);
                 string productInfo = await this.productInfoStore.GetEdgeProductInfo(clientCredentials.Identity.Id);
 
+                string authChain = string.Empty;
+                if (this.nestedEdgeEnabled)
+                {
+                    Option<string> authChainMaybe = await this.deviceScopeIdentitiesCache.GetAuthChain(clientCredentials.Identity.Id);
+                    authChain = authChainMaybe.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {clientCredentials.Identity.Id}"));
+                }
+
                 // Get the transport settings
-                Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(clientCredentials.Identity.Id);
                 ITransportSettings[] transportSettings = GetTransportSettings(
                     this.upstreamProtocol,
                     this.connectionPoolSize,
                     this.proxy,
                     this.useServerHeartbeat,
-                    authChain.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {clientCredentials.Identity.Id}")));
+                    authChain);
 
                 if (this.edgeHubIdentity.Id.Equals(clientCredentials.Identity.Id))
                 {
@@ -147,14 +156,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Option<ServiceIdentity> serviceIdentity = (await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id))
                     .Filter(s => s.Status == ServiceIdentityStatus.Enabled);
 
-                // Get the transport settings
-                Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(identity.Id);
+                string authChain = string.Empty;
+                if (this.nestedEdgeEnabled)
+                {
+                    Option<string> authChainMaybe = await this.deviceScopeIdentitiesCache.GetAuthChain(identity.Id);
+                    authChain = authChainMaybe.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {identity.Id}"));
+                }
+
                 ITransportSettings[] transportSettings = GetTransportSettings(
                     this.upstreamProtocol,
                     this.connectionPoolSize,
                     this.proxy,
                     this.useServerHeartbeat,
-                    authChain.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {identity.Id}")));
+                    authChain);
 
                 return await serviceIdentity
                     .Map(

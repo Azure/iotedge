@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using static System.FormattableString;
 
     public class DeviceIdentityProvider : IDeviceIdentityProvider
-    {
+    {        
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, clientInfo.DeviceClientType);
                 Events.Success(clientId, username);
-                return new ProtocolGatewayIdentity(deviceCredentials);
+                return new ProtocolGatewayIdentity(deviceCredentials, clientInfo.ModelId);
             }
             catch (Exception ex)
             {

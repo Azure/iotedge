@@ -57,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
+        readonly bool nestedEdgeEnabled;
 
         public RoutingModule(
             string iotHubName,
@@ -87,7 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan configUpdateFrequency,
             bool checkEntireQueueOnCleanup,
             ExperimentalFeatures experimentalFeatures,
-            bool closeCloudConnectionOnDeviceDisconnect)
+            bool closeCloudConnectionOnDeviceDisconnect,
+            bool nestedEdgeEnabled)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.gatewayHostname = gatewayHostname;
@@ -118,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
+            this.nestedEdgeEnabled = nestedEdgeEnabled;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -239,7 +242,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.operationTimeout,
                             this.useServerHeartbeat,
                             proxy,
-                            productInfoStore);
+                            productInfoStore,
+                            this.nestedEdgeEnabled);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()

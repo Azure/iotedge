@@ -11,15 +11,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     {
         public static IEnumerable<object[]> GetUsernames()
         {
-            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1" };
-            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&DeviceClientType=customDeviceClient2", "device1", "module1", "customDeviceClient2" };
-            yield return new object[] { "iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", "device1", "module1", "Microsoft.Azure.Devices.Client/1.5.1-preview-003" };
-            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1" };
-            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "module1", "customDeviceClient1" };
-            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1", "device1", string.Empty, string.Empty };
-            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&", "device1", "module1", string.Empty };
-            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01", "device1", string.Empty, string.Empty };
-            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&Foo=customDeviceClient1", "device1", "module1", string.Empty };
+            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1", string.Empty };
+
+            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&DeviceClientType=customDeviceClient2", "device1", "module1", "customDeviceClient2", string.Empty };
+
+            yield return new object[] { "iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", "device1", "module1", "Microsoft.Azure.Devices.Client/1.5.1-preview-003", string.Empty };
+
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1", string.Empty };
+
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1&digital-twin-model-id=testModelId", "device1", string.Empty, "customDeviceClient1", "testModelId" };
+
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "module1", "customDeviceClient1", string.Empty };
+
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1&digital-twin-model-id=testModelId", "device1", "module1", "customDeviceClient1", "testModelId" };
+
+            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1", "device1", string.Empty, string.Empty, string.Empty };
+
+            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1&digital-twin-model-id=testModelId", "device1", string.Empty, string.Empty, "testModelId" };
+
+            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&", "device1", "module1", string.Empty, string.Empty };
+
+            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&digital-twin-model-id=testModelId", "device1", "module1", string.Empty, "testModelId" };
+
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01", "device1", string.Empty, string.Empty, string.Empty };
+
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&digital-twin-model-id=testModelId", "device1", string.Empty, string.Empty, "testModelId" };
+
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&Foo=customDeviceClient1", "device1", "module1", string.Empty, string.Empty };
         }
 
         public static IEnumerable<object[]> GetBadUsernameInputs()
@@ -37,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Theory]
         [MemberData(nameof(GetUsernames))]
         [Unit]
-        public void ParseUsernameTest(string username, string expectedDeviceId, string expectedModuleId, string expectedDeviceClientType)
+        public void ParseUsernameTest(string username, string expectedDeviceId, string expectedModuleId, string expectedDeviceClientType, string expectedModelId)
         {
             var usernameParser = new MqttUsernameParser();
 
@@ -45,6 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(expectedDeviceId, clientInfo.DeviceId);
             Assert.Equal(expectedModuleId, clientInfo.ModuleId);
             Assert.Equal(expectedDeviceClientType, clientInfo.DeviceClientType);
+            Assert.Equal(!string.IsNullOrWhiteSpace(expectedModelId), clientInfo.ModelId.HasValue);
+            clientInfo.ModelId.ForEach(mId => Assert.Equal(expectedModelId, mId));
         }
 
         [Theory]

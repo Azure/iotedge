@@ -7,8 +7,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Builtins;
     using Moq;
     using Xunit;
 
@@ -92,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 typeof(UnauthenticatedDeviceIdentity)
             };
         }
+
 
         [Theory]
         [Integration]
