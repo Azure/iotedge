@@ -241,10 +241,10 @@ mod tests {
     fn default_config() -> SessionConfig {
         SessionConfig::new(
             Duration::default(),
-            0,
+            None,
             16,
             1000,
-            0,
+            None,
             QueueFullAction::DropNew,
         )
     }
