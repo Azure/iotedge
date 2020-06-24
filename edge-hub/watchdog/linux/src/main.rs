@@ -1,6 +1,7 @@
 extern crate nix;
 
-use std::{error::Error, thread};
+use std::{thread};
+use std::io::Error;
 use std::process::{Command, Stdio, Child};
 use std::sync::{Arc};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -8,21 +9,19 @@ use std::time::Duration;
 use nix::unistd::Pid;
 use nix::sys::signal::{self, Signal};
 use signal_hook::{iterator::Signals, SIGTERM};
-use tracing::{info};
+use tracing::{info, error};
 use tracing_subscriber;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Error> {
     init_logging();
 
-    let signals = Signals::new(&[SIGTERM])?;
-    let has_received_sigterm = Arc::new(AtomicBool::new(true));
-    let sigterm_listener = has_received_sigterm.clone();
-    thread::spawn(move || {
-        for _sig in signals.forever() {
-            info!("Received SIGTERM for watchdog");
-            sigterm_listener.store(false, Ordering::Relaxed);
+    let has_received_sigterm = match register_sigterm_listener() {
+        Ok(has_received_sigterm) => has_received_sigterm,
+        Err(e) => {
+            error!("Failed to register sigterm listener. Shutting down.");
+            return Err(e)
         }
-    });
+    };
 
     let mut edgehub = Command::new("dotnet")
             .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
@@ -38,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     info!("Launched Edge Hub process with pid {:?}", edgehub.id());
     info!("Launched MQTT Broker process with pid {:?}", broker.id());
     let mut is_edgehub_running = is_child_process_running(&mut edgehub);
-    let mut  is_broker_running = is_child_process_running(&mut broker);
+    let mut is_broker_running = is_child_process_running(&mut broker);
     while has_received_sigterm.load(Ordering::Relaxed) && is_edgehub_running && is_broker_running {
         is_edgehub_running = is_child_process_running(&mut edgehub);
         is_broker_running = is_child_process_running(&mut broker);
@@ -59,6 +58,20 @@ fn init_logging() {
     let _ = tracing::subscriber::set_global_default(subscriber);
 
     info!("Starting watchdog");
+}
+
+fn register_sigterm_listener() -> Result<Arc<std::sync::atomic::AtomicBool>, Error> {
+    let signals = Signals::new(&[SIGTERM])?;
+    let has_received_sigterm = Arc::new(AtomicBool::new(true));
+    let sigterm_listener = has_received_sigterm.clone();
+    thread::spawn(move || {
+        for _sig in signals.forever() {
+            info!("Received SIGTERM for watchdog");
+            sigterm_listener.store(false, Ordering::Relaxed);
+        }
+    });
+
+    Ok(has_received_sigterm)
 }
 
 fn is_child_process_running(child_process: &mut Child) -> bool
