@@ -27,7 +27,7 @@ fn main() -> Result<(), Error> {
             .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
             .stdout(Stdio::inherit())
             .spawn()
-            .expect("failed to execute Edge Hub process");
+            .expect("Failed to execute Edge Hub process");
     
     let mut broker = Command::new("/usr/local/bin/mqttd")
             .stdout(Stdio::inherit())
@@ -91,11 +91,11 @@ fn shutdown(mut edgehub: &mut Child, mut broker: &mut Child) {
     let mut is_broker_running = is_child_process_running(&mut broker);
     if is_edgehub_running {
         info!("Sending SIGTERM to Edge Hub");
-        signal::kill(Pid::from_raw(edgehub.id() as i32), Signal::SIGTERM).unwrap();
+        sigterm_child_process(&mut edgehub);
     }
     if is_broker_running {
         info!("Sending SIGTERM to MQTT Broker");
-        signal::kill(Pid::from_raw(broker.id() as i32), Signal::SIGTERM).unwrap();
+        sigterm_child_process(&mut broker);
     }
 
     thread::sleep(Duration::from_secs(10));
@@ -104,11 +104,31 @@ fn shutdown(mut edgehub: &mut Child, mut broker: &mut Child) {
     is_broker_running = is_child_process_running(&mut broker);
     if is_edgehub_running {
         info!("Killing Edge Hub");
-        edgehub.kill().unwrap();
+        kill_child_process(edgehub);
     }
     if !is_broker_running {
         info!("Killing MQTT Broker");
-        broker.kill().unwrap();
+        kill_child_process(broker);
     }
+}
+
+fn sigterm_child_process(child: &mut Child)
+{
+    match signal::kill(Pid::from_raw(child.id() as i32), Signal::SIGTERM) {
+        Ok(_) => {},
+        Err(e) => {
+            error!("Failed to send SIGTERM signal to child process. {:?}", e);
+        }
+    };
+}
+
+fn kill_child_process(child: &mut Child)
+{
+    match child.kill() {
+        Ok(_) => {},
+        Err(e) => {
+            error!("Failed to kill child process. {:?}", e);
+        }
+    };
 }
 
