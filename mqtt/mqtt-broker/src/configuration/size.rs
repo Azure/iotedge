@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde::{Deserialize, Deserializer};
+use serde::{
+    de::{Error as SerdeError, Visitor},
+    Deserialize, Deserializer,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct HumanSize(usize);
@@ -47,7 +50,7 @@ impl FromStr for HumanSize {
             .map_err(|_| ParseHumanSizeError::Value(captures[1].to_string()))?;
 
         match captures[2].to_lowercase().as_str() {
-            "b" => Ok(Some(Self::new_bytes(value))),
+            "" | "b" => Ok(Some(Self::new_bytes(value))),
             "kb" => Ok(Self::new_kilobytes(value)),
             "mb" => Ok(Self::new_megabytes(value)),
             "gb" => Ok(Self::new_gigabytes(value)),
@@ -64,8 +67,51 @@ impl<'de> Deserialize<'de> for HumanSize {
     where
         D: Deserializer<'de>,
     {
-        let input = String::deserialize(deserializer)?;
-        input.parse().map_err(serde::de::Error::custom)
+        struct StringOrUsize;
+
+        impl<'de> Visitor<'de> for StringOrUsize {
+            type Value = HumanSize;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("human size string or non-negative number")
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where
+                E: SerdeError,
+            {
+                // it is ok to truncate value on 32bit systems.
+                // impossible to allocate more than usize::MAX memory anyway
+                #[allow(clippy::cast_possible_truncation)]
+                Ok(HumanSize::new_bytes(value as usize))
+            }
+
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+            where
+                E: SerdeError,
+            {
+                if value < 0 {
+                    Err(E::custom(format!(
+                        "non-negative number expected: {}",
+                        value
+                    )))
+                } else {
+                    // it is ok to truncate value on 32bit systems.
+                    // impossible to allocate more than usize::MAX memory anyway
+                    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                    Ok(HumanSize::new_bytes(value as usize))
+                }
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: SerdeError,
+            {
+                value.parse().map_err(SerdeError::custom)
+            }
+        }
+
+        deserializer.deserialize_any(StringOrUsize)
     }
 }
 
@@ -92,7 +138,7 @@ mod tests {
     use serde_json::json;
     use test_case::test_case;
 
-    use super::{HumanSize, ParseHumanSizeError};
+    use super::HumanSize;
 
     #[test]
     fn it_creates_size() {
@@ -116,10 +162,11 @@ mod tests {
         assert_eq!(HumanSize::new_gigabytes(usize::MAX), None);
     }
 
-    #[test_case("123b", HumanSize::new_bytes(123); "when using bytes")]
-    #[test_case("123kb", HumanSize::new_kilobytes(123).unwrap(); "when using kilobytes")]
-    #[test_case("123mb", HumanSize::new_megabytes(123).unwrap(); "when using megabytes")]
-    #[test_case("123gb", HumanSize::new_gigabytes(123).unwrap(); "when using gigabytes")]
+    #[test_case("123", HumanSize::new_bytes(123); "when missing unit")]
+    #[test_case("123b", HumanSize::new_bytes(123); "when using b")]
+    #[test_case("123kb", HumanSize::new_kilobytes(123).unwrap(); "when using kb")]
+    #[test_case("123mb", HumanSize::new_megabytes(123).unwrap(); "when using mb")]
+    #[test_case("123gb", HumanSize::new_gigabytes(123).unwrap(); "when using gb")]
     fn it_parses_with_supported_unit(input: &str, expected: HumanSize) {
         let size = input.parse();
         assert_eq!(size, Ok(expected));
@@ -135,7 +182,6 @@ mod tests {
     }
 
     #[test_case("123tb" ; "when using unknown unit")]
-    #[test_case("123" ; "when missing unit")]
     #[test_case("12a3 kb" ; "when invalid number")]
     #[test_case("-123kb" ; "when negative")]
     #[test_case(" 123kb"; "when using leading spaces")]
@@ -147,13 +193,25 @@ mod tests {
     }
 
     #[test]
-    fn it_deserializes_from_json() {
-        let json = json!({ "size": "256kb" }).to_string();
+    fn it_deserializes_from_json_string_value() {
+        let json = json!({ "size": "256b" }).to_string();
         let size = serde_json::from_str::<Container>(&json).expect("container");
         assert_eq!(
             size,
             Container {
-                size: HumanSize::new_kilobytes(256).unwrap()
+                size: HumanSize::new_bytes(256)
+            }
+        );
+    }
+
+    #[test]
+    fn it_deserializes_from_json_number() {
+        let json = json!({ "size": 256 }).to_string();
+        let size = serde_json::from_str::<Container>(&json).expect("container");
+        assert_eq!(
+            size,
+            Container {
+                size: HumanSize::new_bytes(256)
             }
         );
     }
@@ -177,11 +235,15 @@ mod tests {
         }
 
         #[test]
-        fn it_can_parse_input(input in r".*[0-9]{9}\s*(k|K|m|M|g|G)?(b|B).*") {
+        fn it_can_parse_input(input in r"[0-9]{9}\s*(k|K|m|M|g|G)?(b|B)") {
             let size = input.parse::<HumanSize>();
-            if let Err(err) = size {
-                prop_assert_eq!(err, ParseHumanSizeError::InvalidFormat(input));
-            }
+            prop_assert!(size.is_ok())
+        }
+
+        #[test]
+        fn it_cannot_parse_input(input in r".*[0-9]{9}.*(k|K|m|M|g|G)?.*") {
+            let size = input.parse::<HumanSize>();
+            prop_assert!(size.is_err())
         }
     }
 }

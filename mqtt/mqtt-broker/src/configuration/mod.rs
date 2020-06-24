@@ -79,6 +79,11 @@ impl SessionConfig {
         }
     }
 
+    pub fn max_message_size(&self) -> Option<NonZeroUsize> {
+        self.max_message_size
+            .and_then(|size| NonZeroUsize::new(size.get()))
+    }
+
     pub fn max_inflight_messages(&self) -> Option<NonZeroUsize> {
         NonZeroUsize::new(self.max_inflight_messages)
     }
@@ -118,8 +123,8 @@ impl BrokerConfig {
 impl BrokerConfig {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
         let mut s = Config::new();
-        s.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        s.merge(File::from(path.as_ref()))?;
+        s.merge(File::from_str(DEFAULTS, FileFormat::Json)).unwrap();
+        s.merge(File::from(path.as_ref())).unwrap();
 
         s.try_into()
     }
@@ -186,5 +191,16 @@ mod tests {
         let settings = BrokerConfig::from_file(Path::new("test/config_bad_value_type.json"));
 
         assert_matches!(settings, Err(_));
+    }
+
+    #[test]
+    fn it_overrides_messages_settings_with_zero() {
+        let settings = BrokerConfig::from_file(Path::new("test/config_override_with_zero.json"))
+            .expect("should be able to override settings with zero");
+
+        assert_eq!(settings.session().max_message_size(), None);
+        assert_eq!(settings.session().max_inflight_messages(), None);
+        assert_eq!(settings.session().max_queued_size(), None);
+        assert_eq!(settings.session().max_queued_messages(), None);
     }
 }
