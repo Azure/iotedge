@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             app.UseHttpsRedirection();
 
-            (string iotHubHostname, string edgeDeviceId, string gatewayHostname) = GetStartupParameters();
+            (string iotHubHostname, string edgeDeviceId, string gatewayHostname) = this.GetStartupParameters();
             app.UseMiddleware<RegistryProxyMiddleware>(gatewayHostname);
             app.UseWebSockets();
 

@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
-    using Microsoft.AspNetCore.Http;
-    using Microsoft.AspNetCore.Http.Extensions;
-    using Microsoft.Azure.Devices.Edge.Util;
     using System;
     using System.Linq;
     using System.Net.Http;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Http;
+    using Microsoft.AspNetCore.Http.Extensions;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class RegistryProxyMiddleware
     {
@@ -24,20 +24,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public async Task Invoke(HttpContext context)
         {
-            Uri destinationUri = BuildDestinationUri(context);
+            Uri destinationUri = this.BuildDestinationUri(context);
 
             if (destinationUri != null)
             {
-                HttpRequestMessage proxyRequestMessage = CreateProxyRequestMessage(context, destinationUri);
+                HttpRequestMessage proxyRequestMessage = this.CreateProxyRequestMessage(context, destinationUri);
 
                 using (HttpResponseMessage responseMessage = await httpClient.SendAsync(proxyRequestMessage, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted))
                 {
-                    await CopyProxyResponseAsync(context, responseMessage);
+                    await this.CopyProxyResponseAsync(context, responseMessage);
                 }
             }
             else
             {
-                await nextMiddleware(context);
+                await this.nextMiddleware(context);
             }
         }
 
