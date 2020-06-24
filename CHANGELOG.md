@@ -1,41 +1,65 @@
 # 1.0.10-rc1 (2020-06-23)
-## BEAR'S PROPOSED LIST
-Dynamic reprovisioning
-	Reprovision device for all protocols when the connection status chang… …
-X.509
-    Install Trust Bundle in EdgeAgent and EdgeHub (#2120) …
-	Support X.509 authentication type in external provisioning. (#1662) …
-	Add support for manual X.509 provisioning (#1582) …
-Helm
-	Removed CRD dependency for helm3 change to support helm2 (#2494) …   (Feature/Bug?)
-	[k8s][Helm] Big numbers make Helm convert to scientific notation, (#2456 …  (Feature/Bug?)
-	[k8s] Add experimental k8s create option feature flags to helm (#1835) … (Feature)
-Metrics
-	Metrics use RocksDB (#2098) … (Feature, both ea & eh)
-	Metrics Upload to IoTHub (#2096) … (Feature, both ea & eh)
-k8s
-    [k8s] Add "Cmd", "Entrypoint", and "WorkingDir" translations (#2629) …
-	[k8s] Better PVC story for iotedged. (#2517) …
-	Add Experimental k8s create option feature for pod security context, resources, volumes, nodeSelector, and strategy
-	  - [k8s] Add pod security context to create options (#2008) …
-TLS
-	Unify TLS protocol parsing (#2138) …
-	Add support of min tls version in config.yaml (#2101) …
-priority
-	Limit route priority to 0-9 (#2911) …
-	Add TimeToLive to PriorityQueue (#2750) …
-	Support module priority in IoT Edge (#2186) …
-Version
-	Update k8s-openapi to v0.7.1 (#2830) …
-	Update codebase to dotnet 3.1. (#2996) …
-	Vulnerability issues for docker images:
-        - Update Master branch to use 2.1.17-alpine3.11 (#2900) …
-        - Update Windows AMD64 base image to version 2.1.17-nanoserver-1809 …
-    Update Rust to stable 1.42.0
-	    Fix build for new Rust stable 1.42.0 (#2688) …
-	[k8s] Update Helm charts to use beta5 (#2606) …
-	Update SDK to 1.26.0 on release 
-	Update hyper to v0.12.35 (#1876) …
+## Edge Agent
+### Bug Fixes
+#### Dynamic Reprovisioning
+* Reprovision device for all protocols when the connection status change reason is Bad_Credential. [3601a56](https://github.com/Azure/iotedge/commit/3601a566e728f697176398b7f92deb79b60278fe)
+#### Versioning
+* Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
+* Vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
+* Update SDK to 1.26.0. [5148ee7](https://github.com/Azure/iotedge/commit/5148ee70b793963f74862e047039a412a488ab73)
+
+### Features
+#### X.509
+* Install Trust Bundle in EdgeAgent and EdgeHub. [4f85dcc](https://github.com/Azure/iotedge/commit/4f85dcc7d3fd6d4772d4a9b86ec3ecad651938fd)
+#### Metrics
+* Metrics use RocksDB [0d2cf76](https://github.com/Azure/iotedge/commit/0d2cf76ea1da561252a1100b7da5b4f0f5f1d471)
+* Metrics Upload to IoTHub [eff5c85](https://github.com/Azure/iotedge/commit/eff5c859e101d14eda85b80513136a2f3a473892)
+#### Kubernetes
+* Add "Cmd", "Entrypoint", and "WorkingDir" translations. [7cbc607](https://github.com/Azure/iotedge/commit/7cbc607ccc483d6e0ab9642be76c8b2d8bc09605)
+* Add Experimental k8s create option feature for pod security context, resources, volumes, nodeSelector, and strategy. [cf2eba9](https://github.com/Azure/iotedge/commit/cf2eba9518a947bb09ebff5dcd6ae42f66d2d045) [23b40e1](https://github.com/Azure/iotedge/commit/23b40e1bf5e9cd04af1246b2214f0759c6446ea9) 
+
+## Edge Hub
+### Bug Fixes
+#### Versioning
+* Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
+* Vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
+* Update SDK to 1.26.0. [5148ee7](https://github.com/Azure/iotedge/commit/5148ee70b793963f74862e047039a412a488ab73)
+
+### Features
+#### Versioning
+* Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
+#### X.509
+* Install Trust Bundle in EdgeAgent and EdgeHub. [4f85dcc](https://github.com/Azure/iotedge/commit/4f85dcc7d3fd6d4772d4a9b86ec3ecad651938fd)
+#### Metrics
+* Metrics Upload to IoTHub. [eff5c85](https://github.com/Azure/iotedge/commit/eff5c859e101d14eda85b80513136a2f3a473892)
+#### TLS
+* Unify TLS protocol parsing. [f319228](https://github.com/Azure/iotedge/commit/f3192289d29be33222dedb93ce7d49ffc532fcd5)
+#### Priority
+* Limit route priority to 0-9. [9cf0203](https://github.com/Azure/iotedge/commit/9cf02037ff0f43dc9f8a1e72cde09fd06507e2c8)
+* Add TimeToLive to PriorityQueue. [2662d9c](https://github.com/Azure/iotedge/commit/2662d9cd46f0abbe91e1e0260b37d1f9372609a7)
+* Support module priority in IoT Edge [6fce17b](https://github.com/Azure/iotedge/commit/6fce17bddff05b6d5f805b43330ec7a25a79ba2a)
+
+## iotedged
+### Features
+#### Versioning
+* Update Rust to stable 1.42.0 [cf01536](https://github.com/Azure/iotedge/commit/cf01536ab40e2c4592ed9b2211394d9e9aa464b3)
+#### X.509
+* Support X.509 authentication type in external provisioning. [0a43fdb](https://github.com/Azure/iotedge/commit/0a43fdba90537d0747a3b51d2a8006a1f4a89d09)
+* Add support for manual X.509 provisioning. [b872869](https://github.com/Azure/iotedge/commit/b872869169a76a2f334f0d2800847eaf5664c1b0)
+#### Kubernetes
+* Better PVC story for iotedged. [debf498](https://github.com/Azure/iotedge/commit/debf4987b10adf49304ead523677d5f5507a3bf6)
+* Update k8s-openapi to v0.7.1 [877c8e8](https://github.com/Azure/iotedge/commit/877c8e8f57e4926dafb8607340b24614c3f93984)
+#### TLS
+* Unify TLS protocol parsing. [f319228](https://github.com/Azure/iotedge/commit/f3192289d29be33222dedb93ce7d49ffc532fcd5)
+* Add support of min tls version in config.yaml [6b1e19b](https://github.com/Azure/iotedge/commit/6b1e19b5ef2c01a920e25129377bd57d5ef6e934)
+
+## Helm Charts
+### Features
+* Update Helm charts to use beta5. [81e24e6](https://github.com/Azure/iotedge/commit/81e24e6c2989e2a15b015e42755459e14d8d482f)
+* Removed CRD dependency for helm3 change to support helm2. [b9696b2](https://github.com/Azure/iotedge/commit/b9696b250ea1ce3beb97d022bd408fba03b8969c)
+* Big numbers make Helm convert to scientific notation. [935ba46](https://github.com/Azure/iotedge/commit/935ba46295d260d536f3aaee47f9f201fe5cb7ea)
+* Add experimental k8s create option feature flags to helm. [d159fba](https://github.com/Azure/iotedge/commit/d159fbae96197b98433a2c14b6eb995605e7a0ba)
+
 
 # 1.0.8 (2019-07-22)
 * Preview support for Linux arm64
