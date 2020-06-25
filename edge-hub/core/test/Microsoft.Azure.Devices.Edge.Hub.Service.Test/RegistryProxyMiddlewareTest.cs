@@ -1,11 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
 {
-    using Microsoft.AspNetCore.Http;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Primitives;
-    using Microsoft.Rest;
-    using Moq;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -13,6 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
     using System.Net.Http;
     using System.Text;
     using System.Threading.Tasks;
+
+    using Microsoft.AspNetCore.Http;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Extensions.Primitives;
+    using Microsoft.Rest;
+    using Moq;
     using Xunit;
 
     [Unit]
@@ -36,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
             headers.Add("testkey1", "testvalue1");
             headers.Add(new KeyValuePair<string, StringValues>("testkey2", new StringValues(new string[] { "testvalue2a", "testvalue2b" })));
             requestMock.SetupGet(r => r.Headers).Returns(headers);
-            var destinationUri = new System.Uri("http://testuri.com");
+            var destinationUri = new Uri("http://testuri.com");
 
             var middleware = new RegistryProxyMiddleware(new RequestDelegate(c => { return Task.CompletedTask; }), "gateway");
             HttpRequestMessage proxyRequest = middleware.CreateProxyRequestMessage(contextMock.Object, destinationUri);
@@ -48,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
             Assert.Equal(headers["testkey1"], proxyRequest.Headers.Where(h => h.Key == "testkey1").First().Value);
             Assert.Equal(headers["testkey2"], proxyRequest.Headers.Where(h => h.Key == "testkey2").First().Value);
 
-            if (requestMethod.Equals("Post", System.StringComparison.OrdinalIgnoreCase) ||
-                requestMethod.Equals("Put", System.StringComparison.OrdinalIgnoreCase))
+            if (requestMethod.Equals("Post", StringComparison.OrdinalIgnoreCase) ||
+                requestMethod.Equals("Put", StringComparison.OrdinalIgnoreCase))
             {
                 Assert.Equal(requestBody, proxyRequest.Content.AsString());
             }
@@ -108,9 +110,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
             webSocketManagerMock.SetupGet(w => w.IsWebSocketRequest).Returns(true);
 
             var middleware = new RegistryProxyMiddleware(new RequestDelegate(c => { return Task.CompletedTask; }), "gateway");
-            Uri destinationUri = middleware.BuildDestinationUri(contextMock.Object);
+            Option<Uri> destinationUri = middleware.BuildDestinationUri(contextMock.Object);
 
-            Assert.Null(destinationUri);
+            Assert.False(destinationUri.HasValue);
         }
 
         [Fact]
@@ -126,9 +128,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
             requestMock.SetupGet(r => r.IsHttps).Returns(false);
 
             var middleware = new RegistryProxyMiddleware(new RequestDelegate(c => { return Task.CompletedTask; }), "gateway");
-            Uri destinationUri = middleware.BuildDestinationUri(contextMock.Object);
+            Option<Uri> destinationUri = middleware.BuildDestinationUri(contextMock.Object);
 
-            Assert.Null(destinationUri);
+            Assert.False(destinationUri.HasValue);
         }
 
         [Theory]
@@ -155,15 +157,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
             requestMock.SetupGet(r => r.QueryString).Returns(queryString);
 
             var middleware = new RegistryProxyMiddleware(new RequestDelegate(c => { return Task.CompletedTask; }), "gateway");
-            Uri destinationUri = middleware.BuildDestinationUri(contextMock.Object);
+            Option<Uri> destinationUri = middleware.BuildDestinationUri(contextMock.Object);
 
             if (string.IsNullOrEmpty(destUrl))
             {
-                Assert.Null(destinationUri);
+                Assert.False(destinationUri.HasValue);
             }
             else
             {
-                Assert.Equal($"{destUrl}{queryString}", destinationUri.ToString());
+                Assert.Equal($"{destUrl}{queryString}", destinationUri.OrDefault().ToString());
             }
         }
     }
