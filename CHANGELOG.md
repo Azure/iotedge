@@ -26,7 +26,7 @@
 ### Bug Fixes
 * Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
 * Vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
-* Update SDK to 1.26.0. [5148ee7](https://github.com/Azure/iotedge/commit/5148ee70b793963f74862e047039a412a488ab73)
+* Update SDK version {Microsoft.Azure.Devices.1.21.0, Microsoft.Azure.Devices.Client.1.26.0}. [5148ee7](https://github.com/Azure/iotedge/commit/5148ee70b793963f74862e047039a412a488ab73)
 
 ## iotedged
 ### Features
