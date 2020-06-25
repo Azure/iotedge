@@ -2,7 +2,7 @@ extern crate nix;
 
 use nix::sys::signal::{self, Signal};
 use nix::unistd::Pid;
-use signal_hook::{iterator::Signals, SIGTERM};
+use signal_hook::{iterator::Signals, SIGTERM, SIGINT};
 use std::io::Error;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -54,12 +54,12 @@ fn init_logging() {
 }
 
 fn register_sigterm_listener() -> Result<Arc<AtomicBool>, Error> {
-    let signals = Signals::new(&[SIGTERM])?;
+    let signals = Signals::new(&[SIGTERM, SIGINT])?;
     let has_received_sigterm = Arc::new(AtomicBool::new(true));
     let sigterm_listener = has_received_sigterm.clone();
     thread::spawn(move || {
         for _sig in signals.forever() {
-            info!("Received SIGTERM for watchdog");
+            info!("Received shutdown signal for watchdog");
             sigterm_listener.store(false, Ordering::Relaxed);
         }
     });
