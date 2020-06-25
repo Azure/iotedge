@@ -7,15 +7,16 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64 = "^0.12"
-bindgen = "^0.54"
-bytes = "^0.5"
-edgelet-http = { path = "extern/iotedge/edgelet/edgelet-http" }
-fs2 = "^0.4"
-hyper = "^0.13"
-hyper-tls = "^0.4"
-libsodium-sys = "^0.2"
+base64 = "~0.12"
+bytes = "~0.5"
+hyper = "~0.13"
+hyper-tls = "~0.4"
+hyperlocal = "~0.7"
+libc = "~0.2"
+libsodium-sys = "~0.2"
+lmdb-rkv = "~0.14"
 log = "0.4"
-serde = { version = "^1.0", features = ["derive"] }
-serde_json = "^1.0"
-zeroize = "^1.1"
+serde = { version = "~1.0", features = ["derive"] }
+serde_json = "~1.0"
+tokio = { version = "~0.2", features = ["macros"] }
+zeroize = "~1.1"

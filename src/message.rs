@@ -1,44 +1,23 @@
+use crate::constants::*;
 use crate::util::*;
+use crate::store;
 
-use serde::{Deserialize, Serialize};
+use hyper::{Body, Method, Request, Response};
+use hyper::http::Error as HttpError;
 
-mod pull_secrets {
-    const METHOD_BINDING: &str = "Secret.Pull";
-
-    #[derive(Debug, super::Deserialize)]
-    pub struct Request<'a> {
-        keys: Option<Vec<&'a str>>,
-        basename: &'a str
-    }
+fn index(req: Request<Body>) -> Result<Response<Body>, HttpError> {
+    Response::builder()
+        .body(API_SURFACE.to_string().into())
 }
 
-mod get_secret {
-    const METHOD_BINDING: &str = "Secret.Get";
-
-    #[derive(Debug, super::Deserialize)]
-    pub struct Request<'a> {
-        key: &'a str
-    }
+fn get_secret(req: Request<Body>) -> Result<Response<Body>, HttpError> {
+    Ok(Response::new(Body::empty()))
 }
 
-mod set_secret {
-    const METHOD_BINDING: &str = "Secret.Set";
-
-    #[derive(Debug, super::Deserialize)]
-    pub struct Request<'a> {
-        key: &'a str,
-        value: &'a str
-    }
-}
-
-fn pull_secrets(req: pull_secrets::Request<'_>) -> BoxedResult<()> {
-    Ok(())
-}
-
-fn get_secret(req: get_secret::Request<'_>) -> BoxedResult<&str> {
-    Ok("Foo")
-}
-
-fn set_secret(req: set_secret::Request<'_>) -> BoxedResult<()> {
-    Ok(())
+pub async fn service(req: Request<Body>) -> Result<Response<Body>, HttpError> {
+    Ok(match (req.method(), req.uri().path()) {
+        (&Method::GET, "/") => index(req)?,
+        (&Method::GET, "/secret") => get_secret(req)?,
+        _ => Response::builder().status(404).body(LOST.into())?
+    })
 }
