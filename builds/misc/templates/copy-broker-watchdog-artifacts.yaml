@@ -1,20 +1,23 @@
 # This template will move the mqtt and watchdog artifacts into the EdgeHub dotnet publish folder
 # EdgeHub's dotnet publish folder will serve as a minimal build context for the image
 parameters:
-  edgehub.build.path: 'publish/Microsoft.Azure.Devices.Edge.Hub.Service'
+  edgehub.dotnet.artifacts.path: 'publish/Microsoft.Azure.Devices.Edge.Hub.Service'
+  mqtt.artifacts.path: 'mqtt/target/'
+  watchdog.artifacts.path: 'edge-hub/watchdog/linux/target'
+  all.artifacts.path: 'publish/edge-hub'
 
 steps:
   - bash: |
-      mkdir -p $(Build.BinariesDirectory)/$(edgehub.build.path)/watchdog/amd64
-      mkdir -p $(Build.BinariesDirectory)/$(edgehub.build.path)/watchdog/arm32
-      mkdir -p $(Build.BinariesDirectory)/$(edgehub.build.path)/watchdog/arm64
-      mkdir -p $(Build.BinariesDirectory)/$(edgehub.build.path)/mqtt/amd64
-      mkdir -p $(Build.BinariesDirectory)/$(edgehub.build.path)/mqtt/arm32
-      mkdir -p $(Build.BinariesDirectory)/$(edgehub.build.path)/mqtt/arm64
-      cp edge-hub/watchdog/linux/target/x86_64-unknown-linux-musl/release/watchdog $(Build.BinariesDirectory)/$(edgehub.build.path)/watchdog/amd64
-      cp edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/watchdog $(Build.BinariesDirectory)/$(edgehub.build.path)/watchdog/arm32
-      cp edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/watchdog $(Build.BinariesDirectory)/$(edgehub.build.path)/watchdog/arm64
-      cp mqtt/target/x86_64-unknown-linux-musl/release/mqttd $(Build.BinariesDirectory)/$(edgehub.build.path)/mqtt/amd64
-      cp mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd $(Build.BinariesDirectory)/$(edgehub.build.path)/mqtt/arm32
-      cp mqtt/target/aarch64-unknown-linux-gnu/release/mqttd $(Build.BinariesDirectory)/$(edgehub.build.path)/mqtt/arm64
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/watchdog/amd64
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/watchdog/arm32
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/watchdog/arm64
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/mqtt/amd64
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/mqtt/arm32
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/mqtt/arm64
+      cp edge-hub/watchdog/linux/target/x86_64-unknown-linux-musl/release/watchdog $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/watchdog/amd64
+      cp edge-hub/watchdog/linux/target/armv7-unknown-linux-gnueabihf/release/watchdog $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/watchdog/arm32
+      cp edge-hub/watchdog/linux/target/aarch64-unknown-linux-gnu/release/watchdog $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/watchdog/arm64
+      cp mqtt/target/x86_64-unknown-linux-musl/release/mqttd $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/mqtt/amd64
+      cp mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/mqtt/arm32
+      cp mqtt/target/aarch64-unknown-linux-gnu/release/mqttd $(Build.BinariesDirectory)/${{ parameters['edgehub.build.path'] }}/mqtt/arm64
     displayName: Copy watchdog and broker artifacts to dockerfile build context
