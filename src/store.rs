@@ -1,3 +1,7 @@
+use crate::constants::HSM_SERVER;
+use crate::ks::KSClient;
+use crate::util::BoxedResult;
+
 use std::os::raw::c_char;
 use std::path::Path;
 
@@ -6,46 +10,57 @@ use libsodium_sys as sodium;
 use lmdb::Transaction;
 // use zeroize::Zeroize;
 
-pub struct Store {
+pub struct Store<'a> {
     env: lmdb::Environment,
-    db: lmdb::Database
+    db: lmdb::Database,
+    ksc: KSClient<'a>
 }
 
-impl Store {
+impl<'a> Store<'a> {
     pub fn new(path: &Path) -> Result<Self, lmdb::Error> {
         let env = lmdb::Environment::new()
             .open(path)?;
         let db = env.create_db(None, lmdb::DatabaseFlags::empty())?;
-        Ok(Store { env: env, db: db })
+        let client = KSClient::new(HSM_SERVER);
+        Ok(Store { env: env, db: db, ksc: client })
     }
 
-    pub fn get_secret<'a>(&self, id: String) -> Result<String, lmdb::Error> {
-        let key = derive_key(&id);
+    pub async fn get_secret(&self, id: &str) -> BoxedResult<String> {
+        let sha = compute_sha(id);
+        let key = derive_key(id, sha);
 
         let txn = self.env .begin_ro_txn()?;
         let val = Vec::from(txn.get(self.db, &key)?);
         txn.commit()?;
 
+        let enc_key = self.ksc
+            .get_key(&encode(sha))
+            .await?;
+
         Ok(encode(val))
     }
 
-    pub fn set_secret<'a>(&self, id: String, value: String) -> Result<(), lmdb::Error> {
-        let key = derive_key(&id);
+    pub async fn set_secret(&self, id: String, value: String) -> BoxedResult<()> {
+        // let sha = compute_sha(id);
+        // let key = derive_key(id, sha);
 
         Ok(())
     }
 }
 
-fn derive_key(id: &String) -> Vec<u8> {
-    let mut salt_buf = vec![0u8; sodium::crypto_hash_sha256_BYTES as usize];
+fn compute_sha(id: &str) -> &Vec<u8> {
+    let mut buf = vec![0u8; sodium::crypto_hash_sha256_BYTES as usize];
     unsafe {
         sodium::crypto_hash_sha256(
-            salt_buf.as_mut_ptr(),
+            buf.as_mut_ptr(),
             id.as_ptr(),
             id.len() as u64
         );
     }
+    &buf
+}
 
+fn derive_key(id: &str, salt: &Vec<u8>) -> Vec<u8> {
     let mut key_buf = vec![0u8; sodium::crypto_pwhash_STRBYTES as usize];
     unsafe {
         sodium::crypto_pwhash(
@@ -53,7 +68,7 @@ fn derive_key(id: &String) -> Vec<u8> {
             key_buf.len() as u64,
             id.as_ptr() as *const c_char,
             id.len() as u64,
-            salt_buf.as_ptr(),
+            salt.as_ptr(),
             sodium::crypto_pwhash_OPSLIMIT_MODERATE as u64,
             sodium::crypto_pwhash_MEMLIMIT_MODERATE as usize,
             sodium::crypto_pwhash_ALG_DEFAULT as i32

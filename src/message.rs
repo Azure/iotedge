@@ -1,4 +1,4 @@
-use crate::constants::*;
+use crate::constants::{API_SURFACE, LOST};
 use crate::util::*;
 use crate::store;
 

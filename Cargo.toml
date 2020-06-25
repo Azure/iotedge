@@ -11,10 +11,12 @@ base64 = "~0.12"
 bytes = "~0.5"
 hyper = "~0.13"
 hyperlocal = "~0.7"
+# ks-client-async = { path = "extern/libiothsm2/ks-client-async" }
 libc = "~0.2"
 libsodium-sys = "~0.2"
 lmdb-rkv = "~0.14"
 log = "0.4"
+percent-encoding = "~2.1"
 serde = { version = "~1.0", features = ["derive"] }
 serde_json = "~1.0"
 tokio = { version = "~0.2", features = ["macros"] }
