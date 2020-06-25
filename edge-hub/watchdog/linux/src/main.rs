@@ -1,13 +1,13 @@
 use nix::sys::signal::{self, Signal};
 use nix::unistd::Pid;
-use signal_hook::{iterator::Signals, SIGTERM, SIGINT};
+use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
 use std::io::Error;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use tracing::{error, info, Level, subscriber};
+use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
 fn main() -> Result<(), Error> {
@@ -53,9 +53,7 @@ fn main() -> Result<(), Error> {
 }
 
 fn init_logging() {
-    let subscriber = Subscriber::builder()
-        .with_max_level(Level::INFO)
-        .finish();
+    let subscriber = Subscriber::builder().with_max_level(Level::INFO).finish();
     let _ = subscriber::set_global_default(subscriber);
 
     info!("Starting watchdog");
