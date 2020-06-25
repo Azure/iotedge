@@ -3,10 +3,10 @@ FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
-ADD ./watchdog/amd64/watchdog /usr/local/bin/watchdog
-ADD ./mqtt/amd64/mqttd /usr/local/bin/mqttd
+ADD ./watchdog/target/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
+ADD ./mqttd/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 
-ARG EXE_DIR=.	
+ARG EXE_DIR=./edge-hub
 
 # RocksDB requires snappy	
 RUN apk update && \	

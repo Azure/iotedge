@@ -1,14 +1,14 @@
 ARG base_tag=1.0.5-linux-arm32v7
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
-ADD ./watchdog/arm32/watchdog /usr/local/bin/watchdog
-ADD ./mqtt/arm32/mqttd /usr/local/bin/mqttd
+ADD ./watchdog/target/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
+ADD ./mqttd/target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
 
 ARG EXE_DIR=.
 
 WORKDIR /app
 
-COPY $EXE_DIR/ ./
+COPY $EXE_DIR/ ./edge-hub
 
 # Set broker log level
 ENV RUST_LOG=info

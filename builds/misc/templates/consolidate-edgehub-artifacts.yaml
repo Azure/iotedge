@@ -1,0 +1,19 @@
+# This template will move the mqttd and watchdog artifacts into the EdgeHub dotnet publish folder
+# EdgeHub's dotnet publish folder will serve as a minimal build context for the image
+parameters:
+  edgehub.dotnet.artifacts.path: 'publish/Microsoft.Azure.Devices.Edge.Hub.Service'
+  mqttd.artifacts.path: 'mqttd/target/'
+  watchdog.artifacts.path: 'edge-hub/watchdog/linux/target'
+  all.artifacts.path: 'publish/edge-hub'
+
+steps:
+  - bash: |
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/watchdog
+
+      cp  ${{ parameters['watchdog.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/watchdog
+      cp  ${{ parameters['mqttd.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
+      mv  ${{ parameters['edgehub.artifacts.path'] }}/docker $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}
+      cp  ${{ parameters['edgehub.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}
+    displayName: Copy edgehub, watchdog, and broker artifacts to single folder
