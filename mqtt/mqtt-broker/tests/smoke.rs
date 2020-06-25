@@ -603,9 +603,9 @@ async fn inflight_qos1_messages_redelivered_on_reconnect() {
             x => panic!("Expected publish but {:?} found", x),
         };
 
-        assert_eq!(
+        assert_matches!(
             publish.packet_identifier_dup_qos,
-            PacketIdentifierDupQoS::AtLeastOnce(PacketIdentifier::new(i).unwrap(), false),
+            PacketIdentifierDupQoS::AtLeastOnce(_, false)
         );
         assert_eq!(publish.payload, Bytes::from(format!("qos 1-{0}", i)));
     }
@@ -637,9 +637,9 @@ async fn inflight_qos1_messages_redelivered_on_reconnect() {
             x => panic!("Expected publish but {:?} found", x),
         };
 
-        assert_eq!(
+        assert_matches!(
             publish.packet_identifier_dup_qos,
-            PacketIdentifierDupQoS::AtLeastOnce(PacketIdentifier::new(i).unwrap(), true),
+            PacketIdentifierDupQoS::AtLeastOnce(_, true)
         );
         assert_eq!(publish.payload, Bytes::from(format!("qos 1-{0}", i)));
     }

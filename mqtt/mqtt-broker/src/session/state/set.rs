@@ -21,24 +21,6 @@ pub struct SmallIndexSet<V> {
     items: HashMap<V, u64>,
 }
 
-impl<V> PartialEq for SmallIndexSet<V>
-where
-    V: Eq + Hash,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.items == other.items
-    }
-}
-
-impl<V> Default for SmallIndexSet<V> {
-    fn default() -> Self {
-        Self {
-            last_inserted: 0,
-            items: HashMap::default(),
-        }
-    }
-}
-
 impl<V> SmallIndexSet<V> {
     pub fn new() -> Self {
         Self::default()
@@ -85,6 +67,24 @@ where
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+impl<V> PartialEq for SmallIndexSet<V>
+where
+    V: Eq + Hash,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.items == other.items
+    }
+}
+
+impl<V> Default for SmallIndexSet<V> {
+    fn default() -> Self {
+        Self {
+            last_inserted: 0,
+            items: HashMap::default(),
+        }
     }
 }
 
