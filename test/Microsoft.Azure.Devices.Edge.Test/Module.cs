@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(
                             new[]
                             {
-                                ("ClientTransportType", clientTransport),
+                                ("TransportType", clientTransport),
                                 ("TargetModuleId", methodReceiver)
                             });
                     builder.AddModule(methodReceiver, receiverImage)
