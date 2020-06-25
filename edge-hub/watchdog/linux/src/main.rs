@@ -34,7 +34,7 @@ fn main() -> Result<(), Error> {
         .expect("failed to execute MQTT broker process");
     info!("Launched MQTT Broker process with pid {:?}", broker.id());
 
-    while has_received_shutdown_signal.load(Ordering::Relaxed) {
+    while !has_received_shutdown_signal.load(Ordering::Relaxed) {
         if !is_running(&mut edgehub) {
             break;
         }
@@ -61,12 +61,12 @@ fn init_logging() {
 
 fn register_sigterm_listener() -> Result<Arc<AtomicBool>, Error> {
     let signals = Signals::new(&[SIGTERM, SIGINT])?;
-    let has_received_shutdown_signal = Arc::new(AtomicBool::new(true));
+    let has_received_shutdown_signal = Arc::new(AtomicBool::new(false));
     let sigterm_listener = has_received_shutdown_signal.clone();
     thread::spawn(move || {
         for _sig in signals.forever() {
             info!("Received shutdown signal for watchdog");
-            sigterm_listener.store(false, Ordering::Relaxed);
+            sigterm_listener.store(true, Ordering::Relaxed);
         }
     });
 
