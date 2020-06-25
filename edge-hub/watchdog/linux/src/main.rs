@@ -37,22 +37,17 @@ async fn async_main() -> Result<(), Error> {
     info!("Launched Edge Hub process with pid {:?}", edgehub.id());
 
     // unwrap broker if started, else shutdown edgehub and exit
-    let maybe_broker = match Command::new("/usr/local/bin/mqttd")
+    let mut broker = match Command::new("/usr/local/bin/mqttd")
         .stdout(Stdio::inherit())
         .spawn()
     {
-        Ok(child) => Some(child),
+        Ok(child) => child,
         Err(e) => {
-            error!("Failed to start MQTT Broker process. {:?}", e);
-            None
+            info!("Broker process failed to start, so shutting down EdgeHub and exiting. {:?}", e);
+            shutdown(&mut edgehub).await;
+            exit(1);
         }
     };
-    let mut broker = maybe_broker.unwrap_or_else(|| {
-        info!("Broker process not started, so shutting down EdgeHub and exiting");
-        let shutdown = shutdown(&mut edgehub);
-        block_on(shutdown);
-        exit(1);
-    });
     info!("Launched MQTT Broker process");
 
     while !should_shutdown.load(Ordering::Relaxed) {
