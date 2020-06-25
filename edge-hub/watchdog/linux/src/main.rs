@@ -53,7 +53,7 @@ fn init_logging() {
     info!("Starting watchdog");
 }
 
-fn register_sigterm_listener() -> Result<Arc<std::sync::atomic::AtomicBool>, Error> {
+fn register_sigterm_listener() -> Result<Arc<AtomicBool>, Error> {
     let signals = Signals::new(&[SIGTERM])?;
     let has_received_sigterm = Arc::new(AtomicBool::new(true));
     let sigterm_listener = has_received_sigterm.clone();
@@ -70,7 +70,7 @@ fn register_sigterm_listener() -> Result<Arc<std::sync::atomic::AtomicBool>, Err
 fn wait_for_sigterm_or_processes_to_shutdown(
     mut edgehub: &mut Child,
     mut broker: &mut Child,
-    has_received_sigterm: Arc<std::sync::atomic::AtomicBool>,
+    has_received_sigterm: Arc<AtomicBool>,
 ) {
     let mut is_edgehub_running = is_child_process_running(&mut edgehub);
     let mut is_broker_running = is_child_process_running(&mut broker);
