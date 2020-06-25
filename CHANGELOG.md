@@ -11,7 +11,7 @@
 ### Bug Fixes
 * Reprovision device for all protocols when the connection status change reason is Bad_Credential. [3601a56](https://github.com/Azure/iotedge/commit/3601a566e728f697176398b7f92deb79b60278fe)
 * Vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
-* Update SDK to 1.26.0. [5148ee7](https://github.com/Azure/iotedge/commit/5148ee70b793963f74862e047039a412a488ab73)
+* Update SDK version {Microsoft.Azure.Devices.1.21.0, Microsoft.Azure.Devices.Client.1.26.0}. [5148ee7](https://github.com/Azure/iotedge/commit/5148ee70b793963f74862e047039a412a488ab73)
 
 ## Edge Hub
 ### Features
