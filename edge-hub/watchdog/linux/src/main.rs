@@ -83,7 +83,7 @@ fn wait_for_sigterm_or_processes_to_shutdown(
 }
 
 fn is_child_process_running(child_process: &mut Child) -> bool {
-    return !child_process.try_wait().unwrap().is_some();
+    child_process.try_wait().unwrap().is_none()
 }
 
 fn shutdown(mut edgehub: &mut Child, mut broker: &mut Child) {
