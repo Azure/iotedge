@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![allow(clippy::similar_names)]
-
 use std::env;
 use std::ffi::OsString;
 use std::fs::File;

@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![allow(clippy::similar_names)]
-
 use std::sync::Arc;
 
 use failure::Compat;
