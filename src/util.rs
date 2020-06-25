@@ -1,16 +1,15 @@
 use bytes::buf::BufExt;
 use hyper::{Body, Client, Method, Request, Response, Uri};
 use hyper::body::aggregate;
-use hyper_tls::HttpsConnector;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{from_reader, to_string};
+// use zeroize::Zeroize;
 
 pub type BoxedResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 pub async fn call(method: Method, uri: &str, payload: &impl Serialize) -> BoxedResult<Response<Body>> {
-    let client = Client::builder()
-        .build(HttpsConnector::new());
+    let client = Client::new();
 
     let req = Request::builder()
         .uri(uri.parse::<Uri>()?)

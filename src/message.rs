@@ -4,6 +4,7 @@ use crate::store;
 
 use hyper::{Body, Method, Request, Response};
 use hyper::http::Error as HttpError;
+// use zeroize::Zeroize;
 
 fn index(req: Request<Body>) -> Result<Response<Body>, HttpError> {
     Response::builder()
