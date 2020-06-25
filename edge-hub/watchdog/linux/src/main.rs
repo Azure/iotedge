@@ -1,10 +1,10 @@
+use futures::executor::block_on;
+use futures::join;
 use nix::sys::signal::{self, Signal};
 use nix::unistd::Pid;
 use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
-use futures::executor::block_on;
-use futures::{join};
 use std::io::Error;
-use std::process::{Child, Command, Stdio, exit};
+use std::process::{exit, Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -12,8 +12,7 @@ use std::time::Duration;
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
-fn main() -> Result<(), Error>
-{
+fn main() -> Result<(), Error> {
     block_on(async_main())
 }
 
@@ -40,13 +39,14 @@ async fn async_main() -> Result<(), Error> {
     // unwrap broker if started, else shutdown edgehub and exit
     let maybe_broker = match Command::new("/usr/local/bin/mqttd")
         .stdout(Stdio::inherit())
-        .spawn() {
-            Ok(child) => Some(child),
-            Err(e) => {
-                error!("Failed to start MQTT Broker process. {:?}", e);
-                None
-            }
-        };
+        .spawn()
+    {
+        Ok(child) => Some(child),
+        Err(e) => {
+            error!("Failed to start MQTT Broker process. {:?}", e);
+            None
+        }
+    };
     let mut broker = maybe_broker.unwrap_or_else(|| {
         info!("Broker process not started, so shutting down EdgeHub and exiting");
         let shutdown = shutdown(&mut edgehub);
@@ -54,7 +54,7 @@ async fn async_main() -> Result<(), Error> {
         exit(1);
     });
     info!("Launched MQTT Broker process");
-    
+
     while !should_shutdown.load(Ordering::Relaxed) {
         if !is_running(&mut edgehub) {
             break;
