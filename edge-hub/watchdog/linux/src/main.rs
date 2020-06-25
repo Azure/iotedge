@@ -29,12 +29,19 @@ async fn async_main() -> Result<(), Error> {
     };
 
     // start edgehub and blow up if can't start
-    let mut edgehub = Command::new("dotnet")
+    let mut edgehub = match Command::new("dotnet")
         .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
         .stdout(Stdio::inherit())
-        .spawn()
-        .expect("Failed to start Edge Hub process");
-    info!("Launched Edge Hub process with pid {:?}", edgehub.id());
+        .spawn() {
+        Ok(edgehub) => {
+            info!("Launched Edge Hub process with pid {:?}", edgehub.id());
+            edgehub
+        },
+        Err(e) => {
+            error!("Failed to start Edge Hub process {:?}", e);
+            exit(1);
+        }
+    };
 
     // unwrap broker if started, else shutdown edgehub and exit
     let mut broker = match Command::new("/usr/local/bin/mqttd")
