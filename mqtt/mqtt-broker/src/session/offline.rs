@@ -43,6 +43,12 @@ impl OfflineSession {
         let mut events = Vec::new();
         let OfflineSession { mut state } = self;
 
+        // Drop all outstanding QoS 0 packets
+        if !state.waiting_to_be_acked_qos0_mut().is_empty() {
+            debug!("dropping all QoS0 packet");
+            state.waiting_to_be_acked_qos0_mut().clear();
+        }
+
         // Handle the outstanding QoS 1 and QoS 2 packets
         for (id, publish) in state.waiting_to_be_acked() {
             let to_publish = match publish {
@@ -68,12 +74,6 @@ impl OfflineSession {
 
             debug!("resending QoS12 packet {}", id);
             events.push(ClientEvent::PublishTo(to_publish));
-        }
-
-        // Handle the outstanding QoS 0 packets
-        for (id, publish) in state.waiting_to_be_acked_qos0() {
-            debug!("resending QoS0 packet {}", id);
-            events.push(ClientEvent::PublishTo(publish.clone()));
         }
 
         // Handle the outstanding QoS 2 packets in the second stage of transmission
