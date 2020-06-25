@@ -4,11 +4,20 @@ use crate::util::*;
 use hyper::{Client, Method};
 use hyper::client::HttpConnector;
 use percent_encoding::percent_encode;
-use serde_json::{json, from_value, Value};
+use serde::Deserialize;
+use serde_json::json;
 
-pub struct Key<'a> {
-    id: &'a str,
-    value: &'a str
+#[derive(Deserialize)]
+pub struct KeyHandle<'a>(
+    #[serde(rename = "keysServiceHandle")]
+    pub &'a str
+);
+
+#[derive(Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Text<'a> {
+    Plaintext(&'a str),
+    Ciphertext(&'a str)
 }
 
 pub struct KSClient<'a> {
@@ -24,7 +33,7 @@ impl<'a> KSClient<'a> {
         }
     }
 
-    pub async fn create_key(&self, id: &str) -> BoxedResult<Key<'_>> {
+    pub async fn create_key(&self, id: &str) -> BoxedResult<KeyHandle<'_>> {
         let res = call(
                 Method::POST,
                 format!("{}/keys", self.endpoint),
@@ -35,15 +44,10 @@ impl<'a> KSClient<'a> {
             )
             .await?;
 
-        let out = slurp_json::<Value>(res).await?;
-
-        Ok(Key {
-            id: id,
-            value: from_value(out["keysServiceHandle"])?
-        })
+        Ok(slurp_json(res).await?)
     }
 
-    pub async fn get_key(&self, id: &str) -> BoxedResult<Key<'_>> {
+    pub async fn get_key(&self, id: &str) -> BoxedResult<KeyHandle<'_>> {
         let res = call(
                 Method::GET,
                 format!("{}/keys/{}", self.endpoint, percent_encode(id.as_bytes(), ENCODE_CHARS)),
@@ -51,13 +55,44 @@ impl<'a> KSClient<'a> {
             )
             .await?;
 
-        let out = slurp_json::<Value>(res).await?;
-
-        Ok(Key {
-            id: id,
-            value: from_value(out["keysServiceHandle"])?
-        })
+        Ok(slurp_json(res).await?)
     }
 
-    // pub async fn encrypt(&self, key: &str, value, &str) -> BoxedResult<...>
+    pub async fn encrypt(&self, key: &str, plaintext: &str, iv: &str, aad: &str) -> BoxedResult<Text<'_>> {
+        let res = call(
+                Method::POST,
+                format!("{}/encrypt", self.endpoint),
+                Some(json!({
+                    "keysServiceHandle": key,
+                    "algorithm": "AEAD",
+                    "parameters": {
+                        "iv": iv,
+                        "aad": aad
+                    },
+                    "plaintext": plaintext
+                }))
+            )
+            .await?;
+
+        Ok(slurp_json(res).await?)
+    }
+
+    pub async fn decrypt(&self, key: &str, ciphertext: &str, iv: &str, aad: &str) -> BoxedResult<Text<'_>> {
+        let res = call(
+                Method::POST,
+                format!("{}/decrypt", self.endpoint),
+                Some(json!({
+                    "keysServiceHandle": key,
+                    "algorithm": "AEAD",
+                    "parameters": {
+                        "iv": iv,
+                        "aad": aad
+                    },
+                    "ciphertext": ciphertext
+                }))
+            )
+            .await?;
+        
+        Ok(slurp_json(res).await?)
+    }
 }

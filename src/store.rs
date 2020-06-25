@@ -1,5 +1,5 @@
 use crate::constants::HSM_SERVER;
-use crate::ks::KSClient;
+use crate::ks::{KSClient, KeyHandle, Text};
 use crate::util::BoxedResult;
 
 use std::os::raw::c_char;
@@ -7,37 +7,63 @@ use std::path::Path;
 
 use base64::encode;
 use libsodium_sys as sodium;
-use lmdb::Transaction;
+use rusqlite::{params, Connection, Error as SQLiteError};
 // use zeroize::Zeroize;
 
 pub struct Store<'a> {
-    env: lmdb::Environment,
-    db: lmdb::Database,
+    db: Connection,
     ksc: KSClient<'a>
 }
 
 impl<'a> Store<'a> {
-    pub fn new(path: &Path) -> Result<Self, lmdb::Error> {
-        let env = lmdb::Environment::new()
-            .open(path)?;
-        let db = env.create_db(None, lmdb::DatabaseFlags::empty())?;
+    pub fn new(path: &Path) -> Result<Self, SQLiteError> {
+        let db = Connection::open(path.join("store.db3"))?;
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS secrets (
+                id      BLOB PRIMARY KEY,
+                value   TEXT,
+                iv      TEXT,
+                aad     TEXT
+            ) WITHOUT ROWID",
+            params![]
+        )?;
         let client = KSClient::new(HSM_SERVER);
-        Ok(Store { env: env, db: db, ksc: client })
+        Ok(Store { db: db, ksc: client })
     }
 
     pub async fn get_secret(&self, id: &str) -> BoxedResult<String> {
         let sha = compute_sha(id);
-        let key = derive_key(id, sha);
+        let secret_id = derive_key(id, sha);
 
-        let txn = self.env .begin_ro_txn()?;
-        let val = Vec::from(txn.get(self.db, &key)?);
-        txn.commit()?;
+        let id_param = params![secret_id];
+        let mut stmt = self.db.prepare("SELECT * FROM keys WHERE id = ?")?;
 
-        let enc_key = self.ksc
-            .get_key(&encode(sha))
-            .await?;
+        if stmt.exists(id_param)? {
+            let mut query = stmt.query(id_param)?;
+            let Some(row) = query.next()?;
 
-        Ok(encode(val))
+            let val: String = row.get(1)?;
+            let iv: String = row.get(2)?;
+            let aad: String = row.get(3)?;
+
+            let KeyHandle(sym_key) = self.ksc
+                .get_key(&encode(sha))
+                .await?;
+
+            let Text::Plaintext(ptext) = self.ksc
+                .decrypt(
+                    sym_key,
+                    &val,
+                    &iv,
+                    &aad
+                )
+                .await?;
+
+            Ok(ptext.to_string())
+        }
+        else {
+            Err(Box::new(SQLiteError::QueryReturnedNoRows))
+        }
     }
 
     pub async fn set_secret(&self, id: String, value: String) -> BoxedResult<()> {

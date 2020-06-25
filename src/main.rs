@@ -4,6 +4,9 @@ mod message;
 mod store;
 mod util;
 
+use crate::constants::SERVER_DIR;
+use crate::store::Store;
+
 // use std::fs::remove_file;
 use std::path::Path;
 
@@ -24,7 +27,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let skt = Path::new("foo.sock");
     Server::bind_unix(skt)?
         .serve(make_service_fn(|_| async {
-            Ok::<_, hyper::Error>(service_fn(message::service))
+            match Store::new(Path::new(SERVER_DIR)) {
+                Ok(store) => Ok::<_, hyper::Error>(service_fn(move |req| message::call(store, req))),
+                _ => panic!("FAILED TO CONNECT TO SQLITE DATABASE")
+            }
         }))
         .await?;
 

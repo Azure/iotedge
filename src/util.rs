@@ -17,7 +17,7 @@ pub async fn call(method: Method, uri: &str, payload: Option<&impl Serialize>) -
         .uri(uri.parse::<Uri>()?)
         .method(method)
         .body(match payload {
-            Some(v) => Body::from(to_string(v)?),
+            Some(v) => Body::from(to_string(v).unwrap()),
             None => Body::empty()
         })?;
 

@@ -9,9 +9,10 @@ pub const API_SURFACE: &str = r#"{
     "PUT /pull": "PULL A KEY VAULT"
 }
 "#;
-pub const HSM_SERVER: &str = "http://localhost:8888";
-pub const LOST: &str = "YOU ARE LOST";
-
 pub const ENCODE_CHARS: &AsciiSet = &CONTROLS
     .add(b' ').add(b'"').add(b'<').add(b'>').add(b'`')
     .add(b'#').add(b'?').add(b'{').add(b'}');
+pub const HSM_SERVER: &str = "http://localhost:8888";
+pub const LOST: &str = "YOU ARE LOST";
+pub const SERVER_DIR: &str = "~";
+
