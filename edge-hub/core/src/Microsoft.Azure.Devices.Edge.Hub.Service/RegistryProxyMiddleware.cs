@@ -24,21 +24,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public async Task Invoke(HttpContext context)
         {
-            Uri destinationUri = this.BuildDestinationUri(context);
+            Option<Uri> destinationUri = this.BuildDestinationUri(context);
 
-            if (destinationUri != null)
-            {
-                HttpRequestMessage proxyRequestMessage = this.CreateProxyRequestMessage(context, destinationUri);
-
-                using (HttpResponseMessage responseMessage = await httpClient.SendAsync(proxyRequestMessage, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted))
+            await destinationUri.ForEachAsync(
+                async uri =>
                 {
-                    await this.CopyProxyResponseAsync(context, responseMessage);
-                }
-            }
-            else
-            {
-                await this.nextMiddleware(context);
-            }
+                    HttpRequestMessage proxyRequestMessage = this.CreateProxyRequestMessage(context, uri);
+
+                    using (HttpResponseMessage responseMessage = await httpClient.SendAsync(proxyRequestMessage, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted))
+                    {
+                        await this.CopyProxyResponseAsync(context, responseMessage);
+                    }
+                },
+                async () =>
+                {
+                    await this.nextMiddleware(context);
+                });
         }
 
         internal HttpRequestMessage CreateProxyRequestMessage(HttpContext context, Uri destinationUri)
@@ -97,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             await responseMessage.Content.CopyToAsync(response.Body);
         }
 
-        internal Uri BuildDestinationUri(HttpContext context)
+        internal Option<Uri> BuildDestinationUri(HttpContext context)
         {
             HttpRequest request = context.Request;
 
@@ -108,12 +109,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 !request.IsHttps ||
                 !registryApiUriPattern.IsMatch(request.Path))
             {
-                return null;
+                return Option.None<Uri>();
             }
 
             var destinationUriBuilder = new UriBuilder(request.GetEncodedUrl());
             destinationUriBuilder.Host = this.gatewayHostname;
-            return destinationUriBuilder.Uri;
+            return Option.Some(destinationUriBuilder.Uri);
         }
     }
 }

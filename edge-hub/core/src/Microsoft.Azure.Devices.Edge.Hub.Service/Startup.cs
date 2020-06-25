@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             });
         }
 
-        private (string iotHubHostname, string edgeDeviceId, string gatewayHostname) GetStartupParameters()
+        (string iotHubHostname, string edgeDeviceId, string gatewayHostname) GetStartupParameters()
         {
             string iotHubHostname, edgeDeviceId;
 
