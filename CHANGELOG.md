@@ -3,8 +3,8 @@
 ### Features
 * Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
 * Install Trust Bundle in EdgeAgent and EdgeHub. [4f85dcc](https://github.com/Azure/iotedge/commit/4f85dcc7d3fd6d4772d4a9b86ec3ecad651938fd)
-* Metrics use RocksDB [0d2cf76](https://github.com/Azure/iotedge/commit/0d2cf76ea1da561252a1100b7da5b4f0f5f1d471)
-* Metrics Upload to IoTHub [eff5c85](https://github.com/Azure/iotedge/commit/eff5c859e101d14eda85b80513136a2f3a473892)
+* Enable Metrics with RocksDB [0d2cf76](https://github.com/Azure/iotedge/commit/0d2cf76ea1da561252a1100b7da5b4f0f5f1d471)
+* Enable Metrics upload to IoTHub [eff5c85](https://github.com/Azure/iotedge/commit/eff5c859e101d14eda85b80513136a2f3a473892)
 * Add "Cmd", "Entrypoint", and "WorkingDir" translations for Kubernetes. [7cbc607](https://github.com/Azure/iotedge/commit/7cbc607ccc483d6e0ab9642be76c8b2d8bc09605)
 * Add Experimental k8s create option feature for pod security context, resources, volumes, nodeSelector, and strategy. [cf2eba9](https://github.com/Azure/iotedge/commit/cf2eba9518a947bb09ebff5dcd6ae42f66d2d045) [23b40e1](https://github.com/Azure/iotedge/commit/23b40e1bf5e9cd04af1246b2214f0759c6446ea9)
 
