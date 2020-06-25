@@ -1,8 +1,10 @@
 use nix::sys::signal::{self, Signal};
 use nix::unistd::Pid;
 use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
+use futures::executor::block_on;
+use futures::{join};
 use std::io::Error;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command, Stdio, exit};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -10,31 +12,50 @@ use std::time::Duration;
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
-fn main() -> Result<(), Error> {
-    init_logging();
+fn main() -> Result<(), Error>
+{
+    block_on(async_main())
+}
 
-    let has_received_shutdown_signal = match register_sigterm_listener() {
-        Ok(has_received_shutdown_signal) => has_received_shutdown_signal,
+async fn async_main() -> Result<(), Error> {
+    init_logging();
+    info!("Starting watchdog");
+
+    let should_shutdown = match register_sigterm_listener() {
+        Ok(should_shutdown) => should_shutdown,
         Err(e) => {
             error!("Failed to register sigterm listener. Shutting down.");
             return Err(e);
         }
     };
 
+    // start edgehub and blow up if can't start
     let mut edgehub = Command::new("dotnet")
         .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
         .stdout(Stdio::inherit())
         .spawn()
-        .expect("Failed to execute Edge Hub process");
+        .expect("Failed to start Edge Hub process");
     info!("Launched Edge Hub process with pid {:?}", edgehub.id());
 
-    let mut broker = Command::new("/usr/local/bin/mqttd")
+    // unwrap broker if started, else shutdown edgehub and exit
+    let maybe_broker = match Command::new("/usr/local/bin/mqttd")
         .stdout(Stdio::inherit())
-        .spawn()
-        .expect("failed to execute MQTT broker process");
-    info!("Launched MQTT Broker process with pid {:?}", broker.id());
-
-    while !has_received_shutdown_signal.load(Ordering::Relaxed) {
+        .spawn() {
+            Ok(child) => Some(child),
+            Err(e) => {
+                error!("Failed to start MQTT Broker process. {:?}", e);
+                None
+            }
+        };
+    let mut broker = maybe_broker.unwrap_or_else(|| {
+        info!("Broker process not started, so shutting down EdgeHub and exiting");
+        let shutdown = shutdown(&mut edgehub);
+        block_on(shutdown);
+        exit(1);
+    });
+    info!("Launched MQTT Broker process");
+    
+    while !should_shutdown.load(Ordering::Relaxed) {
         if !is_running(&mut edgehub) {
             break;
         }
@@ -46,7 +67,9 @@ fn main() -> Result<(), Error> {
         thread::sleep(Duration::from_secs(1));
     }
 
-    shutdown(&mut edgehub, &mut broker);
+    let shutdown_edgehub = shutdown(&mut edgehub);
+    let shutdown_broker = shutdown(&mut broker);
+    join!(shutdown_edgehub, shutdown_broker);
 
     info!("Stopped");
     Ok(())
@@ -55,14 +78,12 @@ fn main() -> Result<(), Error> {
 fn init_logging() {
     let subscriber = Subscriber::builder().with_max_level(Level::INFO).finish();
     let _ = subscriber::set_global_default(subscriber);
-
-    info!("Starting watchdog");
 }
 
 fn register_sigterm_listener() -> Result<Arc<AtomicBool>, Error> {
     let signals = Signals::new(&[SIGTERM, SIGINT])?;
-    let has_received_shutdown_signal = Arc::new(AtomicBool::new(false));
-    let sigterm_listener = has_received_shutdown_signal.clone();
+    let should_shutdown = Arc::new(AtomicBool::new(false));
+    let sigterm_listener = should_shutdown.clone();
     thread::spawn(move || {
         for _sig in signals.forever() {
             info!("Received shutdown signal for watchdog");
@@ -70,34 +91,30 @@ fn register_sigterm_listener() -> Result<Arc<AtomicBool>, Error> {
         }
     });
 
-    Ok(has_received_shutdown_signal)
+    Ok(should_shutdown)
 }
 
 fn is_running(child_process: &mut Child) -> bool {
-    child_process.try_wait().unwrap().is_none()
+    match child_process.try_wait() {
+        Ok(status) => status.is_none(),
+        Err(e) => {
+            error!("Error while polling child process. {:?}", e);
+            false
+        }
+    }
 }
 
-fn shutdown(mut edgehub: &mut Child, mut broker: &mut Child) {
-    info!("Initiating shutdown of MQTT Broker and Edge Hub");
-
-    if is_running(&mut edgehub) {
-        info!("Sending SIGTERM to Edge Hub");
-        terminate(&mut edgehub);
-    }
-    if is_running(&mut broker) {
-        info!("Sending SIGTERM to MQTT Broker");
-        terminate(&mut broker);
+async fn shutdown(mut child: &mut Child) {
+    if is_running(&mut child) {
+        info!("Terminating child process");
+        terminate(&mut child);
     }
 
     thread::sleep(Duration::from_secs(60));
 
-    if is_running(&mut edgehub) {
-        info!("Killing Edge Hub");
-        kill(edgehub);
-    }
-    if is_running(&mut broker) {
-        info!("Killing MQTT Broker");
-        kill(broker);
+    if is_running(&mut child) {
+        info!("Killing child process");
+        kill(child);
     }
 }
 
