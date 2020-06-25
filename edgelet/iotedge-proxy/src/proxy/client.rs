@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#![allow(clippy::similar_names)]
+
 use std::convert::AsRef;
 
 use failure::{Fail, ResultExt};
