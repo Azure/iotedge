@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
     using System;
     using System.Collections.Generic;
@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test
     using System.Net.Http;
     using System.Text;
     using System.Threading.Tasks;
-
     using Microsoft.AspNetCore.Http;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Primitives;

@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Service
+namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 {
     using System;
     using System.Linq;
@@ -12,9 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class RegistryProxyMiddleware
     {
-        private static readonly HttpClient httpClient = new HttpClient();
-        private readonly RequestDelegate nextMiddleware;
-        private readonly string gatewayHostname;
+        // This pattern is used to match registry API for create, update, get, delete of a module, and list modules.
+        static readonly Regex registryApiUriPattern = new Regex(@"\/devices\/.+\/modules(\/.+)?$");
+        static readonly HttpClient httpClient = new HttpClient();
+        readonly RequestDelegate nextMiddleware;
+        readonly string gatewayHostname;
 
         public RegistryProxyMiddleware(RequestDelegate nextMiddleware, string gatewayHostname)
         {
@@ -44,9 +46,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         internal HttpRequestMessage CreateProxyRequestMessage(HttpContext context, Uri destinationUri)
         {
-            var request = context.Request;
+            HttpRequest request = context.Request;
             var requestMessage = new HttpRequestMessage();
-            var requestMethod = request.Method;
+            string requestMethod = request.Method;
 
             if (!HttpMethods.IsGet(requestMethod) &&
                 !HttpMethods.IsHead(requestMethod) &&
@@ -101,9 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         internal Option<Uri> BuildDestinationUri(HttpContext context)
         {
             HttpRequest request = context.Request;
-
-            // This pattern is used to match registry API for create, update, get, delete of a module, and list modules.
-            Regex registryApiUriPattern = new Regex(@"\/devices\/.+\/modules(\/.+)?$");
 
             if (context.WebSockets.IsWebSocketRequest ||
                 !request.IsHttps ||
