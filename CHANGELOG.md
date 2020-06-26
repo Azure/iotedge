@@ -1,4 +1,4 @@
-# 1.0.10-rc1 (2020-06-25)
+# 1.0.10-rc1 (2020-06-26)
 ## Edge Agent
 ### Features
 * Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
