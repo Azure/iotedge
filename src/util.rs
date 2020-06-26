@@ -2,9 +2,9 @@ use std::io::{Error, ErrorKind};
 
 use bytes::buf::BufExt;
 use hyper::{Body, Client, Method, Request, Response, Uri};
-use hyper::body::aggregate;
+use hyper::body::to_bytes;
 use serde::{Deserialize, Serialize};
-use serde_json::{to_string, Deserializer, Value};
+use serde_json::{to_string, Deserializer};
 // use zeroize::Zeroize;
 
 pub type BoxedResult<T> = Result<T, Box<dyn std::error::Error>>;
@@ -25,13 +25,13 @@ pub async fn call(method: Method, uri: String, payload: Option<impl Serialize>) 
 
 pub async fn slurp_json<'de, T: Deserialize<'de>>(res: Response<Body>) -> BoxedResult<T> {
     let status = res.status();
-    let body = aggregate(res).await?;
+    let body = to_bytes(res).await?;
 
     if status.is_success() {
         let mut de = Deserializer::from_reader(body.reader());
         Ok(T::deserialize(&mut de)?)
     }
     else {
-        Err(Box::new(Error::new(ErrorKind::Other, "FOO")))
+        Err(Box::new(Error::new(ErrorKind::Other, String::from_utf8(body.to_vec())?)))
     }
 }
