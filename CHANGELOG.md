@@ -39,13 +39,6 @@
 * Unify TLS protocol parsing. [f319228](https://github.com/Azure/iotedge/commit/f3192289d29be33222dedb93ce7d49ffc532fcd5)
 * Add support to specify min TLS version in config.yaml [6b1e19b](https://github.com/Azure/iotedge/commit/6b1e19b5ef2c01a920e25129377bd57d5ef6e934)
 
-## Helm Charts
-### Features
-* Update Helm charts to use beta8. [9c80c36](https://github.com/Azure/iotedge/commit/9c80c365edb367aa37ecde2bc20cb645ecf3f6d8)
-* Removed CRD dependency for helm3 change to support helm2. [b9696b2](https://github.com/Azure/iotedge/commit/b9696b250ea1ce3beb97d022bd408fba03b8969c)
-* Format Big numbers in Helm to scientific notation. [935ba46](https://github.com/Azure/iotedge/commit/935ba46295d260d536f3aaee47f9f201fe5cb7ea)
-* Add experimental k8s create option feature flags to helm. [d159fba](https://github.com/Azure/iotedge/commit/d159fbae96197b98433a2c14b6eb995605e7a0ba)
-
 # 1.0.8 (2019-07-22)
 * Preview support for Linux arm64
 * Upgrade Moby version in .cab file to 3.0.5 ([f23aca1](https://github.com/Azure/iotedge/commit/f23aca1fb532574e6ee7ebb0b70452d4c672ae1a))
