@@ -1,3 +1,11 @@
+// questions for denis:
+// confirm overall approach
+// have i structured this struct correctly
+// is it ok to pass arc atomic bools from worker threads handling child process to main thread, and use channels to talk to main thread to worker threads
+// command issue - because it gets created initially as a mutable reference, it would be easier to create this inside the thread.
+// So from main what if we just pass the information necessary to start the command
+// self move
+
 use std::{
     io::Error,
     process::{exit, Child, Command, Stdio},
@@ -19,7 +27,6 @@ const PROCESS_POLL_INTERVAL: Duration = Duration { secs: 1, nanos: 0 };
 struct ChildProcess {
     pub name: String,
     pub child: Child,
-    pub has_process_exited: Arc<AtomicBool>,
 }
 
 // TODO: 2 components (broker / edgehub)
@@ -27,7 +34,7 @@ struct ChildProcess {
 // in separate thread: start process and while loop to check for process status and tell main process to exit
 // use channels to communicate between threads
 impl ChildProcess {
-    pub fn make_child_process(name: String, command: &mut Command) -> ChildProcess {
+    pub fn run_child_process(name: String, command: &mut Command) -> Arc<AtomicBool> {
         let child = match command.spawn() {
             Ok(child) => {
                 info!("Launched {:?} with pid {:?}", name, child.id());
@@ -38,45 +45,42 @@ impl ChildProcess {
                 exit(2);
             }
         };
-        let has_process_exited = Self::register_shutdown_listener(&mut child);
 
-        ChildProcess {
-            name: name,
-            child: child,
-            has_process_exited: has_process_exited,
-        }
-    }
-
-    pub fn trigger_shutdown(self) {
-        thread::spawn(move || {
-            if Self::is_running(&mut self.child) {
-                info!("Terminating {:?}", self.name);
-                self.send_signal(Signal::SIGTERM);
-            }
-
-            self.wait_for_exit();
-
-            if Self::is_running(&mut self.child) {
-                info!("Killing {:?}", self.name);
-                self.send_signal(Signal::SIGKILL);
-            }
-        });
-    }
-
-    fn register_shutdown_listener(child: &mut Child) -> Arc<AtomicBool> {
         let mut has_shutdown = Arc::new(AtomicBool::new(false));
         let has_shutdown_listener = Arc::clone(&mut has_shutdown);
         thread::spawn(move || {
-            while Self::is_running(&mut child) {
+            let mut childProcess = ChildProcess {
+                name: name,
+                child: child,
+            };
+
+            while Self::is_running(&mut childProcess.child) {
                 thread::sleep(PROCESS_POLL_INTERVAL);
             }
+
+            childProcess.trigger_shutdown();
             has_shutdown_listener.store(true, Ordering::Relaxed);
         });
-        return has_shutdown;
+
+        has_shutdown
+    }
+
+    pub fn trigger_shutdown(&mut self) {
+        if Self::is_running(&mut self.child) {
+            info!("Terminating {:?}", self.name);
+            self.send_signal(Signal::SIGTERM);
+        }
+
+        self.wait_for_exit();
+
+        if Self::is_running(&mut self.child) {
+            info!("Killing {:?}", self.name);
+            self.send_signal(Signal::SIGKILL);
+        }
     }
 
     // TODO: get signal name and log it
-    fn send_signal(self, signal: Signal) {
+    fn send_signal(&mut self, signal: Signal) {
         if let Err(e) = signal::kill(Pid::from_raw(self.child.id() as i32), signal) {
             error!("Failed to send signal to {:?}. {:?}", self.name, e);
         }
@@ -119,12 +123,12 @@ fn main() -> Result<(), Error> {
         }
     };
 
-    let mut broker = ChildProcess::make_child_process(
+    let has_broker_shutdown = ChildProcess::run_child_process(
         "MQTT Broker".to_string(),
         Command::new("/usr/local/bin/mqttd").stdout(Stdio::inherit()),
     );
 
-    let mut edgehub = ChildProcess::make_child_process(
+    let mut has_edgehub_shutdown = ChildProcess::run_child_process(
         "Edge Hub".to_string(),
         Command::new("dotnet")
             .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
@@ -132,28 +136,18 @@ fn main() -> Result<(), Error> {
     );
 
     while !should_shutdown.load(Ordering::Relaxed) {
-        if broker.has_process_exited.load(Ordering::Relaxed) {
+        if has_broker_shutdown.load(Ordering::Relaxed) {
             break;
         }
 
-        if edgehub.has_process_exited.load(Ordering::Relaxed) {
+        if has_edgehub_shutdown.load(Ordering::Relaxed) {
             break;
         }
 
         thread::sleep(Duration::from_secs(1));
     }
 
-    if !broker.has_process_exited.load(Ordering::Relaxed) {
-        broker.trigger_shutdown();
-    }
-
-    if !edgehub.has_process_exited.load(Ordering::Relaxed) {
-        edgehub.trigger_shutdown();
-    }
-
-    // Note: this func doesn't need to happen in a separate thread because both don't need to run at the same time
-    broker.wait_for_exit();
-    edgehub.wait_for_exit();
+    // use channels to wait here and tell both worker threads to shut down (one might already be shut down)
 
     info!("Stopped watchdog process");
     Ok(())
