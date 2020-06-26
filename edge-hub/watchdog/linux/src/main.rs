@@ -1,21 +1,32 @@
+use std::{
+    io::Error,
+    process::{exit, Child, Command, Stdio},
+    sync::atomic::{AtomicBool, Ordering},
+    sync::Arc,
+    thread,
+    time::Duration,,
+};
+
 use futures::executor::block_on;
 use futures::join;
-use nix::sys::signal::{self, Signal};
-use nix::unistd::Pid;
+use nix::;, };, };
+use nix::
+    sys::signal::{self, Signal},
+    unistd::Pid,
+};
 use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
-use std::io::Error;
-use std::process::{exit, Child, Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
+// TODO: give unique error for every case
 fn main() -> Result<(), Error> {
     block_on(async_main())
 }
 
+// TODO: 2 components (broker watchdog / edgehub watchdog)
+// each component runs separate thread.
+// in separate thread: start process and while loop to check for process status and tell main process to exit
+// use channels to communicate between threads
 async fn async_main() -> Result<(), Error> {
     init_logging();
     info!("Starting watchdog");
@@ -23,8 +34,11 @@ async fn async_main() -> Result<(), Error> {
     let should_shutdown = match register_sigterm_listener() {
         Ok(should_shutdown) => should_shutdown,
         Err(e) => {
-            error!("Failed to register sigterm listener. Shutting down.");
-            return Err(e);
+            error!(
+                "Failed to register sigterm listener. Shutting down. {:?}",
+                e
+            );
+            exit(1);
         }
     };
 
@@ -32,11 +46,12 @@ async fn async_main() -> Result<(), Error> {
     let mut edgehub = match Command::new("dotnet")
         .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
         .stdout(Stdio::inherit())
-        .spawn() {
+        .spawn()
+    {
         Ok(edgehub) => {
             info!("Launched Edge Hub process with pid {:?}", edgehub.id());
             edgehub
-        },
+        }
         Err(e) => {
             error!("Failed to start Edge Hub process {:?}", e);
             exit(1);
@@ -50,7 +65,10 @@ async fn async_main() -> Result<(), Error> {
     {
         Ok(child) => child,
         Err(e) => {
-            info!("Broker process failed to start, so shutting down EdgeHub and exiting. {:?}", e);
+            info!(
+                "Broker process failed to start, so shutting down EdgeHub and exiting. {:?}",
+                e
+            );
             shutdown(&mut edgehub).await;
             exit(1);
         }
@@ -83,16 +101,12 @@ fn init_logging() {
 }
 
 fn register_sigterm_listener() -> Result<Arc<AtomicBool>, Error> {
-    let signals = Signals::new(&[SIGTERM, SIGINT])?;
+    // TODO: figure out how to log shutdown signal
+    // TODO: figure out how to consolidate signal hook
+    // TODO: do we receive signal that happened before listener registered
     let should_shutdown = Arc::new(AtomicBool::new(false));
-    let sigterm_listener = should_shutdown.clone();
-    thread::spawn(move || {
-        for _sig in signals.forever() {
-            info!("Received shutdown signal for watchdog");
-            sigterm_listener.store(true, Ordering::Relaxed);
-        }
-    });
-
+    signal_hook::flag::register(signal_hook::SIGTERM, Arc::clone(&should_shutdown))?;
+    signal_hook::flag::register(signal_hook::SIGINT, Arc::clone(&should_shutdown))?;
     Ok(should_shutdown)
 }
 
@@ -106,6 +120,8 @@ fn is_running(child_process: &mut Child) -> bool {
     }
 }
 
+// TODO: new logic to send shutdown signal to both processes
+// TODO: convert 60 second straight wait to be cancelled
 async fn shutdown(mut child: &mut Child) {
     if is_running(&mut child) {
         info!("Terminating child process");
