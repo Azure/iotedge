@@ -1,3 +1,43 @@
+# 1.0.10-rc1 (2020-06-26)
+## Edge Agent
+### Features
+* Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
+* Install Trust Bundle. [4f85dcc](https://github.com/Azure/iotedge/commit/4f85dcc7d3fd6d4772d4a9b86ec3ecad651938fd)
+* Add metrics upload to IoTHub feature [eff5c85](https://github.com/Azure/iotedge/commit/eff5c859e101d14eda85b80513136a2f3a473892)
+* Add "Cmd", "Entrypoint", and "WorkingDir" translations for Kubernetes. [7cbc607](https://github.com/Azure/iotedge/commit/7cbc607ccc483d6e0ab9642be76c8b2d8bc09605)
+* Add Experimental k8s create option feature for pod security context, resources, volumes, nodeSelector, and strategy. [cf2eba9](https://github.com/Azure/iotedge/commit/cf2eba9518a947bb09ebff5dcd6ae42f66d2d045) [23b40e1](https://github.com/Azure/iotedge/commit/23b40e1bf5e9cd04af1246b2214f0759c6446ea9)
+* Update SDK version {Microsoft.Azure.Devices.1.21.0, Microsoft.Azure.Devices.Client.1.26.0}. [5148ee7](https://github.com/Azure/iotedge/commit/5148ee70b793963f74862e047039a412a488ab73)
+* Preserve any extra properties in createOptions set by the user (NVidia support through moby) [5a6d506](https://github.com/Azure/iotedge/commit/5a6d5067c832ad85b39cc15d323442a973b3d3f7)  [a747950](https://github.com/Azure/iotedge/commit/a747950864403ee8f201bbf9e78aaf0a2c067411)
+
+### Bug Fixes
+* Reprovision device for all protocols when the connection status change reason is Bad_Credential. [3601a56](https://github.com/Azure/iotedge/commit/3601a566e728f697176398b7f92deb79b60278fe)
+* Fix vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
+
+## Edge Hub
+### Features
+* Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
+* Install Trust Bundle. [4f85dcc](https://github.com/Azure/iotedge/commit/4f85dcc7d3fd6d4772d4a9b86ec3ecad651938fd)
+* Add metrics upload to IoTHub feature . [eff5c85](https://github.com/Azure/iotedge/commit/eff5c859e101d14eda85b80513136a2f3a473892)
+* Unify TLS protocol parsing. [f319228](https://github.com/Azure/iotedge/commit/f3192289d29be33222dedb93ce7d49ffc532fcd5)
+* Add support for priorities on routes (limited to 0-9). [9cf0203](https://github.com/Azure/iotedge/commit/9cf02037ff0f43dc9f8a1e72cde09fd06507e2c8)
+* Add support for Time-To-Live on routes. [2662d9c](https://github.com/Azure/iotedge/commit/2662d9cd46f0abbe91e1e0260b37d1f9372609a7)
+* Add support module booting order in IoT Edge [6fce17b](https://github.com/Azure/iotedge/commit/6fce17bddff05b6d5f805b43330ec7a25a79ba2a)
+* Update SDK version {Microsoft.Azure.Devices.1.21.0, Microsoft.Azure.Devices.Client.1.26.0}. [5148ee7](https://github.com/Azure/iotedge/commit/5148ee70b793963f74862e047039a412a488ab73)
+* Add array support in twin [8a69b77](https://github.com/Azure/iotedge/commit/8a69b776c930f1697c4e6a173cc4a8dd4ee67b9c)
+
+### Bug Fixes
+* Fix vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
+
+## iotedged
+### Features
+* Update Rust to stable 1.42.0 [cf01536](https://github.com/Azure/iotedge/commit/cf01536ab40e2c4592ed9b2211394d9e9aa464b3)
+* Support X.509 authentication type in external provisioning. [0a43fdb](https://github.com/Azure/iotedge/commit/0a43fdba90537d0747a3b51d2a8006a1f4a89d09)
+* Add support for manual X.509 provisioning. [b872869](https://github.com/Azure/iotedge/commit/b872869169a76a2f334f0d2800847eaf5664c1b0)
+* Better PVC story for iotedged Kubernetes. [debf498](https://github.com/Azure/iotedge/commit/debf4987b10adf49304ead523677d5f5507a3bf6)
+* Update k8s-openapi to v0.7.1 [877c8e8](https://github.com/Azure/iotedge/commit/877c8e8f57e4926dafb8607340b24614c3f93984)
+* Unify TLS protocol parsing. [f319228](https://github.com/Azure/iotedge/commit/f3192289d29be33222dedb93ce7d49ffc532fcd5)
+* Add support to specify min TLS version in config.yaml [6b1e19b](https://github.com/Azure/iotedge/commit/6b1e19b5ef2c01a920e25129377bd57d5ef6e934)
+
 # 1.0.8 (2019-07-22)
 * Preview support for Linux arm64
 * Upgrade Moby version in .cab file to 3.0.5 ([f23aca1](https://github.com/Azure/iotedge/commit/f23aca1fb532574e6ee7ebb0b70452d4c672ae1a))
