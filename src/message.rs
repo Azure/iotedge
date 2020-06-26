@@ -1,26 +1,54 @@
-use crate::constants::{API_SURFACE, LOST};
+use crate::constants::{API_SURFACE, LOST, SERVER_DIR};
 use crate::store::Store;
+
+use std::future::Future;
+use std::path::Path;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 use hyper::{Body, Method, Request, Response};
 use hyper::http::Error as HttpError;
+use hyper::service::Service;
+use rusqlite::Error as SQLiteError;
 // use zeroize::Zeroize;
 
-pub struct MessageService<'a>(Store<'a>);
+type ServiceResponse = Pin<Box<dyn Future<Output = Result<Response<Body>, HttpError>> + Send + Sync>>;
+pub struct MessageService<'a>(pub Store<'a>);
 
-async fn index(store: Store<'_>, req: Request<Body>) -> Result<Response<Body>, HttpError> {
-    Response::builder()
-        .body(API_SURFACE.to_string().into())
+impl<'a> MessageService<'a> {
+    pub fn new() -> Result<Self, SQLiteError> {
+        Ok(MessageService(Store::new(Path::new(SERVER_DIR))?))
+    }
+
+    fn index(&self, req: Request<Body>) -> ServiceResponse {
+        Box::pin(async {
+            Response::builder()
+                .body(API_SURFACE.to_string().into())
+        })
+    }
+
+    fn get_secret(&self, req: Request<Body>) -> ServiceResponse {
+        Box::pin(async {
+            Response::builder()
+                .body("FOO".into())
+        })
+    }
 }
 
-async fn get_secret(store: Store<'_>, req: Request<Body>) -> Result<Response<Body>, HttpError>  {
-    Response::builder()
-        .body("FOO".into())
-}
+impl<'a> Service<Request<Body>> for MessageService<'a> {
+    type Response = Response<Body>;
+    type Error = HttpError;
+    type Future = ServiceResponse;
 
-pub async fn call(store: Store<'_>, req: Request<Body>) -> Result<Response<Body>, HttpError> {
-    Ok(match (req.method(), req.uri().path()) {
-        (&Method::GET, "/") => index(store, req).await?,
-        (&Method::GET, "/secret") => get_secret(store, req).await?,
-        _ => Response::builder().status(404).body(LOST.into())?
-    })
+    fn poll_ready(&mut self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn call(&mut self, req: Request<Body>) -> Self::Future {
+        match (req.method(), req.uri().path()) {
+            (&Method::GET, "/") => self.index(req),
+            (&Method::GET, "/secret") => self.get_secret(req),
+            _ => Box::pin(async { Response::builder().status(404).body(LOST.into()) })
+        }
+    }
 }

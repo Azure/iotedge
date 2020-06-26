@@ -5,7 +5,7 @@ use hyper::{Client, Method};
 use hyper::client::HttpConnector;
 use percent_encoding::percent_encode;
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{from_value, json, Value};
 
 #[derive(Deserialize)]
 pub struct KeyHandle<'a>(
@@ -51,9 +51,10 @@ impl<'a> KSClient<'a> {
         let res = call(
                 Method::GET,
                 format!("{}/keys/{}", self.endpoint, percent_encode(id.as_bytes(), ENCODE_CHARS)),
-                None
+                <Option<Value>>::None
             )
             .await?;
+
 
         Ok(slurp_json(res).await?)
     }

@@ -33,15 +33,13 @@ impl<'a> Store<'a> {
 
     pub async fn get_secret(&self, id: &str) -> BoxedResult<String> {
         let sha = compute_sha(id);
-        let secret_id = derive_key(id, sha);
+        let secret_id = derive_key(id, &sha);
 
         let id_param = params![secret_id];
         let mut stmt = self.db.prepare("SELECT * FROM keys WHERE id = ?")?;
+        let mut query = stmt.query(id_param)?;
 
-        if stmt.exists(id_param)? {
-            let mut query = stmt.query(id_param)?;
-            let Some(row) = query.next()?;
-
+        if let Some(row) = query.next()? {
             let val: String = row.get(1)?;
             let iv: String = row.get(2)?;
             let aad: String = row.get(3)?;
@@ -50,7 +48,7 @@ impl<'a> Store<'a> {
                 .get_key(&encode(sha))
                 .await?;
 
-            let Text::Plaintext(ptext) = self.ksc
+            let text = self.ksc
                 .decrypt(
                     sym_key,
                     &val,
@@ -59,7 +57,10 @@ impl<'a> Store<'a> {
                 )
                 .await?;
 
-            Ok(ptext.to_string())
+            match text {
+                Text::Plaintext(ptext) => Ok(ptext.to_string()),
+                _ => panic!("KEY SERVER RETURNED CIPHERTEXT")
+            }
         }
         else {
             Err(Box::new(SQLiteError::QueryReturnedNoRows))
@@ -74,7 +75,7 @@ impl<'a> Store<'a> {
     }
 }
 
-fn compute_sha(id: &str) -> &Vec<u8> {
+fn compute_sha(id: &str) -> Vec<u8> {
     let mut buf = vec![0u8; sodium::crypto_hash_sha256_BYTES as usize];
     unsafe {
         sodium::crypto_hash_sha256(
@@ -83,7 +84,7 @@ fn compute_sha(id: &str) -> &Vec<u8> {
             id.len() as u64
         );
     }
-    &buf
+    buf
 }
 
 fn derive_key(id: &str, salt: &Vec<u8>) -> Vec<u8> {
