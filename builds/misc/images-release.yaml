@@ -608,7 +608,7 @@ jobs:
 ################################################################################
   - job: manifest
 ################################################################################
-    displayName: Manifest
+    displayName: Publish Manifest Images
     pool:
       vmImage: 'ubuntu-16.04'
     dependsOn:
