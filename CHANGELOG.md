@@ -26,7 +26,6 @@
 * Add array support in twin [8a69b77](https://github.com/Azure/iotedge/commit/8a69b776c930f1697c4e6a173cc4a8dd4ee67b9c)
 
 ### Bug Fixes
-* Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
 * Fix vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
 
 ## iotedged
