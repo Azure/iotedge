@@ -135,10 +135,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
         [Theory]
         [InlineData("/devices/d1/modules/m1", "https://gateway/devices/d1/modules/m1")]
+        [InlineData("/devices/d1/modules", "https://gateway/devices/d1/modules")]
         [InlineData("/device/d1/modules/m1", null)]
         [InlineData("/devices/d1/module/m1", null)]
-        [InlineData("/devices/d1/modules", "https://gateway/devices/d1/modules")]
+        [InlineData("/devices/d1/modules/m1/", null)]
         [InlineData("/devices/d1/modules/", null)]
+        [InlineData("/devices/d1/jdjd/modules/", null)]
+        [InlineData("/devices/d1/jdkfd/modules", null)]
+        [InlineData("/devices/d1/modules/jdfd/DirectMethod", null)]
         public void TestBuildDestinationUri_VerifyRegistryPattern(string registryPath, string destUrl)
         {
             var contextMock = new Mock<HttpContext>();

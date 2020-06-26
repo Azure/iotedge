@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     public class RegistryProxyMiddleware
     {
         // This pattern is used to match registry API for create, update, get, delete of a module, and list modules.
-        static readonly Regex registryApiUriPattern = new Regex(@"\/devices\/.+\/modules(\/.+)?$");
+        static readonly Regex registryApiUriPattern = new Regex(@"\/devices\/[^\/]+\/modules(\/[^\/]+)?$");
         static readonly HttpClient httpClient = new HttpClient();
         readonly RequestDelegate nextMiddleware;
         readonly string gatewayHostname;
