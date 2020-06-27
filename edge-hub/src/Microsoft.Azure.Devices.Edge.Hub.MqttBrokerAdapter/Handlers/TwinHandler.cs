@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Text.RegularExpressions;
     using System.Threading.Channels;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Server.HttpSys;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -200,7 +199,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id2 = match.Groups["id2"];
             var rid = match.Groups["rid"];
 
-            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
+            var identity = id2.Success
+                                ? this.identityProvider.Create(id1.Value, id2.Value)
+                                : this.identityProvider.Create(id1.Value);
+
             var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
             var proxy = default(IDeviceListener);
 
@@ -256,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetTwinResultTopic(IIdentity identity, string statusCode, string correlationId)
         {
-            var identityComponents = identity.Id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+            var identityComponents = identity.Id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             switch (identityComponents.Length)
             {
@@ -271,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetDesiredPropertiesUpdateTopic(IIdentity identity, string version)
         {
-            var identityComponents = identity.Id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+            var identityComponents = identity.Id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             switch (identityComponents.Length)
             {

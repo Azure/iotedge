@@ -55,7 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id1 = match.Groups["id1"];
             var id2 = match.Groups["id2"];
 
-            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
+            var identity = id2.Success
+                                ? this.identityProvider.Create(id1.Value, id2.Value)
+                                : this.identityProvider.Create(id1.Value);
 
             var proxy = default(IDeviceListener);
             var proxyMaybe = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
@@ -78,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     foreach (var subscription in subscriptionList)
                     {
                         var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
-                        if (subscriptionMatch.IsMatchWithIds(id1, id2))
+                        if (IsMatchWithIds(subscriptionMatch, id1, id2))
                         {
                             subscribes = true;
                             break;
@@ -87,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                     try
                     {
-                        await proxy.AddOrRemoveSubscription(subscribes, subscriptionPattern.Subscrition);
+                        await AddOrRemoveSubscription(proxy, subscribes, subscriptionPattern.Subscrition);
                     }
                     catch (Exception e)
                     {
@@ -99,13 +101,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return true;
         }
 
+        static bool IsMatchWithIds(Match match, Group id1, Group id2)
+        {
+            if (match.Success)
+            {
+                var subscriptionId1 = match.Groups["id1"];
+                var subscriptionId2 = match.Groups["id2"];
+
+                var id1Match = id1.Success && subscriptionId1.Success && id1.Value == subscriptionId1.Value;
+                var id2Match = (id2.Success && subscriptionId2.Success && id2.Value == subscriptionId2.Value) || (!id2.Success && !subscriptionId2.Success);
+
+                return id1Match && id2Match;
+            }
+
+            return false;
+        }
+
+        static Task AddOrRemoveSubscription(IDeviceListener proxy, bool add, DeviceSubscription subscription)
+        {
+            if (add)
+            {
+                return proxy.AddSubscription(subscription);
+            }
+            else
+            {
+                return proxy.RemoveSubscription(subscription);
+            }
+        }
+
         static class Events
         {
             const int IdStart = MqttBridgeEventIds.SubscriptionChangeHandler;
             static readonly ILogger Log = Logger.Factory.CreateLogger<SubscriptionChangeHandler>();
 
             enum EventIds
-            {             
+            {
                 BadPayloadFormat = IdStart,
                 FailedToChangeSubscriptionState,
                 HandlingSubscriptionChange,

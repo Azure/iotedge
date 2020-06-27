@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // FIXME: this can be removed, one the broker skips authentication for special clients
         bool IsSystemComponent(AuthRequest request)
         {
-            return string.Equals(request.Username, systemComponentIdProvider.EdgeHubBridgeId);
+            return string.Equals(request.Username, this.systemComponentIdProvider.EdgeHubBridgeId);
         }
 
         object AuthenticateSystemComponent(AuthRequest request)
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return new
             {
                 result = AuthAgentConstants.Authenticated,
-                identity = systemComponentIdProvider.EdgeHubBridgeId,
+                identity = this.systemComponentIdProvider.EdgeHubBridgeId,
                 version = AuthAgentConstants.ApiVersion
             };
         }

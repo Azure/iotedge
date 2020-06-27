@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string TelemetryDevice = "$edgehub/+/messages/events/#";
         const string TelemetryModule = "$edgehub/+/modules/+/messages/events/#";
 
-        const string TelemetryPublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/modules/(?<id2>[^/\+\#]+))?/messages/events/(?<bag>.*)";
+        const string TelemetryPublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/modules/(?<id2>[^/\+\#]+))?/messages/events(/(?<bag>.*))?";
 
         static readonly string[] subscriptions = new[] { TelemetryDevice, TelemetryModule };
 
@@ -55,7 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id2 = match.Groups["id2"];
             var bag = match.Groups["bag"];
 
-            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
+            var identity = id2.Success
+                                ? this.identityProvider.Create(id1.Value, id2.Value)
+                                : this.identityProvider.Create(id1.Value);
+
             var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
             var proxy = default(IDeviceListener);
 
@@ -113,10 +116,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 }
             }
 
-            EdgeMessage hubMessage = new EdgeMessage.Builder(publishInfo.Payload)
-                .SetProperties(properties)
-                .SetSystemProperties(systemProperties)
-                .Build();
+            var hubMessage = new EdgeMessage.Builder(publishInfo.Payload)
+                                        .SetProperties(properties)
+                                        .SetSystemProperties(systemProperties)
+                                        .Build();
 
             return hubMessage;
         }

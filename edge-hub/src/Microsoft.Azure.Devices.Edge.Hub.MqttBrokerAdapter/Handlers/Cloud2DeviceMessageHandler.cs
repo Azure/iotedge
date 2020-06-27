@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             bool result;
             try
             {
-                var propertyBag = HandlerUtils.GetPropertyBag(message);
+                var propertyBag = GetPropertyBag(message);
                 result = await this.connector.SendAsync(
                                                 GetCloudToDeviceTopic(identity, propertyBag),
                                                 message.Body);
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetCloudToDeviceTopic(IIdentity identity, string propertyBag)
         {
-            var identityComponents = identity.Id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+            var identityComponents = identity.Id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             switch (identityComponents.Length)
             {

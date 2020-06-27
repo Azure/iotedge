@@ -561,7 +561,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             return result;
         }
 
-        private static readonly string ThumbprintTestCertThumbprint = "d57001602dd584cf0f7619ef11644d42dcd3505c";
         private static readonly string ThumbprintTestCert = "MIIBLjCB1AIJAOTg4Zxl8B7jMAoGCCqGSM49BAMCMB8xHTAbBgNVBAMMFFRodW1i" +
                                                             "cHJpbnQgVGVzdCBDZXJ0MB4XDTIwMDQyMzE3NTgwN1oXDTMzMTIzMTE3NTgwN1ow" +
                                                             "HzEdMBsGA1UEAwwUVGh1bWJwcmludCBUZXN0IENlcnQwWTATBgcqhkjOPQIBBggq" +

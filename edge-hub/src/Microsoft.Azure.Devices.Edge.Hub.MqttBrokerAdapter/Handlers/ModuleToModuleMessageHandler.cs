@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         // FIXME change when topic translation is fixed
         const string ModuleToModleSubscriptionPattern = @"^devices/(?<id1>[^/\+\#]+)/modules/(?<id2>[^/\+\#]+)/\#$";
-        const string ModuleToModleTopicTemplate = @"devices/{0}/modules/{1}/inputs/{2}/{2}";
+        const string ModuleToModleTopicTemplate = @"devices/{0}/modules/{1}/inputs/{2}/{3}";
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(ModuleToModleSubscriptionPattern, DeviceSubscription.ModuleMessages) };
 
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             bool result;
             try
             {
-                var propertyBag = HandlerUtils.GetPropertyBag(message);
+                var propertyBag = GetPropertyBag(message);
                 result = await this.connector.SendAsync(
                                                 GetMessageToMessageTopic(identity, input, propertyBag),
                                                 message.Body);
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetMessageToMessageTopic(IIdentity identity, string input, string propertyBag)
         {
-            var identityComponents = identity.Id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+            var identityComponents = identity.Id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             switch (identityComponents.Length)
             {

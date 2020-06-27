@@ -2,7 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Common;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -38,6 +40,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 Events.FailedToConfirm(ex, lockToken, identity.Id);
             }
+        }
+
+        protected static string GetPropertyBag(IMessage message)
+        {
+            var properties = new Dictionary<string, string>(message.Properties);
+
+            foreach (KeyValuePair<string, string> systemProperty in message.SystemProperties)
+            {
+                if (SystemProperties.OutgoingSystemPropertiesMap.TryGetValue(systemProperty.Key, out string onWirePropertyName))
+                {
+                    properties[onWirePropertyName] = systemProperty.Value;
+                }
+            }
+
+            return UrlEncodedDictionarySerializer.Serialize(properties);
         }
 
         static class Events

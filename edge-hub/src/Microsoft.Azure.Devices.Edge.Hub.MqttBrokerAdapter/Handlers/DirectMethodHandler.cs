@@ -63,8 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             try
             {
                 var result = await this.connector.SendAsync(
-                                        GetMethodCallTopic(identity, request.Name, request.CorrelationId),
-                                        request.Data);
+                                            GetMethodCallTopic(identity, request.Name, request.CorrelationId),
+                                            request.Data);
                 if (!result)
                 {
                     throw new Exception($"MQTT transport failed to forward message for Direct Method call with rid [{request.CorrelationId}]");
@@ -86,7 +86,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var rid = match.Groups["rid"];
             var res = match.Groups["res"];
 
-            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
+            var identity = id2.Success
+                                ? this.identityProvider.Create(id1.Value, id2.Value)
+                                : this.identityProvider.Create(id1.Value);
+
             var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
             var proxy = default(IDeviceListener);
 
@@ -101,8 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
-            message.Properties[SystemProperties.CorrelationId] = rid.Value;
-            message.Properties[SystemProperties.StatusCode] = res.Value;
+            message.SystemProperties[SystemProperties.CorrelationId] = rid.Value;
+            message.SystemProperties[SystemProperties.StatusCode] = res.Value;
 
             await proxy.ProcessMethodResponseAsync(message);
 
@@ -111,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetMethodCallTopic(IIdentity identity, string methodName, string correlationId)
         {
-            var identityComponents = identity.Id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+            var identityComponents = identity.Id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             switch (identityComponents.Length)
             {

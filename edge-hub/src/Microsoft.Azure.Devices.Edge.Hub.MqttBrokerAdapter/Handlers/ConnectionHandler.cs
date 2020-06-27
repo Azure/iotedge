@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     continue;
                 }
 
-                var identityComponents = id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+                var identityComponents = id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
                 switch (identityComponents.Length)
                 {
@@ -232,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         bool IsSystemComponent(string id)
         {
-            return string.Equals(id, systemComponentIdProvider.EdgeHubBridgeId);
+            return string.Equals(id, this.systemComponentIdProvider.EdgeHubBridgeId);
         }
 
         Task StartProcessingLoop()
