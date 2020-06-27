@@ -1,46 +1,72 @@
+use crate::constants::{AAD_BYTES, IV_BYTES};
 use crate::ks;
 use crate::ks::{KeyHandle, Text};
 use crate::util::BoxedResult;
 
-// use std::future::{ready, Future};
+use std::future::Future;
 use std::pin::Pin;
 
 use base64::encode;
-// WARN: switch to std::future when `ready` becomes stable
-use futures::future::{ready, Future};
+use ring::rand::{generate, SystemRandom};
 use zeroize::Zeroize;
 
-pub trait StoreBackend {
-    // NOTE: lack of &self is intentional
-    fn initialize<'a>() -> BoxedResult<'a, ()>;
+// NOTE: open to changing implementation so that Sync is not required
+pub trait StoreBackend: Sync {
+    type Error: std::error::Error;
 
-    fn write_record<'a>(&self, id: String, record: Record) -> BoxedResult<'a, ()>;
-    fn update_record<'a>(&self, id: String, record: Record) -> BoxedResult<'a, ()>;
-    fn read_record<'a>(&self, id: String) -> BoxedResult<'a, Record>;
-    fn delete_record<'a>(&self, id: String) -> BoxedResult<'a, ()>;
+    // NOTE: lack of &self is intentional
+    fn initialize() -> Result<(), Self::Error>;
+
+    fn write_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
+    fn update_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
+    fn read_record(&self, id: &str) -> Result<Record, Self::Error>;
+    fn delete_record(&self, id: &str) -> Result<(), Self::Error>;
 }
 
-// NOTE: not public since high-level functions should be invariant over
-//       backend implementation
-trait Store: StoreBackend {
+// NOTE: not fully public since high-level functions should be
+//       invariant over backend implementation
+pub(crate) trait Store<'a>: StoreBackend {
     // NOTE: can remove Pin<Box<...>> if async traits are added to Rust
     //       cf. https://docs.rs/crate/async-trait
-    fn get_secret<'a>(&self, id: String) -> Pin<Box<dyn Future<Output = BoxedResult<'a, String>>>> {
-        let record = match self.read_record(id) {
-            Ok(record) => record,
-            Err(e) => return Box::pin(ready(<BoxedResult<String>>::Err(e)))
-        };
-
+    fn get_secret(&'a self, id: &'a str) -> Pin<Box<dyn Future<Output = BoxedResult<String>> + 'a>> {
         Box::pin(async move {
+            let record = self.read_record(id)?;
             let KeyHandle(key) = ks::get_key(id).await?;
-            let ptext = match ks::decrypt(key, record.ciphertext, record.iv, record.aad).await? {
+            let ptext = match ks::decrypt(&key, &record.ciphertext, &record.iv, &record.aad).await? {
                 Text::Plaintext(ptext) => ptext,
-                _ => panic!("KEY SERVICE API CHANGED")
+                _ => panic!("ENCRYPTION API CHANGED")
             };
 
             Ok(ptext)
         })
     }
+
+    fn set_secret(&'a self, id: &'a str, value: String) -> Pin<Box<dyn Future<Output = BoxedResult<()>> + 'a>> {
+        Box::pin(async move {
+            let rng = SystemRandom::new();
+
+            let KeyHandle(key) = ks::create_key(id).await?;
+            let iv: String = encode(generate::<[u8; IV_BYTES]>(&rng)?.expose());
+            let aad: String = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
+
+            let ctext = match ks::encrypt(&key, &value, &iv, &aad).await? {
+                Text::Ciphertext(ctext) => ctext,
+                _ => panic!("DECRYPTION API CHANGED")
+            };
+
+            self.write_record(id, Record {
+                ciphertext: ctext,
+                iv: iv,
+                aad: aad
+            })?;
+
+            Ok(())
+        })
+    }
+
+    /*
+    fn pull_secrets(&'a self, vault: ..., keys: [&str]) -> Pin<Box<dyn Future<Output = BoxedResult<()>> + 'a>>;
+    */
 }
 
 #[derive(Zeroize)]

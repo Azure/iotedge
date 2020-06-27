@@ -18,10 +18,10 @@ pub enum Text {
     Ciphertext(String)
 }
 
-pub async fn create_key<'a>(id: String) -> BoxedResult<'a, KeyHandle> {
+pub async fn create_key<'a>(id: &str) -> BoxedResult<'a, KeyHandle> {
     let res = call(
             Method::POST,
-            "/keys",
+            String::from("/keys"),
             Some(json!({
                 "keyId": id,
                 "lengthBytes": AES_KEY_BYTES
@@ -32,7 +32,7 @@ pub async fn create_key<'a>(id: String) -> BoxedResult<'a, KeyHandle> {
     Ok(slurp_json(res).await?)
 }
 
-pub async fn get_key<'a>(id: String) -> BoxedResult<'a, KeyHandle> {
+pub async fn get_key<'a>(id: &str) -> BoxedResult<'a, KeyHandle> {
     let res = call(
             Method::GET,
             format!("/keys/{}", id),
@@ -44,10 +44,10 @@ pub async fn get_key<'a>(id: String) -> BoxedResult<'a, KeyHandle> {
     Ok(slurp_json(res).await?)
 }
 
-pub async fn encrypt<'a>(key: String, plaintext: String, iv: String, aad: String) -> BoxedResult<'a, Text> {
+pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> BoxedResult<'a, Text> {
     let res = call(
             Method::POST,
-            "/encrypt",
+            String::from("/encrypt"),
             Some(json!({
                 "keysServiceHandle": key,
                 "algorithm": "AEAD",
@@ -63,10 +63,10 @@ pub async fn encrypt<'a>(key: String, plaintext: String, iv: String, aad: String
     Ok(slurp_json(res).await?)
 }
 
-pub async fn decrypt<'a>(key: String, ciphertext: String, iv: String, aad: String) -> BoxedResult<'a, Text> {
+pub async fn decrypt<'a>(key: &str, ciphertext: &str, iv: &str, aad: &str) -> BoxedResult<'a, Text> {
     let res = call(
             Method::POST,
-            "/decrypt",
+            String::from("/decrypt"),
             Some(json!({
                 "keysServiceHandle": key,
                 "algorithm": "AEAD",

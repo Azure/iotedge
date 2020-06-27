@@ -11,7 +11,7 @@ use serde_json::{to_string, Deserializer};
 
 pub type BoxedResult<'a, T> = Result<T, Box<dyn std::error::Error + 'a>>;
 
-pub async fn call(method: Method, resource: &str, payload: Option<impl Serialize>) -> BoxedResult<'_, Response<Body>> {
+pub async fn call<'a>(method: Method, resource: String, payload: Option<impl Serialize>) -> BoxedResult<'a, Response<Body>> {
     let client = Client::new();
     let uri = format!("{}{}", HSM_SERVER, percent_encode(resource.as_bytes(), ENCODE_CHARS));
 
