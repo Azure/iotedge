@@ -1,25 +1,19 @@
-use crate::constants::{API_SURFACE, LOST, SERVER_DIR};
-use crate::store::Store;
+use crate::constants::{API_SURFACE, LOST};
+use crate::store::*;
 
 use std::future::Future;
-use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use hyper::{Body, Method, Request, Response};
 use hyper::http::Error as HttpError;
 use hyper::service::Service;
-use rusqlite::Error as SQLiteError;
 // use zeroize::Zeroize;
 
 type ServiceResponse = Pin<Box<dyn Future<Output = Result<Response<Body>, HttpError>> + Send + Sync>>;
-pub struct MessageService<'a>(pub Store<'a>);
+pub struct MessageService;
 
-impl<'a> MessageService<'a> {
-    pub fn new() -> Result<Self, SQLiteError> {
-        Ok(MessageService(Store::new(Path::new(SERVER_DIR))?))
-    }
-
+impl MessageService {
     fn index(&self, req: Request<Body>) -> ServiceResponse {
         Box::pin(async {
             Response::builder()
@@ -35,7 +29,7 @@ impl<'a> MessageService<'a> {
     }
 }
 
-impl<'a> Service<Request<Body>> for MessageService<'a> {
+impl Service<Request<Body>> for MessageService {
     type Response = Response<Body>;
     type Error = HttpError;
     type Future = ServiceResponse;
