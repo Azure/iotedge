@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 base64 = "~0.12"
 bytes = "~0.5"
+futures = "~0.3"
 hyper = "~0.13"
 hyperlocal = "~0.7"
 libc = "~0.2"

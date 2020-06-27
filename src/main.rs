@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     
     Server::bind_unix(skt)?
         .serve(make_service_fn(|_| async move {
-            Ok::<_, Infallible>(message::MessageService)
+            <Result<_, Infallible>>::Ok(message::MessageService)
         }))
         .await?;
 

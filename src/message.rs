@@ -35,6 +35,9 @@ impl Service<Request<Body>> for MessageService {
     type Future = ServiceResponse;
 
     fn poll_ready(&mut self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
+        // NOTE: could be used to communicate database locking status
+        //       if backend is Sync and one store instance is handling
+        //       all requests
         Poll::Ready(Ok(()))
     }
 

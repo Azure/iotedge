@@ -9,9 +9,9 @@ use percent_encoding::percent_encode;
 use serde::{Deserialize, Serialize};
 use serde_json::{to_string, Deserializer};
 
-pub type BoxedResult<T> = Result<T, Box<dyn std::error::Error>>;
+pub type BoxedResult<'a, T> = Result<T, Box<dyn std::error::Error + 'a>>;
 
-pub async fn call(method: Method, resource: &str, payload: Option<impl Serialize>) -> BoxedResult<Response<Body>> {
+pub async fn call(method: Method, resource: &str, payload: Option<impl Serialize>) -> BoxedResult<'_, Response<Body>> {
     let client = Client::new();
     let uri = format!("{}{}", HSM_SERVER, percent_encode(resource.as_bytes(), ENCODE_CHARS));
 
@@ -26,7 +26,7 @@ pub async fn call(method: Method, resource: &str, payload: Option<impl Serialize
     Ok(client.request(req).await?)
 }
 
-pub async fn slurp_json<'de, T: Deserialize<'de>>(res: Response<Body>) -> BoxedResult<T> {
+pub async fn slurp_json<'a, 'de, T: Deserialize<'de>>(res: Response<Body>) -> BoxedResult<'a, T> {
     let status = res.status();
     let body = to_bytes(res).await?;
 

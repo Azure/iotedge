@@ -2,27 +2,43 @@ use crate::ks;
 use crate::ks::{KeyHandle, Text};
 use crate::util::BoxedResult;
 
-use std::future::Future;
-use std::path::Path;
+// use std::future::{ready, Future};
 use std::pin::Pin;
 
 use base64::encode;
+// WARN: switch to std::future when `ready` becomes stable
+use futures::future::{ready, Future};
 use zeroize::Zeroize;
 
 pub trait StoreBackend {
-    fn initialize();
-    fn write_record(id: &str, record: Record);
-    fn update_record(id: &str, record: Record);
-    fn read_record(id: &str);
-    fn delete_record(id: &str);
+    // NOTE: lack of &self is intentional
+    fn initialize<'a>() -> BoxedResult<'a, ()>;
+
+    fn write_record<'a>(&self, id: String, record: Record) -> BoxedResult<'a, ()>;
+    fn update_record<'a>(&self, id: String, record: Record) -> BoxedResult<'a, ()>;
+    fn read_record<'a>(&self, id: String) -> BoxedResult<'a, Record>;
+    fn delete_record<'a>(&self, id: String) -> BoxedResult<'a, ()>;
 }
 
-pub trait Store: StoreBackend {
+// NOTE: not public since high-level functions should be invariant over
+//       backend implementation
+trait Store: StoreBackend {
     // NOTE: can remove Pin<Box<...>> if async traits are added to Rust
     //       cf. https://docs.rs/crate/async-trait
-    fn get_secret(&self, id: &str) -> Pin<Box<dyn Future<Output = BoxedResult<String>>>> {
-        Box::pin(async {
-            Ok(String::from("FOO"))
+    fn get_secret<'a>(&self, id: String) -> Pin<Box<dyn Future<Output = BoxedResult<'a, String>>>> {
+        let record = match self.read_record(id) {
+            Ok(record) => record,
+            Err(e) => return Box::pin(ready(<BoxedResult<String>>::Err(e)))
+        };
+
+        Box::pin(async move {
+            let KeyHandle(key) = ks::get_key(id).await?;
+            let ptext = match ks::decrypt(key, record.ciphertext, record.iv, record.aad).await? {
+                Text::Plaintext(ptext) => ptext,
+                _ => panic!("KEY SERVICE API CHANGED")
+            };
+
+            Ok(ptext)
         })
     }
 }
@@ -30,7 +46,7 @@ pub trait Store: StoreBackend {
 #[derive(Zeroize)]
 #[zeroize(drop)]
 pub struct Record {
-    ciphertext: String,
-    iv: String,
-    aad: String
+    pub ciphertext: String,
+    pub iv: String,
+    pub aad: String
 }

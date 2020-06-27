@@ -6,19 +6,19 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 #[derive(Deserialize)]
-pub struct KeyHandle<'a>(
+pub struct KeyHandle(
     #[serde(rename = "keysServiceHandle")]
-    pub &'a str
+    pub String
 );
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Text<'a> {
-    Plaintext(&'a str),
-    Ciphertext(&'a str)
+pub enum Text {
+    Plaintext(String),
+    Ciphertext(String)
 }
 
-pub async fn create_key<'a>(id: &str) -> BoxedResult<KeyHandle<'a>> {
+pub async fn create_key<'a>(id: String) -> BoxedResult<'a, KeyHandle> {
     let res = call(
             Method::POST,
             "/keys",
@@ -32,7 +32,7 @@ pub async fn create_key<'a>(id: &str) -> BoxedResult<KeyHandle<'a>> {
     Ok(slurp_json(res).await?)
 }
 
-pub async fn get_key<'a>(id: &str) -> BoxedResult<KeyHandle<'a>> {
+pub async fn get_key<'a>(id: String) -> BoxedResult<'a, KeyHandle> {
     let res = call(
             Method::GET,
             format!("/keys/{}", id),
@@ -44,7 +44,7 @@ pub async fn get_key<'a>(id: &str) -> BoxedResult<KeyHandle<'a>> {
     Ok(slurp_json(res).await?)
 }
 
-pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> BoxedResult<Text<'a>> {
+pub async fn encrypt<'a>(key: String, plaintext: String, iv: String, aad: String) -> BoxedResult<'a, Text> {
     let res = call(
             Method::POST,
             "/encrypt",
@@ -63,7 +63,7 @@ pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> Box
     Ok(slurp_json(res).await?)
 }
 
-pub async fn decrypt<'a>(key: &str, ciphertext: &str, iv: &str, aad: &str) -> BoxedResult<Text<'a>> {
+pub async fn decrypt<'a>(key: String, ciphertext: String, iv: String, aad: String) -> BoxedResult<'a, Text> {
     let res = call(
             Method::POST,
             "/decrypt",
