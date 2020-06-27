@@ -243,7 +243,7 @@ impl SessionState {
         self.try_publish()
     }
 
-    fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
+    pub(super) fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         if self.allowed_to_send() {
             if let Some(publication) = self.waiting_to_be_sent.dequeue() {
                 let event = self.prepare_to_send(&publication)?;

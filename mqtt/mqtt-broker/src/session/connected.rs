@@ -110,6 +110,10 @@ impl ConnectedSession {
         self.state.publish_to(publication)
     }
 
+    pub fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
+        self.state.try_publish()
+    }
+
     pub fn subscribe_to(
         &mut self,
         subscribe_to: proto::SubscribeTo,

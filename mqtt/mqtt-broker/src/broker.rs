@@ -82,10 +82,30 @@ where
                     }
                 }
             }
+
+            self.try_publish()?;
         }
 
         info!("broker is shutdown.");
         Ok(self.snapshot())
+    }
+
+    fn try_publish(&mut self) -> Result<(), Error> {
+        let connected = self
+            .sessions
+            .values_mut()
+            .filter_map(|session| match session {
+                Session::Transient(session) => Some(session),
+                Session::Persistent(session) => Some(session),
+                _ => None,
+            });
+
+        for session in connected {
+            while let Some(event) = session.try_publish()? {
+                session.send(event)?
+            }
+        }
+        Ok(())
     }
 
     fn snapshot(&self) -> BrokerSnapshot {
