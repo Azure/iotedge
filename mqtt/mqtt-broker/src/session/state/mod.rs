@@ -32,7 +32,6 @@ pub struct SessionState {
 
     // for outgoing messages - all QoS
     waiting_to_be_acked: SmallIndexMap<proto::PacketIdentifier, Publish>,
-    waiting_to_be_acked_qos0: SmallIndexMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_completed: SmallIndexSet<proto::PacketIdentifier>,
     config: SessionConfig,
 }
@@ -51,7 +50,6 @@ impl SessionState {
                 config.when_full(),
             ),
             waiting_to_be_acked: SmallIndexMap::new(),
-            waiting_to_be_acked_qos0: SmallIndexMap::new(),
             waiting_to_be_released: SmallIndexMap::new(),
             waiting_to_be_completed: SmallIndexSet::new(),
             config,
@@ -76,7 +74,6 @@ impl SessionState {
             waiting_to_be_acked: SmallIndexMap::new(),
             waiting_to_be_released: SmallIndexMap::new(),
             waiting_to_be_completed: SmallIndexSet::new(),
-            waiting_to_be_acked_qos0: SmallIndexMap::new(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
             config,
         }
@@ -94,18 +91,16 @@ impl SessionState {
         &self.waiting_to_be_acked
     }
 
-    pub(super) fn waiting_to_be_acked_qos0_mut(
-        &mut self,
-    ) -> &mut SmallIndexMap<proto::PacketIdentifier, Publish> {
-        &mut self.waiting_to_be_acked_qos0
-    }
-
     pub(super) fn waiting_to_be_completed(&self) -> &SmallIndexSet<proto::PacketIdentifier> {
         &self.waiting_to_be_completed
     }
 
     pub(super) fn waiting_to_be_sent_mut(&mut self) -> &mut BoundedQueue {
         &mut self.waiting_to_be_sent
+    }
+
+    pub(super) fn queued_messages(&self) -> usize {
+        self.waiting_to_be_sent.len()
     }
 
     pub fn update_subscription(
@@ -233,16 +228,6 @@ impl SessionState {
         self.try_publish()
     }
 
-    pub fn handle_puback0(
-        &mut self,
-        id: proto::PacketIdentifier,
-    ) -> Result<Option<ClientEvent>, Error> {
-        debug!("discarding QoS 0 packet identifier {}", id);
-        self.waiting_to_be_acked_qos0.remove(&id);
-        self.packet_identifiers_qos0.discard(id);
-        self.try_publish()
-    }
-
     pub(super) fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         if self.allowed_to_send() {
             if let Some(publication) = self.waiting_to_be_sent.dequeue() {
@@ -253,12 +238,12 @@ impl SessionState {
         Ok(None)
     }
 
+    // TODO implement MAX_QOS0_MESSAGES
     pub(super) fn allowed_to_send(&self) -> bool {
         match self.config.max_inflight_messages() {
             Some(limit) => {
-                let num_inflight = self.waiting_to_be_acked.len()
-                    + self.waiting_to_be_acked_qos0.len()
-                    + self.waiting_to_be_completed.len();
+                let num_inflight =
+                    self.waiting_to_be_acked.len() + self.waiting_to_be_completed.len();
                 num_inflight < limit.get()
             }
             None => true,
@@ -285,14 +270,13 @@ impl SessionState {
     ) -> Result<ClientEvent, Error> {
         let publish = match publication.qos {
             proto::QoS::AtMostOnce => {
-                let id = self.packet_identifiers_qos0.reserve()?;
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
                     retain: publication.retain,
                     topic_name: publication.topic_name.to_owned(),
                     payload: publication.payload.to_owned(),
                 };
-                Publish::QoS0(id, packet)
+                Publish::QoS0(packet)
             }
             proto::QoS::AtLeastOnce => {
                 let id = self.packet_identifiers.reserve()?;
@@ -321,11 +305,7 @@ impl SessionState {
         };
 
         let event = match publish {
-            Publish::QoS0(id, publish) => {
-                self.waiting_to_be_acked_qos0
-                    .insert(id, Publish::QoS0(id, publish.clone()));
-                ClientEvent::PublishTo(Publish::QoS0(id, publish))
-            }
+            Publish::QoS0(publish) => ClientEvent::PublishTo(Publish::QoS0(publish)),
             Publish::QoS12(id, publish) => {
                 self.waiting_to_be_acked
                     .insert(id, Publish::QoS12(id, publish.clone()));

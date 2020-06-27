@@ -40,7 +40,7 @@ use tokio::sync::OwnedSemaphorePermit;
 use mqtt3::proto;
 
 pub use crate::auth::{AuthId, Identity};
-pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
+pub use crate::broker::{BrokerBuilder, BrokerHandle, BrokerRunner};
 pub use crate::connection::{
     ConnectionHandle, IncomingPacketProcessor, MakeIncomingPacketProcessor,
     MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, OutgoingPacketProcessor, PacketAction,
@@ -170,7 +170,7 @@ pub enum Auth {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Publish {
-    QoS0(proto::PacketIdentifier, proto::Publish),
+    QoS0(proto::Publish),
     QoS12(proto::PacketIdentifier, proto::Publish),
 }
 
@@ -216,9 +216,6 @@ pub enum ClientEvent {
 
     /// PublishTo - publish packet to a client
     PublishTo(Publish),
-
-    /// Publish acknowledgement (QoS 0)
-    PubAck0(proto::PacketIdentifier),
 
     /// Publish acknowledgement (QoS 1)
     PubAck(proto::PubAck),

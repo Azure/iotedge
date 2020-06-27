@@ -9,7 +9,7 @@ use tracing::info;
 use mqtt_broker::{
     auth::{authenticate_fn_ok, AllowAll, Authorizer},
     settings::BrokerConfig,
-    AuthId, Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
+    AuthId, BrokerRunner, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
 };
 use mqtt_generic::settings::{CertificateConfig, Settings};
 
@@ -31,7 +31,7 @@ where
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
-) -> Result<Broker<impl Authorizer>, Error> {
+) -> Result<BrokerRunner<impl Authorizer>, Error> {
     let broker = BrokerBuilder::default()
         .with_authorizer(AllowAll)
         .with_state(state.unwrap_or_default())
@@ -43,7 +43,7 @@ pub async fn broker(
 
 pub async fn start_server<Z, F>(
     config: Settings,
-    broker: Broker<Z>,
+    broker: BrokerRunner<Z>,
     shutdown_signal: F,
 ) -> Result<BrokerSnapshot>
 where

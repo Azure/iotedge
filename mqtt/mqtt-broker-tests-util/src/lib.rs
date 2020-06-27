@@ -28,7 +28,7 @@ use mqtt3::{
 };
 use mqtt_broker::{
     auth::{AuthenticationContext, Authenticator, Authorizer},
-    AuthId, Broker, BrokerSnapshot, Error, Server,
+    AuthId, BrokerRunner, BrokerSnapshot, Error, Server,
 };
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
@@ -424,7 +424,7 @@ impl Drop for ServerHandle {
 
 /// Starts a test server with a provided broker and returns
 /// shutdown handle, broker task and server binding.
-pub fn start_server<N, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
+pub fn start_server<N, Z>(broker: BrokerRunner<Z>, authenticator: N) -> ServerHandle
 where
     N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,

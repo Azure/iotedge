@@ -15,7 +15,7 @@ use tokio::time;
 use tracing::{info, warn};
 
 use mqtt_broker::{
-    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server,
+    auth::Authorizer, BrokerBuilder, BrokerConfig, BrokerRunner, BrokerSnapshot, Server,
     ServerCertificate,
 };
 use mqtt_edgehub::{
@@ -42,7 +42,7 @@ where
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
-) -> Result<Broker<LocalAuthorizer<EdgeHubAuthorizer>>> {
+) -> Result<BrokerRunner<LocalAuthorizer<EdgeHubAuthorizer>>> {
     let broker = BrokerBuilder::default()
         .with_authorizer(LocalAuthorizer::new(EdgeHubAuthorizer::default()))
         .with_state(state.unwrap_or_default())
@@ -54,7 +54,7 @@ pub async fn broker(
 
 pub async fn start_server<Z, F>(
     config: Settings,
-    broker: Broker<Z>,
+    broker: BrokerRunner<Z>,
     shutdown_signal: F,
 ) -> Result<BrokerSnapshot>
 where

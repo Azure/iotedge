@@ -78,13 +78,6 @@ impl ConnectedSession {
         self.state.handle_puback(puback)
     }
 
-    pub fn handle_puback0(
-        &mut self,
-        id: proto::PacketIdentifier,
-    ) -> Result<Option<ClientEvent>, Error> {
-        self.state.handle_puback0(id)
-    }
-
     pub fn handle_pubrec(&mut self, pubrec: &proto::PubRec) -> Result<Option<ClientEvent>, Error> {
         self.state.handle_pubrec(pubrec)
     }
@@ -112,6 +105,10 @@ impl ConnectedSession {
 
     pub fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         self.state.try_publish()
+    }
+
+    pub fn queued_messages(&self) -> usize {
+        self.state.queued_messages()
     }
 
     pub fn subscribe_to(

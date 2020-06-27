@@ -11,7 +11,7 @@ use tracing_futures::Instrument;
 
 use crate::{
     auth::{Authenticator, Authorizer},
-    broker::{Broker, BrokerHandle},
+    broker::{BrokerHandle, BrokerRunner},
     connection::{
         self, MakeIncomingPacketProcessor, MakeMqttPacketProcessor, MakeOutgoingPacketProcessor,
     },
@@ -24,7 +24,7 @@ pub struct Server<Z, P>
 where
     Z: Authorizer,
 {
-    broker: Broker<Z>,
+    broker: BrokerRunner<Z>,
     #[allow(clippy::type_complexity)]
     transports: Vec<(
         BoxFuture<'static, Result<Transport, InitializeBrokerError>>,
@@ -37,7 +37,7 @@ impl<Z> Server<Z, MakeMqttPacketProcessor>
 where
     Z: Authorizer + Send + 'static,
 {
-    pub fn from_broker(broker: Broker<Z>) -> Self {
+    pub fn from_broker(broker: BrokerRunner<Z>) -> Self {
         Self {
             broker,
             transports: Vec::new(),

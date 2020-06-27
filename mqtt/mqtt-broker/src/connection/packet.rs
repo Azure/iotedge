@@ -30,10 +30,7 @@ pub trait OutgoingPacketProcessor {
     /// Converts outgoing `Message` into pair (`proto::Packet`, `Option<Message>`)
     /// * packet to be sent to the connected client
     /// * optional message to be sent back to the broker (eg. ACK for QoS0 publication)
-    async fn process(
-        &mut self,
-        message: Message,
-    ) -> PacketAction<Option<(Packet, Option<Message>)>, ()>;
+    async fn process(&mut self, message: Message) -> PacketAction<Option<Packet>, ()>;
 }
 
 /// A trait to make a new instance of incoming packet processor.
@@ -67,8 +64,8 @@ impl MakeIncomingPacketProcessor for MakeMqttPacketProcessor {
 impl MakeOutgoingPacketProcessor for MakeMqttPacketProcessor {
     type Processor = MqttOutgoingPacketProcessor;
 
-    fn make_outgoing(&self, client_id: &ClientId) -> Self::Processor {
-        Self::Processor::new(client_id.clone())
+    fn make_outgoing(&self, _: &ClientId) -> Self::Processor {
+        Self::Processor::new()
     }
 }
 
@@ -132,29 +129,22 @@ impl IncomingPacketProcessor for MqttIncomingPacketProcessor {
 }
 
 /// A default implementation of processor that converts outgoing messages into MQTT packets.
-pub struct MqttOutgoingPacketProcessor {
-    client_id: ClientId,
-}
+pub struct MqttOutgoingPacketProcessor {}
 
 impl MqttOutgoingPacketProcessor {
-    fn new(client_id: impl Into<ClientId>) -> Self {
-        Self {
-            client_id: client_id.into(),
-        }
+    fn new() -> Self {
+        Self {}
     }
 }
 
 #[async_trait]
 impl OutgoingPacketProcessor for MqttOutgoingPacketProcessor {
-    async fn process(
-        &mut self,
-        message: Message,
-    ) -> PacketAction<Option<(Packet, Option<Message>)>, ()> {
+    async fn process(&mut self, message: Message) -> PacketAction<Option<Packet>, ()> {
         match message {
             Message::Client(_client_id, event) => match event {
                 ClientEvent::ConnReq(_) => PacketAction::Continue(None),
                 ClientEvent::ConnAck(connack) => {
-                    PacketAction::Continue(Some((Packet::ConnAck(connack), None)))
+                    PacketAction::Continue(Some(Packet::ConnAck(connack)))
                 }
                 ClientEvent::Disconnect(_) => {
                     debug!("asked to disconnect. outgoing_task completing...");
@@ -164,42 +154,27 @@ impl OutgoingPacketProcessor for MqttOutgoingPacketProcessor {
                     debug!("asked to drop connection. outgoing_task completing...");
                     PacketAction::Stop(())
                 }
-                ClientEvent::PingReq(req) => {
-                    PacketAction::Continue(Some((Packet::PingReq(req), None)))
-                }
+                ClientEvent::PingReq(req) => PacketAction::Continue(Some(Packet::PingReq(req))),
                 ClientEvent::PingResp(response) => {
-                    PacketAction::Continue(Some((Packet::PingResp(response), None)))
+                    PacketAction::Continue(Some(Packet::PingResp(response)))
                 }
-                ClientEvent::Subscribe(sub) => {
-                    PacketAction::Continue(Some((Packet::Subscribe(sub), None)))
-                }
-                ClientEvent::SubAck(suback) => {
-                    PacketAction::Continue(Some((Packet::SubAck(suback), None)))
-                }
+                ClientEvent::Subscribe(sub) => PacketAction::Continue(Some(Packet::Subscribe(sub))),
+                ClientEvent::SubAck(suback) => PacketAction::Continue(Some(Packet::SubAck(suback))),
                 ClientEvent::Unsubscribe(unsub) => {
-                    PacketAction::Continue(Some((Packet::Unsubscribe(unsub), None)))
+                    PacketAction::Continue(Some(Packet::Unsubscribe(unsub)))
                 }
                 ClientEvent::UnsubAck(unsuback) => {
-                    PacketAction::Continue(Some((Packet::UnsubAck(unsuback), None)))
+                    PacketAction::Continue(Some(Packet::UnsubAck(unsuback)))
                 }
-                ClientEvent::PublishTo(Publish::QoS12(_id, publish)) => {
-                    PacketAction::Continue(Some((Packet::Publish(publish), None)))
+                ClientEvent::PublishTo(Publish::QoS12(_, publish))
+                | ClientEvent::PublishTo(Publish::QoS0(publish)) => {
+                    PacketAction::Continue(Some(Packet::Publish(publish)))
                 }
-                ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
-                    let message = Message::Client(self.client_id.clone(), ClientEvent::PubAck0(id));
-                    PacketAction::Continue(Some((Packet::Publish(publish), Some(message))))
-                }
-                ClientEvent::PubAck(puback) => {
-                    PacketAction::Continue(Some((Packet::PubAck(puback), None)))
-                }
-                ClientEvent::PubRec(pubrec) => {
-                    PacketAction::Continue(Some((Packet::PubRec(pubrec), None)))
-                }
-                ClientEvent::PubRel(pubrel) => {
-                    PacketAction::Continue(Some((Packet::PubRel(pubrel), None)))
-                }
+                ClientEvent::PubAck(puback) => PacketAction::Continue(Some(Packet::PubAck(puback))),
+                ClientEvent::PubRec(pubrec) => PacketAction::Continue(Some(Packet::PubRec(pubrec))),
+                ClientEvent::PubRel(pubrel) => PacketAction::Continue(Some(Packet::PubRel(pubrel))),
                 ClientEvent::PubComp(pubcomp) => {
-                    PacketAction::Continue(Some((Packet::PubComp(pubcomp), None)))
+                    PacketAction::Continue(Some(Packet::PubComp(pubcomp)))
                 }
                 event => {
                     warn!("ignoring event for outgoing_task: {:?}", event);

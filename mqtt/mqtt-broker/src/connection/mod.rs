@@ -178,7 +178,7 @@ where
 
                 // prepare processing outgoing packets
                 let outgoing_processor = make_processor.make_outgoing(&client_id);
-                let outgoing_task = outgoing_task(events, outgoing, broker_handle.clone(), outgoing_processor);
+                let outgoing_task = outgoing_task(events, outgoing, outgoing_processor);
                 pin_mut!(outgoing_task);
 
                 match select(incoming_task, outgoing_task).await {
@@ -287,7 +287,6 @@ where
 async fn outgoing_task<S, P>(
     mut messages: UnboundedReceiver<Message>,
     mut outgoing: S,
-    mut broker: BrokerHandle,
     mut processor: P,
 ) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
@@ -298,19 +297,11 @@ where
     while let Some(message) = messages.recv().await {
         debug!("outgoing: {:?}", message);
         match processor.process(message).await {
-            PacketAction::Continue(Some((packet, message))) => {
+            PacketAction::Continue(Some(packet)) => {
                 // send a packet to a client
                 if let Err(e) = outgoing.send(packet).await {
                     warn!(message = "error occurred while writing to connection", error=%e);
                     return Err((messages, e.into()));
-                }
-
-                // send a message back to broker
-                if let Some(message) = message {
-                    if let Err(e) = broker.send(message).await {
-                        warn!(message = "error occurred while sending QoS ack to broker", error=%e);
-                        return Err((messages, e));
-                    }
                 }
             }
             PacketAction::Continue(None) => (),

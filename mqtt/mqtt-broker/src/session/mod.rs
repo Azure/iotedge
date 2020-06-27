@@ -113,18 +113,6 @@ impl Session {
         }
     }
 
-    pub fn handle_puback0(
-        &mut self,
-        id: proto::PacketIdentifier,
-    ) -> Result<Option<ClientEvent>, Error> {
-        match self {
-            Self::Transient(connected) => connected.handle_puback0(id),
-            Self::Persistent(connected) => connected.handle_puback0(id),
-            Self::Offline(_offline) => Err(Error::SessionOffline),
-            Self::Disconnecting(_) => Err(Error::SessionOffline),
-        }
-    }
-
     pub fn handle_pubrec(&mut self, pubrec: &proto::PubRec) -> Result<Option<ClientEvent>, Error> {
         match self {
             Self::Transient(connected) => connected.handle_pubrec(pubrec),

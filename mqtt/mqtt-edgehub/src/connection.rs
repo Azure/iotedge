@@ -58,13 +58,10 @@ impl<P> OutgoingPacketProcessor for EdgeHubPacketProcessor<P>
 where
     P: OutgoingPacketProcessor + Send,
 {
-    async fn process(
-        &mut self,
-        mut message: Message,
-    ) -> PacketAction<Option<(Packet, Option<Message>)>, ()> {
+    async fn process(&mut self, mut message: Message) -> PacketAction<Option<Packet>, ()> {
         match &mut message {
-            Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_id, publish)))
-            | Message::Client(_, ClientEvent::PublishTo(Publish::QoS0(_id, publish))) => {
+            Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_, publish)))
+            | Message::Client(_, ClientEvent::PublishTo(Publish::QoS0(publish))) => {
                 translate_outgoing_publish(publish);
             }
             _ => (),

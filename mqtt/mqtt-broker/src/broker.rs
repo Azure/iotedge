@@ -1,8 +1,13 @@
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::panic;
+use std::{collections::HashMap, convert::TryInto, panic};
 
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use futures_util::{
+    future::{self, Either},
+    pin_mut,
+};
+use tokio::sync::{
+    mpsc::{self, Receiver, Sender},
+    Notify,
+};
 use tracing::{debug, error, info, info_span, warn};
 
 use mqtt3::proto;
@@ -27,9 +32,64 @@ macro_rules! try_send {
     }};
 }
 
-pub struct Broker<Z> {
+pub struct BrokerRunner<Z> {
     sender: Sender<Message>,
     messages: Receiver<Message>,
+    broker: Broker<Z>,
+}
+
+impl<Z> BrokerRunner<Z>
+where
+    Z: Authorizer,
+{
+    pub fn handle(&self) -> BrokerHandle {
+        BrokerHandle(self.sender.clone())
+    }
+
+    pub async fn run(self) -> Result<BrokerSnapshot, Error> {
+        let BrokerRunner {
+            mut messages,
+            mut broker,
+            ..
+        } = self;
+
+        loop {
+            let recv_messages = messages.recv();
+            pin_mut!(recv_messages);
+
+            let has_messages = Notify::new();
+            let has_messages_awaiter = has_messages.notified();
+            pin_mut!(has_messages_awaiter);
+
+            let should_proceed = match future::select(recv_messages, has_messages_awaiter).await {
+                Either::Left((Some(message), _)) => broker.process_message(message),
+                Either::Left((None, _)) => false,
+                Either::Right((_, _)) => true,
+            };
+
+            if !should_proceed {
+                break;
+            }
+
+            match broker.try_publish_all() {
+                Ok(queued_messages) => {
+                    debug!("remained {} queued messages", queued_messages);
+                    if queued_messages > 0 {
+                        has_messages.notify()
+                    }
+                }
+                Err(e) => {
+                    warn!(message = "an error occurred publishing queued messages", error = %e);
+                }
+            }
+        }
+
+        info!("broker is shutdown.");
+        Ok(broker.snapshot())
+    }
+}
+
+struct Broker<Z> {
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
@@ -43,54 +103,45 @@ impl<Z> Broker<Z>
 where
     Z: Authorizer,
 {
-    pub fn handle(&self) -> BrokerHandle {
-        BrokerHandle(self.sender.clone())
-    }
-
-    pub async fn run(mut self) -> Result<BrokerSnapshot, Error> {
-        while let Some(message) = self.messages.recv().await {
-            match message {
-                Message::Client(client_id, event) => {
-                    let span = info_span!("broker", client_id = %client_id, event="client");
-                    let _enter = span.enter();
-                    if let Err(e) = self.process_message(client_id, event) {
-                        warn!(message = "an error occurred processing a message", error = %e);
-                    }
+    fn process_message(&mut self, message: Message) -> bool {
+        match message {
+            Message::Client(client_id, event) => {
+                let span = info_span!("broker", client_id = %client_id, event="client");
+                let _enter = span.enter();
+                if let Err(e) = self.process_client_event(client_id, event) {
+                    warn!(message = "an error occurred processing a message", error = %e);
                 }
-                Message::System(event) => {
-                    let span = info_span!("broker", event = "system");
-                    let _enter = span.enter();
-                    match event {
-                        SystemEvent::Shutdown => {
-                            info!("gracefully shutting down the broker...");
-                            debug!("closing sessions...");
-                            if let Err(e) = self.process_shutdown() {
-                                warn!(message = "an error occurred shutting down the broker", error = %e);
-                            }
-                            break;
+            }
+            Message::System(event) => {
+                let span = info_span!("broker", event = "system");
+                let _enter = span.enter();
+                match event {
+                    SystemEvent::Shutdown => {
+                        info!("gracefully shutting down the broker...");
+                        debug!("closing sessions...");
+                        if let Err(e) = self.process_shutdown() {
+                            warn!(message = "an error occurred shutting down the broker", error = %e);
                         }
-                        SystemEvent::StateSnapshot(mut handle) => {
-                            let state = self.snapshot();
-                            let _guard = span.enter();
-                            info!("asking snapshotter to persist state...");
-                            if let Err(e) = handle.try_send(state) {
-                                warn!(message = "an error occurred communicating with the snapshotter", error = %e);
-                            } else {
-                                info!("sent state to snapshotter.");
-                            }
+                        return false;
+                    }
+                    SystemEvent::StateSnapshot(mut handle) => {
+                        let state = self.snapshot();
+                        let _guard = span.enter();
+                        info!("asking snapshotter to persist state...");
+                        if let Err(e) = handle.try_send(state) {
+                            warn!(message = "an error occurred communicating with the snapshotter", error = %e);
+                        } else {
+                            info!("sent state to snapshotter.");
                         }
                     }
                 }
             }
-
-            self.try_publish()?;
         }
 
-        info!("broker is shutdown.");
-        Ok(self.snapshot())
+        true
     }
 
-    fn try_publish(&mut self) -> Result<(), Error> {
+    fn try_publish_all(&mut self) -> Result<usize, Error> {
         let connected = self
             .sessions
             .values_mut()
@@ -105,7 +156,18 @@ where
                 session.send(event)?
             }
         }
-        Ok(())
+
+        let total_queued_messages: usize = self
+            .sessions
+            .values()
+            .map(|session| match session {
+                Session::Transient(session) => session.queued_messages(),
+                Session::Persistent(session) => session.queued_messages(),
+                _ => 0,
+            })
+            .sum();
+
+        Ok(total_queued_messages)
     }
 
     fn snapshot(&self) -> BrokerSnapshot {
@@ -140,7 +202,7 @@ where
         BrokerSnapshot::new(retained, sessions)
     }
 
-    pub fn process_message(
+    pub fn process_client_event(
         &mut self,
         client_id: ClientId,
         event: ClientEvent,
@@ -177,7 +239,6 @@ where
                 info!("broker received a PublishTo, ignoring");
                 Ok(())
             }
-            ClientEvent::PubAck0(id) => self.process_puback0(&client_id, id),
             ClientEvent::PubAck(puback) => self.process_puback(&client_id, &puback),
             ClientEvent::PubRec(pubrec) => self.process_pubrec(&client_id, &pubrec),
             ClientEvent::PubRel(pubrel) => self.process_pubrel(&client_id, &pubrel),
@@ -550,25 +611,6 @@ where
         match self.get_session_mut(client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_puback(puback)? {
-                    session.send(event)?
-                }
-                Ok(())
-            }
-            Err(NoSessionError) => {
-                debug!("no session for {}", client_id);
-                Ok(())
-            }
-        }
-    }
-
-    fn process_puback0(
-        &mut self,
-        client_id: &ClientId,
-        id: proto::PacketIdentifier,
-    ) -> Result<(), Error> {
-        match self.get_session_mut(client_id) {
-            Ok(session) => {
-                if let Some(event) = session.handle_puback0(id)? {
                     session.send(event)?
                 }
                 Ok(())
@@ -991,7 +1033,7 @@ where
         self
     }
 
-    pub fn build(self) -> Broker<Z> {
+    pub fn build(self) -> BrokerRunner<Z> {
         let config = self.config;
         let (retained, sessions) = match self.state {
             Some(state) => {
@@ -1008,9 +1050,7 @@ where
 
         let (sender, messages) = mpsc::channel(1024);
 
-        Broker {
-            sender,
-            messages,
+        let broker = Broker {
             sessions,
             retained,
             authorizer: self.authorizer,
@@ -1018,6 +1058,12 @@ where
 
             #[cfg(feature = "__internal_broker_callbacks")]
             on_publish: None,
+        };
+
+        BrokerRunner {
+            sender,
+            messages,
+            broker,
         }
     }
 }
