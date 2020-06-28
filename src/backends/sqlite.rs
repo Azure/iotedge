@@ -10,7 +10,7 @@ pub struct SQLiteBackend;
 impl StoreBackend for SQLiteBackend {
     type Error = SQLiteError;
 
-    fn initialize() -> Result<(), Self::Error> {
+    fn new() -> Result<Self, Self::Error> {
         let db = Connection::open(Path::new(STORE_NAME))?;
         db.execute(
             "CREATE TABLE IF NOT EXISTS secrets (
@@ -21,7 +21,7 @@ impl StoreBackend for SQLiteBackend {
             ) WITHOUT ROWID",
             params![]
         )?;
-        Ok(())
+        Ok(SQLiteBackend)
     }
 
     fn write_record(&self, id: &str, record: Record) -> Result<(), Self::Error> {

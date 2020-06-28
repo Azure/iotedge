@@ -14,11 +14,16 @@ hyperlocal = "~0.7"
 libc = "~0.2"
 # log = "0.4"
 percent-encoding = "~2.1"
-ring = { version = "~0.16", features = ["alloc", "std"] }
-rusqlite = "~0.23"
+ring = { version = "~0.16", features = ["std"] }
 serde = { version = "~1.0", features = ["derive"] }
 serde_json = "~1.0"
 tokio = { version = "~0.2", features = ["macros"] }
 zeroize = { version = "~1.1", features = ["zeroize_derive"] }
 
+rocksdb = { version = "~0.14", optional = true }
+rusqlite = { version = "~0.23", optional = true }
+
 [features]
+default = ["rocksdb"]
+
+sqlite = ["rusqlite"]

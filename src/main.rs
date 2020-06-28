@@ -5,6 +5,8 @@ mod message;
 mod store;
 mod util;
 
+use store::StoreBackend;
+
 use std::convert::Infallible;
 // use std::fs::remove_file;
 use std::path::Path;
@@ -33,11 +35,14 @@ fn init() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     init()?;
 
-    let skt = Path::new(crate::constants::SOCKET_NAME);
+    let skt = Path::new(constants::SOCKET_NAME);
     
     Server::bind_unix(skt)?
         .serve(make_service_fn(|_| async move {
-            <Result<_, Infallible>>::Ok(message::MessageService::new(crate::backends::sqlite::SQLiteBackend))
+            match backends::rocksdb::RocksDBBackend::new() {
+                Ok(backend) => <Result<_, Infallible>>::Ok(message::MessageService::new(backend)),
+                _ => panic!("FAILED TO START STORAGE BACKEND")
+            }
         }))
         .await?;
 
