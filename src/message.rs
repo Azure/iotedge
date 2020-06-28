@@ -11,9 +11,20 @@ use hyper::service::Service;
 // use zeroize::Zeroize;
 
 type ServiceResponse = Pin<Box<dyn Future<Output = Result<Response<Body>, HttpError>> + Send + Sync>>;
-pub struct MessageService;
+pub(crate) struct MessageService<T>(Store<T>)
+    where
+        T: StoreBackend,
+        T::Error: std::error::Error;
 
-impl MessageService {
+impl<T> MessageService<T>
+    where
+        T: StoreBackend,
+        T::Error: std::error::Error
+{
+    pub fn new(backend: T) -> Self {
+        MessageService(Store(backend))
+    }
+
     fn index(&self, req: Request<Body>) -> ServiceResponse {
         Box::pin(async {
             Response::builder()
@@ -29,7 +40,11 @@ impl MessageService {
     }
 }
 
-impl Service<Request<Body>> for MessageService {
+impl<T> Service<Request<Body>> for MessageService<T>
+    where
+        T: StoreBackend,
+        T::Error: std::error::Error
+{
     type Response = Response<Body>;
     type Error = HttpError;
     type Future = ServiceResponse;

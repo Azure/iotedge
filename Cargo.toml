@@ -15,7 +15,10 @@ libc = "~0.2"
 # log = "0.4"
 percent-encoding = "~2.1"
 ring = { version = "~0.16", features = ["alloc", "std"] }
+rusqlite = "~0.23"
 serde = { version = "~1.0", features = ["derive"] }
 serde_json = "~1.0"
 tokio = { version = "~0.2", features = ["macros"] }
 zeroize = { version = "~1.1", features = ["zeroize_derive"] }
+
+[features]

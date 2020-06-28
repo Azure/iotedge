@@ -1,3 +1,4 @@
+mod backends;
 mod constants;
 mod ks;
 mod message;
@@ -36,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     
     Server::bind_unix(skt)?
         .serve(make_service_fn(|_| async move {
-            <Result<_, Infallible>>::Ok(message::MessageService)
+            <Result<_, Infallible>>::Ok(message::MessageService::new(crate::backends::sqlite::SQLiteBackend))
         }))
         .await?;
 

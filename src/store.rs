@@ -3,9 +3,6 @@ use crate::ks;
 use crate::ks::{KeyHandle, Text};
 use crate::util::BoxedResult;
 
-use std::future::Future;
-use std::pin::Pin;
-
 use base64::encode;
 use ring::rand::{generate, SystemRandom};
 use zeroize::Zeroize;
@@ -25,43 +22,41 @@ pub trait StoreBackend: Sync {
 
 // NOTE: not fully public since high-level functions should be
 //       invariant over backend implementation
-pub(crate) trait Store<'a>: StoreBackend {
+pub(crate) struct Store<T: StoreBackend>(pub T);
+
+impl<T: StoreBackend> Store<T> {
     // NOTE: can remove Pin<Box<...>> if async traits are added to Rust
     //       cf. https://docs.rs/crate/async-trait
-    fn get_secret(&'a self, id: &'a str) -> Pin<Box<dyn Future<Output = BoxedResult<'a, String>> + 'a>> {
-        Box::pin(async move {
-            let record = self.read_record(id)?;
-            let KeyHandle(key) = ks::get_key(id).await?;
-            let ptext = match ks::decrypt(&key, &record.ciphertext, &record.iv, &record.aad).await? {
-                Text::Plaintext(ptext) => ptext,
-                _ => panic!("ENCRYPTION API CHANGED")
-            };
+    pub async fn get_secret<'a>(&'a self, id: &'a str) -> BoxedResult<'a, String> {
+        let record = self.0.read_record(id)?;
+        let KeyHandle(key) = ks::get_key(id).await?;
+        let ptext = match ks::decrypt(&key, &record.ciphertext, &record.iv, &record.aad).await? {
+            Text::Plaintext(ptext) => ptext,
+            _ => panic!("ENCRYPTION API CHANGED")
+        };
 
-            Ok(ptext)
-        })
+        Ok(ptext)
     }
 
-    fn set_secret(&'a self, id: &'a str, value: String) -> Pin<Box<dyn Future<Output = BoxedResult<'a, ()>> + 'a>> {
-        Box::pin(async move {
-            let rng = SystemRandom::new();
+    pub async fn set_secret<'a>(&'a self, id: &'a str, value: String) -> BoxedResult<'a, ()> {
+        let rng = SystemRandom::new();
 
-            let KeyHandle(key) = ks::create_key(id).await?;
-            let iv: String = encode(generate::<[u8; IV_BYTES]>(&rng)?.expose());
-            let aad: String = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
+        let KeyHandle(key) = ks::create_key(id).await?;
+        let iv: String = encode(generate::<[u8; IV_BYTES]>(&rng)?.expose());
+        let aad: String = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
 
-            let ctext = match ks::encrypt(&key, &value, &iv, &aad).await? {
-                Text::Ciphertext(ctext) => ctext,
-                _ => panic!("DECRYPTION API CHANGED")
-            };
+        let ctext = match ks::encrypt(&key, &value, &iv, &aad).await? {
+            Text::Ciphertext(ctext) => ctext,
+            _ => panic!("DECRYPTION API CHANGED")
+        };
 
-            self.write_record(id, Record {
-                ciphertext: ctext,
-                iv: iv,
-                aad: aad
-            })?;
+        self.0.write_record(id, Record {
+            ciphertext: ctext,
+            iv: iv,
+            aad: aad
+        })?;
 
-            Ok(())
-        })
+        Ok(())
     }
 
     /*
