@@ -23,4 +23,4 @@ USER edgehubuser
 ENV OptimizeForPerformance false
 ENV MqttEventsProcessorThreadCount 1
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
-    /usr/local/bin/watchdog
+    /usr/local/bin/watchdog -c /tmp/mqtt/config.json
