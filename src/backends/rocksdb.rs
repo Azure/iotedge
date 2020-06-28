@@ -8,6 +8,8 @@ use std::string::FromUtf8Error;
 use rocksdb::{DB, Error as EngineError, Options};
 use serde_json::{from_str, to_string, Error as SerdeError};
 
+const STORE_NAME: &str = "store.rdb";
+
 pub struct RocksDBBackend(DB);
 #[derive(Debug)]
 pub enum RocksDBError {
@@ -24,7 +26,8 @@ impl StoreBackend for RocksDBBackend {
         let mut opts = Options::default();
         opts.create_if_missing(true);
 
-        let db = DB::open(&opts, Path::new("store.rdb"))?;
+        let db = DB::open(&opts, Path::new(STORE_NAME))?;
+
 
         Ok(RocksDBBackend(db))
     }

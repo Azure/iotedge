@@ -10,6 +10,7 @@ use store::StoreBackend;
 use std::convert::Infallible;
 // use std::fs::remove_file;
 use std::path::Path;
+use std::sync::Arc;
 
 use hyper::Server;
 use hyper::service::make_service_fn;
@@ -36,13 +37,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     init()?;
 
     let skt = Path::new(constants::SOCKET_NAME);
+    let store = Arc::new(backends::rocksdb::RocksDBBackend::new()?);
     
     Server::bind_unix(skt)?
-        .serve(make_service_fn(|_| async move {
-            match backends::rocksdb::RocksDBBackend::new() {
-                Ok(backend) => <Result<_, Infallible>>::Ok(message::MessageService::new(backend)),
-                _ => panic!("FAILED TO START STORAGE BACKEND")
-            }
+        .serve(make_service_fn(move |_| {
+            let store = store.clone();
+            async move { <Result<_, Infallible>>::Ok(message::MessageService::new(store)) }
         }))
         .await?;
 

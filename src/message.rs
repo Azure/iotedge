@@ -3,6 +3,7 @@ use crate::store::*;
 
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use hyper::{Body, Method, Request, Response};
@@ -21,7 +22,7 @@ impl<T> MessageService<T>
         T: StoreBackend,
         T::Error: std::error::Error
 {
-    pub fn new(backend: T) -> Self {
+    pub fn new(backend: Arc<T>) -> Self {
         MessageService(Store(backend))
     }
 

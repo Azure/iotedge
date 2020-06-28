@@ -3,6 +3,8 @@ use crate::ks;
 use crate::ks::{KeyHandle, Text};
 use crate::util::BoxedResult;
 
+use std::sync::Arc;
+
 use base64::encode;
 use ring::rand::{generate, SystemRandom};
 use serde::{Deserialize, Serialize};
@@ -30,7 +32,7 @@ pub struct Record {
 
 // NOTE: not fully public since high-level functions should be
 //       invariant over backend implementation
-pub(crate) struct Store<T: StoreBackend>(pub T);
+pub(crate) struct Store<T: StoreBackend>(pub Arc<T>);
 
 impl<T: StoreBackend> Store<T> {
     pub async fn get_secret<'a>(&'a self, id: &'a str) -> BoxedResult<'a, String> {

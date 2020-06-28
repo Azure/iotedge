@@ -5,6 +5,7 @@ use std::path::Path;
 use rusqlite::{params, Connection, Error as SQLiteError};
 
 const STORE_NAME: &str = "store.sqlite";
+
 pub struct SQLiteBackend;
 
 impl StoreBackend for SQLiteBackend {
