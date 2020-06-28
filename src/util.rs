@@ -6,7 +6,8 @@ use bytes::buf::BufExt;
 use hyper::{Body, Client, Method, Request, Response, Uri};
 use hyper::body::to_bytes;
 use percent_encoding::percent_encode;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_json::{to_string, Deserializer};
 
 pub type BoxedResult<'a, T> = Result<T, Box<dyn std::error::Error + 'a>>;
@@ -26,7 +27,7 @@ pub async fn call<'a>(method: Method, resource: String, payload: Option<impl Ser
     Ok(client.request(req).await?)
 }
 
-pub async fn slurp_json<'a, 'de, T: Deserialize<'de>>(res: Response<Body>) -> BoxedResult<'a, T> {
+pub async fn slurp_json<'a, T: DeserializeOwned>(res: Response<Body>) -> BoxedResult<'a, T> {
     let status = res.status();
     let body = to_bytes(res).await?;
 

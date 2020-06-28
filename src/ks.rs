@@ -4,8 +4,9 @@ use crate::util::*;
 use hyper::Method;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use zeroize::Zeroize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Zeroize)]
 pub struct KeyHandle(
     #[serde(rename = "keysServiceHandle")]
     pub String

@@ -28,7 +28,7 @@ pub trait StoreBackend: Sync {
 pub(crate) trait Store<'a>: StoreBackend {
     // NOTE: can remove Pin<Box<...>> if async traits are added to Rust
     //       cf. https://docs.rs/crate/async-trait
-    fn get_secret(&'a self, id: &'a str) -> Pin<Box<dyn Future<Output = BoxedResult<String>> + 'a>> {
+    fn get_secret(&'a self, id: &'a str) -> Pin<Box<dyn Future<Output = BoxedResult<'a, String>> + 'a>> {
         Box::pin(async move {
             let record = self.read_record(id)?;
             let KeyHandle(key) = ks::get_key(id).await?;
@@ -41,7 +41,7 @@ pub(crate) trait Store<'a>: StoreBackend {
         })
     }
 
-    fn set_secret(&'a self, id: &'a str, value: String) -> Pin<Box<dyn Future<Output = BoxedResult<()>> + 'a>> {
+    fn set_secret(&'a self, id: &'a str, value: String) -> Pin<Box<dyn Future<Output = BoxedResult<'a, ()>> + 'a>> {
         Box::pin(async move {
             let rng = SystemRandom::new();
 
