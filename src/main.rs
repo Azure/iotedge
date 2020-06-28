@@ -7,18 +7,18 @@ mod util;
 
 use store::StoreBackend;
 
-use std::convert::Infallible;
+use std::error::Error as StdError;
 // use std::fs::remove_file;
 use std::path::Path;
 use std::sync::Arc;
 
-use hyper::Server;
-use hyper::service::make_service_fn;
+use hyper::{Error as HyperError, Server};
+use hyper::service::{make_service_fn, service_fn};
 use hyperlocal::UnixServerExt;
 use libc::{S_IRWXU, umask};
 use ring::rand::{generate, SystemRandom};
 
-fn init() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+fn init() -> Result<(), Box<dyn StdError + Send + Sync>> {
     unsafe {
         umask(!S_IRWXU);
     }
@@ -33,7 +33,7 @@ fn init() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     init()?;
 
     let skt = Path::new(constants::SOCKET_NAME);
@@ -42,7 +42,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Server::bind_unix(skt)?
         .serve(make_service_fn(move |_| {
             let store = store.clone();
-            async move { <Result<_, Infallible>>::Ok(message::MessageService::new(store)) }
+            async move {
+                <Result<_, HyperError>>::Ok(service_fn(move |req| {
+                    message::dispatch(store.clone(), req)
+                }))
+            }
         }))
         .await?;
 

@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
 // NOTE: open to changing implementation so that Sync is not required
-pub trait StoreBackend: Sized + Sync {
+pub trait StoreBackend: Sized + Send + Sync {
     type Error: std::error::Error;
 
     fn new() -> Result<Self, Self::Error>;

@@ -1,66 +1,40 @@
 use crate::constants::{API_SURFACE, LOST};
 use crate::store::*;
 
-use std::future::Future;
-use std::pin::Pin;
+use std::error::Error as StdError;
 use std::sync::Arc;
-use std::task::{Context, Poll};
 
 use hyper::{Body, Method, Request, Response};
 use hyper::http::Error as HttpError;
-use hyper::service::Service;
 // use zeroize::Zeroize;
 
-type ServiceResponse = Pin<Box<dyn Future<Output = Result<Response<Body>, HttpError>> + Send + Sync>>;
-pub(crate) struct MessageService<T>(Store<T>)
+async fn index<T>(store: Store<T>, req: Request<Body>) -> Result<Response<Body>, HttpError>
     where
         T: StoreBackend,
-        T::Error: std::error::Error;
-
-impl<T> MessageService<T>
-    where
-        T: StoreBackend,
-        T::Error: std::error::Error
+        T::Error: StdError
 {
-    pub fn new(backend: Arc<T>) -> Self {
-        MessageService(Store(backend))
-    }
-
-    fn index(&self, req: Request<Body>) -> ServiceResponse {
-        Box::pin(async {
-            Response::builder()
-                .body(API_SURFACE.to_string().into())
-        })
-    }
-
-    fn get_secret(&self, req: Request<Body>) -> ServiceResponse {
-        Box::pin(async {
-            Response::builder()
-                .body("FOO".into())
-        })
-    }
+    Response::builder()
+        .body(API_SURFACE.to_string().into())
 }
 
-impl<T> Service<Request<Body>> for MessageService<T>
+async fn get_secret<T>(store: Store<T>, req: Request<Body>) -> Result<Response<Body>, HttpError>
     where
         T: StoreBackend,
-        T::Error: std::error::Error
+        T::Error: StdError
 {
-    type Response = Response<Body>;
-    type Error = HttpError;
-    type Future = ServiceResponse;
+    Response::builder()
+        .body("FOO".into())
+}
 
-    fn poll_ready(&mut self, _: &mut Context) -> Poll<Result<(), Self::Error>> {
-        // NOTE: could be used to communicate database locking status
-        //       if one store instance is handling all requests
-        Poll::Ready(Ok(()))
-    }
-
-    fn call(&mut self, req: Request<Body>) -> Self::Future {
-        match (req.method(), req.uri().path()) {
-            (&Method::GET, "/") => self.index(req),
-            (&Method::GET, "/secret") => self.get_secret(req),
-            _ => Box::pin(async { Response::builder().status(404).body(LOST.into()) })
-        }
+pub async fn dispatch<T>(backend: Arc<T>, req: Request<Body>) -> Result<Response<Body>, HttpError>
+    where
+        T: StoreBackend,
+        T::Error: StdError
+{
+    let store = Store(backend);
+    match (req.method(), req.uri().path()) {
+        (&Method::GET, "/") => index(store, req).await,
+        (&Method::GET, "/secrets") => get_secret(store, req).await,
+        _ => Response::builder().status(404).body(LOST.into())
     }
 }
