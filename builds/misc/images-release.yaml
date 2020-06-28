@@ -299,16 +299,19 @@ jobs:
           imageName: azureiotedge-agent
           name: "Edge Agent"
           project: Microsoft.Azure.Devices.Edge.Agent.Service
+          version: ${{ parameters.version }} 
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-hub
           name: "Edge Hub"
           project: Microsoft.Azure.Devices.Edge.Hub.Service
+          version: ${{ parameters.version }} 
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-simulated-temperature-sensor
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
+          version: ${{ parameters.version }} 
       - bash: |
             scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) &&
             scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics
