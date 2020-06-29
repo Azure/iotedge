@@ -8,7 +8,7 @@ ADD ./mqttd/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 
 RUN mkdir -p /tmp/mqtt/config
 
-ARG EXE_DIR=./edge-hub
+ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
 
 # RocksDB requires snappy	
 RUN apk update && \	

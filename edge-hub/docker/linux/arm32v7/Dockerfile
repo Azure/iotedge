@@ -6,7 +6,7 @@ ADD ./mqttd/target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mq
 
 RUN mkdir -p /tmp/mqtt/config
 
-ARG EXE_DIR=.
+ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
 
 WORKDIR /app
 
