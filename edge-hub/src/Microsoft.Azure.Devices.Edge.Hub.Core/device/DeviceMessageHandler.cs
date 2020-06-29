@@ -490,47 +490,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_seconds",
                 "Time taken to send a message",
-                new List<string> { "from", "to", "from_route_output", "to_route_input" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input", "ms_telemetry" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
                 "Time taken to get twin",
-                new List<string> { "source", "id" });
+                new List<string> { "source", "id", "ms_telemetry" });
 
             static readonly IMetricsCounter GetTwinCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "gettwin",
                 "Get twin calls",
-                new List<string> { "source", "id" });
+                new List<string> { "source", "id", "ms_telemetry" });
 
             static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "reported_properties_update_duration_seconds",
                 "Time taken to update reported properties",
-                new List<string> { "target", "id" });
+                new List<string> { "target", "id", "ms_telemetry" });
 
             static readonly IMetricsCounter ReportedPropertiesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "reported_properties",
                 "Reported properties update calls",
-                new List<string> { "target", "id" });
+                new List<string> { "target", "id", "ms_telemetry" });
 
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to", "priority" });
+                new List<string> { "from", "to", "priority", "ms_telemetry" });
 
             public static IDisposable TimeMessageSend(IIdentity identity, IMessage message, string fromRoute, string toRoute)
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
-                return MessagesTimer.GetTimer(new[] { from, to, fromRoute, toRoute });
+                return MessagesTimer.GetTimer(new[] { from, to, fromRoute, toRoute, true.ToString() });
             }
 
-            public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "edge_hub", id });
+            public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "edge_hub", id, true.ToString() });
 
-            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "edge_hub", id });
+            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "edge_hub", id, true.ToString() });
 
-            public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "edge_hub", id });
+            public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "edge_hub", id, true.ToString() });
 
-            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "edge_hub", id });
+            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "edge_hub", id, true.ToString() });
 
             public static void MessageProcessingLatency(IIdentity identity, IMessage message)
             {
@@ -544,7 +544,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { from, to, priority });
+                        new[] { from, to, priority, true.ToString() });
                 }
             }
         }

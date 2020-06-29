@@ -267,23 +267,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             static readonly IMetricsHistogram MessagesHistogram = Util.Metrics.Metrics.Instance.CreateHistogram(
                 "message_size_bytes",
                 "Size of messages received by EdgeHub",
-                new List<string> { "id" });
+                new List<string> { "id", "ms_telemetry" });
 
             static readonly IMetricsCounter DirectMethodsCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "direct_methods",
                 "Direct methods routed through EdgeHub",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "ms_telemetry" });
 
             static readonly IMetricsCounter ReceivedMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_received",
                 "Number of messages received from client",
-                new List<string> { "id", "route_output" });
+                new List<string> { "id", "route_output", "ms_telemetry" });
 
-            public static void AddMessageSize(long size, string id) => MessagesHistogram.Update(size, new[] { id });
+            public static void AddMessageSize(long size, string id) => MessagesHistogram.Update(size, new[] { id, true.ToString() });
 
-            public static void AddDirectMethod(string fromId, string toId) => DirectMethodsCounter.Increment(1, new[] { fromId, toId });
+            public static void AddDirectMethod(string fromId, string toId) => DirectMethodsCounter.Increment(1, new[] { fromId, toId, true.ToString() });
 
-            public static void AddReceivedMessage(string id, string output) => ReceivedMessagesCounter.Increment(1, new[] { id, output });
+            public static void AddReceivedMessage(string id, string output) => ReceivedMessagesCounter.Increment(1, new[] { id, output, true.ToString() });
         }
 
         static class MetricsV0

@@ -624,57 +624,57 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_seconds",
                 "Time taken to send a message",
-                new List<string> { "from", "to", "from_route_output", "to_route_input" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input", "ms_telemetry" });
 
             static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent from edge hub",
-                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority", "ms_telemetry" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
                 "Time taken to get twin",
-                new List<string> { "source", "id" });
+                new List<string> { "source", "id", "ms_telemetry" });
 
             static readonly IMetricsCounter GetTwinCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "gettwin",
                 "Get twin calls",
-                new List<string> { "source", "id" });
+                new List<string> { "source", "id", "ms_telemetry" });
 
             static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "reported_properties_update_duration_seconds",
                 "Time taken to update reported properties",
-                new List<string> { "target", "id" });
+                new List<string> { "target", "id", "ms_telemetry" });
 
             static readonly IMetricsCounter ReportedPropertiesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "reported_properties",
                 "Reported properties update calls",
-                new List<string> { "target", "id" });
+                new List<string> { "target", "id", "ms_telemetry" });
 
             static readonly IMetricsTimer DirectMethodsTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "direct_method_duration_seconds",
                 "Time taken to call direct method",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "ms_telemetry" });
 
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to", "priority" });
+                new List<string> { "from", "to", "priority", "ms_telemetry" });
 
-            public static IDisposable TimeMessageSend(string id, string fromRoute) => MessagesTimer.GetTimer(new[] { id, "upstream", fromRoute, string.Empty });
+            public static IDisposable TimeMessageSend(string id, string fromRoute) => MessagesTimer.GetTimer(new[] { id, "upstream", fromRoute, string.Empty, true.ToString() });
 
             public static void AddSentMessages(string id, int count, string fromRoute, uint priority) =>
-                SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty, priority.ToString() });
+                SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty, priority.ToString(), true.ToString() });
 
-            public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "upstream", id });
+            public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "upstream", id, true.ToString() });
 
-            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "upstream", id });
+            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "upstream", id, true.ToString() });
 
-            public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "upstream", id });
+            public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "upstream", id, true.ToString() });
 
-            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id });
+            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id, true.ToString() });
 
-            public static IDisposable TimeDirectMethod(string id) => DirectMethodsTimer.GetTimer(new[] { "upstream", id });
+            public static IDisposable TimeDirectMethod(string id) => DirectMethodsTimer.GetTimer(new[] { "upstream", id, true.ToString() });
 
             public static void MessageProcessingLatency(string id, IMessage message)
             {
@@ -686,7 +686,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     string priority = message.ProcessedPriority.ToString();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { id, "upstream", priority });
+                        new[] { id, "upstream", priority, true.ToString() });
                 }
             }
         }
