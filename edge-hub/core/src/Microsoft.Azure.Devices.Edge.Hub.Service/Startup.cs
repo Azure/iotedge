@@ -55,25 +55,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             });
 
             app.UseHttpsRedirection();
+
+            (string iotHubHostname, string edgeDeviceId, string gatewayHostname) = this.GetStartupParameters();
+            app.UseMiddleware<RegistryProxyMiddleware>(gatewayHostname);
             app.UseWebSockets();
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
             app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);
-
-            string edgeHubConnectionString = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
-            string iotHubHostname;
-            string edgeDeviceId;
-            if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
-            {
-                IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
-                iotHubHostname = iotHubConnectionStringBuilder.HostName;
-                edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
-            }
-            else
-            {
-                iotHubHostname = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubHostname);
-                edgeDeviceId = this.configuration.GetValue<string>(Constants.ConfigKey.DeviceId);
-            }
 
             app.UseAuthenticationMiddleware(iotHubHostname, edgeDeviceId);
 
@@ -91,6 +79,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 endpoints.MapControllers();
             });
+        }
+
+        (string iotHubHostname, string edgeDeviceId, string gatewayHostname) GetStartupParameters()
+        {
+            string iotHubHostname, edgeDeviceId;
+
+            string edgeHubConnectionString = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
+            if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
+            {
+                IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
+                iotHubHostname = iotHubConnectionStringBuilder.HostName;
+                edgeDeviceId = iotHubConnectionStringBuilder.DeviceId;
+            }
+            else
+            {
+                iotHubHostname = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubHostname);
+                edgeDeviceId = this.configuration.GetValue<string>(Constants.ConfigKey.DeviceId);
+            }
+
+            string gatewayHostname = this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname) ?? iotHubHostname;
+
+            return (iotHubHostname, edgeDeviceId, gatewayHostname);
         }
 
         IContainer BuildContainer(IServiceCollection services)
