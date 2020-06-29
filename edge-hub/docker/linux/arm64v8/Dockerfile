@@ -13,7 +13,7 @@ WORKDIR /app
 COPY $EXE_DIR/ ./edge-hub
 
 # Set broker log level
-ENV RUST_LOG=info
+ENV RUST_LOG=debug
 
 # Expose MQTT, AMQP and HTTPS ports
 EXPOSE 1883/tcp
