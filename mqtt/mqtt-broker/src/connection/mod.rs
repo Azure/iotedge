@@ -297,12 +297,15 @@ where
     while let Some(message) = messages.recv().await {
         debug!("outgoing: {:?}", message);
         match processor.process(message).await {
-            PacketAction::Continue(Some(packet)) => {
+            PacketAction::Continue(Some((packet, mut permit))) => {
                 // send a packet to a client
                 if let Err(e) = outgoing.send(packet).await {
                     warn!(message = "error occurred while writing to connection", error=%e);
                     return Err((messages, e.into()));
                 }
+
+                // drop publish permit after packet sent
+                drop(permit.take());
             }
             PacketAction::Continue(None) => (),
             PacketAction::Stop(_) => return Ok(()),

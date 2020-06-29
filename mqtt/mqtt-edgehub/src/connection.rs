@@ -4,7 +4,7 @@ use mqtt3::proto::Packet;
 use mqtt_broker::{
     ClientEvent, ClientId, Error, IncomingPacketProcessor, MakeIncomingPacketProcessor,
     MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, Message, OutgoingPacketProcessor,
-    PacketAction, Publish,
+    PacketAction, Publish, PublishPermit,
 };
 
 use crate::topic::translation::{
@@ -58,10 +58,13 @@ impl<P> OutgoingPacketProcessor for EdgeHubPacketProcessor<P>
 where
     P: OutgoingPacketProcessor + Send,
 {
-    async fn process(&mut self, mut message: Message) -> PacketAction<Option<Packet>, ()> {
+    async fn process(
+        &mut self,
+        mut message: Message,
+    ) -> PacketAction<Option<(Packet, Option<PublishPermit>)>, ()> {
         match &mut message {
-            Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_, publish)))
-            | Message::Client(_, ClientEvent::PublishTo(Publish::QoS0(publish))) => {
+            Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_, publish), _))
+            | Message::Client(_, ClientEvent::PublishTo(Publish::QoS0(publish), _)) => {
                 translate_outgoing_publish(publish);
             }
             _ => (),

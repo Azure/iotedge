@@ -235,7 +235,7 @@ where
                 Ok(())
             }
             ClientEvent::PublishFrom(publish, _) => self.process_publish(&client_id, publish),
-            ClientEvent::PublishTo(_publish) => {
+            ClientEvent::PublishTo(_publish, _) => {
                 info!("broker received a PublishTo, ignoring");
                 Ok(())
             }

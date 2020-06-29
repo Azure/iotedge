@@ -66,8 +66,12 @@ impl OfflineSession {
                 _ => publish.clone(),
             };
 
+            let permit = state
+                .acquire_publish_permit()
+                .expect("number of publish permits must not be less than max_inflight_messages");
+
             debug!("resending QoS12 packet {}", id);
-            events.push(ClientEvent::PublishTo(to_publish));
+            events.push(ClientEvent::PublishTo(to_publish, permit));
         }
 
         // Handle the outstanding QoS 2 packets in the second stage of transmission
@@ -78,11 +82,11 @@ impl OfflineSession {
         }
 
         // Dequeue any queued messages - up to the max inflight count
-        while state.allowed_to_send() {
+        while let Some(permit) = state.allowed_to_send() {
             match state.waiting_to_be_sent_mut().dequeue() {
                 Some(publication) => {
                     debug!("dequeueing a message for {}", state.client_id());
-                    let event = state.prepare_to_send(&publication)?;
+                    let event = state.prepare_to_send(&publication, permit)?;
                     events.push(event);
                 }
                 None => break,

@@ -6,7 +6,7 @@ use map::SmallIndexMap;
 use queue::BoundedQueue;
 use set::SmallIndexSet;
 
-use std::{cmp, collections::HashMap};
+use std::{cmp, collections::HashMap, sync::Arc};
 
 use tracing::{debug, info};
 
@@ -14,7 +14,7 @@ use mqtt3::proto;
 
 use crate::{
     session::identifiers::PacketIdentifiers, snapshot::SessionSnapshot, subscription::Subscription,
-    ClientEvent, ClientId, Error, Publish, SessionConfig,
+    ClientEvent, ClientId, Error, Publish, PublishPermit, PublishPermits, SessionConfig,
 };
 
 /// Common data and functions for broker sessions.
@@ -34,6 +34,7 @@ pub struct SessionState {
     waiting_to_be_acked: SmallIndexMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_completed: SmallIndexSet<proto::PacketIdentifier>,
     config: SessionConfig,
+    publish_permits: Arc<PublishPermits>,
 }
 
 impl SessionState {
@@ -53,6 +54,7 @@ impl SessionState {
             waiting_to_be_released: SmallIndexMap::new(),
             waiting_to_be_completed: SmallIndexSet::new(),
             config,
+            publish_permits: Arc::new(PublishPermits::new(32)), // todo make it always greater than max_inflight_messages
         }
     }
 
@@ -76,6 +78,7 @@ impl SessionState {
             waiting_to_be_completed: SmallIndexSet::new(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
             config,
+            publish_permits: Arc::new(PublishPermits::new(32)),
         }
     }
 
@@ -133,8 +136,8 @@ impl SessionState {
         publication: proto::Publication,
     ) -> Result<Option<ClientEvent>, Error> {
         if let Some(publication) = self.filter(publication) {
-            if self.allowed_to_send() {
-                let event = self.prepare_to_send(&publication)?;
+            if let Some(permit) = self.allowed_to_send() {
+                let event = self.prepare_to_send(&publication, permit)?;
                 Ok(Some(event))
             } else {
                 if let Some(limit) = self.waiting_to_be_sent.enqueue(publication) {
@@ -229,25 +232,29 @@ impl SessionState {
     }
 
     pub(super) fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
-        if self.allowed_to_send() {
+        if let Some(permit) = self.allowed_to_send() {
             if let Some(publication) = self.waiting_to_be_sent.dequeue() {
-                let event = self.prepare_to_send(&publication)?;
+                let event = self.prepare_to_send(&publication, permit)?;
                 return Ok(Some(event));
             }
         }
         Ok(None)
     }
 
-    // TODO implement MAX_QOS0_MESSAGES
-    pub(super) fn allowed_to_send(&self) -> bool {
-        match self.config.max_inflight_messages() {
-            Some(limit) => {
+    pub(super) fn allowed_to_send(&self) -> Option<PublishPermit> {
+        self.config
+            .max_inflight_messages()
+            .map_or(Some(true), |limit| {
                 let num_inflight =
                     self.waiting_to_be_acked.len() + self.waiting_to_be_completed.len();
-                num_inflight < limit.get()
-            }
-            None => true,
-        }
+                Some(num_inflight < limit.get())
+            })
+            .filter(|has_inflights_slots| *has_inflights_slots)
+            .and_then(|_| self.acquire_publish_permit())
+    }
+
+    pub(super) fn acquire_publish_permit(&self) -> Option<PublishPermit> {
+        self.publish_permits.clone().acquire()
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {
@@ -267,6 +274,7 @@ impl SessionState {
     pub fn prepare_to_send(
         &mut self,
         publication: &proto::Publication,
+        permit: PublishPermit,
     ) -> Result<ClientEvent, Error> {
         let publish = match publication.qos {
             proto::QoS::AtMostOnce => {
@@ -305,11 +313,11 @@ impl SessionState {
         };
 
         let event = match publish {
-            Publish::QoS0(publish) => ClientEvent::PublishTo(Publish::QoS0(publish)),
+            Publish::QoS0(publish) => ClientEvent::PublishTo(Publish::QoS0(publish), permit),
             Publish::QoS12(id, publish) => {
                 self.waiting_to_be_acked
                     .insert(id, Publish::QoS12(id, publish.clone()));
-                ClientEvent::PublishTo(Publish::QoS12(id, publish))
+                ClientEvent::PublishTo(Publish::QoS12(id, publish), permit)
             }
         };
         Ok(event)

@@ -31,7 +31,10 @@ pub mod proptest;
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
     net::SocketAddr,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicU16, Ordering},
+        Arc,
+    },
 };
 
 use serde::{Deserialize, Serialize};
@@ -215,7 +218,7 @@ pub enum ClientEvent {
     PublishFrom(proto::Publish, Option<OwnedSemaphorePermit>),
 
     /// PublishTo - publish packet to a client
-    PublishTo(Publish),
+    PublishTo(Publish, PublishPermit),
 
     /// Publish acknowledgement (QoS 1)
     PubAck(proto::PubAck),
@@ -241,6 +244,50 @@ pub enum SystemEvent {
 pub enum Message {
     Client(ClientId, ClientEvent),
     System(SystemEvent),
+}
+
+#[derive(Debug, Clone)]
+pub struct PublishPermits {
+    permits: Arc<AtomicU16>,
+}
+
+impl PublishPermits {
+    pub fn new(permits: u16) -> Self {
+        Self {
+            permits: Arc::new(AtomicU16::new(permits)),
+        }
+    }
+
+    pub fn add_permits(&self, permits: u16) {
+        self.permits.fetch_add(permits, Ordering::Relaxed);
+    }
+
+    pub fn acquire(self: Arc<Self>) -> Option<PublishPermit> {
+        if self.permits.fetch_sub(1, Ordering::Relaxed) > 0 {
+            Some(PublishPermit { permits: self })
+        } else {
+            None
+        }
+    }
+}
+
+impl PartialEq for PublishPermits {
+    fn eq(&self, other: &Self) -> bool {
+        let either = self.permits.load(Ordering::Relaxed);
+        let other = other.permits.load(Ordering::Relaxed);
+        either == other
+    }
+}
+
+#[derive(Debug)]
+pub struct PublishPermit {
+    permits: Arc<PublishPermits>,
+}
+
+impl Drop for PublishPermit {
+    fn drop(&mut self) {
+        self.permits.add_permits(1);
+    }
 }
 
 #[cfg(test)]

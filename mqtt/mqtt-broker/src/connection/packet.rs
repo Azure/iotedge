@@ -6,7 +6,7 @@ use tracing::{debug, warn};
 
 use mqtt3::proto::Packet;
 
-use crate::{ClientEvent, ClientId, Error, Message, Publish};
+use crate::{ClientEvent, ClientId, Error, Message, Publish, PublishPermit};
 
 /// Action result of packet processing operation.
 /// * `Continue` - processor suggests move to the next packet.
@@ -30,7 +30,10 @@ pub trait OutgoingPacketProcessor {
     /// Converts outgoing `Message` into pair (`proto::Packet`, `Option<Message>`)
     /// * packet to be sent to the connected client
     /// * optional message to be sent back to the broker (eg. ACK for QoS0 publication)
-    async fn process(&mut self, message: Message) -> PacketAction<Option<Packet>, ()>;
+    async fn process(
+        &mut self,
+        message: Message,
+    ) -> PacketAction<Option<(Packet, Option<PublishPermit>)>, ()>;
 }
 
 /// A trait to make a new instance of incoming packet processor.
@@ -139,12 +142,15 @@ impl MqttOutgoingPacketProcessor {
 
 #[async_trait]
 impl OutgoingPacketProcessor for MqttOutgoingPacketProcessor {
-    async fn process(&mut self, message: Message) -> PacketAction<Option<Packet>, ()> {
+    async fn process(
+        &mut self,
+        message: Message,
+    ) -> PacketAction<Option<(Packet, Option<PublishPermit>)>, ()> {
         match message {
             Message::Client(_client_id, event) => match event {
                 ClientEvent::ConnReq(_) => PacketAction::Continue(None),
                 ClientEvent::ConnAck(connack) => {
-                    PacketAction::Continue(Some(Packet::ConnAck(connack)))
+                    PacketAction::Continue(Some((Packet::ConnAck(connack), None)))
                 }
                 ClientEvent::Disconnect(_) => {
                     debug!("asked to disconnect. outgoing_task completing...");
@@ -154,27 +160,39 @@ impl OutgoingPacketProcessor for MqttOutgoingPacketProcessor {
                     debug!("asked to drop connection. outgoing_task completing...");
                     PacketAction::Stop(())
                 }
-                ClientEvent::PingReq(req) => PacketAction::Continue(Some(Packet::PingReq(req))),
-                ClientEvent::PingResp(response) => {
-                    PacketAction::Continue(Some(Packet::PingResp(response)))
+                ClientEvent::PingReq(req) => {
+                    PacketAction::Continue(Some((Packet::PingReq(req), None)))
                 }
-                ClientEvent::Subscribe(sub) => PacketAction::Continue(Some(Packet::Subscribe(sub))),
-                ClientEvent::SubAck(suback) => PacketAction::Continue(Some(Packet::SubAck(suback))),
+                ClientEvent::PingResp(response) => {
+                    PacketAction::Continue(Some((Packet::PingResp(response), None)))
+                }
+                ClientEvent::Subscribe(sub) => {
+                    PacketAction::Continue(Some((Packet::Subscribe(sub), None)))
+                }
+                ClientEvent::SubAck(suback) => {
+                    PacketAction::Continue(Some((Packet::SubAck(suback), None)))
+                }
                 ClientEvent::Unsubscribe(unsub) => {
-                    PacketAction::Continue(Some(Packet::Unsubscribe(unsub)))
+                    PacketAction::Continue(Some((Packet::Unsubscribe(unsub), None)))
                 }
                 ClientEvent::UnsubAck(unsuback) => {
-                    PacketAction::Continue(Some(Packet::UnsubAck(unsuback)))
+                    PacketAction::Continue(Some((Packet::UnsubAck(unsuback), None)))
                 }
-                ClientEvent::PublishTo(Publish::QoS12(_, publish))
-                | ClientEvent::PublishTo(Publish::QoS0(publish)) => {
-                    PacketAction::Continue(Some(Packet::Publish(publish)))
+                ClientEvent::PublishTo(Publish::QoS12(_, publish), permit)
+                | ClientEvent::PublishTo(Publish::QoS0(publish), permit) => {
+                    PacketAction::Continue(Some((Packet::Publish(publish), Some(permit))))
                 }
-                ClientEvent::PubAck(puback) => PacketAction::Continue(Some(Packet::PubAck(puback))),
-                ClientEvent::PubRec(pubrec) => PacketAction::Continue(Some(Packet::PubRec(pubrec))),
-                ClientEvent::PubRel(pubrel) => PacketAction::Continue(Some(Packet::PubRel(pubrel))),
+                ClientEvent::PubAck(puback) => {
+                    PacketAction::Continue(Some((Packet::PubAck(puback), None)))
+                }
+                ClientEvent::PubRec(pubrec) => {
+                    PacketAction::Continue(Some((Packet::PubRec(pubrec), None)))
+                }
+                ClientEvent::PubRel(pubrel) => {
+                    PacketAction::Continue(Some((Packet::PubRel(pubrel), None)))
+                }
                 ClientEvent::PubComp(pubcomp) => {
-                    PacketAction::Continue(Some(Packet::PubComp(pubcomp)))
+                    PacketAction::Continue(Some((Packet::PubComp(pubcomp), None)))
                 }
                 event => {
                     warn!("ignoring event for outgoing_task: {:?}", event);
