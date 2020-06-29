@@ -6,6 +6,8 @@ FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 ADD ./watchdog/target/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 
+RUN mkdir -p /tmp/mqtt/config
+
 ARG EXE_DIR=./edge-hub
 
 # RocksDB requires snappy	
@@ -39,4 +41,5 @@ EXPOSE 443/tcp
 USER edgehubuser	
 
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
-    /usr/local/bin/watchdog -c /tmp/mqtt/config.json
+    cd /tmp/mqtt && \
+    /usr/local/bin/watchdog -c /tmp/mqtt/config/config.json

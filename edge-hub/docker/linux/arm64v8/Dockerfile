@@ -4,6 +4,8 @@ FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 ADD ./watchdog/target/aarch64-unknown-linux-gnu/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/aarch64-unknown-linux-gnu/release/mqttd /usr/local/bin/mqttd
 
+RUN mkdir -p /tmp/mqtt/config
+
 ARG EXE_DIR=.
 
 WORKDIR /app
@@ -23,4 +25,5 @@ USER edgehubuser
 ENV OptimizeForPerformance false
 ENV MqttEventsProcessorThreadCount 1
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
-    /usr/local/bin/watchdog -c /tmp/mqtt/config.json
+    cd /tmp/mqtt && \
+    /usr/local/bin/watchdog -c /tmp/mqtt/config/config.json
