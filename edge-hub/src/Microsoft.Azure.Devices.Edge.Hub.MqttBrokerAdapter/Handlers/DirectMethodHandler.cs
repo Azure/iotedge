@@ -104,8 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
-            message.SystemProperties[SystemProperties.CorrelationId] = rid.Value;
-            message.SystemProperties[SystemProperties.StatusCode] = res.Value;
+            message.Properties[SystemProperties.CorrelationId] = rid.Value;
+            message.Properties[SystemProperties.StatusCode] = res.Value;
 
             await proxy.ProcessMethodResponseAsync(message);
 

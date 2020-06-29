@@ -139,10 +139,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var message = listenerCapture.Captured.CapturedMessage;
 
-            Assert.Contains(SystemProperties.CorrelationId, message.SystemProperties);
-            Assert.Equal("abcde", message.SystemProperties[SystemProperties.CorrelationId]);
-            Assert.Contains(SystemProperties.StatusCode, message.SystemProperties);
-            Assert.Equal("200", message.SystemProperties[SystemProperties.StatusCode]);
+            Assert.Contains(SystemProperties.CorrelationId, message.Properties);
+            Assert.Equal("abcde", message.Properties[SystemProperties.CorrelationId]);
+            Assert.Contains(SystemProperties.StatusCode, message.Properties);
+            Assert.Equal("200", message.Properties[SystemProperties.StatusCode]);
         }
 
         public static IEnumerable<object[]> NonDirectMethodTopics()
