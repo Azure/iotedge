@@ -118,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             destinationUriBuilder.Host = this.gatewayHostname;
             return Option.Some(destinationUriBuilder.Uri);
         }
+
         static class Events
         {
             const int IdStart = HttpEventIds.RegistryProxyMiddleware;
