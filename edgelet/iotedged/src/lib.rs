@@ -362,7 +362,8 @@ where
                 )?;
 
                 let cfg = WorkloadData::new(
-                    (&settings.parent_hostname().unwrap_or($provisioning_result.hub_name())).to_string(),
+                    $provisioning_result.hub_name().to_string(),
+                    settings.parent_hostname().map(String::from),
                     $provisioning_result.device_id().to_string(),
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
@@ -1421,15 +1422,19 @@ where
     <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
     for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
-    let upstream_hostname = workload_config.upstream_hostname().to_string();
+    let iot_hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
-    let hostname = format!("https://{}", upstream_hostname);
-    let token_source = SasTokenSource::new(upstream_hostname.clone(), device_id.clone(), root_key);
+    let token_source = SasTokenSource::new(iot_hub_name.clone(), device_id.clone(), root_key);
+    let upstream_gateway = format!(
+        "https://{}",
+        workload_config.parent_hostname().unwrap_or(&iot_hub_name)
+    );
     let http_client = HttpClient::new(
         hyper_client,
         Some(token_source),
         IOTHUB_API_VERSION.to_string(),
-        Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
+        Url::parse(&upstream_gateway)
+            .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
     let device_client = DeviceClient::new(http_client, device_id.clone())
@@ -1494,7 +1499,7 @@ where
     let edge_rt = start_runtime::<_, _, M>(
         runtime.clone(),
         &id_man,
-        &upstream_hostname,
+        &iot_hub_name,
         &device_id,
         &settings,
         runt_rx,

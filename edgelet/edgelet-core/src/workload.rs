@@ -5,7 +5,8 @@ use crate::certificate_properties::CertificateType;
 /// Trait to obtain configuration data needed by any implementation of the workload interface
 /// for module identity and certificate management.
 pub trait WorkloadConfig {
-    fn upstream_hostname(&self) -> &str;
+    fn iot_hub_name(&self) -> &str;
+    fn parent_hostname(&self) -> Option<&str>;
     fn device_id(&self) -> &str;
     fn get_cert_max_duration(&self, cert_type: CertificateType) -> i64;
 }
