@@ -174,7 +174,8 @@ mod tests {
     }
 
     struct TestWorkloadConfig {
-        upstream_hostname: String,
+        iot_hub_name: String,
+        parent_hostname: Option<String>,
         device_id: String,
         duration: i64,
     }
@@ -185,7 +186,8 @@ mod tests {
             assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
 
             TestWorkloadConfig {
-                upstream_hostname: String::from("zaphods_hub"),
+                iot_hub_name: String::from("zaphods_hub"),
+                parent_hostname: None,
                 device_id: String::from("marvins_device"),
                 duration: MAX_DURATION_SEC as i64,
             }
@@ -206,8 +208,12 @@ mod tests {
     }
 
     impl WorkloadConfig for TestWorkloadData {
-        fn upstream_hostname(&self) -> &str {
-            self.data.upstream_hostname.as_str()
+        fn iot_hub_name(&self) -> &str {
+            self.data.iot_hub_name.as_str()
+        }
+
+        fn parent_hostname(&self) -> Option<&str> {
+            self.data.parent_hostname.as_deref()
         }
 
         fn device_id(&self) -> &str {

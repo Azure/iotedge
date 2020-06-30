@@ -5,7 +5,8 @@ use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 struct WorkloadConfigData {
-    upstream_hostname: String,
+    iot_hub_name: String,
+    parent_hostname: Option<String>,
     device_id: String,
     id_cert_max_duration: i64,
     srv_cert_max_duration: i64,
@@ -13,21 +14,27 @@ struct WorkloadConfigData {
 
 impl WorkloadConfigData {
     pub fn new(
-        upstream_hostname: String,
+        iot_hub_name: String,
+        parent_hostname: Option<String>,
         device_id: String,
         id_cert_max_duration: i64,
         srv_cert_max_duration: i64,
     ) -> Self {
         WorkloadConfigData {
-            upstream_hostname,
+            iot_hub_name,
+            parent_hostname, 
             device_id,
             id_cert_max_duration,
             srv_cert_max_duration,
         }
     }
 
-    pub fn upstream_hostname(&self) -> &str {
-        &self.upstream_hostname
+    pub fn iot_hub_name(&self) -> &str {
+        &self.iot_hub_name
+    }
+
+    pub fn parent_hostname(&self) -> Option<&str> {
+        self.parent_hostname.as_deref()
     }
 
     pub fn device_id(&self) -> &str {
@@ -50,13 +57,15 @@ pub struct WorkloadData {
 
 impl WorkloadData {
     pub fn new(
-        upstream_hostname: String,
+        iot_hub_name: String,
+        parent_hostname: Option<String>,
         device_id: String,
         id_cert_max_duration: i64,
         srv_cert_max_duration: i64,
     ) -> Self {
         let w = WorkloadConfigData::new(
-            upstream_hostname,
+            iot_hub_name,
+            parent_hostname,
             device_id,
             id_cert_max_duration,
             srv_cert_max_duration,
@@ -66,8 +75,12 @@ impl WorkloadData {
 }
 
 impl WorkloadConfig for WorkloadData {
-    fn upstream_hostname(&self) -> &str {
-        self.data.upstream_hostname()
+    fn iot_hub_name(&self) -> &str {
+        self.data.iot_hub_name()
+    }
+    
+    fn parent_hostname(&self) -> Option<&str> {
+        self.data.parent_hostname()
     }
 
     fn device_id(&self) -> &str {
