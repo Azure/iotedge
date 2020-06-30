@@ -46,23 +46,22 @@ where
         BrokerHandle(self.sender.clone())
     }
 
-    pub async fn run(self) -> Result<BrokerSnapshot, Error> {
-        let BrokerRunner {
-            mut messages,
-            mut broker,
-            ..
-        } = self;
+    pub fn into_broker(self) -> Broker<Z> {
+        self.broker
+    }
+
+    pub async fn run(mut self) -> Result<BrokerSnapshot, Error> {
+        let has_messages = Notify::new();
 
         loop {
-            let recv_messages = messages.recv();
+            let recv_messages = self.messages.recv();
             pin_mut!(recv_messages);
 
-            let has_messages = Notify::new();
             let has_messages_awaiter = has_messages.notified();
             pin_mut!(has_messages_awaiter);
 
             let should_proceed = match future::select(recv_messages, has_messages_awaiter).await {
-                Either::Left((Some(message), _)) => broker.process_message(message),
+                Either::Left((Some(message), _)) => self.broker.process_message(message),
                 Either::Left((None, _)) => false,
                 Either::Right((_, _)) => true,
             };
@@ -71,7 +70,7 @@ where
                 break;
             }
 
-            match broker.try_publish_all() {
+            match self.broker.try_publish_all() {
                 Ok(queued_messages) => {
                     debug!("remained {} queued messages", queued_messages);
                     if queued_messages > 0 {
@@ -85,11 +84,11 @@ where
         }
 
         info!("broker is shutdown.");
-        Ok(broker.snapshot())
+        Ok(self.broker.snapshot())
     }
 }
 
-struct Broker<Z> {
+pub struct Broker<Z> {
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
@@ -1650,7 +1649,10 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_empty_transient() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1679,7 +1681,10 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_empty_persistent() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1709,7 +1714,10 @@ pub(crate) mod tests {
     #[test]
     #[should_panic]
     fn test_add_session_same_connection_transient() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1747,7 +1755,10 @@ pub(crate) mod tests {
     #[test]
     #[should_panic]
     fn test_add_session_same_connection_persistent() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1784,7 +1795,10 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_transient_then_transient() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1819,7 +1833,10 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_transient_then_persistent() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1854,7 +1871,10 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_persistent_then_transient() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1889,7 +1909,10 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_persistent_then_persistent() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1924,7 +1947,10 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_offline_persistent() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1968,7 +1994,10 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_offline_transient() {
-        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+        let mut broker = BrokerBuilder::default()
+            .with_authorizer(AllowAll)
+            .build()
+            .into_broker();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -2116,7 +2145,7 @@ pub(crate) mod tests {
         )
         .await;
 
-        if let Some(Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_, message)))) =
+        if let Some(Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_, message), _))) =
             a_rx.recv().await
         {
             assert_eq!(
@@ -2397,7 +2426,7 @@ pub(crate) mod tests {
     async fn check_notify_received(rx: &mut UnboundedReceiver<Message>, expected: &[&str]) {
         if let Some(Message::Client(
             _,
-            ClientEvent::PublishTo(Publish::QoS12(_, proto::Publish { payload, .. })),
+            ClientEvent::PublishTo(Publish::QoS12(_, proto::Publish { payload, .. }), _),
         )) = rx.recv().await
         {
             is_notify_equal(&payload, expected);

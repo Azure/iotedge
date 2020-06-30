@@ -242,15 +242,20 @@ impl SessionState {
     }
 
     pub(super) fn allowed_to_send(&self) -> Option<PublishPermit> {
-        self.config
-            .max_inflight_messages()
-            .map_or(Some(true), |limit| {
-                let num_inflight =
-                    self.waiting_to_be_acked.len() + self.waiting_to_be_completed.len();
-                Some(num_inflight < limit.get())
-            })
-            .filter(|has_inflights_slots| *has_inflights_slots)
-            .and_then(|_| self.acquire_publish_permit())
+        let has_inflights_slots = match self.config.max_inflight_messages() {
+            Some(limit) => self.total_inflight() < limit.get(),
+            None => true,
+        };
+
+        if has_inflights_slots {
+            self.acquire_publish_permit()
+        } else {
+            None
+        }
+    }
+
+    fn total_inflight(&self) -> usize {
+        self.waiting_to_be_acked.len() + self.waiting_to_be_completed.len()
     }
 
     pub(super) fn acquire_publish_permit(&self) -> Option<PublishPermit> {

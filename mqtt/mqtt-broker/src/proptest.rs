@@ -208,8 +208,7 @@ prop_compose! {
 
 pub fn arb_publish() -> impl Strategy<Value = Publish> {
     prop_oneof![
-        (arb_packet_identifier(), arb_proto_publish())
-            .prop_map(|(id, publish)| Publish::QoS0(id, publish)),
+        arb_proto_publish().prop_map(Publish::QoS0),
         (arb_packet_identifier(), arb_proto_publish())
             .prop_map(|(id, publish)| Publish::QoS12(id, publish)),
     ]

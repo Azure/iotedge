@@ -259,22 +259,32 @@ impl PublishPermits {
     }
 
     pub fn add_permits(&self, permits: u16) {
-        self.permits.fetch_add(permits, Ordering::Relaxed);
+        self.permits.fetch_add(permits, Ordering::SeqCst);
     }
 
     pub fn acquire(self: Arc<Self>) -> Option<PublishPermit> {
-        if self.permits.fetch_sub(1, Ordering::Relaxed) > 0 {
-            Some(PublishPermit { permits: self })
-        } else {
-            None
+        loop {
+            let current = self.permits.load(Ordering::SeqCst);
+
+            if current > 0 {
+                let prev = self
+                    .permits
+                    .compare_and_swap(current, current - 1, Ordering::SeqCst);
+
+                if prev == current {
+                    return Some(PublishPermit { permits: self });
+                }
+            } else {
+                return None;
+            }
         }
     }
 }
 
 impl PartialEq for PublishPermits {
     fn eq(&self, other: &Self) -> bool {
-        let either = self.permits.load(Ordering::Relaxed);
-        let other = other.permits.load(Ordering::Relaxed);
+        let either = self.permits.load(Ordering::SeqCst);
+        let other = other.permits.load(Ordering::SeqCst);
         either == other
     }
 }
@@ -292,9 +302,38 @@ impl Drop for PublishPermit {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::net::SocketAddr;
+    use std::{net::SocketAddr, sync::Arc};
+
+    use matches::assert_matches;
+
+    use super::PublishPermits;
 
     pub fn peer_addr() -> SocketAddr {
         "127.0.0.1:12345".parse().unwrap()
+    }
+
+    #[test]
+    fn it_cannot_acquire_permit_when_0() {
+        let permits = Arc::new(PublishPermits::new(2));
+
+        let p1 = permits.clone().acquire();
+        assert_matches!(p1, Some(_));
+
+        let p2 = permits.clone().acquire();
+        assert_matches!(p2, Some(_));
+
+        let p3 = permits.clone().acquire();
+        assert_matches!(p3, None);
+
+        let p3 = permits.clone().acquire();
+        assert_matches!(p3, None);
+
+        drop(p1);
+
+        let p4 = permits.clone().acquire();
+        assert_matches!(p4, Some(_));
+
+        let p5 = permits.acquire();
+        assert_matches!(p5, None);
     }
 }
