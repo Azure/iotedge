@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         public const int WebSocketHandlingMiddleware = EventIdStart + 500;
         public const int HttpsExtensionConnectionAdapter = EventIdStart + 600;
         public const int DeviceScopeController = EventIdStart + 700;
+        public const int RegistryProxyMiddleware = EventIdStart + 800;
         const int EventIdStart = 6000;
     }
 }

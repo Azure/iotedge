@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class RegistryProxyMiddleware
     {
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
         public async Task Invoke(HttpContext context)
         {
             Option<Uri> destinationUri = this.BuildDestinationUri(context);
+            Events.Debug($"Registry proxy: destination uri={destinationUri.GetOrElse((Uri)null)?.AbsoluteUri ?? string.Empty}");
 
             await destinationUri.ForEachAsync(
                 async uri =>
@@ -63,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             {
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
                 {
+                    Events.Debug($"Registry proxy: request header key={header.Key}, value={string.Join(",", header.Value.ToArray())}");
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
                 }
             }
@@ -114,6 +117,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             var destinationUriBuilder = new UriBuilder(request.GetEncodedUrl());
             destinationUriBuilder.Host = this.gatewayHostname;
             return Option.Some(destinationUriBuilder.Uri);
+        }
+        static class Events
+        {
+            const int IdStart = HttpEventIds.RegistryProxyMiddleware;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<RegistryProxyMiddleware>();
+
+            enum EventIds
+            {
+                Debug = IdStart,
+            }
+
+            public static void Debug(string message)
+            {
+                Log.LogDebug((int)EventIds.Debug, message);
+            }
         }
     }
 }
