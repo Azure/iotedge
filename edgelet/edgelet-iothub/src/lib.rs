@@ -20,6 +20,7 @@ use chrono::{DateTime, Utc};
 use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
+use log::debug;
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
 use url::form_urlencoded::Serializer as UrlSerializer;
 
@@ -127,6 +128,7 @@ where
         let expiry = expiry.timestamp().to_string();
         let audience = format!("{}/devices/{}", self.hub_id, self.device_id);
 
+        debug!("toke source audience={}", &audience);
         let resource_uri =
             percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET).to_string();
         let sig_data = format!("{}\n{}", &resource_uri, expiry);
@@ -141,6 +143,7 @@ where
             .append_pair("sig", &signature)
             .append_pair("se", &expiry)
             .finish();
+        debug!("Token genearated={}", &token);
         Ok(token)
     }
 }
