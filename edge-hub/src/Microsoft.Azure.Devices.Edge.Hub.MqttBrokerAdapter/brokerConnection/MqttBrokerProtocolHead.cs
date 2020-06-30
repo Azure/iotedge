@@ -8,17 +8,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class MqttBridgeProtocolHead : IProtocolHead
+    public class MqttBrokerProtocolHead : IProtocolHead
     {
         readonly MqttBridgeProtocolHeadConfig config;
-        readonly IMqttBridgeConnector connector;
+        readonly IMqttBrokerConnector connector;
 
-        public string Name => "EH-BRIDGE";
+        public string Name => "MQTT-BROKER-HEAD";
 
-        public MqttBridgeProtocolHead(MqttBridgeProtocolHeadConfig config, IMqttBridgeConnector connector)
+        public MqttBrokerProtocolHead(MqttBridgeProtocolHeadConfig config, IMqttBrokerConnector connector)
         {
             this.config = Preconditions.CheckNotNull(config);
-            this.connector = connector;
+            this.connector = Preconditions.CheckNotNull(connector);
         }
 
         public async Task StartAsync()
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static class Events
         {
             const int IdStart = MqttBridgeEventIds.MqttBridgeProtocolHead;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttBridgeProtocolHead>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttBrokerProtocolHead>();
 
             enum EventIds
             {
@@ -72,12 +72,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Closed
             }
 
-            public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting EH-BRIDGE head");
-            public static void FailedToStart(Exception e) => Log.LogInformation((int)EventIds.FailedToStart, e, "Failed to start EH-BRIDGE head");
-            public static void Started() => Log.LogInformation((int)EventIds.Started, "Started EH-BRIDGE head");
-            public static void Closing() => Log.LogInformation((int)EventIds.Closing, "Closing EH-BRIDGE head");
-            public static void FailedToClose(Exception e) => Log.LogInformation((int)EventIds.FailedToClose, e, "Failed to close EH-BRIDGE head");
-            public static void Closed() => Log.LogInformation((int)EventIds.Closed, "Closed EH-BRIDGE head");
+            public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting MQTT-BROKER-HEAD head");
+            public static void FailedToStart(Exception e) => Log.LogInformation((int)EventIds.FailedToStart, e, "Failed to start MQTT-BROKER-HEAD head");
+            public static void Started() => Log.LogInformation((int)EventIds.Started, "Started MQTT-BROKER-HEAD head");
+            public static void Closing() => Log.LogInformation((int)EventIds.Closing, "Closing MQTT-BROKER-HEAD head");
+            public static void FailedToClose(Exception e) => Log.LogInformation((int)EventIds.FailedToClose, e, "Failed to close MQTT-BROKER-HEAD head");
+            public static void Closed() => Log.LogInformation((int)EventIds.Closed, "Closed MQTT-BROKER-HEAD head");
         }
     }
 }

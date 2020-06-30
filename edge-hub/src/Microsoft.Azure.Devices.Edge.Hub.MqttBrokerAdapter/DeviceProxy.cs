@@ -27,11 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     ICloud2DeviceMessageHandler cloud2DeviceMessageHandler,
                     IDirectMethodHandler directMethodHandler)
         {
-            this.Identity = identity;
-            this.twinHandler = twinHandler;
-            this.moduleToModuleMessageHandler = moduleToModuleMessageHandler;
-            this.cloud2DeviceMessageHandler = cloud2DeviceMessageHandler;
-            this.directMethodHandler = directMethodHandler;
+            this.Identity = Preconditions.CheckNotNull(identity);
+            this.twinHandler = Preconditions.CheckNotNull(twinHandler);
+            this.moduleToModuleMessageHandler = Preconditions.CheckNotNull(moduleToModuleMessageHandler);
+            this.cloud2DeviceMessageHandler = Preconditions.CheckNotNull(cloud2DeviceMessageHandler);
+            this.directMethodHandler = Preconditions.CheckNotNull(directMethodHandler);
             this.isActive = new AtomicBoolean(true);
 
             Events.Created(this.Identity);

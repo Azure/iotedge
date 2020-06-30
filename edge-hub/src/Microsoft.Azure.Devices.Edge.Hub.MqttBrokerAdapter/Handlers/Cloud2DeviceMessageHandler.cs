@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(SubscriptionForDeviceboundPattern, DeviceSubscription.C2D) };
 
-        IMqttBridgeConnector connector;
+        IMqttBrokerConnector connector;
 
         public Cloud2DeviceMessageHandler(IConnectionRegistry connectionRegistry)
             : base(connectionRegistry)
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         }
 
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
-        public void SetConnector(IMqttBridgeConnector connector) => this.connector = connector;
+        public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
         public async Task SendC2DMessageAsync(IMessage message, IIdentity identity)
         {
@@ -60,14 +60,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetCloudToDeviceTopic(IIdentity identity, string propertyBag)
         {
-            var identityComponents = identity.Id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
-
-            switch (identityComponents.Length)
+            switch (identity)
             {
-                case 1:
-                    return string.Format(C2DTopicDeviceTemplate, identityComponents[0], propertyBag);
+                case IDeviceIdentity deviceIdentity:
+                    return string.Format(C2DTopicDeviceTemplate, deviceIdentity.DeviceId, propertyBag);
 
-                case 2:
+                case IModuleIdentity moduleIdentity:
                     Events.CannotSendC2DToModule(identity.Id);
                     throw new Exception($"Cannot send C2D message to {identity.Id}, because it is not a device but a module");
 

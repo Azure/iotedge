@@ -46,9 +46,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             this.connectionProvider = connectionProvider.Result;
-            this.identityProvider = identityProvider;
-            this.systemComponentIdProvider = systemComponentIdProvider;
-            this.deviceProxyFactory = deviceProxyFactory;
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider);
+            this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
+            this.deviceProxyFactory = Preconditions.CheckNotNull(deviceProxyFactory);
 
             this.notifications = Channel.CreateUnbounded<MqttPublishInfo>(
                                     new UnboundedChannelOptions
@@ -62,11 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
 
-        public async Task<Option<IDeviceListener>> GetUpstreamProxyAsync(IIdentity identity)
+        public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity)
         {
             using (await this.guard.LockAsync())
             {
-                if (this.knownConnections.TryGetValue(identity, out var result))
+                if (this.knownConnections.TryGetValue(identity, out IDeviceListener result))
                 {
                     return Option.Some(result);
                 }
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        public async Task<Option<IDeviceProxy>> GetDownstreamProxyAsync(IIdentity identity)
+        public async Task<Option<IDeviceProxy>> GetDeviceProxyAsync(IIdentity identity)
         {
             using (await this.guard.LockAsync())
             {
@@ -124,11 +124,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task ReconcileConnectionsAsync(HashSet<IIdentity> updatedIdentities)
         {
-            var identitiesAdded = default(HashSet<IIdentity>);
-            var identitiesRemoved = default(HashSet<IIdentity>);
-
             using (await this.guard.LockAsync())
             {
+                var identitiesAdded = default(HashSet<IIdentity>);
+                var identitiesRemoved = default(HashSet<IIdentity>);
                 var knownIdentities = this.knownConnections.Keys;
 
                 identitiesAdded = new HashSet<IIdentity>(updatedIdentities);

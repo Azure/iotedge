@@ -22,9 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public SubscriptionChangeHandler(IConnectionRegistry connectionRegistry, IComponentDiscovery components, IIdentityProvider identityProvider)
         {
-            this.connectionRegistry = connectionRegistry;
-            this.components = components;
-            this.identityProvider = identityProvider;
+            this.connectionRegistry = Preconditions.CheckNotNull(connectionRegistry);
+            this.components = Preconditions.CheckNotNull(components);
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider);
         }
 
         public async Task<bool> HandleSubscriptionChangeAsync(MqttPublishInfo publishInfo)
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 : this.identityProvider.Create(id1.Value);
 
             var proxy = default(IDeviceListener);
-            var proxyMaybe = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
+            var proxyMaybe = await this.connectionRegistry.GetDeviceListenerAsync(identity);
 
             if (!proxyMaybe.HasValue)
             {
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
             else
             {
-                proxy = proxyMaybe.Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
+                proxy = proxyMaybe.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
 
             foreach (var watcher in this.components.SubscriptionWatchers)

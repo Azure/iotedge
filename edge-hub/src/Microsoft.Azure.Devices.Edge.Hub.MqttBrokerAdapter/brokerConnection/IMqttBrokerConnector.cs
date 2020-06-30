@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System.Threading.Tasks;
 
-    public interface IMqttBridgeConnector
+    public interface IMqttBrokerConnector
     {
         Task ConnectAsync(string serverAddress, int port);
         Task DisconnectAsync();

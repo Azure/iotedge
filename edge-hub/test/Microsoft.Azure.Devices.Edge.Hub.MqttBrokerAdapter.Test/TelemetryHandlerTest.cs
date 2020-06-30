@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Returns((string device_id, string module_id) => new ModuleIdentity("host", device_id, module_id));
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetUpstreamProxyAsync(It.IsAny<IIdentity>()))
+                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>()))
                 .Returns((IIdentity i) => CreateListenerFromIdentity(i));
 
             return (connectionRegistry, identityProvider);

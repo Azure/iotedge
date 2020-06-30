@@ -18,14 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(ModuleToModleSubscriptionPattern, DeviceSubscription.ModuleMessages) };
 
-        IMqttBridgeConnector connector;
+        IMqttBrokerConnector connector;
 
         public ModuleToModuleMessageHandler(IConnectionRegistry connectionRegistry)
             : base(connectionRegistry)
         {
         }
 
-        public void SetConnector(IMqttBridgeConnector connector) => this.connector = connector;
+        public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
 
         public async Task SendModuleToModuleMessageAsync(IMessage message, string input, IIdentity identity)
@@ -61,16 +61,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetMessageToMessageTopic(IIdentity identity, string input, string propertyBag)
         {
-            var identityComponents = identity.Id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
-
-            switch (identityComponents.Length)
+            switch (identity)
             {
-                case 1:
+                case IDeviceIdentity deviceIdentity:
                     Events.CannotSendM2MToDevice(identity.Id);
-                    throw new Exception($"Cannot send C2D message to {identity.Id}, because it is not a device but a module");
+                    throw new Exception($"Cannot send Module To Module message to {identity.Id}, because it is not a module but a device");
 
-                case 2:
-                    return string.Format(ModuleToModleTopicTemplate, identityComponents[0], identityComponents[1], input, propertyBag);
+                case IModuleIdentity moduleIdentity:
+                    return string.Format(ModuleToModleTopicTemplate, moduleIdentity.DeviceId, moduleIdentity.ModuleId, input, propertyBag);
 
                 default:
                     Events.BadIdentityFormat(identity.Id);

@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public interface IConnectionRegistry
     {
-        Task<Option<IDeviceListener>> GetUpstreamProxyAsync(IIdentity identity);
-        Task<Option<IDeviceProxy>> GetDownstreamProxyAsync(IIdentity identity);
+        Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity);
+        Task<Option<IDeviceProxy>> GetDeviceProxyAsync(IIdentity identity);
     }
 }

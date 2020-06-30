@@ -308,7 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Returns((string device_id, string module_id) => new ModuleIdentity("host", device_id, module_id));
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetUpstreamProxyAsync(It.IsAny<IIdentity>()))
+                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>()))
                 .Returns((IIdentity i) => CreateListenerFromIdentity(i));
 
             return (connectionRegistry, identityProvider);
@@ -344,9 +344,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        static IMqttBridgeConnector GetConnector(SendCapture sendCapture = null)
+        static IMqttBrokerConnector GetConnector(SendCapture sendCapture = null)
         {
-            var connector = Mock.Of<IMqttBridgeConnector>();
+            var connector = Mock.Of<IMqttBrokerConnector>();
             Mock.Get(connector)
                 .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()))
                 .Returns((string topic, byte[] content) =>

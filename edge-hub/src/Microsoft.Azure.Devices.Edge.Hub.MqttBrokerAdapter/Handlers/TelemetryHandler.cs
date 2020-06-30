@@ -30,8 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public TelemetryHandler(IConnectionRegistry connectionRegistry, IIdentityProvider identityProvider)
         {
-            this.connectionRegistry = connectionRegistry;
-            this.identityProvider = identityProvider;
+            this.connectionRegistry = Preconditions.CheckNotNull(connectionRegistry);
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider);
         }
 
         public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
@@ -59,12 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
+            var maybeProxy = await this.connectionRegistry.GetDeviceListenerAsync(identity);
             var proxy = default(IDeviceListener);
 
             try
             {
-                proxy = maybeProxy.Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
+                proxy = maybeProxy.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             public static void TelemetryMessage(string id, int messageLen) => Log.LogDebug((int)EventIds.TelemetryMessage, $"Telemetry message sent by client: [{id}], msg len: [{messageLen}]");
             public static void UnexpectedTelemetryTopic(string topic) => Log.LogWarning((int)EventIds.UnexpectedTelemetryTopic, $"Telemetry-like topic strucure with unexpected format [{topic}]");
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing proxy for [{id}]");
+            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing device listener for [{id}]");
             public static void UnexpectedMessageFormat(Exception e, string topic) => Log.LogError((int)EventIds.UnexpectedMessageFormat, e, $"Cannot decode unexpected telemetry message format. Topic with property bag: [{topic}]");
         }
     }

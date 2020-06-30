@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using uPLibrary.Networking.M2Mqtt;
     using uPLibrary.Networking.M2Mqtt.Messages;
 
-    public class MqttBridgeConnector : IMqttBridgeConnector
+    public class MqttBrokerConnector : IMqttBrokerConnector
     {
         const int ReconnectDelayMs = 2000;
 
@@ -27,11 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Option<Task> forwardingLoop;
         Option<MqttClient> mqttClient;
 
-        public MqttBridgeConnector(IComponentDiscovery components, ISubscriptionChangeHandler subscriptionChangeHandler, ISystemComponentIdProvider systemComponentIdProvider)
+        public MqttBrokerConnector(IComponentDiscovery components, ISubscriptionChangeHandler subscriptionChangeHandler, ISystemComponentIdProvider systemComponentIdProvider)
         {
-            this.components = components;
-            this.subscriptionChangeHandler = subscriptionChangeHandler;
-            this.systemComponentIdProvider = systemComponentIdProvider;
+            this.components = Preconditions.CheckNotNull(components);
+            this.subscriptionChangeHandler = Preconditions.CheckNotNull(subscriptionChangeHandler);
+            this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
 
             // because of the circular dependency between MqttBridgeConnector and the producers,
             // in this loop the producers get the IMqttBridgeConnector reference:
@@ -54,12 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     Events.StartedWhenAlreadyRunning();
                     throw new InvalidOperationException("Cannot start mqtt-bridge connector twice");
                 }
-                else
-                {
-                    this.mqttClient = Option.Some(new MqttClient(serverAddress, port, false, MqttSslProtocols.None, null, null));
-                }
 
-                client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to setup"));
+                client = new MqttClient(serverAddress, port, false, MqttSslProtocols.None, null, null);
+                this.mqttClient = Option.Some(client);
             }
 
             client.MqttMsgPublished += this.ConfirmPublished;
@@ -403,7 +400,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static class Events
         {
             const int IdStart = MqttBridgeEventIds.MqttBridgeConnector;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttBridgeConnector>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<MqttBrokerConnector>();
 
             enum EventIds
             {

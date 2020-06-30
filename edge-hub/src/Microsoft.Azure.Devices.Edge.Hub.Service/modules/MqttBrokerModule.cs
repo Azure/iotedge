@@ -11,14 +11,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
-    class MqttBridgeModule : Module
+    class MqttBrokerModule : Module
     {
         static readonly int defaultPort = 1883;
         static readonly string defaultUrl = "127.0.0.1";
 
         readonly IConfiguration config;
 
-        public MqttBridgeModule(IConfiguration config)
+        public MqttBrokerModule(IConfiguration config)
         {
             this.config = Preconditions.CheckNotNull(config, nameof(config));
         }
@@ -65,23 +65,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IComponentDiscovery>()
                 .SingleInstance();
 
-            builder.RegisterType<MqttBridgeConnector>()
+            builder.RegisterType<MqttBrokerConnector>()
                    .AsImplementedInterfaces()
                    .SingleInstance();
 
             builder.Register(
                         c =>
                         {
-                            var connector = c.Resolve<IMqttBridgeConnector>();
+                            var connector = c.Resolve<IMqttBrokerConnector>();
 
                             var port = this.config.GetValue("port", defaultPort);
                             var baseUrl = this.config.GetValue("url", defaultUrl);
 
                             var config = new MqttBridgeProtocolHeadConfig(port, baseUrl);
 
-                            return new MqttBridgeProtocolHead(config, connector);
+                            return new MqttBrokerProtocolHead(config, connector);
                         })
-                    .As<MqttBridgeProtocolHead>()
+                    .As<MqttBrokerProtocolHead>()
                     .SingleInstance();
 
             base.Load(builder);

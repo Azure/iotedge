@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var proxy = default(IDeviceListener);
             try
             {
-                proxy = (await this.connectionRegistry.GetUpstreamProxyAsync(identity)).Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
+                proxy = (await this.connectionRegistry.GetDeviceListenerAsync(identity)).Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 FailedToConfirm
             }
 
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing proxy for [{id}]");
+            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing device listener for [{id}]");
             public static void FailedToConfirm(Exception ex, string lockToken, string id) => Log.LogError((int)EventIds.FailedToConfirm, ex, $"Cannot confirm back delivered message to [{id}] with token [{lockToken}]");
         }
     }

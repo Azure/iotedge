@@ -29,14 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IConnectionRegistry connectionRegistry;
         readonly IIdentityProvider identityProvider;
 
-        IMqttBridgeConnector connector;
+        IMqttBrokerConnector connector;
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
 
         public DirectMethodHandler(IConnectionRegistry connectionRegistry, IIdentityProvider identityProvider)
         {
-            this.connectionRegistry = connectionRegistry;
-            this.identityProvider = identityProvider;
+            this.connectionRegistry = Preconditions.CheckNotNull(connectionRegistry);
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider);
         }
 
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
         }
 
-        public void SetConnector(IMqttBridgeConnector connector) => this.connector = connector;
+        public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
         public async Task<DirectMethodResponse> CallDirectMethodAsync(DirectMethodRequest request, IIdentity identity)
         {
@@ -90,12 +90,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
+            var maybeProxy = await this.connectionRegistry.GetDeviceListenerAsync(identity);
             var proxy = default(IDeviceListener);
 
             try
             {
-                proxy = maybeProxy.Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
+                proxy = maybeProxy.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {
@@ -114,12 +114,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetMethodCallTopic(IIdentity identity, string methodName, string correlationId)
         {
-            var identityComponents = identity.Id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
-
-            switch (identityComponents.Length)
+            switch (identity)
             {
-                case 1: return string.Format(MethodCallToDeviceTopicTemplate, identityComponents[0], methodName, correlationId);
-                case 2: return string.Format(MethodCallToModuleTopicTemplate, identityComponents[0], identityComponents[1], methodName, correlationId);
+                case IDeviceIdentity deviceIdentity:
+                    return string.Format(MethodCallToDeviceTopicTemplate, deviceIdentity.DeviceId, methodName, correlationId);
+
+                case IModuleIdentity moduleIdentity:
+                    return string.Format(MethodCallToModuleTopicTemplate, moduleIdentity.DeviceId, moduleIdentity.ModuleId, methodName, correlationId);
 
                 default:
                     Events.BadIdentityFormat(identity.Id);
@@ -140,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 FailedToSendDirectMethodMessage,
             }
 
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing proxy for [{id}]");
+            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing device listener for [{id}]");
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void FailedToSendDirectMethodMessage(Exception e) => Log.LogError((int)EventIds.FailedToSendDirectMethodMessage, e, "Failed to send direct method message");
