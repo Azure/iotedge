@@ -40,9 +40,9 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     let store = Arc::new(backends::rocksdb::RocksDBBackend::new()?);
     
     Server::bind_unix(skt)?
-        .serve(make_service_fn(move |_| {
+        .serve(make_service_fn(|_| {
             let store = store.clone();
-            async move {
+            async {
                 <Result<_, HyperError>>::Ok(service_fn(move |req| {
                     message::dispatch(store.clone(), req)
                 }))

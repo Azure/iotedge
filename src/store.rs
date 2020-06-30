@@ -32,6 +32,7 @@ pub struct Record {
 
 // NOTE: not fully public since high-level functions should be
 //       invariant over backend implementation
+// NOTE: could be a trait, if requested
 pub(crate) struct Store<T: StoreBackend>(pub Arc<T>);
 
 impl<T: StoreBackend> Store<T> {
