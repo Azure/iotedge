@@ -259,7 +259,8 @@ impl PublishPermits {
     }
 
     pub fn add_permits(&self, permits: u16) {
-        self.permits.fetch_add(permits, Ordering::SeqCst);
+        let _p = self.permits.fetch_add(permits, Ordering::SeqCst);
+        // tracing::warn!("released: {}", p + permits);
     }
 
     pub fn acquire(self: Arc<Self>) -> Option<PublishPermit> {
@@ -272,6 +273,7 @@ impl PublishPermits {
                     .compare_and_swap(current, current - 1, Ordering::SeqCst);
 
                 if prev == current {
+                    // tracing::warn!("acquired: {}", current - 1);
                     return Some(PublishPermit { permits: self });
                 }
             } else {

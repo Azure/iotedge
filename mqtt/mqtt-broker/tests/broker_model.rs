@@ -37,7 +37,10 @@ proptest! {
 }
 
 async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEvent>) {
-    let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+    let mut broker = BrokerBuilder::default()
+        .with_authorizer(AllowAll)
+        .build()
+        .into_broker();
 
     let mut model = BrokerModel::default();
 
@@ -46,7 +49,7 @@ async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEve
         let (client_id, broker_event, model_event) = into_events(event, &mut clients);
 
         broker
-            .process_message(client_id.clone(), broker_event)
+            .process_client_event(client_id.clone(), broker_event)
             .expect("process message");
 
         model.process_message(client_id, model_event);
