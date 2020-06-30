@@ -77,7 +77,7 @@ impl WorkloadConfig for Config {
     }
 
     fn parent_hostname(&self) -> Option<&str> {
-        &self.parent_hostname
+        self.parent_hostname.as_deref()
     }
 
     fn device_id(&self) -> &str {

@@ -22,7 +22,7 @@ impl WorkloadConfigData {
     ) -> Self {
         WorkloadConfigData {
             iot_hub_name,
-            parent_hostname, 
+            parent_hostname,
             device_id,
             id_cert_max_duration,
             srv_cert_max_duration,
@@ -78,7 +78,7 @@ impl WorkloadConfig for WorkloadData {
     fn iot_hub_name(&self) -> &str {
         self.data.iot_hub_name()
     }
-    
+
     fn parent_hostname(&self) -> Option<&str> {
         self.data.parent_hostname()
     }

@@ -1425,12 +1425,16 @@ where
     let iot_hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
     let token_source = SasTokenSource::new(iot_hub_name.clone(), device_id.clone(), root_key);
-    let upstream_gateway = format!("https://{}", workload_config.parent_hostname().unwrap_or(&iot_hub_name));
+    let upstream_gateway = format!(
+        "https://{}",
+        workload_config.parent_hostname().unwrap_or(&iot_hub_name)
+    );
     let http_client = HttpClient::new(
         hyper_client,
         Some(token_source),
         IOTHUB_API_VERSION.to_string(),
-        Url::parse(&upstream_gateway).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
+        Url::parse(&upstream_gateway)
+            .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
     let device_client = DeviceClient::new(http_client, device_id.clone())
