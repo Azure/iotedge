@@ -1,28 +1,42 @@
-use mqtt_broker_core::auth::{authorize_fn_ok, Authenticator, Authorizer};
+use std::error::Error as StdError;
 
-pub fn authenticator() -> impl Authenticator {
+use mqtt_broker_core::auth::{Authenticator, Authorizer};
+
+pub fn authenticator() -> impl Authenticator<Error = Box<dyn StdError>> {
     imp::authenticator()
 }
 
 pub fn authorizer() -> impl Authorizer {
-    authorize_fn_ok(|_| true)
+    imp::authorizer()
 }
 
 #[cfg(feature = "edgehub")]
 mod imp {
-    use mqtt_broker_core::auth::Authenticator;
+    use mqtt_edgehub::auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthorizer};
 
-    pub(super) fn authenticator() -> impl Authenticator {
+    pub(super) fn authenticator() -> EdgeHubAuthenticator {
         let url = "http://localhost:7120/authenticate/".into();
-        mqtt_edgehub::authentication::EdgeHubAuthenticator::new(url)
+        EdgeHubAuthenticator::new(url)
+    }
+
+    pub(super) fn authorizer() -> LocalAuthorizer<EdgeHubAuthorizer> {
+        LocalAuthorizer::new(EdgeHubAuthorizer::default())
     }
 }
 
 #[cfg(not(feature = "edgehub"))]
 mod imp {
-    use mqtt_broker_core::auth::{authenticate_fn_ok, AuthId, Authenticator};
+    use std::error::Error as StdError;
 
-    pub(super) fn authenticator() -> impl Authenticator {
-        authenticate_fn_ok(|_, _| Some(AuthId::Anonymous))
+    use mqtt_broker_core::auth::{
+        authenticate_fn_ok, authorize_fn_ok, AuthId, Authenticator, Authorization, Authorizer,
+    };
+
+    pub(super) fn authenticator() -> impl Authenticator<Error = Box<dyn StdError>> {
+        authenticate_fn_ok(|_| Some(AuthId::Anonymous))
+    }
+
+    pub(super) fn authorizer() -> impl Authorizer {
+        authorize_fn_ok(|_| Authorization::Allowed)
     }
 }

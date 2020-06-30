@@ -95,6 +95,10 @@ impl RuntimeSettings for Settings {
         self.base.hostname()
     }
 
+    fn parent_hostname(&self) -> Option<&str> {
+        self.base.parent_hostname()
+    }
+
     fn connect(&self) -> &Connect {
         self.base.connect()
     }

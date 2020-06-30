@@ -28,7 +28,7 @@ async fn run() -> Result<(), Error> {
     let config = create_app()
         .get_matches()
         .value_of("config")
-        .map_or(BrokerConfig::new(), BrokerConfig::from_file)
+        .map_or(Ok(BrokerConfig::default()), BrokerConfig::from_file)
         .map_err(InitializeBrokerError::LoadConfiguration)?;
 
     // Setup the snapshotter
@@ -37,10 +37,14 @@ async fn run() -> Result<(), Error> {
         VersionedFileFormat::default(),
     );
     info!("Loading state...");
-    let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
+    let state = persistor
+        .load()
+        .await?
+        .unwrap_or_else(BrokerSnapshot::default);
     let broker = BrokerBuilder::default()
-        .authorizer(authorizer())
-        .state(state)
+        .with_authorizer(authorizer())
+        .with_state(state)
+        .with_config(config.clone())
         .build();
     info!("state loaded.");
 
@@ -77,25 +81,35 @@ async fn run() -> Result<(), Error> {
     Ok(())
 }
 
-async fn run_broker_server<Z>(broker: Broker<Z>, config: BrokerConfig) -> Result<BrokerState, Error>
+async fn run_broker_server<Z>(
+    broker: Broker<Z>,
+    config: BrokerConfig,
+) -> Result<BrokerSnapshot, Error>
 where
-    Z: Authorizer + Send + Sync + 'static,
+    Z: Authorizer + Send + 'static,
 {
-    // Create configured transports
-    let transports = config
-        .transports()
-        .iter()
-        .map(|transport| transport.clone().try_into())
-        .collect::<Result<Vec<_>, _>>()?;
-
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
 
-    let state = Server::from_broker(broker)
-        .serve(transports, shutdown, authenticator())
-        .await?;
+    // Setup broker with previous state and with configured transports
+    let mut server = Server::from_broker(broker);
+    for config in config.transports() {
+        let new_transport = config.clone().try_into()?;
+        server.transport(new_transport, authenticator());
+    }
 
+    // When in edgehub mode add additional transport for internal communication
+    #[cfg(feature = "edgehub")]
+    {
+        use mqtt_edgehub::auth::LocalAuthenticator;
+        let new_transport = TransportBuilder::Tcp("localhost:1882".to_string());
+        let authenticator = LocalAuthenticator::new();
+        server.transport(new_transport, authenticator);
+    }
+
+    // Run server
+    let state = server.serve(shutdown).await?;
     Ok(state)
 }
 

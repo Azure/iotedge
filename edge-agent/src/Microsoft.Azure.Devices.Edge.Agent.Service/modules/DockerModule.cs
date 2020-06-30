@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string deviceId;
         readonly string iotHubHostName;
         readonly string edgeDeviceConnectionString;
-        readonly string gatewayHostName;
+        readonly string gatewayHostname;
         readonly Uri dockerHostname;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         public DockerModule(
             string edgeDeviceConnectionString,
-            string gatewayHostName,
+            string gatewayHostname,
             Uri dockerHostname,
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string backupConfigFilePath)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
+            this.gatewayHostname = Preconditions.CheckNonWhiteSpace(gatewayHostname, nameof(gatewayHostname));
             IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(this.edgeDeviceConnectionString);
             this.deviceId = connectionStringParser.DeviceId;
             this.iotHubHostName = connectionStringParser.HostName;
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), this.iotHubHostName, this.deviceId, this.gatewayHostName))
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IServiceClient>(), this.iotHubHostName, this.deviceId, this.gatewayHostname))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 
