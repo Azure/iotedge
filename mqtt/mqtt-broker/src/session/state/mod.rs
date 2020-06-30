@@ -6,7 +6,7 @@ use map::SmallIndexMap;
 use queue::BoundedQueue;
 use set::SmallIndexSet;
 
-use std::{cmp, collections::HashMap, sync::Arc};
+use std::{cmp, collections::HashMap};
 
 use tracing::{debug, info};
 
@@ -34,7 +34,7 @@ pub struct SessionState {
     waiting_to_be_acked: SmallIndexMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_completed: SmallIndexSet<proto::PacketIdentifier>,
     config: SessionConfig,
-    publish_permits: Arc<PublishPermits>,
+    publish_permits: PublishPermits,
 }
 
 impl SessionState {
@@ -54,7 +54,7 @@ impl SessionState {
             waiting_to_be_released: SmallIndexMap::new(),
             waiting_to_be_completed: SmallIndexSet::new(),
             config,
-            publish_permits: Arc::new(PublishPermits::new(32)), // todo make it always greater than max_inflight_messages
+            publish_permits: PublishPermits::new(32), // todo make it always greater than max_inflight_messages
         }
     }
 
@@ -78,7 +78,7 @@ impl SessionState {
             waiting_to_be_completed: SmallIndexSet::new(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
             config,
-            publish_permits: Arc::new(PublishPermits::new(32)),
+            publish_permits: PublishPermits::new(32),
         }
     }
 
@@ -259,7 +259,7 @@ impl SessionState {
     }
 
     pub(super) fn acquire_publish_permit(&self) -> Option<PublishPermit> {
-        self.publish_permits.clone().acquire()
+        self.publish_permits.acquire()
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {

@@ -31,10 +31,7 @@ pub mod proptest;
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
     net::SocketAddr,
-    sync::{
-        atomic::{AtomicU16, Ordering},
-        Arc,
-    },
+    sync::Arc,
 };
 
 use serde::{Deserialize, Serialize};
@@ -248,59 +245,34 @@ pub enum Message {
 
 #[derive(Debug, Clone)]
 pub struct PublishPermits {
-    permits: Arc<AtomicU16>,
+    permits: Arc<()>,
+    max_permits: usize,
 }
 
 impl PublishPermits {
-    pub fn new(permits: u16) -> Self {
+    pub fn new(max_permits: u16) -> Self {
         Self {
-            permits: Arc::new(AtomicU16::new(permits)),
+            permits: Arc::new(()),
+            max_permits: max_permits as usize,
         }
     }
 
-    pub fn add_permits(&self, permits: u16) {
-        let _p = self.permits.fetch_add(permits, Ordering::SeqCst);
-        // tracing::warn!("released: {}", p + permits);
-    }
-
-    pub fn acquire(self: Arc<Self>) -> Option<PublishPermit> {
-        loop {
-            let current = self.permits.load(Ordering::SeqCst);
-
-            if current > 0 {
-                let prev = self
-                    .permits
-                    .compare_and_swap(current, current - 1, Ordering::SeqCst);
-
-                if prev == current {
-                    // tracing::warn!("acquired: {}", current - 1);
-                    return Some(PublishPermit { permits: self });
-                }
-            } else {
-                return None;
-            }
+    pub fn acquire(&self) -> Option<PublishPermit> {
+        if Arc::strong_count(&self.permits) >= self.max_permits {
+            None
+        } else {
+            Some(Arc::clone(&self.permits))
         }
     }
 }
 
 impl PartialEq for PublishPermits {
     fn eq(&self, other: &Self) -> bool {
-        let either = self.permits.load(Ordering::SeqCst);
-        let other = other.permits.load(Ordering::SeqCst);
-        either == other
+        Arc::strong_count(&self.permits) == Arc::strong_count(&other.permits)
     }
 }
 
-#[derive(Debug)]
-pub struct PublishPermit {
-    permits: Arc<PublishPermits>,
-}
-
-impl Drop for PublishPermit {
-    fn drop(&mut self) {
-        self.permits.add_permits(1);
-    }
-}
+pub type PublishPermit = Arc<()>;
 
 #[cfg(test)]
 pub(crate) mod tests {
