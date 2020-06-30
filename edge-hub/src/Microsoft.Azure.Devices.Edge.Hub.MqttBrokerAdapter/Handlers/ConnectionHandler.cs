@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
 
-        readonly IConnectionProvider connectionProvider;
+        readonly Task<IConnectionProvider> connectionProviderGetter;
         readonly IIdentityProvider identityProvider;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly DeviceProxy.Factory deviceProxyFactory;
@@ -37,15 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // this class is auto-registered so no way to implement an async activator.
         // hence this one needs to get a Task<T> which is suboptimal, but that is the way
         // IConnectionProvider is registered
-        public ConnectionHandler(Task<IConnectionProvider> connectionProvider, IIdentityProvider identityProvider, ISystemComponentIdProvider systemComponentIdProvider, DeviceProxy.Factory deviceProxyFactory)
+        public ConnectionHandler(Task<IConnectionProvider> connectionProviderGetter, IIdentityProvider identityProvider, ISystemComponentIdProvider systemComponentIdProvider, DeviceProxy.Factory deviceProxyFactory)
         {
-            if (!connectionProvider.IsCompleted)
-            {
-                // if this leads to a dead-lock, at least it gets logged.
-                Events.BlockingDependencyInjection();
-            }
-
-            this.connectionProvider = connectionProvider.Result;
+            this.connectionProviderGetter = Preconditions.CheckNotNull(connectionProviderGetter);
             this.identityProvider = Preconditions.CheckNotNull(identityProvider);
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.deviceProxyFactory = Preconditions.CheckNotNull(deviceProxyFactory);
@@ -158,9 +152,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task AddConnectionsAsync(HashSet<IIdentity> identitiesAdded)
         {
+            var connectionProvider = await this.connectionProviderGetter;
+
+            if (connectionProvider == null)
+            {
+                Events.FailedToObtainConnectionProvider();
+                return;
+            }
+
             foreach (var identity in identitiesAdded)
             {
-                var deviceListener = await this.connectionProvider.GetDeviceListenerAsync(identity);
+                var deviceListener = await connectionProvider.GetDeviceListenerAsync(identity);
                 var deviceProxy = this.deviceProxyFactory(identity);
 
                 deviceListener.BindDeviceProxy(deviceProxy);
@@ -276,18 +278,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ProcessingLoopStarted,
                 ProcessingLoopStopped,
                 ErrorEnqueueingNotification,
-                ErrorProcessingNotification
+                ErrorProcessingNotification,
+                FailedToObtainConnectionProvider
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize connection update");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void UnknownClientDisconnected(string identity) => Log.LogWarning((int)EventIds.UnknownClientDisconnected, $"Received disconnect notification about a not-connected client {identity}");
             public static void ExistingClientAdded(string identity) => Log.LogWarning((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
-            public static void BlockingDependencyInjection() => Log.LogWarning((int)EventIds.BlockingDependencyInjection, $"Blocking dependency injection as IConnectionProvider is not available at the time");
             public static void ProcessingLoopStarted() => Log.LogInformation((int)EventIds.ProcessingLoopStarted, "Processing loop started");
             public static void ProcessingLoopStopped() => Log.LogInformation((int)EventIds.ProcessingLoopStopped, "Processing loop stopped");
             public static void ErrorEnqueueingNotification() => Log.LogError((int)EventIds.ErrorEnqueueingNotification, "Error enqueueing notification");
             public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing [Connect] notification");
+            public static void FailedToObtainConnectionProvider() => Log.LogError((int)EventIds.FailedToObtainConnectionProvider, "Failed to obtain ConnectionProvider");
         }
     }
 }

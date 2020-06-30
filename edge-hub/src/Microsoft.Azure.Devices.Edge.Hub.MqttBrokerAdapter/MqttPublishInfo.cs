@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         public MqttPublishInfo(string topic, byte[] payload)
         {
-            this.Topic = topic;
-            this.Payload = payload;
+            this.Topic = topic ?? string.Empty;
+            this.Payload = payload ?? new byte[0];
         }
 
         public string Topic { get; }

@@ -2,12 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class SubscriptionPattern
     {
         public SubscriptionPattern(string pattern, DeviceSubscription subscription)
         {
-            this.Pattern = pattern;
+            this.Pattern = Preconditions.CheckNotNull(pattern);
             this.Subscrition = subscription;
         }
 

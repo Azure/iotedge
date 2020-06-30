@@ -92,10 +92,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToSendCloudToDeviceMessage(Exception e) => Log.LogError((int)EventIds.FailedToSendCloudToDeviceMessage, e, "Failed to send Cloud to Device message");
-            public static void CouldToDeviceMessage(string id, int messageLen) => Log.LogDebug((int)EventIds.CouldToDeviceMessage, $"Cloud to Device message sent to client: [{id}], msg len: [{messageLen}]");
-            public static void CouldToDeviceMessageFailed(string id, int messageLen) => Log.LogError((int)EventIds.CouldToDeviceMessageFailed, $"Failed to send Cloud to Device message to client: [{id}], msg len: [{messageLen}]");
+            public static void CouldToDeviceMessage(string id, int messageLen) => Log.LogDebug((int)EventIds.CouldToDeviceMessage, $"Cloud to Device message sent to client: {id}, msg len: {messageLen}");
+            public static void CouldToDeviceMessageFailed(string id, int messageLen) => Log.LogError((int)EventIds.CouldToDeviceMessageFailed, $"Failed to send Cloud to Device message to client: {id}, msg len: {messageLen}");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
-            public static void CannotSendC2DToModule(string id) => Log.LogError((int)EventIds.CannotSendC2DToModule, $"Cannot send C2D message to module [{id}]");
+            public static void CannotSendC2DToModule(string id) => Log.LogError((int)EventIds.CannotSendC2DToModule, $"Cannot send C2D message to module {id}");
         }
     }
 }
