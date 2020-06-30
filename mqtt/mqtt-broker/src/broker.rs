@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::panic;
 
+use future::Either;
+use futures::pin_mut;
+use futures_util::future;
 use tokio::{
     sync::mpsc::{self, error::TryRecvError, Receiver, Sender, UnboundedReceiver, UnboundedSender},
     task,
@@ -31,10 +34,10 @@ macro_rules! try_send {
 }
 
 pub struct Broker<Z> {
-    sender: Sender<Message>,
+    message_sender: Sender<Message>,
     messages: Receiver<Message>,
     ack_sender: UnboundedSender<Message>,
-    ack_receiver: UnboundedReceiver<Message>,
+    acks: UnboundedReceiver<Message>,
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
@@ -49,18 +52,38 @@ where
     Z: Authorizer,
 {
     pub fn handle(&self) -> BrokerHandle {
-        BrokerHandle(self.sender.clone(), self.ack_sender.clone())
+        BrokerHandle(self.message_sender.clone(), self.ack_sender.clone())
     }
 
     pub async fn run(mut self) -> Result<BrokerSnapshot, Error> {
         loop {
-            while let Ok(message) = self.ack_receiver.try_recv() {
-                self.run_iter(message);
+            let maybe_message = {
+                let acks = self.acks.recv();
+                pin_mut!(acks);
+
+                let messages = self.messages.recv();
+                pin_mut!(messages);
+
+                match future::select(acks, messages).await {
+                    Either::Left((message, _)) => message,
+                    Either::Right((message, _)) => message,
+                }
+            };
+
+            // process a messages from either acks or messages channel
+            if !maybe_message.map_or(false, |message| self.process_message(message)) {
+                break;
             }
 
+            // process all acks accumulated
+            while let Ok(message) = self.acks.try_recv() {
+                self.process_message(message);
+            }
+
+            // process any other messages if any
             match self.messages.try_recv() {
                 Ok(message) => {
-                    if !self.run_iter(message) {
+                    if !self.process_message(message) {
                         break;
                     }
                 }
@@ -73,12 +96,12 @@ where
         Ok(self.snapshot())
     }
 
-    fn run_iter(&mut self, message: Message) -> bool {
+    fn process_message(&mut self, message: Message) -> bool {
         match message {
             Message::Client(client_id, event) => {
                 let span = info_span!("broker", client_id = %client_id, event="client");
                 let _enter = span.enter();
-                if let Err(e) = self.process_message(client_id, event) {
+                if let Err(e) = self.process_client_event(client_id, event) {
                     warn!(message = "an error occurred processing a message", error = %e);
                 }
             }
@@ -142,7 +165,7 @@ where
         BrokerSnapshot::new(retained, sessions)
     }
 
-    pub fn process_message(
+    pub fn process_client_event(
         &mut self,
         client_id: ClientId,
         event: ClientEvent,
@@ -1008,14 +1031,14 @@ where
             None => (HashMap::default(), HashMap::default()),
         };
 
-        let (sender, messages) = mpsc::channel(1024);
-        let (ack_sender, ack_receiver) = mpsc::unbounded_channel();
+        let (message_sender, messages) = mpsc::channel(1024);
+        let (ack_sender, acks) = mpsc::unbounded_channel();
 
         Broker {
-            sender,
+            message_sender,
             messages,
             ack_sender,
-            ack_receiver,
+            acks,
             sessions,
             retained,
             authorizer: self.authorizer,
