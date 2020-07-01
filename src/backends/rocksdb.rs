@@ -28,7 +28,6 @@ impl StoreBackend for RocksDBBackend {
 
         let db = DB::open(&opts, Path::new(STORE_NAME))?;
 
-
         Ok(RocksDBBackend(db))
     }
 

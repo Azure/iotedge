@@ -1,9 +1,10 @@
-use crate::constants::AES_KEY_BYTES;
+use crate::constants::*;
 use crate::util::*;
 
-use hyper::Method;
-use serde::Deserialize;
-use serde_json::{json, Value};
+use hyper::{Body, Client, Method, Request, Response, Uri};
+use percent_encoding::percent_encode;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, to_string, Value};
 use zeroize::Zeroize;
 
 #[derive(Deserialize, Zeroize)]
@@ -17,6 +18,21 @@ pub struct KeyHandle(
 pub enum Text {
     Plaintext(String),
     Ciphertext(String)
+}
+
+async fn call<'a>(method: Method, resource: String, payload: Option<impl Serialize>) -> BoxedResult<'a, Response<Body>> {
+    let client = Client::new();
+    let uri = format!("{}{}", HSM_SERVER, percent_encode(resource.as_bytes(), ENCODE_CHARS));
+
+    let req = Request::builder()
+        .uri(uri.parse::<Uri>()?)
+        .method(method)
+        .body(match payload {
+            Some(v) => Body::from(to_string(&v).unwrap()),
+            None => Body::empty()
+        })?;
+
+    Ok(client.request(req).await?)
 }
 
 pub async fn create_key<'a>(id: &str) -> BoxedResult<'a, KeyHandle> {
