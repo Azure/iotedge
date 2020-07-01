@@ -16,5 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         [JsonProperty(PropertyName = "modules", Required = Required.AllowNull)]
         public IEnumerable<EdgeHubScopeModule> Modules { get; set; }
+
+        [JsonProperty(PropertyName = "continuationLink", Required = Required.AllowNull)]
+        public string ContinuationLink { get; }
     }
 }
