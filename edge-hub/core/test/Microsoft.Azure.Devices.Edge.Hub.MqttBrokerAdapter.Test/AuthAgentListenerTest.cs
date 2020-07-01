@@ -34,9 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task StartsUpAndServes()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -54,9 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task CannotStartTwice()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 await Assert.ThrowsAsync<InvalidOperationException>(async () => await sut.StartAsync());
@@ -66,9 +66,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task DeniesNoPasswordNorCertificate()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -85,9 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task DeniesBothPasswordAndCertificate()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -106,9 +106,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task DeniesBadCertificateFormat()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -126,9 +126,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task DeniesNoVersion()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -145,9 +145,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task DeniesBadVersion()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -165,10 +165,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task AcceptsGoodTokenDeniesBadToken()
         {
-            (_, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodToken("good_token");
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -190,10 +190,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task AcceptsGoodThumbprintDeniesBadThumbprint()
         {
-            (_, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodThumbprint(ThumbprintTestCertThumbprint2);
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -215,13 +215,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task AcceptsGoodCaDeniesBadCa()
         {
-            (_, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
             var goodCa = new X509Certificate2(Encoding.ASCII.GetBytes(CaTestRoot2));
 
             var authenticator = SetupAcceptGoodCa(goodCa);
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -245,9 +245,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task ReturnsDeviceIdentity()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -258,16 +258,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 var response = await PostAsync(content, URL);
                 Assert.Equal(200, (int)response.result);
-                Assert.Equal("testhub/device", (string)response.identity);
+                Assert.Equal("device", (string)response.identity);
             }
         }
 
         [Fact]
         public async Task ReturnsModuleIdentity()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -278,16 +278,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 var response = await PostAsync(content, URL);
                 Assert.Equal(200, (int)response.result);
-                Assert.Equal("testhub/device/module", (string)response.identity);
+                Assert.Equal("device/module", (string)response.identity);
             }
         }
 
         [Fact]
         public async Task AcceptsRequestWithContentLength()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody);
@@ -299,9 +299,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task AcceptsRequestWithNoContentLength()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, withContentLength: false);
@@ -313,9 +313,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task DeniesMalformedJsonRequest()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(NonJSONRequestBody);
@@ -327,9 +327,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task DeniesBadContentLengthLongBody()
         {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length - 10);
@@ -447,15 +447,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         private bool IsTimeout(DateTime startTime) => DateTime.Now - startTime > TimeSpan.FromSeconds(5);
 
-        private (IAuthenticator, IUsernameParser, IClientCredentialsFactory) SetupAcceptEverything(string hubname = "testhub")
+        private (IAuthenticator, IUsernameParser, IClientCredentialsFactory, ISystemComponentIdProvider) SetupAcceptEverything(string hubname = "testhub")
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var usernameParser = new MqttUsernameParser();
             var credFactory = new ClientCredentialsFactory(new IdentityProvider(hubname));
+            var sysIdProvider = Mock.Of<ISystemComponentIdProvider>();
 
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).Returns(Task.FromResult(true));
-           
-            return (authenticator, usernameParser, credFactory);
+            Mock.Get(sysIdProvider).Setup(a => a.EdgeHubBridgeId).Returns("testdev/$edgeHub/$bridge");
+
+            return (authenticator, usernameParser, credFactory, sysIdProvider);
         }
 
         private IAuthenticator SetupAcceptGoodToken(string goodToken) => SetupAccept(
@@ -559,7 +561,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             return result;
         }
 
-        private static readonly string ThumbprintTestCertThumbprint = "d57001602dd584cf0f7619ef11644d42dcd3505c";
         private static readonly string ThumbprintTestCert = "MIIBLjCB1AIJAOTg4Zxl8B7jMAoGCCqGSM49BAMCMB8xHTAbBgNVBAMMFFRodW1i" +
                                                             "cHJpbnQgVGVzdCBDZXJ0MB4XDTIwMDQyMzE3NTgwN1oXDTMzMTIzMTE3NTgwN1ow" +
                                                             "HzEdMBsGA1UEAwwUVGh1bWJwcmludCBUZXN0IENlcnQwWTATBgcqhkjOPQIBBggq" +

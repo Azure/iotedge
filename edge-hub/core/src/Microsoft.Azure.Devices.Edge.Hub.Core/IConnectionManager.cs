@@ -39,9 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task<Option<ICloudProxy>> GetCloudConnection(string id);
 
-        void AddSubscription(string id, DeviceSubscription deviceSubscription);
+        bool AddSubscription(string id, DeviceSubscription deviceSubscription);
 
-        void RemoveSubscription(string id, DeviceSubscription deviceSubscription);
+        bool RemoveSubscription(string id, DeviceSubscription deviceSubscription);
 
         Option<IReadOnlyDictionary<DeviceSubscription, bool>> GetSubscriptions(string id);
 

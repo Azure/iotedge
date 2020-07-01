@@ -18,14 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
-        readonly AuthAgentProtocolHeadConfig config;
+        readonly ISystemComponentIdProvider systemComponentIdProvider;
 
-        public AuthAgentController(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory, AuthAgentProtocolHeadConfig config)
+        public AuthAgentController(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory, ISystemComponentIdProvider systemComponentIdProvider)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
-            this.config = Preconditions.CheckNotNull(config, nameof(config));
+            this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider, nameof(systemComponentIdProvider));
         }
 
         [HttpPost]
@@ -42,6 +42,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 Events.ErrorBadVersion(request.Version ?? "(none)");
                 return this.Json(GetErrorResult());
+            }
+
+            // FIXME: this can be removed, one the broker skips authentication for special clients
+            if (this.IsSystemComponent(request))
+            {
+                return this.Json(this.AuthenticateSystemComponent(request));
             }
 
             try
@@ -63,6 +69,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Events.ErrorProcessingRequest(e);
                 return this.Json(GetErrorResult());
             }
+        }
+
+        // FIXME: this can be removed, one the broker skips authentication for special clients
+        bool IsSystemComponent(AuthRequest request)
+        {
+            return string.Equals(request.Username, this.systemComponentIdProvider.EdgeHubBridgeId);
+        }
+
+        object AuthenticateSystemComponent(AuthRequest request)
+        {
+            return new
+            {
+                result = AuthAgentConstants.Authenticated,
+                identity = this.systemComponentIdProvider.EdgeHubBridgeId,
+                version = AuthAgentConstants.ApiVersion
+            };
         }
 
         Option<ClientInfo> GetIdsFromUsername(AuthRequest request)
@@ -144,7 +166,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static object GetAuthResult(bool isAuthenticated, Option<IClientCredentials> credentials)
         {
             // note, that if authenticated, then these values are present, and defaults never apply
-            var iotHubName = credentials.Map(c => c.Identity.IotHubHostname).GetOrElse("any");
             var id = credentials.Map(c => c.Identity.Id).GetOrElse("anonymous");
 
             if (isAuthenticated)
@@ -153,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return new
                 {
                     result = AuthAgentConstants.Authenticated,
-                    identity = $"{iotHubName}/{id}",
+                    identity = id,
                     version = AuthAgentConstants.ApiVersion
                 };
             }
