@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using RunProcessAsTask;
+    using Serilog;
 
     public class Process
     {
@@ -17,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Arguments = args,
                 RedirectStandardInput = true,
             };
-
+            Log.Information($"BEARWASHERE -- RunAsync() : {name} {args}");
             using (ProcessResults result = await ProcessEx.RunAsync(info, token))
             {
                 if (result.ExitCode != 0)
