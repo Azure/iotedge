@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class ModuleToModuleMessageHandler : MessageConfirmingHandler, IModuleToModuleMessageHandler, IMessageProducer, ISubscriptionWatcher
+    public class ModuleToModuleMessageHandler : MessageConfirmingHandler, IModuleToModuleMessageHandler, IMessageProducer
     {
         // FIXME change when topic translation is fixed
         const string ModuleToModleSubscriptionPattern = @"^devices/(?<id1>[^/\+\#]+)/modules/(?<id2>[^/\+\#]+)/\#$";

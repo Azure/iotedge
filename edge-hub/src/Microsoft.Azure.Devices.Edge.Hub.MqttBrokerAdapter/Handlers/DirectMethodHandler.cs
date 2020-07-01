@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class DirectMethodHandler : IDirectMethodHandler, ISubscriber, IMessageConsumer, IMessageProducer, ISubscriptionWatcher
+    public class DirectMethodHandler : IDirectMethodHandler, IMessageConsumer, IMessageProducer
     {
         const string MethodPostModule = "$edgehub/+/+/methods/res/#";
         const string MethodPostDevice = "$edgehub/+/methods/res/#";

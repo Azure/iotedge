@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class Cloud2DeviceMessageHandler : MessageConfirmingHandler, ICloud2DeviceMessageHandler, IMessageProducer, ISubscriptionWatcher
+    public class Cloud2DeviceMessageHandler : MessageConfirmingHandler, ICloud2DeviceMessageHandler, IMessageProducer
     {
         const string SubscriptionForDeviceboundPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)/messages/c2d/post/\#$";
         const string C2DTopicDeviceTemplate = "$edgehub/{0}/messages/c2d/post/{1}";

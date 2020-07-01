@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const int ReconnectDelayMs = 2000;
 
         readonly IComponentDiscovery components;
-        readonly ISubscriptionChangeHandler subscriptionChangeHandler;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly Dictionary<ushort, TaskCompletionSource<bool>> pendingAcks = new Dictionary<ushort, TaskCompletionSource<bool>>();
 
@@ -27,10 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Option<Task> forwardingLoop;
         Option<MqttClient> mqttClient;
 
-        public MqttBrokerConnector(IComponentDiscovery components, ISubscriptionChangeHandler subscriptionChangeHandler, ISystemComponentIdProvider systemComponentIdProvider)
+        public MqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
         {
             this.components = Preconditions.CheckNotNull(components);
-            this.subscriptionChangeHandler = Preconditions.CheckNotNull(subscriptionChangeHandler);
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
 
             // because of the circular dependency between MqttBridgeConnector and the producers,
@@ -73,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             // if ConnectAsync is supposed to manage starting it with broker down,
             // put a loop here to keep trying - see 'TriggerReconnect' below
-            var isConnected = await TryConnectAsync(client, this.components.Subscribers, this.systemComponentIdProvider.EdgeHubBridgeId);
+            var isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
 
             if (!isConnected)
             {
@@ -231,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
                     }
 
-                    isConnected = await TryConnectAsync(client, this.components.Subscribers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                    isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
                 }
 
                 client.ConnectionClosed += this.TriggerReconnect;
@@ -258,33 +256,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                             continue;
                                         }
 
-                                        var handledAsSubscriptionChange = false;
-
-                                        try
+                                        foreach (var consumer in this.components.Consumers)
                                         {
-                                            handledAsSubscriptionChange = await this.subscriptionChangeHandler.HandleSubscriptionChangeAsync(publishInfo);
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Events.FailedToForward(e);
-                                            // let it flow to the consumers - at this point it is not known if it was a subscription change,
-                                            // but consumers will skip those anyway.
-                                        }
-
-                                        if (!handledAsSubscriptionChange)
-                                        {
-                                            foreach (var consumer in this.components.Consumers)
+                                            try
                                             {
-                                                try
-                                                {
-                                                    var accepted = await consumer.HandleAsync(publishInfo);
-                                                    Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
-                                                }
-                                                catch (Exception e)
-                                                {
-                                                    Events.FailedToForward(e);
-                                                    // Keep going with other consumers...
-                                                }
+                                                var accepted = await consumer.HandleAsync(publishInfo);
+                                                Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                Events.FailedToForward(e);
+                                                // Keep going with other consumers...
                                             }
                                         }
                                     }
@@ -317,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         // these are statics, so they don't use the state to acquire 'client' - making easier to handle parallel
         // Reconnect/Disconnect cases
-        static async Task<bool> TryConnectAsync(MqttClient client, IReadOnlyCollection<ISubscriber> subscribers, string id)
+        static async Task<bool> TryConnectAsync(MqttClient client, IReadOnlyCollection<IMessageConsumer> subscribers, string id)
         {
             try
             {
@@ -355,7 +337,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        static async Task SubscribeAsync(MqttClient client, IReadOnlyCollection<ISubscriber> subscribers)
+        static async Task SubscribeAsync(MqttClient client, IReadOnlyCollection<IMessageConsumer> subscribers)
         {
             var expectedAckCount = subscribers.Count;
 

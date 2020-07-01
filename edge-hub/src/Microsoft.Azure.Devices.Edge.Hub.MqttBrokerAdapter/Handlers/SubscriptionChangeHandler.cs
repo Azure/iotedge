@@ -12,22 +12,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class SubscriptionChangeHandler : ISubscriptionChangeHandler
+    public class SubscriptionChangeHandler : IMessageConsumer
     {
         const string SubscriptionChangePattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/subscriptions$";
 
-        readonly IConnectionRegistry connectionRegistry;
-        readonly IComponentDiscovery components;
-        readonly IIdentityProvider identityProvider;
+        const string SubscriptionChangeDevice = "$edgehub/+/subscriptions";
+        const string SubscriptionChangeModule = "$edgehub/+/+/subscriptions";
 
-        public SubscriptionChangeHandler(IConnectionRegistry connectionRegistry, IComponentDiscovery components, IIdentityProvider identityProvider)
+        static readonly string[] subscriptions = new[] { SubscriptionChangeDevice, SubscriptionChangeModule };
+
+        readonly IConnectionRegistry connectionRegistry;
+        readonly IIdentityProvider identityProvider;
+        readonly List<SubscriptionPattern> subscriptionPatterns;
+
+        public IReadOnlyCollection<string> Subscriptions => subscriptions;
+
+        public SubscriptionChangeHandler(
+                    ICloud2DeviceMessageHandler cloud2DeviceMessageHandler,
+                    IModuleToModuleMessageHandler moduleToModuleMessageHandler,
+                    IDirectMethodHandler directMethodHandler,
+                    IConnectionRegistry connectionRegistry,
+                    IIdentityProvider identityProvider)
         {
+            Preconditions.CheckNotNull(cloud2DeviceMessageHandler);
+            Preconditions.CheckNotNull(moduleToModuleMessageHandler);
+            Preconditions.CheckNotNull(directMethodHandler);
+
             this.connectionRegistry = Preconditions.CheckNotNull(connectionRegistry);
-            this.components = Preconditions.CheckNotNull(components);
             this.identityProvider = Preconditions.CheckNotNull(identityProvider);
+
+            this.subscriptionPatterns = new List<SubscriptionPattern>();
+            this.subscriptionPatterns.AddRange(Preconditions.CheckNotNull(cloud2DeviceMessageHandler.WatchedSubscriptions));
+            this.subscriptionPatterns.AddRange(Preconditions.CheckNotNull(moduleToModuleMessageHandler.WatchedSubscriptions));
+            this.subscriptionPatterns.AddRange(Preconditions.CheckNotNull(directMethodHandler.WatchedSubscriptions));
         }
 
-        public async Task<bool> HandleSubscriptionChangeAsync(MqttPublishInfo publishInfo)
+        public async Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {
             var match = Regex.Match(publishInfo.Topic, SubscriptionChangePattern);
 
@@ -71,34 +91,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 proxy = proxyMaybe.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
 
-            foreach (var watcher in this.components.SubscriptionWatchers)
+            foreach (var subscriptionPattern in this.subscriptionPatterns)
             {
-                foreach (var subscriptionPattern in watcher.WatchedSubscriptions)
+                var subscribes = false;
+
+                foreach (var subscription in subscriptionList)
                 {
-                    var subscribes = false;
+                    var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
+                    if (IsMatchWithIds(subscriptionMatch, id1, id2))
+                    {
+                        subscribes = true;
+                        break;
+                    }
+                }
 
-                    foreach (var subscription in subscriptionList)
-                    {
-                        var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
-                        if (IsMatchWithIds(subscriptionMatch, id1, id2))
-                        {
-                            subscribes = true;
-                            break;
-                        }
-                    }
-
-                    try
-                    {
-                        await AddOrRemoveSubscription(proxy, subscribes, subscriptionPattern.Subscrition);
-                    }
-                    catch (Exception e)
-                    {
-                        Events.FailedToChangeSubscriptionState(e, subscriptionPattern.Subscrition.ToString(), identity.Id);
-                    }
+                try
+                {
+                    await AddOrRemoveSubscription(proxy, subscribes, subscriptionPattern.Subscrition);
+                }
+                catch (Exception e)
+                {
+                    Events.FailedToChangeSubscriptionState(e, subscriptionPattern.Subscrition.ToString(), identity.Id);
                 }
             }
 
             return true;
+        }
+
+        public void ProducerStopped()
+        {
         }
 
         static bool IsMatchWithIds(Match match, Group id1, Group id2)

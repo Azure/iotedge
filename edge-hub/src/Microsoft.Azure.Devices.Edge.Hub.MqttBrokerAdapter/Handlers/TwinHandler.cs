@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TwinHandler : ITwinHandler, ISubscriber, IMessageConsumer, IMessageProducer
+    public class TwinHandler : ITwinHandler, IMessageConsumer, IMessageProducer
     {
         const string TwinGetDevice = "$edgehub/+/twin/get/#";
         const string TwinGetModule = "$edgehub/+/+/twin/get/#";

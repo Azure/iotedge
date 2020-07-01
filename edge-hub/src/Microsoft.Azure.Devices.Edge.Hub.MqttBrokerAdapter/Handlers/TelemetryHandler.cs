@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TelemetryHandler : ISubscriber, IMessageConsumer
+    public class TelemetryHandler : IMessageConsumer
     {
         const string TelemetryDevice = "$edgehub/+/messages/events/#";
         const string TelemetryModule = "$edgehub/+/modules/+/messages/events/#";

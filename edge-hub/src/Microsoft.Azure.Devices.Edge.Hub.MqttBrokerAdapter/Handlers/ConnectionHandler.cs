@@ -15,10 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class ConnectionHandler : IConnectionRegistry, ISubscriber, IMessageConsumer
+    public class ConnectionHandler : IConnectionRegistry, IMessageConsumer
     {
         const string TopicDeviceConnected = "$edgehub/connected";
 
+        static readonly char[] identitySegmentSeparator = new[] { '/' };
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
 
         readonly Task<IConnectionProvider> connectionProviderGetter;
@@ -210,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     continue;
                 }
 
-                var identityComponents = id.Split(HandlerConstants.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+                var identityComponents = id.Split(identitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
                 switch (identityComponents.Length)
                 {
