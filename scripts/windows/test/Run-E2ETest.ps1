@@ -341,6 +341,11 @@ Function GetImageArchitectureLabel
     Throw "Can't find image architecture label for $Architecture"
 }
 
+Function GetHash
+{
+    return -join ((48..57) + (65..90) + (97..122) | Get-Random -Count $args[0] | % {[char]$_})
+}
+
 Function GetLongHaulDeploymentFilename
 {
     If (GetImageArchitectureLabel -eq "amd64")
@@ -967,7 +972,7 @@ Function RunLongHaulTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul-$(GetHash 8)"
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -998,7 +1003,7 @@ Function RunStressTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress-$(GetHash 8)"
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
