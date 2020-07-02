@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         {
             try
             {
-                return this.sdkModuleClient.OpenAsync().TimeoutAfter(TimeSpan.FromMinutes(2));
+                return this.sdkModuleClient.OpenAsync();
             }
             catch (Exception)
             {
