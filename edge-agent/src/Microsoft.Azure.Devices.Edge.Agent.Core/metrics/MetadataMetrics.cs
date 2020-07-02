@@ -20,15 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.metaData = metricsProvider.CreateGauge(
                 "metadata",
                 "General metadata about the device. The value is always 0, information is encoded in the tags.",
-                new List<string> { "edge_agent_version", MetricsConstants.MsTelemetry });
+                new List<string> { "edge_agent_version", "experimental_features", MetricsConstants.MsTelemetry });
         }
 
-        public async Task Start(ILogger logger, string version)
+        public async Task Start(ILogger logger, string version, string experimentalFeatures)
         {
             logger.LogInformation("Collecting metadata metrics");
             await Task.Yield();
 
-            string[] values = { version, true.ToString() };
+            string[] values = { version, experimentalFeatures, true.ToString() };
             this.metaData.Set(0, values);
             logger.LogInformation($"Set metadata metrics: {values.Join(", ")}");
         }
