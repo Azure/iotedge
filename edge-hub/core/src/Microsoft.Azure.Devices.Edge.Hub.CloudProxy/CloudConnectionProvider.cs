@@ -231,6 +231,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
                     .SetValue(settings, authChain);
 
+            string authChainActual = (string)settings.GetType()
+                    .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(settings);
+            Events.SetAuthChain(authChainActual);
+
             return new ITransportSettings[] { settings };
         }
 
@@ -243,6 +248,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             settings.GetType()
                     .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
                     .SetValue(settings, authChain);
+
+            string authChainActual = (string)settings.GetType()
+                    .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(settings);
+            Events.SetAuthChain(authChainActual);
 
             return new ITransportSettings[] { settings };
         }
@@ -286,7 +296,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 CloudConnectSuccess,
                 CreatingCloudConnectionUsingClientCredentials,
                 CreatingCloudConnectionOnBehalfOf,
-                ServiceIdentityNotFound
+                ServiceIdentityNotFound,
+                SetAuthChain
             }
 
             public static void SuccessCreatingCloudConnection(IIdentity identity)
@@ -312,6 +323,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ServiceIdentityNotFound(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Creating cloud connection for client {identity.Id}. Client identity is not in device scope, attempting to use client credentials.");
+            }
+
+            public static void SetAuthChain(string authChain)
+            {
+                Log.LogDebug((int)EventIds.SetAuthChain, $"Setting AuthChain on transport: {authChain}");
             }
         }
     }
