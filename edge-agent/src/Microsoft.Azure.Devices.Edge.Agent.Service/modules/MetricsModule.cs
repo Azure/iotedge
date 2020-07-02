@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.IO;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
@@ -34,6 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             builder.Register(c => new Util.Metrics.Prometheus.Net.MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>()))
                 .As<IMetricsListener>()
                 .SingleInstance();
+
+            builder.RegisterType<MetadataMetrics>().SingleInstance();
 
             base.Load(builder);
         }

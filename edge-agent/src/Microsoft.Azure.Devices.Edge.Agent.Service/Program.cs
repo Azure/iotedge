@@ -311,6 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 container.Resolve<IMetricsListener>().Start(logger);
                 container.Resolve<ISystemResourcesMetrics>().Start(logger);
+                await container.Resolve<MetadataMetrics>().Start(logger, versionInfo.ToString(true));
             }
 
             // Initialize metric uploading
