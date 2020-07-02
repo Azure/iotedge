@@ -17,11 +17,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         Option<string> bootstrapAgentImage;
         Option<Registry> bootstrapRegistry;
+        PackageManagement packageManagement;
 
-        public EdgeDaemon(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry)
+        public static async Task<EdgeDaemon> CreateAsync(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry)
+        {
+            PackageManagement packageManagement = await PackageManagement.CreateAsync();
+            EdgeDaemon edgeDaemon = new EdgeDaemon(bootstrapAgentImage, bootstrapRegistry, packageManagement);
+            return edgeDaemon;
+        }
+
+        EdgeDaemon(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry, PackageManagement packageManagement)
         {
             this.bootstrapAgentImage = bootstrapAgentImage;
             this.bootstrapRegistry = bootstrapRegistry;
+            this.packageManagement = packageManagement;
         }
 
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
@@ -35,47 +44,64 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     properties = properties.Append(p).ToArray();
                 });
 
-            string[] commands = await packagesPath.Match(
+            string[] commands = packagesPath.Match(
                 p =>
                 {
-                    string[] packages = Directory.GetFiles(p, "*.deb");
-                    return Task.FromResult(
-                        new[]
-                        {
-                            "set -e",
-                            $"dpkg --force-confnew -i {string.Join(' ', packages)}",
-                            "apt-get install -f"
-                        });
-                },
-                async () =>
-                {
-                    // Based on instructions at:
-                    // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
-
-                    // TODO: 8/30/2019 support curl behind a proxy
-                    string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
-                    string os = platformInfo[0].Trim();
-                    string version = platformInfo[1].Trim();
-                    switch (os)
+                    string[] packages = Directory.GetFiles(p, $"*.{this.packageManagement.PackageExtension.ToString().ToLower()}");
+                    for (int i = packages.Length - 1; i >= 0; --i)
                     {
-                        case "Ubuntu":
-                            os = "ubuntu";
-                            break;
-                        case "Raspbian":
-                            os = "debian";
-                            version = "stretch";
-                            break;
-                        default:
-                            throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
+                        if (packages[i].Contains("debug"))
+                        {
+                            packages[i] = string.Empty;
+                        }
                     }
 
-                    return new[]
+                    switch (this.packageManagement.PackageExtension)
                     {
-                        $"curl https://packages.microsoft.com/config/{os}/{version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
-                        "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                        "apt-get update",
-                        "apt-get install --yes iotedge"
-                    };
+                        case PackageManagement.SupportedPackageExtension.Deb:
+                            return new[]
+                                {
+                                    "set -e",
+                                    $"{this.packageManagement.ForceInstallConfigCmd} {string.Join(' ', packages)}",
+                                    $"{this.packageManagement.PackageTool} {this.packageManagement.InstallCmd}"
+                                };
+                        case PackageManagement.SupportedPackageExtension.Rpm:
+                            return new[]
+                                {
+                                    "set -e",
+                                    $"{this.packageManagement.PackageTool} {this.packageManagement.InstallCmd} {string.Join(' ', packages)}",
+                                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1); sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf; sudo mv -f ~/override.conf ${pathToSystemdConfig#?}; sudo systemctl daemon-reload;"
+                                };
+                        default:
+                            throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageManagement.PackageExtension}'");
+                    }
+                },
+                () =>
+                {
+                    switch (this.packageManagement.PackageExtension)
+                    {
+                        case PackageManagement.SupportedPackageExtension.Deb:
+                            // Based on instructions at:
+                            // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
+                            // TODO: 8/30/2019 support curl behind a proxy
+                            return new[]
+                                {
+                                    $"curl https://packages.microsoft.com/config/{this.packageManagement.Os}/{this.packageManagement.Version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
+                                    "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
+                                    $"{this.packageManagement.PackageTool} update",
+                                    $"{this.packageManagement.PackageTool} install --yes iotedge"
+                                };
+                        case PackageManagement.SupportedPackageExtension.Rpm:
+                            return new[]
+                                {
+                                    $"{this.packageManagement.ForceInstallConfigCmd} https://packages.microsoft.com/config/{this.packageManagement.Os}/{this.packageManagement.Version}/packages-microsoft-prod.rpm",
+                                    $"{this.packageManagement.PackageTool} updateinfo",
+                                    $"{this.packageManagement.PackageTool} install --yes iotedge",
+                                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1); sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf; sudo mv -f ~/override.conf ${pathToSystemdConfig#?}; sudo systemctl daemon-reload;"
+                                };
+                        default:
+                            throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageManagement.PackageExtension}'");
+                    }
                 });
 
             await Profiler.Run(
@@ -131,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "stop iotedge.service iotedge.socket iotedge.mgmt.socket", token);
+            string[] output = await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
@@ -153,8 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     async () =>
                     {
                         string[] output =
-                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std iotedge", token);
-
+                            await Process.RunAsync($"{this.packageManagement.PackageTool}", $"{this.packageManagement.UninstallCmd} libiothsm-std iotedge", token);
                         Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");

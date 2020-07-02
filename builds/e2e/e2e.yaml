@@ -132,9 +132,9 @@ jobs:
 
     - template: templates/e2e-run.yaml
 
-################################################################################	
+    ################################################################################	
     - job: centos7_amd64
-################################################################################	
+  ################################################################################	
       displayName: CentOs7 amd64
   
       pool:
@@ -145,10 +145,15 @@ jobs:
           - run-new-e2e-tests -equals true
   
       variables:
-        os: centos7
+        os: linux
         arch: amd64
         artifactName: iotedged-centos7-amd64
-
+  
       steps:
+      - task: CmdLine@2
+        inputs:
+          script: 'sudo find . -type f -group root -execdir rm {} + && sudo find . -type d -group root -print0 | sudo xargs -0 /bin/rm -rf' 
+        displayName: Clean up files (as sudo)
+  
       - template: templates/e2e-setup.yaml
-      - template: templates/e2e-run.yaml
+      - template: templates/e2e-run.yaml 
