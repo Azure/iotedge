@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
         // a possibility would be to check if things are null but that is already being done in CertificateCredentials
         protected override bool AreInputCredentialsValid(ICertificateCredentials credentials) => true;
 
-        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ICertificateCredentials certificateCredentials)
+        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ICertificateCredentials certificateCredentials, bool isOnBehalfOf)
         {
             bool result;
             // currently authenticating modules via X.509 is disabled. all the necessary pieces to authenticate
