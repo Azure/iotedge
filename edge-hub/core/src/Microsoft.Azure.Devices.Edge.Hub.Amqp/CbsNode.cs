@@ -146,15 +146,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 throw new InvalidOperationException("Cbs message does not contain a valid token");
             }
 
-            try
-            {
-                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(iotHubHostName, token);
-                return (token, sharedAccessSignature.Audience);
-            }
-            catch (Exception e)
-            {
-                throw new InvalidOperationException("Cbs message does not contain a valid token", e);
-            }
+            string audience = message.ApplicationProperties.Map[CbsConstants.PutToken.Audience] as string;
+            return (token, audience);
         }
 
         internal static (string deviceId, string moduleId) ParseIds(string audience)

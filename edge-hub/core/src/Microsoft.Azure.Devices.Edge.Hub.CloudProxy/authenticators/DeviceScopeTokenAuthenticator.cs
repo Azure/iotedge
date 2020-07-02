@@ -33,9 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         protected override bool AreInputCredentialsValid(ITokenCredentials credentials) => this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature _);
 
-        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ITokenCredentials credentials) =>
+        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ITokenCredentials credentials, bool isOnBehalfOf) =>
             this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature sharedAccessSignature)
-                ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity)
+                ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity, isOnBehalfOf)
                 : false;
 
         internal bool ValidateAudience(string audience, IIdentity identity)
@@ -114,10 +114,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
         }
 
-        bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity identity) =>
-            this.ValidateTokenWithSecurityIdentity(sharedAccessSignature, serviceIdentity) &&
-            this.ValidateAudience(sharedAccessSignature.Audience, identity) &&
-            this.ValidateExpiry(sharedAccessSignature, identity);
+        bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity identity, bool isOnBehalfOf)
+        {
+            // No need to check audience against the identity if it's an
+            // OnBehalfOf connection, they'll always be mismatched
+            bool hasValidAudience = isOnBehalfOf ? true : this.ValidateAudience(sharedAccessSignature.Audience, identity);
+
+            return this.ValidateTokenWithSecurityIdentity(sharedAccessSignature, serviceIdentity) &&
+                   hasValidAudience &&
+                   this.ValidateExpiry(sharedAccessSignature, identity);
+        }
 
         bool ValidateExpiry(SharedAccessSignature sharedAccessSignature, IIdentity identity)
         {
