@@ -16,7 +16,7 @@ steps:
     else
     {
       # Unfortunately CentOs has some failing test that need to be worked on.
-      if ($(Agent.Name).Contains('centos'))
+      if ('$(Agent.Name)'.Contains('centos'))
       {
         sudo --preserve-env dotnet vstest $testFile --logger:trx --filter "TestCategory=CentOsSafe"
       }
