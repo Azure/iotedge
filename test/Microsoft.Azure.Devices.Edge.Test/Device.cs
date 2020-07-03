@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [EndToEnd]
     class Device : SasManualProvisioningFixture
     {
-        [Test]
+        [Test, Category("CentOsSafe")]
         public async Task QuickstartCerts()
         {
             CancellationToken token = this.TestToken;
