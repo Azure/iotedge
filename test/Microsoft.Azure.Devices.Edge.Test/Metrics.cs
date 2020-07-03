@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public const string ModuleName = "metricsValidator";
         const string EdgeAgentBaseImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
 
-        [Test, Category("CentOsSafe")]
+        [Test]
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
