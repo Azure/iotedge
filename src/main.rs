@@ -41,10 +41,10 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     
     Server::bind_unix(skt)?
         .serve(make_service_fn(|_| {
-            let store = store.clone();
+            let store = store.to_owned();
             async {
                 <Result<_, HyperError>>::Ok(service_fn(move |req| {
-                    message::dispatch(store.clone(), req)
+                    message::dispatch(store.to_owned(), req)
                 }))
             }
         }))

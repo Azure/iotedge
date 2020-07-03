@@ -767,6 +767,7 @@ dependencies = [
  "hyperlocal",
  "libc",
  "percent-encoding",
+ "regex",
  "ring",
  "rocksdb",
  "rusqlite",
