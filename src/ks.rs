@@ -20,7 +20,7 @@ pub enum Text {
     Ciphertext(String)
 }
 
-async fn call<'a>(method: Method, resource: String, payload: Option<impl Serialize>) -> BoxedResult<'a, Response<Body>> {
+async fn call<'a>(method: Method, resource: String, payload: Option<impl Serialize>) -> BoxResult<'a, Response<Body>> {
     let client = Client::new();
     let uri = format!("{}{}", HSM_SERVER, percent_encode(resource.as_bytes(), ENCODE_CHARS));
 
@@ -35,7 +35,7 @@ async fn call<'a>(method: Method, resource: String, payload: Option<impl Seriali
     Ok(client.request(req).await?)
 }
 
-pub async fn create_key<'a>(id: &str) -> BoxedResult<'a, KeyHandle> {
+pub async fn create_key<'a>(id: &str) -> BoxResult<'a, KeyHandle> {
     let res = call(
             Method::POST,
             String::from("/keys"),
@@ -49,7 +49,7 @@ pub async fn create_key<'a>(id: &str) -> BoxedResult<'a, KeyHandle> {
     Ok(slurp_json(res).await?)
 }
 
-pub async fn get_key<'a>(id: &str) -> BoxedResult<'a, KeyHandle> {
+pub async fn get_key<'a>(id: &str) -> BoxResult<'a, KeyHandle> {
     let res = call(
             Method::GET,
             format!("/keys/{}", id),
@@ -61,7 +61,7 @@ pub async fn get_key<'a>(id: &str) -> BoxedResult<'a, KeyHandle> {
     Ok(slurp_json(res).await?)
 }
 
-pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> BoxedResult<'a, Text> {
+pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> BoxResult<'a, Text> {
     let res = call(
             Method::POST,
             String::from("/encrypt"),
@@ -80,7 +80,7 @@ pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> Box
     Ok(slurp_json(res).await?)
 }
 
-pub async fn decrypt<'a>(key: &str, ciphertext: &str, iv: &str, aad: &str) -> BoxedResult<'a, Text> {
+pub async fn decrypt<'a>(key: &str, ciphertext: &str, iv: &str, aad: &str) -> BoxResult<'a, Text> {
     let res = call(
             Method::POST,
             String::from("/decrypt"),
