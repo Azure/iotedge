@@ -17,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
-        [Test, Category("CentOsSafe")]
+        [Test]
+        [Category("CentOsSafe")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
@@ -62,7 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
         }
 
-        [Test, Category("CentOsSafe")]
+        [Test]
+        [Category("CentOsSafe")]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -134,7 +136,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
 
-        [Test, Category("CentOsSafe")]
+        [Test]
+        [Category("CentOsSafe")]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {

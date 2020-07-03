@@ -34,7 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        [Test, Category("CentOsSafe")]
+        [Test]
+        [Category("CentOsSafe")]
         public async Task DpsSymmetricKey()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
