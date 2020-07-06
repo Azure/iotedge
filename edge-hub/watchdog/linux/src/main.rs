@@ -38,7 +38,7 @@ impl ChildProcess {
     pub fn run_child_process(
         name: String,
         command: &mut Command,
-        parent_shutdown_listener: Arc<AtomicBool>,
+        has_parent_started_shutdown: Arc<AtomicBool>,
     ) -> Arc<AtomicBool> {
         // start child process before spawning new thread because it will get freed after the caller runs this function
         // this makes lifetimes easier to deal with
@@ -62,7 +62,7 @@ impl ChildProcess {
             };
 
             while Self::is_running(&mut child_process.child)
-                && parent_shutdown_listener.load(Ordering::Relaxed)
+                && !has_parent_started_shutdown.load(Ordering::Relaxed)
             {
                 let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
                 thread::sleep(poll_interval);
@@ -164,8 +164,6 @@ fn main() -> Result<(), Error> {
 
         thread::sleep(Duration::from_secs(1));
     }
-
-    // use channels to wait here and tell both worker threads to shut down (one might already be shut down)
 
     info!("Stopped watchdog process");
     Ok(())
