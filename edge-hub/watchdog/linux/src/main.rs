@@ -1,10 +1,10 @@
 // questions for denis:
-// confirm overall approach
+
 // have i structured this struct correctly
-// is it ok to pass arc atomic bools from worker threads handling child process to main thread, and use channels to talk to main thread to worker threads
+// is it ok to pass arc atomic bools from worker threads handling child process to main thread, and use atomic bools to talk to worker threads
+
 // command issue - because it gets created initially as a mutable reference, it would be easier to create this inside the thread.
-// So from main what if we just pass the information necessary to start the command
-// self move
+// so from main what if we just pass the information necessary to start the command
 
 use std::{
     io::Error,
@@ -33,8 +33,15 @@ struct ChildProcess {
 // each component runs separate thread.
 // in separate thread: start process and while loop to check for process status and tell main process to exit
 // use channels to communicate between threads
+// TODO: find documentation standards for func param
 impl ChildProcess {
-    pub fn run_child_process(name: String, command: &mut Command) -> Arc<AtomicBool> {
+    pub fn run_child_process(
+        name: String,
+        command: &mut Command,
+        parent_shutdown_listener: Arc<AtomicBool>,
+    ) -> Arc<AtomicBool> {
+        // start child process before spawning new thread because it will get freed after the caller runs this function
+        // this makes lifetimes easier to deal with
         let child = match command.spawn() {
             Ok(child) => {
                 info!("Launched {:?} with pid {:?}", name, child.id());
@@ -54,12 +61,22 @@ impl ChildProcess {
                 child: child,
             };
 
-            while Self::is_running(&mut child_process.child) {
+            while Self::is_running(&mut child_process.child)
+                && parent_shutdown_listener.load(Ordering::Relaxed)
+            {
                 let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
                 thread::sleep(poll_interval);
             }
 
-            child_process.trigger_shutdown();
+            if Self::is_running(&mut child_process.child) {
+                child_process.trigger_shutdown();
+            } else {
+                info!(
+                    "Child process {:?} not running so won't attempt termination.",
+                    child_process.name
+                )
+            }
+
             has_shutdown_listener.store(true, Ordering::Relaxed);
         });
 
@@ -99,9 +116,7 @@ impl ChildProcess {
 
     fn wait_for_exit(&mut self) {
         let mut elapsed_secs = 0;
-        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS
-            && Self::is_running(&mut self.child)
-        {
+        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS && Self::is_running(&mut self.child) {
             let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
             thread::sleep(poll_interval);
             elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
@@ -127,6 +142,7 @@ fn main() -> Result<(), Error> {
     let has_broker_shutdown = ChildProcess::run_child_process(
         "MQTT Broker".to_string(),
         Command::new("/usr/local/bin/mqttd").stdout(Stdio::inherit()),
+        Arc::clone(&should_shutdown),
     );
 
     let has_edgehub_shutdown = ChildProcess::run_child_process(
@@ -134,6 +150,7 @@ fn main() -> Result<(), Error> {
         Command::new("dotnet")
             .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
             .stdout(Stdio::inherit()),
+        Arc::clone(&should_shutdown),
     );
 
     while !should_shutdown.load(Ordering::Relaxed) {
