@@ -46,13 +46,13 @@ impl ChildProcess {
         let has_shutdown_listener = Arc::clone(&mut has_shutdown);
         thread::spawn(move || {
             let mut child_process = ChildProcess {
-                name: name,
+                name,
                 process: child,
             };
 
             while child_process.is_running() && !has_parent_started_shutdown.load(Ordering::Relaxed)
             {
-                let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
+                let poll_interval: Duration = Duration::from_secs(PROCESS_POLL_INTERVAL_SECS);
                 thread::sleep(poll_interval);
             }
 
@@ -103,7 +103,7 @@ impl ChildProcess {
     fn wait_for_exit(&mut self) {
         let mut elapsed_secs = 0;
         while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS && self.is_running() {
-            let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
+            let poll_interval: Duration = Duration::from_secs(PROCESS_POLL_INTERVAL_SECS);
             thread::sleep(poll_interval);
             elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
         }
@@ -148,7 +148,7 @@ fn main() -> Result<(), Error> {
             break;
         }
 
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_secs(PROCESS_POLL_INTERVAL_SECS));
     }
 
     should_shutdown.store(true, Ordering::Relaxed); // tell the threads to shut down their child process
