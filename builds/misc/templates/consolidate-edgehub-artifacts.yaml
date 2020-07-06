@@ -4,7 +4,7 @@ parameters:
   dotnet.artifacts.path: 'publish/Microsoft.Azure.Devices.Edge.Hub.Service'
   mqttd.artifacts.path: 'mqtt/target/'
   mqttd.config.path: 'mqtt/mqtt-broker/config/production.json'
-  watchdog.artifacts.path: 'edge-hub/watchdog/linux/target'
+  watchdog.artifacts.path: 'edge-hub/watchdog/target'
   all.artifacts.path: 'publish/edge-hub'
 
 steps:
