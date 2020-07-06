@@ -414,6 +414,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.True(options.LoadBalancerIP.HasValue);
             options.LoadBalancerIP.ForEach(l => Assert.Equal("any old string", l));
         }
-
     }
 }

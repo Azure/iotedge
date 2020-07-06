@@ -145,7 +145,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             Assert.Equal(PortMapServiceType.LoadBalancer.ToString(), service.Spec.Type);
         }
 
-
         [Fact]
         public void CreateServiceHostPortsCreatesHostportService()
         {
