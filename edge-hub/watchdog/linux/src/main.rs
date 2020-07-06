@@ -18,7 +18,7 @@ const PROCESS_POLL_INTERVAL_SECS: u64 = 1;
 
 struct ChildProcess {
     pub name: String,
-    pub child: Child,
+    pub process: Child,
 }
 
 // TODO: find documentation standards for func param
@@ -32,7 +32,7 @@ impl ChildProcess {
         // this makes lifetimes easier to deal with
         let child = match command.spawn() {
             Ok(child) => {
-                info!("Launched {:?} with pid {:?}", name, child.id());
+                info!("Launched {:?} process with pid {:?}", name, child.id());
                 child
             }
             Err(e) => {
@@ -46,23 +46,18 @@ impl ChildProcess {
         thread::spawn(move || {
             let mut child_process = ChildProcess {
                 name: name,
-                child: child,
+                process: child,
             };
 
-            while Self::is_running(&mut child_process.child)
+            while Self::is_running(&mut child_process)
                 && !has_parent_started_shutdown.load(Ordering::Relaxed)
             {
                 let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
                 thread::sleep(poll_interval);
             }
 
-            if Self::is_running(&mut child_process.child) {
-                child_process.trigger_shutdown();
-            } else {
-                info!(
-                    "Child process {:?} not running so won't attempt termination.",
-                    child_process.name
-                )
+            if Self::is_running(&mut child_process) {
+                child_process.shutdown_if_running();
             }
 
             has_shutdown_listener.store(true, Ordering::Relaxed);
@@ -71,32 +66,37 @@ impl ChildProcess {
         has_shutdown
     }
 
-    fn trigger_shutdown(&mut self) {
-        if Self::is_running(&mut self.child) {
-            info!("Terminating {:?}", self.name);
+    fn shutdown_if_running(&mut self) {
+        if Self::is_running(self) {
+            info!("Terminating {:?} process", self.name);
             self.send_signal(Signal::SIGTERM);
+        } else {
+            info!("{:?} process has stopped", self.name)
         }
 
         self.wait_for_exit();
 
-        if Self::is_running(&mut self.child) {
-            info!("Killing {:?}", self.name);
+        if Self::is_running(self) {
+            info!("Killing {:?} process", self.name);
             self.send_signal(Signal::SIGKILL);
         }
     }
 
     // TODO: get signal name and log it
     fn send_signal(&mut self, signal: Signal) {
-        if let Err(e) = signal::kill(Pid::from_raw(self.child.id() as i32), signal) {
-            error!("Failed to send signal to {:?}. {:?}", self.name, e);
+        if let Err(e) = signal::kill(Pid::from_raw(self.process.id() as i32), signal) {
+            error!("Failed to send signal to {:?} process. {:?}", self.name, e);
         }
     }
 
-    fn is_running(child: &mut Child) -> bool {
-        match child.try_wait() {
+    fn is_running(child_process: &mut ChildProcess) -> bool {
+        match child_process.process.try_wait() {
             Ok(status) => status.is_none(),
             Err(e) => {
-                error!("Error while polling child process status. {:?}", e);
+                error!(
+                    "Error while polling {:?} process status. {:?}",
+                    child_process.name, e
+                );
                 false
             }
         }
@@ -104,7 +104,7 @@ impl ChildProcess {
 
     fn wait_for_exit(&mut self) {
         let mut elapsed_secs = 0;
-        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS && Self::is_running(&mut self.child) {
+        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS && Self::is_running(self) {
             let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
             thread::sleep(poll_interval);
             elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
@@ -153,6 +153,9 @@ fn main() -> Result<(), Error> {
         thread::sleep(Duration::from_secs(1));
     }
 
+    should_shutdown.store(true, Ordering::Relaxed); // tell the threads to shut down their child process
+
+    // TODO: should we block on the thread exit? We don't have access to the threads intentionally though
     let mut elapsed_secs = 0;
     let buffered_wait_secs = PROCESS_SHUTDOWN_TOLERANCE_SECS + 5; // give buffer to allow child processes to be killed
     while elapsed_secs < buffered_wait_secs
@@ -173,8 +176,9 @@ fn init_logging() {
     let _ = subscriber::set_global_default(subscriber);
 }
 
+// TODO: figure out how to log shutdown signal
 fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
-    // TODO: figure out how to log shutdown signal
+    info!("Registering shutdown signal listener");
     let should_shutdown = Arc::new(AtomicBool::new(false));
     flag::register(SIGTERM, Arc::clone(&should_shutdown))?;
     flag::register(SIGINT, Arc::clone(&should_shutdown))?;
