@@ -1,10 +1,11 @@
 ARG base_tag=1.0.5-linux-arm32v7
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
+RUN mkdir -p /tmp/mqtt/config
+
 ADD ./watchdog/target/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
-
-RUN mkdir -p /tmp/mqtt/config
+ADD ./mqttd/production.json /tmp/mqtt/config/production.json
 
 ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
 

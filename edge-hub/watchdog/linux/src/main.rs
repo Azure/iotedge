@@ -127,7 +127,9 @@ fn main() -> Result<(), Error> {
 
     let has_broker_shutdown = ChildProcess::run_child_process(
         "MQTT Broker".to_string(),
-        Command::new("/usr/local/bin/mqttd").stdout(Stdio::inherit()),
+        Command::new("/usr/local/bin/mqttd")
+            .arg("-c /tmp/mqtt/config/production.json")
+            .stdout(Stdio::inherit()),
         Arc::clone(&should_shutdown),
     );
 

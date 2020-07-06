@@ -1,8 +1,11 @@
 ARG base_tag=1.0.5-linux-arm64v8
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
+RUN mkdir -p /tmp/mqtt/config
+
 ADD ./watchdog/target/aarch64-unknown-linux-gnu/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/aarch64-unknown-linux-gnu/release/mqttd /usr/local/bin/mqttd
+ADD ./mqttd/production.json /tmp/mqtt/config/production.json
 
 RUN mkdir -p /tmp/mqtt/config
 
