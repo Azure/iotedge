@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using System.Collections.Generic;
     using System.Linq;
     using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json.Linq;
@@ -342,5 +343,77 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal("RollingUpdate", deploymentStrategy.Type);
             Assert.Equal("1", deploymentStrategy.RollingUpdate.MaxUnavailable);
         }
+
+        [Fact]
+        public void ParsesEmptyServiceOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ serviceOptions: {  } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.ServiceOptions.HasValue);
+            var options = parameters.ServiceOptions.OrDefault();
+            Assert.False(options.Type.HasValue);
+            Assert.False(options.LoadBalancerIP.HasValue);
+        }
+
+        [Fact]
+        public void ParsesServiceOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse(@"{ serviceOptions: { type: ""nodeport"", loadbalancerip: ""100.1.2.3"" } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.ServiceOptions.HasValue);
+            var options = parameters.ServiceOptions.OrDefault();
+            Assert.True(options.Type.HasValue);
+            options.Type.ForEach(t => Assert.Equal(PortMapServiceType.NodePort, t));
+
+            Assert.True(options.LoadBalancerIP.HasValue);
+            options.LoadBalancerIP.ForEach(l => Assert.Equal("100.1.2.3", l));
+        }
+
+        [Fact]
+        public void ParsesServiceOptionsTypeOnly()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse(@"{ serviceOptions: { type: ""LoadBalancer"" } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.ServiceOptions.HasValue);
+            var options = parameters.ServiceOptions.OrDefault();
+            Assert.True(options.Type.HasValue);
+            options.Type.ForEach(t => Assert.Equal(PortMapServiceType.LoadBalancer, t));
+
+            Assert.False(options.LoadBalancerIP.HasValue);
+        }
+
+        [Fact]
+        public void ParsesServiceOptionsLBIPOnly()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse(@"{ serviceOptions: { loadbalancerip: ""any old string"" } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.ServiceOptions.HasValue);
+            var options = parameters.ServiceOptions.OrDefault();
+            Assert.False(options.Type.HasValue);
+
+            Assert.True(options.LoadBalancerIP.HasValue);
+            options.LoadBalancerIP.ForEach(l => Assert.Equal("any old string", l));
+        }
+
     }
 }

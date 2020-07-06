@@ -80,6 +80,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         }
 
         [Fact]
+        public void CreateServiceSetsServiceOptions()
+        {
+            var serviceOptions = new KubernetesServiceOptions("nodeport", "loadBalancerIP");
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.NodePort.ToString(), service.Spec.Type);
+            Assert.Equal("loadBalancerIP", service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptionsNoIPOnNullLoadBalancerIP()
+        {
+            var serviceOptions = new KubernetesServiceOptions("nodeport", null);
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.NodePort.ToString(), service.Spec.Type);
+            Assert.Null(service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptionsSetDefaultOnNullType()
+        {
+            var serviceOptions = new KubernetesServiceOptions(null, "loadBalancerIP");
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.ClusterIP.ToString(), service.Spec.Type);
+            Assert.Equal("loadBalancerIP", service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
         public void CreateServiceExposedPortsOnlyCreatesExposedPortService()
         {
             var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts));
@@ -105,6 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             var service = result.OrDefault();
             Assert.Equal(PortMapServiceType.LoadBalancer.ToString(), service.Spec.Type);
         }
+
 
         [Fact]
         public void CreateServiceHostPortsCreatesHostportService()
