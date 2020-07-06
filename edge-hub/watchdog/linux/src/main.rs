@@ -49,14 +49,13 @@ impl ChildProcess {
                 process: child,
             };
 
-            while Self::is_running(&mut child_process)
-                && !has_parent_started_shutdown.load(Ordering::Relaxed)
+            while child_process.is_running() && !has_parent_started_shutdown.load(Ordering::Relaxed)
             {
                 let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
                 thread::sleep(poll_interval);
             }
 
-            if Self::is_running(&mut child_process) {
+            if child_process.is_running() {
                 child_process.shutdown_if_running();
             }
 
@@ -67,7 +66,7 @@ impl ChildProcess {
     }
 
     fn shutdown_if_running(&mut self) {
-        if Self::is_running(self) {
+        if self.is_running() {
             info!("Terminating {:?} process", self.name);
             self.send_signal(Signal::SIGTERM);
         } else {
@@ -76,7 +75,7 @@ impl ChildProcess {
 
         self.wait_for_exit();
 
-        if Self::is_running(self) {
+        if self.is_running() {
             info!("Killing {:?} process", self.name);
             self.send_signal(Signal::SIGKILL);
         }
@@ -89,13 +88,13 @@ impl ChildProcess {
         }
     }
 
-    fn is_running(child_process: &mut ChildProcess) -> bool {
-        match child_process.process.try_wait() {
+    fn is_running(&mut self) -> bool {
+        match self.process.try_wait() {
             Ok(status) => status.is_none(),
             Err(e) => {
                 error!(
                     "Error while polling {:?} process status. {:?}",
-                    child_process.name, e
+                    self.name, e
                 );
                 false
             }
@@ -104,7 +103,7 @@ impl ChildProcess {
 
     fn wait_for_exit(&mut self) {
         let mut elapsed_secs = 0;
-        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS && Self::is_running(self) {
+        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS && self.is_running() {
             let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
             thread::sleep(poll_interval);
             elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
