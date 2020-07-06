@@ -23,7 +23,6 @@ struct ChildProcess {
     pub process: Child,
 }
 
-// TODO: find documentation standards for func param
 impl ChildProcess {
     pub fn run_child_process(
         name: String,
@@ -154,7 +153,6 @@ fn main() -> Result<(), Error> {
 
     should_shutdown.store(true, Ordering::Relaxed); // tell the threads to shut down their child process
 
-    // TODO: should we block on the thread exit? We don't have access to the threads intentionally though
     let mut elapsed_secs = 0;
     let buffered_wait_secs = PROCESS_SHUTDOWN_TOLERANCE_SECS + 5; // give buffer to allow child processes to be killed
     while elapsed_secs < buffered_wait_secs
@@ -175,7 +173,6 @@ fn init_logging() {
     let _ = subscriber::set_global_default(subscriber);
 }
 
-// TODO: figure out how to log shutdown signal
 fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
     info!("Registering shutdown signal listener");
     let should_shutdown = Arc::new(AtomicBool::new(false));
