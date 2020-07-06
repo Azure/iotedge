@@ -7,9 +7,11 @@ use std::{
     time::Duration,
 };
 
-use nix::sys::signal::{self, Signal};
-use nix::unistd::Pid;
-use signal_hook::{flag, SIGINT, SIGTERM};
+use nix::{
+    sys::signal::{self, Signal},
+    unistd::Pid,
+};
+use signal_hook::{flag::register, SIGINT, SIGTERM};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
@@ -177,7 +179,7 @@ fn init_logging() {
 fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
     info!("Registering shutdown signal listener");
     let should_shutdown = Arc::new(AtomicBool::new(false));
-    flag::register(SIGTERM, Arc::clone(&should_shutdown))?;
-    flag::register(SIGINT, Arc::clone(&should_shutdown))?;
+    register(SIGTERM, Arc::clone(&should_shutdown))?;
+    register(SIGINT, Arc::clone(&should_shutdown))?;
     Ok(should_shutdown)
 }
