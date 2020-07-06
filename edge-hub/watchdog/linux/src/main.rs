@@ -1,11 +1,3 @@
-// questions for denis:
-
-// have i structured this struct correctly
-// is it ok to pass arc atomic bools from worker threads handling child process to main thread, and use atomic bools to talk to worker threads
-
-// command issue - because it gets created initially as a mutable reference, it would be easier to create this inside the thread.
-// so from main what if we just pass the information necessary to start the command
-
 use std::{
     io::Error,
     process::{exit, Child, Command, Stdio},
@@ -29,10 +21,6 @@ struct ChildProcess {
     pub child: Child,
 }
 
-// TODO: 2 components (broker / edgehub)
-// each component runs separate thread.
-// in separate thread: start process and while loop to check for process status and tell main process to exit
-// use channels to communicate between threads
 // TODO: find documentation standards for func param
 impl ChildProcess {
     pub fn run_child_process(
@@ -165,6 +153,17 @@ fn main() -> Result<(), Error> {
         thread::sleep(Duration::from_secs(1));
     }
 
+    let mut elapsed_secs = 0;
+    let buffered_wait_secs = PROCESS_SHUTDOWN_TOLERANCE_SECS + 5; // give buffer to allow child processes to be killed
+    while elapsed_secs < buffered_wait_secs
+        && (!has_broker_shutdown.load(Ordering::Relaxed)
+            || !has_edgehub_shutdown.load(Ordering::Relaxed))
+    {
+        let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
+        thread::sleep(poll_interval);
+        elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
+    }
+
     info!("Stopped watchdog process");
     Ok(())
 }
@@ -176,9 +175,6 @@ fn init_logging() {
 
 fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
     // TODO: figure out how to log shutdown signal
-    // TODO: figure out how to consolidate signal hook
-    // TODO: do we receive signal that happened before listener registered
-    // TODO: remove FQN
     let should_shutdown = Arc::new(AtomicBool::new(false));
     flag::register(SIGTERM, Arc::clone(&should_shutdown))?;
     flag::register(SIGINT, Arc::clone(&should_shutdown))?;
