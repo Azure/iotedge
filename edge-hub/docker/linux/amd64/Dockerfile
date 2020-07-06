@@ -3,8 +3,6 @@ FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
-RUN mkdir -p /tmp/mqtt/config
-
 ADD ./watchdog/target/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 ADD ./mqttd/production.json /tmp/mqtt/config/production.json
