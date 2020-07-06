@@ -34,6 +34,7 @@ jobs:
 
     timeoutInMinutes: 120
 
+    steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
@@ -110,6 +111,7 @@ jobs:
       arch: amd64
       artifactName: iotedged-centos7-amd64
 
+    steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
