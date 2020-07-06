@@ -17,12 +17,12 @@ use std::{
 
 use nix::sys::signal::{self, Signal};
 use nix::unistd::Pid;
-use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
+use signal_hook::{flag, SIGINT, SIGTERM};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
-const PROCESS_SHUTDOWN_TOLERANCE: Duration = Duration { secs: 60, nanos: 0 };
-const PROCESS_POLL_INTERVAL: Duration = Duration { secs: 1, nanos: 0 };
+const PROCESS_SHUTDOWN_TOLERANCE_SECS: u64 = 5;
+const PROCESS_POLL_INTERVAL_SECS: u64 = 1;
 
 struct ChildProcess {
     pub name: String,
@@ -49,23 +49,24 @@ impl ChildProcess {
         let mut has_shutdown = Arc::new(AtomicBool::new(false));
         let has_shutdown_listener = Arc::clone(&mut has_shutdown);
         thread::spawn(move || {
-            let mut childProcess = ChildProcess {
+            let mut child_process = ChildProcess {
                 name: name,
                 child: child,
             };
 
-            while Self::is_running(&mut childProcess.child) {
-                thread::sleep(PROCESS_POLL_INTERVAL);
+            while Self::is_running(&mut child_process.child) {
+                let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
+                thread::sleep(poll_interval);
             }
 
-            childProcess.trigger_shutdown();
+            child_process.trigger_shutdown();
             has_shutdown_listener.store(true, Ordering::Relaxed);
         });
 
         has_shutdown
     }
 
-    pub fn trigger_shutdown(&mut self) {
+    fn trigger_shutdown(&mut self) {
         if Self::is_running(&mut self.child) {
             info!("Terminating {:?}", self.name);
             self.send_signal(Signal::SIGTERM);
@@ -96,14 +97,14 @@ impl ChildProcess {
         }
     }
 
-    fn wait_for_exit(self) {
+    fn wait_for_exit(&mut self) {
         let mut elapsed_secs = 0;
-        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE.as_secs()
+        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS
             && Self::is_running(&mut self.child)
         {
-            thread::sleep(PROCESS_POLL_INTERVAL);
-
-            elapsed_secs += PROCESS_POLL_INTERVAL.as_secs();
+            let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
+            thread::sleep(poll_interval);
+            elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
         }
     }
 }
@@ -128,7 +129,7 @@ fn main() -> Result<(), Error> {
         Command::new("/usr/local/bin/mqttd").stdout(Stdio::inherit()),
     );
 
-    let mut has_edgehub_shutdown = ChildProcess::run_child_process(
+    let has_edgehub_shutdown = ChildProcess::run_child_process(
         "Edge Hub".to_string(),
         Command::new("dotnet")
             .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
@@ -164,7 +165,7 @@ fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
     // TODO: do we receive signal that happened before listener registered
     // TODO: remove FQN
     let should_shutdown = Arc::new(AtomicBool::new(false));
-    signal_hook::flag::register(signal_hook::SIGTERM, Arc::clone(&should_shutdown))?;
-    signal_hook::flag::register(signal_hook::SIGINT, Arc::clone(&should_shutdown))?;
+    flag::register(SIGTERM, Arc::clone(&should_shutdown))?;
+    flag::register(SIGINT, Arc::clone(&should_shutdown))?;
     Ok(should_shutdown)
 }
