@@ -55,9 +55,7 @@ impl ChildProcess {
                 thread::sleep(poll_interval);
             }
 
-            if child_process.is_running() {
-                child_process.shutdown_if_running();
-            }
+            child_process.shutdown_if_running();
 
             has_shutdown_listener.store(true, Ordering::Relaxed);
         });
@@ -81,8 +79,8 @@ impl ChildProcess {
         }
     }
 
-    // TODO: get signal name and log it
     fn send_signal(&mut self, signal: Signal) {
+        info!("Sending {:?} signal to {:?} process", signal, self.name);
         if let Err(e) = signal::kill(Pid::from_raw(self.process.id() as i32), signal) {
             error!("Failed to send signal to {:?} process. {:?}", self.name, e);
         }
