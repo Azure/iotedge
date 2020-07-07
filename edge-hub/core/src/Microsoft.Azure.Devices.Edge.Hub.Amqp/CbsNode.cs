@@ -148,8 +148,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             try
             {
-                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(iotHubHostName, token);
-                return (token, sharedAccessSignature.Audience);
+                string audience = message.ApplicationProperties.Map[CbsConstants.PutToken.Audience] as string;
+                return (token, audience);
             }
             catch (Exception e)
             {
