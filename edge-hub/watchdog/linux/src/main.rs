@@ -7,13 +7,13 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::result;
+use anyhow::Result;
 use child::run;
 use signal_hook::{flag::register, SIGINT, SIGTERM};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<()> {
     init_logging();
     info!("Starting watchdog");
 
@@ -33,41 +33,37 @@ fn main() -> Result<(), Error> {
         "/usr/local/bin/mqttd".to_string(),
         "-c /tmp/mqtt/config/production.json".to_string(),
         Arc::clone(&should_shutdown),
-    );
+    )?;
 
-    let edgehub_handle = run(
+    let edgehub_handle = match run(
         "Edge Hub".to_string(),
         "dotnet".to_string(),
         "/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll".to_string(),
         Arc::clone(&should_shutdown),
-    );
+    ) {
+        Ok(handle) => Some(handle),
+        Err(e) => {
+            should_shutdown.store(true, Ordering::Relaxed);
+            error!("Could not start edgehub process. {}", e);
+            None
+        }
+    };
 
-    // match broker_handle.join() {
-    //     Ok(()) => info!("Successfully stopped broker process"),
-    //     Err(e) => {
-    //         should_shutdown.store(true, Ordering::Relaxed);
-    //         error!("Failure while running broker process. {:?}", e)
-    //     }
-    // };
-
-    // if broker handle is Err then log failed to start
-    // else if broker handle unwrapped join() is Err then log failed while running
-    // print successfully stopped
-
-    // TODO: if we make other change then broker handle will be result
     if let Err(e) = broker_handle.join() {
         should_shutdown.store(true, Ordering::Relaxed);
-        error!("Failure while running broker process. {}", e)
+        error!("Failure while running broker process. {:?}", e)
     }
     info!("Successfully stopped broker process");
 
-    match edgehub_handle.join() {
-        Ok(()) => info!("Successfully stopped edgehub process"),
-        Err(e) => {
-            should_shutdown.store(true, Ordering::Relaxed);
-            error!("Failure while running edgehub process. {:?}", e)
-        }
-    };
+    edgehub_handle.map(|handle| {
+        match handle.join() {
+            Ok(()) => info!("Successfully stopped edgehub process"),
+            Err(e) => {
+                should_shutdown.store(true, Ordering::Relaxed);
+                error!("Failure while running edgehub process. {:?}", e)
+            }
+        };
+    });
 
     info!("Stopped watchdog process");
     Ok(())

@@ -11,7 +11,7 @@ use std::{
         Arc,
     },
     thread,
-    thread::{sleep, spawn, JoinHandle},
+    thread::{sleep, JoinHandle},
     time::Duration,
 };
 use tracing::{error, info};
@@ -26,7 +26,7 @@ pub struct ChildProcess {
 
 impl ChildProcess {
     pub fn create(name: String, process: Child) -> Self {
-        ChildProcess { name, process }
+        Self { name, process }
     }
 
     pub fn is_running(&mut self) -> bool {
@@ -83,7 +83,7 @@ pub fn run(
         .spawn()
         .with_context(|| format!("Failed to start {:?} process.", name))?;
 
-    Ok(thread::spawn(move || {
+    let handle = thread::spawn(move || {
         info!("Launched {} process with pid {}", name, child.id());
 
         let mut child_process = ChildProcess::create(name, child);
@@ -95,5 +95,6 @@ pub fn run(
         should_shutdown.store(true, Ordering::Relaxed); // tell the threads to shut down their child process
 
         child_process.shutdown_if_running();
-    }))
+    });
+    Ok(handle)
 }
