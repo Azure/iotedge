@@ -1,4 +1,4 @@
-mod child_process;
+mod child;
 
 use std::{
     io::Error,
@@ -7,7 +7,8 @@ use std::{
     sync::Arc,
 };
 
-use child_process::run_child_process;
+use anyhow::result;
+use child::run;
 use signal_hook::{flag::register, SIGINT, SIGTERM};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
@@ -27,27 +28,39 @@ fn main() -> Result<(), Error> {
         }
     };
 
-    let broker_handle = run_child_process(
+    let broker_handle = run(
         "MQTT Broker".to_string(),
         "/usr/local/bin/mqttd".to_string(),
         "-c /tmp/mqtt/config/production.json".to_string(),
         Arc::clone(&should_shutdown),
     );
 
-    let edgehub_handle = run_child_process(
+    let edgehub_handle = run(
         "Edge Hub".to_string(),
         "dotnet".to_string(),
         "/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll".to_string(),
         Arc::clone(&should_shutdown),
     );
 
-    match broker_handle.join() {
-        Ok(()) => info!("Successfully stopped broker process"),
-        Err(e) => {
-            should_shutdown.store(true, Ordering::Relaxed);
-            error!("Failure while running broker process. {:?}", e)
-        }
-    };
+    // match broker_handle.join() {
+    //     Ok(()) => info!("Successfully stopped broker process"),
+    //     Err(e) => {
+    //         should_shutdown.store(true, Ordering::Relaxed);
+    //         error!("Failure while running broker process. {:?}", e)
+    //     }
+    // };
+
+    // if broker handle is Err then log failed to start
+    // else if broker handle unwrapped join() is Err then log failed while running
+    // print successfully stopped
+
+    // TODO: if we make other change then broker handle will be result
+    if let Err(e) = broker_handle.join() {
+        should_shutdown.store(true, Ordering::Relaxed);
+        error!("Failure while running broker process. {}", e)
+    }
+    info!("Successfully stopped broker process");
+
     match edgehub_handle.join() {
         Ok(()) => info!("Successfully stopped edgehub process"),
         Err(e) => {
