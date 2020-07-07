@@ -62,7 +62,7 @@ namespace MetricsValidator
                             {
                                 new ValidateMessages(testReporter, scraper, moduleClient, transportType),
                                 new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
-                                // new ValidateHostRanges(testReporter, scraper, moduleClient),
+                                new ValidateHostRanges(testReporter, scraper, moduleClient),
                             };
 
                             using (testReporter.MeasureDuration())
