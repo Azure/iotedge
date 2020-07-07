@@ -9,7 +9,12 @@ pub use authorization::{
     Publication, Publish, Subscribe,
 };
 
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    sync::Arc,
+};
+
+use crate::ClientId;
 
 /// Authenticated MQTT client identity.
 #[derive(Clone, Debug, PartialEq)]
@@ -44,4 +49,29 @@ impl<T: Into<Identity>> From<T> for AuthId {
 }
 
 /// Non-anonymous client identity.
-pub type Identity = String;
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Identity(Arc<String>);
+
+impl Identity {
+    fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl<T: Into<String>> From<T> for Identity {
+    fn from(s: T) -> Self {
+        Self(Arc::new(s.into()))
+    }
+}
+
+impl Display for Identity {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl PartialEq<ClientId> for Identity {
+    fn eq(&self, other: &ClientId) -> bool {
+        self.as_str() == other.as_str()
+    }
+}

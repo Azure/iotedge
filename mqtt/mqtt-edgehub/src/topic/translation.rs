@@ -76,7 +76,10 @@ pub fn translate_outgoing_publish(mut publish: proto::Publish) -> proto::Publish
     publish
 }
 
-const DEVICE_ID: &str = r"(?P<device_id>.+)";
+const DEVICE_ID: &str = r"(?P<device_id>[^/]+)";
+
+const MODULE_ID: &str = r"(?P<module_id>[^/].+)";
+
 macro_rules! translate_d2c {
     ($(
         $translate_name:ident {
@@ -176,6 +179,13 @@ macro_rules! translate_c2d {
 
 translate_d2c! {
     // Message Translation
+    module_send_message {
+        to_new_topic {
+            format!("devices/{}/modules/{}/messages/events(?P<path>.*)", DEVICE_ID, MODULE_ID),
+            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/messages/events{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
+        }
+    },
+
     device_send_message { // note this may have to be split into 2 patterns for device and modules, depending on how client_id encodes device and module id
         to_new_topic {
             format!("devices/{}/messages/events(?P<path>.*)", DEVICE_ID),
@@ -208,6 +218,17 @@ translate_d2c! {
 
 translate_c2d! {
     // Message Translation
+    module_c2d_message {
+        to_new_topic {
+            format!("devices/{}/modules/{}/messages/devicebound(?P<path>.*)", DEVICE_ID, MODULE_ID),
+            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/messages/c2d/post{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
+        },
+        to_old_topic {
+            format!("\\$edgehub/{}/{}/messages/c2d/post(?P<path>.*)", DEVICE_ID, MODULE_ID),
+            {|captures: regex::Captures<'_>| format!("devices/{}/modules/{}/messages/devicebound{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
+        }
+    },
+
     c2d_message {
         to_new_topic {
             format!("devices/{}/messages/devicebound(?P<path>.*)", DEVICE_ID),
@@ -269,7 +290,17 @@ mod tests {
         // Noneranslate_t
         assert_eq!(d2c.to_new_topic("blagh", &client_a), None);
         assert_eq!(d2c.to_new_topic("$iothub/blagh", &client_a), None);
-
+        assert_eq!(
+            d2c.to_new_topic("devices/another/device_1/messages/events", &client_a),
+            None
+        );
+        assert_eq!(
+            d2c.to_new_topic(
+                "devices/device_1/modules/another/module-a/messages/devicebound/",
+                &client_a
+            ),
+            None
+        );
         // Messages d2c
         assert_eq!(
             d2c.to_new_topic("devices/device_1/messages/events", &device_1),
@@ -284,7 +315,7 @@ mod tests {
                 "devices/device_1/modules/client_a/messages/events",
                 &client_a
             ),
-            Some("$edgehub/device_1/modules/client_a/messages/events".to_owned())
+            Some("$edgehub/device_1/client_a/messages/events".to_owned())
         );
 
         // Messages c2d
@@ -314,10 +345,10 @@ mod tests {
                 "devices/device_1/modules/client_a/messages/devicebound",
                 &client_a
             ),
-            Some("$edgehub/device_1/modules/client_a/messages/c2d/post".to_owned())
+            Some("$edgehub/device_1/client_a/messages/c2d/post".to_owned())
         );
         assert_eq!(
-            c2d.to_old_topic("$edgehub/device_1/modules/client_a/messages/c2d/post",),
+            c2d.to_old_topic("$edgehub/device_1/client_a/messages/c2d/post",),
             Some("devices/device_1/modules/client_a/messages/devicebound".to_owned())
         );
 
