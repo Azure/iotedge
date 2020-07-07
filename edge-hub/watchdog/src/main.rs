@@ -4,11 +4,12 @@ use std::{
     io::Error,
     sync::atomic::{AtomicBool, Ordering},
     sync::Arc,
+    thread,
 };
 
 use anyhow::{Context, Result};
 use child::run;
-use signal_hook::{flag::register, SIGINT, SIGTERM};
+use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
@@ -65,8 +66,20 @@ fn init_logging() {
 
 fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
     info!("Registering shutdown signal listener");
-    let should_shutdown = Arc::new(AtomicBool::new(false));
-    register(SIGTERM, Arc::clone(&should_shutdown))?;
-    register(SIGINT, Arc::clone(&should_shutdown))?;
+    let shutdown_listener = Arc::new(AtomicBool::new(false));
+    let should_shutdown = shutdown_listener.clone();
+    let signals = Signals::new(&[SIGTERM, SIGINT])?;
+    thread::spawn(move || {
+        for signal in signals.forever() {
+            let signal_name = match signal {
+                SIGTERM => "SIGTERM",
+                SIGINT => "SIGINT",
+                _ => "Unexpected",
+            };
+            info!("Watchdog received {} signal", signal_name);
+            shutdown_listener.store(true, Ordering::Relaxed);
+        }
+    });
+
     Ok(should_shutdown)
 }
