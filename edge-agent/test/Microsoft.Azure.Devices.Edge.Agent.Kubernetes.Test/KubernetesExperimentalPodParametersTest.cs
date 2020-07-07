@@ -69,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.False(parameters.NodeSelector.HasValue);
             Assert.False(parameters.Resources.HasValue);
             Assert.False(parameters.SecurityContext.HasValue);
+            Assert.False(parameters.ServiceOptions.HasValue);
             Assert.False(parameters.DeploymentStrategy.HasValue);
         }
 
