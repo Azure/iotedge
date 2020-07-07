@@ -5,8 +5,6 @@ ADD ./watchdog/target/aarch64-unknown-linux-gnu/release/watchdog /usr/local/bin/
 ADD ./mqttd/target/aarch64-unknown-linux-gnu/release/mqttd /usr/local/bin/mqttd
 ADD ./mqttd/production.json /tmp/mqtt/config/production.json
 
-RUN mkdir -p /tmp/mqtt/config
-
 ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
 
 WORKDIR /app
