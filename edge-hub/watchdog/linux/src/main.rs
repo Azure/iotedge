@@ -1,74 +1,19 @@
+mod child_process;
+
 use std::{
     io::Error,
-    process::{exit, Child, Command, Stdio},
+    process::{exit, Command, Stdio},
     sync::atomic::{AtomicBool, Ordering},
     sync::Arc,
     thread::{sleep, spawn, JoinHandle},
     time::Duration,
 };
 
-use nix::{
-    sys::signal::{self, Signal},
-    unistd::Pid,
-};
+use child_process::ChildProcess;
+use child_process::PROCESS_POLL_INTERVAL_SECS;
 use signal_hook::{flag::register, SIGINT, SIGTERM};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
-
-const PROCESS_SHUTDOWN_TOLERANCE_SECS: u64 = 5;
-const PROCESS_POLL_INTERVAL_SECS: u64 = 1;
-
-struct ChildProcess {
-    pub name: String,
-    pub process: Child,
-}
-
-impl ChildProcess {
-    fn shutdown_if_running(&mut self) {
-        if self.is_running() {
-            info!("Terminating {:?} process", self.name);
-            self.send_signal(Signal::SIGTERM);
-        } else {
-            info!("{:?} process has stopped", self.name)
-        }
-
-        self.wait_for_exit();
-
-        if self.is_running() {
-            info!("Killing {:?} process", self.name);
-            self.send_signal(Signal::SIGKILL);
-        }
-    }
-
-    fn send_signal(&mut self, signal: Signal) {
-        info!("Sending {:?} signal to {:?} process", signal, self.name);
-        if let Err(e) = signal::kill(Pid::from_raw(self.process.id() as i32), signal) {
-            error!("Failed to send signal to {:?} process. {:?}", self.name, e);
-        }
-    }
-
-    fn is_running(&mut self) -> bool {
-        match self.process.try_wait() {
-            Ok(status) => status.is_none(),
-            Err(e) => {
-                error!(
-                    "Error while polling {:?} process status. {:?}",
-                    self.name, e
-                );
-                false
-            }
-        }
-    }
-
-    fn wait_for_exit(&mut self) {
-        let mut elapsed_secs = 0;
-        while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS && self.is_running() {
-            let poll_interval: Duration = Duration::from_secs(PROCESS_POLL_INTERVAL_SECS);
-            sleep(poll_interval);
-            elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
-        }
-    }
-}
 
 fn main() -> Result<(), Error> {
     init_logging();
