@@ -15,12 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IConnectionProvider connectionProvider;
         readonly IMessageConverter<IProtocolGatewayMessage> pgMessageConverter;
         readonly IByteBufferConverter byteBufferConverter;
+        readonly IModelIdStore modelIdStore;
 
-        public MqttConnectionProvider(IConnectionProvider connectionProvider, IMessageConverter<IProtocolGatewayMessage> pgMessageConverter, IByteBufferConverter byteBufferConverter)
+        public MqttConnectionProvider(IConnectionProvider connectionProvider, IMessageConverter<IProtocolGatewayMessage> pgMessageConverter, IByteBufferConverter byteBufferConverter, IModelIdStore modelIdStore)
         {
             this.connectionProvider = Preconditions.CheckNotNull(connectionProvider, nameof(connectionProvider));
             this.pgMessageConverter = Preconditions.CheckNotNull(pgMessageConverter, nameof(pgMessageConverter));
             this.byteBufferConverter = Preconditions.CheckNotNull(byteBufferConverter, nameof(byteBufferConverter));
+            this.modelIdStore = modelIdStore;
         }
 
         public async Task<IMessagingBridge> Connect(IDeviceIdentity deviceidentity)
@@ -33,6 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IDeviceListener deviceListener = await this.connectionProvider.GetDeviceListenerAsync(protocolGatewayIdentity.ClientCredentials.Identity, protocolGatewayIdentity.ModelId);
             IMessagingServiceClient messagingServiceClient = new MessagingServiceClient(deviceListener, this.pgMessageConverter, this.byteBufferConverter);
             IMessagingBridge messagingBridge = new SingleClientMessagingBridge(deviceidentity, messagingServiceClient);
+
+            protocolGatewayIdentity.ModelId.ForEach(m => this.modelIdStore.SetModelId(protocolGatewayIdentity.Id, m));
 
             return messagingBridge;
         }
