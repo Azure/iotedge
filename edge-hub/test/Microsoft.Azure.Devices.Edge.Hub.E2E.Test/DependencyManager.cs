@@ -195,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     10,
                     10,
-                    false,
+                    true,
                     TimeSpan.FromHours(1),
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
