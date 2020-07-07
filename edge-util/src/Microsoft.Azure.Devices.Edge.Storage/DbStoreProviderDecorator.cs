@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return this.dbStoreProvider.GetDbStore(partitionName);
         }
 
-        public Option<IDbStore> GetIfExistsDbStore( string partitionName)
+        public Option<IDbStore> GetIfExistsDbStore(string partitionName)
         {
             return this.dbStoreProvider.GetIfExistsDbStore(partitionName);
         }

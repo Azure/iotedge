@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName)
         {
             IDbStore entityDbStore = this.dbStoreProvider.GetDbStore(Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName)));
-            return GetEntityStore<TK, TV>(entityName, entityDbStore);
+            return this.GetEntityStore<TK, TV>(entityName, entityDbStore);
         }
 
         public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string backwardCompatibleEntityName, string entityName)
@@ -34,11 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
 
             var entityDbStore = this.dbStoreProvider.GetIfExistsDbStore(backwardCompatibleEntityName);
-            return entityDbStore.Match(some: backwardCompatibleDbStore => GetEntityStore<TK, TV>(backwardCompatibleEntityName, backwardCompatibleDbStore),
+            return entityDbStore.Match(
+                some: backwardCompatibleDbStore => this.GetEntityStore<TK, TV>(backwardCompatibleEntityName, backwardCompatibleDbStore),
                 none: () =>
                 {
                     var dbstore = this.dbStoreProvider.GetDbStore(entityName);
-                    return GetEntityStore<TK, TV>(entityName, dbstore);
+                    return this.GetEntityStore<TK, TV>(entityName, dbstore);
                 });
         }
 
