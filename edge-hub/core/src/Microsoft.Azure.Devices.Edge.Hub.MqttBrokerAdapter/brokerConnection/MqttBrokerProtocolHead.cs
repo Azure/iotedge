@@ -13,17 +13,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly MqttBridgeProtocolHeadConfig config;
         readonly IMqttBrokerConnector connector;
 
+        int isRunning;
+
         public string Name => "MQTT-BROKER-HEAD";
 
         public MqttBrokerProtocolHead(MqttBridgeProtocolHeadConfig config, IMqttBrokerConnector connector)
         {
             this.config = Preconditions.CheckNotNull(config);
             this.connector = Preconditions.CheckNotNull(connector);
+            this.isRunning = 0;
         }
 
         public async Task StartAsync()
         {
             Events.Starting();
+
+            var wasRunning = Interlocked.Exchange(ref this.isRunning, 1);
+            if (wasRunning == 1)
+            {
+                Events.WasAlreadyRunning();
+                return;
+            }
 
             try
             {
@@ -40,6 +50,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public async Task CloseAsync(CancellationToken token)
         {
+            var wasRunning = Interlocked.Exchange(ref this.isRunning, 0);
+            if (wasRunning == 0)
+            {
+                // not logging as multiple disposes or close/dispose can happen - just ignore
+                return;
+            }
+
             Events.Closing();
 
             try
@@ -67,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Starting = IdStart,
                 FailedToStart,
                 Started,
+                WasAlreadyRunning,
                 Closing,
                 FailedToClose,
                 Closed
@@ -74,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting MQTT-BROKER-HEAD head");
             public static void FailedToStart(Exception e) => Log.LogInformation((int)EventIds.FailedToStart, e, "Failed to start MQTT-BROKER-HEAD head");
+            public static void WasAlreadyRunning() => Log.LogWarning((int)EventIds.WasAlreadyRunning, "MQTT-BROKER-HEAD was already running when started again, ignoring start attempt");
             public static void Started() => Log.LogInformation((int)EventIds.Started, "Started MQTT-BROKER-HEAD head");
             public static void Closing() => Log.LogInformation((int)EventIds.Closing, "Closing MQTT-BROKER-HEAD head");
             public static void FailedToClose(Exception e) => Log.LogInformation((int)EventIds.FailedToClose, e, "Failed to close MQTT-BROKER-HEAD head");
