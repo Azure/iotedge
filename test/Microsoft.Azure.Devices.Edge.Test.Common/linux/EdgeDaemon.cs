@@ -2,9 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel;
-    using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
@@ -47,61 +45,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             string[] commands = packagesPath.Match(
                 p =>
                 {
-                    string[] packages = Directory.GetFiles(p, $"*.{this.packageManagement.PackageExtension.ToString().ToLower()}");
-                    for (int i = packages.Length - 1; i >= 0; --i)
-                    {
-                        if (packages[i].Contains("debug"))
-                        {
-                            packages[i] = string.Empty;
-                        }
-                    }
-
-                    switch (this.packageManagement.PackageExtension)
-                    {
-                        case PackageManagement.SupportedPackageExtension.Deb:
-                            return new[]
-                                {
-                                    "set -e",
-                                    $"{this.packageManagement.ForceInstallConfigCmd} {string.Join(' ', packages)}",
-                                    $"{this.packageManagement.PackageTool} {this.packageManagement.InstallCmd}"
-                                };
-                        case PackageManagement.SupportedPackageExtension.Rpm:
-                            return new[]
-                                {
-                                    "set -e",
-                                    $"{this.packageManagement.PackageTool} {this.packageManagement.InstallCmd} {string.Join(' ', packages)}",
-                                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1); sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf; sudo mv -f ~/override.conf ${pathToSystemdConfig#?}; sudo systemctl daemon-reload;"
-                                };
-                        default:
-                            throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageManagement.PackageExtension}'");
-                    }
+                    return this.packageManagement.GetInstallCommandsFromLocal(p);
                 },
                 () =>
                 {
-                    switch (this.packageManagement.PackageExtension)
-                    {
-                        case PackageManagement.SupportedPackageExtension.Deb:
-                            // Based on instructions at:
-                            // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
-                            // TODO: 8/30/2019 support curl behind a proxy
-                            return new[]
-                                {
-                                    $"curl https://packages.microsoft.com/config/{this.packageManagement.Os}/{this.packageManagement.Version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
-                                    "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                                    $"{this.packageManagement.PackageTool} update",
-                                    $"{this.packageManagement.PackageTool} install --yes iotedge"
-                                };
-                        case PackageManagement.SupportedPackageExtension.Rpm:
-                            return new[]
-                                {
-                                    $"{this.packageManagement.ForceInstallConfigCmd} https://packages.microsoft.com/config/{this.packageManagement.Os}/{this.packageManagement.Version}/packages-microsoft-prod.rpm",
-                                    $"{this.packageManagement.PackageTool} updateinfo",
-                                    $"{this.packageManagement.PackageTool} install --yes iotedge",
-                                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1); sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf; sudo mv -f ~/override.conf ${pathToSystemdConfig#?}; sudo systemctl daemon-reload;"
-                                };
-                        default:
-                            throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageManagement.PackageExtension}'");
-                    }
+                    return this.packageManagement.GetInstallCommandsFromMicrosoftProd();
                 });
 
             await Profiler.Run(
@@ -157,8 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
-            Log.Verbose(string.Join("\n", output));
+            await this.packageManagement.InternalStopAsync(token);
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
 
@@ -178,9 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 await Profiler.Run(
                     async () =>
                     {
-                        string[] output =
-                            await Process.RunAsync($"{this.packageManagement.PackageTool}", $"{this.packageManagement.UninstallCmd} libiothsm-std iotedge", token);
-                        Log.Verbose(string.Join("\n", output));
+                        await this.packageManagement.UninstallAsync(token);
                     },
                     "Uninstalled edge daemon");
             }

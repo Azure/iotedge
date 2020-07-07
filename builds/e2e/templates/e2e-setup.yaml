@@ -87,10 +87,6 @@ steps:
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
 
-    echo "edgeAgentImage = $imagePrefix-agent:$imageTag";
-    echo "edgeHubImage = $imagePrefix-hub:$imageTag";
-    echo "edgeAgentBootstrapImage = $imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
-
     $context = @{
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
