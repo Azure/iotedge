@@ -1,4 +1,3 @@
-#![macro_use]
 use nix::{
     sys::signal::{self, Signal},
     unistd::Pid,
