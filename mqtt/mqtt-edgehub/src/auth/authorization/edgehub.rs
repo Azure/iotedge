@@ -139,18 +139,6 @@ fn is_iothub_topic(topic: &str) -> bool {
 }
 
 fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
-    let mut id_parts = client_id.as_str().split('/');
-
-    let mut client_id = String::new();
-    if let Some(device_id) = id_parts.next() {
-        client_id.push_str(device_id);
-    }
-
-    if let Some(module_id) = id_parts.next() {
-        client_id.push_str("/modules/");
-        client_id.push_str(module_id);
-    }
-
     vec![
         format!("$edgehub/{}/messages/events", client_id),
         format!("$edgehub/{}/messages/c2d/post", client_id),
@@ -220,17 +208,19 @@ mod tests {
 
     #[test_case(subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic")]
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/messages/events"); "device events")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/messages/events"); "edge module client events")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/events"); "edge module client events")]
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/messages/c2d/post"); "device C2D messages")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/messages/c2d/post"); "edge module client C2D messages")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/c2d/post"); "edge module client C2D messages")]
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/desired"); "device update desired")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/twin/desired"); "edge module client update desired")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/desired"); "edge module client update desired")]
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/reported"); "device update reported")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/twin/reported"); "edge module client update reported")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/reported"); "edge module client update reported")]
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/get"); "device twin request")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/twin/get"); "edge module client twin request")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module client twin request")]
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/twin/res"); "edge module client twin response")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module client twin response")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module inputs")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module outputs")]
     fn it_allows_to_subscribe_to(activity: Activity) {
         let authorizer = authorizer();
 
@@ -260,17 +250,17 @@ mod tests {
 
     #[test_case(publish_activity("device-1", "device-1", "topic"); "generic MQTT topic")]
     #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/messages/events"); "device events")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/messages/events"); "edge module events")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/events"); "edge module events")]
     #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/messages/c2d/post"); "device C2D messages")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/messages/c2d/post"); "edge module C2D messages")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/c2d/post"); "edge module C2D messages")]
     #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/desired"); "device update desired")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/twin/desired"); "edge module update desired")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/desired"); "edge module update desired")]
     #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/reported"); "device update reported")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/twin/reported"); "edge module update reported")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/reported"); "edge module update reported")]
     #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/get"); "device twin request")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/twin/get"); "edge module twin request")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module twin request")]
     #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/modules/module-a/twin/res"); "edge module twin response")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module twin response")]
     fn it_allows_to_publish_to(activity: Activity) {
         let authorizer = authorizer();
 
