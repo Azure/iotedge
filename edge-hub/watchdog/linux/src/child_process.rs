@@ -3,11 +3,19 @@ use nix::{
     unistd::Pid,
 };
 
-use std::{process::Child, thread::sleep, time::Duration};
+use std::{
+    process::{exit, Child, Command, Stdio},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    thread::{sleep, spawn, JoinHandle},
+    time::Duration,
+};
 use tracing::{error, info};
 
 const PROCESS_SHUTDOWN_TOLERANCE_SECS: u64 = 5;
-pub const PROCESS_POLL_INTERVAL_SECS: u64 = 1;
+const PROCESS_POLL_INTERVAL_SECS: u64 = 1;
 
 pub struct ChildProcess {
     pub name: String,
@@ -59,4 +67,41 @@ impl ChildProcess {
             elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
         }
     }
+}
+
+pub fn run_child_process(
+    name: String,
+    program: String,
+    args: String,
+    shutdown_listener: Arc<AtomicBool>,
+) -> JoinHandle<()> {
+    spawn(move || {
+        let child = match Command::new(program)
+            .arg(args)
+            .stdout(Stdio::inherit())
+            .spawn()
+        {
+            Ok(child) => {
+                info!("Launched {:?} process with pid {:?}", name, child.id());
+                child
+            }
+            Err(e) => {
+                error!("Failed to start {:?} process. {:?}", name, e);
+                exit(2);
+            }
+        };
+        let mut child_process = ChildProcess {
+            name,
+            process: child,
+        };
+
+        while child_process.is_running() && !shutdown_listener.load(Ordering::Relaxed) {
+            let poll_interval: Duration = Duration::from_secs(PROCESS_POLL_INTERVAL_SECS);
+            sleep(poll_interval);
+        }
+
+        shutdown_listener.store(true, Ordering::Relaxed); // tell the threads to shut down their child process
+
+        child_process.shutdown_if_running();
+    })
 }
