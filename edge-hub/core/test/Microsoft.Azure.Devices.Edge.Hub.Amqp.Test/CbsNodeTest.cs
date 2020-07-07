@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             };
             AmqpMessage validAmqpMessage = AmqpMessage.Create(amqpValue);
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "iothub";
+            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = IoTHubHostName;
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
 
             // Act
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Arrange
             AmqpMessage invalidAmqpMessage4 = AmqpMessage.Create(new AmqpValue { Value = "azure-devices.net:sastoken" });
             invalidAmqpMessage4.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            invalidAmqpMessage4.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "iothub";
+            invalidAmqpMessage4.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = IoTHubHostName;
             invalidAmqpMessage4.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
             // Act/Assert
             Assert.Throws<InvalidOperationException>(() => CbsNode.ValidateAndParseMessage(IoTHubHostName, invalidAmqpMessage4));
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             };
             AmqpMessage validAmqpMessage = AmqpMessage.Create(amqpValue);
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "iothub";
+            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "edgehubtest1.azure-devices.net/devices/device1";
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
 
             var clientCredentials = Mock.Of<IClientCredentials>();
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             };
             AmqpMessage validAmqpMessage = AmqpMessage.Create(amqpValue);
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "iothub";
+            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "edgehubtest1.azure-devices.net/devices/device1";
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
 
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1/mod1");
