@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -57,22 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return entityDbStore;
         }
 
-        public IDbStore GetDbStore(string backwardCompatiblePartitionName, string partitionName)
+        public Option<IDbStore> GetIfExistsDbStore(string partitionName)
         {
-            Preconditions.CheckNonWhiteSpace(backwardCompatiblePartitionName, nameof(backwardCompatiblePartitionName));
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
-            IDbStore entityDbStore = null;
-            if (!this.entityDbStoreDictionary.TryGetValue(backwardCompatiblePartitionName, out entityDbStore))
-            {
-                if (!this.entityDbStoreDictionary.TryGetValue(partitionName, out entityDbStore))
-                {
-                    ColumnFamilyHandle handle = this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), partitionName);
-                    entityDbStore = new ColumnFamilyDbStore(this.db, handle);
-                    entityDbStore = this.entityDbStoreDictionary.GetOrAdd(partitionName, entityDbStore);
-                }
-            }
-
-            return entityDbStore;
+            this.entityDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore);
+            return entityDbStore != null ? Option.Some(entityDbStore) : Option.None<IDbStore>();
         }
 
         public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);

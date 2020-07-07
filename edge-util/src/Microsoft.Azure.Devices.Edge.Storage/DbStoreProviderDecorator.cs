@@ -39,9 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return this.dbStoreProvider.GetDbStore(partitionName);
         }
 
-        public virtual IDbStore GetDbStore(string backwardCompatiblePartitionName, string partitionName)
+        public Option<IDbStore> GetIfExistsDbStore( string partitionName)
         {
-            return this.dbStoreProvider.GetDbStore(backwardCompatiblePartitionName, partitionName);
+            return this.dbStoreProvider.GetIfExistsDbStore(partitionName);
         }
 
         public virtual IDbStore GetDbStore()

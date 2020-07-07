@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
+    using Microsoft.Azure.Devices.Edge.Util;
     using System;
     using System.Threading.Tasks;
 
@@ -11,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     {
         IDbStore GetDbStore(string partitionName);
 
-        IDbStore GetDbStore(string backwardCompatiblePartitionName, string partitionName);
+        Option<IDbStore> GetIfExistsDbStore(string partitionName);
 
         IDbStore GetDbStore();
 
