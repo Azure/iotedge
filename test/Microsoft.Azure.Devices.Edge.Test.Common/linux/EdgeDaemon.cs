@@ -17,18 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         Option<Registry> bootstrapRegistry;
         PackageManagement packageManagement;
 
-        public static async Task<EdgeDaemon> CreateAsync(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry)
-        {
-            PackageManagement packageManagement = await PackageManagement.CreateAsync();
-            EdgeDaemon edgeDaemon = new EdgeDaemon(bootstrapAgentImage, bootstrapRegistry, packageManagement);
-            return edgeDaemon;
-        }
-
-        EdgeDaemon(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry, PackageManagement packageManagement)
+        public EdgeDaemon(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry)
         {
             this.bootstrapAgentImage = bootstrapAgentImage;
             this.bootstrapRegistry = bootstrapRegistry;
-            this.packageManagement = packageManagement;
+            this.packageManagement = new PackageManagement();
         }
 
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
@@ -42,14 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     properties = properties.Append(p).ToArray();
                 });
 
-            string[] commands = packagesPath.Match(
-                p =>
+            string[] commands = await packagesPath.Match(
+                async (p) =>
                 {
-                    return this.packageManagement.GetInstallCommandsFromLocal(p);
+                    return await this.packageManagement.GetInstallCommandsFromLocalAsync(p);
                 },
-                () =>
+                async () =>
                 {
-                    return this.packageManagement.GetInstallCommandsFromMicrosoftProd();
+                    return await this.packageManagement.GetInstallCommandsFromMicrosoftProdAsync();
                 });
 
             await Profiler.Run(

@@ -10,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class PackageManagement
     {
+        bool isInitialized = false;
+
         string os;
         string version;
         string packageTool;
@@ -25,15 +27,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Rpm
         }
 
-        public static async Task<PackageManagement> CreateAsync()
+        public PackageManagement()
         {
-            var tokenSource = new CancellationTokenSource();
-            string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", tokenSource.Token);
-            PackageManagement packageManagement = new PackageManagement(platformInfo);
-            return packageManagement;
+            this.os = null;
+            this.version = null;
+            this.packageTool = null;
+            this.packageExtension = 0;
+            this.forceInstallConfigCmd = null;
+            this.installCmd = null;
+            this.iotedgeServices = null;
+            this.uninstallCmd = null;
+            this.isInitialized = false;
         }
 
-        PackageManagement(string[] platformInfo)
+        async Task CheckInitializationAsync()
+        {
+            if (!this.isInitialized)
+            {
+                var tokenSource = new CancellationTokenSource();
+                string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", tokenSource.Token);
+                this.InitializeParameters(platformInfo);
+                this.isInitialized = true;
+            }
+        }
+
+        void InitializeParameters(string[] platformInfo)
         {
             if (platformInfo.Length == 1)
             {
@@ -86,9 +104,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        public string[] GetInstallCommandsFromLocal(string path)
+        public async Task<string[]> GetInstallCommandsFromLocalAsync(string path)
         {
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
+            await this.CheckInitializationAsync();
 
             string[] packages = Directory.GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}");
             for (int i = packages.Length - 1; i >= 0; --i)
@@ -120,8 +139,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        public string[] GetInstallCommandsFromMicrosoftProd()
+        public async Task<string[]> GetInstallCommandsFromMicrosoftProdAsync()
         {
+            await this.CheckInitializationAsync();
+
             switch (this.packageExtension)
             {
                 case PackageManagement.SupportedPackageExtension.Deb:
@@ -150,12 +171,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task InternalStopAsync(CancellationToken token)
         {
+            await this.CheckInitializationAsync();
             string[] output = await Process.RunAsync("systemctl", $"stop {this.iotedgeServices}", token);
             Log.Verbose(string.Join("\n", output));
         }
 
         public async Task UninstallAsync(CancellationToken token)
         {
+            await this.CheckInitializationAsync();
             string[] output =
                 await Process.RunAsync($"{this.packageTool}", $"{this.uninstallCmd} libiothsm-std iotedge", token);
             Log.Verbose(string.Join("\n", output));
