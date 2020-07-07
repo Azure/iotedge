@@ -148,6 +148,8 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
         format!("$edgehub/{}/twin/res", client_id),
         format!("$edgehub/{}/methods/post", client_id),
         format!("$edgehub/{}/methods/res", client_id),
+        format!("$edgehub/{}/inputs", client_id),
+        format!("$edgehub/{}/outputs", client_id),
     ]
 }
 
@@ -218,7 +220,8 @@ mod tests {
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/get"); "device twin request")]
     #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module twin request")]
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module twin response")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
     fn it_allows_to_subscribe_to(activity: Activity) {
         let authorizer = authorizer();
 
@@ -259,6 +262,8 @@ mod tests {
     #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module twin request")]
     #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
     #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module twin response")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
     fn it_allows_to_publish_to(activity: Activity) {
         let authorizer = authorizer();
 
