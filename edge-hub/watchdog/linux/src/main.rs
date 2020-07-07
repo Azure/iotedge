@@ -3,7 +3,7 @@ use std::{
     process::{exit, Child, Command, Stdio},
     sync::atomic::{AtomicBool, Ordering},
     sync::Arc,
-    thread,
+    thread::{sleep, spawn, JoinHandle},
     time::Duration,
 };
 
@@ -24,46 +24,6 @@ struct ChildProcess {
 }
 
 impl ChildProcess {
-    pub fn run_child_process(
-        name: String,
-        command: &mut Command,
-        has_parent_started_shutdown: Arc<AtomicBool>,
-    ) -> Arc<AtomicBool> {
-        // start child process before spawning new thread because it will get freed after the caller runs this function
-        // this makes lifetimes easier to deal with
-        let child = match command.spawn() {
-            Ok(child) => {
-                info!("Launched {:?} process with pid {:?}", name, child.id());
-                child
-            }
-            Err(e) => {
-                error!("Failed to start {:?} process. {:?}", name, e);
-                exit(2);
-            }
-        };
-
-        let mut has_shutdown = Arc::new(AtomicBool::new(false));
-        let has_shutdown_listener = Arc::clone(&mut has_shutdown);
-        thread::spawn(move || {
-            let mut child_process = ChildProcess {
-                name,
-                process: child,
-            };
-
-            while child_process.is_running() && !has_parent_started_shutdown.load(Ordering::Relaxed)
-            {
-                let poll_interval: Duration = Duration::from_secs(PROCESS_POLL_INTERVAL_SECS);
-                thread::sleep(poll_interval);
-            }
-
-            child_process.shutdown_if_running();
-
-            has_shutdown_listener.store(true, Ordering::Relaxed);
-        });
-
-        has_shutdown
-    }
-
     fn shutdown_if_running(&mut self) {
         if self.is_running() {
             info!("Terminating {:?} process", self.name);
@@ -104,7 +64,7 @@ impl ChildProcess {
         let mut elapsed_secs = 0;
         while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS && self.is_running() {
             let poll_interval: Duration = Duration::from_secs(PROCESS_POLL_INTERVAL_SECS);
-            thread::sleep(poll_interval);
+            sleep(poll_interval);
             elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
         }
     }
@@ -125,44 +85,34 @@ fn main() -> Result<(), Error> {
         }
     };
 
-    let has_broker_shutdown = ChildProcess::run_child_process(
+    let broker_handle = run_child_process(
         "MQTT Broker".to_string(),
-        Command::new("/usr/local/bin/mqttd").stdout(Stdio::inherit()),
+        "/usr/local/bin/mqttd".to_string(),
+        "-c /tmp/mqtt/config/production.json".to_string(),
         Arc::clone(&should_shutdown),
     );
 
-    let has_edgehub_shutdown = ChildProcess::run_child_process(
+    let edgehub_handle = run_child_process(
         "Edge Hub".to_string(),
-        Command::new("dotnet")
-            .arg("/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll")
-            .stdout(Stdio::inherit()),
+        "dotnet".to_string(),
+        "/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll".to_string(),
         Arc::clone(&should_shutdown),
     );
 
-    while !should_shutdown.load(Ordering::Relaxed) {
-        if has_broker_shutdown.load(Ordering::Relaxed) {
-            break;
+    match broker_handle.join() {
+        Ok(()) => info!("Successfully stopped broker process"),
+        Err(e) => {
+            should_shutdown.store(true, Ordering::Relaxed);
+            error!("Failure while running broker process. {:?}", e)
         }
-
-        if has_edgehub_shutdown.load(Ordering::Relaxed) {
-            break;
+    };
+    match edgehub_handle.join() {
+        Ok(()) => info!("Successfully stopped edgehub process"),
+        Err(e) => {
+            should_shutdown.store(true, Ordering::Relaxed);
+            error!("Failure while running edgehub process. {:?}", e)
         }
-
-        thread::sleep(Duration::from_secs(PROCESS_POLL_INTERVAL_SECS));
-    }
-
-    should_shutdown.store(true, Ordering::Relaxed); // tell the threads to shut down their child process
-
-    let mut elapsed_secs = 0;
-    let buffered_wait_secs = PROCESS_SHUTDOWN_TOLERANCE_SECS + 5; // give buffer to allow child processes to be killed
-    while elapsed_secs < buffered_wait_secs
-        && (!has_broker_shutdown.load(Ordering::Relaxed)
-            || !has_edgehub_shutdown.load(Ordering::Relaxed))
-    {
-        let poll_interval: Duration = Duration::new(PROCESS_POLL_INTERVAL_SECS, 0);
-        thread::sleep(poll_interval);
-        elapsed_secs += PROCESS_POLL_INTERVAL_SECS;
-    }
+    };
 
     info!("Stopped watchdog process");
     Ok(())
@@ -179,4 +129,41 @@ fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
     register(SIGTERM, Arc::clone(&should_shutdown))?;
     register(SIGINT, Arc::clone(&should_shutdown))?;
     Ok(should_shutdown)
+}
+
+pub fn run_child_process(
+    name: String,
+    program: String,
+    args: String,
+    shutdown_listener: Arc<AtomicBool>,
+) -> JoinHandle<()> {
+    spawn(move || {
+        let child = match Command::new(program)
+            .arg(args)
+            .stdout(Stdio::inherit())
+            .spawn()
+        {
+            Ok(child) => {
+                info!("Launched {:?} process with pid {:?}", name, child.id());
+                child
+            }
+            Err(e) => {
+                error!("Failed to start {:?} process. {:?}", name, e);
+                exit(2);
+            }
+        };
+        let mut child_process = ChildProcess {
+            name,
+            process: child,
+        };
+
+        while child_process.is_running() && !shutdown_listener.load(Ordering::Relaxed) {
+            let poll_interval: Duration = Duration::from_secs(PROCESS_POLL_INTERVAL_SECS);
+            sleep(poll_interval);
+        }
+
+        shutdown_listener.store(true, Ordering::Relaxed); // tell the threads to shut down their child process
+
+        child_process.shutdown_if_running();
+    })
 }
