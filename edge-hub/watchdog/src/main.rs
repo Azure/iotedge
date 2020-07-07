@@ -20,39 +20,39 @@ fn main() -> Result<()> {
     let should_shutdown = register_shutdown_listener()
         .context("Failed to register sigterm listener. Shutting down.")?;
 
-    let broker_handle = run(
-        "MQTT Broker".to_string(),
-        "/usr/local/bin/mqttd".to_string(),
-        "-c /tmp/mqtt/config/production.json".to_string(),
-        Arc::clone(&should_shutdown),
-    )?;
-
-    let edgehub_handle = match run(
+    let edgehub_handle = run(
         "Edge Hub".to_string(),
         "dotnet".to_string(),
         "/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll".to_string(),
+        Arc::clone(&should_shutdown),
+    )?;
+
+    let broker_handle = match run(
+        "MQTT Broker".to_string(),
+        "/usr/local/bin/mqttd".to_string(),
+        "-c /tmp/mqtt/config/production.json".to_string(),
         Arc::clone(&should_shutdown),
     ) {
         Ok(handle) => Some(handle),
         Err(e) => {
             should_shutdown.store(true, Ordering::Relaxed);
-            error!("Could not start edgehub process. {}", e);
+            error!("Could not start broker process. {}", e);
             None
         }
     };
 
-    if let Err(e) = broker_handle.join() {
+    if let Err(e) = edgehub_handle.join() {
         should_shutdown.store(true, Ordering::Relaxed);
         error!("Failure while running broker process. {:?}", e)
     }
-    info!("Successfully stopped broker process");
+    info!("Successfully stopped edgehub process");
 
-    edgehub_handle.map(|handle| {
+    broker_handle.map(|handle| {
         if let Err(e) = handle.join() {
             should_shutdown.store(true, Ordering::Relaxed);
-            error!("Failure while running edgehub process. {:?}", e);
+            error!("Failure while running broker process. {:?}", e);
         }
-        info!("Successfully stopped edgehub process");
+        info!("Successfully stopped broker process");
     });
 
     info!("Stopped watchdog process");
