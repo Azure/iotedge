@@ -1,5 +1,4 @@
-use anyhow::Context;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use nix::{
     sys::signal::{self, Signal},
     unistd::Pid,
@@ -25,7 +24,7 @@ pub struct ChildProcess {
 }
 
 impl ChildProcess {
-    pub fn create(name: String, process: Child) -> Self {
+    pub fn new(name: String, process: Child) -> Self {
         Self { name, process }
     }
 
@@ -86,7 +85,7 @@ pub fn run(
     let handle = thread::spawn(move || {
         info!("Launched {} process with pid {}", name, child.id());
 
-        let mut child_process = ChildProcess::create(name, child);
+        let mut child_process = ChildProcess::new(name, child);
 
         while child_process.is_running() && !should_shutdown.load(Ordering::Relaxed) {
             sleep(PROCESS_POLL_INTERVAL_SECS);

@@ -2,12 +2,11 @@ mod child;
 
 use std::{
     io::Error,
-    process::exit,
     sync::atomic::{AtomicBool, Ordering},
     sync::Arc,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use child::run;
 use signal_hook::{flag::register, SIGINT, SIGTERM};
 use tracing::{error, info, subscriber, Level};
@@ -17,16 +16,8 @@ fn main() -> Result<()> {
     init_logging();
     info!("Starting watchdog");
 
-    let should_shutdown = match register_shutdown_listener() {
-        Ok(should_shutdown) => should_shutdown,
-        Err(e) => {
-            error!(
-                "Failed to register sigterm listener. Shutting down. {:?}",
-                e
-            );
-            exit(1);
-        }
-    };
+    let should_shutdown = register_shutdown_listener()
+        .context("Failed to register sigterm listener. Shutting down.")?;
 
     let broker_handle = run(
         "MQTT Broker".to_string(),
@@ -56,13 +47,11 @@ fn main() -> Result<()> {
     info!("Successfully stopped broker process");
 
     edgehub_handle.map(|handle| {
-        match handle.join() {
-            Ok(()) => info!("Successfully stopped edgehub process"),
-            Err(e) => {
-                should_shutdown.store(true, Ordering::Relaxed);
-                error!("Failure while running edgehub process. {:?}", e)
-            }
-        };
+        if let Err(e) = handle.join() {
+            should_shutdown.store(true, Ordering::Relaxed);
+            error!("Failure while running edgehub process. {:?}", e);
+        }
+        info!("Successfully stopped edgehub process");
     });
 
     info!("Stopped watchdog process");
