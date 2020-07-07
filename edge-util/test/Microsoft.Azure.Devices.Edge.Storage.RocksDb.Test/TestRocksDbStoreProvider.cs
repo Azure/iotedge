@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
         public IDbStore GetDbStore(string partitionName) => this.rocksDbStoreProvider.GetDbStore(partitionName);
 
-        public IDbStore GetDbStore(string partitionName, string failoverPartitionName) => this.rocksDbStoreProvider.GetDbStore(partitionName, failoverPartitionName);
+        public IDbStore GetDbStore(string backwardCompatiblePartitionName, string partitionName) => this.rocksDbStoreProvider.GetDbStore(backwardCompatiblePartitionName, partitionName);
 
         public IDbStore GetDbStore() => this.rocksDbStoreProvider.GetDbStore("default");
 

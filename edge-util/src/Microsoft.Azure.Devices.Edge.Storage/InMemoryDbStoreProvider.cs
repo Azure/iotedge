@@ -34,14 +34,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return dbStore;
         }
 
-        public IDbStore GetDbStore(string partitionName, string failoverPartitionName)
+        public IDbStore GetDbStore(string backwardCompatiblePartitionName, string partitionName)
         {
+            Preconditions.CheckNonWhiteSpace(backwardCompatiblePartitionName, nameof(backwardCompatiblePartitionName));
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
-            Preconditions.CheckNonWhiteSpace(failoverPartitionName, nameof(failoverPartitionName));
 
-            if (!this.partitionDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore))
+            if (!this.partitionDbStoreDictionary.TryGetValue(backwardCompatiblePartitionName, out IDbStore entityDbStore))
             {
-                return this.partitionDbStoreDictionary.GetOrAdd(failoverPartitionName, BuildInMemoryDbStore(this.memoryStorageSpaceChecker));
+                return this.partitionDbStoreDictionary.GetOrAdd(partitionName, BuildInMemoryDbStore(this.memoryStorageSpaceChecker));
             }
                 
             return entityDbStore;

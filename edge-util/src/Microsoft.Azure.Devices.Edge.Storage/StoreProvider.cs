@@ -28,10 +28,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return GetEntityStore<TK, TV>(entityName, entityDbStore);
         }
 
-        public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName, string failoverEntityName)
+        public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string backwardCompatibleEntityName, string entityName)
         {
-            IDbStore entityDbStore = this.dbStoreProvider.GetDbStore(Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName)), Preconditions.CheckNonWhiteSpace(failoverEntityName, nameof(failoverEntityName)));
-            return GetEntityStore<TK, TV>(entityName, entityDbStore);
+            IDbStore entityDbStore = this.dbStoreProvider.GetDbStore(Preconditions.CheckNonWhiteSpace(backwardCompatibleEntityName, nameof(backwardCompatibleEntityName)), Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName)));
+            return GetEntityStore<TK, TV>(backwardCompatibleEntityName, entityDbStore);
         }
 
         public async Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName)

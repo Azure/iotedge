@@ -55,14 +55,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return base.GetDbStore(partitionName);
         }
 
-        public override IDbStore GetDbStore(string partitionName, string failoverPartitionName)
+        public override IDbStore GetDbStore(string backwardCompatiblePartitionName, string partitionName)
         {
-            if (!this.dbStores.ContainsKey(partitionName))
+            if (!this.dbStores.ContainsKey(backwardCompatiblePartitionName))
             {
-                this.dbStores.GetOrAdd(failoverPartitionName, DbStoresDummyValue);
+                this.dbStores.GetOrAdd(partitionName, DbStoresDummyValue);
             }
 
-            return base.GetDbStore(partitionName, failoverPartitionName);
+            return base.GetDbStore(backwardCompatiblePartitionName, partitionName);
         }
 
         public override IDbStore GetDbStore()

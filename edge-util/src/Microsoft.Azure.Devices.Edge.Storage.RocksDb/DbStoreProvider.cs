@@ -57,18 +57,18 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return entityDbStore;
         }
 
-        public IDbStore GetDbStore(string partitionName, string failoverPartitionName)
+        public IDbStore GetDbStore(string backwardCompatiblePartitionName, string partitionName)
         {
+            Preconditions.CheckNonWhiteSpace(backwardCompatiblePartitionName, nameof(backwardCompatiblePartitionName));
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
-            Preconditions.CheckNonWhiteSpace(failoverPartitionName, nameof(failoverPartitionName));
             IDbStore entityDbStore = null;
-            if (!this.entityDbStoreDictionary.TryGetValue(partitionName, out entityDbStore))
+            if (!this.entityDbStoreDictionary.TryGetValue(backwardCompatiblePartitionName, out entityDbStore))
             {
-                if (!this.entityDbStoreDictionary.TryGetValue(failoverPartitionName, out entityDbStore))
+                if (!this.entityDbStoreDictionary.TryGetValue(partitionName, out entityDbStore))
                 {
-                    ColumnFamilyHandle handle = this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), failoverPartitionName);
+                    ColumnFamilyHandle handle = this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), partitionName);
                     entityDbStore = new ColumnFamilyDbStore(this.db, handle);
-                    entityDbStore = this.entityDbStoreDictionary.GetOrAdd(failoverPartitionName, entityDbStore);
+                    entityDbStore = this.entityDbStoreDictionary.GetOrAdd(partitionName, entityDbStore);
                 }
             }
 

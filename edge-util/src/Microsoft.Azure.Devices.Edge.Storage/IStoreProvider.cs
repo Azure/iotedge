@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     {
         IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName);
 
-        IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName, string failoverEntityName);
+        IEntityStore<TK, TV> GetEntityStore<TK, TV>(string backwardCompatibleEntityName, string entityName);
 
         Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName);
 

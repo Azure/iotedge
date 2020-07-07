@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     {
         IDbStore GetDbStore(string partitionName);
 
-        IDbStore GetDbStore(string partitionName, string failoverPartitionName);
+        IDbStore GetDbStore(string backwardCompatiblePartitionName, string partitionName);
 
         IDbStore GetDbStore();
 
