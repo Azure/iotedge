@@ -39,6 +39,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return this.dbStoreProvider.GetDbStore(partitionName);
         }
 
+        public virtual IDbStore GetDbStore(string partitionName, string failoverPartitionName)
+        {
+            return this.dbStoreProvider.GetDbStore(partitionName, failoverPartitionName);
+        }
+
         public virtual IDbStore GetDbStore()
         {
             return this.dbStoreProvider.GetDbStore();

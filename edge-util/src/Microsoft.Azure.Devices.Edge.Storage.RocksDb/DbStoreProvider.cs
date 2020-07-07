@@ -57,6 +57,24 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return entityDbStore;
         }
 
+        public IDbStore GetDbStore(string partitionName, string failoverPartitionName)
+        {
+            Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
+            Preconditions.CheckNonWhiteSpace(failoverPartitionName, nameof(failoverPartitionName));
+            IDbStore entityDbStore = null;
+            if (!this.entityDbStoreDictionary.TryGetValue(partitionName, out entityDbStore))
+            {
+                if (!this.entityDbStoreDictionary.TryGetValue(failoverPartitionName, out entityDbStore))
+                {
+                    ColumnFamilyHandle handle = this.db.CreateColumnFamily(this.optionsProvider.GetColumnFamilyOptions(), failoverPartitionName);
+                    entityDbStore = new ColumnFamilyDbStore(this.db, handle);
+                    entityDbStore = this.entityDbStoreDictionary.GetOrAdd(failoverPartitionName, entityDbStore);
+                }
+            }
+
+            return entityDbStore;
+        }
+
         public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);
 
         public void RemoveDbStore(string partitionName)
