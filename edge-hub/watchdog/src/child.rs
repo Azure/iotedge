@@ -74,11 +74,15 @@ impl ChildProcess {
 }
 
 pub fn run(
-    name: String,
-    program: String,
-    args: String,
+    name: impl Into<String>,
+    program: impl Into<String>,
+    args: impl Into<String>,
     should_shutdown: Arc<AtomicBool>,
 ) -> Result<JoinHandle<()>> {
+    let name = name.into();
+    let program = program.into();
+    let args = args.into();
+
     let child = Command::new(program)
         .arg(args)
         .stdout(Stdio::inherit())
