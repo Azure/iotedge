@@ -1,8 +1,3 @@
-use anyhow::{Context, Result};
-use nix::{
-    sys::signal::{self, Signal},
-    unistd::Pid,
-};
 use std::{
     process::{Child, Command, Stdio},
     sync::{
@@ -12,6 +7,12 @@ use std::{
     thread,
     thread::{sleep, JoinHandle},
     time::Duration,
+};
+
+use anyhow::{Context, Result};
+use nix::{
+    sys::signal::{self, Signal},
+    unistd::Pid,
 };
 use tracing::{error, info};
 
@@ -93,7 +94,8 @@ pub fn run(
             sleep(PROCESS_POLL_INTERVAL_SECS);
         }
 
-        should_shutdown.store(true, Ordering::Relaxed); // tell the threads to shut down their child process
+        // tell the threads to shut down their child process
+        should_shutdown.store(true, Ordering::Relaxed);
 
         child_process.shutdown_if_running();
     });

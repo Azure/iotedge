@@ -70,13 +70,12 @@ fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
     let should_shutdown = shutdown_listener.clone();
     let signals = Signals::new(&[SIGTERM, SIGINT])?;
     thread::spawn(move || {
-        for signal in signals.forever() {
-            let signal_name = match signal {
-                SIGTERM => "SIGTERM",
-                SIGINT => "SIGINT",
-                _ => "Unexpected",
-            };
-            info!("Watchdog received {} signal", signal_name);
+        for signal in signals.forever().filter_map(|signal| match signal {
+            SIGTERM => Some("SIGTERM"),
+            SIGINT => Some("SIGINT"),
+            _ => None,
+        }) {
+            info!("Watchdog received {} signal", signal);
             shutdown_listener.store(true, Ordering::Relaxed);
         }
     });
