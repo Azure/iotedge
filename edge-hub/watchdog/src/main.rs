@@ -47,13 +47,11 @@ fn main() -> Result<()> {
     }
     info!("Successfully stopped Edge Hub process");
 
-    broker_handle.map(|handle| {
-        if let Err(e) = handle.join() {
-            should_shutdown.store(true, Ordering::Relaxed);
-            error!("Failure while running broker process. {:?}", e);
-        }
-        info!("Successfully stopped MQTT Broker process");
-    });
+    if let Some(Err(e)) = broker_handle.map(|handle| handle.join()) {
+        should_shutdown.store(true, Ordering::Relaxed);
+        error!("Failure while running broker process. {:?}", e);
+    }
+    info!("Successfully stopped MQTT Broker process");
 
     info!("Stopped Watchdog process");
     Ok(())
