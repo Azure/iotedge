@@ -2,8 +2,7 @@ use std::{error::Error as StdError, fmt};
 
 use mqtt_broker::Error;
 
-pub mod shutdown;
-pub mod snapshot;
+pub mod broker;
 
 pub struct Terminate {
     error: Error,

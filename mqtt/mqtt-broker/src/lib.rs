@@ -11,7 +11,6 @@
     clippy::missing_errors_doc
 )]
 
-mod auth;
 mod broker;
 mod configuration;
 mod connection;
@@ -35,7 +34,6 @@ use tokio::sync::OwnedSemaphorePermit;
 use mqtt3::proto;
 use mqtt_broker_core::{auth::AuthId, ClientId};
 
-pub use crate::auth::{authenticator, authorizer};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
 pub use crate::configuration::{BrokerConfig, SessionConfig};
 pub use crate::connection::ConnectionHandle;
@@ -45,7 +43,9 @@ pub use crate::persist::{
 };
 pub use crate::server::Server;
 pub use crate::session::SessionState;
-pub use crate::snapshot::{BrokerSnapshot, SessionSnapshot, Snapshotter, StateSnapshotHandle};
+pub use crate::snapshot::{
+    BrokerSnapshot, SessionSnapshot, ShutdownHandle, Snapshotter, StateSnapshotHandle,
+};
 pub use crate::subscription::{Segment, Subscription, TopicFilter};
 pub use crate::transport::TransportBuilder;
 
