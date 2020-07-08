@@ -12,7 +12,7 @@ WORKDIR /app
 COPY $EXE_DIR/ ./edge-hub
 
 # Set broker log level
-ENV RUST_LOG=debug
+ENV RUST_LOG=info
 
 # Expose MQTT, AMQP and HTTPS ports
 EXPOSE 1883/tcp
@@ -25,4 +25,4 @@ ENV OptimizeForPerformance false
 ENV MqttEventsProcessorThreadCount 1
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
     cd /tmp/mqtt && \
-    /usr/local/bin/watchdog -c /tmp/mqtt/config/config.json
+    /usr/local/bin/watchdog
