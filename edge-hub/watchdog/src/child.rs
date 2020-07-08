@@ -16,7 +16,7 @@ use nix::{
 };
 use tracing::{error, info};
 
-const PROCESS_SHUTDOWN_TOLERANCE_SECS: Duration = Duration::from_secs(45);
+const PROCESS_SHUTDOWN_TOLERANCE_SECS: Duration = Duration::from_secs(60);
 const PROCESS_POLL_INTERVAL_SECS: Duration = Duration::from_secs(1);
 
 pub struct ChildProcess {
