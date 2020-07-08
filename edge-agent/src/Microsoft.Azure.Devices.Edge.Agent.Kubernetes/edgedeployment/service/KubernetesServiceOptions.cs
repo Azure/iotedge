@@ -8,19 +8,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
 
     public class KubernetesServiceOptions
     {
-        public KubernetesServiceOptions(string type, string loadBalancerIP)
+        public KubernetesServiceOptions(string loadBalancerIP, string type)
         {
             PortMapServiceType serviceType;
-            this.Type = Enum.TryParse(type, true, out serviceType) ? Option.Some(serviceType) : Option.None<PortMapServiceType>();
             this.LoadBalancerIP = Option.Maybe(loadBalancerIP);
+            this.Type = Enum.TryParse(type, true, out serviceType) ? Option.Some(serviceType) : Option.None<PortMapServiceType>();
         }
-
-        [JsonProperty("Type", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<PortMapServiceType>))]
-        public Option<PortMapServiceType> Type { get; }
 
         [JsonProperty("LoadBalancerIP", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<string>))]
         public Option<string> LoadBalancerIP { get; }
+
+        [JsonProperty("Type", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<PortMapServiceType>))]
+        public Option<PortMapServiceType> Type { get; }
     }
 }

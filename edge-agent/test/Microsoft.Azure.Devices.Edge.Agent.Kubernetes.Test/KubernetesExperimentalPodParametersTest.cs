@@ -340,9 +340,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
 
             Assert.True(parameters.DeploymentStrategy.HasValue);
-            var deploymentStrategy = parameters.DeploymentStrategy.OrDefault();
-            Assert.Equal("RollingUpdate", deploymentStrategy.Type);
-            Assert.Equal("1", deploymentStrategy.RollingUpdate.MaxUnavailable);
+            parameters.DeploymentStrategy.ForEach(deploymentStrategy => Assert.Equal("RollingUpdate", deploymentStrategy.Type));
+            parameters.DeploymentStrategy.ForEach(deploymentStrategy => Assert.Equal("1", deploymentStrategy.RollingUpdate.MaxUnavailable));
         }
 
         [Fact]
@@ -356,9 +355,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
 
             Assert.True(parameters.ServiceOptions.HasValue);
-            var options = parameters.ServiceOptions.OrDefault();
-            Assert.False(options.Type.HasValue);
-            Assert.False(options.LoadBalancerIP.HasValue);
+            parameters.ServiceOptions.ForEach(options => Assert.False(options.Type.HasValue));
+            parameters.ServiceOptions.ForEach(options => Assert.False(options.LoadBalancerIP.HasValue));
         }
 
         [Fact]
@@ -372,12 +370,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
 
             Assert.True(parameters.ServiceOptions.HasValue);
-            var options = parameters.ServiceOptions.OrDefault();
-            Assert.True(options.Type.HasValue);
-            options.Type.ForEach(t => Assert.Equal(PortMapServiceType.NodePort, t));
-
-            Assert.True(options.LoadBalancerIP.HasValue);
-            options.LoadBalancerIP.ForEach(l => Assert.Equal("100.1.2.3", l));
+            parameters.ServiceOptions.ForEach(options =>
+            {
+                Assert.True(options.Type.HasValue);
+                options.Type.ForEach(t => Assert.Equal(PortMapServiceType.NodePort, t));
+            });
+            parameters.ServiceOptions.ForEach(options =>
+            {
+                Assert.True(options.LoadBalancerIP.HasValue);
+                options.LoadBalancerIP.ForEach(l => Assert.Equal("100.1.2.3", l));
+            });
         }
 
         [Fact]
@@ -391,11 +393,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
 
             Assert.True(parameters.ServiceOptions.HasValue);
-            var options = parameters.ServiceOptions.OrDefault();
-            Assert.True(options.Type.HasValue);
-            options.Type.ForEach(t => Assert.Equal(PortMapServiceType.LoadBalancer, t));
-
-            Assert.False(options.LoadBalancerIP.HasValue);
+            parameters.ServiceOptions.ForEach(options =>
+            {
+                Assert.True(options.Type.HasValue);
+                options.Type.ForEach(t => Assert.Equal(PortMapServiceType.LoadBalancer, t));
+            });
+            parameters.ServiceOptions.ForEach(options => Assert.False(options.LoadBalancerIP.HasValue));
         }
 
         [Fact]
@@ -409,11 +412,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
 
             Assert.True(parameters.ServiceOptions.HasValue);
-            var options = parameters.ServiceOptions.OrDefault();
-            Assert.False(options.Type.HasValue);
-
-            Assert.True(options.LoadBalancerIP.HasValue);
-            options.LoadBalancerIP.ForEach(l => Assert.Equal("any old string", l));
+            parameters.ServiceOptions.ForEach(options => Assert.False(options.Type.HasValue));
+            parameters.ServiceOptions.ForEach(options =>
+            {
+                Assert.True(options.LoadBalancerIP.HasValue);
+                options.LoadBalancerIP.ForEach(l => Assert.Equal("any old string", l));
+            });
         }
     }
 }
