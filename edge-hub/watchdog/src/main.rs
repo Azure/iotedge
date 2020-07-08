@@ -15,7 +15,7 @@ use tracing_subscriber::fmt::Subscriber;
 
 fn main() -> Result<()> {
     init_logging();
-    info!("Starting watchdog");
+    info!("Starting Watchdog");
 
     let should_shutdown = register_shutdown_listener()
         .context("Failed to register sigterm listener. Shutting down.")?;
@@ -36,7 +36,7 @@ fn main() -> Result<()> {
         Ok(handle) => Some(handle),
         Err(e) => {
             should_shutdown.store(true, Ordering::Relaxed);
-            error!("Could not start broker process. {}", e);
+            error!("Could not start MQTT Broker process. {}", e);
             None
         }
     };
@@ -55,7 +55,7 @@ fn main() -> Result<()> {
         info!("Successfully stopped MQTT Broker process");
     });
 
-    info!("Stopped watchdog process");
+    info!("Stopped Watchdog process");
     Ok(())
 }
 
