@@ -21,16 +21,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task AddSubscription(string id, DeviceSubscription deviceSubscription)
         {
             Events.AddingSubscription(id, deviceSubscription);
-            this.ConnectionManager.AddSubscription(id, deviceSubscription);
-            this.HandleSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, true) });
+            var hasChanged = this.ConnectionManager.AddSubscription(id, deviceSubscription);
+
+            if (hasChanged)
+            {
+                this.HandleSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, true) });
+            }
+            else
+            {
+                Events.UnchangedSubscription(id, deviceSubscription);
+            }
+
             return Task.CompletedTask;
         }
 
         public Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
         {
             Events.RemovingSubscription(id, deviceSubscription);
-            this.ConnectionManager.RemoveSubscription(id, deviceSubscription);
-            this.HandleSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, false) });
+            var hasChanged = this.ConnectionManager.RemoveSubscription(id, deviceSubscription);
+
+            if (hasChanged)
+            {
+                this.HandleSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, false) });
+            }
+            else
+            {
+                Events.UnchangedSubscription(id, deviceSubscription);
+            }
+
             return Task.CompletedTask;
         }
 
@@ -66,7 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 AddingSubscription = IdStart,
                 RemovingSubscription,
-                ProcessingSubscriptions
+                ProcessingSubscriptions,
+                UnchangedSubscription,
             }
 
             public static void AddingSubscription(string id, DeviceSubscription subscription)
@@ -77,6 +96,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void RemovingSubscription(string id, DeviceSubscription subscription)
             {
                 Log.LogDebug((int)EventIds.RemovingSubscription, Invariant($"Removing subscription {subscription} for client {id}."));
+            }
+
+            public static void UnchangedSubscription(string id, DeviceSubscription subscription)
+            {
+                Log.LogDebug((int)EventIds.UnchangedSubscription, Invariant($"subscription {subscription} did not change for client {id}, no action has taken."));
             }
 
             internal static void ProcessingSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptionsList)
