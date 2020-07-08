@@ -102,7 +102,6 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         # - https://github.com/EmbarkStudios/cargo-deny/releases
         SETUP_COMMAND=$'
             OPENSSL_VERSION=1.1.1g
-            MDBOOK_VERSION=0.3.7
             CARGO_ABOUT_VERSION=0.2.2
             CARGO_DENY_VERSION=0.6.7
             apt-get update && \
@@ -112,7 +111,6 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 curl \
                 file \
                 git \
-                graphviz \
                 musl-dev \
                 musl-tools \
                 libpq-dev \
@@ -126,10 +124,6 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 && \
             apt-get clean && rm -rf /var/lib/apt/lists/* && \
             useradd rust --user-group --create-home --shell /bin/bash --groups sudo && \
-            curl -fLO https://github.com/rust-lang-nursery/mdBook/releases/download/v$MDBOOK_VERSION/mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
-            tar xf mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
-            mv mdbook /usr/local/bin/ && \
-            rm -f mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
             curl -fLO https://github.com/EmbarkStudios/cargo-about/releases/download/$CARGO_ABOUT_VERSION/cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz && \
             tar xf cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz && \
             mv cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl/cargo-about /usr/local/bin/ && \
