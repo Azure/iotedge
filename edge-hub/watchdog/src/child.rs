@@ -52,6 +52,8 @@ impl ChildProcess {
             info!("Killing {} process", self.name);
             self.send_signal(Signal::SIGKILL);
         }
+
+        self.wait_for_exit();
     }
 
     fn send_signal(&mut self, signal: Signal) {
