@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics.Tracing;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -62,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
             this.entityDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore);
-            return entityDbStore != null ? Option.Some(entityDbStore) : Option.None<IDbStore>();
+            return Option.Maybe(entityDbStore);
         }
 
         public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);

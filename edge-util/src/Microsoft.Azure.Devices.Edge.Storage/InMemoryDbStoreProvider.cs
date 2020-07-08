@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
             this.partitionDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore);
 
-            return entityDbStore != null ? Option.Some(entityDbStore) : Option.None<IDbStore>();
+            return Option.Maybe(entityDbStore);
         }
 
         public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);
