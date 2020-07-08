@@ -15,7 +15,7 @@ steps:
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx
+      sudo --preserve-env dotnet vstest $testFile --Tests PriorityQueueModuleToModuleMessages --logger:trx
     }
   displayName: Run tests
   env:
