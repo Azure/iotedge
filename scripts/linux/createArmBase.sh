@@ -115,7 +115,7 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ "azureiotedge-module-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-hub-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-agent-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-iotedged-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-proxy-base" != ${DOCKER_IMAGENAME} ]]; then
+    if [[ "azureiotedge-module-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-hub-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-agent-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-iotedged-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-proxy-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-module-base-full" != ${DOCKER_IMAGENAME} ]]; then
         echo "Docker image name must be one of azureiotedge-module-base, azureiotedge-hub-base, azureiotedge-agent-base, azureiotedge-iotedged-base or azureiotedge-proxy-base"
         print_help_and_exit
     fi
