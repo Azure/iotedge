@@ -15,9 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class TelemetryHandler : IMessageConsumer
     {
         const string TelemetryDevice = "$edgehub/+/messages/events/#";
-        const string TelemetryModule = "$edgehub/+/modules/+/messages/events/#";
+        const string TelemetryModule = "$edgehub/+/+/messages/events/#";
 
-        const string TelemetryPublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/modules/(?<id2>[^/\+\#]+))?/messages/events(/(?<bag>.*))?";
+        const string TelemetryPublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/messages/events(/(?<bag>.*))?";
 
         static readonly string[] subscriptions = new[] { TelemetryDevice, TelemetryModule };
 

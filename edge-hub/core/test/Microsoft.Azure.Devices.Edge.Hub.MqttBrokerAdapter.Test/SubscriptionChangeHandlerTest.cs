@@ -21,13 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task DoesNotHandleNonSubscriptionTopics(string topic)
         {
             var publishInfo = new MqttPublishInfo(topic, new byte[0]);
-            var (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler) = GetSubscriptionWatchers();
+            var (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
             var (connectionRegistry, identityProvider) = GetHandlerDependencies();
 
             var sut = new SubscriptionChangeHandler(
                             cloud2DeviceMessageHandler,
                             moduleToModuleMessageHandler,
                             directMethodHandler,
+                            twinHandler,
                             connectionRegistry,
                             identityProvider);
 
@@ -41,13 +42,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task HandlesSubscriptionTopics(string topic)
         {
             var publishInfo = new MqttPublishInfo(topic, new byte[0]);
-            var (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler) = GetSubscriptionWatchers();
+            var (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
             var (connectionRegistry, identityProvider) = GetHandlerDependencies();
 
             var sut = new SubscriptionChangeHandler(
                             cloud2DeviceMessageHandler,
                             moduleToModuleMessageHandler,
                             directMethodHandler,
+                            twinHandler,
                             connectionRegistry,
                             identityProvider);
 
@@ -60,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task CapturesDeviceIdentityFromTopic()
         {
             var publishInfo = new MqttPublishInfo("$edgehub/captured_device_id/subscriptions", Encoding.UTF8.GetBytes("[]"));
-            var (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler) = GetSubscriptionWatchers();
+            var (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
             var (connectionRegistry, _) = GetHandlerDependencies();
             var identityProvider = Mock.Of<IIdentityProvider>();
 
@@ -78,6 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                             cloud2DeviceMessageHandler,
                             moduleToModuleMessageHandler,
                             directMethodHandler,
+                            twinHandler,
                             connectionRegistry,
                             identityProvider);
 
@@ -90,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task CapturesModuleIdentityFromTopic()
         {
             var publishInfo = new MqttPublishInfo("$edgehub/captured_device_id/captured_module_id/subscriptions", Encoding.UTF8.GetBytes("[]"));
-            var (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler) = GetSubscriptionWatchers();
+            var (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
             var (connectionRegistry,  _) = GetHandlerDependencies();
             var identityProvider = Mock.Of<IIdentityProvider>();
 
@@ -110,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                             cloud2DeviceMessageHandler,
                             moduleToModuleMessageHandler,
                             directMethodHandler,
+                            twinHandler,
                             connectionRegistry,
                             identityProvider);
 
@@ -125,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var listenerCapture = new DeviceListenerCapture();
 
             var publishInfo = new MqttPublishInfo("$edgehub/device_id/module_id/subscriptions", Encoding.UTF8.GetBytes("[\"$edgehub/device_id/module_id/MatchingPattern\"]"));
-            var (_, moduleToModuleMessageHandler, directMethodHandler) = GetSubscriptionWatchers();
+            var (_, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
 
             var cloud2DeviceMessageHandler = Mock.Of<ICloud2DeviceMessageHandler>();
             Mock.Get(cloud2DeviceMessageHandler)
@@ -142,6 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                             cloud2DeviceMessageHandler,
                             moduleToModuleMessageHandler,
                             directMethodHandler,
+                            twinHandler,
                             connectionRegistry,
                             identityProvider);
 
@@ -157,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var listenerCapture = new DeviceListenerCapture();
 
             var publishInfo = new MqttPublishInfo("$edgehub/device_id/module_id/subscriptions", Encoding.UTF8.GetBytes("[\"$edgehub/device_id_x/module_id_x/MatchingPattern\"]"));
-            var (_, moduleToModuleMessageHandler, directMethodHandler) = GetSubscriptionWatchers();
+            var (_, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
 
             var cloud2DeviceMessageHandler = Mock.Of<ICloud2DeviceMessageHandler>();
             Mock.Get(cloud2DeviceMessageHandler)
@@ -172,6 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                              cloud2DeviceMessageHandler,
                              moduleToModuleMessageHandler,
                              directMethodHandler,
+                             twinHandler,
                              connectionRegistry,
                              identityProvider);
 
@@ -201,11 +207,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             return testStrings.Select(s => new string[] { s });
         }
 
-        (ICloud2DeviceMessageHandler, IModuleToModuleMessageHandler, IDirectMethodHandler) GetSubscriptionWatchers()
+        (ICloud2DeviceMessageHandler, IModuleToModuleMessageHandler, IDirectMethodHandler, ITwinHandler) GetSubscriptionWatchers()
         {
             var cloud2DeviceMessageHandler = Mock.Of<ICloud2DeviceMessageHandler>();
             var moduleToModuleMessageHandler = Mock.Of<IModuleToModuleMessageHandler>();
             var directMethodHandler = Mock.Of<IDirectMethodHandler>();
+            var twinHandler = Mock.Of<ITwinHandler>();
 
             Mock.Get(cloud2DeviceMessageHandler)
                 .Setup(sw => sw.WatchedSubscriptions)
@@ -219,7 +226,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Setup(sw => sw.WatchedSubscriptions)
                 .Returns(() => new List<SubscriptionPattern>());
 
-            return (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler);
+            Mock.Get(twinHandler)
+                .Setup(sw => sw.WatchedSubscriptions)
+                .Returns(() => new List<SubscriptionPattern>());
+
+            return (cloud2DeviceMessageHandler, moduleToModuleMessageHandler, directMethodHandler, twinHandler);
         }
 
         (IConnectionRegistry, IIdentityProvider) GetHandlerDependencies(bool shouldFindProxy = true, DeviceListenerCapture listenerCapture = null)

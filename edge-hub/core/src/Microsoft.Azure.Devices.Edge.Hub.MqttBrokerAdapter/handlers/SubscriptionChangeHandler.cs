@@ -31,12 +31,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     ICloud2DeviceMessageHandler cloud2DeviceMessageHandler,
                     IModuleToModuleMessageHandler moduleToModuleMessageHandler,
                     IDirectMethodHandler directMethodHandler,
+                    ITwinHandler twinHandler,
                     IConnectionRegistry connectionRegistry,
                     IIdentityProvider identityProvider)
         {
             Preconditions.CheckNotNull(cloud2DeviceMessageHandler);
             Preconditions.CheckNotNull(moduleToModuleMessageHandler);
             Preconditions.CheckNotNull(directMethodHandler);
+            Preconditions.CheckNotNull(twinHandler);
 
             this.connectionRegistry = Preconditions.CheckNotNull(connectionRegistry);
             this.identityProvider = Preconditions.CheckNotNull(identityProvider);
@@ -45,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             this.subscriptionPatterns.AddRange(Preconditions.CheckNotNull(cloud2DeviceMessageHandler.WatchedSubscriptions));
             this.subscriptionPatterns.AddRange(Preconditions.CheckNotNull(moduleToModuleMessageHandler.WatchedSubscriptions));
             this.subscriptionPatterns.AddRange(Preconditions.CheckNotNull(directMethodHandler.WatchedSubscriptions));
+            this.subscriptionPatterns.AddRange(Preconditions.CheckNotNull(twinHandler.WatchedSubscriptions));
         }
 
         public async Task<bool> HandleAsync(MqttPublishInfo publishInfo)

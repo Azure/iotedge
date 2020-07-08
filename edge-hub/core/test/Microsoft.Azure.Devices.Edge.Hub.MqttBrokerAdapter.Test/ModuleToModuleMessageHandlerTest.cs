@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity);
 
-            Assert.Equal("devices/device_id/modules/module_id/inputs/some_input/", capture.Topic);
+            Assert.Equal("$edgehub/device_id/module_id/inputs/some_input/", capture.Topic);
         }
 
         [Fact]
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity);
 
-            Assert.StartsWith("devices/device_id/modules/module_id/inputs/some_input/", capture.Topic);
+            Assert.StartsWith("$edgehub/device_id/module_id/inputs/some_input/", capture.Topic);
             Assert.Contains("prop1=value1", capture.Topic);
             Assert.Contains("prop2=value2", capture.Topic);
             Assert.Contains("%24.uid=userid", capture.Topic);

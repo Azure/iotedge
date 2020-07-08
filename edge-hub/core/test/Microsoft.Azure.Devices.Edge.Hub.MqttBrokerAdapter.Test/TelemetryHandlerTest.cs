@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task CapturesModuleIdentityFromTopic()
         {
-            var publishInfo = new MqttPublishInfo("$edgehub/captured_device_id/modules/captured_module_id/messages/events/prop1=val1&prop2=val2", new byte[0]);
+            var publishInfo = new MqttPublishInfo("$edgehub/captured_device_id/captured_module_id/messages/events/prop1=val1&prop2=val2", new byte[0]);
             var (connectionRegistry, _) = GetHandlerDependencies();
             var identityProvider = Mock.Of<IIdentityProvider>();
 
@@ -236,7 +236,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                       "$edgehub/device_id/modules/messages",
                                       "$edgehub/device_id/modules/module_id",
                                       "something/$edgehub/device_id/messages/events",
-                                      "$edgehub/bad/device_id/messages/events",
                                       "$edgehub/device_id/methods/res",
             };
 
@@ -251,9 +250,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var testStrings = new[] { "$edgehub/device_id/messages/events",
                                       "$edgehub/device_id/messages/events/",
                                       "$edgehub/device_id/messages/events/prop1=val1&prop2=val2",
-                                      "$edgehub/device_id/modules/module_id/messages/events",
-                                      "$edgehub/device_id/modules/module_id/messages/events/",
-                                      "$edgehub/device_id/modules/module_id/messages/events/prop1=val1&prop2=val2"
+                                      "$edgehub/device_id/module_id/messages/events",
+                                      "$edgehub/device_id/module_id/messages/events/",
+                                      "$edgehub/device_id/module_id/messages/events/prop1=val1&prop2=val2"
             };
 
             return testStrings.Select(s => new string[] { s });
