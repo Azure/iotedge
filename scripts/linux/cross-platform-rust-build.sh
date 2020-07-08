@@ -60,7 +60,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}")"
 
 CMAKE_ARGS='-DCMAKE_BUILD_TYPE=Release'
-CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid=On -Duse_emulator=Off -Duse_http=Off"
+CMAKE_ARGS="$CMAKE_ARGS -Drun_unittests=Off -Duse_http=Off"
 
 DOCKER_VOLUME_MOUNTS=''
 
