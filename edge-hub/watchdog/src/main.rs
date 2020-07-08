@@ -1,4 +1,15 @@
-mod child;
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::cognitive_complexity,
+    clippy::large_enum_variant,
+    clippy::similar_names,
+    clippy::module_name_repetitions,
+    clippy::use_self,
+    clippy::match_same_arms,
+    clippy::must_use_candidate,
+    clippy::missing_errors_doc
+)]
 
 use std::{
     io::Error,
@@ -12,6 +23,8 @@ use child::run;
 use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
+
+mod child;
 
 fn main() -> Result<()> {
     init_logging();
@@ -48,12 +61,13 @@ fn main() -> Result<()> {
         info!("Successfully stopped MQTT Broker process");
     }
 
-    let did_broker_start = broker_handle.is_some();
-    if let Some(Err(e)) = broker_handle.map(|handle| handle.join()) {
-        should_shutdown.store(true, Ordering::Relaxed);
-        error!("Failure while running MQTT Broker process. {:?}", e);
-    } else if did_broker_start {
-        info!("Successfully stopped MQTT Broker process");
+    if let Some(handle) = broker_handle {
+        if let Err(e) = handle.join() {
+            should_shutdown.store(true, Ordering::Relaxed);
+            error!("Failure while running MQTT Broker process. {:?}", e);
+        } else {
+            info!("Successfully stopped MQTT Broker process");
+        }
     }
 
     info!("Stopped Watchdog process");
