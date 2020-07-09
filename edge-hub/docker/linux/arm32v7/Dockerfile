@@ -3,7 +3,7 @@ FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ADD ./watchdog/target/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
-ADD ./mqttd/production.json /tmp/mqtt/config/production.json
+ADD ./mqttd/production.json /app/mqttd/production.json
 
 ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
 
@@ -24,5 +24,5 @@ USER edgehubuser
 ENV OptimizeForPerformance false
 ENV MqttEventsProcessorThreadCount 1
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
-    cd /tmp/mqtt && \
+    cd /tmp && \
     /usr/local/bin/watchdog
