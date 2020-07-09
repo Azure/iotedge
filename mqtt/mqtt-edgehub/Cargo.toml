@@ -18,6 +18,13 @@ tracing = "0.1"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
+hyperlocal = "0.7"
+hyper = "0.13"
+http = "0.2"
+tower-service = "0.3"
+futures-util = "0.3"
+tokio = "0.2"
+bytes = "0.5"
 
 [dev-dependencies]
 matches = "0.1"

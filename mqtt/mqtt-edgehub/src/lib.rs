@@ -12,4 +12,5 @@
 )]
 
 pub mod auth;
+pub mod edgelet;
 pub mod topic;
