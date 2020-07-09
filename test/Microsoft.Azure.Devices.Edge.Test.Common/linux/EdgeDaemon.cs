@@ -35,14 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     properties = properties.Append(p).ToArray();
                 });
 
-            string[] commands = await packagesPath.Match(
-                async (p) =>
+            string[] commands = packagesPath.Match(
+                (p) =>
                 {
-                    return await this.packageManagement.GetInstallCommandsFromLocalAsync(p);
+                    return this.packageManagement.GetInstallCommandsFromLocal(p);
                 },
-                async () =>
+                () =>
                 {
-                    return await this.packageManagement.GetInstallCommandsFromMicrosoftProdAsync();
+                    return this.packageManagement.GetInstallCommandsFromMicrosoftProd();
                 });
 
             await Profiler.Run(
@@ -98,7 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            await this.packageManagement.InternalStopAsync(token);
+            string[] output = await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
+            Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
 
@@ -118,7 +119,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 await Profiler.Run(
                     async () =>
                     {
-                        await this.packageManagement.UninstallAsync(token);
+                        string[] output =
+                            await Process.RunAsync($"{this.packageManagement.PackageTool}", $"{this.packageManagement.UninstallCmd} libiothsm-std iotedge", token);
+                        Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");
             }

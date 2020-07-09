@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
     using System.IO;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -10,140 +11,252 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class PackageManagement
     {
-        bool isInitialized = false;
+        Lazy<Task<LinuxStandardBase>> lsbTask =
+            new Lazy<Task<LinuxStandardBase>>(
+                async () =>
+                {
+                    var cts = new CancellationTokenSource();
+                    cts.CancelAfter(1000);
+                    string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", cts.Token);
+                    if (platformInfo.Length == 1)
+                    {
+                        platformInfo = platformInfo[0].Split(' ');
+                    }
 
-        string os;
-        string version;
-        string packageTool;
-        SupportedPackageExtension packageExtension;
-        string forceInstallConfigCmd;
-        string installCmd;
-        string iotedgeServices;
-        string uninstallCmd;
+                    string os = platformInfo[0].Trim();
+                    string version = platformInfo[1].Trim();
+                    SupportedPackageExtension packageExtension = SupportedPackageExtension.None;
+
+                    switch (os)
+                    {
+                        case "Ubuntu":
+                            os = "ubuntu";
+                            packageExtension = SupportedPackageExtension.Deb;
+                            break;
+                        case "Raspbian":
+                            os = "debian";
+                            version = "stretch";
+                            packageExtension = SupportedPackageExtension.Deb;
+                            break;
+                        case "CentOS":
+                            os = os.ToLower();
+                            version = version.Split('.')[0];
+                            packageExtension = SupportedPackageExtension.Rpm;
+
+                            if (version != "7")
+                            {
+                                throw new NotImplementedException($"Don't know how to install daemon on operating system '{os} {version}'");
+                            }
+
+                            break;
+                        default:
+                            throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
+                    }
+
+                    return new LinuxStandardBase(os, version, packageExtension);
+                });
+
+        string forceInstallConfigCmd = null;
+        public string ForceInstallConfigCmd
+        {
+            get
+            {
+                if (this.forceInstallConfigCmd == null)
+                {
+                    LinuxStandardBase lsb = this.GetLsbResult().Result;
+                    switch (lsb.PackageExtension)
+                    {
+                        case SupportedPackageExtension.Deb:
+                            this.forceInstallConfigCmd = "dpkg --force-confnew -i";
+                            break;
+                        case SupportedPackageExtension.Rpm:
+                            this.forceInstallConfigCmd = "rpm -iv --replacepkgs";
+                            break;
+                        default:
+                            throw new NotImplementedException($"Undefined forceInstallConfigCmd for '{lsb.PackageExtension}'");
+                    }
+                }
+
+                return this.forceInstallConfigCmd;
+            }
+        }
+
+        string installCmd = null;
+        public string InstallCmd
+        {
+            get
+            {
+                if (this.installCmd == null)
+                {
+                    LinuxStandardBase lsb = this.GetLsbResult().Result;
+                    switch (lsb.PackageExtension)
+                    {
+                        case SupportedPackageExtension.Deb:
+                            this.installCmd = "install -f";
+                            break;
+                        case SupportedPackageExtension.Rpm:
+                            this.installCmd = "install -y";
+                            break;
+                        default:
+                            throw new NotImplementedException($"Undefined installCmd for '{lsb.PackageExtension}'");
+                    }
+                }
+
+                return this.installCmd;
+            }
+        }
+
+        string iotedgeServices = null;
+        public string IotedgeServices
+        {
+            get
+            {
+                if (this.iotedgeServices == null)
+                {
+                    LinuxStandardBase lsb = this.GetLsbResult().Result;
+                    switch (lsb.PackageExtension)
+                    {
+                        case SupportedPackageExtension.Deb:
+                            this.iotedgeServices = "iotedge.mgmt.socket iotedge.socket iotedge.service";
+                            break;
+                        case SupportedPackageExtension.Rpm:
+                            this.iotedgeServices = "iotedge.service";
+                            break;
+                        default:
+                            throw new NotImplementedException($"Undefined iotedgeServices for '{lsb.PackageExtension}'");
+                    }
+                }
+
+                return this.iotedgeServices;
+            }
+        }
+
+        public string Os
+        {
+            get
+            {
+                LinuxStandardBase lsb = this.GetLsbResult().Result;
+                return lsb.Os;
+            }
+        }
+
+        public SupportedPackageExtension PackageExtension
+        {
+            get
+            {
+                LinuxStandardBase lsb = this.GetLsbResult().Result;
+                return lsb.PackageExtension;
+            }
+        }
+
+        string packageTool = null;
+        public string PackageTool
+        {
+            get
+            {
+                if (this.packageTool == null)
+                {
+                    LinuxStandardBase lsb = this.GetLsbResult().Result;
+                    switch (lsb.PackageExtension)
+                    {
+                        case SupportedPackageExtension.Deb:
+                            this.packageTool = "apt-get";
+                            break;
+                        case SupportedPackageExtension.Rpm:
+                            this.packageTool = "yum";
+                            break;
+                        default:
+                            throw new NotImplementedException($"Undefined packageTool for '{lsb.PackageExtension}'");
+                    }
+                }
+
+                return this.packageTool;
+            }
+        }
+
+        string uninstallCmd = null;
+        public string UninstallCmd
+        {
+            get
+            {
+                if (this.uninstallCmd == null)
+                {
+                    LinuxStandardBase lsb = this.GetLsbResult().Result;
+                    switch (lsb.PackageExtension)
+                    {
+                        case SupportedPackageExtension.Deb:
+                            this.uninstallCmd = "purge --yes";
+                            break;
+                        case SupportedPackageExtension.Rpm:
+                            this.uninstallCmd = "remove -y --remove-leaves";
+                            break;
+                        default:
+                            throw new NotImplementedException($"Undefined UninstallCmd for '{lsb.PackageExtension}'");
+                    }
+                }
+
+                return this.uninstallCmd;
+            }
+        }
+
+        public string Version
+        {
+            get
+            {
+                LinuxStandardBase lsb = this.GetLsbResult().Result;
+                return lsb.Version;
+            }
+        }
 
         public enum SupportedPackageExtension
         {
             Deb,
-            Rpm
+            Rpm,
+            None
         }
 
         public PackageManagement()
         {
-            this.os = null;
-            this.version = null;
-            this.packageTool = null;
-            this.packageExtension = 0;
-            this.forceInstallConfigCmd = null;
-            this.installCmd = null;
-            this.iotedgeServices = null;
-            this.uninstallCmd = null;
-            this.isInitialized = false;
         }
 
-        async Task CheckInitializationAsync()
+        private async Task<LinuxStandardBase> GetLsbResult()
         {
-            if (!this.isInitialized)
-            {
-                var tokenSource = new CancellationTokenSource();
-                string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", tokenSource.Token);
-                this.InitializeParameters(platformInfo);
-                this.isInitialized = true;
-            }
+            return await this.lsbTask.Value;
         }
 
-        void InitializeParameters(string[] platformInfo)
-        {
-            if (platformInfo.Length == 1)
-            {
-                platformInfo = platformInfo[0].Split(' ');
-            }
-
-            string os = platformInfo[0].Trim();
-            string version = platformInfo[1].Trim();
-
-            switch (os)
-            {
-                case "Ubuntu":
-                    this.os = "ubuntu";
-                    this.version = version;
-                    this.packageTool = "apt-get";
-                    this.packageExtension = SupportedPackageExtension.Deb;
-                    this.forceInstallConfigCmd = "dpkg --force-confnew -i";
-                    this.installCmd = "install -f";
-                    this.uninstallCmd = "purge --yes";
-                    this.iotedgeServices = "iotedge.mgmt.socket iotedge.socket iotedge.service";
-                    break;
-                case "Raspbian":
-                    this.os = "debian";
-                    this.version = "stretch";
-                    this.packageTool = "apt-get";
-                    this.packageExtension = SupportedPackageExtension.Deb;
-                    this.forceInstallConfigCmd = "dpkg --force-confnew -i";
-                    this.installCmd = "install -f";
-                    this.uninstallCmd = "purge --yes";
-                    this.iotedgeServices = "iotedge.mgmt.socket iotedge.socket iotedge.service";
-                    break;
-                case "CentOS":
-                    this.os = os.ToLower();
-                    this.version = version.Split('.')[0];
-                    this.packageTool = "yum";
-                    this.packageExtension = SupportedPackageExtension.Rpm;
-                    this.forceInstallConfigCmd = "rpm -iv --replacepkgs";
-                    this.installCmd = "install -y";
-                    this.uninstallCmd = "remove -y --remove-leaves";
-                    this.iotedgeServices = "iotedge.service";
-
-                    if (this.version != "7")
-                    {
-                        throw new NotImplementedException($"Don't know how to install daemon on operating system '{this.os} {this.version}'");
-                    }
-
-                    break;
-                default:
-                    throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
-            }
-        }
-
-        public async Task<string[]> GetInstallCommandsFromLocalAsync(string path)
+        public string[] GetInstallCommandsFromLocal(string path)
         {
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
-            await this.CheckInitializationAsync();
 
-            string[] packages = Directory.GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}");
-            for (int i = packages.Length - 1; i >= 0; --i)
-            {
-                if (packages[i].Contains("debug"))
-                {
-                    packages[i] = string.Empty;
-                }
-            }
+            string[] packages = Directory
+                .GetFiles(path, $"*.{this.PackageExtension.ToString().ToLower()}")
+                .Where(p => !p.Contains("debug"))
+                .ToArray();
 
-            switch (this.packageExtension)
+            switch (this.PackageExtension)
             {
                 case PackageManagement.SupportedPackageExtension.Deb:
                     return new[]
                         {
                             "set -e",
-                            $"{this.forceInstallConfigCmd} {string.Join(' ', packages)}",
-                            $"{this.packageTool} {this.installCmd}"
+                            $"{this.ForceInstallConfigCmd} {string.Join(' ', packages)}",
+                            $"{this.PackageTool} {this.InstallCmd}"
                         };
                 case PackageManagement.SupportedPackageExtension.Rpm:
                     return new[]
                         {
                             "set -e",
-                            $"{this.packageTool} {this.installCmd} {string.Join(' ', packages)}",
+                            $"{this.PackageTool} {this.InstallCmd} {string.Join(' ', packages)}",
                             "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1); sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf; sudo mv -f ~/override.conf ${pathToSystemdConfig#?}; sudo systemctl daemon-reload;"
                         };
                 default:
-                    throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'");
+                    throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'");
             }
         }
 
-        public async Task<string[]> GetInstallCommandsFromMicrosoftProdAsync()
+        public string[] GetInstallCommandsFromMicrosoftProd()
         {
-            await this.CheckInitializationAsync();
-
-            switch (this.packageExtension)
+            switch (this.PackageExtension)
             {
                 case PackageManagement.SupportedPackageExtension.Deb:
                     // Based on instructions at:
@@ -151,37 +264,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     // TODO: 8/30/2019 support curl behind a proxy
                     return new[]
                         {
-                            $"curl https://packages.microsoft.com/config/{this.os}/{this.version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
+                            $"curl https://packages.microsoft.com/config/{this.Os}/{this.Version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
                             "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                            $"{this.packageTool} update",
-                            $"{this.packageTool} install --yes iotedge"
+                            $"{this.PackageTool} update",
+                            $"{this.PackageTool} install --yes iotedge"
                         };
                 case PackageManagement.SupportedPackageExtension.Rpm:
                     return new[]
                         {
-                            $"{this.forceInstallConfigCmd} https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
-                            $"{this.packageTool} updateinfo",
-                            $"{this.packageTool} install --yes iotedge",
+                            $"{this.ForceInstallConfigCmd} https://packages.microsoft.com/config/{this.Os}/{this.Version}/packages-microsoft-prod.rpm",
+                            $"{this.PackageTool} updateinfo",
+                            $"{this.PackageTool} install --yes iotedge",
                             "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1); sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf; sudo mv -f ~/override.conf ${pathToSystemdConfig#?}; sudo systemctl daemon-reload;"
                         };
                 default:
-                    throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'");
+                    throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'");
             }
-        }
-
-        public async Task InternalStopAsync(CancellationToken token)
-        {
-            await this.CheckInitializationAsync();
-            string[] output = await Process.RunAsync("systemctl", $"stop {this.iotedgeServices}", token);
-            Log.Verbose(string.Join("\n", output));
-        }
-
-        public async Task UninstallAsync(CancellationToken token)
-        {
-            await this.CheckInitializationAsync();
-            string[] output =
-                await Process.RunAsync($"{this.packageTool}", $"{this.uninstallCmd} libiothsm-std iotedge", token);
-            Log.Verbose(string.Join("\n", output));
         }
     }
 }

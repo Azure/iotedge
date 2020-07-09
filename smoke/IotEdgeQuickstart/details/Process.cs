@@ -7,6 +7,7 @@ namespace IotEdgeQuickstart.Details
     using System.Threading;
     using System.Threading.Tasks;
     using RunProcessAsTask;
+    using Serilog;
 
     public class Process
     {
@@ -25,6 +26,8 @@ namespace IotEdgeQuickstart.Details
                 FileName = name,
                 Arguments = args,
             };
+
+            Log.Information($"BEARWASHERE Command: {name} {args}");
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, token))
             {
