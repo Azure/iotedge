@@ -184,9 +184,11 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
     - then `settings.createOptions.Lables` will be added to the service's annotations.
 
 ##### spec (ServiceSpec)
-- **type** = ClusterIP if only exposed ports (`settings.createOptions.HostConfig.ExposedPorts`) are 
-  set. If port bindings (`settings.createOptions.HostConfig.PortBindings`) are set, runtime will use
-  the default set by `portMappingServiceType` on runtime startup, default is ClusterIP.
+- **type** = Set according to this priority:
+     1. `type` from `settings.k8s-extensions.serviceOptions.type`. 
+     2. ClusterIP if only exposed ports (`settings.createOptions.HostConfig.ExposedPorts`) are set. 
+     3. If port bindings (`settings.createOptions.HostConfig.PortBindings`) are set, runtime will use the default set by `portMappingServiceType` on runtime startup, default is ClusterIP.
+- **loadBalancerIP** = `loadBalancerIP` from `settings.k8s-extensions.serviceOptions.loadBalancerIP`.
 - **ports** = a list of port bindings
     - **port** = Exposed port if source is `settings.createOptions.HostConfig.ExposedPorts`, 
       host port if source is `settings.createOptions.HostConfig.PortBindings`
@@ -253,3 +255,4 @@ Extensions available:
 - [Setting CPU and Memory limits](create-options.md#cpu-memory-and-device-resources)
 - [Assigning Modules to Nodes](create-options.md#assigning-modules-to-nodes)
 - [Applying Pod Security Context](create-options.md#apply-pod-security-context)
+- [Applying Service Options](create-options.md#apply-service-options)
