@@ -25,6 +25,8 @@ tower-service = "0.3"
 futures-util = "0.3"
 tokio = "0.2"
 bytes = "0.5"
+url = "2.1"
+chrono = "0.4"
 
 [dev-dependencies]
 matches = "0.1"
