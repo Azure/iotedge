@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 foreach (var (i, chunk) in options)
                 {
                     var field = i != 0
-                        ? string.Format("createOptions{0}", i.ToString("D2")) 
+                        ? string.Format("createOptions{0}", i.ToString("D2"))
                         : "createOptions";
                     writer.WritePropertyName(field);
                     writer.WriteValue(chunk);
