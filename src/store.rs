@@ -1,12 +1,22 @@
+use crate::config::Configuration;
 use crate::constants::{AAD_BYTES, IV_BYTES};
 use crate::ks;
 use crate::ks::{KeyHandle, Text};
 use crate::util::BoxFuture;
 
 use base64::encode;
+use iotedge_aad::{Auth, TokenSource};
 use ring::rand::{generate, SystemRandom};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
+
+#[derive(Deserialize, Serialize, Zeroize)]
+#[zeroize(drop)]
+pub struct Record {
+    pub ciphertext: String,
+    pub iv: String,
+    pub aad: String
+}
 
 // NOTE: open to changing implementation so that Sync is not required
 pub trait StoreBackend: Sized + Sync {
@@ -23,10 +33,22 @@ pub trait StoreBackend: Sized + Sync {
 // NOTE: not fully public since high-level functions should be
 //       invariant over backend implementation
 // NOTE: could be a struct, if requested
-pub(crate) trait Store: StoreBackend {
-    fn get_secret<'a>(&'a self, id: &'a str) -> BoxFuture<'a, String> {
+pub(crate) struct Store<T: StoreBackend> {
+    backend: T,
+    config: Configuration
+}
+
+impl<T: StoreBackend> Store<T> {
+    pub fn new(backend: T, config: Configuration) -> Self {
+        Self {
+            backend: backend,
+            config: config
+        }
+    }
+
+    pub fn get_secret<'a>(&'a self, id: &'a str) -> BoxFuture<'a, String> {
         Box::pin(async move {
-            let record = self.read_record(id)?;
+            let record = self.backend.read_record(id)?;
             let KeyHandle(key) = ks::get_key(id).await?;
             let ptext = match ks::decrypt(&key, &record.ciphertext, &record.iv, &record.aad).await? {
                 Text::Plaintext(ptext) => ptext,
@@ -37,7 +59,7 @@ pub(crate) trait Store: StoreBackend {
         })
     }
 
-    fn set_secret<'a>(&'a self, id: &'a str, value: String) -> BoxFuture<'a, ()> {
+    pub fn set_secret<'a>(&'a self, id: &'a str, value: String) -> BoxFuture<'a, ()> {
         Box::pin(async move {
             let rng = SystemRandom::new();
 
@@ -50,7 +72,7 @@ pub(crate) trait Store: StoreBackend {
                 _ => panic!("ENCRYPTION API CHANGED")
             };
 
-            self.write_record(id, Record {
+            self.backend.write_record(id, Record {
                 ciphertext: ctext,
                 iv: iv,
                 aad: aad
@@ -60,18 +82,18 @@ pub(crate) trait Store: StoreBackend {
         })
     }
 
-    /*
-    fn pull_secrets(&'a self, vault: ..., keys: [&str]) -> Pin<Box<dyn Future<Output = BoxedResult<()>> + 'a>>;
-    */
+    pub fn pull_secrets<'a>(&'a self, keys: &'a [&'a str]) -> BoxFuture<'a, ()> {
+        let conf = self.config.to_owned();
+        Box::pin(async move {
+            let token = Auth::new(None, "https://vault.azure.net")
+                .authorize_with_secret(
+                        &conf.tenant_id,
+                        &conf.client_id,
+                        &conf.client_secret
+                    )
+                .await?
+                .get();
+            Ok(())
+        })
+    }
 }
-
-#[derive(Deserialize, Serialize, Zeroize)]
-#[zeroize(drop)]
-pub struct Record {
-    pub ciphertext: String,
-    pub iv: String,
-    pub aad: String
-}
-
-// WARN: THIS IS VERY IMPORTANT
-impl<T: StoreBackend> Store for T { }

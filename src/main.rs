@@ -1,11 +1,12 @@
 mod backends;
+mod config;
 mod constants;
 mod ks;
 mod message;
 mod store;
 mod util;
 
-use store::StoreBackend;
+use store::{Store, StoreBackend};
 
 use std::error::Error as StdError;
 // use std::fs::remove_file;
@@ -37,7 +38,11 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     init()?;
 
     let skt = Path::new(constants::SOCKET_NAME);
-    let store = Arc::new(backends::rocksdb::RocksDBBackend::new()?);
+    let store = {
+        let conf = config::load(Path::new("foo.toml"));
+        let backend = crate::backends::rocksdb::RocksDBBackend::new()?;
+        Arc::new(Store::new(backend, conf))
+    };
     
     Server::bind_unix(skt)?
         .serve(make_service_fn(|_| {

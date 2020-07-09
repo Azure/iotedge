@@ -9,18 +9,18 @@ use std::sync::Arc;
 use hyper::{Body, Method, Request, Response};
 use regex::Regex;
 
-async fn index<'a>(_store: &'a impl Store, _req: Request<Body>) -> BoxResult<'a, Response<Body>> {
+async fn index<'a, T: StoreBackend>(_store: &'a Store<T>, _req: Request<Body>) -> BoxResult<'a, Response<Body>> {
     Ok(Response::builder()
         .body(API_SURFACE.to_string().into())?)
 }
 
-async fn get_secret<'a>(store: &'a impl Store, id: &'a str) -> BoxResult<'a, Response<Body>> {
+async fn get_secret<'a, T: StoreBackend>(store: &'a Store<T>, id: &'a str) -> BoxResult<'a, Response<Body>> {
     let secret = store.get_secret(id).await?;
     Ok(Response::builder()
         .body(secret.into())?)
 }
 
-pub async fn dispatch<'a>(store: Arc<impl StoreBackend>, req: Request<Body>) -> Result<Response<Body>, Infallible> {
+pub(crate) async fn dispatch<T: StoreBackend>(store: Arc<Store<T>>, req: Request<Body>) -> Result<Response<Body>, Infallible> {
     let store = store.deref();
     let secret_reg = Regex::new("/secret/(?P<id>[^/]*)").unwrap();
     let res = match (req.method(), req.uri().path()) {
