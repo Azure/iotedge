@@ -12,6 +12,7 @@ bytes = "~0.5"
 hyper = "~0.13"
 hyperlocal = "~0.7"
 iotedge-aad = { git = "https://github.com/R25l84IHeXjIxy6HO1QXn0y0Dq9mt8EN/iotedge-aad" }
+lazy_static = "~1.4"
 libc = "~0.2"
 # log = "0.4"
 percent-encoding = "~2.1"

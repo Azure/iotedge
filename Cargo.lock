@@ -1034,6 +1034,7 @@ dependencies = [
  "hyper",
  "hyperlocal",
  "iotedge-aad",
+ "lazy_static",
  "libc",
  "percent-encoding",
  "regex",

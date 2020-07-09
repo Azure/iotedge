@@ -2,7 +2,7 @@ mod backends;
 mod config;
 mod constants;
 mod ks;
-mod message;
+mod routes;
 mod store;
 mod util;
 
@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
             let store = store.to_owned();
             async {
                 <Result<_, HyperError>>::Ok(service_fn(move |req| {
-                    message::dispatch(store.to_owned(), req)
+                    routes::dispatch(store.to_owned(), req)
                 }))
             }
         }))

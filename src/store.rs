@@ -46,10 +46,10 @@ impl<T: StoreBackend> Store<T> {
         }
     }
 
-    pub fn get_secret<'a>(&'a self, id: &'a str) -> BoxFuture<'a, String> {
+    pub fn get_secret<'a>(&'a self, id: String) -> BoxFuture<'a, String> {
         Box::pin(async move {
-            let record = self.backend.read_record(id)?;
-            let KeyHandle(key) = ks::get_key(id).await?;
+            let record = self.backend.read_record(&id)?;
+            let KeyHandle(key) = ks::get_key(&id).await?;
             let ptext = match ks::decrypt(&key, &record.ciphertext, &record.iv, &record.aad).await? {
                 Text::Plaintext(ptext) => ptext,
                 _ => panic!("DECRYPTION API CHANGED")
@@ -59,11 +59,11 @@ impl<T: StoreBackend> Store<T> {
         })
     }
 
-    pub fn set_secret<'a>(&'a self, id: &'a str, value: String) -> BoxFuture<'a, ()> {
+    pub fn set_secret<'a>(&'a self, id: String, value: String) -> BoxFuture<'a, ()> {
         Box::pin(async move {
             let rng = SystemRandom::new();
 
-            let KeyHandle(key) = ks::create_key(id).await?;
+            let KeyHandle(key) = ks::create_key(&id).await?;
             let iv: String = encode(generate::<[u8; IV_BYTES]>(&rng)?.expose());
             let aad: String = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
 
@@ -72,7 +72,7 @@ impl<T: StoreBackend> Store<T> {
                 _ => panic!("ENCRYPTION API CHANGED")
             };
 
-            self.backend.write_record(id, Record {
+            self.backend.write_record(&id, Record {
                 ciphertext: ctext,
                 iv: iv,
                 aad: aad
@@ -82,7 +82,7 @@ impl<T: StoreBackend> Store<T> {
         })
     }
 
-    pub fn pull_secrets<'a>(&'a self, keys: &'a [&'a str]) -> BoxFuture<'a, ()> {
+    pub fn pull_secrets<'a>(&'a self, keys: &'a [String]) -> BoxFuture<'a, ()> {
         let conf = self.config.to_owned();
         Box::pin(async move {
             let token = Auth::new(None, "https://vault.azure.net")
