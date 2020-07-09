@@ -4,8 +4,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    thread,
-    thread::{sleep, JoinHandle},
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
@@ -60,10 +59,12 @@ impl ChildProcess {
     fn send_signal(&mut self, signal: Signal) {
         info!("Sending {} signal to {} process", signal, self.name);
 
-        /* Casting process.id() from u32 to i32 cannot wrap. The max pid for linux is ~4 million. The max value for i32 is 2,147,483,647.
-           Linux max pid: https://github.com/torvalds/linux/blob/0bddd227f3dc55975e2b8dfa7fc6f959b062a2c7/include/linux/threads.h#L31
-           Rust i32 max value: https://doc.rust-lang.org/std/i32/constant.MAX.html
-        */
+        // Casting process.id() from u32 to i32 cannot wrap.
+        // The max pid for linux is ~4 million. The max value for i32 is 2,147,483,647.
+        // Linux max pid:
+        // https://github.com/torvalds/linux/blob/0bddd227f3dc55975e2b8dfa7fc6f959b062a2c7/include/linux/threads.h#L31
+        // Rust i32 max value:
+        // https://doc.rust-lang.org/std/i32/constant.MAX.html
         #[allow(clippy::cast_possible_wrap)]
         if let Err(e) = signal::kill(Pid::from_raw(self.process.id() as i32), signal) {
             error!("Failed to send signal to {} process. {}", self.name, e);
@@ -73,7 +74,7 @@ impl ChildProcess {
     fn wait_for_exit(&mut self) {
         let mut elapsed_secs = 0;
         while elapsed_secs < PROCESS_SHUTDOWN_TOLERANCE_SECS.as_secs() && self.is_running() {
-            sleep(PROCESS_POLL_INTERVAL_SECS);
+            thread::sleep(PROCESS_POLL_INTERVAL_SECS);
             elapsed_secs += PROCESS_POLL_INTERVAL_SECS.as_secs();
         }
     }
@@ -86,11 +87,9 @@ pub fn run(
     should_shutdown: Arc<AtomicBool>,
 ) -> Result<JoinHandle<()>> {
     let name = name.into();
-    let program = program.into();
-    let args = args.into();
 
-    let child = Command::new(program)
-        .arg(args)
+    let child = Command::new(program.into())
+        .arg(args.into())
         .stdout(Stdio::inherit())
         .spawn()
         .with_context(|| format!("Failed to start {:?} process.", name))?;
@@ -101,7 +100,7 @@ pub fn run(
         let mut child_process = ChildProcess::new(name, child);
 
         while child_process.is_running() && !should_shutdown.load(Ordering::Relaxed) {
-            sleep(PROCESS_POLL_INTERVAL_SECS);
+            thread::sleep(PROCESS_POLL_INTERVAL_SECS);
         }
 
         // tell the threads to shut down their child process
