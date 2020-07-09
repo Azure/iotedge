@@ -10,14 +10,14 @@ jobs:
   ################################################################################
   - job: check_run_pipeline
     ################################################################################
-    displayName: Check pipeline preconditions (changes ARE in builds or mqtt)
+    displayName: Check pipeline preconditions (changes ARE in builds or edge hub)
     pool:
       vmImage: "ubuntu-16.04"
     steps:
       - bash: |
-          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|mqtt)'
+          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|edge-hub)'
           if [[ $? == 0 ]]; then
-            echo "Detected changes inside builds or mqtt folders"
+            echo "Detected changes inside builds or edgehub folders"
             echo "##vso[task.setvariable variable=RUN_PIPELINE;isOutput=true]TRUE"
           fi
         displayName: Check changes in sources
@@ -36,30 +36,10 @@ jobs:
         displayName: Set env variables
       - bash: mqtt/build/linux/install.sh
         displayName: Install Rust
-      - bash: scripts/linux/generic-rust-build.sh --build-target mqtt
+      - bash: scripts/linux/generic-rust-build.sh --build-target watchdog
         displayName: Build
       - bash: mqtt/build/linux/test.sh
         displayName: Test
-
-  ################################################################################
-  - job: windows_amd64
-    ################################################################################
-    displayName: Windows amd64
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    pool:
-      vmImage: "vs2017-win2016"
-    steps:
-      - powershell: Write-Host ("##vso[task.setvariable variable=RUST_BACKTRACE;]1")
-        displayName: Set env variables
-      - powershell: mqtt/build/windows/install.ps1
-        displayName: Install Rust
-      - powershell: mqtt/build/windows/build.ps1
-        displayName: Build
-      - powershell: mqtt/build/windows/test.ps1
-        displayName: Test
-      - powershell: mqtt/build/windows/clippy.ps1
-        displayName: Clippy
 
   ################################################################################
   - job: style_check
