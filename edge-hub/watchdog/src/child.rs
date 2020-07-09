@@ -59,6 +59,12 @@ impl ChildProcess {
 
     fn send_signal(&mut self, signal: Signal) {
         info!("Sending {} signal to {} process", signal, self.name);
+
+        /* Casting process.id() from u32 to i32 cannot wrap. The max pid for linux is ~4 million. The max value for i32 is 2,147,483,647.
+           Linux max pid: https://github.com/torvalds/linux/blob/0bddd227f3dc55975e2b8dfa7fc6f959b062a2c7/include/linux/threads.h#L31
+           Rust i32 max value: https://doc.rust-lang.org/std/i32/constant.MAX.html
+        */
+        #[allow(clippy::cast_possible_wrap)]
         if let Err(e) = signal::kill(Pid::from_raw(self.process.id() as i32), signal) {
             error!("Failed to send signal to {} process. {}", self.name, e);
         }
