@@ -32,8 +32,7 @@ usage()
     echo " -h, --help          Print this help and exit."
     echo " -t, --target        Target architecture"
     echo " -r, --release       Release build? (flag, default: false)"
-    echo " --packages          Semicolon deliminated packages to build"
-    echo " --project-root      Root of project"
+    echo " --build-target      The entity you want to build"
     exit 1;
 }
 
@@ -77,7 +76,7 @@ process_args()
                 "-t" | "--target" ) save_next_arg=1;;
                 "-r" | "--release" ) save_next_arg=2;;
                 "-c" | "--cargo" ) save_next_arg=3;;
-                "build-target" ) save_next_arg=4;;
+                "--build-target" ) save_next_arg=4;;
                 * ) usage;;
             esac
         fi
