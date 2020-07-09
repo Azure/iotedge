@@ -29,7 +29,6 @@ namespace IotEdgeQuickstart.Details
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, token))
             {
-                Log.Verbose($"BEARWASHERE Command: {name} {args}");
                 if (result.ExitCode != 0)
                 {
                     throw new Win32Exception(result.ExitCode, $"{string.Join("\n", result.StandardOutput)}\n\n'{name}' failed with: {string.Join("\n", result.StandardError)}");

@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     var cts = new CancellationTokenSource();
-                    cts.CancelAfter(1000);
+                    cts.CancelAfter(10000);
                     string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", cts.Token);
                     if (platformInfo.Length == 1)
                     {
