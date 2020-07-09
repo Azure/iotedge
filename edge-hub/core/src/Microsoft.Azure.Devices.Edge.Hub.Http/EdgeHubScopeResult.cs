@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Collections.Generic;
     using System.Net;
-    using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
+    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Newtonsoft.Json;
 
     public class EdgeHubScopeResult

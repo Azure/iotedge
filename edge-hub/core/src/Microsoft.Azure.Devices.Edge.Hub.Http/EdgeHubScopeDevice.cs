@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
+namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
-
     public class EdgeHubScopeDevice
     {
         public EdgeHubScopeDevice(
@@ -28,25 +27,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         }
 
         [JsonProperty(PropertyName = "deviceId")]
-        public string Id { get; set; }
+        public string Id { get; }
 
         [JsonProperty(PropertyName = "generationId")]
-        public string GenerationId { get; set; }
+        public string GenerationId { get; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         [JsonProperty(PropertyName = "status")]
-        public DeviceStatus Status { get; set; }
+        public DeviceStatus Status { get; }
 
         [JsonProperty(PropertyName = "authentication")]
-        public AuthenticationMechanism Authentication { get; set; }
+        public AuthenticationMechanism Authentication { get; }
 
-        [JsonProperty(PropertyName = "capabilities", NullValueHandling = NullValueHandling.Ignore)]
-        public virtual DeviceCapabilities Capabilities { get; set; }
+        [JsonProperty(PropertyName = "capabilities")]
+        public virtual DeviceCapabilities Capabilities { get; }
 
-        [JsonProperty(PropertyName = "deviceScope", NullValueHandling = NullValueHandling.Ignore)]
-        public virtual string Scope { get; set; }
+        [JsonProperty(PropertyName = "deviceScope")]
+        public virtual string Scope { get; }
 
-        [JsonProperty(PropertyName = "parentScopes", NullValueHandling = NullValueHandling.Ignore)]
-        public virtual IEnumerable<string> ParentScopes { get; set; }
+        [JsonProperty(PropertyName = "parentScopes")]
+        public virtual IEnumerable<string> ParentScopes { get; }
     }
 }

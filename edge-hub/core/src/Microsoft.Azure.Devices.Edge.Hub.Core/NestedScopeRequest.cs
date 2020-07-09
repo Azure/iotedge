@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;

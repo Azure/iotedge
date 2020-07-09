@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
+    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -47,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             // Act
             var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
-            await controller.InvokeAsync(actorId, "$edgeHub", request);
+            await controller.GetDevicesAndModulesInTargetDeviceScope(actorId, "$edgeHub", request);
 
             // Verify EdgeHub result types
             var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
@@ -81,10 +82,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var controller = MakeController(resultIdentities);
 
             var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
-            Assert.Throws<AggregateException>(() => controller.InvokeAsync("edge1", "notEdgeHub", request).Wait());
+            Assert.Throws<AggregateException>(() => controller.GetDevicesAndModulesInTargetDeviceScope("edge1", "notEdgeHub", request).Wait());
 
             request = new NestedScopeRequest(0, string.Empty, "edge2;edge2");
-            await controller.InvokeAsync("edge1", "$edgeHub", request);
+            await controller.GetDevicesAndModulesInTargetDeviceScope("edge1", "$edgeHub", request);
             Assert.Equal((int)HttpStatusCode.BadRequest, controller.HttpContext.Response.StatusCode);
         }
 

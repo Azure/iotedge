@@ -8,15 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using Org.BouncyCastle.Security;
 
     public class DeviceScopeController : Controller
     {
@@ -31,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
         [HttpPost]
         [Route("devices/{actorDeviceId}/modules/{actorModuleId}/devicesAndModulesInTargetDeviceScope")]
-        public async Task InvokeAsync([FromRoute] string actorDeviceId, [FromRoute] string actorModuleId, [FromBody] NestedScopeRequest request)
+        public async Task GetDevicesAndModulesInTargetDeviceScope([FromRoute] string actorDeviceId, [FromRoute] string actorModuleId, [FromBody] NestedScopeRequest request)
         {
             actorDeviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorDeviceId, nameof(actorDeviceId)));
             actorModuleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorModuleId, nameof(actorModuleId)));
@@ -41,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             await this.SendResponse(result);
         }
 
-        public async Task<EdgeHubScopeResult> HandleDevicesAndModulesInTargetDeviceScope(string actorDeviceId, string actorModuleId, NestedScopeRequest request)
+        async Task<EdgeHubScopeResult> HandleDevicesAndModulesInTargetDeviceScope(string actorDeviceId, string actorModuleId, NestedScopeRequest request)
         {
             Events.ReceivedScopeRequest(actorDeviceId, request);
 
@@ -62,7 +59,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             string targetAuthChain = targetAuthChainOption.Expect(() => new UnauthorizedAccessException($"{targetDeviceId} is not a child of this Edge device"));
 
             // The actor device should be somewhere in the target device's authchain
-            if (!targetAuthChain.Contains(actorDeviceId))
+            var targetAuthChainIds = targetAuthChain.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            bool targetAuthChainHasActor = false;
+            foreach (string id in targetAuthChainIds)
+            {
+                if (id == actorDeviceId)
+                {
+                    targetAuthChainHasActor = true;
+                    break;
+                }
+            }
+
+            if (!targetAuthChainHasActor)
             {
                 Events.UnauthorizedActor(actorDeviceId, targetDeviceId);
                 result.Status = HttpStatusCode.Unauthorized;
@@ -94,13 +102,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
         }
 
-        public static bool ValidateChainAndGetTargetDeviceId(string actorDeviceId, string authChain, out string targetDeviceId)
+        internal static bool ValidateChainAndGetTargetDeviceId(string actorDeviceId, string authChain, out string targetDeviceId)
         {
             targetDeviceId = string.Empty;
-            var actorAuthChainIds = authChain.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+            var actorAuthChainIds = authChain.Split(';', StringSplitOptions.RemoveEmptyEntries);
 
             // Should have at least 1 element in the chain
-            if (actorAuthChainIds.Count < 1)
+            if (actorAuthChainIds.Length < 1)
             {
                 return false;
             }
@@ -112,23 +120,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 return false;
             }
 
-            // The target device ID is the first device ID in the chain
-            if (!actorAuthChainIds[0].Contains('/'))
-            {
-                targetDeviceId = actorAuthChainIds[0];
-            }
-            else
-            {
-                // The first element is a module ID, so the target device
-                // should be the second element in the chain
-                if (actorAuthChainIds.Count < 2 || actorAuthChainIds[1].Contains('/'))
-                {
-                    // The second element must be present and be a device
-                    return false;
-                }
-
-                targetDeviceId = actorAuthChainIds[1];
-            }
+            // The target device ID is the first device ID in the chain, which could be a module ID
+            // of the format "deviceId/moduleId"
+            var ids = actorAuthChainIds[0].Split('/', StringSplitOptions.RemoveEmptyEntries).ToList();
+            targetDeviceId = ids[0];
 
             return true;
         }

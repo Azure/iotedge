@@ -129,10 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
                 {
                     IList<ServiceIdentityTreeNode> childNodes = treeNode.GetAllChildren();
-                    foreach (ServiceIdentityTreeNode node in childNodes)
-                    {
-                        children.Add(node.Identity);
-                    }
+                    children.AddRange(treeNode.GetAllChildren().Select(child => child.Identity));
                 }
             }
 

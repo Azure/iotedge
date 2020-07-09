@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
+namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -31,6 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         public string GenerationId { get; }
 
         [JsonProperty(PropertyName = "authentication")]
-        public AuthenticationMechanism Authentication { get; set; }
+        public AuthenticationMechanism Authentication { get; }
     }
 }
