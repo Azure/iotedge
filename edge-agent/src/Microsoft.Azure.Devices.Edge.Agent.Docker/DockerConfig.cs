@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Org.BouncyCastle.Asn1.X509;
     using static System.FormattableString;
 
     [JsonConverter(typeof(DockerConfigJsonConverter))]
@@ -20,20 +21,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         readonly CreateContainerParameters createOptions;
 
         public DockerConfig(string image)
-            : this(image, string.Empty, Option.None<NotaryContentTrust>())
+            : this(image, string.Empty, Option.None<string>())
         {
         }
 
-        public DockerConfig(string image, string createOptions, Option<NotaryContentTrust> notaryContentTrust)
-            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions), notaryContentTrust)
+        public DockerConfig(string image, string createOptions, Option<string> digest)
+            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions), digest)
         {
         }
 
-        public DockerConfig(string image, CreateContainerParameters createOptions, Option<NotaryContentTrust> notaryContentTrust)
+        public DockerConfig(string image, CreateContainerParameters createOptions, Option<string> digest)
         {
             this.Image = image;
             this.createOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
-            this.NotaryContentTrust = notaryContentTrust;
+            this.Digest = digest;
         }
 
         public string Image { get; }
@@ -42,7 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
         public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));
 
-        public Option<NotaryContentTrust> NotaryContentTrust { get; }
+        [JsonProperty("digest", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<string> Digest { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);
 
@@ -70,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             return string.Equals(this.Image, other.Image) &&
                    CompareCreateOptions(this.CreateOptions, other.CreateOptions) &&
-                   Equals(this.NotaryContentTrust, other.NotaryContentTrust);
+                   Equals(this.Digest, other.Digest);
         }
 
         internal static CreateContainerParameters GetCreateOptions(string createOptions)
@@ -170,9 +172,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     writer.WriteValue(chunk);
                 }
 
-                dockerconfig.NotaryContentTrust.ForEach(ct =>
+                dockerconfig.Digest.ForEach(ct =>
                 {
-                    writer.WritePropertyName("notaryContentTrust");
+                    writer.WritePropertyName("digest");
                     serializer.Serialize(writer, ct);
                 });
                 writer.WriteEndObject();
@@ -190,13 +192,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     .Select(token => token?.ToString() ?? string.Empty)
                     .Join();
 
-                if (obj.TryGetValue("notaryContentTrust", StringComparison.OrdinalIgnoreCase, out JToken jTokenNotaryContentTrust))
+                if (obj.TryGetValue("digest", StringComparison.OrdinalIgnoreCase, out JToken jTokenDigest))
                 {
-                    return new DockerConfig(jTokenImage?.ToString(), options, Option.Maybe(jTokenNotaryContentTrust.ToObject<NotaryContentTrust>()));
+                    return new DockerConfig(jTokenImage?.ToString(), options, Option.Maybe(jTokenDigest.ToObject<string>()));
                 }
                 else
                 {
-                    return new DockerConfig(jTokenImage?.ToString(), options, Option.None<NotaryContentTrust>());
+                    return new DockerConfig(jTokenImage?.ToString(), options, Option.None<string>());
                 }
             }
 
