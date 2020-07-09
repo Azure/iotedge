@@ -56,9 +56,9 @@ fn main() -> Result<()> {
 
     if let Err(e) = edgehub_handle.join() {
         should_shutdown.store(true, Ordering::Relaxed);
-        error!("Failure while running MQTT Broker process. {:?}", e)
+        error!("Failure while running Edge Hub process. {:?}", e)
     } else {
-        info!("Successfully stopped MQTT Broker process");
+        info!("Successfully stopped Edge Hub process");
     }
 
     if let Some(handle) = broker_handle {
