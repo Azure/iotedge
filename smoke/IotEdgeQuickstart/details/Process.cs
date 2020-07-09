@@ -27,7 +27,7 @@ namespace IotEdgeQuickstart.Details
                 Arguments = args,
             };
 
-            Log.Information($"BEARWASHERE Command: {name} {args}");
+            Log.Verbose($"BEARWASHERE Command: {name} {args}");
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, token))
             {
