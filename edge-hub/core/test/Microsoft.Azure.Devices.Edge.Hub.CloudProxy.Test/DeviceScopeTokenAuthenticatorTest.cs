@@ -329,7 +329,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = sharedAccessSignature.Audience;
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
+
+            // Assert
+            Assert.True(isAuthenticated);
+            Mock.Get(underlyingAuthenticator).VerifyAll();
+        }
+
+        [Fact]
+        public void ValidateAudienceWithAuthChainTest()
+        {
+            // Arrange
+            string iothubHostName = "testiothub.azure-devices.net";
+            string edgehubHostName = "edgehub1";
+            string edgeDeviceId = "edge1";
+            string leafDeviceId = "leaf1";
+            var authChain = Option.Some<string>(leafDeviceId + ";" + edgeDeviceId);
+            var underlyingAuthenticator = Mock.Of<IAuthenticator>();
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(); ;
+            string key = GetKey();
+
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == leafDeviceId)))
+                .ReturnsAsync(authChain) ;
+
+            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, true, true);
+
+            var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == leafDeviceId && d.Id == leafDeviceId);
+            string token = GetDeviceToken(iothubHostName, edgeDeviceId, Constants.EdgeHubModuleId, key);
+            SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(iothubHostName, token);
+            string audience = sharedAccessSignature.Audience;
+
+            // Act
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, authChain);
 
             // Assert
             Assert.True(isAuthenticated);
@@ -355,7 +386,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = sharedAccessSignature.Audience;
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
 
             // Assert
             Assert.True(isAuthenticated);
@@ -382,7 +413,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = sharedAccessSignature.Audience;
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
 
             // Assert
             Assert.False(isAuthenticated);
@@ -409,7 +440,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = sharedAccessSignature.Audience;
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
 
             // Assert
             Assert.False(isAuthenticated);
@@ -433,7 +464,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = $"{iothubHostName}/devices/{deviceId}/foo";
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
 
             // Assert
             Assert.False(isAuthenticated);
@@ -458,7 +489,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = $"{iothubHostName}/devices/{deviceId}/modules/{moduleId}/m1";
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
 
             // Assert
             Assert.False(isAuthenticated);

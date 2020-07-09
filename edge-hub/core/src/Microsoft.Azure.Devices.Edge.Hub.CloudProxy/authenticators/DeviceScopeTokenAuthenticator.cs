@@ -31,62 +31,158 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             this.edgeHubHostName = Preconditions.CheckNotNull(edgeHubHostName, nameof(edgeHubHostName));
         }
 
+        protected override (Option<string> deviceId, Option<string> moduleId) GetActorId(ITokenCredentials credentials)
+        {
+            // Parse the deviceId and moduleId out of the token's audience
+            SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(this.iothubHostName, credentials.Token);
+            (string hostName, string deviceId, Option<string> moduleId) = this.ParseAudience(sharedAccessSignature.Audience);
+            return (Option.Some(deviceId), moduleId);
+        }
+
         protected override bool AreInputCredentialsValid(ITokenCredentials credentials) => this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature _);
 
-        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ITokenCredentials credentials, bool isOnBehalfOf) =>
+        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ITokenCredentials credentials, Option<string> authChain) =>
             this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature sharedAccessSignature)
-                ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity, isOnBehalfOf)
+                ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity, authChain)
                 : false;
 
-        internal bool ValidateAudience(string audience, IIdentity identity)
+        internal (string hostName, string deviceId, Option<string> moduleId) ParseAudience(string audience)
         {
             Preconditions.CheckNonWhiteSpace(audience, nameof(audience));
             audience = WebUtility.UrlDecode(audience.Trim());
+
             // The audience should be in one of the following formats -
             // {HostName}/devices/{deviceId}/modules/{moduleId}
             // {HostName}/devices/{deviceId}
             string[] parts = audience.Split('/');
             string hostName;
+            string deviceId;
+            Option<string> moduleId = Option.None<string>();
             if (parts.Length == 3)
             {
                 hostName = parts[0];
-                string deviceId = parts[2];
-                if (identity is IDeviceIdentity deviceIdentity && deviceIdentity.DeviceId != deviceId)
-                {
-                    Events.IdMismatch(audience, identity, deviceIdentity.DeviceId);
-                    return false;
-                }
-                else if (identity is IModuleIdentity moduleIdentity && moduleIdentity.DeviceId != deviceId)
-                {
-                    Events.IdMismatch(audience, identity, moduleIdentity.DeviceId);
-                    return false;
-                }
+                deviceId = parts[2];
             }
             else if (parts.Length == 5)
             {
                 hostName = parts[0];
-                string deviceId = parts[2];
-                string moduleId = parts[4];
-                if (!(identity is IModuleIdentity moduleIdentity))
+                deviceId = parts[2];
+                moduleId = Option.Some(parts[4]);
+            }
+            else
+            {
+                throw new ArgumentException($"Invalid audience: {audience}");
+            }
+
+            return (hostName, deviceId, moduleId);
+        }
+
+        internal bool ValidateAuthChain(string actorDeviceId, Option<string> actorModuleId, string targetId, string authChain)
+        {
+            var authChainIds = authChain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // The first element of the authChain should be the target identity
+            if (authChainIds[0] != targetId)
+            {
+                Events.InvalidAuthChain(targetId, authChain);
+                return false;
+            }
+
+            // The actor identity should be in the authChain
+            string actorId = actorDeviceId + actorModuleId.Map(id => "/" + id).GetOrElse(string.Empty);
+            bool targetAuthChainHasActor = false;
+            foreach (string id in authChainIds)
+            {
+                if (id == actorDeviceId)
                 {
-                    Events.InvalidAudience(audience, identity);
+                    targetAuthChainHasActor = true;
+                    break;
+                }
+            }
+
+            if (!targetAuthChainHasActor)
+            {
+                Events.InvalidAuthChain(targetId, authChain);
+                return false;
+            }
+
+            return true;
+        }
+
+        internal bool ValidateAudienceIds(string audienceDeviceId, Option<string> audienceModuleId, IIdentity identity)
+        {
+            string audienceId = audienceDeviceId + audienceModuleId.Map(id => "/" + id).GetOrElse(string.Empty);
+
+            // Token is for a device
+            if (!audienceModuleId.HasValue)
+            {
+                if (identity is IDeviceIdentity deviceIdentity && deviceIdentity.DeviceId != audienceDeviceId)
+                {
+                    Events.IdMismatch(audienceId, identity, deviceIdentity.DeviceId);
                     return false;
                 }
-                else if (moduleIdentity.DeviceId != deviceId)
+                else if (identity is IModuleIdentity moduleIdentity && moduleIdentity.DeviceId != audienceDeviceId)
                 {
-                    Events.IdMismatch(audience, identity, moduleIdentity.DeviceId);
+                    Events.IdMismatch(audienceId, identity, moduleIdentity.DeviceId);
+                    return false;
+                }
+            }
+            // Token is for a module
+            else
+            {
+                string moduleId = audienceModuleId.Expect(() => new InvalidOperationException());
+
+                if (!(identity is IModuleIdentity moduleIdentity))
+                {
+                    Events.InvalidAudience(audienceId, identity);
+                    return false;
+                }
+                else if (moduleIdentity.DeviceId != audienceDeviceId)
+                {
+                    Events.IdMismatch(audienceId, identity, moduleIdentity.DeviceId);
                     return false;
                 }
                 else if (moduleIdentity.ModuleId != moduleId)
                 {
-                    Events.IdMismatch(audience, identity, moduleIdentity.ModuleId);
+                    Events.IdMismatch(audienceId, identity, moduleIdentity.ModuleId);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        internal bool ValidateAudience(string audience, IIdentity identity, Option<string> authChain)
+        {
+            string hostName;
+            string deviceId;
+            Option<string> moduleId;
+
+            try
+            {
+                (hostName, deviceId, moduleId) = this.ParseAudience(audience);
+            }
+            catch
+            {
+                Events.InvalidAudience(audience, identity);
+                return false;
+            }
+
+            if (authChain.HasValue)
+            {
+                // OnBehalfOf scenario, where we need to check the audience against the authchain
+                if (!ValidateAuthChain(deviceId, moduleId, identity.Id, authChain.Expect(() => new InvalidOperationException())))
+                {
                     return false;
                 }
             }
             else
             {
-                Events.InvalidAudience(audience, identity);
-                return false;
+                // Default scenario, we just need to the check the audience against the target identity
+                if (!ValidateAudienceIds(deviceId, moduleId, identity))
+                {
+                    return false;
+                }
             }
 
             if (string.IsNullOrWhiteSpace(hostName) ||
@@ -114,16 +210,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
         }
 
-        bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity identity, bool isOnBehalfOf)
-        {
-            // No need to check audience against the identity if it's an
-            // OnBehalfOf connection, they'll always be mismatched
-            bool hasValidAudience = isOnBehalfOf ? true : this.ValidateAudience(sharedAccessSignature.Audience, identity);
-
-            return this.ValidateTokenWithSecurityIdentity(sharedAccessSignature, serviceIdentity) &&
-                   hasValidAudience &&
-                   this.ValidateExpiry(sharedAccessSignature, identity);
-        }
+        bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity identity, Option<string> authChain) =>
+            this.ValidateTokenWithSecurityIdentity(sharedAccessSignature, serviceIdentity) &&
+            this.ValidateAudience(sharedAccessSignature.Audience, identity, authChain) &&
+            this.ValidateExpiry(sharedAccessSignature, identity);
 
         bool ValidateExpiry(SharedAccessSignature sharedAccessSignature, IIdentity identity)
         {
@@ -182,6 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             {
                 InvalidHostName = IdStart,
                 InvalidAudience,
+                InvalidAuthChain,
                 IdMismatch,
                 KeysMismatch,
                 InvalidServiceIdentityType,
@@ -200,9 +291,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 Log.LogWarning((int)EventIds.InvalidAudience, $"Error authenticating token for {identity.Id} because the audience {audience} is invalid.");
             }
 
-            public static void IdMismatch(string audience, IIdentity identity, string deviceId)
+            public static void InvalidAuthChain(string id, string authChain)
             {
-                Log.LogWarning((int)EventIds.IdMismatch, $"Error authenticating token for {identity.Id} because the deviceId {deviceId} in the identity does not match the audience {audience}.");
+                Log.LogWarning((int)EventIds.InvalidAuthChain, $"Error authenticating token for {id} because the auth-chain {authChain} is invalid.");
+            }
+
+            public static void IdMismatch(string audienceId, IIdentity identity, string deviceId)
+            {
+                Log.LogWarning((int)EventIds.IdMismatch, $"Error authenticating token for {identity.Id} because the deviceId {deviceId} in the identity does not match the audienceId {audienceId}.");
             }
 
             public static void KeysMismatch(string id, Exception exception)

@@ -68,9 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return isAuthenticated;
         }
 
+        protected abstract (Option<string> deviceId, Option<string> moduleId) GetActorId(T credentials);
+
         protected abstract bool AreInputCredentialsValid(T credentials);
 
-        protected abstract bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, T credentials, bool isOnBehalfOf);
+        protected abstract bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, T credentials, Option<string> authChain);
 
         async Task<(bool isAuthenticated, bool shouldFallback)> AuthenticateInternalAsync(T tCredentials, bool reauthenticating)
         {
@@ -83,12 +85,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 bool syncServiceIdentity = this.syncServiceIdentityOnFailure && !reauthenticating;
-                (bool isAuthenticated, bool valueFound) = await this.AuthenticateWithAuthChain(tCredentials, tCredentials.Identity.Id, syncServiceIdentity);
-                if (!isAuthenticated && this.allowDeviceAuthForModule && tCredentials.Identity is IModuleIdentity moduleIdentity)
+                bool isAuthenticated = false;
+                bool valueFound = false;
+                string actorId = tCredentials.Identity.Id;
+
+                // Try to get the actorId from the credentials
+                (Option<string> actorDeviceId, Option<string> actorModuleId) = GetActorId(tCredentials);
+                if (actorDeviceId.HasValue)
                 {
-                    // Module can use the Device key to authenticate
+                    actorId = actorDeviceId.OrDefault() + actorModuleId.Map(id => "/" + id).GetOrElse(string.Empty);
+                }
+
+                if (this.nestedEdgeEnabled &&
+                    actorModuleId.Contains(Constants.EdgeHubModuleId) &&
+                    actorId != tCredentials.Identity.Id)
+                {
+                    // OnBehalfOf means an EdgeHub is trying to use its own auth to
+                    // connect as a child device or module. So if acting EdgeHub is
+                    // different than the target identity, then we know we're
+                    // processing an OnBehalfOf authentication.
+                    (isAuthenticated, valueFound) = await this.AuthenticateWithAuthChain(tCredentials, actorId, syncServiceIdentity);
+                }
+                else if (this.allowDeviceAuthForModule &&
+                    tCredentials.Identity is IModuleIdentity moduleIdentity &&
+                    !actorModuleId.HasValue)
+                {
+                    // We're trying to authenticate a module, but the token is for a device.
+                    // This is the scenario where a module can use its parent device's token
+                    // to authenticate.
                     Events.AuthenticatingWithDeviceIdentity(moduleIdentity);
-                    (isAuthenticated, valueFound) = await this.AuthenticateWithAuthChain(tCredentials, moduleIdentity.DeviceId, syncServiceIdentity);
+                    (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId, syncServiceIdentity, Option.None<string>());
+                }
+                else
+                {
+                    // Default scenario where the credential is for the target identity
+                    (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, tCredentials.Identity.Id, syncServiceIdentity, Option.None<string>());
                 }
 
                 // In the return value, the first flag indicates if the authentication succeeded.
@@ -103,50 +134,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithAuthChain(T credentials, string serviceIdentityId, bool syncServiceIdentity)
+        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithAuthChain(T credentials, string actorEdgeHubId, bool syncServiceIdentity)
         {
-            // Try authenticate against the originating identity first
-            (bool isAuthenticated, bool serviceIdentityFound) = await this.AuthenticateWithServiceIdentity(credentials, serviceIdentityId, syncServiceIdentity, false);
-
-            if (!this.nestedEdgeEnabled)
-            {
-                // Legacy path
-                return (isAuthenticated, serviceIdentityFound);
-            }
-
-            // For nested Edge, we need to check that an authchain exists
-            Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentityId);
+            // For nested Edge, we need to check that we have
+            // a valid authchain for the target identity
+            Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(credentials.Identity.Id);
             if (!authChain.HasValue)
             {
-                // The identity is not within our nested hierarchy
+                // Target identity is not in our nested hierarchy
                 return (false, false);
             }
 
-            var authChainIds = authChain.OrDefault().Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-            if (!isAuthenticated && authChainIds.Count() > 2)
-            {
-                // Failed to authenticate against the originating identity, but the daisy-chained
-                // nature of nested Edge means the connection could be coming from our immediate
-                // child Edge, which acts as a parent to the originating identity. This "acting"
-                // Edge would be the second to last identity in the authchain.
-                string actorEdgeHubId = authChainIds[authChainIds.Count() - 2] + "/" + Constants.EdgeHubModuleId;
-                (isAuthenticated, _) = await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, false, true);
-            }
-
-            return (isAuthenticated, serviceIdentityFound);
+            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, true, authChain);
         }
 
-        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity, bool isOnBehalfOf)
+        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity, Option<string> authChain)
         {
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
-            (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, isOnBehalfOf), true)).GetOrElse((false, false));
+            (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, authChain), true)).GetOrElse((false, false));
 
             if (!isAuthenticated && (!serviceIdentityFound || syncServiceIdentity))
             {
                 Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId);
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
                 serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
-                (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, isOnBehalfOf), true)).GetOrElse((false, false));
+                (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, authChain), true)).GetOrElse((false, false));
             }
 
             return (isAuthenticated, serviceIdentityFound);
