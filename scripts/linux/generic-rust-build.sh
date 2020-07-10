@@ -93,7 +93,7 @@ do
     PACKAGES_FORMATTED="${PACKAGES_FORMATTED} -p ${p}"
 done
 
-if [ $BUILD_TARGET -eq "edgelet" ]; then
+if [ "$BUILD_TARGET" = "edgelet" ]; then
     # ld crashes in the VSTS CI's Linux amd64 job while trying to link iotedged
     # with a generic exit code 1 and no indicative error message. It seems to
     # work fine if we reduce the number of objects given to the linker,
@@ -115,9 +115,9 @@ fi
 
 if [[ -z ${RELEASE} ]]; then
     cd "$PROJECT_ROOT"
-    $CARGO build ${PACKAGES_WITH_MANIFEST} --target "$TARGET"
-    $CARGO build ${PACKAGES_WITH_MANIFEST} --no-default-features --target "$TARGET"
+    $CARGO build ${PACKAGES_FORMATTED} --target "$TARGET"
+    $CARGO build ${PACKAGES_FORMATTED} --no-default-features --target "$TARGET"
 else
-    cd "$PROJECT_ROOT" && $CARGO build ${PACKAGES} --release
+    cd "$PROJECT_ROOT" && $CARGO build ${PACKAGES_FORMATTED} --release
 fi
 
