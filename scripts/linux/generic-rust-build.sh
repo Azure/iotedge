@@ -81,9 +81,9 @@ process_args()
 process_args "$@"
 
 if [ "$MANIFEST_PATH" = '1' ]; then
-    PACKAGE_ARG = "--manifest-path"
+    PACKAGE_ARG="--manifest-path"
 else
-    PACKAGE_ARG = "-p"
+    PACKAGE_ARG="-p"
 fi
 
 PACKAGES_FORMATTED=
