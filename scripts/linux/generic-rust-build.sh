@@ -56,13 +56,13 @@ process_args()
             save_next_arg=0
         elif [ $save_next_arg -eq 4 ]; then
             BUILD_TARGET="$arg"
-            if [ $BUILD_TARGET -eq "watchdog" ]; then
+            if [ "$BUILD_TARGET" = "watchdog" ]; then
                 PROJECT_ROOT=$PROJECT_ROOT/edge-hub/watchdog
                 PACKAGES=(watchdog)
-            elif [ $BUILD_TARGET -eq "mqtt" ]; then
+            elif [ "$BUILD_TARGET" = "mqtt" ]; then
                 PROJECT_ROOT=$PROJECT_ROOT/mqtt
                 PACKAGES=(mqttd)
-            elif [ $BUILD_TARGET -eq "edgelet" ]; then
+            elif [ "$BUILD_TARGET" = "edgelet" ]; then
                 PROJECT_ROOT=$PROJECT_ROOT/edgelet
                 PACKAGES=(iotedge iotedged iotedge-diagnostics iotedge-proxy)
             else
