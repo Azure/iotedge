@@ -106,20 +106,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     // processing an OnBehalfOf authentication.
                     (isAuthenticated, valueFound) = await this.AuthenticateWithAuthChain(tCredentials, actorId, syncServiceIdentity);
                 }
-                else if (this.allowDeviceAuthForModule &&
-                    tCredentials.Identity is IModuleIdentity moduleIdentity &&
-                    !actorModuleId.HasValue)
-                {
-                    // We're trying to authenticate a module, but the token is for a device.
-                    // This is the scenario where a module can use its parent device's token
-                    // to authenticate.
-                    Events.AuthenticatingWithDeviceIdentity(moduleIdentity);
-                    (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId, syncServiceIdentity, Option.None<string>());
-                }
                 else
                 {
                     // Default scenario where the credential is for the target identity
                     (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, tCredentials.Identity.Id, syncServiceIdentity, Option.None<string>());
+
+                    if (!isAuthenticated && this.allowDeviceAuthForModule && tCredentials.Identity is IModuleIdentity moduleIdentity)
+                    {
+                        // The module could have used the Device key to sign its token
+                        Events.AuthenticatingWithDeviceIdentity(moduleIdentity);
+                        (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId, syncServiceIdentity, Option.None<string>());
+                    }
                 }
 
                 // In the return value, the first flag indicates if the authentication succeeded.

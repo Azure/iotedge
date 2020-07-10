@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             return (hostName, deviceId, moduleId);
         }
 
-        internal bool ValidateAuthChain(string actorDeviceId, Option<string> actorModuleId, string targetId, string authChain)
+        internal bool ValidateAuthChain(string actorDeviceId, string targetId, string authChain)
         {
             var authChainIds = authChain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -88,8 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            // The actor identity should be in the authChain
-            string actorId = actorDeviceId + actorModuleId.Map(id => "/" + id).GetOrElse(string.Empty);
+            // The actor device should be in the authChain
             bool targetAuthChainHasActor = false;
             foreach (string id in authChainIds)
             {
@@ -171,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             if (authChain.HasValue)
             {
                 // OnBehalfOf scenario, where we need to check the audience against the authchain
-                if (!ValidateAuthChain(deviceId, moduleId, identity.Id, authChain.Expect(() => new InvalidOperationException())))
+                if (!ValidateAuthChain(deviceId, identity.Id, authChain.Expect(() => new InvalidOperationException())))
                 {
                     return false;
                 }
