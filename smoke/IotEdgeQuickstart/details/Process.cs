@@ -7,7 +7,6 @@ namespace IotEdgeQuickstart.Details
     using System.Threading;
     using System.Threading.Tasks;
     using RunProcessAsTask;
-    using Serilog;
 
     public class Process
     {

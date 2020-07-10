@@ -35,14 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     properties = properties.Append(p).ToArray();
                 });
 
-            string[] commands = packagesPath.Match(
-                (p) =>
+            string[] commands = await packagesPath.Match(
+                async p =>
                 {
-                    return this.packageManagement.GetInstallCommandsFromLocal(p);
+                    return await this.packageManagement.GetInstallCommandsFromLocalAsync(p);
                 },
-                () =>
+                async () =>
                 {
-                    return this.packageManagement.GetInstallCommandsFromMicrosoftProd();
+                    return await this.packageManagement.GetInstallCommandsFromMicrosoftProdAsync();
                 });
 
             await Profiler.Run(

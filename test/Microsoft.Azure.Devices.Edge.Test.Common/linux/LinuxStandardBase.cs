@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using Microsoft.Azure.Devices.Edge.Util;
-    using SupportedPackageExtension = PackageManagement.SupportedPackageExtension;
 
     class LinuxStandardBase
     {
@@ -19,5 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             this.Version = version;
             this.PackageExtension = packageExtension;
         }
+    }
+
+    public enum SupportedPackageExtension
+    {
+        Deb,
+        Rpm,
+        None
     }
 }
