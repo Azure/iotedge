@@ -112,9 +112,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
         {
             string audienceId = audienceDeviceId + audienceModuleId.Map(id => "/" + id).GetOrElse(string.Empty);
 
-            // Token is for a device
             if (!audienceModuleId.HasValue)
             {
+                // Token is for a device
                 if (identity is IDeviceIdentity deviceIdentity && deviceIdentity.DeviceId != audienceDeviceId)
                 {
                     Events.IdMismatch(audienceId, identity, deviceIdentity.DeviceId);
@@ -126,9 +126,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                     return false;
                 }
             }
-            // Token is for a module
             else
             {
+                // Token is for a module
                 string moduleId = audienceModuleId.Expect(() => new InvalidOperationException());
 
                 if (!(identity is IModuleIdentity moduleIdentity))
@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             if (authChain.HasValue)
             {
                 // OnBehalfOf scenario, where we need to check the audience against the authchain
-                if (!ValidateAuthChain(deviceId, identity.Id, authChain.Expect(() => new InvalidOperationException())))
+                if (!this.ValidateAuthChain(deviceId, identity.Id, authChain.Expect(() => new InvalidOperationException())))
                 {
                     return false;
                 }
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             else
             {
                 // Default scenario, we just need to the check the audience against the target identity
-                if (!ValidateAudienceIds(deviceId, moduleId, identity))
+                if (!this.ValidateAudienceIds(deviceId, moduleId, identity))
                 {
                     return false;
                 }

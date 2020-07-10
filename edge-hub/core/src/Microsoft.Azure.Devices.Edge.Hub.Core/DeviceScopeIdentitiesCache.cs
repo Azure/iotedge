@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     // Chain is unuseable if one of the devices is disabled
                     Events.AuthChainDisabled(targetId, id);
                     return Option.None<string>();
-                };
+                }
             }
 
             return authChain;

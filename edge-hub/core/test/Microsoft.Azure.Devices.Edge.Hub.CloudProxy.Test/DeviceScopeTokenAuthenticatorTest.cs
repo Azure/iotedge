@@ -322,7 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string leafDeviceId = "leaf";
             var authChain = Option.Some<string>(leafDeviceId + ";" + actorDeviceId + ";" + rootDeviceId);
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
-            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(); ;
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var leafIdentity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == leafDeviceId && d.Id == leafDeviceId);
             var actorAuth = new SymmetricKeyAuthentication(key, key);
@@ -359,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string nestedModuleId = nestedEdgeId + "/" + Constants.EdgeHubModuleId;
             var authChain = Option.Some<string>(nestedModuleId + ";" + nestedEdgeId + ";" + actorEdgeId + ";" + rootEdgeId);
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
-            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(); ;
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var nestedModuleIdentity = Mock.Of<IModuleIdentity>(i => i.DeviceId == nestedEdgeId && i.ModuleId == Constants.EdgeHubModuleId && i.Id == nestedModuleId);
             var actorAuth = new SymmetricKeyAuthentication(key, key);
@@ -550,7 +550,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string leafDeviceId = "leaf";
             var authChain = Option.Some<string>("NotLeafDevice" + ";" + actorEdgeId + ";" + rootEdgeId);
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
-            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(); ;
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
 
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == leafDeviceId)))
@@ -581,7 +581,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string leafDeviceId = "leaf";
             var authChain = Option.Some<string>(leafDeviceId + ";" + "NotActorEdge" + ";" + rootEdgeId);
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
-            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(); ;
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
 
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == leafDeviceId)))

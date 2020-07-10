@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 string actorId = tCredentials.Identity.Id;
 
                 // Try to get the actorId from the credentials
-                (Option<string> actorDeviceId, Option<string> actorModuleId) = GetActorId(tCredentials);
+                (Option<string> actorDeviceId, Option<string> actorModuleId) = this.GetActorId(tCredentials);
                 if (actorDeviceId.HasValue)
                 {
                     actorId = actorDeviceId.OrDefault() + actorModuleId.Map(id => "/" + id).GetOrElse(string.Empty);
