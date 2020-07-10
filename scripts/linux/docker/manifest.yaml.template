@@ -16,8 +16,3 @@ manifests:
     platform:
       architecture: aarch64
       os: linux      
-  -
-    image: __REGISTRY__/__NAMESPACE__/__NAME__:__VERSION__-windows-amd64
-    platform:
-      architecture: amd64
-      os: windows
