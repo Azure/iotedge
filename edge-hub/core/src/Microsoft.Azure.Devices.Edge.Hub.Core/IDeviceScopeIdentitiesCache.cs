@@ -15,6 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
 
+        Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId);
+
         Task<Option<string>> GetAuthChain(string id);
 
         void InitiateCacheRefresh();

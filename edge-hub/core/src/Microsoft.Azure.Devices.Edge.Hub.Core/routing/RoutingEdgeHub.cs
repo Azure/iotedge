@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -30,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly string edgeDeviceId;
         readonly IInvokeMethodHandler invokeMethodHandler;
         readonly ISubscriptionProcessor subscriptionProcessor;
+        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
 
         public RoutingEdgeHub(
             Router router,
@@ -38,7 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             ITwinManager twinManager,
             string edgeDeviceId,
             IInvokeMethodHandler invokeMethodHandler,
-            ISubscriptionProcessor subscriptionProcessor)
+            ISubscriptionProcessor subscriptionProcessor,
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -47,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
             this.subscriptionProcessor = Preconditions.CheckNotNull(subscriptionProcessor, nameof(subscriptionProcessor));
+            this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
         }
 
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
@@ -140,6 +144,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
             => this.subscriptionProcessor.ProcessSubscriptions(id, subscriptions);
+
+        public Task<Option<string>> GetAuthChainForIdentity(string id)
+            => this.deviceScopeIdentitiesCache.GetAuthChain(id);
+
+        public Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId)
+            => this.deviceScopeIdentitiesCache.GetDevicesAndModulesInTargetScopeAsync(targetDeviceId);
 
         public void Dispose()
         {
