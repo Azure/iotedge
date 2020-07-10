@@ -83,13 +83,13 @@ impl ChildProcess {
 pub fn run(
     name: impl Into<String>,
     program: impl Into<String>,
-    args: impl Into<String>,
+    args: Vec<String>,
     should_shutdown: Arc<AtomicBool>,
 ) -> Result<JoinHandle<()>> {
     let name = name.into();
 
     let child = Command::new(program.into())
-        .arg(args.into())
+        .args(args)
         .stdout(Stdio::inherit())
         .spawn()
         .with_context(|| format!("Failed to start {:?} process.", name))?;
