@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
-            await currentDeviceConnection.ForEachAsync(async c =>
+            currentDeviceConnection.ForEach(async c =>
                 {
                     if (c.Subscriptions.Count > 0)
                     {
