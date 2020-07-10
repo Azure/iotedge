@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 ADD ./watchdog/target/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
-ADD ./mqttd/production.json /tmp/mqtt/config/production.json
+ADD ./mqttd/production.json /app/mqttd/production.json
 
 ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
 
@@ -40,5 +40,5 @@ EXPOSE 443/tcp
 USER edgehubuser	
 
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
-    cd /tmp/mqtt && \
+    cd /tmp && \
     /usr/local/bin/watchdog

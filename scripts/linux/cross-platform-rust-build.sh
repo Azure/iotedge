@@ -94,16 +94,8 @@ fi
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
     ubuntu18.04.amd64)
         # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/master/Dockerfile.
-        # The beginning of the below setup specifies versions for other dependencies.
-        # Here are the places to check for new releases:
-        #
-        # - https://github.com/rust-lang/mdBook/releases
-        # - https://github.com/EmbarkStudios/cargo-about/releases
-        # - https://github.com/EmbarkStudios/cargo-deny/releases
         SETUP_COMMAND=$'
             OPENSSL_VERSION=1.1.1g
-            CARGO_ABOUT_VERSION=0.2.2
-            CARGO_DENY_VERSION=0.6.7
             apt-get update && \
             apt-get install -y \
                 build-essential \
@@ -124,14 +116,6 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 && \
             apt-get clean && rm -rf /var/lib/apt/lists/* && \
             useradd rust --user-group --create-home --shell /bin/bash --groups sudo && \
-            curl -fLO https://github.com/EmbarkStudios/cargo-about/releases/download/$CARGO_ABOUT_VERSION/cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz && \
-            tar xf cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz && \
-            mv cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl/cargo-about /usr/local/bin/ && \
-            rm -rf cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl && \
-            curl -fLO https://github.com/EmbarkStudios/cargo-deny/releases/download/$CARGO_DENY_VERSION/cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz && \
-            tar xf cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz && \
-            mv cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/ && \
-            rm -rf cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz 
             echo "Building OpenSSL" && \
             ls /usr/include/linux && \
             sudo mkdir -p /usr/local/musl/include && \
@@ -232,14 +216,18 @@ case "$PACKAGE_OS" in
         case "$PACKAGE_ARCH" in
             amd64)
                 MAKE_FLAGS="'CARGOFLAGS=--target x86_64-unknown-linux-musl'"
+                MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/x86_64-unknown-linux-musl/release'"
+                MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=strip'"
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/armv7-unknown-linux-gnueabihf/release'"
+                MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=/usr/arm-linux-gnueabihf/bin/strip'"
                 ;;
             aarch64)
                 MAKE_FLAGS="'CARGOFLAGS=--target aarch64-unknown-linux-gnu'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/aarch64-unknown-linux-gnu/release'"
+                MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=/usr/aarch64-linux-gnu/bin/strip'"
                 ;;
         esac
 
