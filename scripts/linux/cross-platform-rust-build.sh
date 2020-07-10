@@ -233,14 +233,17 @@ case "$PACKAGE_OS" in
             amd64)
                 MAKE_FLAGS="'CARGOFLAGS=--target x86_64-unknown-linux-musl'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/x86_64-unknown-linux-musl/release'"
+                MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=/usr/arm-linux-gnueabihf/bin/strip'"
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/armv7-unknown-linux-gnueabihf/release'"
+                MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=/usr/arm-linux-gnueabihf/bin/strip'"
                 ;;
             aarch64)
                 MAKE_FLAGS="'CARGOFLAGS=--target aarch64-unknown-linux-gnu'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/aarch64-unknown-linux-gnu/release'"
+                MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=/usr/aarch64-linux-gnu/bin/strip'"
                 ;;
         esac
 
