@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
+            string[] output = await Process.RunAsync("systemctl", $"stop {await this.packageManagement.GetIotedgeServicesAsync()}", token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     async () =>
                     {
                         string[] output =
-                            await Process.RunAsync($"{this.packageManagement.PackageTool}", $"{this.packageManagement.UninstallCmd} libiothsm-std iotedge", token);
+                            await Process.RunAsync($"{await this.packageManagement.GetPackageToolAsync()}", $"{await this.packageManagement.GetUninstallCmdAsync()} libiothsm-std iotedge", token);
                         Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");
