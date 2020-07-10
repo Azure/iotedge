@@ -76,32 +76,6 @@ jobs:
           arguments: --target armv7-unknown-linux-gnueabihf --cargo cross
 
 ################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    pool:
-      vmImage: 'vs2017-win2016'
-    steps:
-      - task: PowerShell@2
-        displayName: Install Rust
-        inputs:
-          filePath: mqtt/build/windows/install.ps1
-      - task: PowerShell@2
-        displayName: Clippy for Windows
-        inputs:
-          filePath: mqtt/build/windows/clippy.ps1
-      - task: PowerShell@2
-        displayName: Build
-        inputs:
-          filePath: mqtt/build/windows/build.ps1
-      - task: PowerShell@2
-        displayName: Test
-        inputs:
-          filePath: mqtt/build/windows/test.ps1
-
-################################################################################
   - job: style_check
 ################################################################################
     displayName: Style Check
