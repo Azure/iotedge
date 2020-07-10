@@ -26,11 +26,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
         }
 
+        // OnBehalfOf connections are currently not supported with x509 certs
+        protected override (Option<string> deviceId, Option<string> moduleId) GetActorId(ICertificateCredentials credentials) => (Option.None<string>(), Option.None<string>());
+
         // we return true here since a client certificates and its chain will be validated ValidateWithServiceIdentity
         // a possibility would be to check if things are null but that is already being done in CertificateCredentials
         protected override bool AreInputCredentialsValid(ICertificateCredentials credentials) => true;
 
-        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ICertificateCredentials certificateCredentials)
+        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ICertificateCredentials certificateCredentials, Option<string> authChain)
         {
             bool result;
             // currently authenticating modules via X.509 is disabled. all the necessary pieces to authenticate
