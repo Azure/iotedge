@@ -17,8 +17,7 @@ PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}
 SCRIPT_NAME=$(basename "$0")
 CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 TARGET="x86_64-unknown-linux-gnu"
-BUILD_TARGET=
-RELEASE=
+CARGO_ARGS=""
 PACKAGES=
 
 ###############################################################################
@@ -29,10 +28,13 @@ usage()
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo " -h, --help          Print this help and exit."
-    echo " -t, --target        Target architecture"
-    echo " -r, --release       Release build? (flag, default: false)"
-    echo " --build-target      The entity you want to build"
+    echo " -h, --help              Print this help and exit."
+    echo " -t, --target            Target architecture"
+    echo " -r, --release           Release build? (flag, default: false)"
+    echo " --project-root          The project root of the desired build"
+    echo " --packages              The manifest paths you want to build"
+    echo " --reduced-linker        Flag to limit the amount of objects sent to the linker"
+    echo " --no-default-features   Flag to specify whether to cargo build with no default features"
     exit 1;
 }
 
@@ -48,35 +50,28 @@ process_args()
             TARGET="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
-            RELEASE="true"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
             CARGO="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            PROJECT_ROOT=$PROJECT_ROOT/$arg
+            save_next_arg=0
         elif [ $save_next_arg -eq 4 ]; then
-            BUILD_TARGET="$arg"
-            if [ "$BUILD_TARGET" = "watchdog" ]; then
-                PROJECT_ROOT=$PROJECT_ROOT/edge-hub/watchdog
-                PACKAGES=(watchdog)
-            elif [ "$BUILD_TARGET" = "mqtt" ]; then
-                PROJECT_ROOT=$PROJECT_ROOT/mqtt
-                PACKAGES=(mqttd)
-            elif [ "$BUILD_TARGET" = "edgelet" ]; then
-                PROJECT_ROOT=$PROJECT_ROOT/edgelet
-                PACKAGES=(iotedge iotedged iotedge-diagnostics iotedge-proxy)
-            else
-                echo "Invalid option for build-target"
-                exit 1;
-            fi
-            BUILD_TARGET_SET=true
+            # Rather than pass an array, pass a semicolon delimited string
+            # https://stackoverflow.com/questions/1063347/passing-arrays-as-parameters-in-bash
+            PACKAGES=$arg
+            IFS=';' read -a PACKAGES <<< "$PACKAGES"
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
                 "-t" | "--target" ) save_next_arg=1;;
-                "-r" | "--release" ) save_next_arg=2;;
-                "-c" | "--cargo" ) save_next_arg=3;;
-                "--build-target" ) save_next_arg=4;;
+                "-c" | "--cargo" ) save_next_arg=2;;
+                "--project-root" ) save_next_arg=3;;
+                "--packages" ) save_next_arg=4;;
+                "-r" | "--release" ) CARGO_ARGS="$CARGO_ARGS --release";;
+                "--reduced-linker" ) REDUCED_LINKER=1;;
+                "--manifest-path" ) MANIFEST_PATH=1;;
+                "--no-default-features" ) CARGO_ARGS="$CARGO_ARGS --no-default-features";;
                 * ) usage;;
             esac
         fi
@@ -85,15 +80,19 @@ process_args()
 
 process_args "$@"
 
-[[ -z "$BUILD_TARGET" ]] && { print_error 'Option build-target is required.'; exit 1; }
+if [ "$MANIFEST_PATH" = '1' ]; then
+    PACKAGE_ARG = "--manifest-path"
+else
+    PACKAGE_ARG = "-p"
+fi
 
 PACKAGES_FORMATTED=
 for p in "${PACKAGES[@]}"
 do
-    PACKAGES_FORMATTED="${PACKAGES_FORMATTED} -p ${p}"
+    PACKAGES_FORMATTED="${PACKAGES_FORMATTED} $PACKAGE_ARG ${p}"
 done
 
-if [ "$BUILD_TARGET" = "edgelet" ]; then
+if [ "$REDUCED_LINKER" = '1' ]; then
     # ld crashes in the VSTS CI's Linux amd64 job while trying to link iotedged
     # with a generic exit code 1 and no indicative error message. It seems to
     # work fine if we reduce the number of objects given to the linker,
@@ -113,11 +112,4 @@ incremental = false
 EOF
 fi
 
-if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT"
-    $CARGO build ${PACKAGES_FORMATTED} --target "$TARGET"
-    $CARGO build ${PACKAGES_FORMATTED} --no-default-features --target "$TARGET"
-else
-    cd "$PROJECT_ROOT" && $CARGO build ${PACKAGES_FORMATTED} --release
-fi
-
+$CARGO build ${PACKAGES_FORMATTED} $CARGO_ARGS --target "$TARGET"

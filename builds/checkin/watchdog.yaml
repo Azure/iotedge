@@ -36,7 +36,7 @@ jobs:
         displayName: Set env variables
       - bash: mqtt/build/linux/install.sh
         displayName: Install Rust
-      - bash: scripts/linux/generic-rust-build.sh --build-target watchdog
+      - bash: scripts/linux/generic-rust-build.sh --project-root "watchdog" --packages "watchdog"
         displayName: Build
       - bash: mqtt/build/linux/test.sh
         displayName: Test

@@ -28,7 +28,8 @@ jobs:
       - task: Bash@3
         displayName: Build
         inputs:
-          filePath: scripts/linux/generic-rust-build.sh --build-target edgelet
+          filePath: scripts/linux/generic-rust-build.sh
+          arguments: --project-root "edgelet" --packages "iotedge;iotedged;iotedge-diagnostics;iotedge-proxy" --reduced-linker 
       - task: Bash@3
         displayName: Test
         inputs:
