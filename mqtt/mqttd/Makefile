@@ -9,8 +9,8 @@ all:
 
 release:
 	$(CARGO) build $(CARGOFLAGS) --release -p mqttd
-	$(STRIP_COMMAND) $(TARGET)/mqttd
+	$(STRIP_COMMAND) ..$(TARGET)/mqttd
 
 clean:
-	rm -rf $(TARGET)
+	rm -rf ../$(TARGET)
 
