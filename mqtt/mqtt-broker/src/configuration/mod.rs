@@ -157,14 +157,11 @@ impl BrokerTransports {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct TcpTransport {
+    #[serde(rename = "address")]
     addr: String,
 }
 
 impl TcpTransport {
-    // pub fn new(addr: impl Into<String>) -> Self {
-    //     Self { addr: addr.into() }
-    // }
-
     pub fn addr(&self) -> &str {
         &self.addr
     }
@@ -173,6 +170,7 @@ impl TcpTransport {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct TlsTransport {
+    #[serde(rename = "address")]
     addr: String,
 
     #[serde(rename = "certificate")]
@@ -180,13 +178,6 @@ pub struct TlsTransport {
 }
 
 impl TlsTransport {
-    // pub fn new(addr: impl Into<String>, cert_path: &Path) -> Self {
-    //     Self {
-    //         addr: addr.into(),
-    //         cert_path: cert_path.to_path_buf(),
-    //     }
-    // }
-
     pub fn addr(&self) -> &str {
         &self.addr
     }
