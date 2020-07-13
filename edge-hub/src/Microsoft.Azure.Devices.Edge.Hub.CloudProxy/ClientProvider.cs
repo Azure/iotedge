@@ -83,14 +83,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, string deviceCapabilityModelID)
+        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, string modelId)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             Preconditions.CheckNotNull(tokenProvider, nameof(tokenProvider));
             var options = new ClientOptions
             {
-                ModelId = deviceCapabilityModelID,
+                ModelId = modelId,
             };
             switch (identity)
             {
