@@ -70,6 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
             currentDeviceConnection.ForEach(async c =>
                 {
+                    // If we add a device connection that already has subscriptions, we will remake the cloud connection.
+                    // Otherwise the cloud connection won't get established until some other operation does it (i.e. telemetry)
                     if (c.Subscriptions.Count > 0)
                     {
                         Events.GettingCloudConnectionForDeviceSubscriptions();
