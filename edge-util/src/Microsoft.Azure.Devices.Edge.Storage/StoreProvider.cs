@@ -25,10 +25,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName)
         {
             IDbStore entityDbStore = this.dbStoreProvider.GetDbStore(Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName)));
-            IKeyValueStore<TK, TV> dbStoreMapper = new KeyValueStoreMapper<TK, byte[], TV, byte[]>(entityDbStore, new BytesMapper<TK>(), new BytesMapper<TV>());
-            IEntityStore<TK, TV> entityStore = new EntityStore<TK, TV>(dbStoreMapper, entityName, 12);
-            IEntityStore<TK, TV> timedEntityStore = new TimedEntityStore<TK, TV>(entityStore, this.operationTimeout);
-            return timedEntityStore;
+            return this.GetEntityStore<TK, TV>(entityName, entityDbStore);
+        }
+
+        public IEntityStore<TK, TV> GetEntityStore<TK, TV>(string backwardCompatibleEntityName, string entityName)
+        {
+            Preconditions.CheckNonWhiteSpace(backwardCompatibleEntityName, nameof(backwardCompatibleEntityName));
+            Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
+
+            var entityDbStore = this.dbStoreProvider.GetIfExistsDbStore(backwardCompatibleEntityName);
+            return entityDbStore.Match(
+                some: backwardCompatibleDbStore => this.GetEntityStore<TK, TV>(backwardCompatibleEntityName, backwardCompatibleDbStore),
+                none: () =>
+                {
+                    var dbstore = this.dbStoreProvider.GetDbStore(entityName);
+                    return this.GetEntityStore<TK, TV>(entityName, dbstore);
+                });
         }
 
         public async Task<ISequentialStore<T>> GetSequentialStore<T>(string entityName)
@@ -65,6 +77,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             {
                 this.dbStoreProvider?.Dispose();
             }
+        }
+
+        IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName, IDbStore entityDbStore)
+        {
+            IKeyValueStore<TK, TV> dbStoreMapper = new KeyValueStoreMapper<TK, byte[], TV, byte[]>(entityDbStore, new BytesMapper<TK>(), new BytesMapper<TV>());
+            IEntityStore<TK, TV> entityStore = new EntityStore<TK, TV>(dbStoreMapper, entityName, 12);
+            IEntityStore<TK, TV> timedEntityStore = new TimedEntityStore<TK, TV>(entityStore, this.operationTimeout);
+            return timedEntityStore;
         }
     }
 }
