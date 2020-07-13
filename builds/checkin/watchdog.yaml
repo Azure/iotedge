@@ -2,8 +2,6 @@ trigger: none
 pr:
   branches:
     include:
-      - master
-      - release/*
       - iiot
 jobs:
 
