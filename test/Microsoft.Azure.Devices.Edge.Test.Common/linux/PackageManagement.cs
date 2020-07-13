@@ -10,13 +10,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class PackageManagement
     {
+        static CancellationToken token = default(CancellationToken);
+
         Lazy<Task<LinuxStandardBase>> lsbTask =
             new Lazy<Task<LinuxStandardBase>>(
                 async () =>
                 {
-                    var cts = new CancellationTokenSource();
-                    cts.CancelAfter(10000);
-                    string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", cts.Token);
+                    Preconditions.CheckNotNull(token, nameof(token));
+
+                    string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
                     if (platformInfo.Length == 1)
                     {
                         platformInfo = platformInfo[0].Split(' ');
@@ -71,16 +73,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
         }
 
-        private async Task<LinuxStandardBase> GetLsbResult()
+        private async Task<LinuxStandardBase> GetLsbResult(CancellationToken token)
         {
+            PackageManagement.token = token;
             return await this.lsbTask.Value;
         }
 
-        public async Task<string[]> GetInstallCommandsFromLocalAsync(string path)
+        public async Task<string[]> GetInstallCommandsFromLocalAsync(string path, CancellationToken token)
         {
             Preconditions.CheckNonWhiteSpace(path, nameof(path));
 
-            await this.InitializePropertiesAsync();
+            await this.InitializePropertiesAsync(token);
 
             string[] packages = Directory
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
@@ -108,9 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        public async Task<string[]> GetInstallCommandsFromMicrosoftProdAsync()
+        public async Task<string[]> GetInstallCommandsFromMicrosoftProdAsync(CancellationToken token)
         {
-            await this.InitializePropertiesAsync();
+            await this.InitializePropertiesAsync(token);
 
             switch (this.packageExtension)
             {
@@ -138,27 +141,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        public async Task<string> GetPackageToolAsync()
+        public async Task<string> GetPackageToolAsync(CancellationToken token)
         {
-            await this.InitializePropertiesAsync();
+            await this.InitializePropertiesAsync(token);
             return this.packageTool;
         }
 
-        public async Task<string> GetUninstallCmdAsync()
+        public async Task<string> GetUninstallCmdAsync(CancellationToken token)
         {
-            await this.InitializePropertiesAsync();
+            await this.InitializePropertiesAsync(token);
             return this.uninstallCmd;
         }
 
-        public async Task<string> GetIotedgeServicesAsync()
+        public async Task<string> GetIotedgeServicesAsync(CancellationToken token)
         {
-            await this.InitializePropertiesAsync();
+            await this.InitializePropertiesAsync(token);
             return this.iotedgeServices;
         }
 
-        async Task InitializePropertiesAsync()
+        async Task InitializePropertiesAsync(CancellationToken token)
         {
-            LinuxStandardBase lsb = await this.GetLsbResult();
+            LinuxStandardBase lsb = await this.GetLsbResult(token);
 
             if (!this.isInitilized)
             {
