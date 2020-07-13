@@ -485,6 +485,7 @@ name = "watchdog"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "clap",
  "nix",
  "signal-hook",
  "structopt",

@@ -20,8 +20,8 @@ use std::{
 
 use anyhow::{Context, Result};
 use child::run;
+use clap::{crate_description, crate_name, crate_version, App, Arg};
 use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
-use structopt::StructOpt;
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
@@ -29,17 +29,11 @@ mod child;
 
 const BROKER_ENABLED_FLAG: &str = "with-broker-enabled";
 
-#[derive(StructOpt)]
-struct Opt {
-    #[structopt(parse(try_from_str), long = BROKER_ENABLED_FLAG)]
-    with_broker_enabled: bool,
-}
-
 fn main() -> Result<()> {
     init_logging();
     info!("Starting Watchdog");
 
-    let with_broker_enabled = Opt::from_args().with_broker_enabled;
+    let with_broker_enabled = get_broker_enabled()?;
     info!(
         "Flag --{} set to {}",
         BROKER_ENABLED_FLAG, with_broker_enabled
@@ -70,8 +64,7 @@ fn main() -> Result<()> {
                 None
             }
         };
-    }
-    else {
+    } else {
         broker_handle = None
     }
 
@@ -93,6 +86,28 @@ fn main() -> Result<()> {
 
     info!("Stopped Watchdog process");
     Ok(())
+}
+
+fn create_app() -> App<'static, 'static> {
+    App::new(crate_name!())
+        .version(crate_version!())
+        .about(crate_description!())
+        .arg(
+            Arg::with_name(BROKER_ENABLED_FLAG)
+                .long(BROKER_ENABLED_FLAG)
+                .value_name("BOOLEAN")
+                .help("Boolean flag specifying whether to start the mqtt broker with edgehub")
+                .takes_value(true),
+        )
+}
+
+fn get_broker_enabled() -> Result<bool> {
+    create_app()
+        .get_matches()
+        .value_of(BROKER_ENABLED_FLAG)
+        .with_context(|| format!("Flag '{}' not set", BROKER_ENABLED_FLAG))?
+        .parse()
+        .with_context(|| format!("Could not parse flag '{}'", BROKER_ENABLED_FLAG))
 }
 
 fn init_logging() {
