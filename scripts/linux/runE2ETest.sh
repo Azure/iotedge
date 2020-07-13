@@ -167,7 +167,6 @@ function prepare_test_from_artifacts() {
                     sed -i -e "s@<TransportType3>@$TRANSPORT_TYPE_3@g" "$deployment_working_file"
                     sed -i -e "s@<TransportType4>@$TRANSPORT_TYPE_4@g" "$deployment_working_file"
                     sed -i -e "s@<amqpSettings__enabled>@$AMQP_SETTINGS_ENABLED@g" "$deployment_working_file"
-                    sed -i -e "s@<mqttSettings__enabled>@$MQTT_SETTINGS_ENABLED@g" "$deployment_working_file"
                 fi
 
                 local escapedSnitchAlertUrl
@@ -343,75 +342,72 @@ function process_args() {
             AMQP_SETTINGS_ENABLED="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 22 ]; then
-            MQTT_SETTINGS_ENABLED="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 23 ]; then
             CERT_SCRIPT_DIR="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 24 ]; then
+        elif [ $saveNextArg -eq 23 ]; then
             ROOT_CA_CERT_PATH="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 25 ]; then
+        elif [ $saveNextArg -eq 24 ]; then
             ROOT_CA_KEY_PATH="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 26 ]; then
+        elif [ $saveNextArg -eq 25 ]; then
             ROOT_CA_PASSWORD="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 27 ]; then
+        elif [ $saveNextArg -eq 26 ]; then
             DPS_SCOPE_ID="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 28 ]; then
+        elif [ $saveNextArg -eq 27 ]; then
             DPS_MASTER_SYMMETRIC_KEY="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 29 ]; then
+        elif [ $saveNextArg -eq 28 ]; then
             EVENT_HUB_CONSUMER_GROUP_ID="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 30 ]; then
+        elif [ $saveNextArg -eq 29 ]; then
             DESIRED_MODULES_TO_RESTART_CSV="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 31 ]; then
+        elif [ $saveNextArg -eq 30 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 32 ]; then
+        elif [ $saveNextArg -eq 31 ]; then
             LOG_ANALYTICS_WORKSPACE_ID="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 33 ]; then
+        elif [ $saveNextArg -eq 32 ]; then
             LOG_ANALYTICS_SHARED_KEY="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 34 ]; then
+        elif [ $saveNextArg -eq 33 ]; then
             TWIN_UPDATE_SIZE="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 35 ]; then
+        elif [ $saveNextArg -eq 34 ]; then
             TWIN_UPDATE_FREQUENCY="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 36 ]; then
+        elif [ $saveNextArg -eq 35 ]; then
             TWIN_UPDATE_FAILURE_THRESHOLD="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 37 ]; then
+        elif [ $saveNextArg -eq 36 ]; then
             EDGEHUB_RESTART_FAILURE_TOLERANCE="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 38 ]; then
+        elif [ $saveNextArg -eq 37 ]; then
             METRICS_ENDPOINTS_CSV="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 39 ]; then
+        elif [ $saveNextArg -eq 38 ]; then
             METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 40 ]; then
+        elif [ $saveNextArg -eq 39 ]; then
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 41 ]; then
+        elif [ $saveNextArg -eq 40 ]; then
             INITIALIZE_WITH_AGENT_ARTIFACT="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 42 ]; then
+        elif [ $saveNextArg -eq 41 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 43 ]; then
+        elif [ $saveNextArg -eq 42 ]; then
             TEST_START_DELAY="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 44 ]; then
+        elif [ $saveNextArg -eq 43 ]; then
             RUNTIME_LOG_LEVEL="$arg"
             saveNextArg=0
         else
@@ -438,29 +434,28 @@ function process_args() {
                 '-transportType3' ) saveNextArg=19;;
                 '-transportType4' ) saveNextArg=20;;
                 '-amqpSettingsEnabled' ) saveNextArg=21;;
-                '-mqttSettingsEnabled' ) saveNextArg=22;;
-                '-certScriptDir' ) saveNextArg=23;;
-                '-installRootCACertPath' ) saveNextArg=24;;
-                '-installRootCAKeyPath' ) saveNextArg=25;;
-                '-installRootCAKeyPassword' ) saveNextArg=26;;
-                '-dpsScopeId' ) saveNextArg=27;;
-                '-dpsMasterSymmetricKey' ) saveNextArg=28;;
-                '-eventHubConsumerGroupId' ) saveNextArg=29;;
-                '-desiredModulesToRestartCSV' ) saveNextArg=30;;
-                '-restartIntervalInMins' ) saveNextArg=31;;
-                '-logAnalyticsWorkspaceId' ) saveNextArg=32;;
-                '-logAnalyticsSharedKey' ) saveNextArg=33;;
-                '-twinUpdateSize' ) saveNextArg=34;;
-                '-twinUpdateFrequency' ) saveNextArg=35;;
-                '-twinUpdateFailureThreshold' ) saveNextArg=36;;
-                '-edgeHubRestartFailureTolerance' ) saveNextArg=37;;
-                '-metricsEndpointsCSV' ) saveNextArg=38;;
-                '-metricsScrapeFrequencyInSecs' ) saveNextArg=39;;
-                '-metricsUploadTarget' ) saveNextArg=40;;
-                '-initializeWithAgentArtifact' ) saveNextArg=41;;
-                '-testInfo' ) saveNextArg=42;;
-                '-testStartDelay' ) saveNextArg=43;;
-                '-runtimeLogLevel' ) saveNextArg=44;;
+                '-certScriptDir' ) saveNextArg=22;;
+                '-installRootCACertPath' ) saveNextArg=23;;
+                '-installRootCAKeyPath' ) saveNextArg=24;;
+                '-installRootCAKeyPassword' ) saveNextArg=25;;
+                '-dpsScopeId' ) saveNextArg=26;;
+                '-dpsMasterSymmetricKey' ) saveNextArg=27;;
+                '-eventHubConsumerGroupId' ) saveNextArg=28;;
+                '-desiredModulesToRestartCSV' ) saveNextArg=29;;
+                '-restartIntervalInMins' ) saveNextArg=30;;
+                '-logAnalyticsWorkspaceId' ) saveNextArg=31;;
+                '-logAnalyticsSharedKey' ) saveNextArg=32;;
+                '-twinUpdateSize' ) saveNextArg=33;;
+                '-twinUpdateFrequency' ) saveNextArg=34;;
+                '-twinUpdateFailureThreshold' ) saveNextArg=35;;
+                '-edgeHubRestartFailureTolerance' ) saveNextArg=36;;
+                '-metricsEndpointsCSV' ) saveNextArg=37;;
+                '-metricsScrapeFrequencyInSecs' ) saveNextArg=38;;
+                '-metricsUploadTarget' ) saveNextArg=39;;
+                '-initializeWithAgentArtifact' ) saveNextArg=40;;
+                '-testInfo' ) saveNextArg=41;;
+                '-testStartDelay' ) saveNextArg=42;;
+                '-runtimeLogLevel' ) saveNextArg=43;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -1128,9 +1123,6 @@ if [[ "${TEST_NAME,,}" == "stress" ]]; then
 fi
 if [ "$AMQP_SETTINGS_ENABLED" != "false" ]; then
     AMQP_SETTINGS_ENABLED="true"
-fi
-if [ "$MQTT_SETTINGS_ENABLED" != "false" ]; then
-    MQTT_SETTINGS_ENABLED="true"
 fi
 
 working_folder="$E2E_TEST_DIR/working"

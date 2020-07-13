@@ -87,7 +87,6 @@ steps:
           -transportType3 "${{ parameters['transportType3'] }}" \
           -transportType4 "${{ parameters['transportType4'] }}" \
           -amqpSettingsEnabled "${{ parameters['amqp.settings.enabled'] }}" \
-          -mqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" \
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -snitchTestDurationInSecs "$(($(snitcher.test.duration.in.mins)*60))" \
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \

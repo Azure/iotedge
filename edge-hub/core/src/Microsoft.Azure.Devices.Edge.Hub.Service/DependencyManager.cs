@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
 
-            IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
+            IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("legacyMqttSettings");
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
         }
 

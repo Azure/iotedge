@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
         {
             var protocolHeads = new List<IProtocolHead>();
-            if (configuration.GetValue("mqttSettings:enabled", true))
+            if (configuration.GetValue("legacyMqttSettings:enabled", true))
             {
                 protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
             }
