@@ -74,7 +74,7 @@ jobs:
     steps:
       - bash: scripts/linux/generic-rust/install.sh --project-root "mqtt"
         displayName: Install Rust
-      - bash: mqtt/build/linux/format.sh
+      - bash: scripts/linux/generic-rust/format.sh --project-root "mqtt"
         displayName: Format Code
       - bash: mqtt/build/linux/clippy.sh
         displayName: Clippy

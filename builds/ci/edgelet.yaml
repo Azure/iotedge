@@ -111,7 +111,8 @@ jobs:
       - task: Bash@3
         displayName: Format Code
         inputs:
-          filePath: edgelet/build/linux/format.sh
+          filePath: scripts/linux/generic-rust/format.sh
+          arguments: --project-root "edgelet"
       - task: Bash@3
         displayName: Clippy
         inputs:
