@@ -9,9 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly IKeyValueStore<string, string> modelIdEntityStore;
 
-        public ModelIdStore(IKeyValueStore<string, string> productInfoEntityStore)
+        public ModelIdStore(IKeyValueStore<string, string> modelIdEntityStore)
         {
-            this.modelIdEntityStore = Preconditions.CheckNotNull(productInfoEntityStore, nameof(productInfoEntityStore));
+            this.modelIdEntityStore = Preconditions.CheckNotNull(modelIdEntityStore, nameof(modelIdEntityStore));
         }
 
         public Task SetModelId(string id, string modelId)
