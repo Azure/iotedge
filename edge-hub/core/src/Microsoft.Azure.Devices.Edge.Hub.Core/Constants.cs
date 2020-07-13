@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string InternalOriginInterface = "internal";
         public const string DownstreamOriginInterface = "downstream";
 
+        public const string EdgeHubModuleId = "$edgeHub";
         public const string IotEdgeIdentityCapability = "iotEdge";
         public const string ServiceIdentityRefreshMethodName = "RefreshDeviceScopeIdentityCache";
         public const string IoTEdgeProductInfoIdentifier = "EdgeHub";
@@ -23,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const long MaxMessageSize = 256 * 1024; // matches IoTHub
 
         public const string SecurityMessageIoTHubInterfaceId = "urn:azureiot:Security:SecurityAgent:1";
+
+        public const string ServiceApiIdHeaderKey = "x-ms-edge-moduleId";
 
         public static readonly Version ConfigSchemaVersion = new Version("1.1.0");
     }

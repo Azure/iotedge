@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     {
         readonly string productInfo;
         readonly string iothubHostName;
+        readonly Option<string> gatewayHostName;
         readonly string edgeDeviceId;
         readonly string edgeHubModuleId;
         readonly string edgeDeviceHostName;
@@ -51,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         public CommonModule(
             string productInfo,
             string iothubHostName,
+            Option<string> gatewayHostName,
             string edgeDeviceId,
             string edgeHubModuleId,
             string edgeDeviceHostName,
@@ -75,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
+            this.gatewayHostName = gatewayHostName;
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.edgeHubModuleId = Preconditions.CheckNonWhiteSpace(edgeHubModuleId, nameof(edgeHubModuleId));
             this.edgeDeviceHostName = Preconditions.CheckNotNull(edgeDeviceHostName, nameof(edgeDeviceHostName));
@@ -290,7 +293,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
                             var serviceIdentityTree = new ServiceIdentityTree(this.edgeDeviceId);
-                            IDeviceScopeApiClientProvider securityScopesApiClientProvider = new DeviceScopeApiClientProvider(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, serviceIdentityTree, proxy);
+                            string hostName = this.gatewayHostName.GetOrElse(this.iothubHostName);
+                            IDeviceScopeApiClientProvider securityScopesApiClientProvider = new DeviceScopeApiClientProvider(hostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, serviceIdentityTree, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClientProvider, this.nestedEdgeEnabled);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
                             deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityTree, serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
