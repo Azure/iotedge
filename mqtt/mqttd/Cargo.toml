@@ -20,6 +20,11 @@ mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 chrono = "0.4"
 anyhow = "1.0"
 
+[dev-dependencies]
+mockito = "0.25"
+serde_json = "1.0"
+tempfile = "3"
+
 [features]
 default = ["edgehub"]
 edgehub = ["mqtt-broker/edgehub", "mqtt-edgehub"]
