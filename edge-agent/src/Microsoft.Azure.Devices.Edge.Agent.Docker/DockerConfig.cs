@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using Org.BouncyCastle.Asn1.X509;
     using static System.FormattableString;
 
     [JsonConverter(typeof(DockerConfigJsonConverter))]
