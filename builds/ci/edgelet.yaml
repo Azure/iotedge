@@ -20,7 +20,8 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: edgelet/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "edgelet"
       - task: Bash@3
         displayName: Check submodules
         inputs:
@@ -51,7 +52,8 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: edgelet/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "edgelet"
       - script: cargo install --git https://github.com/arsing/cross.git --branch set-path
         displayName: Install cross (fork with docker fix)
       - task: Bash@3
@@ -104,7 +106,8 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: edgelet/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "edgelet"
       - task: Bash@3
         displayName: Format Code
         inputs:
