@@ -38,7 +38,7 @@ jobs:
         displayName: Install Rust
       - bash: edgelet/build/linux/check-submodules.sh
         displayName: Check submodules
-      - bash: scripts/linux/generic-rust-build.sh --project-root "edgelet" --packages "iotedge;iotedged;iotedge-diagnostics;iotedge-proxy" --reduced-linker
+      - bash: scripts/linux/generic-rust/build.sh --project-root "edgelet" --packages "iotedge;iotedged;iotedge-diagnostics;iotedge-proxy" --reduced-linker
         displayName: Build
       - bash: edgelet/build/linux/build-k8s.sh
         displayName: Build (runtime-kubernetes)
