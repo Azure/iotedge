@@ -83,13 +83,13 @@ impl<T: StoreBackend> Store<T> {
     }
 
     pub fn pull_secrets<'a>(&'a self, keys: &'a [String]) -> BoxFuture<'a, ()> {
-        let conf = self.config.to_owned();
+        let credentials = self.config.credentials.to_owned();
         Box::pin(async move {
             let token = Auth::new(None, "https://vault.azure.net")
                 .authorize_with_secret(
-                        &conf.tenant_id,
-                        &conf.client_id,
-                        &conf.client_secret
+                        &credentials.tenant_id,
+                        &credentials.client_id,
+                        &credentials.client_secret
                     )
                 .await?
                 .get();

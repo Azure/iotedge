@@ -19,7 +19,7 @@ use hyperlocal::UnixServerExt;
 use libc::{S_IRWXU, umask};
 use ring::rand::{generate, SystemRandom};
 
-fn init() -> Result<(), Box<dyn StdError + Send + Sync>> {
+fn init() {
     unsafe {
         umask(!S_IRWXU);
     }
@@ -29,13 +29,11 @@ fn init() -> Result<(), Box<dyn StdError + Send + Sync>> {
     if let Err(_) = generate::<[u8; 8]>(&SystemRandom::new()) {
         panic!("FAILED TO INITIALIZE PRNG");
     }
-
-    Ok(())
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
-    init()?;
+    init();
 
     let skt = Path::new(constants::SOCKET_NAME);
     let store = {

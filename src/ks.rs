@@ -32,6 +32,7 @@ async fn call<'a>(method: Method, resource: String, payload: Option<impl Seriali
             None => Body::empty()
         })?;
 
+    // NOTE: convert to boxed result
     Ok(client.request(req).await?)
 }
 
@@ -46,7 +47,7 @@ pub async fn create_key<'a>(id: &str) -> BoxResult<'a, KeyHandle> {
         )
         .await?;
 
-    Ok(slurp_json(res).await?)
+    slurp_json(res).await
 }
 
 pub async fn get_key<'a>(id: &str) -> BoxResult<'a, KeyHandle> {
@@ -58,7 +59,7 @@ pub async fn get_key<'a>(id: &str) -> BoxResult<'a, KeyHandle> {
         .await?;
 
 
-    Ok(slurp_json(res).await?)
+    slurp_json(res).await
 }
 
 pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> BoxResult<'a, Text> {
@@ -77,7 +78,7 @@ pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> Box
         )
         .await?;
 
-    Ok(slurp_json(res).await?)
+    slurp_json(res).await
 }
 
 pub async fn decrypt<'a>(key: &str, ciphertext: &str, iv: &str, aad: &str) -> BoxResult<'a, Text> {
