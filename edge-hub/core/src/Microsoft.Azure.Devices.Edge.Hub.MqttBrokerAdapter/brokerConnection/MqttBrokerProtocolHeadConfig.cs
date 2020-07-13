@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
-    public class MqttBridgeProtocolHeadConfig
+    public class MqttBrokerProtocolHeadConfig
     {
-        public MqttBridgeProtocolHeadConfig(int port, string url)
+        public MqttBrokerProtocolHeadConfig(int port, string url)
         {
             this.Port = port;
             this.Url = url;

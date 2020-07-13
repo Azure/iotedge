@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var port = this.config.GetValue("port", defaultPort);
                             var baseUrl = this.config.GetValue("url", defaultUrl);
 
-                            var config = new MqttBridgeProtocolHeadConfig(port, baseUrl);
+                            var config = new MqttBrokerProtocolHeadConfig(port, baseUrl);
 
                             return new MqttBrokerProtocolHead(config, connector);
                         })

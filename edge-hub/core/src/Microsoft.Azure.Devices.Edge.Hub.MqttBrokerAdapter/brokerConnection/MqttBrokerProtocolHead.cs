@@ -10,14 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class MqttBrokerProtocolHead : IProtocolHead
     {
-        readonly MqttBridgeProtocolHeadConfig config;
+        readonly MqttBrokerProtocolHeadConfig config;
         readonly IMqttBrokerConnector connector;
 
         int isRunning;
 
         public string Name => "MQTT-BROKER-HEAD";
 
-        public MqttBrokerProtocolHead(MqttBridgeProtocolHeadConfig config, IMqttBrokerConnector connector)
+        public MqttBrokerProtocolHead(MqttBrokerProtocolHeadConfig config, IMqttBrokerConnector connector)
         {
             this.config = Preconditions.CheckNotNull(config);
             this.connector = Preconditions.CheckNotNull(connector);

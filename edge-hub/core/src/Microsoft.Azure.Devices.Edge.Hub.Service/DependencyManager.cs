@@ -96,8 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             var authConfig = this.configuration.GetSection("authAgentSettings");
             builder.RegisterModule(new AuthModule(authConfig));
-            var mqttBridgeConfig = this.configuration.GetSection("mqttBridgeSettings");
-            builder.RegisterModule(new MqttBrokerModule(mqttBridgeConfig));
+            var mqttBrokerConfig = this.configuration.GetSection("mqttBrokerSettings");
+            builder.RegisterModule(new MqttBrokerModule(mqttBrokerConfig));
         }
 
         internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
