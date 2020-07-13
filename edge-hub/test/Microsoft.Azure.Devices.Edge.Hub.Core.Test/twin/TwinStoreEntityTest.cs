@@ -12,6 +12,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
     [Unit]
     public class TwinStoreEntityTest
     {
+        [Theory]
+        [Unit]
+        [InlineData("{\"Twin\":null}")]
+        [InlineData("{\"ReportedPropertiesPatch\":null}")]
+        [InlineData("{}")]
+        public void NullPropertiesTest(string json)
+        {
+            var deserializedObject = JsonConvert.DeserializeObject<TwinStoreEntity>(json);
+            Assert.False(deserializedObject.Twin.HasValue);
+            Assert.False(deserializedObject.ReportedPropertiesPatch.HasValue);
+        }
+
         [Fact]
         public void RoundtripEmptyTest()
         {

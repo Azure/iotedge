@@ -605,7 +605,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 twinStoreOption = encryptionProvider.Map(
                     e =>
                     {
-                        IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}");
+                        IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}", entityName);
                         IKeyValueStore<string, string> es = new UpdatableEncryptedStore<string, string>(underlyingEntityStore, e);
                         ITypeMapper<string, string> keyMapper = new JsonMapper<string>();
                         ITypeMapper<TwinStoreEntity, string> valueMapper = new JsonMapper<TwinStoreEntity>();
