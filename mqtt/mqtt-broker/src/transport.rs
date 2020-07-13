@@ -1,5 +1,4 @@
 use std::{
-    convert::TryFrom,
     fmt::Display,
     future::Future,
     net::SocketAddr,
@@ -17,11 +16,10 @@ use tokio::{
     stream::Stream,
 };
 use tokio_native_tls::{TlsAcceptor, TlsStream};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 use mqtt_broker_core::auth::Certificate;
 
-use crate::configuration::Transport as TransportConfig;
 use crate::{Error, InitializeBrokerError};
 
 pub enum TransportBuilder {
@@ -32,32 +30,8 @@ pub enum TransportBuilder {
 impl TransportBuilder {
     pub async fn make_transport(self) -> Result<Transport, InitializeBrokerError> {
         match self {
-            TransportBuilder::Tcp(addr) => Transport::new_tcp(addr).await,
-            TransportBuilder::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
-        }
-    }
-}
-
-impl TryFrom<TransportConfig> for TransportBuilder {
-    type Error = InitializeBrokerError;
-
-    fn try_from(transport: TransportConfig) -> Result<Self, Self::Error> {
-        match transport {
-            TransportConfig::Tcp { address } => Ok(Self::Tcp(address)),
-            TransportConfig::Tls {
-                address,
-                certificate,
-            } => {
-                info!("Loading identity from {}", certificate.display());
-                let cert_buffer = std::fs::read(&certificate).map_err(|e| {
-                    InitializeBrokerError::LoadIdentity(certificate.to_path_buf(), e)
-                })?;
-
-                let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "")
-                    .map_err(InitializeBrokerError::DecodeIdentity)?;
-
-                Ok(Self::Tls(address, cert))
-            }
+            Self::Tcp(addr) => Transport::new_tcp(addr).await,
+            Self::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
         }
     }
 }

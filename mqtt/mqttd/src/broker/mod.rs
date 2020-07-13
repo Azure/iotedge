@@ -4,6 +4,7 @@ mod snapshot;
 
 use std::env;
 
+use anyhow::Result;
 use futures_util::pin_mut;
 use tokio::{
     task::JoinHandle,
@@ -12,12 +13,12 @@ use tokio::{
 use tracing::{info, warn};
 
 use mqtt_broker::{
-    Broker, BrokerConfig, BrokerHandle, BrokerSnapshot, Error, FilePersistor, Message, Persist,
+    Broker, BrokerConfig, BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist,
     ShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 use mqtt_broker_core::auth::Authorizer;
 
-pub async fn run(config: BrokerConfig) -> Result<(), Error> {
+pub async fn run(config: BrokerConfig) -> Result<()> {
     info!("loading state...");
     let state_dir = env::current_dir().expect("can't get cwd").join("state");
     let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
@@ -92,7 +93,7 @@ async fn tick_snapshot(
     }
 }
 
-async fn start_server<Z>(config: &BrokerConfig, broker: Broker<Z>) -> Result<BrokerSnapshot, Error>
+async fn start_server<Z>(config: &BrokerConfig, broker: Broker<Z>) -> Result<BrokerSnapshot>
 where
     Z: Authorizer + Send + 'static,
 {

@@ -28,13 +28,14 @@ impl WorkloadClient {
             "/modules/{}/genid/{}/certificate/server?api-version=2019-01-30",
             module_id, generation_id
         );
-        let uri = make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequest(e))?;
+        let uri =
+            make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequestUrl(e))?;
 
         let req = ServerCertificateRequest::new(hostname.to_string(), expiration.to_rfc3339());
-        let body = serde_json::to_string(&req).map_err(|e| ApiError::ConstructRequest(e.into()))?;
+        let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
         let req = Request::post(uri)
             .body(Body::from(body))
-            .map_err(|e| ApiError::ConstructRequest(e.into()))?;
+            .map_err(ApiError::ConstructRequest)?;
 
         let res = self
             .client
@@ -48,8 +49,7 @@ impl WorkloadClient {
 
         let body = body::aggregate(res).await.map_err(ApiError::ReadResponse)?;
 
-        let cert = serde_json::from_reader(body.reader())
-            .map_err(|e| ApiError::ParseResponseBody(e.into()))?;
+        let cert = serde_json::from_reader(body.reader()).map_err(ApiError::ParseResponseBody)?;
 
         Ok(cert)
     }

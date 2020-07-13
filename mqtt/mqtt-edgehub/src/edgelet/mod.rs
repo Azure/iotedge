@@ -56,10 +56,10 @@ pub(crate) enum Scheme {
 #[derive(Debug, thiserror::Error)]
 pub enum ApiError {
     #[error("could not construct request URL")]
-    ConstructRequestUrl(#[source] Box<dyn StdError>),
+    ConstructRequestUrl(#[source] Box<dyn StdError + Send + Sync>),
 
     #[error("could not construct request")]
-    ConstructRequest(#[source] Box<dyn StdError>),
+    ConstructRequest(#[source] http::Error),
 
     #[error("could not construct request")]
     ExecuteRequest(#[source] hyper::Error),
@@ -71,7 +71,7 @@ pub enum ApiError {
     ReadResponse(#[source] hyper::Error),
 
     #[error("could not deserialize response")]
-    ParseResponseBody(Box<dyn StdError>),
+    ParseResponseBody(#[source] serde_json::Error),
 
     #[error("could not serialize request")]
     SerializeRequestBody(#[source] serde_json::Error),

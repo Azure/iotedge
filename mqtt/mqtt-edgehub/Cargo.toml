@@ -15,9 +15,6 @@ serde_json = "1.0"
 serde_repr = "0.1"
 thiserror = "1.0"
 tracing = "0.1"
-
-mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-mqtt-broker-core = { path = "../mqtt-broker-core" }
 hyperlocal = "0.7"
 hyper = "0.13"
 http = "0.2"
@@ -27,6 +24,10 @@ tokio = "0.2"
 bytes = "0.5"
 url = "2.1"
 chrono = "0.4"
+openssl = "0.10"
+
+mqtt3 = { path = "../mqtt3", features = ["serde1"] }
+mqtt-broker-core = { path = "../mqtt-broker-core" }
 
 [dev-dependencies]
 matches = "0.1"

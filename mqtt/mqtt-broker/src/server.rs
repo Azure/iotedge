@@ -1,4 +1,4 @@
-use std::{error::Error as StdError, future::Future, sync::Arc};
+use std::{error::Error as StdError, fs, future::Future, path::Path, sync::Arc};
 
 use futures_util::{
     future::{self, Either, FutureExt},
@@ -17,6 +17,7 @@ use crate::{
     transport::TransportBuilder,
     BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, SystemEvent,
 };
+use native_tls::Identity;
 
 pub struct Server<Z>
 where
@@ -41,13 +42,37 @@ where
         }
     }
 
-    pub fn transport<N>(&mut self, new_transport: TransportBuilder, authenticator: N) -> &mut Self
+    pub fn tcp<N>(&mut self, addr: &str, authenticator: N) -> &mut Self
     where
         N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
     {
+        let make_transport = TransportBuilder::Tcp(addr.into());
         self.transports
-            .push((new_transport, Arc::new(authenticator)));
+            .push((make_transport, Arc::new(authenticator)));
         self
+    }
+
+    pub fn tls<N>(
+        &mut self,
+        addr: &str,
+        cert_path: &Path,
+        authenticator: N,
+    ) -> Result<&mut Self, Error>
+    where
+        N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
+    {
+        info!("Loading identity from {}", cert_path.display());
+        let cert_buffer = fs::read(&cert_path)
+            .map_err(|e| InitializeBrokerError::LoadIdentity(cert_path.to_path_buf(), e))?;
+
+        let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "")
+            .map_err(InitializeBrokerError::DecodeIdentity)?;
+
+        let make_transport = TransportBuilder::Tls(addr.into(), cert);
+        self.transports
+            .push((make_transport, Arc::new(authenticator)));
+
+        Ok(self)
     }
 
     pub async fn serve<F>(self, shutdown_signal: F) -> Result<BrokerSnapshot, Error>
