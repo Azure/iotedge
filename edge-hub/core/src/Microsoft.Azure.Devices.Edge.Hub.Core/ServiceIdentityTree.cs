@@ -91,31 +91,75 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task<Option<string>> GetAuthChain(string id)
+        public async Task<Option<string>> GetAuthChain(string targetId)
         {
-            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            Preconditions.CheckNonWhiteSpace(targetId, nameof(targetId));
 
             // Auth-chain for the acting device (when there aren't any nodes in the tree yet)
-            if (id == this.actorDeviceId)
+            if (targetId == this.actorDeviceId)
             {
                 return Option.Some(this.actorDeviceId);
             }
-            else if (id == this.actorDeviceId + "/$edgeHub")
+            else if (targetId == this.actorDeviceId + "/" + Constants.EdgeHubModuleId)
             {
-                // TODO: richma - make this better
-                return Option.Some(this.actorDeviceId + "/$edgeHub" + ";" + this.actorDeviceId);
+                return Option.Some(this.actorDeviceId + "/" + Constants.EdgeHubModuleId + ";" + this.actorDeviceId);
             }
 
             using (await this.nodesLock.LockAsync())
             {
                 // Auth-chain for a child somewhere in the tree
-                if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
+                if (this.nodes.TryGetValue(targetId, out ServiceIdentityTreeNode treeNode))
                 {
+                    // Check every Edge device in the authchain for disabled devices
+                    string[] authChainIds = treeNode.AuthChain.Map(chain => chain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)).OrDefault();
+
+                    foreach (string chainId in authChainIds)
+                    {
+                        if (!this.nodes.TryGetValue(chainId, out ServiceIdentityTreeNode node))
+                        {
+                            Events.AuthChainMissingDevice(targetId, chainId);
+                            return Option.None<string>();
+                        }
+
+                        ServiceIdentity identity = node.Identity;
+                        if (identity.IsEdgeDevice && identity.Status == ServiceIdentityStatus.Disabled)
+                        {
+                            // Chain is unuseable if one of the devices is disabled
+                            Events.AuthChainDisabled(targetId, chainId);
+                            return Option.None<string>();
+                        }
+                    }
+
                     return treeNode.AuthChain;
                 }
             }
 
             return Option.None<string>();
+        }
+
+        public async Task<Option<string>> GetEdgeAuthChain(string id)
+        {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+
+            // By default, the Edge device is just the target itself
+            string edgeDeviceId = id;
+
+            // Get the auth-chain of the closest Edge device to the target
+            using (await this.nodesLock.LockAsync())
+            {
+                if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
+                {
+                    if (!treeNode.Identity.IsEdgeDevice)
+                    {
+                        // For modules and leaf devices, we need the auth-chain
+                        // of the parent Edge device
+                        ServiceIdentityTreeNode parentEdge = treeNode.Parent.Expect(() => new InvalidOperationException($"Cannot get parent Edge auth-chain for dangling identity {id}"));
+                        edgeDeviceId = parentEdge.Identity.Id;
+                    }
+                }
+            }
+
+            return await this.GetAuthChain(edgeDeviceId);
         }
 
         public async Task<IList<ServiceIdentity>> GetImmediateChildren(string id)
@@ -351,7 +395,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             NodeRemoved,
             AuthChainAdded,
             AuthChainRemoved,
-            MaxDepthExceeded
+            MaxDepthExceeded,
+            AuthChainMissingDevice,
+            AuthChainDisabled,
         }
 
         public static void NodeAdded(string id) =>
@@ -368,5 +414,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static void MaxDepthExceeded(string edgeDeviceId) =>
             Log.LogWarning((int)EventIds.MaxDepthExceeded, $"Nested hierarchy contains more than maximum allowed layers, discarding {edgeDeviceId}");
+
+        public static void AuthChainMissingDevice(string targetId, string missingDeviceId) =>
+            Log.LogWarning((int)EventIds.AuthChainMissingDevice, $"Cannot use auth-chain for {targetId}, parent device {missingDeviceId} is missing");
+
+        public static void AuthChainDisabled(string targetId, string disabledId) =>
+            Log.LogWarning((int)EventIds.AuthChainDisabled, $"Cannot use auth-chain for {targetId}, parent device {disabledId} is disabled");
     }
 }

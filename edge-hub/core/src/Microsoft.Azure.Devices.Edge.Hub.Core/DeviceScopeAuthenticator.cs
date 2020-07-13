@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(credentials.Identity.Id);
             if (!authChain.HasValue)
             {
-                // Target identity is not in our nested hierarchy
+                Events.NoAuthChain(credentials.Identity);
                 return (false, false);
             }
 
@@ -170,6 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 ErrorAuthenticating = IdStart,
                 ServiceIdentityNotFound,
+                NoAuthChain,
                 AuthenticatedInScope,
                 InputCredentialsNotValid,
                 ResyncingServiceIdentity,
@@ -185,6 +186,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void ServiceIdentityNotFound(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Service identity for {identity.Id} not found. Using underlying authenticator to authenticate");
+            }
+
+            public static void NoAuthChain(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.NoAuthChain, $"Could not get valid auth-chain for service identity {identity.Id}");
             }
 
             public static void AuthenticatedInScope(IIdentity identity, bool isAuthenticated)

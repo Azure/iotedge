@@ -40,5 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task<Option<string>> GetAuthChainForIdentity(string id);
 
         Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string requestedDeviceId);
+
+        Task<Option<ServiceIdentity>> GetIdentityAsync(string targetIdentityId);
     }
 }

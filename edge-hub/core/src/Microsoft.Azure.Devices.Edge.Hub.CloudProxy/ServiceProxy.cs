@@ -39,7 +39,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.securityScopesApiClientProvider.CreateDeviceScopeClient().GetIdentityAsync(deviceId, null);
+                IDeviceScopeApiClient client;
+
+                if (this.nestedEdgeEnabled)
+                {
+                    client = this.securityScopesApiClientProvider.CreateNestedDeviceScopeClient(Option.None<string>());
+                }
+                else
+                {
+                    client = this.securityScopesApiClientProvider.CreateDeviceScopeClient();
+                }
+
+                ScopeResult res = await client.GetIdentityAsync(deviceId, null);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(deviceId);
             }

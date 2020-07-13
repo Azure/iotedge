@@ -103,33 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return await this.GetServiceIdentityInternal(id);
         }
 
-        public async Task<Option<string>> GetAuthChain(string targetId)
-        {
-            Option<string> authChain = await this.serviceIdentityHierarchy.GetAuthChain(targetId);
-
-            // Check every Edge device in the authchain for disabled devices
-            string[] authChainIds = authChain.Map(chain => chain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)).OrDefault();
-            foreach (string id in authChainIds)
-            {
-                Option<ServiceIdentity> identityOption = await this.serviceIdentityHierarchy.Get(id);
-                if (!identityOption.HasValue)
-                {
-                    Events.AuthChainMissingDevice(targetId, id);
-                    return Option.None<string>();
-                }
-
-                ServiceIdentity identity = identityOption.Expect(() => new InvalidOperationException());
-
-                if (identity.IsEdgeDevice && identity.Status == ServiceIdentityStatus.Disabled)
-                {
-                    // Chain is unuseable if one of the devices is disabled
-                    Events.AuthChainDisabled(targetId, id);
-                    return Option.None<string>();
-                }
-            }
-
-            return authChain;
-        }
+        public Task<Option<string>> GetAuthChain(string targetId) => this.serviceIdentityHierarchy.GetAuthChain(targetId);
 
         public async Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId)
         {
@@ -335,8 +309,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 InitializingRefreshTask = IdStart,
                 Created,
                 ErrorInRefresh,
-                AuthChainMissingDevice,
-                AuthChainDisabled,
                 StartingCycle,
                 DoneCycle,
                 ReceivedRequestToRefreshCache,
@@ -372,16 +344,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 string id = serviceIdentity?.Id ?? "unknown";
                 Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while processing the service identity for {id}");
-            }
-
-            public static void AuthChainMissingDevice(string targetId, string missingDeviceId)
-            {
-                Log.LogWarning((int)EventIds.AuthChainMissingDevice, $"Cannot use auth-chain for {targetId}, parent device {missingDeviceId} is missing");
-            }
-
-            public static void AuthChainDisabled(string targetId, string disabledId)
-            {
-                Log.LogWarning((int)EventIds.AuthChainDisabled, $"Cannot use auth-chain for {targetId}, parent device {disabledId} is disabled");
             }
 
             public static void ReceivedRequestToRefreshCache() =>

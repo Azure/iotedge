@@ -25,14 +25,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     [Unit]
     public class DeviceScopeControllerTest
     {
-        static readonly string actorId = "edge1";
-        static readonly string targetId = "edge2";
-        static readonly string targetAuthChain = "edge2;edge1;edgeroot";
-
         [Fact]
-        public async Task NestedDeviceScopeRoundtripTest()
+        public async Task GetDevicesAndModulesInTargetDeviceScope_RoundTripTest()
         {
             // Setup ServiceIdentity results
+            string parentEdgeId = "edge1";
+            string childEdgeId = "edge2";
             string deviceId = "device1";
             string moduleId = "module1";
             string deviceScope = "deviceScope1";
@@ -44,11 +42,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var resultDeviceIdentity = new ServiceIdentity(deviceId, null, deviceScope, new List<string>() { parentScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultModuleIdentity = new ServiceIdentity(deviceId, moduleId, null, new List<string>() { deviceScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
-            var controller = MakeController(resultIdentities);
+            var authChainMapping = new Dictionary<string, string>();
+            authChainMapping.Add(childEdgeId, "edge2;edge1;edgeroot");
+            var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
             var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
-            await controller.GetDevicesAndModulesInTargetDeviceScope(actorId, "$edgeHub", request);
+            await controller.GetDevicesAndModulesInTargetDeviceScope(parentEdgeId, "$edgeHub", request);
 
             // Verify EdgeHub result types
             var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
@@ -76,26 +76,128 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         }
 
         [Fact]
-        public async void ValidateChainAndGetTargetDeviceIdTest()
+        public void GetDevicesAndModulesInTargetDeviceScope_UnauthorizedActorTest()
         {
+            string targetEdgeId = "edge2";
             var resultIdentities = new List<ServiceIdentity>();
-            var controller = MakeController(resultIdentities);
+            var authChainMapping = new Dictionary<string, string>();
+            authChainMapping.Add(targetEdgeId, targetEdgeId + ";edge1;edgeroot");
+            var controller = MakeController(targetEdgeId, resultIdentities, authChainMapping);
 
             var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
             Assert.Throws<AggregateException>(() => controller.GetDevicesAndModulesInTargetDeviceScope("edge1", "notEdgeHub", request).Wait());
-
-            request = new NestedScopeRequest(0, string.Empty, "edge2;edge2");
-            await controller.GetDevicesAndModulesInTargetDeviceScope("edge1", "$edgeHub", request);
-            Assert.Equal((int)HttpStatusCode.BadRequest, controller.HttpContext.Response.StatusCode);
         }
 
-        private static DeviceScopeController MakeController(IList<ServiceIdentity> resultIdentities)
+        [Fact]
+        public async Task GetModuleOnBehalfOf()
+        {
+            // Setup ServiceIdentity results
+            string parentEdgeId = "edge1";
+            string childEdgeId = "edge2";
+            string moduleId = "module1";
+            string deviceScope = "deviceScope1";
+            string parentScope = "parentScope1";
+            string generationId = "generation1";
+            string primaryKey = "t3LtII3CppvtVqycKp9bo043vCEgWbGBJAzXZNmoBXo=";
+            string secondaryKey = "kT4ac4PpH5UY0vA1JpLQWOu2yG6qKoqwvzee3j1Z3bA=";
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(primaryKey, secondaryKey));
+            var resultDeviceIdentity = new ServiceIdentity(childEdgeId, null, deviceScope, new List<string>() { parentScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var resultModuleIdentity = new ServiceIdentity(childEdgeId, moduleId, null, new List<string>() { deviceScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
+            var authChainMapping = new Dictionary<string, string>();
+            string targetId = childEdgeId + "/" + moduleId;
+            authChainMapping.Add(targetId, targetId + ";edge2;edge1;edgeroot");
+            var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
+
+            // Act
+            var request = new IdentityOnBehalfOfRequest(childEdgeId, moduleId, "edge2;edge1");
+            await controller.GetDeviceAndModuleOnBehalfOf(parentEdgeId, "$edgeHub", request);
+
+            // Verify EdgeHub result types
+            var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
+            var expectedDeviceIdentities = new List<EdgeHubScopeDevice>() { new EdgeHubScopeDevice(childEdgeId, generationId, DeviceStatus.Enabled, expectedAuth, new DeviceCapabilities(), deviceScope, new List<string> { parentScope }) };
+            var expectedModuleIdentities = new List<EdgeHubScopeModule>() { new EdgeHubScopeModule(moduleId, childEdgeId, generationId, expectedAuth) };
+            var responseExpected = new EdgeHubScopeResult() { Devices = expectedDeviceIdentities, Modules = expectedModuleIdentities };
+            var responseExpectedJson = JsonConvert.SerializeObject(responseExpected);
+
+            var responseActualBytes = GetResponseBodyBytes(controller);
+            var responseActualJson = Encoding.UTF8.GetString(responseActualBytes);
+
+            Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
+            Assert.Equal(responseExpectedJson, responseActualJson);
+        }
+
+        [Fact]
+        public async Task GetDeviceOnBehalfOf()
+        {
+            // Setup ServiceIdentity results
+            string parentEdgeId = "edge1";
+            string childEdgeId = "edge2";
+            string deviceId = "device1";
+            string moduleId = "module1";
+            string deviceScope = "deviceScope1";
+            string parentScope = "parentScope1";
+            string generationId = "generation1";
+            string primaryKey = "t3LtII3CppvtVqycKp9bo043vCEgWbGBJAzXZNmoBXo=";
+            string secondaryKey = "kT4ac4PpH5UY0vA1JpLQWOu2yG6qKoqwvzee3j1Z3bA=";
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(primaryKey, secondaryKey));
+            var resultDeviceIdentity = new ServiceIdentity(deviceId, null, deviceScope, new List<string>() { parentScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var resultModuleIdentity = new ServiceIdentity(deviceId, moduleId, null, new List<string>() { deviceScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
+            var authChainMapping = new Dictionary<string, string>();
+            authChainMapping.Add(deviceId, "device1;edge2;edge1;edgeroot");
+            var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
+
+            // Act
+            var request = new IdentityOnBehalfOfRequest(deviceId, null, "device1;edge2;edge1");
+            await controller.GetDeviceAndModuleOnBehalfOf(parentEdgeId, "$edgeHub", request);
+
+            // Verify EdgeHub result types
+            var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
+            var expectedDeviceIdentities = new List<EdgeHubScopeDevice>() { new EdgeHubScopeDevice(deviceId, generationId, DeviceStatus.Enabled, expectedAuth, new DeviceCapabilities(), deviceScope, new List<string> { parentScope }) };
+            var responseExpected = new EdgeHubScopeResult() { Devices = expectedDeviceIdentities, Modules = new List<EdgeHubScopeModule>() };
+            var responseExpectedJson = JsonConvert.SerializeObject(responseExpected);
+
+            var responseActualBytes = GetResponseBodyBytes(controller);
+            var responseActualJson = Encoding.UTF8.GetString(responseActualBytes);
+
+            Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
+            Assert.Equal(responseExpectedJson, responseActualJson);
+        }
+
+        [Fact]
+        public void ValidateChainTest()
+        {
+            // Correct case
+            Assert.True(AuthChainHelpers.ValidateAuthChain("edge1", "leaf1", "leaf1;edge1;edgeRoot"));
+
+            // Unauthorized actor
+            Assert.False(AuthChainHelpers.ValidateAuthChain("edge1", "leaf1", "leaf1;edge2;edgeRoot"));
+
+            // Bad target
+            Assert.False(AuthChainHelpers.ValidateAuthChain("edge1", "leaf1", "leaf2;edge1;edgeRoot"));
+
+            // Invalid format
+            Assert.False(AuthChainHelpers.ValidateAuthChain("edge1", "leaf1", ";"));
+        }
+
+        private static DeviceScopeController MakeController(string targetEdgeId, IList<ServiceIdentity> resultIdentities, IDictionary<string, string> authChains)
         {
             var edgeHub = new Mock<IEdgeHub>();
-            edgeHub.Setup(e => e.GetAuthChainForIdentity(It.Is<string>(i => i == targetId)))
-                .ReturnsAsync(Option.Some<string>(targetAuthChain));
-            edgeHub.Setup(e => e.GetDevicesAndModulesInTargetScopeAsync(It.Is<string>(id => id == targetId)))
+            edgeHub.Setup(e => e.GetDevicesAndModulesInTargetScopeAsync(It.Is<string>(id => id == targetEdgeId)))
                 .ReturnsAsync(resultIdentities);
+
+            foreach (KeyValuePair<string, string> entry in authChains)
+            {
+                edgeHub.Setup(e => e.GetAuthChainForIdentity(It.Is<string>(i => i == entry.Key)))
+                .ReturnsAsync(Option.Some<string>(entry.Value));
+            }
+
+            foreach (ServiceIdentity identity in resultIdentities)
+            {
+                edgeHub.Setup(e => e.GetIdentityAsync(It.Is<string>(id => id == identity.Id)))
+                .ReturnsAsync(Option.Some(identity));
+            }
 
             var controller = new DeviceScopeController(Task.FromResult(edgeHub.Object));
             SetupControllerContext(controller);
