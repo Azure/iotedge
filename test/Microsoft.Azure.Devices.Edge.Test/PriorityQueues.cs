@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task PriorityQueueModuleToModuleMessages()
         {
             // TODO: Fix PriorityQueue E2E tests for Windows and ARM32
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit() )
+            if (OsPlatform.IsWindows())
             {
                 Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
             }
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task PriorityQueueModuleToHubMessages()
         {
             // TODO: Add Windows and ARM32. Windows won't be able to work for this test until we add NetworkController Windows implementation
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
+            if (OsPlatform.IsWindows())
             {
                 Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
             }
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task PriorityQueueTimeToLive()
         {
             // TODO: Fix PriorityQueue TTL E2E tests for Windows and ARM32
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
+            if (OsPlatform.IsWindows())
             {
                 Assert.Ignore("Priority Queue time to live test has been disabled for Windows and Arm32 until we can fix it.");
             }
