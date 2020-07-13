@@ -21,14 +21,29 @@ use std::{
 use anyhow::{Context, Result};
 use child::run;
 use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
+use structopt::StructOpt;
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
 mod child;
 
+const BROKER_ENABLED_FLAG: &str = "with-broker-enabled";
+
+#[derive(StructOpt)]
+struct Opt {
+    #[structopt(parse(try_from_str), long = BROKER_ENABLED_FLAG)]
+    with_broker_enabled: bool,
+}
+
 fn main() -> Result<()> {
     init_logging();
     info!("Starting Watchdog");
+
+    let with_broker_enabled = Opt::from_args().with_broker_enabled;
+    info!(
+        "Flag --{} set to {}",
+        BROKER_ENABLED_FLAG, with_broker_enabled
+    );
 
     let should_shutdown = register_shutdown_listener()
         .context("Failed to register sigterm listener. Shutting down.")?;
@@ -40,19 +55,22 @@ fn main() -> Result<()> {
         Arc::clone(&should_shutdown),
     )?;
 
-    let broker_handle = match run(
-        "MQTT Broker".to_string(),
-        "/usr/local/bin/mqttd".to_string(),
-        "-c /app/mqttd/production.json".to_string(),
-        Arc::clone(&should_shutdown),
-    ) {
-        Ok(handle) => Some(handle),
-        Err(e) => {
-            should_shutdown.store(true, Ordering::Relaxed);
-            error!("Could not start MQTT Broker process. {}", e);
-            None
-        }
-    };
+    let mut broker_handle = None;
+    if with_broker_enabled {
+        broker_handle = match run(
+            "MQTT Broker".to_string(),
+            "/usr/local/bin/mqttd".to_string(),
+            "-c /app/mqttd/production.json".to_string(),
+            Arc::clone(&should_shutdown),
+        ) {
+            Ok(handle) => Some(handle),
+            Err(e) => {
+                should_shutdown.store(true, Ordering::Relaxed);
+                error!("Could not start MQTT Broker process. {}", e);
+                None
+            }
+        };
+    }
 
     if let Err(e) = edgehub_handle.join() {
         should_shutdown.store(true, Ordering::Relaxed);
