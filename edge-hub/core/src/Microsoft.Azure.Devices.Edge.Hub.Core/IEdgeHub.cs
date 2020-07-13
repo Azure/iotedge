@@ -6,6 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// The <c>IEdgeHub</c> is responsible for processing messages sent to the
@@ -34,5 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task RemoveSubscription(string id, DeviceSubscription deviceSubscription);
 
         Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions);
+
+        Task<Option<string>> GetAuthChainForIdentity(string id);
+
+        Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string requestedDeviceId);
     }
 }

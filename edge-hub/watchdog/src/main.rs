@@ -49,18 +49,18 @@ fn main() -> Result<()> {
         .context("Failed to register sigterm listener. Shutting down.")?;
 
     let edgehub_handle = run(
-        "Edge Hub".to_string(),
-        "dotnet".to_string(),
-        "/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll".to_string(),
+        "Edge Hub",
+        "dotnet",
+        vec!["/app/Microsoft.Azure.Devices.Edge.Hub.Service/Microsoft.Azure.Devices.Edge.Hub.Service.dll".to_string()],
         Arc::clone(&should_shutdown),
     )?;
 
-    let mut broker_handle = None;
+    let broker_handle;
     if with_broker_enabled {
         broker_handle = match run(
-            "MQTT Broker".to_string(),
-            "/usr/local/bin/mqttd".to_string(),
-            "-c /app/mqttd/production.json".to_string(),
+            "MQTT Broker",
+            "/usr/local/bin/mqttd",
+            vec!["-c".to_string(), "/app/mqttd/production.json".to_string()],
             Arc::clone(&should_shutdown),
         ) {
             Ok(handle) => Some(handle),
@@ -70,6 +70,9 @@ fn main() -> Result<()> {
                 None
             }
         };
+    }
+    else {
+        broker_handle = None
     }
 
     if let Err(e) = edgehub_handle.join() {
