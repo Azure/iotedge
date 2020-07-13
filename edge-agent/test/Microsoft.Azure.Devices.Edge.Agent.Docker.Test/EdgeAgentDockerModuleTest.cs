@@ -22,57 +22,57 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             yield return new object[] // full matching
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Maybe(new NotaryContentTrust { RootCertificatePath = "/path/to/rootjson", RootID = "54633324" })), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Maybe(new NotaryContentTrust { RootCertificatePath = "/path/to/rootjson", RootID = "54633324" })), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Maybe("45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2")), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Maybe("45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2")), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
                 true
             };
 
             yield return new object[] // simple vs. full match
             {
                 new EdgeAgentDockerModule("docker", new DockerConfig("Foo"), ImagePullPolicy.OnCreate, null, null),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Maybe(new NotaryContentTrust { RootCertificatePath = "/path/to/rootjson", RootID = "54633324" })), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Maybe("45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2")), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
                 true
             };
 
             yield return new object[] // image mismatch
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Bar", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Bar", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
                 false
             };
 
             yield return new object[] // createOptions mismatch
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"x\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"x\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
                 true
             };
 
-            yield return new object[] // notary content trust mismatch
+            yield return new object[] // digest mismatch
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Maybe(new NotaryContentTrust { RootCertificatePath = "/path/to/rootjson", RootID = "54633324" })), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Maybe(new NotaryContentTrust { RootCertificatePath = "/path/to/another/rootjson", RootID = "54633324" })), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Some("45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2")), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.Some("45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb3")), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
                 true
             };
 
             yield return new object[] // pull policy mismatch
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.Never, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.Never, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
                 true
             };
 
             yield return new object[] // env var mismatch
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal>(), "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal>(), "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
                 true
             };
 
             yield return new object[] // version mismatch
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version2"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"a\": \"b\"}", Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") }, "version2"),
                 true
             };
         }
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             var fullModule = new EdgeAgentDockerModule(
                 "docker",
-                new DockerConfig("Foo", CreateOptions, Option.None<NotaryContentTrust>()),
+                new DockerConfig("Foo", CreateOptions, Option.None<string>()),
                 ImagePullPolicy.OnCreate,
                 new ConfigurationInfo(),
                 JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(Env),
@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var fullRuntimeModule = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
                 "Foo",
                 "{\"ignore\": \"me\"}",
-                Option.None<NotaryContentTrust>()));
+                Option.None<string>()));
 
             var runtimeModuleWithLabels = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
                 "Foo",
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         [Constants.Labels.Env] = Env
                     }
                 }),
-                Option.None<NotaryContentTrust>()));
+                Option.None<string>()));
 
             var runtimeModuleWithMismatchedCreateOptionsLabel = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
                 "Foo",
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         [Constants.Labels.Env] = Env
                     }
                 }),
-                Option.None<NotaryContentTrust>()));
+                Option.None<string>()));
 
             var runtimeModuleWithMismatchedEnvLabel = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
                 "Foo",
@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         [Constants.Labels.Env] = "{\"a\":{\"value\":\"b\"}}"
                     }
                 }),
-                Option.None<NotaryContentTrust>()));
+                Option.None<string>()));
 
             Assert.True(fullModule.Equals(simpleRuntimeModule));
             Assert.True(fullModule.Equals(fullRuntimeModule));
