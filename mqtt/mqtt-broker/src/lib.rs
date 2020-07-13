@@ -47,7 +47,6 @@ pub use crate::snapshot::{
     BrokerSnapshot, SessionSnapshot, ShutdownHandle, Snapshotter, StateSnapshotHandle,
 };
 pub use crate::subscription::{Segment, Subscription, TopicFilter};
-pub use crate::transport::TransportBuilder;
 
 #[derive(Debug)]
 pub struct ConnReq {

@@ -1,5 +1,6 @@
-use std::{error::Error as StdError, fs, future::Future, path::Path, sync::Arc};
+use std::{error::Error as StdError, future::Future, path::Path, sync::Arc};
 
+use futures_util::future::BoxFuture;
 use futures_util::{
     future::{self, Either, FutureExt},
     pin_mut,
@@ -14,10 +15,9 @@ use mqtt_broker_core::auth::{Authenticator, Authorizer};
 use crate::{
     broker::{Broker, BrokerHandle},
     connection,
-    transport::TransportBuilder,
+    transport::Transport,
     BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, SystemEvent,
 };
-use native_tls::Identity;
 
 pub struct Server<Z>
 where
@@ -26,7 +26,7 @@ where
     broker: Broker<Z>,
     #[allow(clippy::type_complexity)]
     transports: Vec<(
-        TransportBuilder,
+        BoxFuture<'static, Result<Transport, InitializeBrokerError>>,
         Arc<(dyn Authenticator<Error = Box<dyn StdError>> + Send + Sync)>,
     )>,
 }
@@ -38,7 +38,7 @@ where
     pub fn from_broker(broker: Broker<Z>) -> Self {
         Self {
             broker,
-            transports: Vec::default(),
+            transports: Vec::new(),
         }
     }
 
@@ -46,7 +46,7 @@ where
     where
         N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
     {
-        let make_transport = TransportBuilder::Tcp(addr.into());
+        let make_transport = Box::pin(Transport::new_tcp(addr.to_string()));
         self.transports
             .push((make_transport, Arc::new(authenticator)));
         self
@@ -61,14 +61,10 @@ where
     where
         N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
     {
-        info!("Loading identity from {}", cert_path.display());
-        let cert_buffer = fs::read(&cert_path)
-            .map_err(|e| InitializeBrokerError::LoadIdentity(cert_path.to_path_buf(), e))?;
-
-        let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "")
-            .map_err(InitializeBrokerError::DecodeIdentity)?;
-
-        let make_transport = TransportBuilder::Tls(addr.into(), cert);
+        let make_transport = Box::pin(Transport::new_tls(
+            addr.to_string(),
+            cert_path.to_path_buf(),
+        ));
         self.transports
             .push((make_transport, Arc::new(authenticator)));
 
@@ -206,8 +202,8 @@ where
     }
 }
 
-async fn incoming_task<F, N>(
-    new_transport: TransportBuilder,
+async fn incoming_task<F, N, T>(
+    new_transport: T,
     handle: BrokerHandle,
     mut shutdown_signal: F,
     authenticator: Arc<N>,
@@ -215,8 +211,9 @@ async fn incoming_task<F, N>(
 where
     F: Future<Output = ()> + Unpin,
     N: Authenticator + ?Sized + Send + Sync + 'static,
+    T: Future<Output = Result<Transport, InitializeBrokerError>>,
 {
-    let io = new_transport.make_transport().await?;
+    let io = new_transport.await?;
     let addr = io.local_addr()?;
     let span = span!(Level::INFO, "server", listener=%addr);
     let _enter = span.enter();
