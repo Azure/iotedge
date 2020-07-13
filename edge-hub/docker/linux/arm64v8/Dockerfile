@@ -14,6 +14,9 @@ COPY $EXE_DIR/ ./edge-hub
 # Set broker log level
 ENV RUST_LOG=info
 
+# Enable the mqtt broker by default
+ENV mqttBrokerSettings.enabled=true
+
 # Expose MQTT, AMQP and HTTPS ports
 EXPOSE 1883/tcp
 EXPOSE 8883/tcp
@@ -25,4 +28,4 @@ ENV OptimizeForPerformance false
 ENV MqttEventsProcessorThreadCount 1
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
     cd /tmp && \
-    /usr/local/bin/watchdog
+    /usr/local/bin/watchdog --with-broker-enabled=${mqttBrokerSettings.enabled}
