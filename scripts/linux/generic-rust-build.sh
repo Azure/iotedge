@@ -112,4 +112,5 @@ incremental = false
 EOF
 fi
 
+cd "${PROJECT_ROOT}"
 $CARGO build ${PACKAGES_FORMATTED} ${CARGO_ARGS} --target "$TARGET"
