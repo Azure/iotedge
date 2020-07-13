@@ -46,16 +46,16 @@ process_args()
     save_next_arg=0
     for arg in "$@"
     do
-        if [ $save_next_arg -eq 1 ]; then
+        if [ ${save_next_arg} -eq 1 ]; then
             TARGET="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 2 ]; then
+        elif [ ${save_next_arg} -eq 2 ]; then
             CARGO="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
-            PROJECT_ROOT=$PROJECT_ROOT/$arg
+        elif [ ${save_next_arg} -eq 3 ]; then
+            PROJECT_ROOT=${PROJECT_ROOT}/$arg
             save_next_arg=0
-        elif [ $save_next_arg -eq 4 ]; then
+        elif [ ${save_next_arg} -eq 4 ]; then
             # Rather than pass an array, pass a semicolon delimited string
             # https://stackoverflow.com/questions/1063347/passing-arrays-as-parameters-in-bash
             PACKAGES=$arg
@@ -68,10 +68,10 @@ process_args()
                 "-c" | "--cargo" ) save_next_arg=2;;
                 "--project-root" ) save_next_arg=3;;
                 "--packages" ) save_next_arg=4;;
-                "-r" | "--release" ) CARGO_ARGS="$CARGO_ARGS --release";;
+                "-r" | "--release" ) CARGO_ARGS="${CARGO_ARGS} --release";;
                 "--reduced-linker" ) REDUCED_LINKER=1;;
                 "--manifest-path" ) MANIFEST_PATH=1;;
-                "--no-default-features" ) CARGO_ARGS="$CARGO_ARGS --no-default-features";;
+                "--no-default-features" ) CARGO_ARGS="${CARGO_ARGS} --no-default-features";;
                 * ) usage;;
             esac
         fi
@@ -80,7 +80,7 @@ process_args()
 
 process_args "$@"
 
-if [ "$MANIFEST_PATH" = '1' ]; then
+if [ "${MANIFEST_PATH}" = '1' ]; then
     PACKAGE_ARG="--manifest-path"
 else
     PACKAGE_ARG="-p"
@@ -89,10 +89,10 @@ fi
 PACKAGES_FORMATTED=
 for p in "${PACKAGES[@]}"
 do
-    PACKAGES_FORMATTED="${PACKAGES_FORMATTED} $PACKAGE_ARG ${p}"
+    PACKAGES_FORMATTED="${PACKAGES_FORMATTED} ${PACKAGE_ARG} $p"
 done
 
-if [ "$REDUCED_LINKER" = '1' ]; then
+if [ "${REDUCED_LINKER}" = '1' ]; then
     # ld crashes in the VSTS CI's Linux amd64 job while trying to link iotedged
     # with a generic exit code 1 and no indicative error message. It seems to
     # work fine if we reduce the number of objects given to the linker,
@@ -100,7 +100,7 @@ if [ "$REDUCED_LINKER" = '1' ]; then
     #
     # We don't want to disable these for everyone else, so only do it in this script
     # that the CI uses.
-    >> "$PROJECT_ROOT/Cargo.toml" cat <<-EOF
+    >> "${PROJECT_ROOT}/Cargo.toml" cat <<-EOF
 
 [profile.dev]
 codegen-units = 1
@@ -112,4 +112,4 @@ incremental = false
 EOF
 fi
 
-$CARGO build ${PACKAGES_FORMATTED} $CARGO_ARGS --target "$TARGET"
+$CARGO build ${PACKAGES_FORMATTED} ${CARGO_ARGS} --target "$TARGET"
