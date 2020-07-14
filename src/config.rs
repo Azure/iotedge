@@ -24,7 +24,7 @@ pub struct Principal {
 #[derive(Deserialize)]
 pub struct Configuration {
     pub credentials: AADCredentials,
-    pub principal: Vec<Principal>
+    // pub principal: Vec<Principal>
 }
 
 pub fn load(path: &Path) -> Configuration {

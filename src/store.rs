@@ -2,9 +2,10 @@ use crate::config::Configuration;
 use crate::constants::{AAD_BYTES, IV_BYTES};
 use crate::ks;
 use crate::ks::{Key, Text};
-use crate::util::BoxFuture;
+use crate::util::BoxResult;
 
 use base64::{decode, encode};
+use futures::future::try_join_all;
 use iotedge_aad::{Auth, TokenSource};
 use ring::rand::{generate, SystemRandom};
 use serde::{Deserialize, Serialize};
@@ -32,71 +33,86 @@ pub trait StoreBackend: Sized + Sync {
 
 // NOTE: not fully public since high-level functions should be
 //       invariant over backend implementation
-// NOTE: could be a struct, if requested
 pub(crate) struct Store<T: StoreBackend> {
     backend: T,
-    // config: Configuration
+    config: Configuration
 }
 
 impl<T: StoreBackend> Store<T> {
-    pub fn new(backend: T/*, config: Configuration*/) -> Self {
+    pub fn new(backend: T, config: Configuration) -> Self {
         Self {
             backend: backend,
-            // config: config
+            config: config
         }
     }
 
-    pub fn get_secret<'a>(&'a self, id: String) -> BoxFuture<'a, String> {
-        Box::pin(async move {
-            let record = self.backend.read_record(&id)?;
-            let Key::KeyHandle(key) = ks::create_or_get_key(&id).await?;
-            let ptext = match ks::decrypt(&key, &record.ciphertext, &record.iv, &record.aad).await? {
-                Text::Plaintext(ptext) => String::from_utf8(decode(ptext)?)?,
-                _ => panic!("DECRYPTION API CHANGED")
-            };
+    pub async fn get_secret(&self, id: String) -> BoxResult<'_, String> {
+        let record = self.backend.read_record(&id)?;
+        let Key::KeyHandle(key) = ks::create_or_get_key(&id).await?;
+        let ptext = match ks::decrypt(&key, &record.ciphertext, &record.iv, &record.aad).await? {
+            Text::Plaintext(ptext) => String::from_utf8(decode(ptext)?)?,
+            _ => panic!("DECRYPTION API CHANGED")
+        };
 
-            Ok(ptext)
-        })
+        Ok(ptext)
     }
 
-    pub fn set_secret<'a>(&'a self, id: String, value: String) -> BoxFuture<'a, ()> {
-        Box::pin(async move {
-            let rng = SystemRandom::new();
+    pub async fn set_secret(&self, id: String, value: String) -> BoxResult<'_, ()> {
+        let rng = SystemRandom::new();
 
-            let Key::KeyHandle(key) = ks::create_or_get_key(&id).await?;
-            let ptext = encode(value);
-            let iv = encode(generate::<[u8; IV_BYTES]>(&rng)?.expose());
-            let aad = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
+        let Key::KeyHandle(key) = ks::create_or_get_key(&id).await?;
+        let ptext = encode(value);
+        let iv = encode(generate::<[u8; IV_BYTES]>(&rng)?.expose());
+        let aad = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
 
-            let ctext = match ks::encrypt(&key, &ptext, &iv, &aad).await? {
-                Text::Ciphertext(ctext) => encode(ctext),
-                _ => panic!("ENCRYPTION API CHANGED")
-            };
+        let ctext = match ks::encrypt(&key, &ptext, &iv, &aad).await? {
+            Text::Ciphertext(ctext) => encode(ctext),
+            _ => panic!("ENCRYPTION API CHANGED")
+        };
 
-            self.backend.write_record(&id, Record {
-                ciphertext: ctext,
-                iv: iv,
-                aad: aad
-            })?;
+        self.backend.write_record(&id, Record {
+            ciphertext: ctext,
+            iv: iv,
+            aad: aad
+        })?;
 
-            Ok(())
-        })
+        Ok(())
     }
 
-    /*
-    pub fn pull_secrets<'a>(&'a self, keys: &'a [String]) -> BoxFuture<'a, ()> {
-        let credentials = self.config.credentials.to_owned();
-        Box::pin(async move {
-            let token = Auth::new(None, "https://vault.azure.net")
-                .authorize_with_secret(
-                        &credentials.tenant_id,
-                        &credentials.client_id,
-                        &credentials.client_secret
-                    )
-                .await?
-                .get();
-            Ok(())
-        })
+    pub async fn pull_secrets(&self, keys: Vec<&str>) -> BoxResult<'_, ()> {
+        let client = hyper::Client::builder()
+            .build(hyper_tls::HttpsConnector::new());
+        let token = Auth::new(None, "https://vault.azure.net")
+            .authorize_with_secret(
+                    &self.config.credentials.tenant_id,
+                    &self.config.credentials.client_id,
+                    &self.config.credentials.client_secret
+                )
+            .await?
+            .get()
+            .to_string();
+
+        let key_values: Vec<hyper::Response<hyper::Body>> = try_join_all(
+                    keys.into_iter()
+                        .map(|key| key.parse::<hyper::Uri>())
+                        .collect::<Result<Vec<hyper::Uri>, _>>()?
+                        .into_iter()
+                        .map(|key| {
+                            let req = hyper::Request::builder()
+                                .uri(key)
+                                .header("Authorization", format!("Bearer {}", token.to_owned()))
+                                .body(hyper::Body::empty())
+                                .unwrap();
+                            client.request(req)
+                        })
+                        .collect::<Vec<hyper::client::ResponseFuture>>()
+                )
+            .await?;
+
+        for key_value in key_values {
+            println!("{}", String::from_utf8(hyper::body::to_bytes(key_value).await?.to_vec())?)
+        }
+
+        Ok(())
     }
-    */
 }

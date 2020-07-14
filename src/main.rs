@@ -25,7 +25,6 @@ fn init(path: &Path) {
         umask(!S_IRWXU);
     }
 
-    
     match remove_file(path) {
         Err(e) if e.kind() != ErrorKind::NotFound =>
             panic!("COULD NOT REMOVE EXISTING SOCKET"),
@@ -46,9 +45,9 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     init(skt);
 
     let store = {
-        // let conf = config::load(Path::new("foo.toml"));
+        let conf = config::load(Path::new("store.toml"));
         let backend = crate::backends::rocksdb::RocksDBBackend::new()?;
-        Arc::new(Store::new(backend/*, conf*/))
+        Arc::new(Store::new(backend, conf))
     };
     
     Server::bind_unix(skt)?
