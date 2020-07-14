@@ -60,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 experimentalOptions.ForEach(parameters => createOptions.NodeSelector = parameters.NodeSelector);
                 experimentalOptions.ForEach(parameters => createOptions.Resources = parameters.Resources);
                 experimentalOptions.ForEach(parameters => createOptions.SecurityContext = parameters.SecurityContext);
+                experimentalOptions.ForEach(parameters => createOptions.ServiceOptions = parameters.ServiceOptions);
                 experimentalOptions.ForEach(parameters => createOptions.DeploymentStrategy = parameters.DeploymentStrategy);
             }
 
