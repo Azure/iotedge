@@ -11,8 +11,9 @@ set -e
 ###############################################################################
 SCRIPT_NAME=$(basename "$0")
 RUSTUP="${CARGO_HOME:-"$HOME/.cargo"}/bin/rustup"
+ARM_PACKAGE=
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
-PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/mqtt
+PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -23,6 +24,8 @@ function usage()
     echo ""
     echo "options"
     echo " -h,  --help                   Print this help and exit."
+    echo " -p,  --package-arm            Add additional dependencies for armhf packaging"
+    echo " --project-root                The project root of the desired build"
     exit 1;
 }
 
@@ -45,7 +48,7 @@ function install_rust()
     # We could check if the toolchain file contains "stable" and conditionally issue a `rustup update stable`,
     # but it's simpler to just always `update` whatever toolchain it is. `update` installs the toolchain
     # if it hasn't already been installed, so this also works for pinned versions.
-    $RUSTUP update "$(< "$PROJECT_ROOT/rust-toolchain")"
+    rustup update "$(< "$PROJECT_ROOT/rust-toolchain")"
 }
 
 ###############################################################################
@@ -53,12 +56,20 @@ function install_rust()
 ###############################################################################
 function process_args()
 {
+    save_next_arg=0
     for arg in "$@"
     do
-        case "$arg" in
-            "-h" | "--help" ) usage;;
-            * ) usage;;
-        esac
+        if [ ${save_next_arg} -eq 1 ]; then
+            PROJECT_ROOT=${PROJECT_ROOT}/$arg
+            save_next_arg=0
+        else
+            case "$arg" in
+                "-h" | "--help" ) usage;;
+                "-p" | "--package-arm" ) ARM_PACKAGE=1;;
+                "--project-root" ) save_next_arg=1;;
+                * ) usage;;
+            esac
+        fi
     done
 }
 
@@ -80,3 +91,33 @@ sudo apt-get install -y \
     valgrind
 sudo apt-get remove --yes libssl-dev
 sudo apt-get install --yes --target-release xenial-updates libssl-dev
+
+if [[ -n "$ARM_PACKAGE" ]]; then
+    # armhf cross tools for packaging
+    # These packages need to be pinned to a specific version to make
+    # the package dependent on the lowest version of glibc possible
+
+    sudo apt-get install -y \
+        binutils-arm-linux-gnueabihf=2.24-2ubuntu3cross1.98 \
+        libsfasan0-armhf-cross=4.8.2-16ubuntu4cross0.11 \
+        libsfgcc-4.8-dev-armhf-cross=4.8.2-16ubuntu4cross0.11 \
+        libasan0-armhf-cross=4.8.2-16ubuntu4cross0.11 \
+        libatomic1-armhf-cross=4.8.2-16ubuntu4cross0.11 \
+        libgomp1-armhf-cross=4.8.2-16ubuntu4cross0.11 \
+        libgcc1-armhf-cross=1:4.8.2-16ubuntu4cross0.11 \
+        gcc-4.8-arm-linux-gnueabihf-base=4.8.2-16ubuntu4cross0.11 \
+        libgcc-4.8-dev-armhf-cross=4.8.2-16ubuntu4cross0.11 \
+        cpp-4.8-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
+        gcc-4.8-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
+        gcc-4.8-multilib-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
+        libc6-armhf-cross=2.19-0ubuntu2cross1.104 \
+        gcc-arm-linux-gnueabihf=4:4.8.2-1 \
+        binutils-aarch64-linux-gnu
+
+    # For future reference:
+    # ubuntu systems (host) sets openssl library version to 1.0.0,
+    # Debian (Jessie) systems (target) expects library version to be 1.0.0.
+    # Debian (Stretch and later) systems (target) expects 1.0 library version to be 1.0.2.
+
+    ${PROJECT_ROOT}/build/linux/copy-arm-libs.sh
+fi
