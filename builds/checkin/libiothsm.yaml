@@ -32,8 +32,8 @@ jobs:
     pool:
       vmImage: "ubuntu-16.04"
     steps:
-      - bash: edgelet/build/linux/install.sh
-        displayName: Install dependencies
+      - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
+        displayName: Install Rust
       - task: CMake@1
         displayName: Setup
         inputs:

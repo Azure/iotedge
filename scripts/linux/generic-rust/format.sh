@@ -1,15 +1,10 @@
 #!/bin/bash
 
 ###############################################################################
-# This script builds the project
+# This script runs cargo fmt on your project
 ###############################################################################
 
 set -e
-
-###############################################################################
-# These are the manifest files this script will build.
-###############################################################################
-packages=(mqttd/Cargo.toml)
 
 ###############################################################################
 # Define Environment Variables
@@ -17,12 +12,11 @@ packages=(mqttd/Cargo.toml)
 # Get directory of running script
 DIR=$(cd "$(dirname "$0")" && pwd)
 
-BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
-PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/mqtt
 SCRIPT_NAME=$(basename "$0")
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
+PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}
+RUSTUP="${CARGO_HOME:-"$HOME/.cargo"}/bin/rustup"
 CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
-TARGET="x86_64-unknown-linux-gnu"
-RELEASE=
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -33,34 +27,30 @@ usage()
     echo ""
     echo "options"
     echo " -h, --help          Print this help and exit."
-    echo " -t, --target        Target architecture"
-    echo " -r, --release       Release build? (flag, default: false)"
     exit 1;
+}
+
+print_help_and_exit()
+{
+    echo "Run $SCRIPT_NAME --help for more information."
+    exit 1
 }
 
 ###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
-process_args()
+function process_args()
 {
     save_next_arg=0
     for arg in "$@"
     do
-        if [ $save_next_arg -eq 1 ]; then
-            TARGET="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 2 ]; then
-            RELEASE="true"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
-            CARGO="$arg"
+        if [ ${save_next_arg} -eq 1 ]; then
+            PROJECT_ROOT=${PROJECT_ROOT}/$arg
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
-                "-t" | "--target" ) save_next_arg=1;;
-                "-r" | "--release" ) save_next_arg=2;;
-                "-c" | "--cargo" ) save_next_arg=3;;
+                "--project-root" ) save_next_arg=1;;
                 * ) usage;;
             esac
         fi
@@ -69,16 +59,10 @@ process_args()
 
 process_args "$@"
 
-PACKAGES=
-for p in "${packages[@]}"
-do
-    PACKAGES="${PACKAGES} --manifest-path ${p}"
-done
+cd $PROJECT_ROOT
 
-if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT"
-    $CARGO build ${PACKAGES} --target "$TARGET"
-    $CARGO build ${PACKAGES} --no-default-features --target "$TARGET"
-else
-    cd "$PROJECT_ROOT" && $CARGO build ${PACKAGES} --release
-fi
+echo "Installing rustfmt"
+$RUSTUP component add rustfmt
+
+echo "Running cargo fmt"
+$CARGO fmt --all -- --check

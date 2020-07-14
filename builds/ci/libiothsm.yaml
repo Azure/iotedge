@@ -21,9 +21,10 @@ jobs:
           targetType: inline
           script: sudo apt-get clean && sudo rm -r /var/lib/apt/lists/*
       - task: Bash@3
-        displayName: Install dependencies
+        displayName: Install Rust
         inputs:
-          filePath: edgelet/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "edgelet"
       - task: CMake@1
         displayName: Setup
         inputs:
