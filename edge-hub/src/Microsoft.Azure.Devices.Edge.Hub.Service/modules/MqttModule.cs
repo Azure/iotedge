@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var pgMessageConverter = c.Resolve<IMessageConverter<IProtocolGatewayMessage>>();
                         var byteBufferConverter = c.Resolve<IByteBufferConverter>();
-                        var modelIdStore = c.Resolve<IModelIdStore>();
+                        var modelIdStore = await c.Resolve<Task<IModelIdStore>>();
                         IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
                         IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, pgMessageConverter, byteBufferConverter, modelIdStore);
                         return mqtt;
