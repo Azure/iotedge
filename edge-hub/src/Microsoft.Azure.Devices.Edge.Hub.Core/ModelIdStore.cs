@@ -20,11 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return !string.IsNullOrWhiteSpace(modelId) ? this.modelIdEntityStore.Put(id, modelId) : Task.CompletedTask;
         }
 
-        public async Task<string> GetModelId(string id)
+        public async Task<Option<string>> GetModelId(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            Option<string> modelId = await this.modelIdEntityStore.Get(id);
-            return modelId.GetOrElse(string.Empty);
+            return await this.modelIdEntityStore.Get(id);
         }
     }
 }

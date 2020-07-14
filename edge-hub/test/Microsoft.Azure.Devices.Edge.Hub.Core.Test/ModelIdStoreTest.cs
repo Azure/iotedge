@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -39,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             foreach (string id in deviceToModelIds.Keys)
             {
-                string modelId = await modelIdStore.GetModelId(id);
-                receivedDeviceModelIds.Add(id, modelId);
+                Option<string> modelId = await modelIdStore.GetModelId(id);
+                modelId.ForEach(m => receivedDeviceModelIds.Add(id, m));
             }
 
             // Assert
@@ -53,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async Task EmptyProductInfoTest()
+        public async Task EmptyModelIdTest()
         {
             // Arrange
             var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
@@ -62,14 +63,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Act
             await modelIdStore.SetModelId("d1", string.Empty);
-            string modelId = await modelIdStore.GetModelId("d1");
+            Option<string> modelId = await modelIdStore.GetModelId("d1");
 
             // Assert
-            Assert.Equal(string.Empty, modelId);
+            Assert.False(modelId.HasValue);
         }
 
         [Fact]
-        public void ProductInfoCtorTest()
+        public async Task WhitespaceModelIdTest()
+        {
+            // Arrange
+            var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+            IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("modelId");
+            var modelIdStore = new ModelIdStore(store);
+
+            // Act
+            await modelIdStore.SetModelId("d1", "            ");
+            Option<string> modelId = await modelIdStore.GetModelId("d1");
+
+            // Assert
+            Assert.False(modelId.HasValue);
+        }
+
+        [Fact]
+        public void ModelIdCtorTest()
         {
             new ModelIdStore(Mock.Of<IKeyValueStore<string, string>>());
 

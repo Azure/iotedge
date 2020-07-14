@@ -2,11 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public interface IModelIdStore
     {
         Task SetModelId(string id, string modelId);
 
-        Task<string> GetModelId(string id);
+        Task<Option<string>> GetModelId(string id);
     }
 }
