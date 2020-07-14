@@ -30,6 +30,45 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     info!("starting snapshotter...");
     let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
 
+    /* TODO: Call func start_disconnect_watcher() that will:
+        1. Create a custom client with clean session
+            client_id: Option<String>, = disconnect-watcher-[RANDOM_HASH]
+            username: Option<String>, = disconnect-watcher-[RANDOM_HASH]
+            will: Option<crate::proto::Publication>, = None
+            io_source: IoS, = reference the code block below
+            max_reconnect_back_off: std::time::Duration, = 1 sec in our tests
+            keep_alive: std::time::Duration, = 60 sec in our tests. what is this though?
+        2. The client knows what messages are received through the poll_next() call.
+           When topics subscription yields messages it will call system signal for client disconnection (similar to the snapshot below).
+    */
+
+    /*
+    let io_source = move || {
+            let address = address.clone();
+            let password = password.clone();
+            Box::pin(async move {
+                let io = tokio::net::TcpStream::connect(address).await;
+                io.map(|io| (io, password))
+            })
+        };
+    */
+
+    /*
+    info!("Setup to persist state on USR1 signal");
+        loop {
+            stream.recv().await;
+            info!("Received signal USR1");
+            if let Err(e) = broker_handle
+                .send(Message::System(SystemEvent::StateSnapshot(
+                    snapshot_handle.clone(),
+                )))
+                .await
+            {
+                warn!(message = "failed to signal the snapshotter", error=%e);
+            }
+        }
+    */
+
     info!("starting server...");
     let state = start_server(&config, broker).await?;
 

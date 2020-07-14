@@ -81,6 +81,7 @@ where
                                 info!("sent state to snapshotter.");
                             }
                         }
+                        // TODO: Need to handle new type of SystemEvent::ForceClientDisconnection
                     }
                 }
             }

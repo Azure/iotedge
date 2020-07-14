@@ -184,6 +184,7 @@ pub enum SystemEvent {
     Shutdown,
     StateSnapshot(StateSnapshotHandle),
     // ConfigUpdate,
+    // TODO: ForceClientDisconnect
 }
 
 #[derive(Debug)]
