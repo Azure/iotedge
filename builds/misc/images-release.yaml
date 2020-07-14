@@ -7,6 +7,7 @@ jobs:
     # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
     # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
     # TODO: Investigate why we have to toggle primary installs on linux, but not on windows.
+    timeoutInMinutes: 120
     displayName: LinuxDotnet
     pool: 
       name: "Hosted Ubuntu 1604"
