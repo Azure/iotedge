@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
         internal async Task<(bool, string)> AuthenticateRequest(HttpContext context)
         {
-            if (!context.Request.Headers.TryGetValue(HttpConstants.IdHeaderKey, out StringValues clientIds) || clientIds.Count == 0)
+            if (!context.Request.Headers.TryGetValue(Constants.ServiceApiIdHeaderKey, out StringValues clientIds) || clientIds.Count == 0)
             {
                 return LogAndReturnFailure("Request header does not contain ModuleId");
             }
@@ -132,12 +132,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             IIdentity identity = clientCredentials.Identity;
             IAuthenticator authenticator = await this.authenticatorTask;
-
-            // A downstream module cannot invoke a method on a device by connecting to EdgeHub
-            if (deviceId != this.edgeDeviceId)
-            {
-                return LogAndReturnFailure($"Module {moduleId} on device {deviceId} cannot invoke methods. Only modules on IoT Edge device {this.edgeDeviceId} can invoke methods.");
-            }
 
             if (!await authenticator.AuthenticateAsync(clientCredentials))
             {

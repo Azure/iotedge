@@ -34,7 +34,8 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: mqtt/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "mqtt"
       - task: Bash@3
         displayName: Build
         inputs:
@@ -61,7 +62,8 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: mqtt/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "mqtt"
       - script: cargo install cross --version 0.1.16
         displayName: Install cross
       - task: Bash@3
@@ -87,11 +89,13 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: mqtt/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "mqtt"
       - task: Bash@3
         displayName: Format Code
         inputs:
-          filePath: mqtt/build/linux/format.sh
+          filePath: scripts/linux/generic-rust/format.sh
+          arguments: --project-root "mqtt"
       - task: Bash@3
         displayName: Clippy
         inputs:
