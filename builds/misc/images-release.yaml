@@ -344,7 +344,6 @@ jobs:
       vmImage: 'ubuntu-16.04'
     dependsOn:
       - linux_dotnet_projects
-      - windows
     steps:
     - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edgelet/iotedge-diagnostics/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish azureiotedge-diagnostics Manifest'
