@@ -120,6 +120,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             return new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec);
         }
 
+        static bool IsHostIpc(CreatePodParameters config)
+        {
+            string ipcMode = config.HostConfig.FlatMap(h =>
+                Option.Maybe(h.OtherProperties)
+                .FlatMap(properties => properties.Get("ipcMode")
+                    .Map(ipc => ipc.ToObject<string>())))
+                .OrDefault();
+            return string.Compare(ipcMode, "host", true) == 0;
+        }
+
+        static bool IsHostNetwork(CreatePodParameters config)
+        {
+            string hostNet = config.HostConfig.FlatMap(h =>
+                Option.Maybe(h.OtherProperties)
+                .FlatMap(properties => properties.Get("networkMode")
+                .Map(ipc => ipc.ToObject<string>()))).OrDefault();
+            return string.Compare(hostNet, "host", true) == 0;
+        }
+
         V1PodTemplateSpec GetPod(string name, IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             // Convert docker labels to annotations because docker labels don't have the same restrictions as Kubernetes labels.
@@ -130,6 +149,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var (proxyContainer, proxyVolumes) = this.PrepareProxyContainer(module);
             var (moduleContainer, moduleVolumes) = this.PrepareModuleContainer(name, identity, module);
+            bool hostIpc = IsHostIpc(module.Config.CreateOptions);
+            bool hostNetwork = IsHostNetwork(module.Config.CreateOptions);
 
             var imagePullSecrets = new List<Option<string>> { this.proxyImagePullSecretName, module.Config.AuthConfig.Map(auth => auth.Name) }
                 .FilterMap()
@@ -157,7 +178,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     ImagePullSecrets = imagePullSecrets.Any() ? imagePullSecrets : null,
                     SecurityContext = securityContext,
                     ServiceAccountName = name,
-                    NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault()
+                    NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault(),
+                    HostIPC = hostIpc,
+                    HostNetwork = hostNetwork,
                 }
             };
         }
