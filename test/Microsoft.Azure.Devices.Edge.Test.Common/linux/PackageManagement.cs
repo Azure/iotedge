@@ -4,203 +4,97 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     using System;
     using System.IO;
     using System.Linq;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
+
+    public enum SupportedPackageExtension
+    {
+        Deb,
+        Rpm
+    }
 
     public class PackageManagement
     {
-        static CancellationToken token = default(CancellationToken);
+        readonly string os;
+        readonly string version;
+        readonly SupportedPackageExtension packageExtension;
+        public string IotedgeServices { get; }
 
-        Lazy<Task<LinuxStandardBase>> lsbTask =
-            new Lazy<Task<LinuxStandardBase>>(
-                async () =>
-                {
-                    Preconditions.CheckNotNull(token, nameof(token));
-
-                    string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
-                    if (platformInfo.Length == 1)
-                    {
-                        platformInfo = platformInfo[0].Split(' ');
-                    }
-
-                    string os = platformInfo[0].Trim();
-                    string version = platformInfo[1].Trim();
-                    SupportedPackageExtension packageExtension = SupportedPackageExtension.None;
-
-                    switch (os)
-                    {
-                        case "Ubuntu":
-                            os = "ubuntu";
-                            packageExtension = SupportedPackageExtension.Deb;
-                            break;
-                        case "Raspbian":
-                            os = "debian";
-                            version = "stretch";
-                            packageExtension = SupportedPackageExtension.Deb;
-                            break;
-                        case "CentOS":
-                            os = os.ToLower();
-                            version = version.Split('.')[0];
-                            packageExtension = SupportedPackageExtension.Rpm;
-
-                            if (version != "7")
-                            {
-                                throw new NotImplementedException($"Don't know how to install daemon on operating system '{os} {version}'");
-                            }
-
-                            break;
-                        default:
-                            throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
-                    }
-
-                    return new LinuxStandardBase(os, version, packageExtension);
-                });
-
-        // Note:
-        //   These properties are initialized upon GetInstallCommandsFromLocalAsync()
-        //   or GetInstallCommandsFromMicrosoftProdAsync()
-        string forceInstallConfigCmd = null;
-        string iotedgeServices = null;
-        string os = null;
-        SupportedPackageExtension packageExtension = SupportedPackageExtension.None;
-        string packageTool = null;
-        string uninstallCmd = null;
-        string version = null;
-        bool isInitilized = false;
-
-        public PackageManagement()
+        public PackageManagement(string os, string version, SupportedPackageExtension extension)
         {
+            this.os = os;
+            this.version = version;
+            this.packageExtension = extension;
+            this.IotedgeServices = extension switch
+            {
+                SupportedPackageExtension.Deb => "iotedge.mgmt.socket iotedge.socket iotedge.service",
+                SupportedPackageExtension.Rpm => "iotedge.service",
+                _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
+            };
         }
 
-        private async Task<LinuxStandardBase> GetLsbResult(CancellationToken token)
+        public string[] GetInstallCommandsFromLocal(string path)
         {
-            PackageManagement.token = token;
-            return await this.lsbTask.Value;
-        }
-
-        public async Task<string[]> GetInstallCommandsFromLocalAsync(string path, CancellationToken token)
-        {
-            Preconditions.CheckNonWhiteSpace(path, nameof(path));
-
-            await this.InitializePropertiesAsync(token);
-
             string[] packages = Directory
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug"))
                 .ToArray();
 
-            switch (this.packageExtension)
+            return this.packageExtension switch
             {
-                case SupportedPackageExtension.Deb:
-                    return new[]
-                        {
-                            "set -e",
-                            $"{this.forceInstallConfigCmd} {string.Join(' ', packages)}",
-                            $"{this.packageTool} install -f"
-                        };
-                case SupportedPackageExtension.Rpm:
-                    return new[]
-                        {
-                            "set -e",
-                            $"{this.packageTool} install -y {string.Join(' ', packages)}",
-                            "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1); sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf; sudo mv -f ~/override.conf ${pathToSystemdConfig#?}; sudo systemctl daemon-reload;"
-                        };
-                default:
-                    throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'");
-            }
-        }
-
-        public async Task<string[]> GetInstallCommandsFromMicrosoftProdAsync(CancellationToken token)
-        {
-            await this.InitializePropertiesAsync(token);
-
-            switch (this.packageExtension)
-            {
-                case SupportedPackageExtension.Deb:
-                    // Based on instructions at:
-                    // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
-                    // TODO: 8/30/2019 support curl behind a proxy
-                    return new[]
-                        {
-                            $"curl https://packages.microsoft.com/config/{this.os}/{this.version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
-                            "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                            $"{this.packageTool} update",
-                            $"{this.packageTool} install --yes iotedge"
-                        };
-                case SupportedPackageExtension.Rpm:
-                    return new[]
-                        {
-                            $"{this.forceInstallConfigCmd} https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
-                            $"{this.packageTool} updateinfo",
-                            $"{this.packageTool} install --yes iotedge",
-                            "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1); sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf; sudo mv -f ~/override.conf ${pathToSystemdConfig#?}; sudo systemctl daemon-reload;"
-                        };
-                default:
-                    throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'");
-            }
-        }
-
-        public async Task<string> GetPackageToolAsync(CancellationToken token)
-        {
-            await this.InitializePropertiesAsync(token);
-            return this.packageTool;
-        }
-
-        public async Task<string> GetUninstallCmdAsync(CancellationToken token)
-        {
-            await this.InitializePropertiesAsync(token);
-            return this.uninstallCmd;
-        }
-
-        public async Task<string> GetIotedgeServicesAsync(CancellationToken token)
-        {
-            await this.InitializePropertiesAsync(token);
-            return this.iotedgeServices;
-        }
-
-        async Task InitializePropertiesAsync(CancellationToken token)
-        {
-            LinuxStandardBase lsb = await this.GetLsbResult(token);
-
-            if (!this.isInitilized)
-            {
-                switch (lsb.PackageExtension)
+                SupportedPackageExtension.Deb => new[]
                 {
-                    case SupportedPackageExtension.Deb:
-                        this.InitializeDebProperties(lsb);
-                        break;
-                    case SupportedPackageExtension.Rpm:
-                        this.InitializeRpmProperties(lsb);
-                        break;
-                    default:
-                        throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'");
-                }
-
-                this.isInitilized = true;
-            }
+                    "set -e",
+                    $"dpkg --force-confnew -i {string.Join(' ', packages)}",
+                    $"apt-get install -f"
+                },
+                SupportedPackageExtension.Rpm => new[]
+                {
+                    "set -e",
+                    $"yum install -y {string.Join(' ', packages)}",
+                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                    "sudo systemctl daemon-reload"
+                },
+                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+            };
         }
 
-        void InitializeDebProperties(LinuxStandardBase lsb)
+        public string[] GetInstallCommandsFromMicrosoftProd() => this.packageExtension switch
         {
-            this.os = lsb.Os;
-            this.version = lsb.Version;
-            this.packageExtension = lsb.PackageExtension;
-            this.packageTool = "apt-get";
-            this.uninstallCmd = "purge --yes";
-            this.forceInstallConfigCmd = "dpkg --force-confnew -i";
-            this.iotedgeServices = "iotedge.mgmt.socket iotedge.socket iotedge.service";
-        }
+            SupportedPackageExtension.Deb => new[]
+            {
+                $"curl https://packages.microsoft.com/config/{this.os}/{this.version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
+                "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
+                $"apt-get update",
+                $"apt-get install --yes iotedge"
+            },
+            // Based on instructions at:
+            // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
+            // TODO: 8/30/2019 support curl behind a proxy
+            SupportedPackageExtension.Rpm => new[]
+            {
+                $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
+                $"yum updateinfo",
+                $"yum install --yes iotedge",
+                "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                "sudo systemctl daemon-reload"
+            },
+            _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+        };
 
-        void InitializeRpmProperties(LinuxStandardBase lsb)
+        public string[] GetUninstallCommands() => this.packageExtension switch
         {
-            this.os = lsb.Os;
-            this.version = lsb.Version;
-            this.packageExtension = lsb.PackageExtension;
-            this.packageTool = "yum";
-            this.uninstallCmd = "remove -y --remove-leaves";
-            this.forceInstallConfigCmd = "rpm -iv --replacepkgs";
-            this.iotedgeServices = "iotedge.service";
-        }
+            SupportedPackageExtension.Deb => new[]
+            {
+                "apt-get purge --yes libiothsm-std iotedge"
+            },
+            SupportedPackageExtension.Rpm => new[]
+            {
+                "yum remove -y --remove-leaves libiothsm-std iotedge"
+            },
+            _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
+        };
     }
 }
