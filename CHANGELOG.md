@@ -17,7 +17,6 @@
 ### Bug Fixes
 * Update [Linux ARM32 security vulnerable issue](https://lists.ubuntu.com/archives/ubuntu-security-announce/2020-June/005457.html) to OS version 2.1.19-bionic-arm32v7 ([51e707c](https://github.com/Azure/iotedge/commit/51e707c3d5e0cf630f91c9067c2c331753f2419c))
 
-
 # 1.0.9.3 (2020-06-18)
 ## Edge Agent
 ### Bug Fixes
