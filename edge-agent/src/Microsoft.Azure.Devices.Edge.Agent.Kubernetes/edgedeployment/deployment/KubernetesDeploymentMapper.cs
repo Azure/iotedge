@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         {
             string ipcMode = config.HostConfig.FlatMap(h =>
                 Option.Maybe(h.OtherProperties)
-                .FlatMap(properties => properties.Get("ipcMode")
+                .FlatMap(properties => properties.Get("IpcMode")
                     .Map(ipc => ipc.ToObject<string>())))
                 .OrDefault();
             return string.Compare(ipcMode, "host", true) == 0;
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         {
             string hostNet = config.HostConfig.FlatMap(h =>
                 Option.Maybe(h.OtherProperties)
-                .FlatMap(properties => properties.Get("networkMode")
+                .FlatMap(properties => properties.Get("NetworkMode")
                 .Map(ipc => ipc.ToObject<string>()))).OrDefault();
             return string.Compare(hostNet, "host", true) == 0;
         }
