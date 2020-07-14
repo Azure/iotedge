@@ -1,10 +1,10 @@
 use crate::config::Configuration;
 use crate::constants::{AAD_BYTES, IV_BYTES};
 use crate::ks;
-use crate::ks::{KeyHandle, Text};
+use crate::ks::{Key, Text};
 use crate::util::BoxFuture;
 
-use base64::encode;
+use base64::{decode, encode};
 use iotedge_aad::{Auth, TokenSource};
 use ring::rand::{generate, SystemRandom};
 use serde::{Deserialize, Serialize};
@@ -35,23 +35,23 @@ pub trait StoreBackend: Sized + Sync {
 // NOTE: could be a struct, if requested
 pub(crate) struct Store<T: StoreBackend> {
     backend: T,
-    config: Configuration
+    // config: Configuration
 }
 
 impl<T: StoreBackend> Store<T> {
-    pub fn new(backend: T, config: Configuration) -> Self {
+    pub fn new(backend: T/*, config: Configuration*/) -> Self {
         Self {
             backend: backend,
-            config: config
+            // config: config
         }
     }
 
     pub fn get_secret<'a>(&'a self, id: String) -> BoxFuture<'a, String> {
         Box::pin(async move {
             let record = self.backend.read_record(&id)?;
-            let KeyHandle(key) = ks::get_key(&id).await?;
+            let Key::KeyHandle(key) = ks::create_or_get_key(&id).await?;
             let ptext = match ks::decrypt(&key, &record.ciphertext, &record.iv, &record.aad).await? {
-                Text::Plaintext(ptext) => ptext,
+                Text::Plaintext(ptext) => String::from_utf8(decode(ptext)?)?,
                 _ => panic!("DECRYPTION API CHANGED")
             };
 
@@ -63,12 +63,13 @@ impl<T: StoreBackend> Store<T> {
         Box::pin(async move {
             let rng = SystemRandom::new();
 
-            let KeyHandle(key) = ks::create_key(&id).await?;
-            let iv: String = encode(generate::<[u8; IV_BYTES]>(&rng)?.expose());
-            let aad: String = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
+            let Key::KeyHandle(key) = ks::create_or_get_key(&id).await?;
+            let ptext = encode(value);
+            let iv = encode(generate::<[u8; IV_BYTES]>(&rng)?.expose());
+            let aad = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
 
-            let ctext = match ks::encrypt(&key, &value, &iv, &aad).await? {
-                Text::Ciphertext(ctext) => ctext,
+            let ctext = match ks::encrypt(&key, &ptext, &iv, &aad).await? {
+                Text::Ciphertext(ctext) => encode(ctext),
                 _ => panic!("ENCRYPTION API CHANGED")
             };
 
@@ -82,6 +83,7 @@ impl<T: StoreBackend> Store<T> {
         })
     }
 
+    /*
     pub fn pull_secrets<'a>(&'a self, keys: &'a [String]) -> BoxFuture<'a, ()> {
         let credentials = self.config.credentials.to_owned();
         Box::pin(async move {
@@ -96,4 +98,5 @@ impl<T: StoreBackend> Store<T> {
             Ok(())
         })
     }
+    */
 }

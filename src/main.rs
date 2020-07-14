@@ -9,7 +9,8 @@ mod util;
 use store::{Store, StoreBackend};
 
 use std::error::Error as StdError;
-// use std::fs::remove_file;
+use std::fs::remove_file;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -19,9 +20,16 @@ use hyperlocal::UnixServerExt;
 use libc::{S_IRWXU, umask};
 use ring::rand::{generate, SystemRandom};
 
-fn init() {
+fn init(path: &Path) {
     unsafe {
         umask(!S_IRWXU);
+    }
+
+    
+    match remove_file(path) {
+        Err(e) if e.kind() != ErrorKind::NotFound =>
+            panic!("COULD NOT REMOVE EXISTING SOCKET"),
+        _ => ()
     }
 
     // NOTE: coerce PRNG initialization to reduce latency later
@@ -33,13 +41,14 @@ fn init() {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
-    init();
-
     let skt = Path::new(constants::SOCKET_NAME);
+
+    init(skt);
+
     let store = {
-        let conf = config::load(Path::new("foo.toml"));
+        // let conf = config::load(Path::new("foo.toml"));
         let backend = crate::backends::rocksdb::RocksDBBackend::new()?;
-        Arc::new(Store::new(backend, conf))
+        Arc::new(Store::new(backend/*, conf*/))
     };
     
     Server::bind_unix(skt)?

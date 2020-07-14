@@ -18,17 +18,16 @@ pub(crate) async fn dispatch<'a, T: StoreBackend>(store: Arc<Store<T>>, req: Req
                 .map(|secret| Response::builder().body(secret.into()).unwrap())
         },
         &Method::PUT => {
-            String::from_utf8(
-                    to_bytes(req)
-                        .await
-                        .unwrap()
-                        .to_vec()
-                )
-                .map(|val| async { store.set_secret(id, val).await })
-                .map(|_| Response::builder().body(Body::empty()).unwrap())
-                .or_else(|e| <BoxResult<'_, Response<Body>>>::Err(Box::new(e)))
+            let body = to_bytes(req).await
+                .unwrap()
+                .to_vec();
+            match String::from_utf8(body) {
+                Ok(val) => store.set_secret(id, val).await
+                    .map(|_| Response::builder().body(Body::empty()).unwrap()),
+                Err(e) => <BoxResult<'_, Response<Body>>>::Err(Box::new(e))
+            }
         },
         _ => Ok(Response::builder().status(404).body(Body::empty()).unwrap())
     };
-    Ok(res.unwrap_or_else(|_| { Response::builder().status(500).body(Body::empty()).unwrap() }))
+    Ok(res.unwrap_or_else(|e| Response::builder().status(500).body(format!("{:?}", e).into()).unwrap()))
 }
