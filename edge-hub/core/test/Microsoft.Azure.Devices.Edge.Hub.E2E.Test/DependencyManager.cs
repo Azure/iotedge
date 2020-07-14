@@ -149,6 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 new CommonModule(
                     string.Empty,
                     iotHubConnectionStringBuilder.HostName,
+                    Option.None<string>(),
                     iotHubConnectionStringBuilder.DeviceId,
                     iotHubConnectionStringBuilder.ModuleId,
                     string.Empty,

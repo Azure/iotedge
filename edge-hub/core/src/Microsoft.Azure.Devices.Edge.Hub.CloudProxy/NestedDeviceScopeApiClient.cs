@@ -140,6 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 var payload = new NestedScopeRequest(this.batchSize, continuationToken.OrDefault(), authChain);
                 string token = await this.edgeHubTokenProvider.GetTokenAsync(Option.None<TimeSpan>());
                 msg.Headers.Add(HttpRequestHeader.Authorization.ToString(), token);
+                msg.Headers.Add(Constants.ServiceApiIdHeaderKey, this.actorEdgeDeviceId + "/" + this.moduleId);
                 msg.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response = await client.SendAsync(msg);
