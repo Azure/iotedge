@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class SetupFixture
     {
         IEdgeDaemon daemon;
+        IotHub iotHub;
 
         [OneTimeSetUp]
         public async Task BeforeAllAsync()
@@ -29,6 +30,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Context.Current.EdgeAgentBootstrapImage,
                 bootstrapRegistry,
                 token);
+
+            this.iotHub = new IotHub(
+                Context.Current.ConnectionString,
+                Context.Current.EventHubEndpoint,
+                Context.Current.Proxy);
 
             await Profiler.Run(
                 async () =>
