@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
         static bool IsHostNetwork(CreatePodParameters config)
         {
-            string hostNet = config.HostConfig.Map(h => h.NetworkMode).OrDefault();
+            string hostNet = config.HostConfig.FlatMap(h => Option.Maybe(h.NetworkMode)).OrDefault();
             return string.Compare(hostNet, "host", true) == 0;
         }
 
