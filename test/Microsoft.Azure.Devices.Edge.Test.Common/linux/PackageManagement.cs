@@ -63,14 +63,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             SupportedPackageExtension.Deb => new[]
             {
+                // Based on instructions at:
+                // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
+                // TODO: 8/30/2019 support curl behind a proxy
                 $"curl https://packages.microsoft.com/config/{this.os}/{this.version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
                 "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
                 $"apt-get update",
                 $"apt-get install --yes iotedge"
             },
-            // Based on instructions at:
-            // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
-            // TODO: 8/30/2019 support curl behind a proxy
             SupportedPackageExtension.Rpm => new[]
             {
                 $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
