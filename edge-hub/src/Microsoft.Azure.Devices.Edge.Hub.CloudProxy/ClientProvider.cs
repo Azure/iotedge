@@ -88,6 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             Preconditions.CheckNotNull(tokenProvider, nameof(tokenProvider));
+            Preconditions.CheckNonWhiteSpace(modelId, nameof(modelId));
             var options = new ClientOptions
             {
                 ModelId = modelId,
