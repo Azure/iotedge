@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
+use std::path::PathBuf;
 
 use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
@@ -33,6 +34,7 @@ pub struct MobyRuntime {
     #[serde(with = "url_serde")]
     uri: Url,
     network: MobyNetwork,
+    content_trust_root_ca_registry: Option<HashMap<String, PathBuf>>,
 }
 
 impl MobyRuntime {
@@ -42,6 +44,10 @@ impl MobyRuntime {
 
     pub fn network(&self) -> &MobyNetwork {
         &self.network
+    }
+
+    pub fn content_trust_root_ca_registry(&self) -> Option<&HashMap<String, PathBuf>> {
+        self.content_trust_root_ca_registry.as_ref()
     }
 }
 
@@ -359,6 +365,10 @@ mod tests {
         "test/linux/bad_sample_settings.dyn.repro.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_TLS: &str = "test/linux/sample_settings.tls.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -424,6 +434,10 @@ mod tests {
         "test/windows/bad_sample_settings.dyn.repro.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_TLS: &str = "test/windows/sample_settings.tls.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/windows/sample_settings_content_trust.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_CONTENT_TRUST: &str = "test/windows/bad_settings_content_trust.yaml";
 
     fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
@@ -444,12 +458,14 @@ mod tests {
         let moby1 = MobyRuntime {
             uri: Url::parse("http://test").unwrap(),
             network: MobyNetwork::Name("".to_string()),
+            content_trust_root_ca_registry: None,
         };
         assert_eq!(DEFAULT_NETWORKID, moby1.network().name());
 
         let moby2 = MobyRuntime {
             uri: Url::parse("http://test").unwrap(),
             network: MobyNetwork::Name("some-network".to_string()),
+            content_trust_root_ca_registry: None,
         };
         assert_eq!("some-network", moby2.network().name());
     }
@@ -547,6 +563,9 @@ mod tests {
         assert!(settings.is_err());
 
         let settings = Settings::new(Path::new(BAD_SETTINGS_DYNAMIC_REPROVISIONING));
+        assert!(settings.is_err());
+
+        let settings = Settings::new(Path::new(BAD_SETTINGS_CONTENT_TRUST));
         assert!(settings.is_err());
     }
 
@@ -1133,5 +1152,36 @@ mod tests {
             labels.get("net.azure-devices.edge.env"),
             Some(&"{}".to_string())
         );
+    }
+
+    #[test]
+    fn content_trust_env_are_set_properly() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_CONTENT_TRUST)).unwrap();
+        if let Some(content_trust_map) = settings.moby_runtime().content_trust_root_ca_registry() {
+            assert_eq!(
+                content_trust_map.get("registryserverurl1"),
+                Some(&std::path::PathBuf::from("/path/to/root_registry1.ca"))
+            );
+            assert_eq!(
+                content_trust_map.get("registryserverurl2"),
+                Some(&std::path::PathBuf::from("/path/to/root_registry2.ca"))
+            );
+            assert_eq!(
+                content_trust_map.get(""),
+                Some(&std::path::PathBuf::from("/path/to/root_registry3.ca"))
+            );
+            assert_eq!(
+                content_trust_map.get("registryserverurl4"),
+                Some(&std::path::PathBuf::from(
+                    "/path/to/root_registryreplaced.ca"
+                ))
+            );
+            assert_eq!(
+                content_trust_map.get("registryserverurl5"),
+                Some(&std::path::PathBuf::from(""))
+            );
+        } else {
+            panic!();
+        }
     }
 }
