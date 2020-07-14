@@ -16,8 +16,3 @@ manifests:
     platform:
       architecture: arm64
       os: linux      
-  -
-    image: __REGISTRY__/__NAMESPACE__/azureiotedge-simulated-temperature-sensor:__VERSION__-windows-amd64
-    platform:
-      architecture: amd64
-      os: windows

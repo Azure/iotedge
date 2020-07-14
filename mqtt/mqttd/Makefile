@@ -8,8 +8,9 @@ all:
 	$(CARGO) build $(CARGOFLAGS)
 
 release:
-	$(CARGO) build $(CARGOFLAGS) --release -p watchdog
-	$(STRIP_COMMAND) $(TARGET)/watchdog
+	$(CARGO) build $(CARGOFLAGS) --release -p mqttd
+	$(STRIP_COMMAND) ../$(TARGET)/mqttd
 
 clean:
-	rm -rf $(TARGET)
+	rm -rf ../$(TARGET)
+
