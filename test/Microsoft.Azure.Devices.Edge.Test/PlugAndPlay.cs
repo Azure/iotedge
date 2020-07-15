@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         });
             },
             token);
-            EdgeModule filter = deployment.Modules[plugAndPlayIdentityImage];
+            EdgeModule filter = deployment.Modules[PlugAndPlayIdentityName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
             this.Validate(this.iotHub.HubName, this.iotHub.Hostname, DeviceId, TestModelId);
         }
