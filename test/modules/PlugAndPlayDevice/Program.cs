@@ -54,8 +54,12 @@ namespace PlugAndPlayDevice
 
             try
             {
-                await deviceClient.SendEventAsync(new Message(Encoding.ASCII.GetBytes("test message")));
-                Logger.LogInformation("Successfully sent message");
+                while(!ct.IsCancellationRequested)
+                {
+                    await deviceClient.SendEventAsync(new Message(Encoding.ASCII.GetBytes("test message")));
+                    Logger.LogInformation("Successfully sent message");
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                }
             }
             catch (Exception ex)
             {
