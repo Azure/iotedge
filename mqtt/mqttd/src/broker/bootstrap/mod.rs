@@ -2,7 +2,7 @@
 mod edgehub;
 
 #[cfg(feature = "edgehub")]
-pub use edgehub::{broker, server};
+pub use edgehub::{broker, start_server};
 
 #[cfg(not(feature = "edgehub"))]
 mod generic;

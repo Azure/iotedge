@@ -102,8 +102,5 @@ where
     pin_mut!(shutdown);
 
     // Run server
-    let server = bootstrap::server(config, broker).await?;
-    let state = server.serve(shutdown).await?;
-
-    Ok(state)
+    bootstrap::start_server(config, broker, shutdown).await
 }

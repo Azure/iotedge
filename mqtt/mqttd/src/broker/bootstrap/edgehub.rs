@@ -1,8 +1,12 @@
-use std::{env, fs, path::Path};
+use std::{env, fs, future::Future, path::Path};
 
 use anyhow::{bail, Result};
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 
+use futures_util::{
+    future::{self, Either},
+    pin_mut, FutureExt,
+};
 use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server};
 use mqtt_broker_core::auth::Authorizer;
 use mqtt_edgehub::{
@@ -10,6 +14,8 @@ use mqtt_edgehub::{
     edgelet,
     tls::ServerCertificate,
 };
+use tokio::time;
+use tracing::{info, warn};
 
 pub async fn broker(
     config: &BrokerConfig,
@@ -24,9 +30,14 @@ pub async fn broker(
     Ok(broker)
 }
 
-pub async fn server<Z>(config: &BrokerConfig, broker: Broker<Z>) -> Result<Server<Z>>
+pub async fn start_server<Z, F>(
+    config: &BrokerConfig,
+    broker: Broker<Z>,
+    shutdown_signal: F,
+) -> Result<BrokerSnapshot>
 where
     Z: Authorizer + Send + 'static,
+    F: Future<Output = ()> + Unpin,
 {
     // TODO read from config
     let url = "http://localhost:7120/authenticate/".into();
@@ -38,15 +49,42 @@ where
         server.tcp(tcp.addr(), authenticator.clone());
     }
 
-    if let Some(tls) = config.transports().tls() {
-        download_server_certificate(tls.cert_path()).await?;
-        server.tls(tls.addr(), tls.cert_path(), authenticator.clone())?;
-    }
+    let renewal_signal = match config.transports().tls() {
+        Some(tls) => {
+            let identity = download_server_certificate(tls.cert_path()).await?;
+            let renew_at = identity.not_after();
+            server.tls(tls.addr(), tls.cert_path(), authenticator.clone())?;
+
+            let renewal_signal = server_certificate_renewal(renew_at);
+            Either::Left(renewal_signal)
+        }
+        None => Either::Right(future::pending()),
+    };
+
+    pin_mut!(renewal_signal);
+    let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
     // TODO read from config
     server.tcp("localhost:1882", LocalAuthenticator::new());
+    let state = server.serve(shutdown).await?;
 
-    Ok(server)
+    Ok(state)
+}
+
+async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
+    let delay = Utc::now() - renew_at;
+    if delay > Duration::zero() {
+        info!(
+            "scheduled server certificate renewal timer for {}",
+            renew_at
+        );
+        let delay = delay.to_std().expect("duration must not be negative");
+        time::delay_for(delay).await;
+
+        info!("restarting the broker to perform certificate renewal");
+    } else {
+        warn!("server certificate expired at {}", renew_at);
+    }
 }
 
 pub const WORKLOAD_URI: &str = "IOTEDGE_WORKLOADURI";
@@ -56,7 +94,7 @@ pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 
 pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 
-async fn download_server_certificate(path: impl AsRef<Path>) -> Result<()> {
+async fn download_server_certificate(path: impl AsRef<Path>) -> Result<ServerCertificate> {
     let uri = env::var(WORKLOAD_URI)?;
     let hostname = env::var(EDGE_DEVICE_HOST_NAME)?;
     let module_id = env::var(MODULE_ID)?;
@@ -77,12 +115,11 @@ async fn download_server_certificate(path: impl AsRef<Path>) -> Result<()> {
 
     if let Some(private_key) = cert.private_key().bytes() {
         let identity = ServerCertificate::try_from(cert.certificate(), private_key)?;
-        fs::write(path, identity)?;
+        fs::write(path, &identity)?;
+        Ok(identity)
     } else {
         bail!("missing private key");
     }
-
-    Ok(())
 }
 
 #[cfg(test)]
