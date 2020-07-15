@@ -1096,6 +1096,7 @@ dependencies = [
  "mqtt-broker",
  "mqtt-broker-core",
  "mqtt-edgehub",
+ "mqtt3",
  "native-tls",
  "serde_json",
  "tempfile",

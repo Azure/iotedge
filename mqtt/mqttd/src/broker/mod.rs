@@ -18,6 +18,32 @@ use mqtt_broker::{
 };
 use mqtt_broker_core::auth::Authorizer;
 
+async fn start_disconnect_watcher() {
+    // TODO: come up with official values
+    let client_id = "disconnect-watcher-abcd";
+    let username = "disconnect-watcher-abcd";
+
+    let mut client = mqtt3::Client::new(
+        client_id,
+        username,
+        None,
+        move || {
+            let password = "";
+            Box::pin(async move {
+                let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
+                io.map(|io| (io, password))
+            })
+        },
+        Duration::from_secs(1),
+        Duration::from_secs(60),
+    );
+    client.subscribe().await;
+
+    while let Some(event) = client.next().await {
+        info!("received data")
+    }
+}
+
 pub async fn run(config: BrokerConfig) -> Result<()> {
     info!("loading state...");
     let state_dir = env::current_dir().expect("can't get cwd").join("state");
