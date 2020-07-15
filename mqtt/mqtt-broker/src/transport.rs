@@ -1,8 +1,9 @@
 use std::{
-    convert::TryFrom,
     fmt::Display,
+    fs,
     future::Future,
     net::SocketAddr,
+    path::PathBuf,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -21,46 +22,7 @@ use tracing::{debug, error, info, warn};
 
 use mqtt_broker_core::auth::Certificate;
 
-use crate::configuration::Transport as TransportConfig;
 use crate::{Error, InitializeBrokerError};
-
-pub enum TransportBuilder {
-    Tcp(String),
-    Tls(String, Identity),
-}
-
-impl TransportBuilder {
-    pub async fn make_transport(self) -> Result<Transport, InitializeBrokerError> {
-        match self {
-            TransportBuilder::Tcp(addr) => Transport::new_tcp(addr).await,
-            TransportBuilder::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
-        }
-    }
-}
-
-impl TryFrom<TransportConfig> for TransportBuilder {
-    type Error = InitializeBrokerError;
-
-    fn try_from(transport: TransportConfig) -> Result<Self, Self::Error> {
-        match transport {
-            TransportConfig::Tcp { address } => Ok(Self::Tcp(address)),
-            TransportConfig::Tls {
-                address,
-                certificate,
-            } => {
-                info!("Loading identity from {}", certificate.display());
-                let cert_buffer = std::fs::read(&certificate).map_err(|e| {
-                    InitializeBrokerError::LoadIdentity(certificate.to_path_buf(), e)
-                })?;
-
-                let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "")
-                    .map_err(InitializeBrokerError::DecodeIdentity)?;
-
-                Ok(Self::Tls(address, cert))
-            }
-        }
-    }
-}
 
 pub enum Transport {
     Tcp(TcpListener),
@@ -68,7 +30,7 @@ pub enum Transport {
 }
 
 impl Transport {
-    async fn new_tcp<A>(addr: A) -> Result<Self, InitializeBrokerError>
+    pub async fn new_tcp<A>(addr: A) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs + Display,
     {
@@ -79,10 +41,17 @@ impl Transport {
         Ok(Transport::Tcp(tcp))
     }
 
-    async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, InitializeBrokerError>
+    pub async fn new_tls<A>(addr: A, cert_path: PathBuf) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs + Display,
     {
+        info!("Loading identity from {}", cert_path.display());
+        let cert_buffer = fs::read(&cert_path)
+            .map_err(|e| InitializeBrokerError::LoadIdentity(cert_path.to_path_buf(), e))?;
+
+        let identity = Identity::from_pkcs12(cert_buffer.as_slice(), "")
+            .map_err(InitializeBrokerError::DecodeIdentity)?;
+
         let acceptor = TlsAcceptor::from(
             native_tls::TlsAcceptor::builder(identity)
                 .build()

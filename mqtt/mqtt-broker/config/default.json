@@ -1,11 +1,9 @@
 {
-    "transports": [
-        {
-            "tcp": {
-                "address": "0.0.0.0:1883"
-            }
+    "transports": {
+        "tcp": {
+            "address": "0.0.0.0:1883"
         }
-    ],
+    },
     "retained_messages": {
         "max_count": 1000,
         "expiration": "60d"
