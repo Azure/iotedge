@@ -27,7 +27,7 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
-use mqtt_broker::{Broker, BrokerSnapshot, Error, Server, TransportBuilder};
+use mqtt_broker::{Broker, BrokerSnapshot, Error, Server};
 use mqtt_broker_core::auth::{
     Activity, AuthId, AuthenticationContext, Authenticator, Authorization, Authorizer,
 };
@@ -438,7 +438,7 @@ where
     let address = format!("localhost:{}", port);
 
     let mut server = Server::from_broker(broker);
-    server.transport(TransportBuilder::Tcp(address.clone()), authenticator);
+    server.tcp(&address, authenticator);
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let task = tokio::spawn(server.serve(rx.map(drop)));

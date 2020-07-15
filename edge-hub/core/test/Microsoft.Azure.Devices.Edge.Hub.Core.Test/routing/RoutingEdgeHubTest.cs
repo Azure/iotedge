@@ -68,7 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager,
                 "testEdgeDevice",
                 Mock.Of<IInvokeMethodHandler>(),
-                Mock.Of<ISubscriptionProcessor>());
+                Mock.Of<ISubscriptionProcessor>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>());
             var identity = new Mock<IIdentity>();
             identity.SetupGet(id => id.Id).Returns("something");
             EdgeMessage[] messages = { new EdgeMessage.Builder(new byte[0]).Build() };
@@ -121,7 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager,
                 "testEdgeDevice",
                 Mock.Of<IInvokeMethodHandler>(),
-                Mock.Of<ISubscriptionProcessor>());
+                Mock.Of<ISubscriptionProcessor>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>());
 
             await Assert.ThrowsAsync<EdgeHubMessageTooLargeException>(() => routingEdgeHub.ProcessDeviceMessage(identity.Object, badMessage));
 
@@ -171,7 +173,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager.Object,
                 "testEdgeDevice",
                 Mock.Of<IInvokeMethodHandler>(),
-                Mock.Of<ISubscriptionProcessor>());
+                Mock.Of<ISubscriptionProcessor>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>());
 
             IMessage received = await routingEdgeHub.GetTwinAsync("*");
             twinManager.Verify(x => x.GetTwinAsync("*"), Times.Once);
@@ -214,7 +217,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager.Object,
                 "testEdgeDevice",
                 Mock.Of<IInvokeMethodHandler>(),
-                Mock.Of<ISubscriptionProcessor>());
+                Mock.Of<ISubscriptionProcessor>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>());
 
             await routingEdgeHub.UpdateDesiredPropertiesAsync("*", message);
             twinManager.Verify(x => x.UpdateDesiredPropertiesAsync("*", message), Times.Once);
@@ -276,7 +280,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager,
                 "testEdgeDevice",
                 invokeMethodHandler,
-                subscriptionProcessor);
+                subscriptionProcessor,
+                Mock.Of<IDeviceScopeIdentitiesCache>());
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
             var methodRequest = new DirectMethodRequest("device1/module1", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
@@ -357,7 +362,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager,
                 "testEdgeDevice",
                 invokeMethodHandler,
-                Mock.Of<ISubscriptionProcessor>());
+                Mock.Of<ISubscriptionProcessor>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>());
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
 
@@ -433,7 +439,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager,
                 "testEdgeDevice",
                 invokeMethodHandler,
-                subscriptionProcessor);
+                subscriptionProcessor,
+                Mock.Of<IDeviceScopeIdentitiesCache>());
 
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
@@ -503,7 +510,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 twinManager,
                 edgeDeviceId,
                 Mock.Of<IInvokeMethodHandler>(),
-                Mock.Of<ISubscriptionProcessor>());
+                Mock.Of<ISubscriptionProcessor>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>());
 
             Message clientMessage1 = new EdgeMessage.Builder(new byte[0]).Build();
             clientMessage1.SystemProperties[SystemProperties.ConnectionDeviceId] = edgeDeviceId;
@@ -548,7 +556,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 Mock.Of<ITwinManager>(),
                 "ed1",
                 Mock.Of<IInvokeMethodHandler>(),
-                Mock.Of<ISubscriptionProcessor>());
+                Mock.Of<ISubscriptionProcessor>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>());
             return edgeHub;
         }
     }

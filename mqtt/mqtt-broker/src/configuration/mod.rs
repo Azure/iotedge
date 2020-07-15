@@ -14,18 +14,6 @@ use serde::Deserialize;
 
 pub const DEFAULTS: &str = include_str!("../../config/default.json");
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Transport {
-    Tcp {
-        address: String,
-    },
-    Tls {
-        address: String,
-        certificate: PathBuf,
-    },
-}
-
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum QueueFullAction {
@@ -104,20 +92,10 @@ impl SessionConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct BrokerConfig {
-    transports: Vec<Transport>,
+    transports: BrokerTransports,
     retained_messages: RetainedMessages,
     session: SessionConfig,
     persistence: Option<SessionPersistence>,
-}
-
-impl BrokerConfig {
-    pub fn transports(&self) -> &Vec<Transport> {
-        &self.transports
-    }
-
-    pub fn session(&self) -> &SessionConfig {
-        &self.session
-    }
 }
 
 impl BrokerConfig {
@@ -127,6 +105,14 @@ impl BrokerConfig {
         s.merge(File::from(path.as_ref())).unwrap();
 
         s.try_into()
+    }
+
+    pub fn transports(&self) -> &BrokerTransports {
+        &self.transports
+    }
+
+    pub fn session(&self) -> &SessionConfig {
+        &self.session
     }
 
     pub fn persistence(&self) -> Option<&SessionPersistence> {
@@ -147,6 +133,56 @@ impl Default for BrokerConfig {
         );
         s.try_into()
             .expect("Unable to load default broker config. Check default.json to match BrokerConfig structure.")
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct BrokerTransports {
+    tcp: Option<TcpTransport>,
+    tls: Option<TlsTransport>,
+}
+
+impl BrokerTransports {
+    pub fn tcp(&self) -> Option<&TcpTransport> {
+        self.tcp.as_ref()
+    }
+
+    pub fn tls(&self) -> Option<&TlsTransport> {
+        self.tls.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TcpTransport {
+    #[serde(rename = "address")]
+    addr: String,
+}
+
+impl TcpTransport {
+    pub fn addr(&self) -> &str {
+        &self.addr
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TlsTransport {
+    #[serde(rename = "address")]
+    addr: String,
+
+    #[serde(rename = "certificate")]
+    cert_path: PathBuf,
+}
+
+impl TlsTransport {
+    pub fn addr(&self) -> &str {
+        &self.addr
+    }
+
+    pub fn cert_path(&self) -> &Path {
+        &self.cert_path
     }
 }
 
