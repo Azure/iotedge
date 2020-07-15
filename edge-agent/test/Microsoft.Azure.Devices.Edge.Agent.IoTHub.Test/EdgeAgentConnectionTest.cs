@@ -1525,9 +1525,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
-        [Fact]
+        [Theory]
         [Unit]
-        public async Task GetDeploymentConfigInfoAsync_CreateNewModuleClientWhenGetTwinThrowsMoreThanRetryCount()
+        [InlineData(typeof(InvalidOperationException))]
+        [InlineData(typeof(TimeoutException))]
+        public async Task GetDeploymentConfigInfoAsync_CreateNewModuleClientWhenGetTwinThrowsMoreThanRetryCount(Type thrownException)
         {
             // Arrange
             var moduleClient = new Mock<IModuleClient>();
@@ -1580,9 +1582,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
+            var ex = Activator.CreateInstance(thrownException, "msg str") as Exception;
             moduleClient.SetupSequence(d => d.GetTwinAsync())
-                .ThrowsAsync(new InvalidOperationException())
-                .ThrowsAsync(new InvalidOperationException())
+                .ThrowsAsync(ex)
+                .ThrowsAsync(ex)
                 .ReturnsAsync(twin);
             moduleClient.Setup(d => d.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<DesiredPropertyUpdateCallback>()))
                 .Returns(Task.CompletedTask);

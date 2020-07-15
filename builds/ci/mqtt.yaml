@@ -34,7 +34,8 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: mqtt/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "mqtt"
       - task: Bash@3
         displayName: Build
         inputs:
@@ -61,7 +62,8 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: mqtt/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "mqtt"
       - script: cargo install cross --version 0.1.16
         displayName: Install cross
       - task: Bash@3
@@ -76,32 +78,6 @@ jobs:
           arguments: --target armv7-unknown-linux-gnueabihf --cargo cross
 
 ################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    pool:
-      vmImage: 'vs2017-win2016'
-    steps:
-      - task: PowerShell@2
-        displayName: Install Rust
-        inputs:
-          filePath: mqtt/build/windows/install.ps1
-      - task: PowerShell@2
-        displayName: Clippy for Windows
-        inputs:
-          filePath: mqtt/build/windows/clippy.ps1
-      - task: PowerShell@2
-        displayName: Build
-        inputs:
-          filePath: mqtt/build/windows/build.ps1
-      - task: PowerShell@2
-        displayName: Test
-        inputs:
-          filePath: mqtt/build/windows/test.ps1
-
-################################################################################
   - job: style_check
 ################################################################################
     displayName: Style Check
@@ -113,11 +89,13 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: mqtt/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "mqtt"
       - task: Bash@3
         displayName: Format Code
         inputs:
-          filePath: mqtt/build/linux/format.sh
+          filePath: scripts/linux/generic-rust/format.sh
+          arguments: --project-root "mqtt"
       - task: Bash@3
         displayName: Clippy
         inputs:
