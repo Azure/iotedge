@@ -9,7 +9,7 @@ use std::{convert::TryInto, error::Error as StdError, fmt::Display};
 use http::{uri::InvalidUri, Uri};
 use hyper::{client::HttpConnector, Client};
 use hyperlocal::UnixConnector;
-use reqwest::Url;
+use url::Url;
 
 pub fn workload<U>(uri: &U) -> Result<WorkloadClient, Error>
 where

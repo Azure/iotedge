@@ -9,12 +9,12 @@ use http::{Request, StatusCode};
 use std::str;
 
 pub struct WorkloadClient {
-    client: Client<Connector, Body>,
+    client: Client<Connector>,
     scheme: Scheme,
 }
 
 impl WorkloadClient {
-    pub(crate) fn new(client: Client<Connector, Body>, scheme: Scheme) -> Self {
+    pub(crate) fn new(client: Client<Connector>, scheme: Scheme) -> Self {
         Self { client, scheme }
     }
 
