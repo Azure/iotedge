@@ -23,14 +23,14 @@ namespace PlugAndPlayDevice
             string moduleGenerationId,
             string iotHubHostName,
             TransportType transportType,
-            TimeSpan testStartDelay)
+            TimeSpan testStartDelay,
+            string modelId)
         {
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
             Preconditions.CheckArgument(Enum.IsDefined(typeof(TransportType), transportType));
-            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
 
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.IotHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
-            this.DeviceId = deviceId + "-" + transportType.ToString() + "-leaf";
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.GatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
             this.WorkloadUri = Preconditions.CheckNonWhiteSpace(workloadUri, nameof(workloadUri));
@@ -38,6 +38,7 @@ namespace PlugAndPlayDevice
             this.ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
             this.IotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.TransportType = transportType;
+            this.ModelId = Preconditions.CheckNonWhiteSpace(modelId, nameof(modelId));
         }
 
         static Settings Create()
@@ -49,7 +50,7 @@ namespace PlugAndPlayDevice
                 .Build();
 
             return new Settings(
-                configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                configuration.GetValue<string>("deviceId"),
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue<string>("IOTEDGE_GATEWAYHOSTNAME"),
@@ -58,7 +59,8 @@ namespace PlugAndPlayDevice
                 configuration.GetValue<string>("IOTEDGE_MODULEGENERATIONID"),
                 configuration.GetValue<string>("IOTEDGE_IOTHUBHOSTNAME"),
                 configuration.GetValue("transportType", TransportType.Amqp),
-                configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)));
+                configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
+                configuration.GetValue<string>("modelId", "dtmi:edgeE2ETest:EnvironmentalSensor;1"));
         }
 
         internal Uri ReportingEndpointUrl { get; }
@@ -81,6 +83,8 @@ namespace PlugAndPlayDevice
 
         public TransportType TransportType { get; }
 
+        public string ModelId { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -90,6 +94,7 @@ namespace PlugAndPlayDevice
                 { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
+                { nameof(this.ModelId), this.ModelId }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

@@ -229,6 +229,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeDownstreamDevice", "sam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeX509AuthDownstreamDevice", "samples\dotnet\EdgeX509AuthDownstreamDevice\EdgeX509AuthDownstreamDevice.csproj", "{9E809F78-0EFF-4860-94D1-8D0EF1A9C1F1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PlugAndPlayIdentity", "test\modules\PlugAndPlayDevice\PlugAndPlayIdentity.csproj", "{73BC7B77-DCC4-496F-B5F0-40B7170583B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
@@ -632,6 +634,12 @@ Global
 		{9E809F78-0EFF-4860-94D1-8D0EF1A9C1F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E809F78-0EFF-4860-94D1-8D0EF1A9C1F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E809F78-0EFF-4860-94D1-8D0EF1A9C1F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73BC7B77-DCC4-496F-B5F0-40B7170583B4}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{73BC7B77-DCC4-496F-B5F0-40B7170583B4}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{73BC7B77-DCC4-496F-B5F0-40B7170583B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73BC7B77-DCC4-496F-B5F0-40B7170583B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73BC7B77-DCC4-496F-B5F0-40B7170583B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73BC7B77-DCC4-496F-B5F0-40B7170583B4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -723,6 +731,7 @@ Global
 		{A6D8677F-DB76-459E-B6DE-110AFCEF7F08} = {C077918C-9AD4-4F01-ADED-4B8B6AB784A2}
 		{7546DB89-643A-477F-AEE3-FA05BDCE4ACD} = {A6D8677F-DB76-459E-B6DE-110AFCEF7F08}
 		{9E809F78-0EFF-4860-94D1-8D0EF1A9C1F1} = {A6D8677F-DB76-459E-B6DE-110AFCEF7F08}
+		{73BC7B77-DCC4-496F-B5F0-40B7170583B4} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
