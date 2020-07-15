@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         internal bool ValidateAudience(string audience, IIdentity identity)
         {
+            Events.LogInfo($"ValidateAudience: audience = {audience}, targetIdentity = {identity.Id}");
             Preconditions.CheckNonWhiteSpace(audience, nameof(audience));
             audience = WebUtility.UrlDecode(audience.Trim());
             // The audience should be in one of the following formats -
@@ -101,6 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         bool TryGetSharedAccessSignature(string token, IIdentity identity, out SharedAccessSignature sharedAccessSignature)
         {
+            Events.LogInfo($"Parsing token: {token} cred-ID: {identity.Id}");
+
             try
             {
                 sharedAccessSignature = SharedAccessSignature.Parse(this.iothubHostName, token);
@@ -114,15 +117,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
         }
 
-        bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity identity, bool isOnBehalfOf)
+        bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity credIdentity, bool isOnBehalfOf)
         {
+            Events.LogInfo($"ValidateCredentials target: {serviceIdentity.Id}, cred-ID: {credIdentity.Id} OnBehalfOf: {isOnBehalfOf}");
             // No need to check audience against the identity if it's an
             // OnBehalfOf connection, they'll always be mismatched
-            bool hasValidAudience = isOnBehalfOf ? true : this.ValidateAudience(sharedAccessSignature.Audience, identity);
+            bool hasValidAudience = isOnBehalfOf ? true : this.ValidateAudience(sharedAccessSignature.Audience, credIdentity);
 
             return this.ValidateTokenWithSecurityIdentity(sharedAccessSignature, serviceIdentity) &&
                    hasValidAudience &&
-                   this.ValidateExpiry(sharedAccessSignature, identity);
+                   this.ValidateExpiry(sharedAccessSignature, credIdentity);
         }
 
         bool ValidateExpiry(SharedAccessSignature sharedAccessSignature, IIdentity identity)
@@ -150,9 +154,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
+            Events.LogInfo($"Validating token against {serviceIdentity.Id}");
+
             return serviceIdentity.Authentication.SymmetricKey.Map(
                     s =>
                     {
+                        Events.LogInfo($"Expected primary-key: {s.PrimaryKey}, secondary-key: {s.SecondaryKey}");
+
                         var rule = new SharedAccessSignatureAuthorizationRule
                         {
                             PrimaryKey = s.PrimaryKey,
@@ -188,6 +196,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 ServiceIdentityNotEnabled,
                 TokenExpired,
                 ErrorParsingToken
+            }
+
+            public static void LogInfo(string log)
+            {
+                Log.LogWarning((int)EventIds.InvalidHostName, "#### " + log);
             }
 
             public static void InvalidHostName(string id, string hostName, string iotHubHostName, string edgeHubHostName)

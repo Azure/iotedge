@@ -107,8 +107,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentityId);
 
+            Events.LogInfo($"Nested Edge enabled: {this.nestedEdgeEnabled}");
+
             if (this.nestedEdgeEnabled && !authChain.HasValue)
             {
+                Events.LogInfo($"No authchain found for {serviceIdentityId}");
                 // The identity is not within our nested hierarchy
                 return (false, false);
             }
@@ -138,8 +141,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity, bool isOnBehalfOf)
         {
+            Events.LogInfo($"Try authenticating target: {serviceIdentityId}, cred-ID: {credentials.Identity.Id}");
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
             (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, isOnBehalfOf), true)).GetOrElse((false, false));
+            Events.LogInfo($"Result: (Authenticated = {isAuthenticated}, IdentityFound = {serviceIdentityFound}");
 
             if (!isAuthenticated && (!serviceIdentityFound || syncServiceIdentity))
             {
@@ -147,6 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
                 serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
                 (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, isOnBehalfOf), true)).GetOrElse((false, false));
+                Events.LogInfo($"Result: (Authenticated = {isAuthenticated}, IdentityFound = {serviceIdentityFound}");
             }
 
             return (isAuthenticated, serviceIdentityFound);
@@ -171,6 +177,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 string operation = reauthenticating ? "reauthenticating" : "authenticating";
                 Log.LogWarning((int)EventIds.ErrorAuthenticating, exception, $"Error {operation} credentials for {credentials.Identity.Id}");
+            }
+
+            public static void LogInfo(string log)
+            {
+                Log.LogWarning((int)EventIds.ErrorAuthenticating, "#### " + log);
             }
 
             public static void ServiceIdentityNotFound(IIdentity identity)
