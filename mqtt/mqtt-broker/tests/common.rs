@@ -257,6 +257,7 @@ where
 
         let (termination_handle, tx) = oneshot::channel::<()>();
 
+        // TODO: copy structure into disconnect watcher
         let event_loop_handle = tokio::spawn(async move {
             let event_loop = async {
                 while let Some(event) = client.next().await {

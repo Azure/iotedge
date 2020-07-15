@@ -22,10 +22,12 @@ use futures_util::StreamExt;
 use mqtt3;
 use mqtt3::proto;
 
+// TODO: rename to command handler and refactor
+// TODO: move code to separate module / code file
 async fn start_disconnect_watcher(broker_handle: BrokerHandle) {
-    // TODO: come up with official values
-    let client_id = "disconnect-watcher-abcd";
-    let username = "disconnect-watcher-abcd";
+    // TODO: get device id from env
+    let client_id = "deviceid/$edgeHub/$broker/$control";
+    let username = "";
 
     let mut client = mqtt3::Client::new(
         Some(client_id.to_string()),
@@ -49,6 +51,7 @@ async fn start_disconnect_watcher(broker_handle: BrokerHandle) {
 
     while let Some(event) = client.next().await {
         info!("received data")
+        // parse client id from topic into ClientId obj
         // send system message to broker handle
     }
 }

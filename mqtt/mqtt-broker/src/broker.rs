@@ -82,6 +82,7 @@ where
                             }
                         }
                         SystemEvent::ForceClientDisconnect(client_id) => {
+                            let client_id = ClientId(client_id);
                             // TODO: parse client id into ClientId
                             self.process_drop_connection(client_id);
                         } // TODO: Need to handle new type of SystemEvent::ForceClientDisconnection
