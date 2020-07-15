@@ -51,7 +51,7 @@ namespace PlugAndPlayDevice
 
             return new Settings(
                 configuration.GetValue<string>("deviceId"),
-                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
+                configuration.GetValue<string>("iotHubConnectionString"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue<string>("IOTEDGE_GATEWAYHOSTNAME"),
                 configuration.GetValue<string>("IOTEDGE_WORKLOADURI"),

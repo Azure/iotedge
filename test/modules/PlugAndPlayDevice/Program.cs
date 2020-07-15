@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace PlugAndPlayDevice
 {
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     class Program
     {
@@ -29,7 +29,6 @@ namespace PlugAndPlayDevice
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
         }
-
 
         public static async Task StartAsync(CancellationToken ct)
         {
@@ -58,7 +57,7 @@ namespace PlugAndPlayDevice
                 await deviceClient.SendEventAsync(new Message(Encoding.ASCII.GetBytes("test message")));
                 Logger.LogInformation("Successfully sent message");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.LogError("Plug and play device sending failed", ex);
                 throw;
