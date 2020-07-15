@@ -94,7 +94,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task<string> WaitForEventsReceivedAsync(
             DateTime seekTime,
             CancellationToken token,
-            bool fromDevice = false,
             params string[] requiredProperties) => Profiler.Run(
             async () =>
             {
@@ -110,15 +109,38 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         resultBody = Encoding.UTF8.GetString(data.Body);
                         Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
 
-                        bool moduleIdVerifiedOrNotPresent = true;
-                        if (!fromDevice)
-                        {
-                            moduleIdVerifiedOrNotPresent = (modId != null && modId.ToString().Equals(this.Id));
-                        }
-                        Log.Verbose($"DevId: {devId}. this devId: {this.deviceId}. moduleIdVerifiedOrNotPrsent: {moduleIdVerifiedOrNotPresent}. reqprop: {requiredProperties.All(data.Properties.ContainsKey)}");
                         return devId != null && devId.ToString().Equals(this.deviceId)
-                                                && moduleIdVerifiedOrNotPresent
+                                                && modId != null && modId.ToString().Equals(this.Id)
                                                 && requiredProperties.All(data.Properties.ContainsKey);
+                    },
+                    token);
+
+                return resultBody;
+            },
+            "Received events from device '{Device}' on Event Hub '{EventHub}'",
+            this.deviceId,
+            this.iotHub.EntityPath);
+
+        public Task<string> WaitForEventsReceivedFromDeviceAsync(
+            DateTime seekTime,
+            CancellationToken token,
+            string deviceId,
+            params string[] requiredProperties) => Profiler.Run(
+            async () =>
+            {
+                string resultBody = null;
+                await this.iotHub.ReceiveEventsAsync(
+                    this.deviceId,
+                    seekTime,
+                    data =>
+                    {
+                        data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+
+                        resultBody = Encoding.UTF8.GetString(data.Body);
+                        Log.Verbose($"Received event for '{devId}' with body '{resultBody}'");
+
+                        return devId != null && devId.ToString().Equals(deviceId)
+                            && requiredProperties.All(data.Properties.ContainsKey);
                     },
                     token);
 
