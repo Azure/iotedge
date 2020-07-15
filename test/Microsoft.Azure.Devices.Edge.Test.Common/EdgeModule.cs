@@ -94,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task<string> WaitForEventsReceivedAsync(
             DateTime seekTime,
             CancellationToken token,
+            bool fromDevice = false,
             params string[] requiredProperties) => Profiler.Run(
             async () =>
             {
@@ -109,8 +110,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         resultBody = Encoding.UTF8.GetString(data.Body);
                         Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
 
+                        bool moduleIdVerifiedOrNotPresent = true;
+                        if (!fromDevice)
+                        {
+                            moduleIdVerifiedOrNotPresent = (modId != null && modId.ToString().Equals(this.Id));
+                        }
                         return devId != null && devId.ToString().Equals(this.deviceId)
-                                                && modId != null && modId.ToString().Equals(this.Id)
+                                                && moduleIdVerifiedOrNotPresent
                                                 && requiredProperties.All(data.Properties.ContainsKey);
                     },
                     token);
