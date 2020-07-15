@@ -58,7 +58,7 @@ namespace PlugAndPlayDevice
                 configuration.GetValue<string>("IOTEDGE_APIVERSION"),
                 configuration.GetValue<string>("IOTEDGE_MODULEGENERATIONID"),
                 configuration.GetValue<string>("IOTEDGE_IOTHUBHOSTNAME"),
-                configuration.GetValue("transportType", TransportType.Amqp),
+                configuration.GetValue("transportType", TransportType.Mqtt),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue<string>("modelId", "dtmi:edgeE2ETest:EnvironmentalSensor;1"));
         }
