@@ -8,7 +8,7 @@ use mqtt_broker_core::auth::Authorizer;
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     edgelet,
-    tls::Identity,
+    tls::ServerCertificate,
 };
 
 pub async fn broker(
@@ -39,7 +39,7 @@ where
     }
 
     if let Some(tls) = config.transports().tls() {
-        dowload_server_certificate(tls.cert_path()).await?;
+        download_server_certificate(tls.cert_path()).await?;
         server.tls(tls.addr(), tls.cert_path(), authenticator.clone())?;
     }
 
@@ -56,7 +56,7 @@ pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 
 pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 
-async fn dowload_server_certificate(path: impl AsRef<Path>) -> Result<()> {
+async fn download_server_certificate(path: impl AsRef<Path>) -> Result<()> {
     let uri = env::var(WORKLOAD_URI)?;
     let hostname = env::var(EDGE_DEVICE_HOST_NAME)?;
     let module_id = env::var(MODULE_ID)?;
@@ -76,7 +76,7 @@ async fn dowload_server_certificate(path: impl AsRef<Path>) -> Result<()> {
     }
 
     if let Some(private_key) = cert.private_key().bytes() {
-        let identity = Identity::try_from(cert.certificate(), private_key)?;
+        let identity = ServerCertificate::try_from(cert.certificate(), private_key)?;
         fs::write(path, identity)?;
     } else {
         bail!("missing private key");
@@ -125,7 +125,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("identity.pem");
 
-        let res = dowload_server_certificate(&path).await;
+        let res = download_server_certificate(&path).await;
         assert!(res.is_ok());
         assert!(path.exists());
     }

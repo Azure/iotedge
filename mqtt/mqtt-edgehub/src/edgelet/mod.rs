@@ -64,11 +64,11 @@ pub enum ApiError {
     #[error("could not construct request")]
     ExecuteRequest(#[source] hyper::Error),
 
-    #[error("response has status code {0}")]
-    UnsuccessfulResponse(http::StatusCode),
+    #[error("response has status code {0} and body {1}")]
+    UnsuccessfulResponse(http::StatusCode, String),
 
     #[error("could not read response")]
-    ReadResponse(#[source] hyper::Error),
+    ReadResponse(#[source] Box<dyn StdError + Send + Sync>),
 
     #[error("could not deserialize response")]
     ParseResponseBody(#[source] serde_json::Error),

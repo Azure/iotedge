@@ -1,9 +1,11 @@
 use openssl::{pkcs12::Pkcs12, pkey::PKey, stack::Stack, x509::X509};
 
-pub struct Identity(Vec<u8>);
+/// Identity certificate that holds server certificate, along with its corresponding private key
+/// and chain of certificates to a trusted root.
+pub struct ServerCertificate(Vec<u8>);
 
-impl Identity {
-    pub fn try_from<S, K>(certificate: S, private_key: K) -> Result<Self, IdentityError>
+impl ServerCertificate {
+    pub fn try_from<S, K>(certificate: S, private_key: K) -> Result<Self, ServerCertificateError>
     where
         S: AsRef<[u8]>,
         K: AsRef<[u8]>,
@@ -35,11 +37,11 @@ impl Identity {
         // used to setup a TLS server endpoint
         let identity = pkcs_certs.to_der()?;
 
-        Ok(Identity(identity))
+        Ok(ServerCertificate(identity))
     }
 }
 
-impl AsRef<[u8]> for Identity {
+impl AsRef<[u8]> for ServerCertificate {
     fn as_ref(&self) -> &[u8] {
         &self.0
     }
@@ -47,7 +49,7 @@ impl AsRef<[u8]> for Identity {
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
-pub struct IdentityError(#[from] openssl::error::ErrorStack);
+pub struct ServerCertificateError(#[from] openssl::error::ErrorStack);
 
 #[cfg(test)]
 mod tests {
@@ -59,7 +61,7 @@ mod tests {
     };
     use tokio_native_tls::{TlsAcceptor, TlsConnector};
 
-    use super::Identity;
+    use super::ServerCertificate;
 
     const PRIVATE_KEY: &str = include_str!("../test/tls/pkey.pem");
 
@@ -69,7 +71,7 @@ mod tests {
     async fn it_converts_into_identity() {
         const MESSAGE: &[u8] = b"it works!";
 
-        let identity = Identity::try_from(CERTIFICATE, PRIVATE_KEY).unwrap();
+        let identity = ServerCertificate::try_from(CERTIFICATE, PRIVATE_KEY).unwrap();
 
         let port = run_echo_server(identity).await;
         let buffer = run_echo_client(port, MESSAGE).await;
@@ -77,7 +79,7 @@ mod tests {
         assert_eq!(MESSAGE, buffer.as_slice());
     }
 
-    async fn run_echo_server(identity: Identity) -> u16 {
+    async fn run_echo_server(identity: ServerCertificate) -> u16 {
         let pkcs12 = native_tls::Identity::from_pkcs12(identity.as_ref(), "").unwrap();
         let acceptor = TlsAcceptor::from(native_tls::TlsAcceptor::new(pkcs12).unwrap());
 

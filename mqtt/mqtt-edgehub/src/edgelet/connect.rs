@@ -13,6 +13,10 @@ use hyperlocal::UnixConnector;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tower_service::Service;
 
+/// A wrapper around `hyper::HttpConnector` and `hyperlocal::UnixConnector` for `hyper::Client`.
+/// This connector required to support both transports to communicate with edgelet via HTTP and UDS.
+/// `hyper::Client` expect as a parameter any type that implements `tower_service::Service<Uri>`.
+/// `Connector` just delegates call to underlying connector instances with no additional logic behind.
 #[derive(Debug, Clone)]
 pub enum Connector {
     Unix(UnixConnector),
@@ -49,6 +53,10 @@ impl Service<Uri> for Connector {
     }
 }
 
+/// A wrapper around instance of a `Stream` returned by either `UnixConnector` or `HttpConnector`.
+/// The wrapper expected to implement `AsyncRead`, `AsyncWrite` and `Connection` in order to be used
+/// by a `hyper::Client`.
+/// `Stream` just delegates call to underlying `Stream` instances with no additional logic behind.
 pub enum Stream {
     Unix(<UnixConnector as Service<Uri>>::Response),
     Http(<HttpConnector as Service<Uri>>::Response),
@@ -76,7 +84,7 @@ impl AsyncRead for Stream {
     }
 
     fn poll_read(
-        self: std::pin::Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut [u8],
     ) -> Poll<std::io::Result<usize>> {

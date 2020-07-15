@@ -1,4 +1,4 @@
-use bytes::buf::BufExt;
+use bytes::buf::{Buf, BufExt};
 use chrono::{DateTime, Utc};
 use hyper::{body, Body, Client};
 
@@ -6,6 +6,7 @@ use crate::edgelet::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, Scheme, ServerCertificateRequest,
 };
 use http::{Request, StatusCode};
+use std::str;
 
 pub struct WorkloadClient {
     client: Client<Connector, Body>,
@@ -43,11 +44,16 @@ impl WorkloadClient {
             .await
             .map_err(ApiError::ExecuteRequest)?;
 
-        if res.status() != StatusCode::OK {
-            return Err(ApiError::UnsuccessfulResponse(res.status()).into());
-        }
+        let status = res.status();
+        let body = body::aggregate(res)
+            .await
+            .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
 
-        let body = body::aggregate(res).await.map_err(ApiError::ReadResponse)?;
+        if status != StatusCode::OK {
+            let text =
+                str::from_utf8(body.bytes()).map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
+            return Err(ApiError::UnsuccessfulResponse(status, text.into()).into());
+        }
 
         let cert = serde_json::from_reader(body.reader()).map_err(ApiError::ParseResponseBody)?;
 
@@ -130,7 +136,7 @@ mod tests {
 
         assert_matches!(
             res,
-            WorkloadError::Api(ApiError::UnsuccessfulResponse(StatusCode::BAD_REQUEST))
+            WorkloadError::Api(ApiError::UnsuccessfulResponse(StatusCode::BAD_REQUEST, _))
         )
     }
 }
