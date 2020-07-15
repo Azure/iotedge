@@ -82,12 +82,13 @@ where
                             }
                         }
                         SystemEvent::ForceClientDisconnect(client_id) => {
-                            let client_id = ClientId(client_id);
-                            // TODO: parse client id into ClientId
-                            self.process_drop_connection(client_id);
-                        } // TODO: Need to handle new type of SystemEvent::ForceClientDisconnection
-                          // Get the client name as a param
-                          // There is a TODO below noting a function that we can call to drop the client connection
+                            // TODO: log what client is disconnecting in all places
+                            if let Err(e) = self.process_drop_connection(&client_id) {
+                                warn!(message = "could not disconnect client", error = %e);
+                            } else {
+                                info!("successfully disconnected client");
+                            }
+                        }
                     }
                 }
             }
@@ -346,7 +347,6 @@ where
         Ok(())
     }
 
-    // TODO: call this function when we get the system signal
     fn process_drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         self.drop_connection(client_id)
     }

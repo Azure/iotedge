@@ -1,4 +1,5 @@
 mod bootstrap;
+mod command_handler;
 mod shutdown;
 mod snapshot;
 
@@ -18,44 +19,6 @@ use mqtt_broker::{
 };
 use mqtt_broker_core::auth::Authorizer;
 
-use futures_util::StreamExt;
-use mqtt3;
-use mqtt3::proto;
-
-// TODO: rename to command handler and refactor
-// TODO: move code to separate module / code file
-async fn start_disconnect_watcher(broker_handle: BrokerHandle) {
-    // TODO: get device id from env
-    let client_id = "deviceid/$edgeHub/$broker/$control";
-    let username = "";
-
-    let mut client = mqtt3::Client::new(
-        Some(client_id.to_string()),
-        Some(username.to_string()),
-        None,
-        move || {
-            let password = "";
-            Box::pin(async move {
-                let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
-                io.map(|io| (io, Some(password.to_string())))
-            })
-        },
-        Duration::from_secs(1),
-        Duration::from_secs(60),
-    );
-
-    // TODO: handle result
-    let topic_filter = "$edgehub/{}/disconnect".to_string();
-    let qos = proto::QoS::AtLeastOnce;
-    client.subscribe(proto::SubscribeTo { topic_filter, qos });
-
-    while let Some(event) = client.next().await {
-        info!("received data")
-        // parse client id from topic into ClientId obj
-        // send system message to broker handle
-    }
-}
-
 pub async fn run(config: BrokerConfig) -> Result<()> {
     info!("loading state...");
     let state_dir = env::current_dir().expect("can't get cwd").join("state");
@@ -65,8 +28,13 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
 
     let broker = bootstrap::broker(&config, state).await?;
 
+    // TODO: do this only if in edgehub mode (cfg?)
+    info!("starting command handler...");
+    let command_handler_join_handle = start_command_handler(broker.handle()).await;
+
     info!("starting snapshotter...");
-    let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
+    let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
+        start_snapshotter(broker.handle(), persistor).await;
 
     /* TODO: Call func start_disconnect_watcher() that will:
         1. Create a custom client with clean session
@@ -110,9 +78,12 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     info!("starting server...");
     let state = start_server(&config, broker).await?;
 
-    shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await?;
+    snapshotter_shutdown_handle.shutdown().await?;
+    let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
+
+    command_handler_join_handle.await?;
+    info!("command handler shutdown.");
 
     info!("persisting state before exiting...");
     persistor.store(state).await?;
@@ -120,6 +91,17 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     info!("exiting... goodbye");
 
     Ok(())
+}
+
+async fn start_command_handler(broker_handle: BrokerHandle) -> JoinHandle<()> {
+    let command_handler = command_handler::CommandHandler::new(broker_handle);
+
+    //TODO: confirm we don't need this because on shutdown we shouldn't be forcibly disconnecting clients
+    //      this command handler is just listening to edgehub topics
+    // let shutdown_handle = command_handler.shutdown_handle();
+
+    let join_handle = tokio::spawn(command_handler.run());
+    join_handle
 }
 
 async fn start_snapshotter(
