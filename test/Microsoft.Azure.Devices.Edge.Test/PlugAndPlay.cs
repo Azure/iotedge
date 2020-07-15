@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
             builder =>
             {
+                builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", "Mqtt") });
                 builder.AddModule(PlugAndPlayIdentityName, plugAndPlayIdentityImage)
                     .WithEnvironment(
                         new[]
