@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         const string PlugAndPlayIdentityName = "PnPIdentity";
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
-        const string DeviceId = "pnpTestDeviceId";
+        const string DeviceId = "pnpTestDeviceId2";
 
         [Test]
         public async Task DeviceClient()
