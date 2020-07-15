@@ -14,7 +14,7 @@ use std::io::ErrorKind;
 use std::path::Path;
 use std::sync::Arc;
 
-use hyper::{Error as HyperError, Server};
+use hyper::{Error as HyperError, Response, Server};
 use hyper::service::{make_service_fn, service_fn};
 use hyperlocal::UnixServerExt;
 use libc::{S_IRWXU, umask};
@@ -55,7 +55,11 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
             let store = store.to_owned();
             async {
                 <Result<_, HyperError>>::Ok(service_fn(move |req| {
-                    routes::dispatch(store.to_owned(), req)
+                    let store = store.to_owned();
+                    async move {
+                        routes::dispatch(&store, req).await
+                            .or_else(|e| Response::builder().status(500).body(format!("{:?}", e).into()))
+                    }
                 }))
             }
         }))

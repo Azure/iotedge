@@ -66,7 +66,7 @@ impl<T: StoreBackend> Store<T> {
         let aad = encode(generate::<[u8; AAD_BYTES]>(&rng)?.expose());
 
         let ctext = match ks::encrypt(&key, &ptext, &iv, &aad).await? {
-            Text::Ciphertext(ctext) => encode(ctext),
+            Text::Ciphertext(ctext) => ctext,
             _ => panic!("ENCRYPTION API CHANGED")
         };
 
@@ -84,29 +84,29 @@ impl<T: StoreBackend> Store<T> {
             .build(hyper_tls::HttpsConnector::new());
         let token = Auth::new(None, "https://vault.azure.net")
             .authorize_with_secret(
-                    &self.config.credentials.tenant_id,
-                    &self.config.credentials.client_id,
-                    &self.config.credentials.client_secret
-                )
+                &self.config.credentials.tenant_id,
+                &self.config.credentials.client_id,
+                &self.config.credentials.client_secret
+            )
             .await?
             .get()
             .to_string();
 
         let key_values: Vec<hyper::Response<hyper::Body>> = try_join_all(
-                    keys.into_iter()
-                        .map(|key| key.parse::<hyper::Uri>())
-                        .collect::<Result<Vec<hyper::Uri>, _>>()?
-                        .into_iter()
-                        .map(|key| {
-                            let req = hyper::Request::builder()
-                                .uri(key)
-                                .header("Authorization", format!("Bearer {}", token.to_owned()))
-                                .body(hyper::Body::empty())
-                                .unwrap();
-                            client.request(req)
-                        })
-                        .collect::<Vec<hyper::client::ResponseFuture>>()
-                )
+                keys.into_iter()
+                    .map(|key| key.parse::<hyper::Uri>())
+                    .collect::<Result<Vec<hyper::Uri>, _>>()?
+                    .into_iter()
+                    .map(|key| {
+                        let req = hyper::Request::builder()
+                            .uri(key)
+                            .header("Authorization", format!("Bearer {}", token.to_owned()))
+                            .body(hyper::Body::empty())
+                            .unwrap();
+                        client.request(req)
+                    })
+                    .collect::<Vec<hyper::client::ResponseFuture>>()
+            )
             .await?;
 
         for key_value in key_values {

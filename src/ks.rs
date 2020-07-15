@@ -20,7 +20,7 @@ pub enum Text {
     Ciphertext(String)
 }
 
-async fn call<'a>(method: Method, resource: String, payload: Option<impl Serialize>) -> BoxResult<'a, Response<Body>> {
+async fn call<'a>(method: Method, resource: &str, payload: Option<impl Serialize>) -> BoxResult<'a, Response<Body>> {
     let client = Client::new();
     let uri = format!("{}{}", HSM_SERVER, percent_encode(resource.as_bytes(), ENCODE_CHARS));
 
@@ -29,7 +29,7 @@ async fn call<'a>(method: Method, resource: String, payload: Option<impl Seriali
         .method(method)
         .header("Content-Type", "application/json")
         .body(match payload {
-            Some(v) => { println!("{}", to_string(&v).unwrap()); to_string(&v).unwrap().into() },
+            Some(v) => to_string(&v).unwrap().into(),
             None => Body::empty()
         })?;
 
@@ -40,7 +40,7 @@ async fn call<'a>(method: Method, resource: String, payload: Option<impl Seriali
 pub async fn create_or_get_key<'a>(id: &str) -> BoxResult<'a, Key> {
     let res = call(
             Method::POST,
-            String::from("/key"),
+            "/key",
             Some(json!({
                 "keyId": id,
                 "lengthBytes": AES_KEY_BYTES
@@ -54,7 +54,7 @@ pub async fn create_or_get_key<'a>(id: &str) -> BoxResult<'a, Key> {
 pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> BoxResult<'a, Text> {
     let res = call(
             Method::POST,
-            String::from("/encrypt"),
+            "/encrypt",
             Some(json!({
                 "keyHandle": key,
                 "algorithm": "AEAD",
@@ -73,7 +73,7 @@ pub async fn encrypt<'a>(key: &str, plaintext: &str, iv: &str, aad: &str) -> Box
 pub async fn decrypt<'a>(key: &str, ciphertext: &str, iv: &str, aad: &str) -> BoxResult<'a, Text> {
     let res = call(
             Method::POST,
-            String::from("/decrypt"),
+            "/decrypt",
             Some(json!({
                 "keyHandle": key,
                 "algorithm": "AEAD",
@@ -85,6 +85,6 @@ pub async fn decrypt<'a>(key: &str, ciphertext: &str, iv: &str, aad: &str) -> Bo
             }))
         )
         .await?;
-    
-    Ok(slurp_json(res).await?)
+
+    slurp_json(res).await
 }
