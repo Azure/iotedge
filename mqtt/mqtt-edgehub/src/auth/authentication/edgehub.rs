@@ -114,8 +114,8 @@ impl TryFrom<EdgeHubAuthResponse> for Option<AuthId> {
         match value.result {
             EdgeHubResultCode::Authenticated => value
                 .identity
-                .map_or(Err(AuthenticateError::ProcessResponse), |i| {
-                    Ok(Some(AuthId::Identity(i)))
+                .map_or(Err(AuthenticateError::ProcessResponse), |identity| {
+                    Ok(Some(identity.into()))
                 }),
             EdgeHubResultCode::Unauthenticated => Ok(None),
         }
@@ -140,7 +140,7 @@ mod tests {
     use base64::decode;
     use mockito::{mock, Matcher};
 
-    use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Certificate};
+    use mqtt_broker_core::auth::{AuthenticationContext, Certificate};
 
     use crate::auth::EdgeHubAuthenticator;
     use std::net::SocketAddr;
@@ -169,8 +169,7 @@ mod tests {
         let authenticator = authenticator();
         let result = authenticator.authenticate(context).await.unwrap().unwrap();
 
-        let s = "somehub/somedevice".to_string();
-        assert_eq!(result, AuthId::Identity(s));
+        assert_eq!(result, "somehub/somedevice".into());
     }
 
     #[tokio::test]

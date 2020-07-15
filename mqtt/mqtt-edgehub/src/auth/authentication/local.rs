@@ -25,7 +25,7 @@ impl Authenticator for LocalAuthenticator {
         context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
         let auth_id = if context.peer_addr().ip().is_loopback() {
-            Some(AuthId::Identity(context.client_id().to_string()))
+            Some(context.client_id().as_str().into())
         } else {
             None
         };
@@ -40,7 +40,7 @@ mod tests {
     use test_case::test_case;
     use tokio::runtime::Runtime;
 
-    use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
+    use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator, Identity};
 
     use super::LocalAuthenticator;
 
@@ -55,7 +55,7 @@ mod tests {
         let mut runtime = Runtime::new().expect("runtime");
         let auth_id = runtime.block_on(authenticator.authenticate(context));
 
-        assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == "client_1");
+        assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == Identity::from("client_1"));
     }
 
     #[tokio::test]

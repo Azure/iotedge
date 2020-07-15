@@ -142,6 +142,7 @@ mod tests {
     use super::{
         authenticate_fn_ok, AuthId, AuthenticationContext, Authenticator, DefaultAuthenticator,
     };
+    use crate::auth::Identity;
 
     #[tokio::test]
     async fn default_auth_always_return_unknown_client_identity() {
@@ -157,7 +158,7 @@ mod tests {
     async fn authenticator_wrapper_around_function() {
         let authenticator = authenticate_fn_ok(|context| {
             if context.username() == Some("username") {
-                Some(AuthId::Identity("username".to_string()))
+                Some("username".into())
             } else {
                 None
             }
@@ -168,7 +169,7 @@ mod tests {
 
         let auth_id = authenticator.authenticate(context).await;
 
-        assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == "username");
+        assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == Identity::from("username"));
     }
 
     fn peer_addr() -> SocketAddr {
