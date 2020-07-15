@@ -115,6 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         {
                             moduleIdVerifiedOrNotPresent = (modId != null && modId.ToString().Equals(this.Id));
                         }
+                        Log.Verbose($"DevId: {devId}. this devId: {this.deviceId}. moduleIdVerifiedOrNotPrsent: {moduleIdVerifiedOrNotPresent}. reqprop: {requiredProperties.All(data.Properties.ContainsKey)}");
                         return devId != null && devId.ToString().Equals(this.deviceId)
                                                 && moduleIdVerifiedOrNotPresent
                                                 && requiredProperties.All(data.Properties.ContainsKey);
