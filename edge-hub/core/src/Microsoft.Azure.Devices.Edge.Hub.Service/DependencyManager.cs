@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly IList<X509Certificate2> trustBundle;
 
         readonly string iotHubHostname;
+        readonly Option<string> gatewayHostname;
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
         readonly string edgeDeviceHostName;
@@ -43,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.sslProtocols = sslProtocols;
 
+            this.gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
             string edgeHubConnectionString = this.configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
             if (!string.IsNullOrWhiteSpace(edgeHubConnectionString))
             {
@@ -159,14 +161,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
-            Option<string> gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
             bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
 
             builder.RegisterModule(
                 new RoutingModule(
                     this.iotHubHostname,
-                    gatewayHostname,
+                    this.gatewayHostname,
                     this.edgeDeviceId,
                     this.edgeModuleId,
                     this.connectionString,
@@ -225,6 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 new CommonModule(
                     productInfo,
                     this.iotHubHostname,
+                    this.gatewayHostname,
                     this.edgeDeviceId,
                     this.edgeModuleId,
                     this.edgeDeviceHostName,

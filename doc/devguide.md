@@ -3,6 +3,8 @@
 IoT Edge is written in C# and Rust.
 The C# development setup is described below. The Rust development setup is described [here](../edgelet/README.md).
 
+If you want to run tests outside of the pipelines, you will need to be running linux.
+
 ## Setup
 
 Make sure the following dependencies are installed in your environment before you build IoT Edge code:
@@ -16,14 +18,8 @@ Make sure the following dependencies are installed in your environment before yo
 
 Besides using Visual Studio in Windows, you can build by running the build script:
 
-### Linux
 ```sh
 scripts/linux/buildBranch.sh
-```
-
-### Windows
-```powershell
-scripts\windows\buildBranch.bat
 ```
 
 Binaries are published to `target/publish/`.
@@ -32,14 +28,8 @@ Binaries are published to `target/publish/`.
 
 Besides using Test Explorer in Visual Studio, you can run the unit tests with:
 
-### Linux
 ```sh
 scripts/linux/runTests.sh
-```
-
-### Windows
-```powershell
-dotnet test --filter Category=Unit
 ```
 
 ## Run integration tests
@@ -55,7 +45,6 @@ To run integration tests and/or BVTs, make sure the following dependencies are i
 
 The integration tests and BVTs expect to find certain values in an Azure KeyVault (see `edge-util/test/Microsoft.Azure.Devices.Edge.Util.Test.Common/settings/base.json`). For the tests to access the KeyVault at runtime, a certificate must first be installed in the environment where the tests will run. Install the KeyVault certificate with:
 
-### Linux
 ```sh
 az login # Login and select default subscription, if necessary
 
@@ -67,28 +56,10 @@ scripts/linux/downloadAndInstallCert.sh -v <VaultName> -c <CertName>
 | VaultName   | KeyVault name. See `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
 | CertName    | Certificate name. See `--secret` in `az keyvault secret show` [help](https://docs.microsoft.com/en-us/cli/azure/keyvault/secret#show). |
 
-### Windows
-```powershell
-Connect-AzureRmAccount # Login and select default subscription, if necessary
-
-scripts\windows\setup\Install-VaultCertificate.ps1 -VaultName <VaultName> -CertificateName <CertificateName>
-```
-
-| Argument    | Description                |
-|-------------|----------------------------|
-| VaultName   | KeyVault name. See `Get-AzureKeyVaultSecret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
-| CertName    | Certificate name. See `Get-AzureKeyVaultSecret` [help](https://docs.microsoft.com/en-us/powershell/module/azurerm.keyvault/get-azurekeyvaultsecret). |
-
 Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 
-### Linux
 ```sh
 scripts/linux/runTests.sh "--filter Category=Integration"
-```
-
-### Windows
-```powershell
-dotnet test --filter Category=Integration
 ```
 
 The syntax of the "filter" argument is described [here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.

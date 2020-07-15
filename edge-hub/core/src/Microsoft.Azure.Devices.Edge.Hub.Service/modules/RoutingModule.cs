@@ -510,11 +510,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var invokeMethodHandlerTask = c.Resolve<Task<IInvokeMethodHandler>>();
                         var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
                         var subscriptionProcessorTask = c.Resolve<Task<ISubscriptionProcessor>>();
+                        var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
                         Router router = await routerTask;
                         ITwinManager twinManager = await twinManagerTask;
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IInvokeMethodHandler invokeMethodHandler = await invokeMethodHandlerTask;
                         ISubscriptionProcessor subscriptionProcessor = await subscriptionProcessorTask;
+                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
                         IEdgeHub hub = new RoutingEdgeHub(
                             router,
                             routingMessageConverter,
@@ -522,7 +524,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             twinManager,
                             this.edgeDeviceId,
                             invokeMethodHandler,
-                            subscriptionProcessor);
+                            subscriptionProcessor,
+                            deviceScopeIdentitiesCache);
                         return hub;
                     })
                 .As<Task<IEdgeHub>>()
