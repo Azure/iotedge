@@ -166,6 +166,14 @@ jobs:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
 
+    # Plug And Play Identity
+     - template: templates/image-linux.yaml
+        parameters:
+          name: PlugAndPlayIdentity
+          imageName: azureiotedge-plugandplayidentity
+          project: PlugAndPlayIdentity
+     
+
 ################################################################################
 # linux - Rust amd64
 ################################################################################
@@ -357,6 +365,13 @@ jobs:
           name: Cloud To Device Message Tester
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
+    
+     # Plug And Play Identity
+      - template: templates/image-linux.yaml
+        parameters:
+          name: PlugAndPlayIdentity
+          imageName: azureiotedge-plugandplayidentity
+          project: PlugAndPlayIdentity
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine
