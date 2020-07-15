@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics.Logging;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
@@ -17,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
     using RestSharp;
+    using Serilog;
 
     [EndToEnd]
     public class PlugAndPlay : SasManualProvisioningFixture
@@ -61,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             request.AddHeader("Authorization", sasToken);
             request.AddHeader("Content-Type", "application/json");
             IRestResponse response = client.Execute(request);
+            Log.Verbose($"Parsing response: {response.Content}");
             var jo = JObject.Parse(response.Content);
             var modelId = jo["$metadata"]["$model"].ToString();
             Assert.AreEqual(expectedModelId, modelId);
