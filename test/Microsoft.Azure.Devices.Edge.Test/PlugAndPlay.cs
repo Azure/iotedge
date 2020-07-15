@@ -63,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             request.AddHeader("Authorization", sasToken);
             request.AddHeader("Content-Type", "application/json");
             IRestResponse response = client.Execute(request);
+            Log.Verbose("Request: " + request.ToString());
             Log.Verbose($"Parsing response: {response.Content}");
             var jo = JObject.Parse(response.Content);
             var modelId = jo["$metadata"]["$model"].ToString();
