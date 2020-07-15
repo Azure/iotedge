@@ -38,7 +38,7 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
             io_source: IoS, = reference the code block below
             max_reconnect_back_off: std::time::Duration, = 1 sec in our tests
             keep_alive: std::time::Duration, = 60 sec in our tests. what is this though?
-        2. The client knows what messages are received through the poll_next() call.
+        2. The client knows what messages are received through the poll_next() call? But this isn't public?
            When topics subscription yields messages it will call system signal for client disconnection (similar to the snapshot below).
     */
 

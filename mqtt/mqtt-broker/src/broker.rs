@@ -80,8 +80,9 @@ where
                             } else {
                                 info!("sent state to snapshotter.");
                             }
-                        }
-                        // TODO: Need to handle new type of SystemEvent::ForceClientDisconnection
+                        } // TODO: Need to handle new type of SystemEvent::ForceClientDisconnection
+                          // Get the client name as a param
+                          // There is a TODO below noting a function that we can call to drop the client connection
                     }
                 }
             }
@@ -340,6 +341,7 @@ where
         Ok(())
     }
 
+    // TODO: call this function when we get the system signal
     fn process_drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         self.drop_connection(client_id)
     }
