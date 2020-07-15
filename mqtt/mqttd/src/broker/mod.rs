@@ -18,29 +18,38 @@ use mqtt_broker::{
 };
 use mqtt_broker_core::auth::Authorizer;
 
-async fn start_disconnect_watcher() {
+use futures_util::StreamExt;
+use mqtt3;
+use mqtt3::proto;
+
+async fn start_disconnect_watcher(broker_handle: BrokerHandle) {
     // TODO: come up with official values
     let client_id = "disconnect-watcher-abcd";
     let username = "disconnect-watcher-abcd";
 
     let mut client = mqtt3::Client::new(
-        client_id,
-        username,
+        Some(client_id.to_string()),
+        Some(username.to_string()),
         None,
         move || {
             let password = "";
             Box::pin(async move {
                 let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
-                io.map(|io| (io, password))
+                io.map(|io| (io, Some(password.to_string())))
             })
         },
         Duration::from_secs(1),
         Duration::from_secs(60),
     );
-    client.subscribe().await;
+
+    // TODO: handle result
+    let topic_filter = "$edgehub/{}/disconnect".to_string();
+    let qos = proto::QoS::AtLeastOnce;
+    client.subscribe(proto::SubscribeTo { topic_filter, qos });
 
     while let Some(event) = client.next().await {
         info!("received data")
+        // send system message to broker handle
     }
 }
 

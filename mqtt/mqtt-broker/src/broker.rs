@@ -80,6 +80,10 @@ where
                             } else {
                                 info!("sent state to snapshotter.");
                             }
+                        }
+                        SystemEvent::ForceClientDisconnect(client_id) => {
+                            // TODO: parse client id into ClientId
+                            self.process_drop_connection(client_id);
                         } // TODO: Need to handle new type of SystemEvent::ForceClientDisconnection
                           // Get the client name as a param
                           // There is a TODO below noting a function that we can call to drop the client connection

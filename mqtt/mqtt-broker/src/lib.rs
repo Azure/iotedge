@@ -183,8 +183,9 @@ pub enum ClientEvent {
 pub enum SystemEvent {
     Shutdown,
     StateSnapshot(StateSnapshotHandle),
-    // ConfigUpdate,
     // TODO: ForceClientDisconnect
+    ForceClientDisconnect(String),
+    // ConfigUpdate,
 }
 
 #[derive(Debug)]
