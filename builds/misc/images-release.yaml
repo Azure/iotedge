@@ -6,7 +6,7 @@ jobs:
     # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
     # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
     # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
-    # TODO: Investigate why we have to toggle primary installs on linux, but not on windows.
+    # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
     timeoutInMinutes: 120
     displayName: LinuxDotnet
     pool: 
