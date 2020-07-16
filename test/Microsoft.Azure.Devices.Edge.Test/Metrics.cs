@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         builder.AddTemporaryModule();
                         builder.AddMetricsValidatorConfig(metricsValidatorImage);
-                    }, token);
+                    }, token, false);
 
             // Next remove the temporary image from the deployment
             await this.runtime.DeployConfigurationAsync(

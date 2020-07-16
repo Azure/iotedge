@@ -69,6 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token) =>
-            this.DeployConfigurationAsync(_ => { }, token);
+            this.DeployConfigurationAsync(_ => { }, token, false);
     }
 }
