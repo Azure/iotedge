@@ -1091,6 +1091,7 @@ dependencies = [
  "atty",
  "chrono",
  "clap",
+ "futures",
  "futures-util",
  "mockito",
  "mqtt-broker",

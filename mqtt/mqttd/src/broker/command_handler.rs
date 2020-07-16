@@ -32,7 +32,7 @@ impl ShutdownHandle {
         self.0
             .send(Event::Shutdown)
             .await
-            .map_err(|_| Error::SendSnapshotMessage)?;
+            .map_err(|_| Error::SendSnapshotMessage)?; // TODO: new error type
         Ok(())
     }
 }
@@ -44,6 +44,22 @@ pub struct CommandHandler {
 
 impl CommandHandler {
     pub fn new(broker_handle: BrokerHandle) -> Self {
+<<<<<<< HEAD
+=======
+        let (sender, events) = mpsc::channel(5);
+        CommandHandler {
+            broker_handle,
+            sender,
+            events,
+        }
+    }
+
+    pub fn shutdown_handle(&self) -> ShutdownHandle {
+        ShutdownHandle(self.sender.clone())
+    }
+
+    pub fn run(mut self) -> JoinHandle<()> {
+>>>>>>> eb135b650eb6d6068b956a93c8b3745a79ebcadb
         let mut client = mqtt3::Client::new(
             Some(CLIENT_ID.to_string()),
             None,
@@ -107,6 +123,7 @@ impl CommandHandler {
                 // TODO: safely handle
                 let event = event.unwrap();
 
+<<<<<<< HEAD
                 if let mqtt3::Event::Publication(publication) = event {
                     let client_id = Self::parse_client_id(publication.topic_name);
 
@@ -120,6 +137,24 @@ impl CommandHandler {
                                 .await
                             {
                                 error!(message = "failed to signal broker to disconnect client", error=%e);
+=======
+                    if let mqtt3::Event::Publication(publication) = event {
+                        let client_id = Self::parse_client_id(publication.topic_name);
+                        match client_id {
+                            Some(client_id) => {
+                                if let Err(e) = self
+                                    .broker_handle
+                                    .send(Message::System(SystemEvent::ForceClientDisconnect(
+                                        client_id.into(),
+                                    )))
+                                    .await
+                                {
+                                    error!(message = "failed to signal broker to disconnect client", error=%e);
+                                }
+                            }
+                            None => {
+                                error!("no client id in disconnect request");
+>>>>>>> eb135b650eb6d6068b956a93c8b3745a79ebcadb
                             }
                         }
                         None => {
