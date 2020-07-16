@@ -118,7 +118,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
-            Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity, this.modelId);
+            this.modelId.ForEach(
+                m => Events.AttemptingConnectionWithTransportWithModelId(this.transportSettingsList, this.Identity, m),
+                () => Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity));
+
             IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
 
             client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
@@ -163,17 +166,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             enum EventIds
             {
                 AttemptingTransport = IdStart,
+                AttemptingTransportWithModelId,
                 TransportConnected
             }
 
-            public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity, Option<string> modelId)
+            public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity)
             {
                 string transportType = transportSettings.Length == 1
                     ? TransportName(transportSettings[0].GetTransportType())
                     : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
-                string message = $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType}";
-                string withModelIdMessage = modelId.Match(m => $" with modelId {m}", () => string.Empty);
-                Log.LogInformation((int)EventIds.AttemptingTransport, $"{message}{withModelIdMessage}...");
+                Log.LogInformation((int)EventIds.AttemptingTransport, $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType}");
+            }
+
+            public static void AttemptingConnectionWithTransportWithModelId(ITransportSettings[] transportSettings, IIdentity identity, string modelId)
+            {
+                string transportType = transportSettings.Length == 1
+                    ? TransportName(transportSettings[0].GetTransportType())
+                    : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
+                Log.LogInformation((int)EventIds.AttemptingTransportWithModelId, $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType} with modelId {modelId}...");
             }
 
             public static void CreateDeviceClientSuccess(ITransportSettings[] transportSettings, TimeSpan timeout, IIdentity identity)
