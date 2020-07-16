@@ -11,14 +11,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using App.Metrics.Logging;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
-    using RestSharp;
     using Serilog;
 
     [EndToEnd]
@@ -54,7 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.Validate(this.iotHub.HubName, this.iotHub.Hostname, DeviceId, TestModelId);
         }
 
-
         public async Task Validate(string hubName, string hostName, string deviceId, string expectedModelId)
         {
             // Verify that the device has been registered as a plug and play device
@@ -85,9 +82,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             HMACSHA256 hmac = new HMACSHA256(Convert.FromBase64String(key));
             string signature = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(stringToSign)));
 
-            string token = String.Format(CultureInfo.InvariantCulture, "SharedAccessSignature sr={0}&sig={1}&se={2}", WebUtility.UrlEncode(resourceUri), WebUtility.UrlEncode(signature), expiry);
+            string token = string.Format(CultureInfo.InvariantCulture, "SharedAccessSignature sr={0}&sig={1}&se={2}", WebUtility.UrlEncode(resourceUri), WebUtility.UrlEncode(signature), expiry);
 
-            if (!String.IsNullOrEmpty(policyName))
+            if (!string.IsNullOrEmpty(policyName))
             {
                 token += "&skn=" + policyName;
             }
