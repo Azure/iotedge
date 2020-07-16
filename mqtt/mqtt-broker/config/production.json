@@ -7,7 +7,8 @@
         },
         {
             "tls": {
-                "address": "0.0.0.0:8883"
+                "address": "0.0.0.0:8883",
+                "certificate": "broker-production-config.json"
             }
         }
     ]
