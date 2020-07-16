@@ -8,4 +8,4 @@ pub use edgehub::{broker, start_server};
 mod generic;
 
 #[cfg(not(feature = "edgehub"))]
-pub use generic::{broker, server};
+pub use generic::{broker, start_server};
