@@ -251,6 +251,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IProductInfoStore>>()
                 .SingleInstance();
 
+            // Task<IModelIdStore>
+            builder.Register(
+                    async c =>
+                    {
+                        var storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ModelIdStore");
+                        IModelIdStore modelIdStore = new ModelIdStore(entityStore);
+                        return modelIdStore;
+                    })
+                .As<Task<IModelIdStore>>()
+                .SingleInstance();
+
             // ITokenProvider
             builder.Register(c => new ClientTokenProvider(c.Resolve<ISignatureProvider>(), this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, TimeSpan.FromHours(1)))
                 .Named<ITokenProvider>("EdgeHubClientAuthTokenProvider")
