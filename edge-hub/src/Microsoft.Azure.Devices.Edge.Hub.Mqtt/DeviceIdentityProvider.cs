@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, deviceClientType);
                 Events.Success(clientId, username);
-                return new ProtocolGatewayIdentity(deviceCredentials, modelId);
+                return new ProtocolGatewayIdentity(deviceCredentials);
             }
             catch (Exception ex)
             {

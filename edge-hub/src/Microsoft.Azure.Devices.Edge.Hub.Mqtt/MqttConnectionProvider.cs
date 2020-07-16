@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 throw new AuthenticationException("Invalid identity object received");
             }
 
-            IDeviceListener deviceListener = await this.connectionProvider.GetDeviceListenerAsync(protocolGatewayIdentity.ClientCredentials.Identity, protocolGatewayIdentity.ModelId);
+            IDeviceListener deviceListener = await this.connectionProvider.GetDeviceListenerAsync(protocolGatewayIdentity.ClientCredentials.Identity);
             IMessagingServiceClient messagingServiceClient = new MessagingServiceClient(deviceListener, this.pgMessageConverter, this.byteBufferConverter);
             IMessagingBridge messagingBridge = new SingleClientMessagingBridge(deviceidentity, messagingServiceClient);
 
