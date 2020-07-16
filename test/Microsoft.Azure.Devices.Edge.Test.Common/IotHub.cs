@@ -106,11 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return this.CreateDeviceIdentityAsync(edge, token);
         }
 
-        public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token)
-        {
-            Log.Verbose("trying to remove device async...");
-            return this.RegistryManager.RemoveDeviceAsync(device);
-        }
+        public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
+            this.RegistryManager.RemoveDeviceAsync(device);
             
 
         public Task DeployDeviceConfigurationAsync(
