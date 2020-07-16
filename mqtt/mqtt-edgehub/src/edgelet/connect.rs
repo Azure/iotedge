@@ -96,6 +96,7 @@ impl AsyncRead for Stream {
         buf: &mut [u8],
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_read(cx, buf),
             Self::Http(stream) => Pin::new(stream).poll_read(cx, buf),
         }
