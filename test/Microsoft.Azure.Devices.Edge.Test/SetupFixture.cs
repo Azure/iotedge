@@ -15,23 +15,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [SetUpFixture]
     public class SetupFixture
     {
-        readonly IEdgeDaemon daemon;
-        IotHub iotHub;
-
-        public SetupFixture()
-        {
-            Option<Registry> bootstrapRegistry =
-                Option.Maybe(Context.Current.Registries.First());
-            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath, Context.Current.EdgeAgentBootstrapImage, bootstrapRegistry);
-            this.iotHub = new IotHub(
-                Context.Current.ConnectionString,
-                Context.Current.EventHubEndpoint,
-                Context.Current.Proxy);
-        }
+        IEdgeDaemon daemon;
 
         [OneTimeSetUp]
         public async Task BeforeAllAsync()
         {
+            using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
+            CancellationToken token = cts.Token;
+            Option<Registry> bootstrapRegistry = Option.Maybe(Context.Current.Registries.First());
+
+            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(
+                Context.Current.InstallerPath,
+                Context.Current.EdgeAgentBootstrapImage,
+                bootstrapRegistry,
+                token);
+
             await Profiler.Run(
                 async () =>
                 {
@@ -45,37 +43,29 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
                     Log.Logger = loggerConfig.CreateLogger();
 
-                    using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
-                    {
-                        CancellationToken token = cts.Token;
+                    // Install IoT Edge, and do some basic configuration
+                    await this.daemon.UninstallAsync(token);
+                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
 
-                        // Install IoT Edge, and do some basic configuration
-                        await this.daemon.UninstallAsync(token);
-                        await this.daemon.InstallAsync(
-                            Context.Current.PackagePath,
-                            Context.Current.Proxy,
-                            token);
+                    await this.daemon.ConfigureAsync(
+                        config =>
+                        {
+                            var msg = string.Empty;
+                            var props = new object[] { };
 
-                        await this.daemon.ConfigureAsync(
-                            config =>
+                            config.SetDeviceHostname(Dns.GetHostName());
+                            Context.Current.Proxy.ForEach(proxy =>
                             {
-                                var msg = string.Empty;
-                                var props = new object[] { };
+                                config.AddHttpsProxy(proxy);
+                                msg = "with proxy '{ProxyUri}'";
+                                props = new object[] { proxy.ToString() };
+                            });
+                            config.Update();
 
-                                config.SetDeviceHostname(Dns.GetHostName());
-                                Context.Current.Proxy.ForEach(proxy =>
-                                {
-                                    config.AddHttpsProxy(proxy);
-                                    msg = "with proxy '{ProxyUri}'";
-                                    props = new object[] { proxy.ToString() };
-                                });
-                                config.Update();
-
-                                return Task.FromResult((msg, props));
-                            },
-                            token,
-                            restart: false);
-                    }
+                            return Task.FromResult((msg, props));
+                        },
+                        token,
+                        restart: false);
                 },
                 "Completed end-to-end test setup");
         }
@@ -85,18 +75,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             () => Profiler.Run(
                 async () =>
                 {
-                    Log.Verbose($"Starting teardown");
-                    using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
+                    using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
+                    CancellationToken token = cts.Token;
+                    await this.daemon.StopAsync(token);
+                    foreach (EdgeDevice device in Context.Current.DeleteList.Values)
                     {
-                        CancellationToken token = cts.Token;
-                        Log.Verbose($"Stopping daemon");
-                        await this.daemon.StopAsync(token);
-                        foreach (EdgeDevice device in Context.Current.DeleteList.Values)
-                        {
-                            Log.Verbose($"deleting {device.Id}");
-                            await device.MaybeDeleteIdentityAsync(token);
-                        }
-                        Log.Verbose("Done with everything...");
+                        await device.MaybeDeleteIdentityAsync(token);
                     }
                 },
                 "Completed end-to-end test teardown"),

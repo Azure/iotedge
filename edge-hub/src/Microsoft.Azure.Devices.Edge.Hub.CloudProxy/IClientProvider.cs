@@ -15,5 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         Task<IClient> CreateAsync(IIdentity identity, ITransportSettings[] transportSettings);
 
         IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings);
+
+        IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, string modelId);
     }
 }
