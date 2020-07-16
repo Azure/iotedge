@@ -1093,6 +1093,7 @@ dependencies = [
  "clap",
  "futures",
  "futures-util",
+ "lazy_static",
  "mockito",
  "mqtt-broker",
  "mqtt-broker-core",

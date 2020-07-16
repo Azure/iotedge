@@ -1,6 +1,7 @@
 use futures::future::select;
 use futures_util::pin_mut;
 use futures_util::StreamExt;
+use lazy_static::lazy_static;
 use mqtt3::proto;
 use mqtt3::ShutdownHandle;
 use mqtt3::UpdateSubscriptionHandle;
@@ -129,31 +130,48 @@ impl CommandHandler {
     fn parse_client_id(topic_name: String) -> Option<String> {
         // TODO: eliminate unwrap
         // TODO: create static var for regex
-        let re = Regex::new(CLIENT_EXTRACTION_REGEX);
+        lazy_static! {
+            static ref REGEX: Regex = Regex::new(CLIENT_EXTRACTION_REGEX)
+                .expect("failed to create new Regex from pattern");
+        }
 
         // TODO: clean up
         // TODO: look at configuration
-        match re {
-            Ok(re) => match re.captures(topic_name.as_ref()) {
-                Some(capture) => match capture.get(0) {
-                    Some(captured_match) => Some(captured_match.as_str().to_string()),
-                    None => {
-                        error!("no client id found for client disconnect topic");
-                        None
-                    }
-                },
+        match REGEX.captures(topic_name.as_ref()) {
+            Some(capture) => match capture.get(0) {
+                Some(captured_match) => Some(captured_match.as_str().to_string()),
                 None => {
-                    error!("could not parse client id from client disconnect topic");
+                    error!("no client id found for client disconnect topic");
                     None
                 }
             },
-            Err(e) => {
-                error!(
-                    "could not create regex to parse client id from client disconnect topic. {}",
-                    e
-                );
+            None => {
+                error!("could not parse client id from client disconnect topic");
                 None
             }
         }
+
+        // match re {
+        //     Ok(re) => match re.captures(topic_name.as_ref()) {
+        //         Some(capture) => match capture.get(0) {
+        //             Some(captured_match) => Some(captured_match.as_str().to_string()),
+        //             None => {
+        //                 error!("no client id found for client disconnect topic");
+        //                 None
+        //             }
+        //         },
+        //         None => {
+        //             error!("could not parse client id from client disconnect topic");
+        //             None
+        //         }
+        //     },
+        //     Err(e) => {
+        //         error!(
+        //             "could not create regex to parse client id from client disconnect topic. {}",
+        //             e
+        //         );
+        //         None
+        //     }
+        // }
     }
 }

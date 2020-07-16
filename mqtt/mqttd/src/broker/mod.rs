@@ -1,5 +1,5 @@
 mod bootstrap;
-mod command_handler;
+mod command;
 mod shutdown;
 mod snapshot;
 
@@ -13,6 +13,7 @@ use tokio::{
 };
 use tracing::{info, warn};
 
+use command::CommandHandler;
 use mqtt_broker::{
     Broker, BrokerConfig, BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist,
     ShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
@@ -29,6 +30,8 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     let broker = bootstrap::broker(&config, state).await?;
 
     // TODO: do this only if in edgehub mode (cfg?)
+
+    #[cfg(feature = "edgehub")]
     info!("starting command handler...");
     let command_handler_join_handle = start_command_handler(broker.handle()).await;
 
@@ -44,6 +47,7 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     info!("state snapshotter shutdown.");
 
     // TODO: why do we need to do thsi
+    #[cfg(feature = "edgehub")]
     command_handler_join_handle.await?;
     info!("command handler shutdown.");
 
@@ -56,7 +60,7 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
 }
 
 async fn start_command_handler(broker_handle: BrokerHandle) -> JoinHandle<()> {
-    let command_handler = command_handler::CommandHandler::new(broker_handle);
+    let command_handler = CommandHandler::new(broker_handle);
 
     //TODO: confirm we don't need this because on shutdown we shouldn't be forcibly disconnecting clients
     //      this command handler is just listening to edgehub topics
