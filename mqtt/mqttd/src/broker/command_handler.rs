@@ -2,6 +2,8 @@ use futures::future::select;
 use futures_util::pin_mut;
 use futures_util::StreamExt;
 use mqtt3::proto;
+use mqtt3::ShutdownHandle;
+use mqtt3::UpdateSubscriptionHandle;
 use mqtt_broker::BrokerHandle;
 use mqtt_broker::Error;
 use mqtt_broker::Message;
@@ -23,23 +25,25 @@ enum Event {
     Shutdown,
 }
 
-#[derive(Debug)]
-pub struct ShutdownHandle(Sender<Event>);
+// #[derive(Debug)]
+// pub struct ShutdownHandle(Sender<Event>);
 
-// TODO: change to hold mqtt client shutdown handle
-impl ShutdownHandle {
-    pub async fn shutdown(&mut self) -> Result<(), Error> {
-        self.0
-            .send(Event::Shutdown)
-            .await
-            .map_err(|_| Error::SendSnapshotMessage)?; // TODO: new error type
-        Ok(())
-    }
-}
+// // TODO: change to hold mqtt client shutdown handle
+// impl ShutdownHandle {
+//     pub async fn shutdown(&mut self) -> Result<(), Error> {
+//         self.0
+//             .send(Event::Shutdown)
+//             .await
+//             .map_err(|_| Error::SendSnapshotMessage)?; // TODO: new error type
+//         Ok(())
+//     }
+// }
 
 pub struct CommandHandler {
     broker_handle: BrokerHandle,
-    client: mqtt3::Client,
+    // subscription_handle: UpdateSubscriptionHandle,
+    // shutdown_handle: ShutdownHandle,
+    client: mqtt3::Client<IoS>,
 }
 
 impl CommandHandler {
@@ -58,14 +62,20 @@ impl CommandHandler {
             Duration::from_secs(60),
         );
 
+        // TODO: handle error
+        // let subscription_handle = client.update_subscription_handle().unwrap();
+        // let shutdown_handle = client.shutdown_handle().unwrap();
+
         CommandHandler {
             broker_handle,
+            // subscription_handle,
+            // shutdown_handle,
             client,
         }
     }
 
     pub fn shutdown_handle(&self) -> ShutdownHandle {
-        ShutdownHandle(self.client.shutdown_handle().clone())
+        self.shutdown_handle().clone()
     }
 
     pub async fn run(mut self) {
@@ -81,24 +91,7 @@ impl CommandHandler {
             // TODO: better message
             info!("successfully subscribed to command topic")
         }
-        // let event_loop = async {
-        //     while let Some(event) = client.next().await {
-        //         let event = event.expect("event expected");
-        //         match event {
-        //             Event::NewConnection { .. } => conn_sender
-        //                 .send(event)
-        //                 .expect("can't send an event to a conn channel"),
-        //             Event::Publication(publication) => pub_sender
-        //                 .send(publication)
-        //                 .expect("can't send an event to a pub channel"),
-        //             Event::SubscriptionUpdates(_) => sub_sender
-        //                 .send(event)
-        //                 .expect("can't send an event to a sub channel"),
-        //         };
-        //     }
-        // };
-        // pin_mut!(event_loop);
-        // select(event_loop, tx).await;
+
         let event_loop = async {
             while let Some(event) = self.client.next().await {
                 info!("received data");
