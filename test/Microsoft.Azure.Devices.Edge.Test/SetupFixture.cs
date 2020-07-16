@@ -85,9 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             () => Profiler.Run(
                 async () =>
                 {
+                    Log.Verbose($"Starting teardown");
                     using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
                     {
                         CancellationToken token = cts.Token;
+                        Log.Verbose($"Stopping daemon");
                         await this.daemon.StopAsync(token);
                         foreach (EdgeDevice device in Context.Current.DeleteList.Values)
                         {
