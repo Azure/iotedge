@@ -66,8 +66,8 @@ where
 
     // TODO read from config
     server.tcp("localhost:1882", LocalAuthenticator::new());
-    let state = server.serve(shutdown).await?;
 
+    let state = server.serve(shutdown).await?;
     Ok(state)
 }
 
