@@ -54,6 +54,9 @@ impl CommandHandler {
             None,
             None,
             move || {
+                // TODO: move to broker connect
+                // TODO: read associated types (implementation of trait determines what types used)
+                // TODO: read generics
                 Box::pin(async move {
                     let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
                     io.map(|io| (io, None))
