@@ -1053,7 +1053,6 @@ dependencies = [
  "mqtt-edgehub",
  "native-tls",
  "serde_json",
- "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",

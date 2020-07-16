@@ -23,7 +23,6 @@ anyhow = "1.0"
 [dev-dependencies]
 mockito = "0.25"
 serde_json = "1.0"
-tempfile = "3"
 
 [features]
 default = ["edgehub"]

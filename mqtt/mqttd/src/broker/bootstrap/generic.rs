@@ -1,6 +1,7 @@
-use std::future::Future;
+use std::{fs, future::Future, path::Path};
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
+use native_tls::Identity;
 
 use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Error, Server};
 use mqtt_broker_core::auth::{
@@ -38,9 +39,25 @@ where
 
     if let Some(tls) = config.transports().tls() {
         let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
-        server.tls(tls.addr(), tls.cert_path(), authenticator)?;
+        let identity = load_server_certificate(tls.cert_path())?;
+        server.tls(tls.addr(), identity, authenticator)?;
     }
 
     let state = server.serve(shutdown_signal).await?;
     Ok(state)
+}
+
+fn load_server_certificate(path: Option<&Path>) -> Result<native_tls::Identity> {
+    let path = path.ok_or(anyhow!("missing path to server certificate"))?;
+
+    let cert_buffer = fs::read(&path).context(anyhow!(
+        "unable to read server certificate {}",
+        path.display()
+    ))?;
+
+    let identity = Identity::from_pkcs12(&cert_buffer, "").context(anyhow!(
+        "unable to decode server certificate {}",
+        path.display()
+    ))?;
+    Ok(identity)
 }

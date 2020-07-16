@@ -1,4 +1,4 @@
-use std::{error::Error as StdError, future::Future, path::Path, sync::Arc};
+use std::{error::Error as StdError, future::Future, sync::Arc};
 
 use futures_util::future::BoxFuture;
 use futures_util::{
@@ -6,6 +6,7 @@ use futures_util::{
     pin_mut,
     stream::StreamExt,
 };
+use native_tls::Identity;
 use tokio::sync::oneshot;
 use tracing::{debug, error, info, span, warn, Level};
 use tracing_futures::Instrument;
@@ -55,16 +56,13 @@ where
     pub fn tls<N>(
         &mut self,
         addr: &str,
-        cert_path: &Path,
+        identity: Identity,
         authenticator: N,
     ) -> Result<&mut Self, Error>
     where
         N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
     {
-        let make_transport = Box::pin(Transport::new_tls(
-            addr.to_string(),
-            cert_path.to_path_buf(),
-        ));
+        let make_transport = Box::pin(Transport::new_tls(addr.to_string(), identity));
         self.transports
             .push((make_transport, Arc::new(authenticator)));
 
