@@ -9,6 +9,7 @@ use bytes::{Buf, BufMut};
 use futures_util::{future::BoxFuture, FutureExt};
 use http::Uri;
 use hyper::client::{connect::Connection, HttpConnector};
+#[cfg(unix)]
 use hyperlocal::UnixConnector;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tower_service::Service;
@@ -19,6 +20,7 @@ use tower_service::Service;
 /// `Connector` just delegates call to underlying connector instances with no additional logic behind.
 #[derive(Debug, Clone)]
 pub enum Connector {
+    #[cfg(unix)]
     Unix(UnixConnector),
     Http(HttpConnector),
 }
@@ -30,6 +32,7 @@ impl Service<Uri> for Connector {
 
     fn call(&mut self, req: Uri) -> Self::Future {
         match self {
+            #[cfg(unix)]
             Connector::Unix(connector) => {
                 let fut = connector
                     .call(req)
@@ -47,6 +50,7 @@ impl Service<Uri> for Connector {
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         match self {
+            #[cfg(unix)]
             Connector::Unix(connector) => connector.poll_ready(cx).map_err(|e| Box::new(e).into()),
             Connector::Http(connector) => connector.poll_ready(cx).map_err(|e| Box::new(e).into()),
         }
@@ -58,6 +62,7 @@ impl Service<Uri> for Connector {
 /// by a `hyper::Client`.
 /// `Stream` just delegates call to underlying `Stream` instances with no additional logic behind.
 pub enum Stream {
+    #[cfg(unix)]
     Unix(<UnixConnector as Service<Uri>>::Response),
     Http(<HttpConnector as Service<Uri>>::Response),
 }
@@ -66,6 +71,7 @@ impl AsyncRead for Stream {
     #[inline]
     unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [MaybeUninit<u8>]) -> bool {
         match self {
+            #[cfg(unix)]
             Self::Unix(stream) => stream.prepare_uninitialized_buffer(buf),
             Self::Http(stream) => stream.prepare_uninitialized_buffer(buf),
         }
@@ -78,6 +84,7 @@ impl AsyncRead for Stream {
         buf: &mut B,
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_read_buf(cx, buf),
             Self::Http(stream) => Pin::new(stream).poll_read_buf(cx, buf),
         }
@@ -102,6 +109,7 @@ impl AsyncWrite for Stream {
         buf: &[u8],
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_write(cx, buf),
             Self::Http(stream) => Pin::new(stream).poll_write(cx, buf),
         }
@@ -113,6 +121,7 @@ impl AsyncWrite for Stream {
         buf: &mut B,
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_write_buf(cx, buf),
             Self::Http(stream) => Pin::new(stream).poll_write_buf(cx, buf),
         }
@@ -121,6 +130,7 @@ impl AsyncWrite for Stream {
     #[inline]
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_flush(cx),
             Self::Http(stream) => Pin::new(stream).poll_flush(cx),
         }
@@ -128,6 +138,7 @@ impl AsyncWrite for Stream {
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_shutdown(cx),
             Self::Http(stream) => Pin::new(stream).poll_shutdown(cx),
         }
@@ -137,6 +148,7 @@ impl AsyncWrite for Stream {
 impl Connection for Stream {
     fn connected(&self) -> hyper::client::connect::Connected {
         match self {
+            #[cfg(unix)]
             Stream::Unix(stream) => stream.connected(),
             Stream::Http(stream) => stream.connected(),
         }

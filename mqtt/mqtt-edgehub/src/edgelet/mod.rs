@@ -8,6 +8,7 @@ use std::{convert::TryInto, error::Error as StdError, fmt::Display};
 
 use http::{uri::InvalidUri, Uri};
 use hyper::{client::HttpConnector, Client};
+#[cfg(unix)]
 use hyperlocal::UnixConnector;
 use url::Url;
 
@@ -21,6 +22,7 @@ where
         .map_err(|e| Error::ParseUrl(uri.to_string(), e))?;
 
     let (connector, scheme) = match uri.scheme_str() {
+        #[cfg(unix)]
         Some("unix") => (
             Connector::Unix(UnixConnector),
             Scheme::Unix(uri.path().to_string()),
@@ -38,6 +40,7 @@ where
 
 fn make_hyper_uri(scheme: &Scheme, path: &str) -> Result<Uri, Box<dyn StdError + Send + Sync>> {
     match scheme {
+        #[cfg(unix)]
         Scheme::Unix(base) => Ok(hyperlocal::Uri::new(base, path).into()),
         Scheme::Http(base) => {
             let base = Url::parse(base)?;
@@ -49,6 +52,7 @@ fn make_hyper_uri(scheme: &Scheme, path: &str) -> Result<Uri, Box<dyn StdError +
 }
 
 pub(crate) enum Scheme {
+    #[cfg(unix)]
     Unix(String),
     Http(String),
 }
