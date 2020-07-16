@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -30,28 +31,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task ProcessC2DSubscriptionTest()
         {
             // Arrange
+            var milestone = new SemaphoreSlim(0, 1);
             string id = "d1";
             var cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
-            cloudProxy.Setup(c => c.StartListening());
+            cloudProxy.Setup(c => c.StartListening()).Callback(() => milestone.Release());
             var connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection(id) == Task.FromResult(Option.Some(cloudProxy.Object)));
+            Mock.Get(connectionManager).Setup(c => c.AddSubscription(id, DeviceSubscription.C2D)).Returns(true);
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
             await subscriptionProcessor.AddSubscription(id, DeviceSubscription.C2D);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
 
             cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
             connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection(id) == Task.FromResult(Option.Some(cloudProxy.Object)));
+            Mock.Get(connectionManager).Setup(c => c.RemoveSubscription(id, DeviceSubscription.C2D)).Returns(true);
             subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
             await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.C2D);
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
         }
 
@@ -59,29 +62,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task ProcessDesiredPropertiesSubscriptionTest()
         {
             // Arrange
+            var milestone = new SemaphoreSlim(0, 1);
             string id = "d1";
             var cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
-            cloudProxy.Setup(c => c.SetupDesiredPropertyUpdatesAsync());
+            cloudProxy.Setup(c => c.SetupDesiredPropertyUpdatesAsync()).Callback(() => milestone.Release()).Returns(Task.CompletedTask);
             var connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection(id) == Task.FromResult(Option.Some(cloudProxy.Object)));
+            Mock.Get(connectionManager).Setup(c => c.AddSubscription(id, DeviceSubscription.DesiredPropertyUpdates)).Returns(true);
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
             await subscriptionProcessor.AddSubscription(id, DeviceSubscription.DesiredPropertyUpdates);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
 
+            milestone = new SemaphoreSlim(0, 1);
             cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
-            cloudProxy.Setup(c => c.RemoveDesiredPropertyUpdatesAsync());
+            cloudProxy.Setup(c => c.RemoveDesiredPropertyUpdatesAsync()).Callback(() => milestone.Release()).Returns(Task.CompletedTask);
             connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection(id) == Task.FromResult(Option.Some(cloudProxy.Object)));
+            Mock.Get(connectionManager).Setup(c => c.RemoveSubscription(id, DeviceSubscription.DesiredPropertyUpdates)).Returns(true);
             subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
             await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.DesiredPropertyUpdates);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
         }
 
@@ -89,29 +96,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task ProcessMethodsSubscriptionTest()
         {
             // Arrange
+            var milestone = new SemaphoreSlim(0, 1);
             string id = "d1";
             var cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
-            cloudProxy.Setup(c => c.SetupCallMethodAsync());
+            cloudProxy.Setup(c => c.SetupCallMethodAsync()).Callback(() => milestone.Release()).Returns(Task.CompletedTask);
             var connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection(id) == Task.FromResult(Option.Some(cloudProxy.Object)));
+            Mock.Get(connectionManager).Setup(c => c.AddSubscription(id, DeviceSubscription.Methods)).Returns(true);
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
             await subscriptionProcessor.AddSubscription(id, DeviceSubscription.Methods);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
 
             cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
-            cloudProxy.Setup(c => c.RemoveCallMethodAsync());
+            cloudProxy.Setup(c => c.RemoveCallMethodAsync()).Callback(() => milestone.Release()).Returns(Task.CompletedTask);
             connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection(id) == Task.FromResult(Option.Some(cloudProxy.Object)));
+            Mock.Get(connectionManager).Setup(c => c.RemoveSubscription(id, DeviceSubscription.Methods)).Returns(true);
             subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
             // Act
             await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.Methods);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
         }
 
@@ -119,11 +129,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task ProcessMultipleSubscriptionsTest()
         {
             // Arrange
+            int callCounter = 3;
+            var milestone = new SemaphoreSlim(0, 1);
             string id = "d1";
             var cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
-            cloudProxy.Setup(c => c.SetupCallMethodAsync());
-            cloudProxy.Setup(c => c.RemoveDesiredPropertyUpdatesAsync());
-            cloudProxy.Setup(c => c.StartListening());
+            cloudProxy.Setup(c => c.SetupCallMethodAsync()).Callback(Called).Returns(Task.CompletedTask);
+            cloudProxy.Setup(c => c.RemoveDesiredPropertyUpdatesAsync()).Callback(Called).Returns(Task.CompletedTask);
+            cloudProxy.Setup(c => c.StartListening()).Callback(Called).Returns(Task.CompletedTask);
             var connectionManager = Mock.Of<IConnectionManager>(c => c.GetCloudConnection(id) == Task.FromResult(Option.Some(cloudProxy.Object)));
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager);
 
@@ -139,14 +151,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 });
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
+
+            void Called()
+            {
+                if (Interlocked.Decrement(ref callCounter) == 0)
+                {
+                    milestone.Release();
+                }
+            }
         }
 
         [Fact]
         public async Task ProcessMultipleSubscriptionCallsTest()
         {
             // Arrange
+            var milestone = new SemaphoreSlim(0, 1);
             string id = "d1";
 
             async Task<Option<ICloudProxy>> DummyProxyGetter()
@@ -157,8 +178,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
             var connectionManager = new Mock<IConnectionManager>(MockBehavior.Strict);
-            connectionManager.Setup(c => c.AddSubscription(id, It.IsAny<DeviceSubscription>()));
+            connectionManager.Setup(c => c.AddSubscription(id, It.IsAny<DeviceSubscription>())).Returns(true);
             connectionManager.Setup(c => c.GetCloudConnection(id))
+                .Callback(() => milestone.Release())
                 .Returns(DummyProxyGetter);
             SubscriptionProcessor subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
@@ -169,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await subscriptionProcessor.AddSubscription(id, DeviceSubscription.TwinResponse);
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
             connectionManager.Verify(c => c.GetCloudConnection(id), Times.Once);
         }
@@ -189,7 +211,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await subscriptionProcessor.AddSubscription(id, DeviceSubscription.Unknown);
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
 
             cloudProxy = new Mock<ICloudProxy>(MockBehavior.Strict);
@@ -202,7 +223,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await subscriptionProcessor.RemoveSubscription(id, DeviceSubscription.Unknown);
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
         }
 
@@ -210,21 +230,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task AddSubscriptionHandlesExceptionTest()
         {
             // Arrange
+            var milestone = new SemaphoreSlim(0, 1);
             string deviceId = "d1";
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .Callback(() => milestone.Release())
                 .ThrowsAsync(new InvalidOperationException());
 
             var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods)).Returns(true);
             connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             var subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
             await subscriptionProcessor.AddSubscription(deviceId, DeviceSubscription.Methods);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
             connectionManager.VerifyAll();
         }
@@ -233,21 +255,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task AddSubscriptionTimesOutTest()
         {
             // Arrange
+            var milestone = new SemaphoreSlim(0, 1);
             string deviceId = "d1";
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.SetupCallMethodAsync())
+                .Callback(() => milestone.Release())
                 .ThrowsAsync(new TimeoutException());
 
             var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods)).Returns(true);
             connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             var subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
             await subscriptionProcessor.AddSubscription(deviceId, DeviceSubscription.Methods);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
             connectionManager.VerifyAll();
         }
@@ -256,21 +280,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RemoveSubscriptionHandlesExceptionTest()
         {
             // Arrange
+            var milestone = new SemaphoreSlim(0, 1);
             string deviceId = "d1";
             var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+            cloudProxy.Setup(c => c.RemoveCallMethodAsync())
+                .Callback(() => milestone.Release())
                 .ThrowsAsync(new InvalidOperationException());
 
             var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.RemoveSubscription(deviceId, DeviceSubscription.Methods)).Returns(true);
             connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             var subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
-            await subscriptionProcessor.AddSubscription(deviceId, DeviceSubscription.Methods);
+            await subscriptionProcessor.RemoveSubscription(deviceId, DeviceSubscription.Methods);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
             connectionManager.VerifyAll();
         }
@@ -279,21 +305,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task RemoveSubscriptionTimesOutTest()
         {
             // Arrange
+            var milestone = new SemaphoreSlim(0, 1);
             string deviceId = "d1";
             var cloudProxy = new Mock<ICloudProxy>();
-            cloudProxy.Setup(c => c.SetupCallMethodAsync())
+            cloudProxy.Setup(c => c.RemoveCallMethodAsync())
+                .Callback(() => milestone.Release())
                 .ThrowsAsync(new TimeoutException());
 
             var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.AddSubscription(deviceId, DeviceSubscription.Methods));
+            connectionManager.Setup(c => c.RemoveSubscription(deviceId, DeviceSubscription.Methods)).Returns(true);
             connectionManager.Setup(c => c.GetCloudConnection(deviceId)).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             var subscriptionProcessor = GetSubscriptionProcessor(connectionManager.Object);
 
             // Act
-            await subscriptionProcessor.AddSubscription(deviceId, DeviceSubscription.Methods);
+            await subscriptionProcessor.RemoveSubscription(deviceId, DeviceSubscription.Methods);
+            await milestone.WaitAsync(TimeSpan.FromSeconds(5));
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(5));
             cloudProxy.VerifyAll();
             connectionManager.VerifyAll();
         }

@@ -279,24 +279,12 @@ translate_c2d! {
     // Module-to-Module inputs
     module_to_module_inputs {
         to_internal {
-            format!("devices/{}/modules/{}/inputs/(?P<path>.*)", DEVICE_ID, MODULE_ID),
-            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/inputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
+            format!("devices/{}/modules/{}/#", DEVICE_ID, MODULE_ID),
+            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/inputs/#", &captures["device_id"], &captures["module_id"])}
         },
         to_external {
             format!("\\$edgehub/{}/{}/inputs/(?P<path>.*)", DEVICE_ID, MODULE_ID),
             {|captures: regex::Captures<'_>| format!("devices/{}/modules/{}/inputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
-        }
-    },
-
-    // Module-to-Module outputs
-    module_to_module_outputs {
-        to_internal {
-            format!("devices/{}/modules/{}/outputs/(?P<path>.*)", DEVICE_ID, MODULE_ID),
-            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/outputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
-        },
-        to_external {
-            format!("\\$edgehub/{}/{}/outputs/(?P<path>.*)", DEVICE_ID, MODULE_ID),
-            {|captures: regex::Captures<'_>| format!("devices/{}/modules/{}/outputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
         }
     }
 }
@@ -534,30 +522,16 @@ mod tests {
             Some("$iothub/methods/POST/my_method/?rid=5".to_owned())
         );
 
-        // M2M inputs
+        // M2M subscription
         assert_eq!(
-            c2d.to_internal(
-                "devices/device_1/modules/module_a/inputs/route_1",
-                &client_id
-            ),
-            Some("$edgehub/device_1/module_a/inputs/route_1".to_owned())
-        );
-        assert_eq!(
-            c2d.to_external("$edgehub/device_1/module_a/inputs/route_1"),
-            Some("devices/device_1/modules/module_a/inputs/route_1".to_owned())
+            c2d.to_internal("devices/device_1/modules/module_a/#", &client_id),
+            Some("$edgehub/device_1/module_a/inputs/#".to_owned())
         );
 
-        // M2M outputs
+        // M2M incoming
         assert_eq!(
-            c2d.to_internal(
-                "devices/device_1/modules/module_a/outputs/route_1",
-                &client_id
-            ),
-            Some("$edgehub/device_1/module_a/outputs/route_1".to_owned())
-        );
-        assert_eq!(
-            c2d.to_external("$edgehub/device_1/module_a/outputs/route_1"),
-            Some("devices/device_1/modules/module_a/outputs/route_1".to_owned())
+            c2d.to_external("$edgehub/device_1/module_a/inputs/route_1/%24.cdid=device_1&%24.cmid=module_a"),
+            Some("devices/device_1/modules/module_a/inputs/route_1/%24.cdid=device_1&%24.cmid=module_a".to_owned())
         );
     }
 }
