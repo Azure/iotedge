@@ -30,7 +30,7 @@ impl ShutdownHandle {
         self.0
             .send(Event::Shutdown)
             .await
-            .map_err(|_| Error::SendSnapshotMessage)?;
+            .map_err(|_| Error::SendSnapshotMessage)?; // TODO: new error type
         Ok(())
     }
 }
@@ -56,7 +56,7 @@ impl CommandHandler {
         ShutdownHandle(self.sender.clone())
     }
 
-    pub async fn run(mut self) -> JoinHandle {
+    pub fn run(mut self) -> JoinHandle<()> {
         let mut client = mqtt3::Client::new(
             Some(CLIENT_ID.to_string()),
             None,
@@ -112,7 +112,6 @@ impl CommandHandler {
 
                     if let mqtt3::Event::Publication(publication) = event {
                         let client_id = Self::parse_client_id(publication.topic_name);
-
                         match client_id {
                             Some(client_id) => {
                                 if let Err(e) = self
