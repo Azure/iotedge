@@ -32,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 false,
                 0,
                 true,
-                Mock.Of<IProductInfoStore>());
+                Mock.Of<IProductInfoStore>(),
+                Mock.Of<IModelIdStore>());
 
             Assert.Equal(Constants.WebSocketSubProtocol, listener.SubProtocol);
         }
