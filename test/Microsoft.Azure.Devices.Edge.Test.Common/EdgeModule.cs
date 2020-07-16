@@ -163,7 +163,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .Select(
                         v =>
                         {
-                            if (v.Path.EndsWith("settings.createOptions"))
+                            if (v.Path.EndsWith("settings.createOptions") ||
+                                v.Path.EndsWith("net.azure-devices.edge.env"))
                             {
                                 // normalize stringized JSON inside "createOptions"
                                 v.Value = JObject.Parse((string)v.Value).ToString(Formatting.None);
