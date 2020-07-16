@@ -128,6 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             params string[] requiredProperties) => Profiler.Run(
             async () =>
             {
+                Log.Verbose("Waiting for event...");
                 string resultBody = null;
                 await this.iotHub.ReceiveEventsAsync(
                     this.deviceId,
