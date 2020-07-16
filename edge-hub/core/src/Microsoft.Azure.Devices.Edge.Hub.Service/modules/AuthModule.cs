@@ -32,13 +32,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var auth = await c.Resolve<Task<IAuthenticator>>();
                             var usernameParser = c.Resolve<IUsernameParser>();
                             var identityFactory = c.Resolve<IClientCredentialsFactory>();
+                            var systemIdProvider = c.Resolve<ISystemComponentIdProvider>();
 
                             var port = this.config.GetValue("port", defaultPort);
                             var baseUrl = this.config.GetValue("baseUrl", defaultBaseUrl);
 
                             var config = new AuthAgentProtocolHeadConfig(port, baseUrl);
 
-                            return new AuthAgentProtocolHead(auth, usernameParser, identityFactory, config);
+                            return new AuthAgentProtocolHead(auth, usernameParser, identityFactory, systemIdProvider, config);
                         })
                     .As<Task<AuthAgentProtocolHead>>()
                     .SingleInstance();
