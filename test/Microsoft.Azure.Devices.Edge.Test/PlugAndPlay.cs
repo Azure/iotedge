@@ -68,7 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             IRestResponse response = client.Execute(request);
             Log.Verbose("Request: " + request.ToString());
             Log.Verbose($"Parsing response: {response.Content}");
-            Log.Verbose($"statusCode: {response.StatusCode}. Raw bytes: {Encoding.UTF8.GetString(response.RawBytes)}");
+            Log.Verbose($"statusCode: {response.StatusCode}.");
+            Log.Verbose($"Raw bytes: { Encoding.UTF8.GetString(response.RawBytes) }");
             var jo = JObject.Parse(response.Content);
             var modelId = jo["$metadata"]["$model"].ToString();
             Assert.AreEqual(expectedModelId, modelId);
