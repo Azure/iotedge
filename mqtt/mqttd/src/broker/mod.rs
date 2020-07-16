@@ -43,6 +43,7 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
 
+    // TODO: why do we need to do thsi
     command_handler_join_handle.await?;
     info!("command handler shutdown.");
 
@@ -61,7 +62,10 @@ async fn start_command_handler(broker_handle: BrokerHandle) -> JoinHandle<()> {
     //      this command handler is just listening to edgehub topics
     // let shutdown_handle = command_handler.shutdown_handle();
 
-    let join_handle = tokio::spawn(command_handler.run());
+    // TODO: do we need tokio.spawn()
+    // let join_handle = tokio::spawn(command_handler.run());
+
+    let join_handle = command_handler.run();
     join_handle
 }
 
