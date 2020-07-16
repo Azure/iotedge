@@ -63,25 +63,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Log.Verbose($"SAS: {sasToken}");
 
             HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sasToken);
+            httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             Log.Verbose($"Request string: https://{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             Log.Verbose($"HTTPCLIENT method response status code: {responseMessage.StatusCode}");
             Log.Verbose($"HTTPCLIENT method response headers: {responseMessage.Headers}");
-            Log.Verbose($"HTTPCLIENT method response content: {responseMessage.Content}");
-
-            var client = new RestClient($"https://{hubName}.{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
-            client.Timeout = -1;
-            var request = new RestRequest(Method.GET);
-            request.AddHeader("Authorization", sasToken);
-            request.AddHeader("Content-Type", "application/json");
-            IRestResponse response = client.Execute(request);
-            Log.Verbose("Request: " + request.ToString());
-            Log.Verbose($"Parsing response: {response.Content}");
-            Log.Verbose($"statusCode: {response.StatusCode}.");
-            Log.Verbose($"Raw bytes: { Encoding.UTF8.GetString(response.RawBytes) }");
-            var jo = JObject.Parse(response.Content);
+            Log.Verbose($"HTTPCLIENT method response content: {await responseMessage.Content.ReadAsStringAsync()}");
+            var jo = JObject.Parse(await responseMessage.Content.ReadAsStringAsync());
             var modelId = jo["$metadata"]["$model"].ToString();
             Assert.AreEqual(expectedModelId, modelId);
         }
