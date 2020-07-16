@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Text;
     using System.Threading;
@@ -659,7 +660,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to", "priority" });
+                new List<string> { "from", "to", "priority", MetricsConstants.MsTelemetry });
 
             public static IDisposable TimeMessageSend(string id, string fromRoute) => MessagesTimer.GetTimer(new[] { id, "upstream", fromRoute, string.Empty });
 
@@ -678,15 +679,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void MessageProcessingLatency(string id, IMessage message)
             {
-                if (message.SystemProperties != null
-                    && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
-                    && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
+                if (message.EnqueuedTimestamp != 0)
                 {
-                    TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
+                    TimeSpan duration = TimeSpan.FromTicks(Stopwatch.GetTimestamp() - message.EnqueuedTimestamp);
                     string priority = message.ProcessedPriority.ToString();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { id, "upstream", priority });
+                        new[] { id, "upstream", priority, bool.TrueString });
                 }
             }
         }

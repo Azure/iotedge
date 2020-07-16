@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
     public abstract class LinkHandler : ILinkHandler
@@ -76,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
             if (!await this.Authenticate())
             {
+                Metrics.Instance.LogAuthenticationFailure(1, this.Identity?.Id, "not authenticated");
                 throw new InvalidOperationException($"Unable to open {this.Type} link as the connection could not be authenticated");
             }
 
@@ -150,6 +152,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             public static void Opened(LinkHandler handler)
             {
                 Log.LogInformation((int)EventIds.Opened, $"Opened link {handler.Type} for {handler.ClientId}");
+            }
+        }
+
+        class Metrics
+        {
+            readonly IMetricsCounter authCounter;
+
+            Metrics()
+            {
+                this.authCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                    "client_connect_failed",
+                    "Client connection failure",
+                    new List<string> { "id", "reason", "protocol" });
+            }
+
+            public static Metrics Instance { get; } = new Metrics();
+
+            public void LogAuthenticationFailure(long metricValue, string id, string reason)
+            {
+                this.authCounter.Increment(metricValue, new[] { id, reason, "AMQP" });
             }
         }
     }

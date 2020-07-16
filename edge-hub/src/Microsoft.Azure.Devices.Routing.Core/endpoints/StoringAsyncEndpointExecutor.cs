@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Extensions.Logging;
     using Nito.AsyncEx;
@@ -76,6 +77,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
             catch (Exception ex)
             {
+                Routing.UserMetricLogger.LogIngressFailureMetric(1, this.Endpoint.IotHubName, message, "storage failure");
                 Events.AddMessageFailure(this, ex);
                 throw;
             }

@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
@@ -86,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     || !clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)
                     || !await this.authenticator.AuthenticateAsync(deviceCredentials))
                 {
+                    Metrics.Instance.LogAuthenticationFailure(1, clientId, "not authenticated");
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
@@ -260,6 +262,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             static string GetId(string deviceId, string moduleId) =>
                 string.IsNullOrWhiteSpace(moduleId) ? deviceId : $"{deviceId}/{moduleId}";
+        }
+
+        class Metrics
+        {
+            readonly IMetricsCounter authCounter;
+
+            Metrics()
+            {
+                this.authCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                    "client_connect_failed",
+                    "Client connection failure",
+                    new List<string> { "id", "reason", "protocol" });
+            }
+
+            public static Metrics Instance { get; } = new Metrics();
+
+            public void LogAuthenticationFailure(long metricValue, string id, string reason)
+            {
+                this.authCounter.Increment(metricValue, new[] { id, reason, "MQTT" });
+            }
         }
     }
 }

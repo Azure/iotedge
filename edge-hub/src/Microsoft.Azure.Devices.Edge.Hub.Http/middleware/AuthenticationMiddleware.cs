@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
     using Microsoft.Net.Http.Headers;
@@ -141,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             if (!await authenticator.AuthenticateAsync(clientCredentials))
             {
+                Metrics.Instance.LogAuthenticationFailure(1, identity.Id, "not authenticated");
                 return LogAndReturnFailure($"Unable to authenticate device with Id {identity.Id}");
             }
 
@@ -195,6 +197,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             public static void AuthenticationSucceeded(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.AuthenticationSuccess, Invariant($"Http Authentication succeeded for device with Id {identity.Id}"));
+            }
+        }
+
+        class Metrics
+        {
+            readonly IMetricsCounter authCounter;
+
+            Metrics()
+            {
+                this.authCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                    "client_connect_failed",
+                    "Client connection failure",
+                    new List<string> { "id", "reason", "protocol" });
+            }
+
+            public static Metrics Instance { get; } = new Metrics();
+
+            public void LogAuthenticationFailure(long metricValue, string id, string reason)
+            {
+                this.authCounter.Increment(metricValue, new[] { id, reason, "HTTP" });
             }
         }
     }

@@ -4,8 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Net;
     using System.Threading.Tasks;
+    using App.Metrics.Infrastructure;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -428,7 +430,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 var taskCompletionSource = new TaskCompletionSource<bool>();
                 this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
 
-                using (Metrics.TimeMessageSend(this.Identity, message, message.GetOutput(), message.GetInput()))
+                using (Metrics.TimeMessageSend(this.Identity, message, message.GetOutput(), input))
                 {
                     Events.SendingMessage(this.Identity, lockToken);
                     Metrics.MessageProcessingLatency(this.Identity, message);
@@ -515,7 +517,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to", "priority" });
+                new List<string> { "from", "to", "priority", MetricsConstants.MsTelemetry });
 
             public static IDisposable TimeMessageSend(IIdentity identity, IMessage message, string fromRoute, string toRoute)
             {
@@ -537,14 +539,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 string from = message.GetSenderId();
                 string to = identity.Id;
                 string priority = message.ProcessedPriority.ToString();
-                if (message.SystemProperties != null
-                    && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
-                    && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
+                if (message.EnqueuedTimestamp != 0)
                 {
-                    TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
+                    TimeSpan duration = TimeSpan.FromTicks(Stopwatch.GetTimestamp() - message.EnqueuedTimestamp);
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { from, to, priority });
+                        new[] { from, to, priority, bool.TrueString });
                 }
             }
         }

@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
@@ -36,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>> pendingSubscriptions;
         readonly ActionBlock<string> processSubscriptionsBlock;
         readonly IInvokeMethodHandler invokeMethodHandler;
+        readonly IMetricsCounter retriesCounter;
 
         public SubscriptionProcessor(IConnectionManager connectionManager, IInvokeMethodHandler invokeMethodHandler, IDeviceConnectivityManager deviceConnectivityManager)
             : base(connectionManager)
@@ -46,6 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.processSubscriptionsBlock = new ActionBlock<string>(this.ProcessPendingSubscriptions);
             deviceConnectivityManager.DeviceConnected += this.CloudConnectivityEstablished;
             connectionManager.CloudConnectionEstablished += this.ClientCloudConnectionEstablished;
+            this.retriesCounter = Metrics.Instance.CreateCounter(
+                "operation_retry",
+                "Operation retries",
+                new List<string> { "operation", MetricsConstants.MsTelemetry });
         }
 
         protected override void HandleSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptions) =>
@@ -65,7 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 await ExecuteWithRetry(
                     () => this.ProcessSubscription(id, cloudProxy, deviceSubscription, addSubscription),
-                    r => Events.ErrorProcessingSubscription(id, deviceSubscription, addSubscription, r));
+                    r =>
+                        {
+                            this.retriesCounter.Increment(1, new[] { addSubscription ? "AddSubscription" : "RemoveSubscription", bool.TrueString });
+                            Events.ErrorProcessingSubscription(id, deviceSubscription, addSubscription, r);
+                        });
             }
             catch (Exception ex)
             {
