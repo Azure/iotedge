@@ -129,6 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             async () =>
             {
                 Log.Verbose("Waiting for event...");
+                Log.Verbose($"EventHub: {this.iotHub.EntityPath}");
                 string resultBody = null;
                 await this.iotHub.ReceiveEventsAsync(
                     this.deviceId,
