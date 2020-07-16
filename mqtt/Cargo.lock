@@ -1098,6 +1098,7 @@ dependencies = [
  "mqtt-edgehub",
  "mqtt3",
  "native-tls",
+ "regex",
  "serde_json",
  "tempfile",
  "tokio",
