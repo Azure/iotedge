@@ -62,10 +62,8 @@ async fn start_command_handler(broker_handle: BrokerHandle) -> JoinHandle<()> {
     //      this command handler is just listening to edgehub topics
     // let shutdown_handle = command_handler.shutdown_handle();
 
-    // TODO: do we need tokio.spawn()
-    // let join_handle = tokio::spawn(command_handler.run());
+    let join_handle = tokio::spawn(command_handler.run());
 
-    let join_handle = command_handler.run();
     join_handle
 }
 

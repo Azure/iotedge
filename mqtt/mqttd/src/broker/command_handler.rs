@@ -13,6 +13,7 @@ use tokio::task::JoinHandle;
 use tracing::error;
 use tracing::info;
 
+// TODO: rename to command
 // TODO: get device id from env
 const CLIENT_ID: &str = "deviceid/$edgeHub/$broker/$control";
 const TOPIC_FILTER: &str = "$edgehub/{}/disconnect";
@@ -25,6 +26,7 @@ enum Event {
 #[derive(Debug)]
 pub struct ShutdownHandle(Sender<Event>);
 
+// TODO: change to hold mqtt client shutdown handle
 impl ShutdownHandle {
     pub async fn shutdown(&mut self) -> Result<(), Error> {
         self.0
@@ -35,28 +37,13 @@ impl ShutdownHandle {
     }
 }
 
-// TODO: should it be pub
 pub struct CommandHandler {
     broker_handle: BrokerHandle,
-    sender: Sender<Event>,
-    events: Receiver<Event>,
+    client: mqtt3::Client,
 }
 
 impl CommandHandler {
     pub fn new(broker_handle: BrokerHandle) -> Self {
-        let (sender, events) = mpsc::channel(5);
-        CommandHandler {
-            broker_handle,
-            sender,
-            events,
-        }
-    }
-
-    pub fn shutdown_handle(&self) -> ShutdownHandle {
-        ShutdownHandle(self.sender.clone())
-    }
-
-    pub async fn run(mut self) -> JoinHandle {
         let mut client = mqtt3::Client::new(
             Some(CLIENT_ID.to_string()),
             None,
@@ -71,9 +58,20 @@ impl CommandHandler {
             Duration::from_secs(60),
         );
 
+        CommandHandler {
+            broker_handle,
+            client,
+        }
+    }
+
+    pub fn shutdown_handle(&self) -> ShutdownHandle {
+        ShutdownHandle(self.client.shutdown_handle().clone())
+    }
+
+    pub async fn run(mut self) {
         let qos = proto::QoS::AtLeastOnce;
         // TODO: log error with client and topic
-        if let Err(_e) = client.subscribe(proto::SubscribeTo {
+        if let Err(_e) = self.client.subscribe(proto::SubscribeTo {
             topic_filter: TOPIC_FILTER.to_string(),
             qos,
         }) {
@@ -101,50 +99,47 @@ impl CommandHandler {
         // };
         // pin_mut!(event_loop);
         // select(event_loop, tx).await;
-        let event_loop_handle = tokio::spawn(async move {
-            let event_loop = async {
-                while let Some(event) = client.next().await {
-                    info!("received data");
+        let event_loop = async {
+            while let Some(event) = self.client.next().await {
+                info!("received data");
 
-                    // client.next() produces option of a result
-                    // TODO: safely handle
-                    let event = event.unwrap();
+                // client.next() produces option of a result
+                // TODO: safely handle
+                let event = event.unwrap();
 
-                    if let mqtt3::Event::Publication(publication) = event {
-                        let client_id = Self::parse_client_id(publication.topic_name);
+                if let mqtt3::Event::Publication(publication) = event {
+                    let client_id = Self::parse_client_id(publication.topic_name);
 
-                        match client_id {
-                            Some(client_id) => {
-                                if let Err(e) = self
-                                    .broker_handle
-                                    .send(Message::System(SystemEvent::ForceClientDisconnect(
-                                        client_id.into(),
-                                    )))
-                                    .await
-                                {
-                                    error!(message = "failed to signal broker to disconnect client", error=%e);
-                                }
+                    match client_id {
+                        Some(client_id) => {
+                            if let Err(e) = self
+                                .broker_handle
+                                .send(Message::System(SystemEvent::ForceClientDisconnect(
+                                    client_id.into(),
+                                )))
+                                .await
+                            {
+                                error!(message = "failed to signal broker to disconnect client", error=%e);
                             }
-                            None => {
-                                error!("no client id in disconnect request");
-                            }
+                        }
+                        None => {
+                            error!("no client id in disconnect request");
                         }
                     }
                 }
-            };
-            pin_mut!(event_loop);
-            select(event_loop, self.events).await;
-        });
-
-        event_loop_handle
+            }
+        };
+        pin_mut!(event_loop);
+        select(event_loop, self.client.shutdown_handle()).await;
     }
 
     fn parse_client_id(topic_name: String) -> Option<String> {
         // TODO: eliminate unwrap
+        // TODO: create static var for regex
         let re = Regex::new(CLIENT_EXTRACTION_REGEX);
 
         // TODO: clean up
-        // TODO: "disconnect client topic"?
+        // TODO: look at configuration
         match re {
             Ok(re) => match re.captures(topic_name.as_ref()) {
                 Some(capture) => match capture.get(0) {
