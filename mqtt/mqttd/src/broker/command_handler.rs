@@ -44,22 +44,6 @@ pub struct CommandHandler {
 
 impl CommandHandler {
     pub fn new(broker_handle: BrokerHandle) -> Self {
-<<<<<<< HEAD
-=======
-        let (sender, events) = mpsc::channel(5);
-        CommandHandler {
-            broker_handle,
-            sender,
-            events,
-        }
-    }
-
-    pub fn shutdown_handle(&self) -> ShutdownHandle {
-        ShutdownHandle(self.sender.clone())
-    }
-
-    pub fn run(mut self) -> JoinHandle<()> {
->>>>>>> eb135b650eb6d6068b956a93c8b3745a79ebcadb
         let mut client = mqtt3::Client::new(
             Some(CLIENT_ID.to_string()),
             None,
