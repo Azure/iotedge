@@ -108,7 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
             this.RegistryManager.RemoveDeviceAsync(device);
-            
 
         public Task DeployDeviceConfigurationAsync(
             string deviceId,
