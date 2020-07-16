@@ -65,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            Log.Verbose($"Request string: https://{hubName}.{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{hubName}.{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             Log.Verbose($"HTTPCLIENT method response status code: {responseMessage.StatusCode}");
             Log.Verbose($"HTTPCLIENT method response headers: {responseMessage.Headers}");
