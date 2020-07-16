@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
@@ -19,13 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class Metrics : SasManualProvisioningFixture
     {
         public const string ModuleName = "metricsValidator";
-        const string EdgeAgentBaseImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
 
         [Test]
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
-            await this.Deploy(token);
+            await this.DeployAsync(token);
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
@@ -41,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             public int Failed { get; set; }
         }
 
-        async Task Deploy(CancellationToken token)
+        async Task DeployAsync(CancellationToken token)
         {
             // First deploy everything needed for this test, including a temporary image that will be removed later to bump the "stopped" metric
             string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
@@ -73,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             builder.AddModule(Metrics.ModuleName, image);
 
-            var edgeHub = builder.GetModule(ConfigModuleName.EdgeHub)
+            builder.GetModule(ConfigModuleName.EdgeHub)
                 .WithDesiredProperties(new Dictionary<string, object>
                 {
                     {

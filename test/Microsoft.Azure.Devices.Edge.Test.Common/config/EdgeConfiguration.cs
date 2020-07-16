@@ -62,13 +62,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var reported = new Dictionary<string, object>
             {
                 ["systemModules"] = desired
-                            .Value<JObject>("systemModules")
-                            .Children<JProperty>()
-                            .ToDictionary(
-                                p => p.Name,
-                                p => p.Name == ModuleName.EdgeAgent.Substring(1)
-                                    ? CreateExpectedAgentModuleConfig((JObject)p.Value)
-                                    : CreateExpectedModuleConfig((JObject)p.Value))
+                    .Value<JObject>("systemModules")
+                    .Children<JProperty>()
+                    .ToDictionary(
+                        p => p.Name,
+                        p => p.Name == ModuleName.EdgeAgent.Substring(1)
+                            ? CreateExpectedAgentModuleConfig((JObject)p.Value)
+                            : CreateExpectedModuleConfig((JObject)p.Value))
             };
 
             if (desired.ContainsKey("modules"))
