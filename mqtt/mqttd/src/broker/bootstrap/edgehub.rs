@@ -72,7 +72,7 @@ where
 }
 
 async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
-    let delay = Utc::now() - renew_at;
+    let delay = renew_at - Utc::now();
     if delay > Duration::zero() {
         info!(
             "scheduled server certificate renewal timer for {}",
@@ -124,12 +124,19 @@ async fn download_server_certificate(path: impl AsRef<Path>) -> Result<ServerCer
 
 #[cfg(test)]
 mod tests {
-    use std::env;
+    use std::{
+        env,
+        time::{Duration as StdDuration, Instant},
+    };
 
+    use chrono::{Duration, Utc};
     use mockito::mock;
     use serde_json::json;
 
-    use super::*;
+    use super::{
+        download_server_certificate, server_certificate_renewal, EDGE_DEVICE_HOST_NAME,
+        MODULE_GENERATION_ID, MODULE_ID, WORKLOAD_URI,
+    };
 
     const PRIVATE_KEY: &str = include_str!("../../../../mqtt-edgehub/test/tls/pkey.pem");
 
@@ -165,5 +172,27 @@ mod tests {
         let res = download_server_certificate(&path).await;
         assert!(res.is_ok());
         assert!(path.exists());
+    }
+
+    #[tokio::test]
+    async fn it_schedules_cert_renewal_in_future() {
+        let now = Instant::now();
+
+        let renew_at = Utc::now() + Duration::milliseconds(100);
+        server_certificate_renewal(renew_at).await;
+
+        let elapsed = now.elapsed();
+        assert!(elapsed > StdDuration::from_millis(100));
+        assert!(elapsed < StdDuration::from_millis(500));
+    }
+
+    #[tokio::test]
+    async fn it_does_not_schedule_cert_renewal_in_past() {
+        let now = Instant::now();
+
+        let renew_at = Utc::now();
+        server_certificate_renewal(renew_at).await;
+
+        assert!(now.elapsed() < StdDuration::from_millis(100));
     }
 }
