@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Globalization;
     using System.Net;
     using System.Net.Http;
+    using System.Net.Http.Headers;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading;
@@ -50,16 +51,25 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeModule filter = deployment.Modules[PlugAndPlayIdentityName];
             await Task.Delay(TimeSpan.FromSeconds(15));
             // await filter.WaitForEventsReceivedFromDeviceAsync(deployment.StartTime, token, DeviceId);
-            this.Validate(this.iotHub.HubName, this.iotHub.Hostname, DeviceId, TestModelId);
+            await this.Validate(this.iotHub.HubName, this.iotHub.Hostname, DeviceId, TestModelId);
         }
 
 
-        public void Validate(string hubName, string hostName, string deviceId, string expectedModelId)
+        public async Task Validate(string hubName, string hostName, string deviceId, string expectedModelId)
         {
             // Verify that the device has been registered as a plug and play device
             string sasToken = GenerateSasToken($"{this.iotHub.HubName}.{this.iotHub.Hostname}/devices/{DeviceId}", this.iotHub.SharedAccessKey, "iothubowner");
             Log.Verbose($"AccessKey: {this.iotHub.SharedAccessKey}");
             Log.Verbose($"SAS: {sasToken}");
+
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sasToken);
+            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{hubName}.{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
+            Log.Verbose($"HTTPCLIENT method response status code: {responseMessage.StatusCode}");
+            Log.Verbose($"HTTPCLIENT method response headers: {responseMessage.Headers}");
+            Log.Verbose($"HTTPCLIENT method response content: {responseMessage.Content}");
+
             var client = new RestClient($"https://{hubName}.{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             client.Timeout = -1;
             var request = new RestRequest(Method.GET);
