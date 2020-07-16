@@ -91,8 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         await this.daemon.StopAsync(token);
                         foreach (EdgeDevice device in Context.Current.DeleteList.Values)
                         {
+                            Log.Verbose($"deleting {device.Id}");
                             await device.MaybeDeleteIdentityAsync(token);
                         }
+                        Log.Verbose("Done with everything...");
                     }
                 },
                 "Completed end-to-end test teardown"),
