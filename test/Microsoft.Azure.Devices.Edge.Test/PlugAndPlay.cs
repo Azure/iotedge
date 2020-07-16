@@ -57,6 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             // Verify that the device has been registered as a plug and play device
             string sasToken = GenerateSasToken($"{this.iotHub.HubName}.{this.iotHub.Hostname}/devices/{DeviceId}", this.iotHub.SharedAccessKey, "iothubowner");
+            Log.Verbose($"AccessKey: {this.iotHub.SharedAccessKey}");
+            Log.Verbose($"SAS: {sasToken}");
             var client = new RestClient($"https://{hubName}.{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             client.Timeout = -1;
             var request = new RestRequest(Method.GET);
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             IRestResponse response = client.Execute(request);
             Log.Verbose("Request: " + request.ToString());
             Log.Verbose($"Parsing response: {response.Content}");
+            Log.Verbose($"statusCode: {response.StatusCode}. Raw bytes: {Encoding.UTF8.GetString(response.RawBytes)}");
             var jo = JObject.Parse(response.Content);
             var modelId = jo["$metadata"]["$model"].ToString();
             Assert.AreEqual(expectedModelId, modelId);
