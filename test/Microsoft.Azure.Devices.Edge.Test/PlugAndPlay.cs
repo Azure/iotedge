@@ -58,15 +58,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task Validate(string hubName, string hostName, string deviceId, string expectedModelId)
         {
             // Verify that the device has been registered as a plug and play device
-            string sasToken = GenerateSasToken($"{this.iotHub.HubName}.{this.iotHub.Hostname}/devices/{DeviceId}", this.iotHub.SharedAccessKey, "iothubowner");
+            string sasToken = GenerateSasToken($"{this.iotHub.Hostname}/devices/{DeviceId}", this.iotHub.SharedAccessKey, "iothubowner");
             Log.Verbose($"AccessKey: {this.iotHub.SharedAccessKey}");
             Log.Verbose($"SAS: {sasToken}");
 
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            Log.Verbose($"Request string: https://{hubName}.{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
-            HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{hubName}.{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
+            Log.Verbose($"Request string: https://{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
+            HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             Log.Verbose($"HTTPCLIENT method response status code: {responseMessage.StatusCode}");
             Log.Verbose($"HTTPCLIENT method response headers: {responseMessage.Headers}");
             Log.Verbose($"HTTPCLIENT method response content: {responseMessage.Content}");
