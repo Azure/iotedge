@@ -88,7 +88,7 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
 }
 
 pub const WORKLOAD_URI: &str = "IOTEDGE_WORKLOADURI";
-pub const EDGE_DEVICE_HOST_NAME: &str = "EDGEDEVICEHOSTNAME";
+pub const EDGE_DEVICE_HOST_NAME: &str = "EdgeDeviceHostName";
 pub const MODULE_ID: &str = "IOTEDGE_MODULEID";
 pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 
