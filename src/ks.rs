@@ -20,6 +20,7 @@ pub enum Text {
     Ciphertext(String)
 }
 
+// TODO: use KS client
 async fn call<'a>(method: Method, resource: &str, payload: Option<impl Serialize>) -> BoxResult<'a, Response<Body>> {
     let client = Client::new();
     let uri = format!("{}{}", HSM_SERVER, percent_encode(resource.as_bytes(), ENCODE_CHARS));

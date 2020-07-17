@@ -9,15 +9,18 @@ use hyper::body::to_bytes;
 
 #[inline]
 async fn read_request<'a>(req: Request<Body>) -> BoxResult<'a, String> {
-    String::from_utf8(
+    Ok(
+        String::from_utf8(
             decode(
                 to_bytes(req).await?
                     .to_vec()
             )?
-        )
-        .or_else(|e| <BoxResult<'a, String>>::Err(Box::new(e)))
+        )?
+    )
 }
 
+// TODO: API versioning
+// TODO: Swagger specification
 pub(crate) async fn dispatch<'a, T: StoreBackend>(store: &'a Store<T>, req: Request<Body>) -> BoxResult<'a, Response<Body>> {
     let id = String::from_str(&req.uri().path()[1 ..]).unwrap();
     match req.method() {
