@@ -92,27 +92,32 @@ impl CommandHandler {
 
             // client.next() produces option of a result
             // TODO: safely handle
-            let event = event.unwrap();
+            // let event = event.unwrap();
 
-            if let mqtt3::Event::Publication(publication) = event {
-                let client_id = Self::parse_client_id(publication.topic_name);
+            match event {
+                Ok(event) => {
+                    if let mqtt3::Event::Publication(publication) = event {
+                        let client_id = Self::parse_client_id(publication.topic_name);
 
-                match client_id {
-                    Some(client_id) => {
-                        if let Err(e) = self
-                            .broker_handle
-                            .send(Message::System(SystemEvent::ForceClientDisconnect(
-                                client_id.into(),
-                            )))
-                            .await
-                        {
-                            error!(message = "failed to signal broker to disconnect client", error=%e);
+                        match client_id {
+                            Some(client_id) => {
+                                if let Err(e) = self
+                                    .broker_handle
+                                    .send(Message::System(SystemEvent::ForceClientDisconnect(
+                                        client_id.into(),
+                                    )))
+                                    .await
+                                {
+                                    error!(message = "failed to signal broker to disconnect client", error=%e);
+                                }
+                            }
+                            None => {
+                                error!("no client id in disconnect request");
+                            }
                         }
                     }
-                    None => {
-                        error!("no client id in disconnect request");
-                    }
                 }
+                Err(e) => error!(message = "client read bad event.", error = %e),
             }
         }
     }
