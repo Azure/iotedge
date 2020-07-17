@@ -62,9 +62,7 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     Ok(())
 }
 
-async fn start_command_handler(
-    broker_handle: BrokerHandle,
-) -> (mqtt3::ShutdownHandle, JoinHandle<()>) {
+async fn start_command_handler(broker_handle: BrokerHandle) -> (ShutdownHandle, JoinHandle<()>) {
     let command_handler = CommandHandler::new(broker_handle);
     let shutdown_handle = command_handler.shutdown_handle();
 
@@ -73,7 +71,7 @@ async fn start_command_handler(
     // let shutdown_handle = command_handler.shutdown_handle();
 
     // let join_handle = tokio::spawn(command_handler.run());
-    let join_handle = command_handler.run();
+    let join_handle = tokio::spawn(command_handler.run());
     (shutdown_handle, join_handle)
 }
 
