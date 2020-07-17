@@ -516,7 +516,7 @@ dependencies = [
 [[package]]
 name = "iotedge-aad"
 version = "0.1.0"
-source = "git+https://github.com/R25l84IHeXjIxy6HO1QXn0y0Dq9mt8EN/iotedge-aad.git#83e3c425f1d75d432c57a0818af3f3253bb031f3"
+source = "git+https://github.com/dmolokanov/iotedge-aad#57f6c0210810c46e80545f8474b7e19aa420c334"
 dependencies = [
  "base64 0.11.0",
  "chrono",
@@ -1110,6 +1110,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "regex",
+ "reqwest",
  "ring",
  "rocksdb",
  "rusqlite",

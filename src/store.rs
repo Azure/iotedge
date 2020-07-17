@@ -4,11 +4,14 @@ use crate::ks;
 use crate::ks::{Key, Text};
 use crate::util::*;
 
+use std::sync::Arc;
+
 use base64::{decode, encode};
 use futures::future::try_join_all;
 use iotedge_aad::{Auth, TokenSource};
 use lazy_static::lazy_static;
 use regex::Regex;
+use reqwest::Client;
 use ring::rand::{generate, SystemRandom};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
@@ -87,7 +90,7 @@ impl<T: StoreBackend> Store<T> {
         }
         let client = hyper::Client::builder()
             .build(hyper_tls::HttpsConnector::new());
-        let token = Auth::new(None, "https://vault.azure.net")
+        let token = Auth::new(Arc::new(Client::new()), "https://vault.azure.net")
             .authorize_with_secret(
                 &self.config.credentials.tenant_id,
                 &self.config.credentials.client_id,
