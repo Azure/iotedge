@@ -31,13 +31,10 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
 
     let broker = bootstrap::broker(&config, state).await?;
 
-    // TODO: do this only if in edgehub mode (cfg?)
-
     #[cfg(feature = "edgehub")]
     info!("starting command handler...");
-    let (command_handler_shutdown_handle, command_handler_join_handle) =
+    let (mut command_handler_shutdown_handle, command_handler_join_handle) =
         start_command_handler(broker.handle()).await;
-    // start_command_handler(broker.handle());
 
     info!("starting snapshotter...");
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
@@ -50,9 +47,8 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
 
-    // TODO: why do we need to do thsi
     #[cfg(feature = "edgehub")]
-    command_handler_shutdown_handle.shutdown();
+    command_handler_shutdown_handle.shutdown().await?;
     command_handler_join_handle.await?;
     info!("command handler shutdown.");
 
