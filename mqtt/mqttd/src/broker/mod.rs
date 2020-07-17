@@ -2,7 +2,8 @@ mod bootstrap;
 mod shutdown;
 mod snapshot;
 
-use std::env;
+use std::fs;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use futures_util::pin_mut;
@@ -18,10 +19,15 @@ use mqtt_broker::{
 };
 use mqtt_broker_core::auth::Authorizer;
 
+const MQTTD_STATE_DIR: &str = "/tmp/mqttd";
+
 pub async fn run(config: BrokerConfig) -> Result<()> {
     info!("loading state...");
-    let state_dir = env::current_dir().expect("can't get cwd").join("state");
-    let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
+    fs::create_dir(MQTTD_STATE_DIR).expect("can't create mqttd state dir");
+    let mut persistor = FilePersistor::new(
+        PathBuf::from(MQTTD_STATE_DIR),
+        VersionedFileFormat::default(),
+    );
     let state = persistor.load().await?;
     info!("state loaded.");
 
