@@ -5,11 +5,9 @@ ADD ./watchdog/target/aarch64-unknown-linux-gnu/release/watchdog /usr/local/bin/
 ADD ./mqttd/target/aarch64-unknown-linux-gnu/release/mqttd /usr/local/bin/mqttd
 ADD ./mqttd/production.json /app/mqttd/production.json
 
-ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
-
 WORKDIR /app
 
-COPY $EXE_DIR/ ./edge-hub
+COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
 
 # Set broker log level
 ENV RUST_LOG=info
