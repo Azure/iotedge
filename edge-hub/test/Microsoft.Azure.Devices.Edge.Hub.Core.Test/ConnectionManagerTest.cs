@@ -493,7 +493,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
-                .Callback<IIdentity, ITokenProvider, ITransportSettings[]>((i, s, t) => receivedTokenProvider = s)
+                .Callback<IIdentity, ITokenProvider, ITransportSettings[], Option<string>>((i, s, t, m) => receivedTokenProvider = s)
                 .Returns(GetDeviceClient);
 
             var productInfoStore = Mock.Of<IProductInfoStore>();

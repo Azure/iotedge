@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             Preconditions.CheckNotNull(authenticationMethod, nameof(authenticationMethod));
+            modelId.ForEach(m => Preconditions.CheckNonWhiteSpace(m, nameof(m)));
 
             Option<ClientOptions> options = modelId.Match(
                 m => Option.Some(new ClientOptions { ModelId = m }),
