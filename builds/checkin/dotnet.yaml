@@ -4,19 +4,20 @@ pr:
     include:
       - master
       - release/*
+      - iiot
 jobs:
 
 ################################################################################
   - job: check_run_pipeline
 ################################################################################
-    displayName: Check pipeline preconditions (changes ARE NOT in edgelet and docs)
+    displayName: Check pipeline preconditions (changes ARE NOT in either edgelet, docs, or mqtt folder)
     pool:
       vmImage: "ubuntu-16.04"
     steps:
       - bash: |
-          git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(edgelet|doc)'
+          git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(edgelet|doc|mqtt)'
           if [[ $? == 0 ]]; then
-            echo "Detected changes outside of edgelet and docs folders"
+            echo "Detected changes outside of edgelet, docs and mqtt folders"
             echo "##vso[task.setvariable variable=RUN_PIPELINE;isOutput=true]TRUE"
           fi
         displayName: Check changes in sources
@@ -31,11 +32,12 @@ jobs:
     pool:
       vmImage: "ubuntu-16.04"
     steps:
+      - template: ../templates/install-dotnet2.yaml
+      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
-        displayName: Install
+        displayName: Install Prerequisites
         inputs:
           filePath: scripts/linux/installPrereqs.sh
-          arguments: -u $(NetCorePackageUriLinux)
       - task: Bash@3
         displayName: Build
         inputs:
@@ -62,11 +64,8 @@ jobs:
     pool:
       vmImage: "vs2017-win2016"
     steps:
-      - task: PowerShell@2
-        displayName: Install
-        inputs:
-          filePath: scripts/windows/setup/Install-Prerequisites.ps1
-          arguments: -DotnetSdkUrl $(NetCorePackageUriWindows) -Dotnet -Nuget
+      - template: ../templates/install-dotnet2.yaml
+      - template: ../templates/install-dotnet3.yaml
       - task: PowerShell@2
         displayName: Build
         inputs:

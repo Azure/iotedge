@@ -22,11 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             string Get(string name) => context.GetValue<string>(name);
 
-            string GetOrDefault(string name, string defaultValue) => context.GetValue(name, defaultValue);
-
-            IEnumerable<(string, string, string)> GetAndValidateRegistries()
+            IEnumerable<Registry> GetAndValidateRegistries()
             {
-                var result = new List<(string, string, string)>();
+                var result = new List<Registry>();
 
                 var registries = context.GetSection("registries").GetChildren().ToArray();
                 foreach (var reg in registries)
@@ -46,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Preconditions.CheckNonWhiteSpace(username, nameof(username));
                     Preconditions.CheckNonWhiteSpace(password, nameof(password));
 
-                    result.Add((address, username, password));
+                    result.Add(new Registry(address, username, password));
                 }
 
                 return result;
@@ -80,7 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            this.DeviceId = IdentityLimits.CheckEdgeId(GetOrDefault("deviceId", defaultId));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
@@ -101,6 +98,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TempFilterImage = Option.Maybe(Get("tempFilterImage"));
             this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
             this.MetricsValidatorImage = Option.Maybe(Get("metricsValidatorImage"));
+            this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
+            this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
+            this.RelayerImage = Option.Maybe(Get("relayerImage"));
+            this.NetworkControllerImage = Option.Maybe(Get("networkControllerImage"));
+            this.EdgeAgentBootstrapImage = Option.Maybe(Get("edgeAgentBootstrapImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
         }
@@ -114,8 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public string ConnectionString { get; }
 
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
-
-        public string DeviceId { get; }
 
         public Option<string> DpsIdScope { get; }
 
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<Uri> Proxy { get; }
 
-        public IEnumerable<(string address, string username, string password)> Registries { get; }
+        public IEnumerable<Registry> Registries { get; }
 
         public Option<(string certificate, string key, string password)> RootCaKeys { get; }
 
@@ -156,6 +156,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> TempSensorImage { get; }
 
         public Option<string> MetricsValidatorImage { get; }
+
+        public Option<string> TestResultCoordinatorImage { get; }
+
+        public Option<string> LoadGenImage { get; }
+
+        public Option<string> RelayerImage { get; }
+
+        public Option<string> NetworkControllerImage { get; }
+
+        public Option<string> EdgeAgentBootstrapImage { get; }
 
         public TimeSpan TestTimeout { get; }
 

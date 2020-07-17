@@ -1,0 +1,10 @@
+.dockerignore
+.editorconfig
+.git
+.gitignore
+.vscode
+state
+target
+Dockerfile
+LICENSE
+README.md

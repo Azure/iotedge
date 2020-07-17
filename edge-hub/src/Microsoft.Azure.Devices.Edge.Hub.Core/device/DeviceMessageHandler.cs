@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     class DeviceMessageHandler : IDeviceListener, IDeviceProxy
     {
         const int GenericBadRequest = 400000;
-        static readonly TimeSpan MessageResponseTimeout = TimeSpan.FromSeconds(30);
 
         readonly ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>> methodCallTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>>();
         readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> messageTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<bool>>();
@@ -25,14 +24,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
+        readonly TimeSpan messageAckTimeout;
         readonly AsyncLock serializeMessagesLock = new AsyncLock();
+        readonly Option<string> modelId;
         IDeviceProxy underlyingProxy;
 
-        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager)
+        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, TimeSpan messageAckTimeout, Option<string> modelId)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
+            this.messageAckTimeout = messageAckTimeout;
+            this.modelId = modelId;
         }
 
         public IIdentity Identity { get; }
@@ -178,9 +181,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        public Task ProcessDeviceMessageAsync(IMessage message) => this.edgeHub.ProcessDeviceMessage(this.Identity, message);
+        public Task ProcessDeviceMessageAsync(IMessage message)
+        {
+            this.modelId.ForEach(modelId => message.SystemProperties[SystemProperties.ModelId] = modelId);
+            return this.edgeHub.ProcessDeviceMessage(this.Identity, message);
+        }
 
-        public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> messages) => this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messages);
+        public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> messages)
+        {
+            this.modelId.ForEach(modelId =>
+            {
+                foreach (IMessage message in messages)
+                {
+                    message.SystemProperties[SystemProperties.ModelId] = modelId;
+                }
+            });
+
+            return this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messages);
+        }
 
         public async Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId)
         {
@@ -410,13 +428,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 var taskCompletionSource = new TaskCompletionSource<bool>();
                 this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
 
-                using (Metrics.TimeMessageSend(this.Identity, message))
+                using (Metrics.TimeMessageSend(this.Identity, message, message.GetOutput(), message.GetInput()))
                 {
                     Events.SendingMessage(this.Identity, lockToken);
                     Metrics.MessageProcessingLatency(this.Identity, message);
                     await this.underlyingProxy.SendMessageAsync(message, input);
 
-                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
+                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(this.messageAckTimeout));
                     if (completedTask != taskCompletionSource.Task)
                     {
                         Events.MessageFeedbackTimedout(this.Identity, lockToken);
@@ -472,7 +490,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_seconds",
                 "Time taken to send a message",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
@@ -497,13 +515,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "priority" });
 
-            public static IDisposable TimeMessageSend(IIdentity identity, IMessage message)
+            public static IDisposable TimeMessageSend(IIdentity identity, IMessage message, string fromRoute, string toRoute)
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
-                return MessagesTimer.GetTimer(new[] { from, to });
+                return MessagesTimer.GetTimer(new[] { from, to, fromRoute, toRoute });
             }
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "edge_hub", id });
@@ -518,6 +536,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
+                string priority = message.ProcessedPriority.ToString();
                 if (message.SystemProperties != null
                     && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
@@ -525,7 +544,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { from, to });
+                        new[] { from, to, priority });
                 }
             }
         }

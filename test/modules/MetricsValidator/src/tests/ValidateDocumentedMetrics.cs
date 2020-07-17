@@ -15,11 +15,9 @@ namespace MetricsValidator.Tests
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using NUnit.Framework.Internal;
 
     public class ValidateDocumentedMetrics : TestBase
     {
@@ -46,9 +44,7 @@ namespace MetricsValidator.Tests
 
             if (OsPlatform.IsWindows())
             {
-                // EdgeAgent doesn't return this on windows; see bug 6078740
-                expected.Remove("edgeAgent_available_disk_space_bytes");
-                expected.Remove("edgeAgent_total_disk_space_bytes");
+                // Docker doesn't return this on windows
                 expected.Remove("edgeAgent_created_pids_total");
             }
 

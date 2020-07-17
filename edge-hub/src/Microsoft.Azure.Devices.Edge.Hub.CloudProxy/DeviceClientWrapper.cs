@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             try
             {
-                await this.underlyingDeviceClient.OpenAsync();
+                await this.underlyingDeviceClient.OpenAsync().TimeoutAfter(TimeSpan.FromMinutes(2));
             }
             catch (Exception)
             {

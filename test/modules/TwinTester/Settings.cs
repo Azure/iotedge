@@ -30,16 +30,17 @@ namespace TwinTester
                 configuration.GetValue<int>("TwinUpdateSize", 1),
                 configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
                 configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
+                configuration.GetValue<TimeSpan>("EdgeHubRestartFailureTolerance", TimeSpan.FromMinutes(1)),
                 configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
-                configuration.GetValue<string>("TestResultCoordinatorUrl"),
+                configuration.GetValue<string>("testResultCoordinatorUrl"),
                 configuration.GetValue<string>("ServiceClientConnectionString"),
                 configuration.GetValue<string>("StoragePath"),
                 configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
                 configuration.GetValue<TwinTestMode>("TwinTestMode", TwinTestMode.TwinAllOperations),
                 Option.Maybe(configuration.GetValue<string>("trackingId")),
-                configuration.GetValue("TestStartDelay", TimeSpan.Zero),
-                configuration.GetValue("TestDuration", TimeSpan.FromMilliseconds(-1)));
+                configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
+                configuration.GetValue("testDuration", TimeSpan.FromMilliseconds(-1)));
         }
 
         Settings(
@@ -49,6 +50,7 @@ namespace TwinTester
             int twinUpdateSize,
             TimeSpan twinUpdateFrequency,
             TimeSpan twinUpdateFailureThreshold,
+            TimeSpan edgeHubRestartFailureTolerance,
             TransportType transportType,
             string analyzerUrl,
             string testResultCoordinatorUrl,
@@ -66,6 +68,7 @@ namespace TwinTester
             this.TwinUpdateSize = Preconditions.CheckRange(twinUpdateSize, 1);
             this.TwinUpdateFrequency = Preconditions.CheckNotNull(twinUpdateFrequency);
             this.TwinUpdateFailureThreshold = Preconditions.CheckNotNull(twinUpdateFailureThreshold);
+            this.EdgeHubRestartFailureTolerance = Preconditions.CheckNotNull(edgeHubRestartFailureTolerance);
             this.TransportType = Preconditions.CheckNotNull(transportType);
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.StoragePath = Preconditions.CheckNotNull(storagePath);
@@ -98,6 +101,8 @@ namespace TwinTester
 
         public TimeSpan TwinUpdateFailureThreshold { get; }
 
+        public TimeSpan EdgeHubRestartFailureTolerance { get; }
+
         public TransportType TransportType { get; }
 
         public Uri ReporterUrl { get; }
@@ -125,6 +130,7 @@ namespace TwinTester
             fields.Add(nameof(this.TwinUpdateSize), this.TwinUpdateSize.ToString());
             fields.Add(nameof(this.TwinUpdateFrequency), this.TwinUpdateFrequency.ToString());
             fields.Add(nameof(this.TwinUpdateFailureThreshold), this.TwinUpdateFailureThreshold.ToString());
+            fields.Add(nameof(this.EdgeHubRestartFailureTolerance), this.EdgeHubRestartFailureTolerance.ToString());
             fields.Add(nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType));
             fields.Add(nameof(this.ReporterUrl), this.ReporterUrl.ToString());
             fields.Add(nameof(this.StoragePath), this.StoragePath);

@@ -4,6 +4,7 @@ namespace TestResultCoordinator.Reports
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports.DirectMethod;
     using TestResultCoordinator.Reports.EdgeHubRestartTest;
@@ -12,12 +13,16 @@ namespace TestResultCoordinator.Reports
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
     {
         const int BatchSize = 500;
-        readonly ITestOperationResultStorage storage;
 
-        internal TestReportGeneratorFactory(ITestOperationResultStorage storage)
+        internal TestReportGeneratorFactory(ITestOperationResultStorage storage, NetworkControllerType networkControllerType)
         {
-            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
+            this.Storage = Preconditions.CheckNotNull(storage, nameof(storage));
+            this.NetworkControllerType = networkControllerType;
         }
+
+        ITestOperationResultStorage Storage { get; }
+
+        NetworkControllerType NetworkControllerType { get; }
 
         public async Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
@@ -35,13 +40,15 @@ namespace TestResultCoordinator.Reports
                         var actualTestResults = this.GetResults(metadata.ActualSource);
 
                         return new CountingReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults,
                             metadata.ActualSource,
                             actualTestResults,
                             testReportMetadata.TestOperationResultType.ToString(),
-                            new SimpleTestOperationResultComparer());
+                            new SimpleTestOperationResultComparer(),
+                            Settings.Current.UnmatchedResultsMaxSize);
                     }
 
                 case TestReportType.TwinCountingReport:
@@ -51,13 +58,15 @@ namespace TestResultCoordinator.Reports
                         var actualTestResults = this.GetResults(metadata.ActualSource);
 
                         return new TwinCountingReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults,
                             metadata.ActualSource,
                             actualTestResults,
                             testReportMetadata.TestOperationResultType.ToString(),
-                            new SimpleTestOperationResultComparer());
+                            new SimpleTestOperationResultComparer(),
+                            Settings.Current.UnmatchedResultsMaxSize);
                     }
 
                 case TestReportType.DeploymentTestReport:
@@ -67,11 +76,13 @@ namespace TestResultCoordinator.Reports
                         var actualTestResults = this.GetResults(metadata.ActualSource);
 
                         return new DeploymentTestReportGenerator(
-                        trackingId,
-                        metadata.ExpectedSource,
-                        expectedTestResults,
-                        metadata.ActualSource,
-                        actualTestResults);
+                            metadata.TestDescription,
+                            trackingId,
+                            metadata.ExpectedSource,
+                            expectedTestResults,
+                            metadata.ActualSource,
+                            actualTestResults,
+                            Settings.Current.UnmatchedResultsMaxSize);
                     }
 
                 case TestReportType.DirectMethodReport:
@@ -83,13 +94,15 @@ namespace TestResultCoordinator.Reports
                         var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
                         return new DirectMethodReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
                             senderTestResults,
                             metadata.ReceiverSource,
                             receiverTestResults,
                             metadata.TestOperationResultType.ToString(),
-                            networkStatusTimeline);
+                            networkStatusTimeline,
+                            this.NetworkControllerType);
                     }
 
                 case TestReportType.EdgeHubRestartDirectMethodReport:
@@ -99,6 +112,7 @@ namespace TestResultCoordinator.Reports
                         var receiverTestResults = this.GetResults(metadata.ReceiverSource);
 
                         return new EdgeHubRestartDirectMethodReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
                             metadata.ReceiverSource,
@@ -114,6 +128,7 @@ namespace TestResultCoordinator.Reports
                         var receiverTestResults = this.GetResults(metadata.ReceiverSource);
 
                         return new EdgeHubRestartMessageReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
                             metadata.ReceiverSource,
@@ -128,6 +143,7 @@ namespace TestResultCoordinator.Reports
                         var testResults = this.GetResults(metadata.Source);
 
                         return new SimpleReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.Source,
                             testResults,
@@ -140,6 +156,7 @@ namespace TestResultCoordinator.Reports
                         var testResults = this.GetResults(metadata.Source);
 
                         return new SimpleReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.Source,
                             testResults,
@@ -152,6 +169,7 @@ namespace TestResultCoordinator.Reports
                         var testResults = this.GetResults(metadata.Source);
 
                         return new SimpleReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.Source,
                             testResults,
@@ -168,14 +186,14 @@ namespace TestResultCoordinator.Reports
         async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
         {
             return await NetworkStatusTimeline.CreateAsync(
-                new StoreTestResultCollection<TestOperationResult>(this.storage.GetStoreFromSource("networkController"), BatchSize),
+                new StoreTestResultCollection<TestOperationResult>(this.Storage.GetStoreFromSource("networkController"), BatchSize),
                 tolerancePeriod);
         }
 
         ITestResultCollection<TestOperationResult> GetResults(string resultSource)
         {
             return new StoreTestResultCollection<TestOperationResult>(
-                this.storage.GetStoreFromSource(resultSource),
+                this.Storage.GetStoreFromSource(resultSource),
                 BatchSize);
         }
 

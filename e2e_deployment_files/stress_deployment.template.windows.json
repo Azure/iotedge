@@ -155,6 +155,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
                 }
             },
             "status": "running",
@@ -182,6 +185,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
                 }
             },
             "status": "running",
@@ -209,6 +215,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
                 }
             },
             "status": "running",
@@ -236,6 +245,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
                 }
             },
             "status": "running",
@@ -294,23 +306,17 @@
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               }, 
-              "LogAnalyticsEnabled": {
-                "value": "<Analyzer.LogAnalyticsEnabled>"
-              },
               "LogAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"
               },
               "LogAnalyticsSharedKey": {
                 "value": "<LogAnalyticsSharedKey>"
               },
-              "LogAnalyticsLogType": {
-                "value": "<Analyzer.LogAnalyticsLogType>"
-              },
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
               },
               "TestInfo": {
-                "value": "<Analyzer.TestInfo>"
+                "value": "<TestInfo>"
               }
             },
             "settings": {
@@ -331,7 +337,7 @@
                     "value": "<LogAnalyticsSharedKey>"
                 },
                 "LogAnalyticsLogType": {
-                  "value": "testMetrics"
+                  "value": "testMetricsV2"
                 },
                 "MetricsEndpointsCSV": {
                   "value": "<MetricsCollector.MetricsEndpointsCSV>"
@@ -367,10 +373,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
-        "hostPlatform": "<MetricsCollector.HostPlatform>",
-        "testType": "stress",
-        "testId": "<TrackingId>",
-        "upstreamProtocol": "amqp"
+        "additionalTags": "<TestInfo>"
       }
     }
   }

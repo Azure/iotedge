@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Moq;
     using Newtonsoft.Json;
     using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
+    using StorageLogLevel = Microsoft.Azure.Devices.Edge.Storage.StorageLogLevel;
 
     class DependencyManager : IDependencyManager
     {
@@ -90,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var mqttSettingsConfiguration = new Mock<IConfiguration>();
             mqttSettingsConfiguration.Setup(c => c.GetSection(It.IsAny<string>())).Returns(Mock.Of<IConfigurationSection>(s => s.Value == null));
 
-            var experimentalFeatures = new ExperimentalFeatures(true, false, false, true);
+            var experimentalFeatures = new ExperimentalFeatures(true, false, false);
 
             builder.RegisterBuildCallback(
                 c =>
@@ -104,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
 
             var versionInfo = new VersionInfo("v1", "b1", "c1");
-            var metricsConfig = new MetricsConfig(true, new MetricsListenerConfig());
+            var metricsConfig = new MetricsConfig(mqttSettingsConfiguration.Object);
             var backupFolder = Option.None<string>();
 
             string storageFolder = string.Empty;
@@ -139,6 +140,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 testRoutes = JsonConvert.DeserializeObject<IDictionary<string, string>>(customRoutes);
             }
 
+            if (!bool.TryParse(this.configuration["CheckEntireQueueOnCleanup"], out bool checkEntireQueueOnCleanup))
+            {
+                checkEntireQueueOnCleanup = false;
+            }
+
             builder.RegisterModule(
                 new CommonModule(
                     string.Empty,
@@ -161,7 +167,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     metricsConfig,
                     enableNonPersistentStorageBackup,
                     backupFolder,
-                    Option.None<ulong>()));
+                    Option.None<ulong>(),
+                    Option.None<StorageLogLevel>()));
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -178,6 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Option.Some(UpstreamProtocol.Amqp),
                     TimeSpan.FromSeconds(5),
                     101,
+                    TimeSpan.FromSeconds(30),
                     TimeSpan.FromSeconds(3600),
                     true,
                     TimeSpan.FromSeconds(20),
@@ -187,9 +195,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     10,
                     10,
-                    false,
+                    true,
                     TimeSpan.FromHours(1),
-                    experimentalFeatures));
+                    checkEntireQueueOnCleanup,
+                    experimentalFeatures,
+                    true));
 
             builder.RegisterModule(new HttpModule());
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));

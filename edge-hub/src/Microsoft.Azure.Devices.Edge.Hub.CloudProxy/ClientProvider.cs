@@ -82,5 +82,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
             }
         }
+
+        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, string modelId)
+        {
+            Preconditions.CheckNotNull(identity, nameof(identity));
+            Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
+            Preconditions.CheckNotNull(tokenProvider, nameof(tokenProvider));
+            Preconditions.CheckNonWhiteSpace(modelId, nameof(modelId));
+            var options = new ClientOptions
+            {
+                ModelId = modelId,
+            };
+            switch (identity)
+            {
+                case IDeviceIdentity deviceIdentity:
+                    DeviceClient deviceClient = DeviceClient.Create(identity.IotHubHostName, new DeviceAuthentication(tokenProvider, deviceIdentity.DeviceId), transportSettings, options);
+                    return new DeviceClientWrapper(deviceClient);
+
+                case IModuleIdentity moduleIdentity:
+                    ModuleClient moduleClient = ModuleClient.Create(identity.IotHubHostName, new ModuleAuthentication(tokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId), options);
+                    return new ModuleClientWrapper(moduleClient);
+
+                default:
+                    throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}. Create with modelId supports only DeviceIdentity");
+            }
+        }
     }
 }

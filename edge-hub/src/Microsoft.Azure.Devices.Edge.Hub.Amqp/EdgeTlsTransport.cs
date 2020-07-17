@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         protected override bool ValidateRemoteCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             // copy of the chain elements since they are destroyed after this method completes
-            this.remoteCertificateChain = chain == null ? new List<X509Certificate2>() : chain.ChainElements.Cast<X509ChainElement>().Select(element => element.Certificate).ToList();
+            this.remoteCertificateChain = chain == null ? new List<X509Certificate2>() : chain.ChainElements.Cast<X509ChainElement>().Select(element => new X509Certificate2(element.Certificate)).ToList();
             return base.ValidateRemoteCertificate(sender, certificate, chain, sslPolicyErrors);
         }
     }

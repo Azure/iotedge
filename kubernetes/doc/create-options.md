@@ -20,8 +20,10 @@ We added CreateOptions for experimental features on Kubernetes. These options "o
   "k8s-experimental": {
     "volumes": [{...}],
     "resources": [{...}],
-    "nodeSelector": {...}
+    "nodeSelector": {...},
     "securityContext": {...},
+    "service-options": {...},
+    "strategy": {...}
   }
 }
 ```
@@ -137,6 +139,41 @@ A `securityContext` section of config used to apply a pod security context to a 
       "runAsGroup": "1001",
       "runAsUser": "1000",
       ...
+    }
+  }
+}
+```
+
+## Apply Service options
+
+EdgeAgent creates a service for each module that exposes one or more ports. Default service types (typically ClusterIp) are assigned to the service.  This does not allow the use to mix service types on an edge deployment. If provided, the `serviceOptions.type` field will override the `type` option for the module's ServiceSpec. Also, if provided, the `serviceOptions.loadBalancerIP` field will be assigned to the `loadBalancerIP` field.
+
+`EdgeAgent` doesn't do any translations or interpretations of values but simply assigns value from module deployment to `type` and `loadBalancerIP` parameter of a service spec. Valid `type` options are "ClusterIP", "NodePort", and "LoadBalancer."
+
+### CreateOptions
+
+```json
+{
+  "k8s-experimental": {
+    "serviceOptions" : {
+      "loadBalancerIP" : "100.23.201.78",
+      "type" : "LoadBalancer"
+    }
+  }
+}
+```
+
+## Apply Deployment strategy
+
+EdgeAgent uses the default deployment strategy for handling pod replicas. This doesn't always have the expected effects, especially when dealing with persistent volumes. The user may assign this section to get more desireable behavior. This section has the same structure as the Kubernetes [Deployment Strategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#deploymentstrategy-v1-apps) object.
+
+`EdgeAgent` doesn't do any translations or interpretations of values but simply assigns value from module deployment to `strategy` parameter of a deployment spec.
+
+```json
+{
+  "k8s-experimental": {
+    "strategy": {
+      "type": "Recreate"
     }
   }
 }

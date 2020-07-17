@@ -19,18 +19,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.messageStore = Preconditions.CheckNotNull(messageStore, nameof(messageStore));
         }
 
-        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities) => this.CreateAsync(endpoint, priorities, NullCheckpointer.Instance, this.config);
+        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities) => this.CreateAsync(endpoint, priorities, new NullCheckpointerFactory(), this.config);
 
-        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer) => this.CreateAsync(endpoint, priorities, checkpointer, this.config);
+        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointerFactory checkpointerFactory) => this.CreateAsync(endpoint, priorities, checkpointerFactory, this.config);
 
-        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
+        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointerFactory checkpointerFactory, EndpointExecutorConfig endpointExecutorConfig)
         {
             Preconditions.CheckNotNull(endpoint, nameof(endpoint));
-            Preconditions.CheckNotNull(checkpointer, nameof(checkpointer));
+            Preconditions.CheckNotNull(checkpointerFactory, nameof(checkpointerFactory));
             Preconditions.CheckNotNull(endpointExecutorConfig, nameof(endpointExecutorConfig));
 
-            await this.messageStore.AddEndpoint(endpoint.Id);
-            IEndpointExecutor endpointExecutor = new StoringAsyncEndpointExecutor(endpoint, priorities, checkpointer, endpointExecutorConfig, this.options, this.messageStore);
+            var endpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointerFactory, endpointExecutorConfig, this.options, this.messageStore);
+            await endpointExecutor.UpdatePriorities(priorities, Option.None<Endpoint>());
             return endpointExecutor;
         }
     }

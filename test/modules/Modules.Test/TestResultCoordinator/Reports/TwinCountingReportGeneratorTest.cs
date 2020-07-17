@@ -37,6 +37,32 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 4, 7, 5, 5, 2 },
                 new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 4, 7, 5, 5, 2 },
             };
+        public static readonly string TestDescription = "dummy description";
+
+        static readonly ushort UnmatchedResultsMaxSize = 10;
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new TwinCountingReportGenerator(
+                    testDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object,
+                    "resultType1",
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
+
+            Assert.StartsWith("testDescription", ex.Message);
+        }
 
         [Theory]
         [InlineData(null)]
@@ -48,13 +74,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     trackingId,
                     "expectedSource",
                     mockExpectedResults.Object,
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("trackingId", ex.Message);
         }
@@ -69,13 +97,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     expectedSource,
                     mockExpectedResults.Object,
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("expectedSource", ex.Message);
         }
@@ -87,13 +117,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     null,
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.Equal("expectedTestResults", ex.ParamName);
         }
@@ -108,13 +140,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
                     actualSource,
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("actualSource", ex.Message);
         }
@@ -126,13 +160,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
                     "actualSource",
                     null,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.Equal("actualTestResults", ex.ParamName);
         }
@@ -147,13 +183,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
                     "actualSource",
                     mockActualStore.Object,
                     resultType,
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("resultType", ex.Message);
         }
@@ -166,15 +204,37 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    null));
+                    null,
+                    UnmatchedResultsMaxSize));
 
             Assert.Equal("testResultComparer", ex.ParamName);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        public void TestConstructorThrowsWhenUnmatchedResultsMaxSizeIsNonPositive(ushort unmatchedResultsMaxSize)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
+                () => new TwinCountingReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object,
+                    "resultType1",
+                    new SimpleTestOperationResultComparer(),
+                    unmatchedResultsMaxSize));
         }
 
         [Fact]
@@ -190,13 +250,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new CountingReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
                 actualSource,
                 actualResults,
                 "resultType1",
-                new SimpleTestOperationResultComparer());
+                new SimpleTestOperationResultComparer(),
+                UnmatchedResultsMaxSize);
 
             var report = (CountingReport)await reportGenerator.CreateReportAsync();
 
@@ -227,13 +289,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new TwinCountingReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
                 actualSource,
                 actualResults,
                 resultType,
-                new SimpleTestOperationResultComparer());
+                new SimpleTestOperationResultComparer(),
+                UnmatchedResultsMaxSize);
 
             var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)

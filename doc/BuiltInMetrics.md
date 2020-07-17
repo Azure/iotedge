@@ -11,6 +11,19 @@ As of release 1.0.9, metrics are exposed as an experimental feature available at
 | `ExperimentalFeatures__Enabled`          | `true` |
 | `ExperimentalFeatures__EnableMetrics`    | `true` |
 
+### Windows Note (1.0.9 only)
+Metrics on Windows are not fully supported the 1.0.9 experimental release. Host metrics (cpu, memory and disk usage) will all show as 0. Moby metrics are supported. In addition, edgeHub must be started as a container administrator to expose metrics. 
+
+This is no longer required in the 1.0.10 release
+
+Add the following to EdgeHub createOptions (on Windows only):
+```JSON
+createOptions: {
+  "User": "ContainerAdministrator",
+  "ExposedPorts": {}
+}
+```
+
 ## Metrics
 
 Note: All metrics contain the following tags
@@ -30,7 +43,7 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgehub_reported_properties_total`                         |  `target`(Update target)<br> `id` (Module ID)                                                                    | Total reported property updates calls                                                                                                                                                                    | counter |
 | `edgehub_message_size_bytes`                                |  `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])                                       | P50, P90, P95, P99, P99.9 and P99.99 message size from clients. Values may be reported as `NaN` if no new measurements are reported for a certain period of time  (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.                 | summary |
 | `edgehub_gettwin_duration_seconds`                          |  `source` (Operation source)<br> `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])       | P50, P90, P95, P99, P99.9 and P99.99  time taken for get twin operations.  Values may be reported as `NaN` if no  new measurements are reported for a certain  period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.     | summary |
-| `edgehub_message_send_duration_seconds`                     |  `from` (Message source)<br> `to` (Message destination)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99]) | P50, P90, P95, P99, P99.9 and P99.99 time taken to send a message. Values may be reported as `NaN`  if no new measurements are reported for a  certain period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.              | summary |
+| `edgehub_message_send_duration_seconds`                     |  `from` (Message source)<br> `to` (Message destination)<br>`from_route_output` (Output that sent the message)<br> `to_route_input` (Message destination input [empty when "to" is $upstream])<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99]) | P50, P90, P95, P99, P99.9 and P99.99 time taken to send a message. Values may be reported as `NaN`  if no new measurements are reported for a  certain period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.              | summary |
 | `edgehub_reported_properties_update_duration_seconds`       |  `target` (Operation target)<br> `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])       | P50, P90, P95, P99, P99.9 and P99.99 time taken to update reported properties. Values may be reported as `NaN`  if no new measurements are reported for a certain  period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted. | summary |
 | `edgehub_direct_method_duration_seconds`       |  `from` (Caller)<br> `to` (Reciever)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])       | P50, P90, P95, P99, P99.9 and P99.99 time taken to resolve a direct message. Values may be reported as `NaN`  if no new measurements are reported for a certain  period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted. | summary |
 | `edgehub_direct_methods_total`                               |  `from` (Message source)<br> `to` (Message destination)                                                          | Total number of direct messages sent                                                                                                                                                                        | counter |

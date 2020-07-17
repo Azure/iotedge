@@ -9,23 +9,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     {
         readonly string deviceId;
         readonly Dictionary<string, IModuleConfigBuilder> moduleBuilders;
-        readonly List<(string address, string username, string password)> registries;
+        readonly List<Registry> registries;
 
         public EdgeConfigBuilder(string deviceId)
         {
             this.deviceId = deviceId;
             this.moduleBuilders = new Dictionary<string, IModuleConfigBuilder>();
-            this.registries = new List<(string, string, string)>();
+            this.registries = new List<Registry>();
         }
 
-        public void AddRegistryCredentials(string address, string username, string password) =>
-            this.registries.Add((address, username, password));
+        public void AddRegistry(Registry registry) =>
+            this.registries.Add(registry);
 
-        public void AddRegistryCredentials(IEnumerable<(string address, string username, string password)> credentials)
+        public void AddRegistries(IEnumerable<Registry> credentials)
         {
-            foreach ((string address, string username, string password) in credentials)
+            foreach (Registry registry in credentials)
             {
-                this.AddRegistryCredentials(address, username, password);
+                this.AddRegistry(registry);
             }
         }
 
@@ -52,35 +52,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        // Returns two configurations: one with just $edgeAgent and $edgeHub; the other with
-        // everything. This is done to ensure edgeHub's routes are ready before the test modules
-        // start sending messages, to avoid dropped messages. Another way to handle this is to
-        // define all possible routes at the beginning of the test run, but there is added
-        // complexity as module names are assigned dynamically.
-        public IEnumerable<EdgeConfiguration> BuildConfigurationStages()
+        // By default, returns two configurations: one with just the system modules; the other with
+        // the full configuration (if it contains more than just system modules). The first
+        // configuration can be deployed in advance to ensure edgeHub's routes are ready before the
+        // test modules start sending messages, to avoid dropped messages.
+        // Note: Another option would be to define all possible routes at the beginning of the test
+        // run, but then module names would need to be statically defined as well (currently they're
+        // dynamic).
+        // If stageSystemModules is false, returns one (full) configuration.
+        public IEnumerable<EdgeConfiguration> Build(bool stageSystemModules = true)
         {
-            var config = new ConfigurationContent
-            {
-                ModulesContent = new Dictionary<string, IDictionary<string, object>>()
-            };
-
-            var moduleNames = new HashSet<string>();
-            var moduleImages = new HashSet<string>();
-
-            void UpdateConfiguration(ModuleConfiguration module)
-            {
-                moduleNames.Add(module.Name);
-                moduleImages.Add(module.Image);
-
-                if (module.DesiredProperties.Count != 0)
-                {
-                    config.ModulesContent[module.Name] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = module.DesiredProperties
-                    };
-                }
-            }
-
             // Edge agent is not optional; add if necessary
             if (!this.moduleBuilders.ContainsKey(ModuleName.EdgeAgent))
             {
@@ -92,35 +73,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 .Select(b => b.Value.Build())
                 .ToLookup(m => m.IsSystemModule() ? "system" : "other");
 
-            // Return a configuration for $edgeHub and $edgeAgent
-            List<ModuleConfiguration> modules = moduleConfigs["system"].ToList();
-            modules.Insert(0, this.BuildEdgeAgent(modules));
-            foreach (ModuleConfiguration module in modules)
+            EdgeConfiguration BuildEdgeConfiguration(List<ModuleConfiguration> modules)
             {
-                UpdateConfiguration(module);
+                modules.Insert(0, this.BuildEdgeAgent(modules));
+                return EdgeConfiguration.Create(this.deviceId, modules);
             }
 
-            if (moduleConfigs.Contains("other"))
+            if (stageSystemModules)
             {
-                yield return new EdgeConfiguration(
-                    this.deviceId,
-                    new List<string>(moduleNames),
-                    new List<string>(moduleImages),
-                    new ConfigurationContent
-                    {
-                        ModulesContent = new Dictionary<string, IDictionary<string, object>>(config.ModulesContent)
-                    });
+                // Return a configuration for $edgeHub and $edgeAgent
+                yield return BuildEdgeConfiguration(moduleConfigs["system"].ToList());
 
-                // Return a configuration for all modules
-                modules = moduleConfigs.SelectMany(m => m).ToList();
-                modules.Insert(0, this.BuildEdgeAgent(modules));
-                foreach (ModuleConfiguration module in modules)
+                if (moduleConfigs.Contains("other"))
                 {
-                    UpdateConfiguration(module);
+                    // Return a configuration for all modules
+                    yield return BuildEdgeConfiguration(moduleConfigs.SelectMany(m => m).ToList());
                 }
             }
-
-            yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
+            else
+            {
+                yield return BuildEdgeConfiguration(moduleConfigs.SelectMany(m => m).ToList());
+            }
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
@@ -140,14 +113,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 var credentials = new Dictionary<string, object>();
                 for (int i = 0; i < this.registries.Count; ++i)
                 {
-                    (string address, string username, string password) = this.registries[i];
+                    Registry registry = this.registries[i];
                     credentials.Add(
                         $"reg{i}",
                         new
                         {
-                            username,
-                            password,
-                            address
+                            registry.Username,
+                            registry.Password,
+                            registry.Address
                         });
                 }
 
@@ -202,6 +175,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         public IModuleConfigBuilder GetModule(string name)
         {
             return this.moduleBuilders[name];
+        }
+
+        public void RemoveModule(string name)
+        {
+            this.moduleBuilders.Remove(name);
         }
 
         static (string name, bool system) ParseModuleName(string name) =>

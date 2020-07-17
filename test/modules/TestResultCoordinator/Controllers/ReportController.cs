@@ -28,7 +28,7 @@ namespace TestResultCoordinator.Controllers
         [HttpGet]
         public async Task<ContentResult> GetReportsAsync()
         {
-            var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
+            var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage, Settings.Current.NetworkControllerType);
             List<ITestReportMetadata> reportMetadataList = await Settings.Current.GetReportMetadataListAsync(Logger);
             ITestResultReport[] testResultReports = await TestReportUtil.GenerateTestResultReportsAsync(Settings.Current.TrackingId, reportMetadataList, testReportGeneratorFactory, Logger);
 
@@ -39,13 +39,8 @@ namespace TestResultCoordinator.Controllers
 
             return new ContentResult
             {
-                Content = this.AddManualRunReportingHeading(JsonConvert.SerializeObject(testResultReports, Formatting.Indented)) // explicit serialization needed due to the wrapping list
+                Content = JsonConvert.SerializeObject(testResultReports, Formatting.Indented) // explicit serialization needed due to the wrapping list
             };
-        }
-
-        string AddManualRunReportingHeading(string reportContent)
-        {
-            return $"Run manually at {DateTime.UtcNow}{Environment.NewLine}Report result is not complete as testing is still running.{Environment.NewLine}{reportContent}";
         }
     }
 }

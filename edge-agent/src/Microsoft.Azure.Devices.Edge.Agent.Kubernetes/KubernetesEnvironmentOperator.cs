@@ -69,7 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         // kick off a new watch
                         this.StartListPods();
                     },
-                    onError: Events.PodWatchFailed));
+                    onError: (ex) =>
+                    {
+                        Events.PodWatchFailed(ex);
+                        throw ex;
+                    }));
         }
 
         void HandlePodChangedAsync(WatchEventType type, V1Pod pod)

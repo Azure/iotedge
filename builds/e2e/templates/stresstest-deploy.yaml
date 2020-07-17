@@ -24,13 +24,12 @@ parameters:
   transportType3: 'Mqtt_Tcp_Only'
   transportType4: 'Mqtt_WebSocket_Only'
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytics.enabled: ''
-  analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
   twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
+  twinTester.edgeHubRestartFailureTolerance: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -62,6 +61,9 @@ steps:
         testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        testInfo="$testInfo,TestName=$testName"
+        testInfo="$testInfo,UpstreamProtocol=amqp"
         
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         echo "snitcher duration in mins=$(snitcher.test.duration.in.mins)"
@@ -89,17 +91,15 @@ steps:
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -snitchTestDurationInSecs "$(($(snitcher.test.duration.in.mins)*60))" \
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
-          -logAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" \
-          -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
           -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
           -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
           -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
+          -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
-          -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
           -testInfo "$testInfo" \
           -cleanAll
         #Remove all pending jobs

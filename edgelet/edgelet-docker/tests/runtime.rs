@@ -4,7 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::too_many_lines)]
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::str;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -407,12 +407,12 @@ fn image_pull_with_invalid_creds_handler(req: Request<Body>) -> ResponseFuture {
         .headers()
         .get_all("X-Registry-Auth")
         .into_iter()
-        .map(|bytes| base64::decode(bytes).unwrap())
+        .map(|bytes| base64::decode_config(bytes, base64::URL_SAFE).unwrap())
         .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
         .collect::<String>();
     let auth_config: AuthConfig = serde_json::from_str(&auth_str).unwrap();
-    assert_eq!(auth_config.username(), Some("u1"));
-    assert_eq!(auth_config.password(), Some("wrong_password"));
+    assert_eq!(auth_config.username(), Some("us1"));
+    assert_eq!(auth_config.password(), Some("ac?ac~aaac???"));
     assert_eq!(auth_config.email(), Some("u1@bleh.com"));
     assert_eq!(auth_config.serveraddress(), Some("svr1"));
 
@@ -459,9 +459,10 @@ fn image_pull_with_invalid_creds_fails() {
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
         .and_then(|runtime| {
+            // password is written to guarantee base64 encoding has '-' and/or '_'
             let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("wrong_password".to_string())
+                .with_username("us1".to_string())
+                .with_password("ac?ac~aaac???".to_string())
                 .with_email("u1@bleh.com".to_string())
                 .with_serveraddress("svr1".to_string());
             let config = DockerConfig::new(
@@ -594,7 +595,7 @@ fn image_pull_with_creds_handler(req: Request<Body>) -> ResponseFuture {
         .headers()
         .get_all("X-Registry-Auth")
         .into_iter()
-        .map(|bytes| base64::decode(bytes).unwrap())
+        .map(|bytes| base64::decode_config(bytes, base64::URL_SAFE).unwrap())
         .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
         .collect::<String>();
     let auth_config: AuthConfig = serde_json::from_str(&auth_str).unwrap();
@@ -776,7 +777,7 @@ fn container_create_handler(req: Request<Body>) -> ResponseFuture {
                 );
 
                 let volumes = create_options.volumes().unwrap();
-                let mut expected = ::std::collections::HashMap::new();
+                let mut expected = ::std::collections::BTreeMap::new();
                 expected.insert("test1".to_string(), json!({}));
                 assert_eq!(*volumes, expected);
 
@@ -817,13 +818,13 @@ fn container_create_succeeds() {
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
         .and_then(|runtime| {
-            let mut env = HashMap::new();
+            let mut env = BTreeMap::new();
             env.insert("k1".to_string(), "v1".to_string());
             env.insert("k2".to_string(), "v2".to_string());
             env.insert("k3".to_string(), "v3".to_string());
 
             // add some create options
-            let mut port_bindings = HashMap::new();
+            let mut port_bindings = BTreeMap::new();
             port_bindings.insert(
                 "22/tcp".to_string(),
                 vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
@@ -833,7 +834,7 @@ fn container_create_succeeds() {
                 vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
             );
             let memory: i64 = 3_221_225_472;
-            let mut volumes = ::std::collections::HashMap::new();
+            let mut volumes = ::std::collections::BTreeMap::new();
             volumes.insert("test1".to_string(), json!({}));
             let create_options = ContainerCreateBody::new()
                 .with_host_config(
@@ -1286,7 +1287,7 @@ fn create_fails_for_non_docker_type() {
                 name.to_string(),
                 DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
                     .unwrap(),
-                HashMap::new(),
+                BTreeMap::new(),
                 ImagePullPolicy::default(),
             )
             .unwrap();

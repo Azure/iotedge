@@ -15,18 +15,18 @@ namespace TwinTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertiesValidator));
         readonly RegistryManager registryManager;
-        readonly TwinState twinState;
+        readonly TwinTestState twinTestState;
         readonly ModuleClient moduleClient;
         readonly TwinEventStorage storage;
         readonly ITwinTestResultHandler resultHandler;
 
-        public DesiredPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler resultHandler, TwinState twinState)
+        public DesiredPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler resultHandler, TwinTestState twinTestState)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
             this.storage = storage;
             this.resultHandler = resultHandler;
-            this.twinState = twinState;
+            this.twinTestState = twinTestState;
         }
 
         public async Task ValidateAsync()
@@ -56,20 +56,22 @@ namespace TwinTester
             foreach (KeyValuePair<string, DateTime> desiredPropertyUpdate in desiredPropertiesUpdated)
             {
                 bool hasTwinUpdate = propertyUpdatesFromTwin.Contains(desiredPropertyUpdate.Key);
-                bool hasModuleReceivedCallback = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key);
+                bool hasCallbackReceived = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key);
+                bool isCallbackValidated = hasCallbackReceived || this.SkipCallbackValidationDueToEdgeHubRestart(this.twinTestState, desiredPropertyUpdate.Value);
                 string status;
-                if (hasTwinUpdate && hasModuleReceivedCallback)
+
+                if (hasTwinUpdate && isCallbackValidated)
                 {
                     status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
-                else if (this.ExceedFailureThreshold(this.twinState, desiredPropertyUpdate.Value))
+                else if (this.ExceedFailureThreshold(this.twinTestState, desiredPropertyUpdate.Value))
                 {
-                    if (hasTwinUpdate && !hasModuleReceivedCallback)
+                    if (hasTwinUpdate && !isCallbackValidated)
                     {
                         status = $"{(int)StatusCode.DesiredPropertyUpdateNoCallbackReceived}: Failure receiving desired property update in callback";
                     }
-                    else if (!hasTwinUpdate && hasModuleReceivedCallback)
+                    else if (!hasTwinUpdate && isCallbackValidated)
                     {
                         status = $"{(int)StatusCode.DesiredPropertyUpdateNotInEdgeTwin}: Failure receiving desired property update in twin";
                     }
@@ -113,8 +115,8 @@ namespace TwinTester
             try
             {
                 string patch = $"{{ properties: {{ desired: {JsonConvert.SerializeObject(propertiesToRemoveFromTwin)} }}";
-                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, patch, this.twinState.TwinETag);
-                this.twinState.TwinETag = newTwin.ETag;
+                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, patch, this.twinTestState.TwinETag);
+                this.twinTestState.TwinETag = newTwin.ETag;
             }
             catch (Exception e)
             {
@@ -122,10 +124,20 @@ namespace TwinTester
             }
         }
 
-        bool ExceedFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
+        bool ExceedFailureThreshold(TwinTestState twinTestState, DateTime twinUpdateTime)
         {
-            DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline;
+            DateTime comparisonPoint = twinUpdateTime > twinTestState.LastNetworkOffline ? twinUpdateTime : twinTestState.LastNetworkOffline;
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
+        }
+
+        bool SkipCallbackValidationDueToEdgeHubRestart(TwinTestState twinTestState, DateTime twinUpdateTime)
+        {
+            DateTime edgeHubRestartTolerancePeriodLowerBound =
+                twinTestState.EdgeHubLastStopped == DateTime.MinValue ? DateTime.MinValue : twinTestState.EdgeHubLastStopped.Add(-Settings.Current.EdgeHubRestartFailureTolerance);
+            DateTime edgeHubRestartTolerancePeriodUpperBound =
+                twinTestState.EdgeHubLastStarted == DateTime.MinValue ? DateTime.MinValue : twinTestState.EdgeHubLastStarted.Add(Settings.Current.EdgeHubRestartFailureTolerance);
+
+            return edgeHubRestartTolerancePeriodLowerBound <= twinUpdateTime && twinUpdateTime <= edgeHubRestartTolerancePeriodUpperBound;
         }
 
         async Task HandleReportStatusAsync(string status)

@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
+        readonly TimeSpan messageAckTimeout;
         readonly TimeSpan cloudConnectionIdleTimeout;
         readonly bool closeCloudConnectionOnIdleTimeout;
         readonly TimeSpan operationTimeout;
@@ -51,7 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int upstreamFanOutFactor;
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
+        readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
+        readonly bool closeCloudConnectionOnDeviceDisconnect;
 
         public RoutingModule(
             string iotHubName,
@@ -67,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<UpstreamProtocol> upstreamProtocol,
             TimeSpan connectivityCheckFrequency,
             int maxConnectedClients,
+            TimeSpan messageAckTimeout,
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
             TimeSpan operationTimeout,
@@ -78,7 +82,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int upstreamFanOutFactor,
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
-            ExperimentalFeatures experimentalFeatures)
+            bool checkEntireQueueOnCleanup,
+            ExperimentalFeatures experimentalFeatures,
+            bool closeCloudConnectionOnDeviceDisconnect)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -93,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamProtocol = upstreamProtocol;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
+            this.messageAckTimeout = messageAckTimeout;
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
             this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
             this.operationTimeout = operationTimeout;
@@ -104,7 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamFanOutFactor = upstreamFanOutFactor;
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
+            this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
+            this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -203,6 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
+                        var modelIdStore = await c.Resolve<Task<IModelIdStore>>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                         var clientProvider = c.Resolve<IClientProvider>();
                         var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
@@ -226,7 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.operationTimeout,
                             this.useServerHeartbeat,
                             proxy,
-                            productInfoStore);
+                            productInfoStore,
+                            modelIdStore);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
@@ -252,7 +263,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             credentialsCache,
                             identityProvider,
                             deviceConnectivityManager,
-                            this.maxConnectedClients);
+                            this.maxConnectedClients,
+                            this.closeCloudConnectionOnDeviceDisconnect);
                         return connectionManager;
                     })
                 .As<Task<IConnectionManager>>()
@@ -376,7 +388,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive);
+                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive, this.checkEntireQueueOnCleanup);
                             return messageStore;
                         })
                     .As<Task<IMessageStore>>()
@@ -573,7 +585,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IEdgeHub edgeHub = await edgeHubTask;
-                        IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
+                        IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub, this.messageAckTimeout);
                         return connectionProvider;
                     })
                 .As<Task<IConnectionProvider>>()
@@ -593,7 +605,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 twinStoreOption = encryptionProvider.Map(
                     e =>
                     {
-                        IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}");
+                        IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}", entityName);
                         IKeyValueStore<string, string> es = new UpdatableEncryptedStore<string, string>(underlyingEntityStore, e);
                         ITypeMapper<string, string> keyMapper = new JsonMapper<string>();
                         ITypeMapper<TwinStoreEntity, string> valueMapper = new JsonMapper<TwinStoreEntity>();

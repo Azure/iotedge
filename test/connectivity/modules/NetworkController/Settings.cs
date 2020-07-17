@@ -4,6 +4,8 @@ namespace NetworkController
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -19,8 +21,8 @@ namespace NetworkController
         const string TrackingIdPropertyName = "TrackingId";
         const string ModuleIdPropertyName = "IOTEDGE_MODULEID";
         const string IotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
-        const string NetworkControllerRunProfilePropertyName = "NetworkControllerRunProfile";
         const string DefaultProfilesPropertyName = "DefaultProfiles";
+        const string TransportTypePropertyName = "TransportType";
 
         Settings(
             TimeSpan startAfter,
@@ -31,7 +33,8 @@ namespace NetworkController
             Uri testResultCoordinatorEndpoint,
             string trackingId,
             string moduleId,
-            string iothubHostname)
+            string iothubHostname,
+            TransportType transportType)
         {
             this.StartAfter = startAfter;
             this.Frequencies = frequencies;
@@ -43,6 +46,7 @@ namespace NetworkController
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
+            this.TransportType = transportType;
         }
 
         public TimeSpan StartAfter { get; }
@@ -63,6 +67,8 @@ namespace NetworkController
 
         public string IotHubHostname { get; }
 
+        public TransportType TransportType { get; }
+
         static Settings Create()
         {
             IConfiguration configuration = new ConfigurationBuilder()
@@ -74,7 +80,7 @@ namespace NetworkController
             var frequencies = new List<Frequency>();
             configuration.GetSection(FrequencyPropertyName).Bind(frequencies);
 
-            string runProfileName = configuration.GetValue<string>(NetworkControllerRunProfilePropertyName);
+            string runProfileName = configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName);
             NetworkProfile runProfileSettings = configuration.GetSection($"{DefaultProfilesPropertyName}:{runProfileName}").Get<NetworkProfile>();
             if (runProfileSettings == null)
             {
@@ -90,7 +96,8 @@ namespace NetworkController
                 configuration.GetValue<Uri>(TestResultCoordinatorEndpointPropertyName),
                 configuration.GetValue<string>(TrackingIdPropertyName),
                 configuration.GetValue<string>(ModuleIdPropertyName),
-                configuration.GetValue<string>(IotHubHostnamePropertyName));
+                configuration.GetValue<string>(IotHubHostnamePropertyName),
+                configuration.GetValue(TransportTypePropertyName, TransportType.Amqp_Tcp_Only));
         }
     }
 

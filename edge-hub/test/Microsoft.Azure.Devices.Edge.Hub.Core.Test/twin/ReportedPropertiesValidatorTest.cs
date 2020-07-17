@@ -127,8 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 {
                     array = new[] { 0, 1, 2 }
                 })),
-                typeof(InvalidOperationException),
-                "Property array has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object"
+                null,
+                string.Empty
             };
 
             yield return new object[]
@@ -192,6 +192,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 } )),
                 typeof(InvalidOperationException),
                 "Twin properties size 36189 exceeds maximum 32768"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection("{ \"ok\": [\"good\"], \"ok2\": [], \"level1\": [{ \"field1\": null }] }"),
+                null,
+                string.Empty
             };
         }
 

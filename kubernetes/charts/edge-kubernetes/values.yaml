@@ -2,8 +2,12 @@
 iotedged:
   image:
     repository: azureiotedge/azureiotedge-iotedged
-    tag: 0.1.0-beta4
+    tag: 0.1.0-beta9
     pullPolicy: Always
+  nodeSelector: {}
+  # Volumes which support ownership management are modified to be owned and 
+  # writable by the GID specified in fsGroup.
+  # fsGroup: 2000
   service:
     name: iotedged
     type: ClusterIP
@@ -15,6 +19,11 @@ iotedged:
   data:
     enableGetNodesRBAC: true
     targetPath: /var/lib/iotedge
+    # Normally the iotedged is running as a host process, and has access to 
+    # the host's trusted CA certificates.  Use this options to allow the 
+    # iotedged deployment to use the host OS's /etc/ssl/certs 
+    # useHostTrust: false
+    #
     # In order to benefit from HA, at a minimum the data location for iotedged
     # should be backed by a persistent volume. 
     # User may create a PersistentVolumeClaim and provide the name only here. Alternatively.
@@ -92,7 +101,7 @@ iotedged:
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-beta4
+    tag: 0.1.0-beta9
     pullPolicy: Always
 
 # Edge Agent image configuration
@@ -106,7 +115,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-beta4
+    tag: 0.1.0-beta9
     pullPolicy: Always
   hostname: "localhost"
   env:
@@ -130,15 +139,10 @@ edgeAgent:
     # Configure the default claim size to use (in megabytes) when creating PVCs.
     # persistentVolumeClaimDefaultSizeInMb: ""
 
-    # Set this to the name of a persistent volume if you wish the volumes that
-    # back persistent storage in modules to use that PV. Note that you may
-    # sometimes to also need to set the "storageClassName" field below to an
-    # empty string in order for this to work. Since Helm does not provide a
-    # clean way of specifying an empty string (see: https://github.com/helm/helm/issues/2600)
-    # you'll need to set the value "-" in liue of an empty string. This literal
-    # will be interpreted to mean that the storage class needs to be set to an
-    # empty string.
-    # persistentVolumeName: ""
+    # Set this as guidance for converting Docker Volume mounts to Persistent Volume Claims.
+    # Set to true to tell the runtime to use the Volume mount source (mount.Source) as the
+    # Persistent volume name (volumeName) in the PVC
+    useMountSourceForVolumeName: false
 
     # Set this to the name of a storage class name if you wish the volumes that
     # back persistent storage in modules to use dynamically provisioned PVCs.

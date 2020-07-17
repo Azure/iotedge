@@ -60,7 +60,7 @@ they affect the Kubernetes objects.
 | ------- | -------------------- |
 | edgeAgent.env.portMappingServiceType | [Service](#service) |
 | edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
-| edgeAgent.env.persistentVolumeName | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
+| edgeAgent.env.useMountSourceForVolumeName | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
 | edgeAgent.env.storageClassName | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
 | edgeAgent.env.enableExperimentalFeatures | [Deployment](#podtemplate) - See [K8s Extensions](#k8s-extensions) for details |
 | edgeAgent.env.enableK8sExtensions | [Deployment](#podtemplate) - See [K8s Extensions](#k8s-extensions) for details |
@@ -166,9 +166,9 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
     - volume mounts from `settings.createOptions.HostConfig.Mounts`
         - name = mount.Source
         - persistentVolumeClaim is always assigned
-            - if edge runtime is started with `persistentVolumeName` or `storageClassName` set it will create a [Persistent Volume Claim](#PersistentVolumeClaim)
-            - if neither is set Pod will be created but stuck in `Pending` phase not been able to make any progress
-            - claimName = persistentVolumeName if `persistentVolumeName` is set, mount.Source otherwise.
+            - if edge runtime is started with `useMountSourceForVolumeName` or `storageClassName` set it will create a [Persistent Volume Claim](#PersistentVolumeClaim)
+            - if neither is set Pod will be created but stuck in `Pending` phase until a PVC is created.
+            - claimName = mount.Source
             - readOnlyProperty = mount.ReadOnly
     - volume mounts from `settings.k8s-extensions.volumes[*].volume`. Placed in spec as provided.
 - **serviceAccountName** = The module name, sanitized to be a K8s identifier. See [Module Authentication](rbac.md#module-authentication) for details.
@@ -184,9 +184,11 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
     - then `settings.createOptions.Lables` will be added to the service's annotations.
 
 ##### spec (ServiceSpec)
-- **type** = ClusterIP if only exposed ports (`settings.createOptions.HostConfig.ExposedPorts`) are 
-  set. If port bindings (`settings.createOptions.HostConfig.PortBindings`) are set, runtime will use
-  the default set by `portMappingServiceType` on runtime startup, default is ClusterIP.
+- **type** = Set according to this priority:
+     1. `type` from `settings.k8s-extensions.serviceOptions.type`. 
+     2. ClusterIP if only exposed ports (`settings.createOptions.HostConfig.ExposedPorts`) are set. 
+     3. If port bindings (`settings.createOptions.HostConfig.PortBindings`) are set, runtime will use the default set by `portMappingServiceType` on runtime startup, default is ClusterIP.
+- **loadBalancerIP** = `loadBalancerIP` from `settings.k8s-extensions.serviceOptions.loadBalancerIP`.
 - **ports** = a list of port bindings
     - **port** = Exposed port if source is `settings.createOptions.HostConfig.ExposedPorts`, 
       host port if source is `settings.createOptions.HostConfig.PortBindings`
@@ -216,14 +218,14 @@ Persistent volume claims are created when a docker volume is requested (all volu
 `settings.createOptions.HostConfig.Mounts`), the persistent volume claim has not been created by the 
 user, and the runtime has been set to expect to use persistent volumes.
 
-The runtime is set to expect PVs by assigning `persistentVolumeName` or `storageClassName` at 
-startup. User will also need to set a value for `persistentVolumeClaimDefaultSizeInMb`. This value 
-gives the IoT Edge Runtime a default claim size as this is not provided by `createOptions`.
-
+The runtime is set to expect PVs by assigning `storageClassName` and a value for 
+`persistentVolumeClaimDefaultSizeInMb`. This value gives the IoT Edge Runtime a default claim size 
+as this is not provided by `createOptions`. An optional value `useMountSourceForVolumeName` informs 
+the runtime to use `mount.Source` in the Docker Volume spec as the persistent volume name.
 
 ### metadata
 
-- **name**        = persistentVolumeName if `persistentVolumeName` is set, else mount.Source from `settings.createOptions.HostConfig.Mounts`.
+- **name**        = mount.Source from `settings.createOptions.HostConfig.Mounts`.
 - **namespace**   = The given namespace.
 - **labels**      = Default label set.
 
@@ -233,8 +235,8 @@ gives the IoT Edge Runtime a default claim size as this is not provided by `crea
 - **resources**
     - **requests**
         - **storage** = `persistentVolumeClaimDefaultSizeInMb`
-    - **volumeName** = `persistentVolumeName` - assigned if set.
-    - **storageClass** = `storageClassName` - assigned if set and `persistentVolumeName` is not set.
+    - **volumeName** = mount.Source if `useMountSourceForVolumeName` is true, unset otherwise.
+    - **storageClass** = `storageClassName` - assigned if set.
 
 ## ServiceAccount
 
@@ -253,3 +255,4 @@ Extensions available:
 - [Setting CPU and Memory limits](create-options.md#cpu-memory-and-device-resources)
 - [Assigning Modules to Nodes](create-options.md#assigning-modules-to-nodes)
 - [Applying Pod Security Context](create-options.md#apply-pod-security-context)
+- [Applying Service Options](create-options.md#apply-service-options)

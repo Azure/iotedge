@@ -23,7 +23,7 @@ provisioning:
 
 **Please note that HTTPS is currently not supported for this external endpoint.**
 
-**Customers who would like to restrict access to the external endpoint to just whitelist `iotedged` can do so by hosting their HTTP endpoint on Unix sockets instead of using TCP and giving appropriate permissions to the `iotedged` to be able to access the socket.**
+**Customers who would like to restrict access to the external endpoint to just `iotedged` can do so by hosting their HTTP endpoint on Unix sockets instead of using TCP and giving appropriate permissions to the `iotedged` to be able to access the socket.**
 
 ## __Use case__
 
