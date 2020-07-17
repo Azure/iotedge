@@ -33,7 +33,7 @@ enum Event {
 // #[derive(Debug)]
 // pub struct ShutdownHandle(Sender<Event>);
 
-// // TODO: change to hold mqtt client shutdown handle
+// TODO: return self.shutdown_handle which is oneshot
 // impl ShutdownHandle {
 //     pub async fn shutdown(&mut self) -> Result<(), Error> {
 //         self.0
@@ -51,41 +51,18 @@ impl IoSource for BrokerConnection {
     type Future =
         Pin<Box<dyn Future<Output = Result<(TcpStream, Option<String>), std::io::Error>>>>;
 
-    // fn connect(&mut self) -> String {
-    //     "ronald".to_string()
-    // }
-
     fn connect(
         &mut self,
     ) -> Pin<Box<dyn Future<Output = Result<(TcpStream, Option<String>), std::io::Error>>>> {
-        // Pin<Box<Future<Result<(TcpStream, Option<String>), Error>>>>
-        // std::pin::Pin<std::boxed::Box<impl core::future::future::Future>>
-
-        // It doesn't need box?
-
-        // It doesn't need to be a closure?
         Box::pin(async move {
             let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
             io.map(|io| (io, None))
         })
-
-        // Below is the original closure:
-        // move || {
-        //     // TODO: move to broker connect
-        //     // TODO: read associated types (implementation of trait determines what types used)
-        //     // TODO: read generics
-        //     Box::pin(async move {
-        //         let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
-        //         io.map(|io| (io, None))
-        //     })
-        // }
     }
 }
 
 pub struct CommandHandler {
     broker_handle: BrokerHandle,
-    // subscription_handle: UpdateSubscriptionHandle,
-    // shutdown_handle: ShutdownHandle,
     client: mqtt3::Client<BrokerConnection>,
 }
 
@@ -111,8 +88,6 @@ impl CommandHandler {
 
         CommandHandler {
             broker_handle,
-            // subscription_handle,
-            // shutdown_handle,
             client,
         }
     }
@@ -197,28 +172,5 @@ impl CommandHandler {
                 None
             }
         }
-
-        // match re {
-        //     Ok(re) => match re.captures(topic_name.as_ref()) {
-        //         Some(capture) => match capture.get(0) {
-        //             Some(captured_match) => Some(captured_match.as_str().to_string()),
-        //             None => {
-        //                 error!("no client id found for client disconnect topic");
-        //                 None
-        //             }
-        //         },
-        //         None => {
-        //             error!("could not parse client id from client disconnect topic");
-        //             None
-        //         }
-        //     },
-        //     Err(e) => {
-        //         error!(
-        //             "could not create regex to parse client id from client disconnect topic. {}",
-        //             e
-        //         );
-        //         None
-        //     }
-        // }
     }
 }
