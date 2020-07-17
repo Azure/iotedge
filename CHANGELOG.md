@@ -1,3 +1,22 @@
+# 1.0.9.4 (2020-07-17)
+## Edge Agent
+### Bug Fixes
+* Reestablish cloud connection after an exception is received ([212f1e0](https://github.com/Azure/iotedge/commit/212f1e0c7536b38b51a71828f4540f2853c2039d))
+* Update [Linux ARM32 security vulnerable issue](https://lists.ubuntu.com/archives/ubuntu-security-announce/2020-June/005457.html) to OS version 2.1.19-bionic-arm32v7 ([51e707c](https://github.com/Azure/iotedge/commit/51e707c3d5e0cf630f91c9067c2c331753f2419c))
+
+## Edge Hub
+### Bug Fixes
+* Get cloud connection if adding device with subscriptions ([7a7b550](https://github.com/Azure/iotedge/commit/7a7b550939d7ae7f7d4ba170ceb02023532481dc))
+* Update [Linux ARM32 security vulnerable issue](https://lists.ubuntu.com/archives/ubuntu-security-announce/2020-June/005457.html) to OS version 2.1.19-bionic-arm32v7 ([51e707c](https://github.com/Azure/iotedge/commit/51e707c3d5e0cf630f91c9067c2c331753f2419c))
+
+## iotedged
+### Bug Fixes
+* Edgelet unable to pull using certain passwords ([698bec5](https://github.com/Azure/iotedge/commit/698bec5b83d536e48d6b923eeeb2a518557973dd))
+
+## Other Module Images
+### Bug Fixes
+* Update [Linux ARM32 security vulnerable issue](https://lists.ubuntu.com/archives/ubuntu-security-announce/2020-June/005457.html) to OS version 2.1.19-bionic-arm32v7 ([51e707c](https://github.com/Azure/iotedge/commit/51e707c3d5e0cf630f91c9067c2c331753f2419c))
+
 # 1.0.9.3 (2020-06-18)
 ## Edge Agent
 ### Bug Fixes
