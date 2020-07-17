@@ -367,7 +367,7 @@ jobs:
           project: CloudToDeviceMessageTester
     
      # Plug And Play Identity
-      - template: templates/image-linux.yaml
+      - template: templates/image-windows.yaml
         parameters:
           name: PlugAndPlayIdentity
           imageName: azureiotedge-plugandplayidentity
