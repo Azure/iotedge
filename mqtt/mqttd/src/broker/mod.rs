@@ -33,7 +33,9 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
 
     #[cfg(feature = "edgehub")]
     info!("starting command handler...");
-    let command_handler_join_handle = start_command_handler(broker.handle()).await;
+    let (command_handler_shutdown_handle, command_handler_join_handle) =
+        start_command_handler(broker.handle()).await;
+    // start_command_handler(broker.handle());
 
     info!("starting snapshotter...");
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
@@ -48,6 +50,7 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
 
     // TODO: why do we need to do thsi
     #[cfg(feature = "edgehub")]
+    command_handler_shutdown_handle.shutdown();
     command_handler_join_handle.await?;
     info!("command handler shutdown.");
 
@@ -59,16 +62,19 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     Ok(())
 }
 
-async fn start_command_handler(broker_handle: BrokerHandle) -> JoinHandle<()> {
+async fn start_command_handler(
+    broker_handle: BrokerHandle,
+) -> (mqtt3::ShutdownHandle, JoinHandle<()>) {
     let command_handler = CommandHandler::new(broker_handle);
+    let shutdown_handle = command_handler.shutdown_handle();
 
     //TODO: confirm we don't need this because on shutdown we shouldn't be forcibly disconnecting clients
     //      this command handler is just listening to edgehub topics
     // let shutdown_handle = command_handler.shutdown_handle();
 
-    let join_handle = tokio::spawn(command_handler.run());
-
-    join_handle
+    // let join_handle = tokio::spawn(command_handler.run());
+    let join_handle = command_handler.run();
+    (shutdown_handle, join_handle)
 }
 
 async fn start_snapshotter(

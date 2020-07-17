@@ -1,8 +1,10 @@
+use core::future::Future;
 use futures::future::select;
 use futures_util::pin_mut;
 use futures_util::StreamExt;
 use lazy_static::lazy_static;
 use mqtt3::proto;
+use mqtt3::IoSource;
 use mqtt3::ShutdownHandle;
 use mqtt3::UpdateSubscriptionHandle;
 use mqtt_broker::BrokerHandle;
@@ -10,7 +12,9 @@ use mqtt_broker::Error;
 use mqtt_broker::Message;
 use mqtt_broker::SystemEvent;
 use regex::Regex;
+use std::pin::Pin;
 use std::time::Duration;
+use tokio::net::TcpStream;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::task::JoinHandle;
 use tracing::error;
@@ -40,28 +44,63 @@ enum Event {
 //     }
 // }
 
+pub struct BrokerConnection {}
+impl IoSource for BrokerConnection {
+    type Io = TcpStream;
+    type Error = std::io::Error;
+    type Future =
+        Pin<Box<dyn Future<Output = Result<(TcpStream, Option<String>), std::io::Error>>>>;
+
+    // fn connect(&mut self) -> String {
+    //     "ronald".to_string()
+    // }
+
+    fn connect(
+        &mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(TcpStream, Option<String>), std::io::Error>>>> {
+        // Pin<Box<Future<Result<(TcpStream, Option<String>), Error>>>>
+        // std::pin::Pin<std::boxed::Box<impl core::future::future::Future>>
+
+        // It doesn't need box?
+
+        // It doesn't need to be a closure?
+        Box::pin(async move {
+            let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
+            io.map(|io| (io, None))
+        })
+
+        // Below is the original closure:
+        // move || {
+        //     // TODO: move to broker connect
+        //     // TODO: read associated types (implementation of trait determines what types used)
+        //     // TODO: read generics
+        //     Box::pin(async move {
+        //         let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
+        //         io.map(|io| (io, None))
+        //     })
+        // }
+    }
+}
+
 pub struct CommandHandler {
     broker_handle: BrokerHandle,
     // subscription_handle: UpdateSubscriptionHandle,
     // shutdown_handle: ShutdownHandle,
-    client: mqtt3::Client<IoS>,
+    client: mqtt3::Client<BrokerConnection>,
 }
 
 impl CommandHandler {
     pub fn new(broker_handle: BrokerHandle) -> Self {
+        let broker_connection = BrokerConnection {};
+
+        // TODO: move to broker connect
+        // TODO: read associated types (implementation of trait determines what types used)
+        // TODO: read generics
         let mut client = mqtt3::Client::new(
             Some(CLIENT_ID.to_string()),
             None,
             None,
-            move || {
-                // TODO: move to broker connect
-                // TODO: read associated types (implementation of trait determines what types used)
-                // TODO: read generics
-                Box::pin(async move {
-                    let io = tokio::net::TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
-                    io.map(|io| (io, None))
-                })
-            },
+            broker_connection,
             Duration::from_secs(1),
             Duration::from_secs(60),
         );
@@ -79,10 +118,10 @@ impl CommandHandler {
     }
 
     pub fn shutdown_handle(&self) -> ShutdownHandle {
-        self.shutdown_handle().clone()
+        self.client.shutdown_handle().unwrap()
     }
 
-    pub async fn run(mut self) {
+    pub async fn run(mut self) -> JoinHandle<()> {
         let qos = proto::QoS::AtLeastOnce;
         // TODO: log error with client and topic
         if let Err(_e) = self.client.subscribe(proto::SubscribeTo {
@@ -94,40 +133,45 @@ impl CommandHandler {
         } else {
             // TODO: better message
             info!("successfully subscribed to command topic")
-        }
+        };
 
-        let event_loop = async {
-            while let Some(event) = self.client.next().await {
-                info!("received data");
+        let event_loop_handle = tokio::spawn(async move {
+            let event_loop = async {
+                while let Some(event) = self.client.next().await {
+                    info!("received data");
 
-                // client.next() produces option of a result
-                // TODO: safely handle
-                let event = event.unwrap();
+                    // client.next() produces option of a result
+                    // TODO: safely handle
+                    let event = event.unwrap();
 
-                if let mqtt3::Event::Publication(publication) = event {
-                    let client_id = Self::parse_client_id(publication.topic_name);
+                    if let mqtt3::Event::Publication(publication) = event {
+                        let client_id = Self::parse_client_id(publication.topic_name);
 
-                    match client_id {
-                        Some(client_id) => {
-                            if let Err(e) = self
-                                .broker_handle
-                                .send(Message::System(SystemEvent::ForceClientDisconnect(
-                                    client_id.into(),
-                                )))
-                                .await
-                            {
-                                error!(message = "failed to signal broker to disconnect client", error=%e);
+                        match client_id {
+                            Some(client_id) => {
+                                if let Err(e) = self
+                                    .broker_handle
+                                    .send(Message::System(SystemEvent::ForceClientDisconnect(
+                                        client_id.into(),
+                                    )))
+                                    .await
+                                {
+                                    error!(message = "failed to signal broker to disconnect client", error=%e);
+                                }
                             }
-                        }
-                        None => {
-                            error!("no client id in disconnect request");
+                            None => {
+                                error!("no client id in disconnect request");
+                            }
                         }
                     }
                 }
-            }
-        };
-        pin_mut!(event_loop);
-        select(event_loop, self.client.shutdown_handle()).await;
+            };
+            // TODO: we don't need to wait on shutdown handle because the client.next() call will exit when the client is shutdown
+            pin_mut!(event_loop); // TODO: Do we need
+            event_loop.await;
+        });
+
+        event_loop_handle
     }
 
     fn parse_client_id(topic_name: String) -> Option<String> {
