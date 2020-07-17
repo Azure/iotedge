@@ -11,7 +11,6 @@ bytes = "0.5"
 chrono = "0.4"
 http = "0.2"
 hyper = "0.13"
-hyperlocal = "0.7"
 futures-util = "0.3"
 lazy_static = "1.4"
 openssl = "0.10"
@@ -27,6 +26,9 @@ url = "2.1"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
+
+[target.'cfg(unix)'.dependencies]
+hyperlocal = "0.7"
 
 [dev-dependencies]
 matches = "0.1"

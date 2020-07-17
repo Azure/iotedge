@@ -4,7 +4,7 @@
             "address": "0.0.0.0:1883"
         },
         "tls": {
-            "addr": "0.0.0.0:8883",
+            "address": "0.0.0.0:8883",
             "certificate": "identity.pfx"
         }
     }
