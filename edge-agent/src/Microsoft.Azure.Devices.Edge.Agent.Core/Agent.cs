@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly IAvailabilityMetric availabilityMetric;
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
+        DeploymentStatus status;
 
         public Agent(
             IConfigSource configSource,
@@ -59,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
             this.availabilityMetric = Preconditions.CheckNotNull(availabilityMetric, nameof(availabilityMetric));
+            DeploymentStatus status = DeploymentStatus.Unknown;
             Events.AgentCreated();
         }
 
@@ -110,7 +112,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            DeploymentStatus status = DeploymentStatus.Unknown;
             ModuleSet moduleSetToReport = null;
             using (await this.reconcileLock.LockAsync(token))
             {
@@ -127,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
                     if (deploymentConfig.Equals(DeploymentConfig.Empty))
                     {
-                        status = DeploymentStatus.Success;
+                        this.status = DeploymentStatus.Success;
                     }
                     else
                     {
@@ -145,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
                         if (plan.IsEmpty)
                         {
-                            status = DeploymentStatus.Success;
+                            this.status = DeploymentStatus.Success;
                         }
                         else
                         {
@@ -155,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                                 await this.UpdateCurrentConfig(deploymentConfigInfo);
                                 if (result)
                                 {
-                                    status = DeploymentStatus.Success;
+                                    this.status = DeploymentStatus.Success;
                                 }
                             }
                             catch (Exception ex) when (!ex.IsFatal())
@@ -172,28 +173,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     switch (ex)
                     {
                         case ConfigEmptyException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
+                            this.status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
                             Events.EmptyConfig(ex);
                             break;
 
                         case InvalidSchemaVersionException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
+                            this.status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
                             Events.InvalidSchemaVersion(ex);
                             break;
 
                         case ConfigFormatException _:
-                            status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
+                            this.status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
                             Events.InvalidConfigFormat(ex);
                             break;
 
                         default:
-                            status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
+                            this.status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
                             Events.UnknownFailure(ex);
                             break;
                     }
                 }
 
-                await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, status);
+                await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
                 Events.FinishedReconcile();
             }
         }
