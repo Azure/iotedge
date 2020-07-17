@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceClient.Setup(dc => dc.OpenAsync()).ThrowsAsync(new TimeoutException());
 
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(deviceClient.Object);
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var modelIdStore = Mock.Of<IModelIdStore>();
@@ -388,7 +388,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static IClientProvider GetMockDeviceClientProvider()
         {
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(() => GetMockDeviceClient());
             return deviceClientProvider.Object;
         }
