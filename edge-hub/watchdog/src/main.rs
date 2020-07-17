@@ -36,7 +36,7 @@ fn main() -> Result<()> {
     let edgehub_handle = run(
         "Edge Hub",
         "dotnet",
-        vec!["/app/Microsoft.Azure.Devices.Edge.Hub.Service/Microsoft.Azure.Devices.Edge.Hub.Service.dll".to_string()],
+        vec!["/app/Microsoft.Azure.Devices.Edge.Hub.Service.dll".to_string()],
         Arc::clone(&should_shutdown),
     )?;
 
