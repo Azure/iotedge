@@ -14,9 +14,11 @@ use tokio::{
 use tracing::{info, warn};
 
 use command::CommandHandler;
+use command::ShutdownHandle as CommandShutdownHandle;
 use mqtt_broker::{
     Broker, BrokerConfig, BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist,
-    ShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
+    ShutdownHandle as SnapshotShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent,
+    VersionedFileFormat,
 };
 use mqtt_broker_core::auth::Authorizer;
 
@@ -62,16 +64,14 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     Ok(())
 }
 
-async fn start_command_handler(broker_handle: BrokerHandle) -> (ShutdownHandle, JoinHandle<()>) {
+async fn start_command_handler(
+    broker_handle: BrokerHandle,
+) -> (CommandShutdownHandle, JoinHandle<()>) {
     let command_handler = CommandHandler::new(broker_handle);
     let shutdown_handle = command_handler.shutdown_handle();
 
-    //TODO: confirm we don't need this because on shutdown we shouldn't be forcibly disconnecting clients
-    //      this command handler is just listening to edgehub topics
-    // let shutdown_handle = command_handler.shutdown_handle();
-
-    // let join_handle = tokio::spawn(command_handler.run());
     let join_handle = tokio::spawn(command_handler.run());
+
     (shutdown_handle, join_handle)
 }
 
@@ -79,7 +79,7 @@ async fn start_snapshotter(
     broker_handle: BrokerHandle,
     persistor: FilePersistor<VersionedFileFormat>,
 ) -> (
-    ShutdownHandle,
+    SnapshotShutdownHandle,
     JoinHandle<FilePersistor<VersionedFileFormat>>,
 ) {
     let snapshotter = Snapshotter::new(persistor);

@@ -21,7 +21,6 @@ use tokio::task::JoinHandle;
 use tracing::error;
 use tracing::info;
 
-// TODO: rename to command
 // TODO: get device id from env
 const CLIENT_ID: &str = "deviceid/$edgeHub/$broker/$control";
 const TOPIC_FILTER: &str = "$edgehub/{}/disconnect";
@@ -142,11 +141,11 @@ impl CommandHandler {
                 }
             }
         };
-        // TODO: we don't need to wait on shutdown handle because the client.next() call will exit when the client is shutdown
         pin_mut!(event_loop); // TODO: Do we need
-        select(event_loop, self.shutdown_listen).await;
+                              // select(event_loop, self.shutdown_listen).await;
 
-        client.shutdown_handle().unwrap().shutdown(); // TODO: safeley handle
+        // TODO: Is this needed? It isn't in the smoke test client common.rs?
+        client.shutdown_handle().unwrap().shutdown().await; // TODO: safeley handle
         event_loop.await;
     }
 
