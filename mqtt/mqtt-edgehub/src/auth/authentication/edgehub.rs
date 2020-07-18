@@ -5,7 +5,7 @@ use std::{
 
 use async_trait::async_trait;
 use bytes::buf::BufExt;
-use http::StatusCode;
+use http::{header, StatusCode};
 use hyper::{body, client::HttpConnector, Body, Client, Request};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
@@ -33,6 +33,7 @@ impl EdgeHubAuthenticator {
         let auth_req = EdgeHubAuthRequest::from_auth(&context);
         let body = serde_json::to_string(&auth_req).map_err(AuthenticateError::SerializeRequest)?;
         let req = Request::post(&self.url)
+            .header(header::CONTENT_TYPE, "application/json")
             .body(Body::from(body))
             .map_err(AuthenticateError::PrepareRequest)?;
 
