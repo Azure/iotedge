@@ -33,7 +33,7 @@ impl EdgeHubAuthenticator {
         let auth_req = EdgeHubAuthRequest::from_auth(&context);
         let body = serde_json::to_string(&auth_req).map_err(AuthenticateError::SerializeRequest)?;
         let req = Request::post(&self.url)
-            .header(header::CONTENT_TYPE, "application/json")
+            .header(header::CONTENT_TYPE, "application/json; charset=utf-8")
             .body(Body::from(body))
             .map_err(AuthenticateError::PrepareRequest)?;
 
