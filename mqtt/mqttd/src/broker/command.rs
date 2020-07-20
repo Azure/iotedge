@@ -37,7 +37,7 @@ impl IoSource for BrokerConnection {
 
     fn connect(&mut self) -> Self::Future {
         Box::pin(async move {
-            let io = TcpStream::connect("127.0.0.1:1883").await; // TODO: read from config or broker
+            let io = TcpStream::connect("127.0.0.1:1882").await; // TODO: read from config or broker
             io.map(|io| (io, None))
         })
     }
