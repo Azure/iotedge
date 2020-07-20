@@ -524,6 +524,61 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
+        public async void ReconcileAsyncExecuteAsyncIncompleteDefaulsUnknown()
+        {
+            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
+            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
+            var commandList = new List<ICommand>
+            {
+                new Mock<ICommand>().Object,
+                new Mock<ICommand>().Object,
+            };
+            var testPlan = new Plan(commandList);
+            var token = default(CancellationToken);
+            var runtimeInfo = Mock.Of<IRuntimeInfo>();
+            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule });
+            var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
+            ModuleSet desiredSet = deploymentConfig.GetModuleSet();
+            ModuleSet currentSet = ModuleSet.Create(currentModule);
+
+            var mockConfigSource = new Mock<IConfigSource>();
+            var mockEnvironment = new Mock<IEnvironment>();
+            var mockPlanner = new Mock<IPlanner>();
+            var mockPlanRunner = new Mock<IPlanRunner>();
+            var mockReporter = new Mock<IReporter>();
+            var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
+            var configStore = Mock.Of<IEntityStore<string, string>>();
+            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
+            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
+            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
+            var availabilityMetric = Mock.Of<IAvailabilityMetric>();
+
+            mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
+                .ReturnsAsync(deploymentConfigInfo);
+            mockEnvironment.Setup(env => env.GetModulesAsync(token))
+                .ReturnsAsync(currentSet);
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(desiredSet, currentSet))
+                .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
+            mockPlanner.Setup(pl => pl.PlanAsync(It.IsAny<ModuleSet>(), currentSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
+                .Returns(Task.FromResult(testPlan));
+            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), currentSet))
+                .Returns(Task.FromResult((IImmutableDictionary<string, IModuleIdentity>)ImmutableDictionary<string, IModuleIdentity>.Empty));
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), DeploymentStatus.Unknown))
+                .Returns(Task.CompletedTask);
+            mockPlanRunner.SetupSequence(m => m.ExecuteAsync(It.IsAny<long>(), It.IsAny<Plan>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider, availabilityMetric);
+
+            await agent.ReconcileAsync(token);
+
+            mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once());
+            mockPlanner.Verify(pl => pl.PlanAsync(It.IsAny<ModuleSet>(), currentSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty), Times.Once());
+            mockPlanRunner.VerifyAll();
+            mockReporter.VerifyAll();
+        }
+
+
+        [Fact]
         public async void ReconcileAsyncExecuteAsyncIncompleteReportsLastState()
         {
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);

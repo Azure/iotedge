@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
             this.availabilityMetric = Preconditions.CheckNotNull(availabilityMetric, nameof(availabilityMetric));
-            DeploymentStatus status = DeploymentStatus.Unknown;
+            this.status = DeploymentStatus.Unknown;
             Events.AgentCreated();
         }
 
