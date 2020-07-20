@@ -350,7 +350,7 @@ mod tests {
 
     use super::SessionState;
     use crate::{
-        configuration::{HumanSize, QueueFullAction},
+        settings::{HumanSize, QueueFullAction},
         ClientId, SessionConfig, Subscription,
     };
 

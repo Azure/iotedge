@@ -216,8 +216,8 @@ mod tests {
 
     use super::{Session, SessionState};
     use crate::{
-        configuration::QueueFullAction, tests::peer_addr, Auth, ClientId, ConnReq,
-        ConnectionHandle, Error, SessionConfig,
+        settings::QueueFullAction, tests::peer_addr, Auth, ClientId, ConnReq, ConnectionHandle,
+        Error, SessionConfig,
     };
 
     fn connection_handle() -> ConnectionHandle {
