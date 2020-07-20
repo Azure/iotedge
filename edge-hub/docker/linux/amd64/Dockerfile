@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 ADD ./watchdog/target/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
-ADD ./mqttd/production.json /app/mqttd/production.json
+ADD ./mqttd/broker.json /app/mqttd/broker.json
 
 # RocksDB requires snappy	
 RUN apk update && \	

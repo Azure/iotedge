@@ -43,7 +43,7 @@ fn main() -> Result<()> {
     let broker_handle = match run(
         "MQTT Broker",
         "/usr/local/bin/mqttd",
-        vec!["-c".to_string(), "/app/mqttd/production.json".to_string()],
+        vec!["-c".to_string(), "/app/mqttd/broker.json".to_string()],
         Arc::clone(&should_shutdown),
     ) {
         Ok(handle) => Some(handle),
