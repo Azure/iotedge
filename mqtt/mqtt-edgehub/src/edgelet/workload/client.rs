@@ -51,7 +51,7 @@ impl WorkloadClient {
             .await
             .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
 
-        if status != StatusCode::OK {
+        if status.is_success() {
             let text =
                 str::from_utf8(body.bytes()).map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
             return Err(ApiError::UnsuccessfulResponse(status, text.into()).into());
