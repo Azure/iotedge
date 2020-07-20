@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 mod size;
 
 pub use size::HumanSize;
