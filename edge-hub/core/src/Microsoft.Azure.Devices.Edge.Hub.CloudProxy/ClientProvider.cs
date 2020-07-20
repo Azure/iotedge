@@ -17,26 +17,51 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.gatewayHostname = gatewayHostname;
         }
 
-        public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings)
+        public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings, Option<string> modelId)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             Preconditions.CheckNotNull(authenticationMethod, nameof(authenticationMethod));
+            modelId.ForEach(m => Preconditions.CheckNonWhiteSpace(m, nameof(m)));
+
+            Option<ClientOptions> options = modelId.Match(
+                m => Option.Some(new ClientOptions { ModelId = m }),
+                () => Option.None<ClientOptions>());
 
             if (identity is IModuleIdentity)
             {
                 ModuleClient moduleClient = this.gatewayHostname.Match(
-                    v => ModuleClient.Create(identity.IotHubHostname, v, authenticationMethod, transportSettings),
-                    () => ModuleClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings));
+                    v =>
+                    {
+                        return options.Match(
+                            o => ModuleClient.Create(identity.IotHubHostname, v, authenticationMethod, transportSettings, o),
+                            () => ModuleClient.Create(identity.IotHubHostname, v, authenticationMethod, transportSettings));
+                    },
+                    () =>
+                    {
+                        return options.Match(
+                            o => ModuleClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings, o),
+                            () => ModuleClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings));
+                    });
                 return new ModuleClientWrapper(moduleClient);
             }
             else if (identity is IDeviceIdentity)
             {
                 DeviceClient deviceClient = this.gatewayHostname.Match(
-                    v => DeviceClient.Create(identity.IotHubHostname, v, authenticationMethod, transportSettings),
-                    () => DeviceClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings));
-                return new DeviceClientWrapper(deviceClient);
-            }
+                v =>
+                {
+                    return options.Match(
+                        o => DeviceClient.Create(identity.IotHubHostname, v, authenticationMethod, transportSettings, o),
+                        () => DeviceClient.Create(identity.IotHubHostname, v, authenticationMethod, transportSettings));
+                },
+                () =>
+                {
+                    return options.Match(
+                        o => DeviceClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings, o),
+                        () => DeviceClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings));
+                });
+                    return new DeviceClientWrapper(deviceClient);
+                }
 
             throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
         }
@@ -75,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return new ModuleClientWrapper(moduleClient);
         }
 
-        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings)
+        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, Option<string> modelId)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
@@ -84,10 +109,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             switch (identity)
             {
                 case IModuleIdentity moduleIdentity:
-                    return this.Create(identity, new ModuleAuthentication(tokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId), transportSettings);
+                    return this.Create(identity, new ModuleAuthentication(tokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId), transportSettings, modelId);
 
                 case IDeviceIdentity deviceIdentity:
-                    return this.Create(identity, new DeviceAuthentication(tokenProvider, deviceIdentity.DeviceId), transportSettings);
+                    return this.Create(identity, new DeviceAuthentication(tokenProvider, deviceIdentity.DeviceId), transportSettings, modelId);
 
                 default:
                     throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
