@@ -120,26 +120,56 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return cloudProxyTry;
         }
 
-        public void AddSubscription(string id, DeviceSubscription deviceSubscription)
+        public bool AddSubscription(string id, DeviceSubscription deviceSubscription)
         {
             if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
             {
                 throw new ArgumentException($"A connection for {id} not found.");
             }
 
+            // setting 'hasChanged' to false, so if not device connection, it doesn't indicate status change
+            bool hasChanged = false;
             device.DeviceConnection.Filter(d => d.IsActive)
-                .ForEach(d => d.Subscriptions[deviceSubscription] = true);
+                .ForEach(d =>
+                {
+                    hasChanged = true;
+                    d.Subscriptions.AddOrUpdate(
+                        deviceSubscription,
+                        true,
+                        (_, old) =>
+                        {
+                            hasChanged = old != true;
+                            return true;
+                        });
+                    });
+
+            return hasChanged;
         }
 
-        public void RemoveSubscription(string id, DeviceSubscription deviceSubscription)
+        public bool RemoveSubscription(string id, DeviceSubscription deviceSubscription)
         {
             if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
             {
                 throw new ArgumentException($"A connection for {id} not found.");
             }
 
+            // setting 'hasChanged' to false, so if not device connection, it doesn't indicate status change
+            bool hasChanged = false;
             device.DeviceConnection.Filter(d => d.IsActive)
-                .ForEach(d => d.Subscriptions[deviceSubscription] = false);
+                .ForEach(d =>
+                {
+                    hasChanged = true;
+                    d.Subscriptions.AddOrUpdate(
+                        deviceSubscription,
+                        false,
+                        (_, old) =>
+                        {
+                            hasChanged = old != false;
+                            return false;
+                        });
+                });
+
+            return hasChanged;
         }
 
         public Option<IReadOnlyDictionary<DeviceSubscription, bool>> GetSubscriptions(string id) =>
@@ -392,7 +422,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 lock (this.deviceProxyLock)
                 {
                     Option<DeviceConnection> currentValue = this.DeviceConnection;
-                    IDictionary<DeviceSubscription, bool> subscriptions = this.DeviceConnection.Map(d => d.Subscriptions)
+                    ConcurrentDictionary<DeviceSubscription, bool> subscriptions = this.DeviceConnection.Map(d => d.Subscriptions)
                         .GetOrElse(new ConcurrentDictionary<DeviceSubscription, bool>());
                     this.DeviceConnection = Option.Some(new DeviceConnection(deviceProxy, subscriptions));
                     return currentValue;
@@ -456,7 +486,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         class DeviceConnection
         {
-            public DeviceConnection(IDeviceProxy deviceProxy, IDictionary<DeviceSubscription, bool> subscriptions)
+            public DeviceConnection(IDeviceProxy deviceProxy, ConcurrentDictionary<DeviceSubscription, bool> subscriptions)
             {
                 this.Subscriptions = subscriptions;
                 this.DeviceProxy = deviceProxy;
@@ -464,7 +494,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public IDeviceProxy DeviceProxy { get; }
 
-            public IDictionary<DeviceSubscription, bool> Subscriptions { get; }
+            public ConcurrentDictionary<DeviceSubscription, bool> Subscriptions { get; }
 
             public bool IsActive => this.DeviceProxy.IsActive;
 

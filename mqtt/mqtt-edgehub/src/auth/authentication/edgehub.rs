@@ -4,7 +4,9 @@ use std::{
 };
 
 use async_trait::async_trait;
-use reqwest::Client;
+use bytes::buf::BufExt;
+use http::{header, StatusCode};
+use hyper::{body, client::HttpConnector, Body, Client, Request};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
@@ -14,7 +16,7 @@ const API_VERSION: &str = "2020-04-20";
 
 #[derive(Clone)]
 pub struct EdgeHubAuthenticator {
-    client: Client,
+    client: Client<HttpConnector>,
     url: String,
 }
 
@@ -28,30 +30,34 @@ impl EdgeHubAuthenticator {
         &self,
         context: AuthenticationContext,
     ) -> Result<Option<AuthId>, AuthenticateError> {
-        let req = EdgeHubAuthRequest::from_auth(&context);
+        let auth_req = EdgeHubAuthRequest::from_auth(&context);
+        let body = serde_json::to_string(&auth_req).map_err(AuthenticateError::SerializeRequest)?;
+        let req = Request::post(&self.url)
+            .header(header::CONTENT_TYPE, "application/json; charset=utf-8")
+            .body(Body::from(body))
+            .map_err(AuthenticateError::PrepareRequest)?;
 
-        let response = self
+        let http_res = self
             .client
-            .post(&self.url)
-            .json(&req)
-            .send()
+            .request(req)
             .await
             .map_err(AuthenticateError::SendRequest)?;
 
-        if response.status() != reqwest::StatusCode::OK {
-            return Err(AuthenticateError::ProcessResponse);
+        if http_res.status() != StatusCode::OK {
+            return Err(AuthenticateError::UnsuccessfullResponse(http_res.status()));
         }
 
-        let response = response
-            .json::<EdgeHubAuthResponse>()
+        let body = body::aggregate(http_res)
             .await
-            .map_err(|_| AuthenticateError::ProcessResponse)?;
+            .map_err(AuthenticateError::ReadResponse)?;
+        let auth_res: EdgeHubAuthResponse = serde_json::from_reader(body.reader())
+            .map_err(AuthenticateError::DeserializeResponse)?;
 
-        if response.version != API_VERSION {
-            return Err(AuthenticateError::ApiVersion(response.version));
+        if auth_res.version != API_VERSION {
+            return Err(AuthenticateError::ApiVersion(auth_res.version));
         }
 
-        response.try_into()
+        auth_res.try_into()
     }
 }
 
@@ -111,13 +117,10 @@ impl TryFrom<EdgeHubAuthResponse> for Option<AuthId> {
     type Error = AuthenticateError;
 
     fn try_from(value: EdgeHubAuthResponse) -> Result<Self, Self::Error> {
-        match value.result {
-            EdgeHubResultCode::Authenticated => value
-                .identity
-                .map_or(Err(AuthenticateError::ProcessResponse), |identity| {
-                    Ok(Some(identity.into()))
-                }),
-            EdgeHubResultCode::Unauthenticated => Ok(None),
+        match (value.result, value.identity) {
+            (EdgeHubResultCode::Authenticated, Some(identity)) => Ok(Some(identity.into())),
+            (EdgeHubResultCode::Authenticated, None) => Err(AuthenticateError::InvalidResponse),
+            (EdgeHubResultCode::Unauthenticated, _) => Ok(None),
         }
     }
 }
@@ -125,14 +128,29 @@ impl TryFrom<EdgeHubAuthResponse> for Option<AuthId> {
 /// Authentication error.
 #[derive(Debug, thiserror::Error)]
 pub enum AuthenticateError {
-    #[error("failed to send request: {0}.")]
-    SendRequest(#[from] reqwest::Error),
+    #[error("failed to serialize request.")]
+    SerializeRequest(#[source] serde_json::Error),
+
+    #[error("failed to prepare request.")]
+    PrepareRequest(#[source] http::Error),
+
+    #[error("failed to send request.")]
+    SendRequest(#[source] hyper::Error),
+
+    #[error("received unsuccessful status code: {0}")]
+    UnsuccessfullResponse(http::StatusCode),
 
     #[error("failed to process response.")]
-    ProcessResponse,
+    ReadResponse(#[source] hyper::Error),
 
-    #[error("not supported response version {0}.")]
+    #[error("failed to deserialize response.")]
+    DeserializeResponse(#[source] serde_json::Error),
+
+    #[error("not supported response version.")]
     ApiVersion(String),
+
+    #[error("not supported response body.")]
+    InvalidResponse,
 }
 
 #[cfg(test)]

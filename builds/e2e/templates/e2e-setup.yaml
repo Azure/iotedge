@@ -115,11 +115,6 @@ steps:
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
 
-    if ($IsWindows)
-    {
-      $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
-    }
-
     if ('$(arch)' -eq 'arm32v7')
     {
       $context['optimizeForPerformance'] = 'false'

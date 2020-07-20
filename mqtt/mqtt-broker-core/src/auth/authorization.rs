@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::{convert::Infallible, error::Error as StdError};
 
 use mqtt3::proto;
@@ -118,6 +117,12 @@ pub struct Connect {
     will: Option<Publication>,
 }
 
+impl Connect {
+    pub fn will(&self) -> Option<&Publication> {
+        self.will.as_ref()
+    }
+}
+
 impl From<proto::Connect> for Connect {
     fn from(connect: proto::Connect) -> Self {
         Self {
@@ -128,9 +133,23 @@ impl From<proto::Connect> for Connect {
 
 /// Represents a publication description without payload to be used for authorization.
 pub struct Publication {
-    pub topic_name: String,
-    pub qos: proto::QoS,
-    pub retain: bool,
+    topic_name: String,
+    qos: proto::QoS,
+    retain: bool,
+}
+
+impl Publication {
+    pub fn topic_name(&self) -> &str {
+        &self.topic_name
+    }
+
+    pub fn qos(&self) -> proto::QoS {
+        self.qos
+    }
+
+    pub fn retain(&self) -> bool {
+        self.retain
+    }
 }
 
 impl From<proto::Publication> for Publication {
@@ -145,7 +164,13 @@ impl From<proto::Publication> for Publication {
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
 pub struct Publish {
-    pub publication: Publication,
+    publication: Publication,
+}
+
+impl Publish {
+    pub fn publication(&self) -> &Publication {
+        &self.publication
+    }
 }
 
 impl From<proto::Publish> for Publish {
@@ -173,6 +198,10 @@ pub struct Subscribe {
 impl Subscribe {
     pub fn topic_filter(&self) -> &str {
         &self.topic_filter
+    }
+
+    pub fn qos(&self) -> proto::QoS {
+        self.qos
     }
 }
 
