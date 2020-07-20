@@ -1,9 +1,16 @@
-use openssl::{pkcs12::Pkcs12, pkey::PKey, stack::Stack, x509::X509};
+use chrono::{DateTime, NaiveDateTime, ParseResult, Utc};
+use openssl::{asn1::Asn1TimeRef, pkcs12::Pkcs12, pkey::PKey, stack::Stack, x509::X509};
 
-pub struct Identity(Vec<u8>);
+/// Identity certificate that holds server certificate, along with its corresponding private key
+/// and chain of certificates to a trusted root.
+pub struct ServerCertificate {
+    der: Vec<u8>,
+    not_before: DateTime<Utc>,
+    not_after: DateTime<Utc>,
+}
 
-impl Identity {
-    pub fn try_from<S, K>(certificate: S, private_key: K) -> Result<Self, IdentityError>
+impl ServerCertificate {
+    pub fn try_from<S, K>(certificate: S, private_key: K) -> Result<Self, ServerCertificateError>
     where
         S: AsRef<[u8]>,
         K: AsRef<[u8]>,
@@ -33,24 +40,51 @@ impl Identity {
 
         // build a native TLS identity from the PKCS12 cert archive that can then be
         // used to setup a TLS server endpoint
-        let identity = pkcs_certs.to_der()?;
+        let identity = ServerCertificate {
+            der: pkcs_certs.to_der()?,
+            not_before: parse_openssl_time(server_cert.not_before())?,
+            not_after: parse_openssl_time(server_cert.not_after())?,
+        };
 
-        Ok(Identity(identity))
+        Ok(identity)
+    }
+
+    pub fn not_before(&self) -> DateTime<Utc> {
+        self.not_before
+    }
+
+    pub fn not_after(&self) -> DateTime<Utc> {
+        self.not_after
     }
 }
 
-impl AsRef<[u8]> for Identity {
+impl AsRef<[u8]> for ServerCertificate {
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        &self.der
     }
+}
+
+/// Coverts `openssl::asn1::Asn1TimeRef` into `chrono::DateTime<chrono::Utc>`.
+///
+/// `openssl::asn1::Asn1TimeRef` does not expose any way to convert the `ASN1_TIME` to a Rust-friendly type.
+/// Its Display impl uses `ASN1_TIME_print`, so we convert it into a String and parse it back
+/// into a `chrono::DateTime<chrono::Utc>`
+pub fn parse_openssl_time(time: &Asn1TimeRef) -> ParseResult<DateTime<Utc>> {
+    let time = time.to_string();
+    let time = NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
+    Ok(DateTime::<Utc>::from_utc(time, Utc))
 }
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
-pub struct IdentityError(#[from] openssl::error::ErrorStack);
+pub enum ServerCertificateError {
+    OpenSSL(#[from] openssl::error::ErrorStack),
+    Asn1Time(#[from] chrono::ParseError),
+}
 
 #[cfg(test)]
 mod tests {
+    use chrono::{offset::TimeZone, Utc};
     use futures_util::StreamExt;
     use openssl::x509::X509;
     use tokio::{
@@ -59,7 +93,7 @@ mod tests {
     };
     use tokio_native_tls::{TlsAcceptor, TlsConnector};
 
-    use super::Identity;
+    use super::{parse_openssl_time, ServerCertificate};
 
     const PRIVATE_KEY: &str = include_str!("../test/tls/pkey.pem");
 
@@ -69,7 +103,7 @@ mod tests {
     async fn it_converts_into_identity() {
         const MESSAGE: &[u8] = b"it works!";
 
-        let identity = Identity::try_from(CERTIFICATE, PRIVATE_KEY).unwrap();
+        let identity = ServerCertificate::try_from(CERTIFICATE, PRIVATE_KEY).unwrap();
 
         let port = run_echo_server(identity).await;
         let buffer = run_echo_client(port, MESSAGE).await;
@@ -77,7 +111,7 @@ mod tests {
         assert_eq!(MESSAGE, buffer.as_slice());
     }
 
-    async fn run_echo_server(identity: Identity) -> u16 {
+    async fn run_echo_server(identity: ServerCertificate) -> u16 {
         let pkcs12 = native_tls::Identity::from_pkcs12(identity.as_ref(), "").unwrap();
         let acceptor = TlsAcceptor::from(native_tls::TlsAcceptor::new(pkcs12).unwrap());
 
@@ -121,5 +155,19 @@ mod tests {
         tls.read(&mut buffer[..]).await.unwrap();
 
         buffer
+    }
+
+    #[test]
+    fn it_converts_asn1_time() {
+        let certs = X509::stack_from_pem(CERTIFICATE.as_ref()).unwrap();
+        if let Some((cert, _)) = certs.split_first() {
+            let not_before = parse_openssl_time(cert.not_before()).unwrap();
+            assert_eq!(Utc.ymd(2020, 7, 9).and_hms(21, 29, 53), not_before);
+
+            let not_after = super::parse_openssl_time(cert.not_after()).unwrap();
+            assert_eq!(Utc.ymd(2020, 10, 7).and_hms(20, 10, 2), not_after);
+        } else {
+            panic!("server cert expected");
+        }
     }
 }

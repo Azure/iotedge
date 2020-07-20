@@ -18,8 +18,7 @@ use command::ShutdownHandle as CommandShutdownHandle;
 use mqtt3::ShutdownError;
 use mqtt_broker::{
     Broker, BrokerConfig, BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist,
-    ShutdownHandle as SnapshotShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent,
-    VersionedFileFormat,
+    ShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 use mqtt_broker_core::auth::Authorizer;
 
@@ -129,8 +128,5 @@ where
     pin_mut!(shutdown);
 
     // Run server
-    let server = bootstrap::server(config, broker).await?;
-    let state = server.serve(shutdown).await?;
-
-    Ok(state)
+    bootstrap::start_server(config, broker, shutdown).await
 }

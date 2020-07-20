@@ -1,19 +1,22 @@
-use bytes::buf::BufExt;
+use std::str;
+
+use bytes::buf::{Buf, BufExt};
 use chrono::{DateTime, Utc};
+use http::{Request, StatusCode};
 use hyper::{body, Body, Client};
 
 use crate::edgelet::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, Scheme, ServerCertificateRequest,
 };
-use http::{Request, StatusCode};
 
+#[derive(Debug)]
 pub struct WorkloadClient {
-    client: Client<Connector, Body>,
+    client: Client<Connector>,
     scheme: Scheme,
 }
 
 impl WorkloadClient {
-    pub(crate) fn new(client: Client<Connector, Body>, scheme: Scheme) -> Self {
+    pub(crate) fn new(client: Client<Connector>, scheme: Scheme) -> Self {
         Self { client, scheme }
     }
 
@@ -43,11 +46,16 @@ impl WorkloadClient {
             .await
             .map_err(ApiError::ExecuteRequest)?;
 
-        if res.status() != StatusCode::OK {
-            return Err(ApiError::UnsuccessfulResponse(res.status()).into());
-        }
+        let status = res.status();
+        let body = body::aggregate(res)
+            .await
+            .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
 
-        let body = body::aggregate(res).await.map_err(ApiError::ReadResponse)?;
+        if status != StatusCode::CREATED {
+            let text =
+                str::from_utf8(body.bytes()).map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
+            return Err(ApiError::UnsuccessfulResponse(status, text.into()).into());
+        }
 
         let cert = serde_json::from_reader(body.reader()).map_err(ApiError::ParseResponseBody)?;
 
@@ -96,7 +104,7 @@ mod tests {
             "POST",
             "/modules/broker/genid/12345678/certificate/server?api-version=2019-01-30",
         )
-        .with_status(200)
+        .with_status(201)
         .with_body(serde_json::to_string(&res).unwrap())
         .create();
 
@@ -130,7 +138,7 @@ mod tests {
 
         assert_matches!(
             res,
-            WorkloadError::Api(ApiError::UnsuccessfulResponse(StatusCode::BAD_REQUEST))
+            WorkloadError::Api(ApiError::UnsuccessfulResponse(StatusCode::BAD_REQUEST, _))
         )
     }
 }

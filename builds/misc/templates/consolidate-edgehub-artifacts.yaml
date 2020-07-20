@@ -9,16 +9,20 @@ parameters:
 
 steps:
   - bash: |
+      # Setup build context
       mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}
       mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
       mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/watchdog
 
+      # Copy watchdog artifacts
       cp  -r ${{ parameters['watchdog.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/watchdog
 
+      # Copy mqtt artifacts
       cp  -r ${{ parameters['mqttd.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
       cp ${{ parameters['mqttd.config.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
 
+      # Copy edgehub artifacts
       mv  $(Build.BinariesDirectory)/${{ parameters['dotnet.artifacts.path'] }}/docker $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}
-      cp  -r $(Build.BinariesDirectory)/${{ parameters['dotnet.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}
+      mv $(Build.BinariesDirectory)/${{ parameters['dotnet.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}
 
     displayName: Copy edgehub, watchdog, and broker artifacts to single folder

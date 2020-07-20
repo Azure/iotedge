@@ -43,7 +43,7 @@ impl EdgeHubAuthorizer {
         client_info: &ClientInfo,
         publish: &Publish,
     ) -> Authorization {
-        let topic = &publish.publication.topic_name;
+        let topic = publish.publication().topic_name();
 
         if is_iothub_topic(topic) {
             // run authorization rules for publication to IoTHub topic
