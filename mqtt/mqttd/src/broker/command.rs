@@ -6,7 +6,7 @@ use regex::Regex;
 use tokio::net::TcpStream;
 use tracing::{error, info};
 
-use mqtt3::{proto, Client, IoSource};
+use mqtt3::{proto, Client, IoSource, ShutdownError};
 use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
 // TODO: get device id from env
@@ -18,6 +18,7 @@ const CLIENT_EXTRACTION_REGEX: &str = r"(?<=\$edgehub\/)(.*)(?=\/disconnect)";
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
 
 // TODO: return self.shutdown_handle which is oneshot
+// TODO REVIEW: We need this to map the err in a structured way?
 impl ShutdownHandle {
     pub async fn shutdown(&mut self) -> Result<(), Error> {
         self.0
@@ -64,35 +65,34 @@ impl CommandHandler {
         }
     }
 
-    pub fn shutdown_handle(&self) -> ShutdownHandle {
+    pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
         // TODO: handle unwrap
-        ShutdownHandle(self.client.shutdown_handle().unwrap())
+        self.client
+            .shutdown_handle()
+            .map_or(Err(ShutdownError::ClientDoesNotExist), |shutdown_handle| {
+                Ok(ShutdownHandle(shutdown_handle))
+            })
     }
 
     pub async fn run(mut self) {
-        // TODO: move to broker connect
-        // TODO: read associated types (implementation of trait determines what types used)
-        // TODO: read generics
-
         let qos = proto::QoS::AtLeastOnce;
-        // TODO: log error with client and topic
         if let Err(_e) = self.client.subscribe(proto::SubscribeTo {
             topic_filter: TOPIC_FILTER.to_string(),
             qos,
         }) {
-            // TODO: better message
-            error!("could not subscribe to command topic")
+            error!(
+                "could not subscribe to command topic '{}' for command client '{}'",
+                TOPIC_FILTER, CLIENT_ID
+            )
         } else {
-            // TODO: better message
-            info!("successfully subscribed to command topic")
+            info!(
+                "successfully subscribed to command topic '{}' for command client '{}'",
+                TOPIC_FILTER, CLIENT_ID
+            )
         };
 
         while let Some(event) = self.client.next().await {
             info!("received data");
-
-            // client.next() produces option of a result
-            // TODO: safely handle
-            // let event = event.unwrap();
 
             match event {
                 Ok(event) => {
@@ -123,8 +123,6 @@ impl CommandHandler {
     }
 
     fn parse_client_id(topic_name: String) -> Option<String> {
-        // TODO: eliminate unwrap
-        // TODO: create static var for regex
         lazy_static! {
             static ref REGEX: Regex = Regex::new(CLIENT_EXTRACTION_REGEX)
                 .expect("failed to create new Regex from pattern");

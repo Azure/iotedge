@@ -15,6 +15,7 @@ use tracing::{info, warn};
 
 use command::CommandHandler;
 use command::ShutdownHandle as CommandShutdownHandle;
+use mqtt3::ShutdownError;
 use mqtt_broker::{
     Broker, BrokerConfig, BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist,
     ShutdownHandle as SnapshotShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent,
@@ -34,7 +35,7 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
     #[cfg(feature = "edgehub")]
     info!("starting command handler...");
     let (mut command_handler_shutdown_handle, command_handler_join_handle) =
-        start_command_handler(broker.handle()).await;
+        start_command_handler(broker.handle()).await?;
 
     info!("starting snapshotter...");
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
@@ -62,13 +63,13 @@ pub async fn run(config: BrokerConfig) -> Result<()> {
 
 async fn start_command_handler(
     broker_handle: BrokerHandle,
-) -> (CommandShutdownHandle, JoinHandle<()>) {
+) -> Result<(CommandShutdownHandle, JoinHandle<()>), ShutdownError> {
     let command_handler = CommandHandler::new(broker_handle);
-    let shutdown_handle = command_handler.shutdown_handle();
+    let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());
 
-    (shutdown_handle, join_handle)
+    Ok((shutdown_handle, join_handle))
 }
 
 async fn start_snapshotter(
