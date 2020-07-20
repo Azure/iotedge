@@ -1,6 +1,10 @@
-use std::{fs, future::Future, path::Path};
+use std::{
+    fs,
+    future::Future,
+    path::{Path, PathBuf},
+};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use native_tls::Identity;
 
 use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Error, Server};
@@ -48,16 +52,24 @@ where
 }
 
 fn load_server_certificate(path: Option<&Path>) -> Result<native_tls::Identity> {
-    let path = path.ok_or(anyhow!("missing path to server certificate"))?;
+    let path = path.ok_or_else(|| ServerCertificateLoadError::MissingPath)?;
 
-    let cert_buffer = fs::read(&path).context(anyhow!(
-        "unable to read server certificate {}",
-        path.display()
-    ))?;
+    let cert_buffer = fs::read(&path)
+        .with_context(|| ServerCertificateLoadError::ReadCertificate(path.to_path_buf()))?;
 
-    let identity = Identity::from_pkcs12(&cert_buffer, "").context(anyhow!(
-        "unable to decode server certificate {}",
-        path.display()
-    ))?;
+    let identity = Identity::from_pkcs12(&cert_buffer, "")
+        .with_context(|| ServerCertificateLoadError::ParseCertificate(path.to_path_buf()))?;
     Ok(identity)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ServerCertificateLoadError {
+    #[error("missing path to server certificate")]
+    MissingPath,
+
+    #[error("unable to read server certificate {0}")]
+    ReadCertificate(PathBuf),
+
+    #[error("unable to decode server certificate {0}")]
+    ParseCertificate(PathBuf),
 }

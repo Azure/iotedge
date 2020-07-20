@@ -19,6 +19,7 @@ mqtt-broker-core = { path = "../mqtt-broker-core" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 chrono = "0.4"
 anyhow = "1.0"
+thiserror = "1.0"
 
 [dev-dependencies]
 mockito = "0.25"

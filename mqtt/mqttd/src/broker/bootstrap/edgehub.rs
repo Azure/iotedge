@@ -1,6 +1,6 @@
-use std::{convert::TryInto, env, future::Future};
+use std::{convert::TryInto, env, future::Future, path::PathBuf};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
 
 use futures_util::{
@@ -55,16 +55,14 @@ where
             let identity = match tls.cert_path() {
                 Some(path) => {
                     info!("loading identity from {}", path.display());
-                    ServerCertificate::from_file(path).context(anyhow!(
-                        "unable to import server certificate from file {}",
-                        path.display()
-                    ))?
+                    ServerCertificate::from_file(path)
+                        .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
                 }
                 None => {
                     info!("downloading identity from edgelet");
                     download_server_certificate()
                         .await
-                        .context(anyhow!("unable to download certificate from edgelet"))?
+                        .with_context(|| ServerCertificateLoadError::Edgelet)?
                 }
             };
             let renew_at = identity.not_after();
@@ -100,6 +98,15 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
     } else {
         warn!("server certificate expired at {}", renew_at);
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ServerCertificateLoadError {
+    #[error("unable to load server certificate from file {0}")]
+    File(PathBuf),
+
+    #[error("unable to download certificate from edgelet")]
+    Edgelet,
 }
 
 pub const WORKLOAD_URI: &str = "IOTEDGE_WORKLOADURI";
