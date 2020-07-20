@@ -1028,14 +1028,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
             var productInfoStore = Mock.Of<IProductInfoStore>();
-<<<<<<< HEAD:edge-hub/core/test/Microsoft.Azure.Devices.Edge.Hub.Core.Test/ConnectionManagerTest.cs
-
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == module1Credentials.Identity.Id))).ReturnsAsync(Option.Some(module1Credentials.Identity.Id));
-
-=======
             var modelIdStore = Mock.Of<IModelIdStore>();
->>>>>>> master:edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.Core.Test/ConnectionManagerTest.cs
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,

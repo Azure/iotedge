@@ -244,11 +244,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.useServerHeartbeat,
                             proxy,
                             productInfoStore,
-<<<<<<< HEAD:edge-hub/core/src/Microsoft.Azure.Devices.Edge.Hub.Service/modules/RoutingModule.cs
+                            modelIdStore,
                             this.nestedEdgeEnabled);
-=======
-                            modelIdStore);
->>>>>>> master:edge-hub/src/Microsoft.Azure.Devices.Edge.Hub.Service/modules/RoutingModule.cs
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()

@@ -447,11 +447,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
-<<<<<<< HEAD:edge-hub/core/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/ClientTokenCloudConnectionTest.cs
+                modelIdStore,
                 true);
-=======
-                modelIdStore);
->>>>>>> master:edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/ClientTokenCloudConnectionTest.cs
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(hostname), deviceConnectivityManager);

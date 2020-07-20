@@ -148,11 +148,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
-<<<<<<< HEAD:edge-hub/core/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
+                modelIdStore,
                 true);
-=======
-                modelIdStore);
->>>>>>> master:edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
@@ -203,11 +200,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
-<<<<<<< HEAD:edge-hub/core/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
+                modelIdStore,
                 true);
-=======
-                modelIdStore);
->>>>>>> master:edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
@@ -255,11 +249,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
-<<<<<<< HEAD:edge-hub/core/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
+                modelIdStore,
                 true);
-=======
-                modelIdStore);
->>>>>>> master:edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -306,11 +297,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
-<<<<<<< HEAD:edge-hub/core/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
+                modelIdStore,
                 true);
-=======
-                modelIdStore);
->>>>>>> master:edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -357,11 +345,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
-<<<<<<< HEAD:edge-hub/core/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
+                modelIdStore,
                 true);
-=======
-                modelIdStore);
->>>>>>> master:edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test/CloudConnectionProviderTest.cs
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
