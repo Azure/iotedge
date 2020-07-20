@@ -1,13 +1,15 @@
+use std::str;
+
 use bytes::buf::{Buf, BufExt};
 use chrono::{DateTime, Utc};
+use http::{Request, StatusCode};
 use hyper::{body, Body, Client};
 
 use crate::edgelet::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, Scheme, ServerCertificateRequest,
 };
-use http::{Request, StatusCode};
-use std::str;
 
+#[derive(Debug)]
 pub struct WorkloadClient {
     client: Client<Connector>,
     scheme: Scheme,
