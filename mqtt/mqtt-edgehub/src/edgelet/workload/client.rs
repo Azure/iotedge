@@ -1,13 +1,15 @@
+use std::str;
+
 use bytes::buf::{Buf, BufExt};
 use chrono::{DateTime, Utc};
+use http::{Request, StatusCode};
 use hyper::{body, Body, Client};
 
 use crate::edgelet::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, Scheme, ServerCertificateRequest,
 };
-use http::{Request, StatusCode};
-use std::str;
 
+#[derive(Debug)]
 pub struct WorkloadClient {
     client: Client<Connector>,
     scheme: Scheme,
@@ -49,7 +51,7 @@ impl WorkloadClient {
             .await
             .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
 
-        if status != StatusCode::OK {
+        if status != StatusCode::CREATED {
             let text =
                 str::from_utf8(body.bytes()).map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
             return Err(ApiError::UnsuccessfulResponse(status, text.into()).into());
@@ -102,7 +104,7 @@ mod tests {
             "POST",
             "/modules/broker/genid/12345678/certificate/server?api-version=2019-01-30",
         )
-        .with_status(200)
+        .with_status(201)
         .with_body(serde_json::to_string(&res).unwrap())
         .create();
 

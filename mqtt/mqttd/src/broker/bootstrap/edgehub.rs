@@ -110,7 +110,7 @@ pub enum ServerCertificateLoadError {
 }
 
 pub const WORKLOAD_URI: &str = "IOTEDGE_WORKLOADURI";
-pub const EDGE_DEVICE_HOST_NAME: &str = "EDGEDEVICEHOSTNAME";
+pub const EDGE_DEVICE_HOST_NAME: &str = "EdgeDeviceHostName";
 pub const MODULE_ID: &str = "IOTEDGE_MODULEID";
 pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 
@@ -178,7 +178,7 @@ mod tests {
             "POST",
             "/modules/$edgeHub/genid/12345678/certificate/server?api-version=2019-01-30",
         )
-        .with_status(200)
+        .with_status(201)
         .with_body(serde_json::to_string(&res).unwrap())
         .create();
 
