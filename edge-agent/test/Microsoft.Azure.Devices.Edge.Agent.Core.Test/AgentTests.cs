@@ -577,7 +577,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             mockReporter.VerifyAll();
         }
 
-
         [Fact]
         public async void ReconcileAsyncExecuteAsyncIncompleteReportsLastState()
         {
