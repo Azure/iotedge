@@ -412,9 +412,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 lock (this.deviceProxyLock)
                 {
                     Option<DeviceConnection> currentValue = this.DeviceConnection;
-                    ConcurrentDictionary<DeviceSubscription, bool> subscriptions = this.DeviceConnection.Map(d => d.Subscriptions)
-                        .GetOrElse(new ConcurrentDictionary<DeviceSubscription, bool>());
-                    this.DeviceConnection = Option.Some(new DeviceConnection(deviceProxy, subscriptions));
+                    this.DeviceConnection = Option.Some(new DeviceConnection(deviceProxy, new ConcurrentDictionary<DeviceSubscription, bool>()));
                     return currentValue;
                 }
             }
