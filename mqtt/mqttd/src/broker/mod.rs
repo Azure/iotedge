@@ -18,7 +18,8 @@ use command::ShutdownHandle as CommandShutdownHandle;
 use mqtt3::ShutdownError;
 use mqtt_broker::{
     Broker, BrokerConfig, BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist,
-    ShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
+    ShutdownHandle as SnapshotShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent,
+    VersionedFileFormat,
 };
 use mqtt_broker_core::auth::Authorizer;
 
