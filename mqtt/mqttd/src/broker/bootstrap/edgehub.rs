@@ -157,7 +157,7 @@ mod tests {
             "POST",
             "/modules/$edgeHub/genid/12345678/certificate/server?api-version=2019-01-30",
         )
-        .with_status(200)
+        .with_status(201)
         .with_body(serde_json::to_string(&res).unwrap())
         .create();
 
