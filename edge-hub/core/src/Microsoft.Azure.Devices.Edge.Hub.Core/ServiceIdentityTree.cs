@@ -110,23 +110,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // Auth-chain for a child somewhere in the tree
                 if (this.nodes.TryGetValue(targetId, out ServiceIdentityTreeNode treeNode))
                 {
-                    // Check every Edge device in the authchain for disabled devices
-                    string[] authChainIds = treeNode.AuthChain.Map(chain => chain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)).OrDefault();
-
-                    foreach (string chainId in authChainIds)
+                    if (treeNode.AuthChain.HasValue)
                     {
-                        if (!this.nodes.TryGetValue(chainId, out ServiceIdentityTreeNode node))
-                        {
-                            Events.AuthChainMissingDevice(targetId, chainId);
-                            return Option.None<string>();
-                        }
+                        // Check every Edge device in the authchain for disabled devices
+                        string[] authChainIds = treeNode.AuthChain.Map(chain => chain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)).OrDefault();
 
-                        ServiceIdentity identity = node.Identity;
-                        if (identity.IsEdgeDevice && identity.Status == ServiceIdentityStatus.Disabled)
+                        foreach (string chainId in authChainIds)
                         {
-                            // Chain is unuseable if one of the devices is disabled
-                            Events.AuthChainDisabled(targetId, chainId);
-                            return Option.None<string>();
+                            if (!this.nodes.TryGetValue(chainId, out ServiceIdentityTreeNode node))
+                            {
+                                Events.AuthChainMissingDevice(targetId, chainId);
+                                return Option.None<string>();
+                            }
+
+                            ServiceIdentity identity = node.Identity;
+                            if (identity.IsEdgeDevice && identity.Status == ServiceIdentityStatus.Disabled)
+                            {
+                                // Chain is unuseable if one of the devices is disabled
+                                Events.AuthChainDisabled(targetId, chainId);
+                                return Option.None<string>();
+                            }
                         }
                     }
 

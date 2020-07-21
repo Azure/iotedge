@@ -33,9 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             actorDeviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorDeviceId, nameof(actorDeviceId)));
             actorModuleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorModuleId, nameof(actorModuleId)));
-            Preconditions.CheckArgument(actorModuleId == Constants.EdgeHubModuleId);
 
-            EdgeHubScopeResult result = await this.HandleDevicesAndModulesInTargetDeviceScope(actorDeviceId, request);
+            EdgeHubScopeResult result = await this.HandleDevicesAndModulesInTargetDeviceScope(actorDeviceId, actorModuleId, request);
             await this.SendResponse(result);
         }
 
@@ -45,13 +44,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             actorDeviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorDeviceId, nameof(actorDeviceId)));
             actorModuleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorModuleId, nameof(actorModuleId)));
-            Preconditions.CheckArgument(actorModuleId == Constants.EdgeHubModuleId);
 
-            EdgeHubScopeResult result = await this.HandleGetDeviceAndModuleOnBehalfOf(actorDeviceId, request);
+            EdgeHubScopeResult result = await this.HandleGetDeviceAndModuleOnBehalfOf(actorDeviceId, actorModuleId, request);
             await this.SendResponse(result);
         }
 
-        async Task<EdgeHubScopeResult> HandleDevicesAndModulesInTargetDeviceScope(string actorDeviceId, NestedScopeRequest request)
+        async Task<EdgeHubScopeResult> HandleDevicesAndModulesInTargetDeviceScope(string actorDeviceId, string actorModuleId, NestedScopeRequest request)
         {
             Events.ReceivedScopeRequest(actorDeviceId, request);
             Preconditions.CheckNonWhiteSpace(request.AuthChain, nameof(request.AuthChain));
@@ -67,15 +65,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             // Check that the actor device is authorized to act OnBehalfOf the target
             IEdgeHub edgeHub = await this.edgeHubGetter;
-            if (!await this.AuthorizeActorDevice(edgeHub, actorDeviceId, targetDeviceId))
+            if (!await this.AuthorizeActor(edgeHub, actorDeviceId, actorModuleId, targetDeviceId))
             {
-                Events.UnauthorizedActor(actorDeviceId, targetDeviceId);
+                Events.UnauthorizedActor(actorDeviceId, actorModuleId, targetDeviceId);
                 result.Status = HttpStatusCode.Unauthorized;
                 return result;
             }
 
-            // Construct the result
+            // Get the children of the target device and the target device itself;
             IList<ServiceIdentity> identities = await edgeHub.GetDevicesAndModulesInTargetScopeAsync(targetDeviceId);
+            Option<ServiceIdentity> targetDevice = await edgeHub.GetIdentityAsync(targetDeviceId);
+            targetDevice.ForEach(d => identities.Add(d));
+
+            // Construct the result from the identities
             Events.SendingScopeResult(identities);
             result = MakeResultFromIdentities(identities);
             result.Status = HttpStatusCode.OK;
@@ -83,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return result;
         }
 
-        async Task<EdgeHubScopeResult> HandleGetDeviceAndModuleOnBehalfOf(string actorDeviceId, IdentityOnBehalfOfRequest request)
+        async Task<EdgeHubScopeResult> HandleGetDeviceAndModuleOnBehalfOf(string actorDeviceId, string actorModuleId, IdentityOnBehalfOfRequest request)
         {
             Events.ReceivedIdentityOnBehalfOfRequest(actorDeviceId, request);
             Preconditions.CheckNonWhiteSpace(request.TargetDeviceId, nameof(request.TargetDeviceId));
@@ -100,9 +102,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             // Check that the actor device is authorized to act OnBehalfOf the target
             IEdgeHub edgeHub = await this.edgeHubGetter;
-            if (!await this.AuthorizeActorDevice(edgeHub, actorDeviceId, targetId))
+            if (!await this.AuthorizeActor(edgeHub, actorDeviceId, actorModuleId, targetId))
             {
-                Events.UnauthorizedActor(actorDeviceId, targetId);
+                Events.UnauthorizedActor(actorDeviceId, actorModuleId, targetId);
                 result.Status = HttpStatusCode.Unauthorized;
                 return result;
             }
@@ -150,8 +152,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return false;
         }
 
-        async Task<bool> AuthorizeActorDevice(IEdgeHub edgeHub, string actorDeviceId, string targetId)
+        async Task<bool> AuthorizeActor(IEdgeHub edgeHub, string actorDeviceId, string actorModuleId, string targetId)
         {
+            if (actorModuleId != Constants.EdgeHubModuleId)
+            {
+                // Only child EdgeHubs are allowed to act OnBehalfOf of devices/modules.
+                return false;
+            }
+
             // Actor device is claiming to be our child, and that the target device is its child.
             // So we should have an authchain already cached for the target device.
             Option<string> targetAuthChain = await edgeHub.GetAuthChainForIdentity(targetId);
@@ -236,9 +244,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 Log.LogInformation((int)EventIds.SendingScopeResult, $"Sending ScopeResult: [{string.Join(", ", identities.Select(identity => identity.Id))}]");
             }
 
-            public static void UnauthorizedActor(string actorDeviceId, string targetDeviceId)
+            public static void UnauthorizedActor(string actorDeviceId, string actorModuleId, string targetDeviceId)
             {
-                Log.LogError((int)EventIds.UnauthorizedActor, $"{actorDeviceId} not authorized to act OnBehalfOf {targetDeviceId}");
+                Log.LogError((int)EventIds.UnauthorizedActor, $"{actorDeviceId}/{actorModuleId} not authorized to act OnBehalfOf {targetDeviceId}");
             }
 
             public static void InvalidAuthchain(string authChain)

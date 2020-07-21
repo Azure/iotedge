@@ -105,21 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task<Option<string>> GetAuthChain(string targetId) => this.serviceIdentityHierarchy.GetAuthChain(targetId);
 
-        public async Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId)
-        {
-            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
-
-            // The result is the target device itself and all its immediate children
-            IList<ServiceIdentity> results = await this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
-
-            if (results.Count > 0)
-            {
-                Option<ServiceIdentity> targetDevice = await this.serviceIdentityHierarchy.Get(targetDeviceId);
-                results.Add(targetDevice.Expect(() => new InvalidOperationException($"Child identities exist but there's no parent: {targetDeviceId}")));
-            }
-
-            return results;
-        }
+        public async Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId) => await this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
 
         public void Dispose()
         {

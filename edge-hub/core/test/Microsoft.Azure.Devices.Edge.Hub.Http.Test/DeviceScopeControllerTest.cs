@@ -85,7 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var controller = MakeController(targetEdgeId, resultIdentities, authChainMapping);
 
             var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
-            Assert.Throws<AggregateException>(() => controller.GetDevicesAndModulesInTargetDeviceScope("edge1", "notEdgeHub", request).Wait());
+            controller.GetDevicesAndModulesInTargetDeviceScope("edge1", "notEdgeHub", request).Wait();
+
+            Assert.Equal((int)HttpStatusCode.Unauthorized, controller.HttpContext.Response.StatusCode);
         }
 
         [Fact]
