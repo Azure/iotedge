@@ -163,6 +163,7 @@ where
                     Ok(None) => Auth::Unknown,
                     Err(_e) => {
                         // warn!(message = "error authenticating client: {}", error =% *_e);
+                        warn!(message = "error authenticating client");
                         Auth::Failure
                     }
                 };
