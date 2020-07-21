@@ -68,10 +68,8 @@ where
     Ok(state)
 }
 
-fn load_server_certificate(path: Option<&Path>) -> Result<native_tls::Identity> {
-    let path = path.ok_or_else(|| ServerCertificateLoadError::MissingPath)?;
-
-    let cert_buffer = fs::read(&path)
+fn load_server_certificate(path: &Path) -> Result<native_tls::Identity> {
+    let cert_buffer = fs::read(path)
         .with_context(|| ServerCertificateLoadError::ReadCertificate(path.to_path_buf()))?;
 
     let identity = Identity::from_pkcs12(&cert_buffer, "")
@@ -81,9 +79,6 @@ fn load_server_certificate(path: Option<&Path>) -> Result<native_tls::Identity> 
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {
-    #[error("missing path to server certificate")]
-    MissingPath,
-
     #[error("unable to read server certificate {0}")]
     ReadCertificate(PathBuf),
 

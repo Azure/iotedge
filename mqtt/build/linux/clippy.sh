@@ -58,7 +58,7 @@ echo "Installing clippy..."
 $RUSTUP component add clippy
 
 echo "Running clippy..."
-$CARGO clippy --workspace
+$CARGO clippy --workspace --all-features
 $CARGO clippy --workspace --tests --all-features
 $CARGO clippy --workspace --examples
 $CARGO clippy --workspace --benches

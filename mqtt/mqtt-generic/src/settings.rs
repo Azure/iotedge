@@ -1,10 +1,10 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-use mqtt_broker_core::settings::{BrokerConfig, TcpTransport, TlsTransport};
+use mqtt_broker_core::settings::BrokerConfig;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -57,17 +57,61 @@ impl Default for Settings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ListenerConfig {
-    tcp: Option<TcpTransport>,
-    tls: Option<TlsTransport>,
+    tcp: Option<TcpTransportConfig>,
+    tls: Option<TlsTransportConfig>,
 }
 
 impl ListenerConfig {
-    pub fn tcp(&self) -> Option<&TcpTransport> {
+    pub fn tcp(&self) -> Option<&TcpTransportConfig> {
         self.tcp.as_ref()
     }
 
-    pub fn tls(&self) -> Option<&TlsTransport> {
+    pub fn tls(&self) -> Option<&TlsTransportConfig> {
         self.tls.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TcpTransportConfig {
+    #[serde(rename = "address")]
+    addr: String,
+}
+
+impl TcpTransportConfig {
+    pub fn new(addr: impl Into<String>) -> Self {
+        Self { addr: addr.into() }
+    }
+
+    pub fn addr(&self) -> &str {
+        &self.addr
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TlsTransportConfig {
+    #[serde(rename = "address")]
+    addr: String,
+
+    #[serde(rename = "certificate")]
+    cert_path: PathBuf,
+}
+
+impl TlsTransportConfig {
+    pub fn new(addr: impl Into<String>, cert_path: impl Into<PathBuf>) -> Self {
+        Self {
+            addr: addr.into(),
+            cert_path: cert_path.into(),
+        }
+    }
+
+    pub fn addr(&self) -> &str {
+        &self.addr
+    }
+
+    pub fn cert_path(&self) -> &Path {
+        &self.cert_path
     }
 }
 
@@ -75,12 +119,13 @@ impl ListenerConfig {
 mod tests {
     use std::{path::Path, time::Duration};
 
+    use matches::assert_matches;
+
     use mqtt_broker_core::settings::{
-        BrokerConfig, HumanSize, QueueFullAction, RetainedMessages, SessionConfig, TcpTransport,
+        BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
     };
 
-    use super::{ListenerConfig, Settings};
-    use matches::assert_matches;
+    use super::{ListenerConfig, Settings, TcpTransportConfig};
 
     const DAYS: u64 = 24 * 60 * 60;
 
@@ -92,11 +137,11 @@ mod tests {
             settings,
             Settings {
                 listener: ListenerConfig {
-                    tcp: Some(TcpTransport::new("0.0.0.0:1883")),
+                    tcp: Some(TcpTransportConfig::new("0.0.0.0:1883")),
                     tls: None,
                 },
                 broker: BrokerConfig::new(
-                    RetainedMessages::new(1000, Duration::from_secs(60 * DAYS)),
+                    RetainedMessagesConfig::new(1000, Duration::from_secs(60 * DAYS)),
                     SessionConfig::new(
                         Duration::from_secs(60 * DAYS),
                         Some(HumanSize::new_kilobytes(256).expect("256kb")),

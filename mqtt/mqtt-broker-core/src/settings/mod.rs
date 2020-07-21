@@ -2,11 +2,7 @@ mod size;
 
 pub use size::HumanSize;
 
-use std::{
-    num::NonZeroUsize,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::{num::NonZeroUsize, time::Duration};
 
 use serde::Deserialize;
 
@@ -15,16 +11,16 @@ const DAYS: u64 = 24 * 60 * 60;
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct BrokerConfig {
-    retained_messages: RetainedMessages,
+    retained_messages: RetainedMessagesConfig,
     session: SessionConfig,
-    persistence: Option<SessionPersistence>,
+    persistence: Option<SessionPersistenceConfig>,
 }
 
 impl BrokerConfig {
     pub fn new(
-        retained_messages: RetainedMessages,
+        retained_messages: RetainedMessagesConfig,
         session: SessionConfig,
-        persistence: Option<SessionPersistence>,
+        persistence: Option<SessionPersistenceConfig>,
     ) -> Self {
         Self {
             retained_messages,
@@ -33,7 +29,7 @@ impl BrokerConfig {
         }
     }
 
-    pub fn retained_messages(&self) -> &RetainedMessages {
+    pub fn retained_messages(&self) -> &RetainedMessagesConfig {
         &self.retained_messages
     }
 
@@ -41,52 +37,8 @@ impl BrokerConfig {
         &self.session
     }
 
-    pub fn persistence(&self) -> Option<&SessionPersistence> {
+    pub fn persistence(&self) -> Option<&SessionPersistenceConfig> {
         self.persistence.as_ref()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct TcpTransport {
-    #[serde(rename = "address")]
-    addr: String,
-}
-
-impl TcpTransport {
-    pub fn new(addr: impl Into<String>) -> Self {
-        Self { addr: addr.into() }
-    }
-
-    pub fn addr(&self) -> &str {
-        &self.addr
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub struct TlsTransport {
-    #[serde(rename = "address")]
-    addr: String,
-
-    #[serde(rename = "certificate")]
-    cert_path: Option<PathBuf>,
-}
-
-impl TlsTransport {
-    pub fn new(addr: impl Into<String>, cert_path: Option<PathBuf>) -> Self {
-        Self {
-            addr: addr.into(),
-            cert_path,
-        }
-    }
-
-    pub fn addr(&self) -> &str {
-        &self.addr
-    }
-
-    pub fn cert_path(&self) -> Option<&Path> {
-        self.cert_path.as_deref()
     }
 }
 
@@ -164,13 +116,13 @@ pub enum QueueFullAction {
 }
 
 #[derive(Debug, PartialEq, Clone, Deserialize)]
-pub struct RetainedMessages {
+pub struct RetainedMessagesConfig {
     max_count: usize,
     #[serde(with = "humantime_serde")]
     expiration: Duration,
 }
 
-impl RetainedMessages {
+impl RetainedMessagesConfig {
     pub fn new(max_count: usize, expiration: Duration) -> Self {
         Self {
             max_count,
@@ -187,15 +139,15 @@ impl RetainedMessages {
     }
 }
 
-impl Default for RetainedMessages {
+impl Default for RetainedMessagesConfig {
     fn default() -> Self {
-        RetainedMessages::new(1000, Duration::from_secs(60 * DAYS))
+        RetainedMessagesConfig::new(1000, Duration::from_secs(60 * DAYS))
     }
 }
 
 // TODO: apply settings
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct SessionPersistence {
+pub struct SessionPersistenceConfig {
     file_path: String,
     #[serde(with = "humantime_serde")]
     time_interval: Duration,

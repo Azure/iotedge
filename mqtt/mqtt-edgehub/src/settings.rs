@@ -1,10 +1,10 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-use mqtt_broker_core::settings::{BrokerConfig, TcpTransport, TlsTransport};
+use mqtt_broker_core::settings::BrokerConfig;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -62,22 +62,66 @@ impl Default for Settings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ListenerConfig {
-    tcp: Option<TcpTransport>,
-    tls: Option<TlsTransport>,
-    system: TcpTransport,
+    tcp: Option<TcpTransportConfig>,
+    tls: Option<TlsTransportConfig>,
+    system: TcpTransportConfig,
 }
 
 impl ListenerConfig {
-    pub fn tcp(&self) -> Option<&TcpTransport> {
+    pub fn tcp(&self) -> Option<&TcpTransportConfig> {
         self.tcp.as_ref()
     }
 
-    pub fn tls(&self) -> Option<&TlsTransport> {
+    pub fn tls(&self) -> Option<&TlsTransportConfig> {
         self.tls.as_ref()
     }
 
-    pub fn system(&self) -> &TcpTransport {
+    pub fn system(&self) -> &TcpTransportConfig {
         &self.system
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TcpTransportConfig {
+    #[serde(rename = "address")]
+    addr: String,
+}
+
+impl TcpTransportConfig {
+    pub fn new(addr: impl Into<String>) -> Self {
+        Self { addr: addr.into() }
+    }
+
+    pub fn addr(&self) -> &str {
+        &self.addr
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct TlsTransportConfig {
+    #[serde(rename = "address")]
+    addr: String,
+
+    #[serde(rename = "certificate")]
+    cert_path: Option<PathBuf>,
+}
+
+impl TlsTransportConfig {
+    pub fn new(addr: impl Into<String>, cert_path: Option<impl Into<PathBuf>>) -> Self {
+        Self {
+            addr: addr.into(),
+            cert_path: cert_path.map(Into::into),
+        }
+    }
+
+    pub fn addr(&self) -> &str {
+        &self.addr
+    }
+
+    pub fn cert_path(&self) -> Option<&Path> {
+        self.cert_path.as_deref()
     }
 }
 
@@ -106,11 +150,10 @@ mod tests {
     use std::time::Duration;
 
     use mqtt_broker_core::settings::{
-        BrokerConfig, HumanSize, QueueFullAction, RetainedMessages, SessionConfig, TcpTransport,
-        TlsTransport,
+        BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
     };
 
-    use super::{AuthConfig, ListenerConfig, Settings};
+    use super::{AuthConfig, ListenerConfig, Settings, TcpTransportConfig, TlsTransportConfig};
 
     const DAYS: u64 = 24 * 60 * 60;
 
@@ -122,13 +165,16 @@ mod tests {
             settings,
             Settings {
                 listener: ListenerConfig {
-                    tcp: Some(TcpTransport::new("0.0.0.0:1883")),
-                    tls: Some(TlsTransport::new("0.0.0.0:8883", None)),
-                    system: TcpTransport::new("0.0.0.0:1882"),
+                    tcp: Some(TcpTransportConfig::new("0.0.0.0:1883")),
+                    tls: Some(TlsTransportConfig::new(
+                        "0.0.0.0:8883",
+                        Option::<&str>::None
+                    )),
+                    system: TcpTransportConfig::new("0.0.0.0:1882"),
                 },
                 auth: AuthConfig::new(7120, "/authenticate/"),
                 broker: BrokerConfig::new(
-                    RetainedMessages::new(1000, Duration::from_secs(60 * DAYS)),
+                    RetainedMessagesConfig::new(1000, Duration::from_secs(60 * DAYS)),
                     SessionConfig::new(
                         Duration::from_secs(60 * DAYS),
                         Some(HumanSize::new_kilobytes(256).expect("256kb")),

@@ -16,7 +16,7 @@ ADD . ./
 RUN rustup target add armv7-unknown-linux-musleabihf
 
 # Build our application.
-RUN cargo build --release --manifest-path mqttd/Cargo.toml --no-default-features \ 
+RUN cargo build --release --manifest-path mqttd/Cargo.toml --no-default-features --features "generic" \ 
     && musl-strip /home/rust/src/target/armv7-unknown-linux-musleabihf/release/mqttd
 
 FROM busybox
