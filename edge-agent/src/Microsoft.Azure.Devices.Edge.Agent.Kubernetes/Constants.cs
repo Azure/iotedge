@@ -82,5 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string RunAsNonRootKey = "RunAsNonRoot";
 
         public const string UnknownImage = "unknown";
+
+        public const string HostIPC = "host";
     }
 }
