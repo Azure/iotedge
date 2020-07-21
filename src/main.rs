@@ -19,6 +19,7 @@ use hyper::service::{make_service_fn, service_fn};
 use hyperlocal::UnixServerExt;
 use libc::{S_IRWXU, umask};
 use ring::rand::{generate, SystemRandom};
+use tokio::net::UnixStream;
 
 fn init(path: &Path) {
     unsafe {
@@ -51,8 +52,9 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     };
     
     Server::bind_unix(skt)?
-        .serve(make_service_fn(|_| {
+        .serve(make_service_fn(|conn: &UnixStream| {
             let store = store.to_owned();
+            println!("{:?}", conn.peer_cred().unwrap());
             async {
                 <Result<_, HyperError>>::Ok(service_fn(move |req| {
                     let store = store.to_owned();
