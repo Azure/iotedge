@@ -1,8 +1,15 @@
 use chrono::{DateTime, NaiveDateTime, ParseResult, Utc};
+use native_tls::Identity;
 use openssl::{asn1::Asn1TimeRef, pkcs12::Pkcs12, pkey::PKey, stack::Stack, x509::X509};
+use std::{
+    convert::TryFrom,
+    fs,
+    path::{Path, PathBuf},
+};
 
 /// Identity certificate that holds server certificate, along with its corresponding private key
 /// and chain of certificates to a trusted root.
+#[derive(Debug)]
 pub struct ServerCertificate {
     der: Vec<u8>,
     not_before: DateTime<Utc>,
@@ -10,7 +17,10 @@ pub struct ServerCertificate {
 }
 
 impl ServerCertificate {
-    pub fn try_from<S, K>(certificate: S, private_key: K) -> Result<Self, ServerCertificateError>
+    pub fn from_pem_pair<S, K>(
+        certificate: S,
+        private_key: K,
+    ) -> Result<Self, ServerCertificateError>
     where
         S: AsRef<[u8]>,
         K: AsRef<[u8]>,
@@ -49,12 +59,37 @@ impl ServerCertificate {
         Ok(identity)
     }
 
+    pub fn from_file(path: &Path) -> Result<Self, ServerCertificateError> {
+        let cert_buffer =
+            fs::read(&path).map_err(|e| ServerCertificateError::ReadFile(path.to_path_buf(), e))?;
+
+        let pksc12 = Pkcs12::from_der(&cert_buffer)?;
+        let parts = pksc12.parse("")?;
+
+        let identity = ServerCertificate {
+            der: pksc12.to_der()?,
+            not_before: parse_openssl_time(parts.cert.not_before())?,
+            not_after: parse_openssl_time(parts.cert.not_after())?,
+        };
+
+        Ok(identity)
+    }
+
     pub fn not_before(&self) -> DateTime<Utc> {
         self.not_before
     }
 
     pub fn not_after(&self) -> DateTime<Utc> {
         self.not_after
+    }
+}
+
+impl TryFrom<ServerCertificate> for Identity {
+    type Error = DecodeIdentityError;
+
+    fn try_from(value: ServerCertificate) -> Result<Self, Self::Error> {
+        let identity = Identity::from_pkcs12(&value.der, "")?;
+        Ok(identity)
     }
 }
 
@@ -76,11 +111,20 @@ pub fn parse_openssl_time(time: &Asn1TimeRef) -> ParseResult<DateTime<Utc>> {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error(transparent)]
 pub enum ServerCertificateError {
+    #[error("unable to read file content {0}")]
+    ReadFile(PathBuf, #[source] std::io::Error),
+
+    #[error(transparent)]
     OpenSSL(#[from] openssl::error::ErrorStack),
+
+    #[error(transparent)]
     Asn1Time(#[from] chrono::ParseError),
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct DecodeIdentityError(#[from] native_tls::Error);
 
 #[cfg(test)]
 mod tests {
@@ -103,7 +147,7 @@ mod tests {
     async fn it_converts_into_identity() {
         const MESSAGE: &[u8] = b"it works!";
 
-        let identity = ServerCertificate::try_from(CERTIFICATE, PRIVATE_KEY).unwrap();
+        let identity = ServerCertificate::from_pem_pair(CERTIFICATE, PRIVATE_KEY).unwrap();
 
         let port = run_echo_server(identity).await;
         let buffer = run_echo_client(port, MESSAGE).await;
