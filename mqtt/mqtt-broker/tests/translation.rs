@@ -27,10 +27,15 @@ async fn translation_twin_retrieve() {
         .with_client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
+    ensure_connected(&mut edge_hub_core).await;
+    ensure_connected(&mut device_1).await;
+
     // Core subscribes
     edge_hub_core
         .subscribe("$edgehub/+/twin/get/#", QoS::AtLeastOnce)
         .await;
+
+    ensure_subscribed(&mut edge_hub_core).await;
 
     // device requests twin update
     device_1
@@ -69,10 +74,15 @@ async fn translation_twin_update() {
         .with_client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
+    ensure_connected(&mut edge_hub_core).await;
+    ensure_connected(&mut device_1).await;
+
     // Core subscribes
     edge_hub_core
         .subscribe("$edgehub/+/twin/reported/#", QoS::AtLeastOnce)
         .await;
+
+    ensure_subscribed(&mut edge_hub_core).await;
 
     // device pushes twin update
     device_1
@@ -115,10 +125,15 @@ async fn translation_twin_receive() {
         .with_client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
+    ensure_connected(&mut edge_hub_core).await;
+    ensure_connected(&mut device_1).await;
+
     // device subscribes to twin update
     device_1
         .subscribe("$iothub/twin/PATCH/properties/desired/#", QoS::AtLeastOnce)
         .await;
+
+    ensure_subscribed(&mut device_1).await;
 
     // Core sends update
     edge_hub_core
@@ -152,15 +167,22 @@ async fn translation_direct_method_response() {
         .with_client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
+    ensure_connected(&mut edge_hub_core).await;
+    ensure_connected(&mut device_1).await;
+
     // Core subscribes
     edge_hub_core
         .subscribe("$edgehub/+/methods/res/#", QoS::AtLeastOnce)
         .await;
 
+    ensure_subscribed(&mut edge_hub_core).await;
+
     // device subscribes to direct methods
     device_1
         .subscribe("$iothub/methods/POST/#", QoS::AtLeastOnce)
         .await;
+
+    ensure_subscribed(&mut device_1).await;
 
     // Core calls method
     edge_hub_core
@@ -221,8 +243,8 @@ async fn test_twin_with_client_id(client_id: &str) {
         .with_client_id(ClientId::IdWithCleanSession(client_id.into()))
         .build();
 
-    // wait till device_1 gets connected before edge_hub starts listening to changes
-    device_1.connections().recv().await;
+    ensure_connected(&mut edge_hub_core).await;
+    ensure_connected(&mut device_1).await;
 
     // Core subscribes
     edge_hub_core
@@ -299,4 +321,12 @@ async fn receive_with_topic_and_payload<B>(
             topic_name, payload,..
         }) if topic_name == topic && payload == expected_payload.into()
     );
+}
+
+async fn ensure_connected(client: &mut TestClient) {
+    client.connections().recv().await;
+}
+
+async fn ensure_subscribed(client: &mut TestClient) {
+    client.subscriptions().recv().await;
 }
