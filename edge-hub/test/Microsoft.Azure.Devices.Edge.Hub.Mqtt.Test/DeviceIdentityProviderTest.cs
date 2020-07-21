@@ -105,23 +105,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1", string.Empty };
 
-            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1&digital-twin-model-id=testModelId", "device1", string.Empty, "customDeviceClient1", "testModelId" };
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1&model-id=testModelId", "device1", string.Empty, "customDeviceClient1", "testModelId" };
 
             yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "module1", "customDeviceClient1", string.Empty };
 
-            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1&digital-twin-model-id=testModelId", "device1", "module1", "customDeviceClient1", "testModelId" };
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1&model-id=testModelId", "device1", "module1", "customDeviceClient1", "testModelId" };
 
             yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1", "device1", string.Empty, string.Empty, string.Empty };
 
-            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1&digital-twin-model-id=testModelId", "device1", string.Empty, string.Empty, "testModelId" };
+            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1&model-id=testModelId", "device1", string.Empty, string.Empty, "testModelId" };
 
             yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&", "device1", "module1", string.Empty, string.Empty };
 
-            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&digital-twin-model-id=testModelId", "device1", "module1", string.Empty, "testModelId" };
+            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&model-id=testModelId", "device1", "module1", string.Empty, "testModelId" };
 
             yield return new object[] { "iotHub1/device1/?api-version=2010-01-01", "device1", string.Empty, string.Empty, string.Empty };
 
-            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&digital-twin-model-id=testModelId", "device1", string.Empty, string.Empty, "testModelId" };
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&model-id=testModelId", "device1", string.Empty, string.Empty, "testModelId" };
 
             yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&Foo=customDeviceClient1", "device1", "module1", string.Empty, string.Empty };
         }
@@ -141,8 +141,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var authenticator = new Mock<IAuthenticator>();
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, true);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, modelIdStore, true);
             if (certificate != null)
             {
                 deviceIdentityProvider.RegisterConnectionCertificate(certificate, chain);
@@ -161,6 +162,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal(expectedDeviceId, deviceId);
             Assert.Equal(expectedModuleId, moduleId);
             Assert.Equal(expectedDeviceClientType, deviceClientType);
+            if (!string.IsNullOrEmpty(expectedModelId))
+            {
+                Assert.True(modelId.HasValue);
+            }
+
             modelId.ForEach(mId => Assert.Equal(expectedModelId, mId));
         }
 
@@ -190,8 +196,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string iotHubHostName = "foo.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, false);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, modelIdStore, false);
             deviceIdentityProvider.RegisterConnectionCertificate(new X509Certificate2(), new List<X509Certificate2> { new X509Certificate2() });
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(
                 "Device_2",

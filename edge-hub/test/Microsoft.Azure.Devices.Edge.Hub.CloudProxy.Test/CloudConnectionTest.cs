@@ -38,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
-                DummyProductInfo);
+                DummyProductInfo,
+                Option.None<string>());
 
             Option<ICloudProxy> cloudProxy1 = cloudConnection.CloudProxy;
             Assert.True(cloudProxy1.HasValue);
@@ -56,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceClient.Setup(dc => dc.OpenAsync()).ThrowsAsync(new TimeoutException());
 
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(deviceClient.Object);
 
             var tokenProvider = Mock.Of<ITokenProvider>();
@@ -75,13 +76,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     TimeSpan.FromMinutes(60),
                     true,
                     TimeSpan.FromSeconds(20),
-                    DummyProductInfo));
+                    DummyProductInfo,
+                    Option.None<string>()));
         }
 
         static IClientProvider GetMockDeviceClientProviderWithKey()
         {
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(GetMockDeviceClient);
             return deviceClientProvider.Object;
         }

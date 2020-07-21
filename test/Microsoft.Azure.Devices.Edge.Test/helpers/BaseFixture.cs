@@ -15,13 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         Profiler profiler;
         DateTime testStartTime;
 
-        protected CancellationToken TestToken
-        {
-            get
-            {
-                return this.cts.Token;
-            }
-        }
+        protected CancellationToken TestToken => this.cts.Token;
 
         [SetUp]
         protected void BeforeEachTest()
@@ -43,10 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                     if (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored)
                     {
-                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
-                        {
-                            await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
-                        }
+                        using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
+                        await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
                     }
                 },
                 "Completed test teardown");
