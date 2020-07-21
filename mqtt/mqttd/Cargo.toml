@@ -24,8 +24,6 @@ mqtt-broker = { path = "../mqtt-broker", default-features = false }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-chrono = "0.4"
-anyhow = "1.0"
 
 [dev-dependencies]
 mockito = "0.25"
