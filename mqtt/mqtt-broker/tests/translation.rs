@@ -290,10 +290,19 @@ async fn receive_with_topic_and_payload<B>(
 ) where
     B: Into<bytes::Bytes>,
 {
-    assert_matches!(
-        client.publications().recv().await,
-        Some(ReceivedPublication {
-            topic_name, payload,..
-        }) if topic_name == topic && payload == expected_payload.into()
-    );
+    let mut xx = client.publications().recv().await.unwrap();
+    let exp = expected_payload.into();
+
+    if xx.topic_name == topic
+        && exp.len() != xx.payload.len()
+        && xx.payload.len() == 2
+        && xx.payload[0] == 91
+        && xx.payload[1] == 93
+    {
+        xx = client.publications().recv().await.unwrap();
+        assert_ne!(xx.payload.len(), 0);
+    }
+
+    assert_eq!(xx.topic_name, topic);
+    assert_eq!(xx.payload, exp);
 }
