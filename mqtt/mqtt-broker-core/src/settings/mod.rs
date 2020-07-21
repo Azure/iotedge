@@ -10,18 +10,14 @@ use std::{
 
 use serde::Deserialize;
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+const DAYS: u64 = 24 * 60 * 60;
+
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct BrokerConfig {
     retained_messages: RetainedMessages,
     session: SessionConfig,
     persistence: Option<SessionPersistence>,
-}
-
-impl Default for BrokerConfig {
-    fn default() -> Self {
-        todo!()
-    }
 }
 
 impl BrokerConfig {
@@ -147,6 +143,19 @@ impl SessionConfig {
     }
 }
 
+impl Default for SessionConfig {
+    fn default() -> Self {
+        SessionConfig::new(
+            Duration::from_secs(60 * DAYS),
+            Some(HumanSize::new_kilobytes(256).expect("256kb")),
+            16,
+            1000,
+            Some(HumanSize::new_bytes(0)),
+            QueueFullAction::DropNew,
+        )
+    }
+}
+
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum QueueFullAction {
@@ -175,6 +184,12 @@ impl RetainedMessages {
 
     pub fn expiration(&self) -> Duration {
         self.expiration
+    }
+}
+
+impl Default for RetainedMessages {
+    fn default() -> Self {
+        RetainedMessages::new(1000, Duration::from_secs(60 * DAYS))
     }
 }
 

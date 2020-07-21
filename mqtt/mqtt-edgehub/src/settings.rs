@@ -142,4 +142,10 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn it_verifies_broker_config_defaults() {
+        let settings = Settings::default();
+        assert_eq!(settings.broker(), &BrokerConfig::default());
+    }
 }

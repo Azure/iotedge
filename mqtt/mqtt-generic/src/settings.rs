@@ -112,6 +112,12 @@ mod tests {
     }
 
     #[test]
+    fn it_verifies_broker_config_defaults() {
+        let settings = Settings::default();
+        assert_eq!(settings.broker(), &BrokerConfig::default());
+    }
+
+    #[test]
     fn it_overrides_defaults() {
         let settings = Settings::from_file(Path::new("test/config_correct.json"))
             .expect("should be able to create instance from configuration file");
