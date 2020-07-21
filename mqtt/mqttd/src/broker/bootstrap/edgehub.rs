@@ -1,4 +1,9 @@
-use std::{convert::TryInto, env, future::Future, path::PathBuf};
+use std::{
+    convert::TryInto,
+    env,
+    future::Future,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
@@ -18,6 +23,21 @@ use mqtt_edgehub::{
     settings::Settings,
     tls::ServerCertificate,
 };
+
+pub fn config<P>(config_path: Option<P>) -> Result<Settings>
+where
+    P: AsRef<Path>,
+{
+    let config = if let Some(path) = config_path {
+        info!("loading settings from a file {}", path.as_ref().display());
+        Settings::from_file(path)?
+    } else {
+        info!("using default settings");
+        Settings::default()
+    };
+
+    Ok(config)
+}
 
 pub async fn broker(
     config: &BrokerConfig,
@@ -56,18 +76,15 @@ where
     // Add regular MQTT over TLS transport
     let renewal_signal = match config.listener().tls() {
         Some(tls) => {
-            let identity = match tls.cert_path() {
-                Some(path) => {
-                    info!("loading identity from {}", path.display());
-                    ServerCertificate::from_file(path)
-                        .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
-                }
-                None => {
-                    info!("downloading identity from edgelet");
-                    download_server_certificate()
-                        .await
-                        .with_context(|| ServerCertificateLoadError::Edgelet)?
-                }
+            let identity = if let Some(path) = tls.cert_path() {
+                info!("loading identity from {}", path.display());
+                ServerCertificate::from_file(path)
+                    .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
+            } else {
+                info!("downloading identity from edgelet");
+                download_server_certificate()
+                    .await
+                    .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
             server.tls(tls.addr(), identity.try_into()?, authenticator.clone())?;

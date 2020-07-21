@@ -976,14 +976,16 @@ name = "mqtt-broker-core"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "config",
  "humantime 2.0.1",
  "humantime-serde",
  "lazy_static",
  "matches",
  "mqtt3",
+ "proptest",
  "regex",
  "serde",
+ "serde_json",
+ "test-case",
  "thiserror",
  "tokio",
 ]
@@ -1022,6 +1024,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "mqtt-generic"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "lazy_static",
+ "matches",
+ "mqtt-broker-core",
+ "mqtt3",
+ "serde",
+]
+
+[[package]]
 name = "mqtt3"
 version = "0.1.0"
 dependencies = [
@@ -1051,6 +1065,7 @@ dependencies = [
  "mqtt-broker",
  "mqtt-broker-core",
  "mqtt-edgehub",
+ "mqtt-generic",
  "native-tls",
  "serde_json",
  "thiserror",

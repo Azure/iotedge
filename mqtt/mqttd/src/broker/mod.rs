@@ -16,16 +16,12 @@ use mqtt_broker::{
     BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
     StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
-use mqtt_edgehub::settings::Settings;
 
-pub async fn run<P: AsRef<Path>>(config_path: Option<P>) -> Result<()> {
-    let config = if let Some(path) = config_path {
-        info!("loading settings from a file {}", path.as_ref().display());
-        Settings::from_file(path)?
-    } else {
-        info!("using default settings");
-        Settings::default()
-    };
+pub async fn run<P>(config_path: Option<P>) -> Result<()>
+where
+    P: AsRef<Path>,
+{
+    let config = bootstrap::config(config_path)?;
 
     info!("loading state...");
     let state_dir = env::current_dir().expect("can't get cwd").join("state");
