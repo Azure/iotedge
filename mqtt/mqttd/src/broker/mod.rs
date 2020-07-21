@@ -4,7 +4,7 @@ mod snapshot;
 
 use std::{env, path::Path};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures_util::pin_mut;
 use tokio::{
     task::JoinHandle,
@@ -21,7 +21,7 @@ pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
 {
-    let config = bootstrap::config(config_path)?;
+    let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
     let state_dir = env::current_dir().expect("can't get cwd").join("state");
@@ -99,3 +99,7 @@ async fn tick_snapshot(
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("An error occurred loading configuration.")]
+pub struct LoadConfigurationError;
