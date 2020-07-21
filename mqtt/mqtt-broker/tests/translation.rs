@@ -221,6 +221,9 @@ async fn test_twin_with_client_id(client_id: &str) {
         .with_client_id(ClientId::IdWithCleanSession(client_id.into()))
         .build();
 
+    // wait till device_1 gets connected before edge_hub starts listening to changes
+    device_1.connections().recv().await;
+
     // Core subscribes
     edge_hub_core
         .subscribe("$edgehub/+/twin/get/#", QoS::AtLeastOnce)
