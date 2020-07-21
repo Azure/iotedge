@@ -19,6 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonProperty("NetworkMode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string NetworkMode { get; set; }
 
+        [JsonProperty("IpcMode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public string IpcMode { get; set; }
+
         [JsonProperty("PortBindings", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public IDictionary<string, IList<PortBinding>> PortBindings { get; set; }
 

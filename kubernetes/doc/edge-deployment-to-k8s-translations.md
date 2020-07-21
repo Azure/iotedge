@@ -173,6 +173,7 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
     - volume mounts from `settings.k8s-extensions.volumes[*].volume`. Placed in spec as provided.
 - **serviceAccountName** = The module name, sanitized to be a K8s identifier. See [Module Authentication](rbac.md#module-authentication) for details.
 - **nodeSelector** = `settings.k8s-extensions.nodeSelector` Placed in spec as provided.
+- **hostIPC** = `settings.createOptions.HostConfig.IpcMode` if IpcMode=host, we will set hostIPC to true
 
 ## Service
 ### metadata
