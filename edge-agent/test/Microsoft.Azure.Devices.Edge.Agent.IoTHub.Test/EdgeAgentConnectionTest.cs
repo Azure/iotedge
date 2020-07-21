@@ -1275,12 +1275,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
 
             var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
-            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, null, null);
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, null, null);
             var edgeHubDockerModule = new EdgeHubDockerModule(
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()),
+                new DockerConfig("image", string.Empty, Option.None<string>()),
                 ImagePullPolicy.OnCreate,
                 Constants.DefaultPriority,
                 null,
@@ -1350,12 +1350,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
 
             var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
-            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, null, null);
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, null, null);
             var edgeHubDockerModule = new EdgeHubDockerModule(
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()),
+                new DockerConfig("image", string.Empty, Option.None<string>()),
                 ImagePullPolicy.OnCreate,
                 Constants.DefaultPriority,
                 null,
@@ -1444,12 +1444,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
 
             var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
-            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, null, null);
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, null, null);
             var edgeHubDockerModule = new EdgeHubDockerModule(
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()),
+                new DockerConfig("image", string.Empty, Option.None<string>()),
                 ImagePullPolicy.OnCreate,
                 Constants.DefaultPriority,
                 null,
@@ -1466,7 +1466,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("image2", string.Empty, Option.None<NotaryContentTrust>()),
+                new DockerConfig("image2", string.Empty, Option.None<string>()),
                 ImagePullPolicy.OnCreate,
                 Constants.DefaultPriority,
                 null,
@@ -1525,9 +1525,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
-        [Fact]
+        [Theory]
         [Unit]
-        public async Task GetDeploymentConfigInfoAsync_CreateNewModuleClientWhenGetTwinThrowsMoreThanRetryCount()
+        [InlineData(typeof(InvalidOperationException))]
+        [InlineData(typeof(TimeoutException))]
+        public async Task GetDeploymentConfigInfoAsync_CreateNewModuleClientWhenGetTwinThrowsMoreThanRetryCount(Type thrownException)
         {
             // Arrange
             var moduleClient = new Mock<IModuleClient>();
@@ -1580,9 +1582,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
+            var ex = Activator.CreateInstance(thrownException, "msg str") as Exception;
             moduleClient.SetupSequence(d => d.GetTwinAsync())
-                .ThrowsAsync(new InvalidOperationException())
-                .ThrowsAsync(new InvalidOperationException())
+                .ThrowsAsync(ex)
+                .ThrowsAsync(ex)
                 .ReturnsAsync(twin);
             moduleClient.Setup(d => d.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<DesiredPropertyUpdateCallback>()))
                 .Returns(Task.CompletedTask);

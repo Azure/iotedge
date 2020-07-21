@@ -18,8 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.deviceConnectivityManager = Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
         }
 
-        public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings) =>
-            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, authenticationMethod, transportSettings), this.deviceConnectivityManager, identity);
+        public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings, Option<string> modelId) =>
+            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, authenticationMethod, transportSettings, modelId), this.deviceConnectivityManager, identity);
 
         public IClient Create(IIdentity identity, string connectionString, ITransportSettings[] transportSettings) =>
             new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, connectionString, transportSettings), this.deviceConnectivityManager, identity);
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task<IClient> CreateAsync(IIdentity identity, ITransportSettings[] transportSettings) =>
             new ConnectivityAwareClient(await this.underlyingClientProvider.CreateAsync(identity, transportSettings), this.deviceConnectivityManager, identity);
 
-        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings) =>
-            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, tokenProvider, transportSettings), this.deviceConnectivityManager, identity);
+        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, Option<string> modelId) =>
+            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, tokenProvider, transportSettings, modelId), this.deviceConnectivityManager, identity);
     }
 }

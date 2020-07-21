@@ -86,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var pgMessageConverter = c.Resolve<IMessageConverter<IProtocolGatewayMessage>>();
                         var byteBufferConverter = c.Resolve<IByteBufferConverter>();
+                        var modelIdStore = await c.Resolve<Task<IModelIdStore>>();
                         IConnectionProvider connectionProvider = await c.Resolve<Task<IConnectionProvider>>();
                         IMqttConnectionProvider mqtt = new MqttConnectionProvider(connectionProvider, pgMessageConverter, byteBufferConverter);
                         return mqtt;
@@ -118,6 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
+                        var modelIdStore = await c.Resolve<Task<IModelIdStore>>();
                         var settingsProvider = c.Resolve<ISettingsProvider>();
                         var websocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
                         var byteBufferAllocator = c.Resolve<IByteBufferAllocator>();
@@ -138,6 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             websocketListenerRegistry,
                             byteBufferAllocator,
                             productInfoStore,
+                            modelIdStore,
                             this.clientCertAuthAllowed,
                             this.sslProtocols);
                     })
