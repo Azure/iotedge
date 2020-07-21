@@ -9,14 +9,11 @@ async-trait = "0.1"
 bincode = "1.2"
 bytes = "0.5"
 chrono = "0.4"
-config = { version = "0.10", default-features = false, features = ["json"] }
 criterion = { version = "0.3", optional = true }
 fail = "0.3"
 flate2 = "1.0"
 futures = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
-humantime = "2.0"
-humantime-serde = "1.0"
 lazy_static = "1.4"
 native-tls = "0.2"
 proptest = { version = "0.9", optional = true }

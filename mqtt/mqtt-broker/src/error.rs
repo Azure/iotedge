@@ -79,9 +79,9 @@ pub enum InitializeBrokerError {
     #[error("An error occurred getting local address.")]
     ConnectionLocalAddress(#[source] std::io::Error),
 
-    #[error("An error occurred loading configuration.")]
-    LoadConfiguration(#[source] config::ConfigError),
-
+    // TODO
+    // #[error("An error occurred loading configuration.")]
+    // LoadConfiguration(#[source] config::ConfigError),
     #[error("An error occurred loading identity from file {0}.")]
     LoadIdentity(PathBuf, #[source] std::io::Error),
 

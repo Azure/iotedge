@@ -6,6 +6,11 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1"
+config = { version = "0.10", features = ["json"], default-features = false }
+humantime = "2.0"
+humantime-serde = "1.0"
+lazy_static = "1.4"
+regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 thiserror = "1.0"
 tokio = { version = "0.2", features = ["macros"] }

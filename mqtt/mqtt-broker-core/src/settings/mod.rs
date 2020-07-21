@@ -3,13 +3,12 @@ mod size;
 pub use size::HumanSize;
 
 use std::{
-    convert::From,
     num::NonZeroUsize,
     path::{Path, PathBuf},
     time::Duration,
 };
 
-use config::{Config, ConfigError, File, FileFormat};
+use config::{Config, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
@@ -31,25 +30,33 @@ lazy_static! {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct BrokerConfig {
-    transports: BrokerTransports,
     retained_messages: RetainedMessages,
     session: SessionConfig,
     persistence: Option<SessionPersistence>,
 }
 
 impl BrokerConfig {
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
-        let mut s = Config::new();
-        s.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        s.merge(File::from(path.as_ref()))?;
-
-        s.try_into()
+    pub fn new(
+        retained_messages: RetainedMessages,
+        session: SessionConfig,
+        persistence: Option<SessionPersistence>,
+    ) -> Self {
+        Self {
+            retained_messages,
+            session,
+            persistence,
+        }
     }
 
-    pub fn transports(&self) -> &BrokerTransports {
-        &self.transports
-    }
+    // pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
+    //     let mut s = Config::new();
+    //     s.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
+    //     s.merge(File::from(path.as_ref()))?;
+
+    //     s.try_into()
+    // }
 
     pub fn retained_messages(&self) -> &RetainedMessages {
         &self.retained_messages
@@ -72,18 +79,18 @@ impl Default for BrokerConfig {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub struct BrokerTransports {
+pub struct ListenerConfig {
     tcp: Option<TcpTransport>,
     tls: Option<TlsTransport>,
 }
 
-impl Default for BrokerTransports {
-    fn default() -> Self {
-        DEFAULT_BROKER_CONFIG.transports.clone()
-    }
-}
+// impl Default for ListenerConfig {
+//     fn default() -> Self {
+//         DEFAULT_BROKER_CONFIG.transports.clone()
+//     }
+// }
 
-impl BrokerTransports {
+impl ListenerConfig {
     pub fn tcp(&self) -> Option<&TcpTransport> {
         self.tcp.as_ref()
     }
@@ -101,6 +108,10 @@ pub struct TcpTransport {
 }
 
 impl TcpTransport {
+    pub fn new(addr: impl Into<String>) -> Self {
+        Self { addr: addr.into() }
+    }
+
     pub fn addr(&self) -> &str {
         &self.addr
     }
@@ -117,6 +128,13 @@ pub struct TlsTransport {
 }
 
 impl TlsTransport {
+    pub fn new(addr: impl Into<String>, cert_path: Option<PathBuf>) -> Self {
+        Self {
+            addr: addr.into(),
+            cert_path,
+        }
+    }
+
     pub fn addr(&self) -> &str {
         &self.addr
     }
@@ -179,11 +197,11 @@ impl SessionConfig {
     }
 }
 
-impl Default for SessionConfig {
-    fn default() -> Self {
-        DEFAULT_BROKER_CONFIG.session().clone()
-    }
-}
+// impl Default for SessionConfig {
+//     fn default() -> Self {
+//         DEFAULT_BROKER_CONFIG.session().clone()
+//     }
+// }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -200,6 +218,13 @@ pub struct RetainedMessages {
 }
 
 impl RetainedMessages {
+    pub fn new(max_count: usize, expiration: Duration) -> Self {
+        Self {
+            max_count,
+            expiration,
+        }
+    }
+
     pub fn max_count(&self) -> Option<NonZeroUsize> {
         NonZeroUsize::new(self.max_count)
     }
@@ -209,11 +234,11 @@ impl RetainedMessages {
     }
 }
 
-impl Default for RetainedMessages {
-    fn default() -> Self {
-        DEFAULT_BROKER_CONFIG.retained_messages().clone()
-    }
-}
+// impl Default for RetainedMessages {
+//     fn default() -> Self {
+//         DEFAULT_BROKER_CONFIG.retained_messages().clone()
+//     }
+// }
 
 // TODO: apply settings
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -231,8 +256,8 @@ mod tests {
     use matches::assert_matches;
 
     use super::{
-        BrokerConfig, BrokerTransports, HumanSize, QueueFullAction, RetainedMessages,
-        SessionConfig, TcpTransport,
+        BrokerConfig, HumanSize, ListenerConfig, QueueFullAction, RetainedMessages, SessionConfig,
+        TcpTransport,
     };
 
     const DAYS: u64 = 24 * 60 * 60;
@@ -244,7 +269,7 @@ mod tests {
         assert_eq!(
             settings,
             BrokerConfig {
-                transports: BrokerTransports {
+                listener: ListenerConfig {
                     tcp: Some(TcpTransport {
                         addr: "0.0.0.0:1883".into(),
                     }),

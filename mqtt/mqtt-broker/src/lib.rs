@@ -17,7 +17,6 @@ mod error;
 mod persist;
 mod server;
 mod session;
-mod settings;
 mod snapshot;
 mod state_change;
 mod subscription;
@@ -32,7 +31,11 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
 
 use mqtt3::proto;
-use mqtt_broker_core::{auth::AuthId, ClientId};
+use mqtt_broker_core::{
+    auth::AuthId,
+    settings::{BrokerConfig, SessionConfig},
+    ClientId,
+};
 
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
 pub use crate::connection::ConnectionHandle;
@@ -42,7 +45,6 @@ pub use crate::persist::{
 };
 pub use crate::server::Server;
 pub use crate::session::SessionState;
-pub use crate::settings::{BrokerConfig, SessionConfig};
 pub use crate::snapshot::{
     BrokerSnapshot, SessionSnapshot, ShutdownHandle, Snapshotter, StateSnapshotHandle,
 };

@@ -13,5 +13,6 @@
 
 pub mod auth;
 pub mod edgelet;
+pub mod settings;
 pub mod tls;
 pub mod topic;
