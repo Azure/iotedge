@@ -173,7 +173,7 @@ pub struct TlsTransport {
     addr: String,
 
     #[serde(rename = "certificate")]
-    cert_path: PathBuf,
+    cert_path: Option<PathBuf>,
 }
 
 impl TlsTransport {
@@ -181,8 +181,8 @@ impl TlsTransport {
         &self.addr
     }
 
-    pub fn cert_path(&self) -> &Path {
-        &self.cert_path
+    pub fn cert_path(&self) -> Option<&Path> {
+        self.cert_path.as_deref()
     }
 }
 

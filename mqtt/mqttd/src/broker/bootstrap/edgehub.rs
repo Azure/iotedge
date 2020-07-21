@@ -1,12 +1,15 @@
-use std::{env, fs, future::Future, path::Path};
+use std::{convert::TryInto, env, future::Future, path::PathBuf};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
 
 use futures_util::{
     future::{self, Either},
     pin_mut, FutureExt,
 };
+use tokio::time;
+use tracing::{info, warn};
+
 use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server};
 use mqtt_broker_core::auth::Authorizer;
 use mqtt_edgehub::{
@@ -14,8 +17,6 @@ use mqtt_edgehub::{
     edgelet,
     tls::ServerCertificate,
 };
-use tokio::time;
-use tracing::{info, warn};
 
 pub async fn broker(
     config: &BrokerConfig,
@@ -51,9 +52,21 @@ where
 
     let renewal_signal = match config.transports().tls() {
         Some(tls) => {
-            let identity = download_server_certificate(tls.cert_path()).await?;
+            let identity = match tls.cert_path() {
+                Some(path) => {
+                    info!("loading identity from {}", path.display());
+                    ServerCertificate::from_file(path)
+                        .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
+                }
+                None => {
+                    info!("downloading identity from edgelet");
+                    download_server_certificate()
+                        .await
+                        .with_context(|| ServerCertificateLoadError::Edgelet)?
+                }
+            };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), tls.cert_path(), authenticator.clone())?;
+            server.tls(tls.addr(), identity.try_into()?, authenticator.clone())?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -87,6 +100,15 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ServerCertificateLoadError {
+    #[error("unable to load server certificate from file {0}")]
+    File(PathBuf),
+
+    #[error("unable to download certificate from edgelet")]
+    Edgelet,
+}
+
 pub const WORKLOAD_URI: &str = "IOTEDGE_WORKLOADURI";
 pub const EDGE_DEVICE_HOST_NAME: &str = "EdgeDeviceHostName";
 pub const MODULE_ID: &str = "IOTEDGE_MODULEID";
@@ -94,7 +116,7 @@ pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 
 pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 
-async fn download_server_certificate(path: impl AsRef<Path>) -> Result<ServerCertificate> {
+async fn download_server_certificate() -> Result<ServerCertificate> {
     let uri = env::var(WORKLOAD_URI)?;
     let hostname = env::var(EDGE_DEVICE_HOST_NAME)?;
     let module_id = env::var(MODULE_ID)?;
@@ -114,8 +136,7 @@ async fn download_server_certificate(path: impl AsRef<Path>) -> Result<ServerCer
     }
 
     if let Some(private_key) = cert.private_key().bytes() {
-        let identity = ServerCertificate::try_from(cert.certificate(), private_key)?;
-        fs::write(path, &identity)?;
+        let identity = ServerCertificate::from_pem_pair(cert.certificate(), private_key)?;
         Ok(identity)
     } else {
         bail!("missing private key");
@@ -166,12 +187,8 @@ mod tests {
         env::set_var(MODULE_ID, "$edgeHub");
         env::set_var(MODULE_GENERATION_ID, "12345678");
 
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("identity.pem");
-
-        let res = download_server_certificate(&path).await;
+        let res = download_server_certificate().await;
         assert!(res.is_ok());
-        assert!(path.exists());
     }
 
     #[tokio::test]
