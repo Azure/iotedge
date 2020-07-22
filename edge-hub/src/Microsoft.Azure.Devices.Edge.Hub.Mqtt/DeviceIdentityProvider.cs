@@ -18,11 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     {
         const string ApiVersionKey = "api-version";
         const string DeviceClientTypeKey = "DeviceClientType";
-        const string ModelIdKey = "digital-twin-model-id";
+        const string ModelIdKey = "model-id";
         readonly IAuthenticator authenticator;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
         readonly IProductInfoStore productInfoStore;
+        readonly IModelIdStore modelIdStore;
         Option<X509Certificate2> remoteCertificate;
         IList<X509Certificate2> remoteCertificateChain;
 
@@ -30,11 +31,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IAuthenticator authenticator,
             IClientCredentialsFactory clientCredentialsFactory,
             IProductInfoStore productInfoStore,
+            IModelIdStore modelIdStore,
             bool clientCertAuthAllowed)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
+            this.modelIdStore = Preconditions.CheckNotNull(modelIdStore, nameof(modelIdStore));
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.remoteCertificate = Option.None<X509Certificate2>();
             this.remoteCertificateChain = new List<X509Certificate2>();
@@ -48,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = ParseUserName(username);
+                modelId.ForEach(async m => await this.modelIdStore.SetModelId(deviceId, m));
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
