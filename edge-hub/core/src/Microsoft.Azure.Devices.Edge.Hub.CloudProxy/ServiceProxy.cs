@@ -39,7 +39,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.securityScopesApiClientProvider.CreateDeviceScopeClient().GetIdentityAsync(deviceId, null);
+                IDeviceScopeApiClient client;
+
+                if (this.nestedEdgeEnabled)
+                {
+                    client = this.securityScopesApiClientProvider.CreateNestedDeviceScopeClient();
+                }
+                else
+                {
+                    client = this.securityScopesApiClientProvider.CreateDeviceScopeClient();
+                }
+
+                ScopeResult res = await client.GetIdentityAsync(deviceId, null);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(deviceId);
             }
@@ -204,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.clientProvider = Preconditions.CheckNotNull(securityScopesApiClientProvider);
 
                 // Put the first node (the actor device) into the queue
-                this.actorClient = this.clientProvider.CreateNestedDeviceScopeClient(Option.None<string>());
+                this.actorClient = this.clientProvider.CreateNestedDeviceScopeClient();
                 this.remainingEdgeNodes = new Queue<IDeviceScopeApiClient>();
                 this.remainingEdgeNodes.Enqueue(this.actorClient);
             }
