@@ -376,7 +376,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 if (metricsConfig.Enabled && returnCode == 0)
                 {
-                    container.Resolve<IAvailabilityMetric>().IndicateCleanShutdown();
+                    container.Resolve<IDeploymentMetrics>().IndicateCleanShutdown();
                 }
 
                 completed.Set();

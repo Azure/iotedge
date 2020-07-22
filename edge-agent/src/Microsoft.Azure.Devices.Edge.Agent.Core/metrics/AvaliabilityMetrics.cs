@@ -11,12 +11,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
-    public class AvailabilityMetrics : IAvailabilityMetric, IDisposable
+    public class DeploymentMetrics : IDeploymentMetrics, IDisposable
     {
         readonly IMetricsGauge running;
         readonly IMetricsGauge expectedRunning;
+        readonly IMetricsCounter successfulSyncs;
+        readonly IMetricsCounter totalSyncs;
+        readonly IMetricsHistogram deploymentTime;
+
         readonly ISystemTime systemTime;
-        readonly ILogger log = Logger.Factory.CreateLogger<AvailabilityMetrics>();
+        readonly ILogger log = Logger.Factory.CreateLogger<DeploymentMetrics>();
 
         // This allows edgeAgent to track its own avaliability. If edgeAgent shutsdown unexpectedly, it can look at the last checkpoint time to determine its previous avaliability.
         readonly TimeSpan checkpointFrequency = TimeSpan.FromMinutes(5);
@@ -26,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         readonly List<Availability> availabilities;
         readonly Lazy<Availability> edgeAgent;
 
-        public AvailabilityMetrics(IMetricsProvider metricsProvider, string storageFolder, ISystemTime time = null)
+        public DeploymentMetrics(IMetricsProvider metricsProvider, string storageFolder, ISystemTime time = null)
         {
             this.systemTime = time ?? SystemTime.Instance;
             this.availabilities = new List<Availability>();
@@ -42,6 +46,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "total_time_expected_running_seconds",
                 "The amount of time the module was specified in the deployment",
                 new List<string> { "module_name", MetricsConstants.MsTelemetry });
+
+            this.successfulSyncs = metricsProvider.CreateCounter(
+                "total_successful_iothub_syncs",
+                "The amount of times edgeAgent succesfully synced with iotHub",
+                new List<string> { MetricsConstants.MsTelemetry });
+
+            this.totalSyncs = metricsProvider.CreateCounter(
+                "total_iothub_syncs",
+                "The amount of times edgeAgent attempted to sync with iotHub, both successful and unsuccessful",
+                new List<string> { MetricsConstants.MsTelemetry });
+
+            this.deploymentTime = metricsProvider.CreateHistogram(
+                "deployment_time_seconds",
+                "The amount of time it took to complete a new deployment",
+                new List<string> { MetricsConstants.MsTelemetry });
 
             string storageDirectory = Path.Combine(Preconditions.CheckNonWhiteSpace(storageFolder, nameof(storageFolder)), "availability");
             try
@@ -129,6 +148,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             catch (Exception ex)
             {
                 this.log.LogError(ex, "Could not delete checkpoint file");
+            }
+        }
+
+        public IDisposable ReportDeploymentTime()
+        {
+            return DurationMeasurer.MeasureDuration(duration => this.deploymentTime.Update(duration.TotalSeconds, new string[] { true.ToString() }));
+        }
+
+        public void ReportIotHubSync(bool successful)
+        {
+            string[] tags = { true.ToString() };
+            this.totalSyncs.Increment(1, tags);
+
+            if (successful)
+            {
+                this.successfulSyncs.Increment(1, tags);
             }
         }
 

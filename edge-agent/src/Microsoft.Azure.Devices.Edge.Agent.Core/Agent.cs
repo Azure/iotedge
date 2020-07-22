@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly AsyncLock reconcileLock = new AsyncLock();
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
         readonly IEncryptionProvider encryptionProvider;
-        readonly IAvailabilityMetric availabilityMetric;
+        readonly IDeploymentMetrics deploymentMetrics;
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
 
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             DeploymentConfigInfo initialDeployedConfigInfo,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IAvailabilityMetric availabilityMetric)
+            IDeploymentMetrics availabilityMetric)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.deploymentConfigInfoSerde = Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
-            this.availabilityMetric = Preconditions.CheckNotNull(availabilityMetric, nameof(availabilityMetric));
+            this.deploymentMetrics = Preconditions.CheckNotNull(availabilityMetric, nameof(availabilityMetric));
             Events.AgentCreated();
         }
 
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEntityStore<string, string> configStore,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IAvailabilityMetric availabilityMetric)
+            IDeploymentMetrics availabilityMetric)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                        _ = Task.Run(() => this.availabilityMetric.ComputeAvailability(desiredModuleSet, current))
+                        _ = Task.Run(() => this.deploymentMetrics.ComputeAvailability(desiredModuleSet, current))
                             .ContinueWith(t => Events.UnknownFailure(t.Exception), TaskContinuationOptions.OnlyOnFaulted)
                             .ConfigureAwait(false);
 
@@ -151,11 +151,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         {
                             try
                             {
-                                bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
-                                await this.UpdateCurrentConfig(deploymentConfigInfo);
-                                if (result)
+                                using (this.deploymentMetrics.ReportDeploymentTime())
                                 {
-                                    status = DeploymentStatus.Success;
+                                    bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
+                                    await this.UpdateCurrentConfig(deploymentConfigInfo);
+                                    if (result)
+                                    {
+                                        status = DeploymentStatus.Success;
+                                    }
                                 }
                             }
                             catch (Exception ex) when (!ex.IsFatal())
@@ -195,6 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
                 await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, status);
                 Events.FinishedReconcile();
+                this.deploymentMetrics.ReportIotHubSync(status.Code == DeploymentStatusCode.Successful);
             }
         }
 
