@@ -163,7 +163,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             enum EventIds
             {
                 AttemptingTransport = IdStart,
-                AttemptingTransportWithModelId,
                 TransportConnected
             }
 
