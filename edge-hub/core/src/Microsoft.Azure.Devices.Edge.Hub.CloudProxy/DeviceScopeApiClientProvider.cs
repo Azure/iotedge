@@ -49,13 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.retryStrategy);
         }
 
-        public IDeviceScopeApiClient CreateNestedDeviceScopeClient(Option<string> continuationToken)
+        public IDeviceScopeApiClient CreateNestedDeviceScopeClient()
         {
             return new NestedDeviceScopeApiClient(
                 this.iotHubHostName,
                 this.actorEdgeDeviceId,
                 this.moduleId,
-                continuationToken,
+                Option.None<string>(),
                 this.batchSize,
                 this.edgeHubTokenProvider,
                 this.serviceIdentityHierarchy,
