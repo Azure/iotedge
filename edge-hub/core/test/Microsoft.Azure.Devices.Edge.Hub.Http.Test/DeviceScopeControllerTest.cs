@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             // Act
             var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
-            await controller.GetDevicesAndModulesInTargetDeviceScope(parentEdgeId, "$edgeHub", request);
+            await controller.GetDevicesAndModulesInTargetDeviceScopeAsync(parentEdgeId, "$edgeHub", request);
 
             // Verify EdgeHub result types
             var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var controller = MakeController(targetEdgeId, resultIdentities, authChainMapping);
 
             var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
-            controller.GetDevicesAndModulesInTargetDeviceScope("edge1", "notEdgeHub", request).Wait();
+            controller.GetDevicesAndModulesInTargetDeviceScopeAsync("edge1", "notEdgeHub", request).Wait();
 
             Assert.Equal((int)HttpStatusCode.Unauthorized, controller.HttpContext.Response.StatusCode);
         }
@@ -108,12 +108,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
             var authChainMapping = new Dictionary<string, string>();
             string targetId = childEdgeId + "/" + moduleId;
-            authChainMapping.Add(targetId, targetId + ";edge2;edge1;edgeroot");
+            authChainMapping.Add(targetId, $"{targetId};{childEdgeId};{parentEdgeId};edgeroot");
             var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
-            var request = new IdentityOnBehalfOfRequest(childEdgeId, moduleId, "edge2;edge1");
-            await controller.GetDeviceAndModuleOnBehalfOf(parentEdgeId, "$edgeHub", request);
+            var request = new IdentityOnBehalfOfRequest(childEdgeId, moduleId, $"{childEdgeId};{parentEdgeId}");
+            await controller.GetDeviceAndModuleOnBehalfOfAsync(parentEdgeId, "$edgeHub", request);
 
             // Verify EdgeHub result types
             var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
@@ -147,12 +147,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var resultModuleIdentity = new ServiceIdentity(deviceId, moduleId, null, new List<string>() { deviceScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
             var authChainMapping = new Dictionary<string, string>();
-            authChainMapping.Add(deviceId, "device1;edge2;edge1;edgeroot");
+            authChainMapping.Add(deviceId, $"{deviceId};{childEdgeId};{parentEdgeId};edgeroot");
             var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
-            var request = new IdentityOnBehalfOfRequest(deviceId, null, "device1;edge2;edge1");
-            await controller.GetDeviceAndModuleOnBehalfOf(parentEdgeId, "$edgeHub", request);
+            var request = new IdentityOnBehalfOfRequest(deviceId, null, $"{deviceId};{childEdgeId};{parentEdgeId}");
+            await controller.GetDeviceAndModuleOnBehalfOfAsync(parentEdgeId, "$edgeHub", request);
 
             // Verify EdgeHub result types
             var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };

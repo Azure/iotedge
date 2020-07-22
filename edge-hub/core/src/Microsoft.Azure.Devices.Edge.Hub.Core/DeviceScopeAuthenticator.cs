@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return (false, false);
             }
 
-            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, true, authChain);
+            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, syncServiceIdentity, authChain);
         }
 
         async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity, Option<string> authChain)

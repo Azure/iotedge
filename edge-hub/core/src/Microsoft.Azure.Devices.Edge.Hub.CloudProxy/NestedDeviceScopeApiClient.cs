@@ -49,10 +49,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<string> continuationToken,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
-            IServiceIdentityHierarchy serviceIdentityTree,
+            IServiceIdentityHierarchy serviceIdentityHierarchy,
             Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
-            : this(iotHubHostName, deviceId, deviceId, moduleId, continuationToken, batchSize, edgeHubTokenProvider, serviceIdentityTree, proxy, retryStrategy)
+            : this(iotHubHostName, deviceId, deviceId, moduleId, continuationToken, batchSize, edgeHubTokenProvider, serviceIdentityHierarchy, proxy, retryStrategy)
         {
         }
 
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<string> continuationToken,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
-            IServiceIdentityHierarchy serviceIdentityTree,
+            IServiceIdentityHierarchy serviceIdentityHierarchy,
             Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
         {
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.continuationToken = Preconditions.CheckNotNull(continuationToken);
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
-            this.serviceIdentityHierarchy = Preconditions.CheckNotNull(serviceIdentityTree, nameof(serviceIdentityTree));
+            this.serviceIdentityHierarchy = Preconditions.CheckNotNull(serviceIdentityHierarchy, nameof(serviceIdentityHierarchy));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         internal Uri GetNestedScopeServiceUri()
         {
-            // The URI is always always in the context of the actor device
+            // The URI is always in the context of the actor device
             string relativeUri = GetDevicesAndModulesInTargetScopeUriFormat.FormatInvariant(this.actorEdgeDeviceId, this.moduleId, NestedApiVersion);
             var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return uri;
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         internal Uri GetIdentityOnBehalfOfServiceUri()
         {
-            // The URI is always always in the context of the actor device
+            // The URI is always in the context of the actor device
             string relativeUri = GetDeviceAndModuleOnBehalfOfUriFormat.FormatInvariant(this.actorEdgeDeviceId, this.moduleId, NestedApiVersion);
             var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return uri;

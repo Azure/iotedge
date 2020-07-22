@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
 
-    public class AuthChainHelpers
+    public static class AuthChainHelpers
     {
         public static bool ValidateAuthChain(string actorDeviceId, string targetId, string authChain)
         {
