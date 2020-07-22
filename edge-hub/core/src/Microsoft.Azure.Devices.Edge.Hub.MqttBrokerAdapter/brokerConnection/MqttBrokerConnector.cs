@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 }
 
                 Events.CouldNotConnect();
-                throw new Exception("Failed to start mqtt-bridge connector");
+                throw new Exception("Failed to start MQTT broker connector");
             }
 
             client.ConnectionClosed += this.TriggerReconnect;
