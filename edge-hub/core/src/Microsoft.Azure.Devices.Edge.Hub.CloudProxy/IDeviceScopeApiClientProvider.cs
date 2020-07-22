@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         IDeviceScopeApiClient CreateDeviceScopeClient();
 
-        IDeviceScopeApiClient CreateNestedDeviceScopeClient(Option<string> continuationLink);
+        IDeviceScopeApiClient CreateNestedDeviceScopeClient();
 
         IDeviceScopeApiClient CreateOnBehalfOf(string childDeviceId, Option<string> continuationLink);
     }
