@@ -13,9 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     public class MetadataMetrics
     {
         readonly IMetricsGauge metaData;
-        readonly Func<Task<string>> getSystemMetadata;
+        readonly Func<Task<SystemInfo>> getSystemMetadata;
 
-        public MetadataMetrics(IMetricsProvider metricsProvider, Func<Task<string>> getSystemMetadata)
+        public MetadataMetrics(IMetricsProvider metricsProvider, Func<Task<SystemInfo>> getSystemMetadata)
         {
             this.getSystemMetadata = Preconditions.CheckNotNull(getSystemMetadata, nameof(getSystemMetadata));
 
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         public async Task Start(ILogger logger, string agentVersion, string experimentalFeatures)
         {
             logger.LogInformation("Collecting metadata metrics");
-            string edgeletVersion = await this.getSystemMetadata();
+            string edgeletVersion = Newtonsoft.Json.JsonConvert.SerializeObject(await this.getSystemMetadata());
 
             string[] values = { agentVersion, experimentalFeatures, edgeletVersion, true.ToString() };
             this.metaData.Set(0, values);
