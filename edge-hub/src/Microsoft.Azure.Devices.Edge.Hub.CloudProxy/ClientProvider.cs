@@ -10,20 +10,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class ClientProvider : IClientProvider
     {
-        public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings)
+        public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings, Option<string> modelId)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
             Preconditions.CheckNotNull(authenticationMethod, nameof(authenticationMethod));
+            modelId.ForEach(m => Preconditions.CheckNonWhiteSpace(m, nameof(m)));
+
+            Option<ClientOptions> options = modelId.Match(
+                m => Option.Some(new ClientOptions { ModelId = m }),
+                () => Option.None<ClientOptions>());
 
             if (identity is IModuleIdentity)
             {
-                ModuleClient moduleClient = ModuleClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings);
+                ModuleClient moduleClient = options.Match(
+                    o => ModuleClient.Create(identity.IotHubHostName, authenticationMethod, o),
+                    () => ModuleClient.Create(identity.IotHubHostName, authenticationMethod));
                 return new ModuleClientWrapper(moduleClient);
             }
             else if (identity is IDeviceIdentity)
             {
-                DeviceClient deviceClient = DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings);
+                DeviceClient deviceClient = options.Match(
+                    o => DeviceClient.Create(identity.IotHubHostName, authenticationMethod, o),
+                    () => DeviceClient.Create(identity.IotHubHostName, authenticationMethod));
                 return new DeviceClientWrapper(deviceClient);
             }
 
@@ -64,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return new ModuleClientWrapper(moduleClient);
         }
 
-        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings)
+        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, Option<string> modelId)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
@@ -73,38 +82,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             switch (identity)
             {
                 case IModuleIdentity moduleIdentity:
-                    return this.Create(identity, new ModuleAuthentication(tokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId), transportSettings);
+                    return this.Create(identity, new ModuleAuthentication(tokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId), transportSettings, modelId);
 
                 case IDeviceIdentity deviceIdentity:
-                    return this.Create(identity, new DeviceAuthentication(tokenProvider, deviceIdentity.DeviceId), transportSettings);
+                    return this.Create(identity, new DeviceAuthentication(tokenProvider, deviceIdentity.DeviceId), transportSettings, modelId);
 
                 default:
                     throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
-            }
-        }
-
-        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, string modelId)
-        {
-            Preconditions.CheckNotNull(identity, nameof(identity));
-            Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
-            Preconditions.CheckNotNull(tokenProvider, nameof(tokenProvider));
-            Preconditions.CheckNonWhiteSpace(modelId, nameof(modelId));
-            var options = new ClientOptions
-            {
-                ModelId = modelId,
-            };
-            switch (identity)
-            {
-                case IDeviceIdentity deviceIdentity:
-                    DeviceClient deviceClient = DeviceClient.Create(identity.IotHubHostName, new DeviceAuthentication(tokenProvider, deviceIdentity.DeviceId), transportSettings, options);
-                    return new DeviceClientWrapper(deviceClient);
-
-                case IModuleIdentity moduleIdentity:
-                    ModuleClient moduleClient = ModuleClient.Create(identity.IotHubHostName, new ModuleAuthentication(tokenProvider, moduleIdentity.DeviceId, moduleIdentity.ModuleId), options);
-                    return new ModuleClientWrapper(moduleClient);
-
-                default:
-                    throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}. Create with modelId supports only DeviceIdentity");
             }
         }
     }
