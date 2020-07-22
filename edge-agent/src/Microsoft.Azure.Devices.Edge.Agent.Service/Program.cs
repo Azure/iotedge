@@ -311,6 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 container.Resolve<IMetricsListener>().Start(logger);
                 container.Resolve<ISystemResourcesMetrics>().Start(logger);
+                await container.Resolve<MetadataMetrics>().Start(logger, versionInfo.ToString(true), Newtonsoft.Json.JsonConvert.SerializeObject(experimentalFeatures));
             }
 
             // Initialize metric uploading
@@ -375,7 +376,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 if (metricsConfig.Enabled && returnCode == 0)
                 {
-                    container.Resolve<IAvailabilityMetric>().IndicateCleanShutdown();
+                    container.Resolve<IDeploymentMetrics>().IndicateCleanShutdown();
                 }
 
                 completed.Set();
