@@ -29,6 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
 
         public IEnumerable<EnvVar> EnvironmentVariables { get; }
 
+        public IEnumerable<(string, string)> Secrets { get; }
+
         public ImagePullPolicy ImagePullPolicy { get; }
     }
 }
