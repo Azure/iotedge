@@ -53,7 +53,7 @@ pub async fn broker(
 }
 
 pub async fn start_server<Z, F>(
-    config: &Settings,
+    config: Settings,
     broker: Broker<Z>,
     shutdown_signal: F,
 ) -> Result<BrokerSnapshot>

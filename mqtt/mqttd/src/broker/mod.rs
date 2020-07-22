@@ -38,7 +38,7 @@ where
     pin_mut!(shutdown);
 
     info!("starting server...");
-    let state = bootstrap::start_server(&config, broker, shutdown).await?;
+    let state = bootstrap::start_server(config, broker, shutdown).await?;
 
     shutdown_handle.shutdown().await?;
     let mut persistor = join_handle.await?;

@@ -35,6 +35,7 @@ usage()
     echo " --packages              The manifest paths you want to build"
     echo " --reduced-linker        Flag to limit the amount of objects sent to the linker"
     echo " --no-default-features   Flag to specify whether to cargo build with no default features"
+    echo " --features              Space-separated list of features to activate"
     exit 1;
 }
 
@@ -61,6 +62,9 @@ process_args()
             PACKAGES=$arg
             IFS=';' read -a PACKAGES <<< "$PACKAGES"
             save_next_arg=0
+        elif [ ${save_next_arg} -eq 5 ]; then
+            CARGO_ARGS="${CARGO_ARGS} --features ${arg}"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
@@ -68,6 +72,7 @@ process_args()
                 "-c" | "--cargo" ) save_next_arg=2;;
                 "--project-root" ) save_next_arg=3;;
                 "--packages" ) save_next_arg=4;;
+                "--features" ) save_next_arg=5;;
                 "-r" | "--release" ) CARGO_ARGS="${CARGO_ARGS} --release";;
                 "--reduced-linker" ) REDUCED_LINKER=1;;
                 "--manifest-path" ) MANIFEST_PATH=1;;
