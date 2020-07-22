@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System.IO;
+    using System.Threading;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
@@ -36,8 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .As<IMetricsListener>()
                 .SingleInstance();
 
-            builder.RegisterType<MetadataMetrics>().SingleInstance();
-
+            builder.Register(c => new MetadataMetrics(
+                    c.Resolve<IMetricsProvider>(),
+                    async () => Newtonsoft.Json.JsonConvert.SerializeObject(await c.Resolve<Edgelet.IModuleManager>().GetSystemInfoAsync(CancellationToken.None))))
+                .As<MetadataMetrics>()
+                .SingleInstance();
             base.Load(builder);
         }
     }
