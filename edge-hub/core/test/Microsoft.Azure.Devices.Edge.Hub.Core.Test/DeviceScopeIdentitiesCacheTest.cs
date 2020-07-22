@@ -639,41 +639,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(authChainActual.Contains(authChain));
         }
 
-        [Fact]
-        public async Task GetAuthChain_DisabledDevice_Test()
-        {
-            // Arrange
-            var store = GetEntityStore("cache");
-            List<string> edgeCapability = new List<string>() { Constants.IotEdgeIdentityCapability };
-            var serviceAuth = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
-            string parentEdgeId = "parentEdge";
-            string childEdgeId = "childEdge";
-            string leafId = "leaf";
-            var parentEdge = new ServiceIdentity(parentEdgeId, "1234", edgeCapability, serviceAuth, ServiceIdentityStatus.Enabled);
-            var childEdge = new ServiceIdentity(childEdgeId, "1234", edgeCapability, serviceAuth, ServiceIdentityStatus.Disabled);
-            var leaf = new ServiceIdentity(leafId, "1234", Enumerable.Empty<string>(), serviceAuth, ServiceIdentityStatus.Enabled);
-            string authChain = leafId + ";" + childEdgeId + ";" + parentEdgeId;
-
-            var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
-            serviceIdentityHierarchy.Setup(s => s.Get(parentEdgeId)).ReturnsAsync(Option.Some(parentEdge));
-            serviceIdentityHierarchy.Setup(s => s.Get(childEdgeId)).ReturnsAsync(Option.Some(childEdge));
-            serviceIdentityHierarchy.Setup(s => s.Get(leafId)).ReturnsAsync(Option.Some(leaf));
-            serviceIdentityHierarchy.Setup(s => s.GetAuthChain(leafId)).ReturnsAsync(Option.Some(authChain));
-
-            var identitiesIterator = new Mock<IServiceIdentitiesIterator>();
-            identitiesIterator.Setup(i => i.HasNext).Returns(false);
-            var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(identitiesIterator.Object);
-
-            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1));
-
-            // Act
-            Option<string> authChainActual = await deviceScopeIdentitiesCache.GetAuthChain(leafId);
-
-            // Assert
-            Assert.False(authChainActual.HasValue);
-        }
-
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
 
         static IEntityStore<string, string> GetEntityStore(string entityName)

@@ -79,33 +79,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 
         internal bool ValidateAuthChain(string actorDeviceId, string targetId, string authChain)
         {
-            var authChainIds = authChain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-
-            // The first element of the authChain should be the target identity
-            if (authChainIds[0] != targetId)
+            if (AuthChainHelpers.ValidateAuthChain(actorDeviceId, targetId, authChain))
+            {
+                return true;
+            }
+            else
             {
                 Events.InvalidAuthChain(targetId, authChain);
                 return false;
             }
-
-            // The actor device should be in the authChain
-            bool targetAuthChainHasActor = false;
-            foreach (string id in authChainIds)
-            {
-                if (id == actorDeviceId)
-                {
-                    targetAuthChainHasActor = true;
-                    break;
-                }
-            }
-
-            if (!targetAuthChainHasActor)
-            {
-                Events.InvalidAuthChain(targetId, authChain);
-                return false;
-            }
-
-            return true;
         }
 
         internal bool ValidateAudienceIds(string audienceDeviceId, Option<string> audienceModuleId, IIdentity identity)

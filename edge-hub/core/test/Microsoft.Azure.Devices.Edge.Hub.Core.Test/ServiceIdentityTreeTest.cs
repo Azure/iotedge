@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         readonly ServiceIdentity mod1 = CreateServiceIdentity("e2_L2", "mod1", null, null, false);
         readonly ServiceIdentity mod2 = CreateServiceIdentity("e4_L2", "mod2", null, null, false);
 
-        internal static ServiceIdentity CreateServiceIdentity(string deviceId, string moduleId, string deviceScope, string parentScope, bool isEdge)
+        internal static ServiceIdentity CreateServiceIdentity(string deviceId, string moduleId, string deviceScope, string parentScope, bool isEdge, bool isEnabled = true)
         {
             List<string> capabilities = new List<string>();
 
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 "1234",
                 capabilities,
                 new ServiceAuthentication(ServiceAuthenticationType.None),
-                ServiceIdentityStatus.Enabled);
+                isEnabled ? ServiceIdentityStatus.Enabled : ServiceIdentityStatus.Disabled);
         }
 
         internal ServiceIdentityTree SetupTree()
@@ -131,6 +131,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ServiceIdentity orphan = CreateServiceIdentity("orphan", null, null, null, false);
             tree.InsertOrUpdate(orphan).Wait();
             Assert.False(tree.GetAuthChain(orphan.Id).Result.HasValue);
+        }
+
+        [Fact]
+        public void GetAuthChain_DisabledDevice_Test()
+        {
+            ServiceIdentityTree tree = this.SetupTree();
+
+            // Add another branch with a disabled Edge
+            ServiceIdentity edge_L2 = CreateServiceIdentity("edge_L2", null, "edge_L2_scope", "e1_L1_scope", true, false);
+            ServiceIdentity leaf = CreateServiceIdentity("leaf", null, null, "edge_L2_scope", false);
+
+            tree.InsertOrUpdate(edge_L2).Wait();
+            tree.InsertOrUpdate(leaf).Wait();
+
+            // Act
+            Option<string> authChain = tree.GetAuthChain(leaf.Id).Result;
+
+            // Assert
+            Assert.False(authChain.HasValue);
         }
 
         [Fact]
