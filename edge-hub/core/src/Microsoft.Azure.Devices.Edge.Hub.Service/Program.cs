@@ -111,8 +111,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
             {
-                await protocolHead.StartAsync();
-                await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
+                try
+                {
+                    await protocolHead.StartAsync();
+                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError($"Error starting protocol heads: {ex.Message}");
+                }
+
                 logger.LogInformation("Stopping the protocol heads...");
                 await protocolHead.CloseAsync(CancellationToken.None);
                 logger.LogInformation("Protocol heads stopped.");

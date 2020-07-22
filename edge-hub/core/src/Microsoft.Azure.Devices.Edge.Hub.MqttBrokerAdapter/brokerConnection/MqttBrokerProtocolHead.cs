@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
             catch (Exception e)
             {
+                Interlocked.Exchange(ref this.isRunning, 0);
                 Events.FailedToStart(e);
                 throw;
             }
