@@ -787,9 +787,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
-            Assert.Equal(2, subscriptions.Count);
-            Assert.True(subscriptions[DeviceSubscription.Methods]);
-            Assert.True(subscriptions[DeviceSubscription.C2D]);
+            Assert.Equal(0, subscriptions.Count);
             Option<ICloudProxy> cloudProxy = await connectionManager.GetCloudConnection(deviceId);
             Assert.True(cloudProxy.HasValue);
 
@@ -801,9 +799,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(subscriptionsOption.HasValue);
             subscriptions = subscriptionsOption.OrDefault();
-            Assert.Equal(4, subscriptions.Count);
-            Assert.True(subscriptions[DeviceSubscription.Methods]);
-            Assert.True(subscriptions[DeviceSubscription.C2D]);
+            Assert.Equal(2, subscriptions.Count);
             Assert.True(subscriptions[DeviceSubscription.DesiredPropertyUpdates]);
             Assert.True(subscriptions[DeviceSubscription.ModuleMessages]);
         }
