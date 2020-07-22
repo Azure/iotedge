@@ -9,9 +9,10 @@ use native_tls::Identity;
 use tracing::info;
 
 use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Error, Server};
-use mqtt_broker_core::{settings::BrokerConfig, auth::{
-    authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer,
-}};
+use mqtt_broker_core::{
+    auth::{authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer},
+    settings::BrokerConfig,
+};
 use mqtt_generic::settings::Settings;
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
