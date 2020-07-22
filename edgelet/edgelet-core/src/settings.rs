@@ -115,11 +115,11 @@ impl ManualDeviceConnectionString {
         let mut hub = None;
 
         for sections in self.device_connection_string.split(';') {
-            let parts: Vec<_> = sections.split('=').collect();
-            match &parts[..2] {
-                [SHAREDACCESSKEY_KEY, value] => key = Some((*value).to_string()),
-                [DEVICEID_KEY, value] => device_id = Some((*value).to_string()),
-                [HOSTNAME_KEY, value] => hub = Some((*value).to_string()),
+            let mut parts = sections.split('=');
+            match parts.next() {
+                Some(SHAREDACCESSKEY_KEY) => key = parts.next().map(String::from),
+                Some(DEVICEID_KEY) => device_id = parts.next().map(String::from),
+                Some(HOSTNAME_KEY) => hub = parts.next().map(String::from),
                 _ => (), // Ignore extraneous component in the connection string
             }
         }
