@@ -13,7 +13,7 @@ use openssl::{
 
 /// Identity certificate that holds server certificate, along with its corresponding private key
 /// and chain of certificates to a trusted root.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServerCertificate {
     private_key: PKey<Private>,
     certificate: X509,
@@ -126,91 +126,95 @@ pub enum ServerCertificateError {
 
 #[cfg(test)]
 mod tests {
-    // use chrono::{offset::TimeZone, Utc};
-    // use futures_util::StreamExt;
-    // use openssl::x509::X509;
-    // use tokio::{
-    //     io::{AsyncReadExt, AsyncWriteExt},
-    //     net::{TcpListener, TcpStream},
-    // };
-    // use tokio_native_tls::{TlsAcceptor, TlsConnector};
+    use chrono::{offset::TimeZone, Utc};
+    use futures_util::StreamExt;
+    use openssl::{
+        ssl::{SslConnector, SslMethod},
+        x509::X509,
+    };
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpStream,
+    };
 
-    // use super::{parse_openssl_time, ServerCertificate};
+    use super::{parse_openssl_time, ServerCertificate};
+    use crate::transport::Transport;
+    use tokio_openssl::{accept, connect};
 
-    // const PRIVATE_KEY: &str = include_str!("../test/tls/pkey.pem");
+    const PRIVATE_KEY: &str = include_str!("../test/tls/pkey.pem");
 
-    // const CERTIFICATE: &str = include_str!("../test/tls/cert.pem");
+    const CERTIFICATE: &str = include_str!("../test/tls/cert.pem");
 
-    // #[tokio::test]
-    // async fn it_converts_into_identity() {
-    //     const MESSAGE: &[u8] = b"it works!";
+    #[tokio::test]
+    async fn it_converts_into_identity() {
+        const MESSAGE: &[u8] = b"it works!";
 
-    //     let identity = ServerCertificate::from_pem_pair(CERTIFICATE, PRIVATE_KEY).unwrap();
+        let identity = ServerCertificate::from_pem_pair(CERTIFICATE, PRIVATE_KEY).unwrap();
 
-    //     let port = run_echo_server(identity).await;
-    //     let buffer = run_echo_client(port, MESSAGE).await;
+        let port = run_echo_server(identity).await;
+        let buffer = run_echo_client(port, MESSAGE).await;
 
-    //     assert_eq!(MESSAGE, buffer.as_slice());
-    // }
+        assert_eq!(MESSAGE, buffer.as_slice());
+    }
 
-    // async fn run_echo_server(identity: ServerCertificate) -> u16 {
-    //     // TODO fix test
-    //     let pkcs12 = native_tls::Identity::from_pkcs12(identity.as_ref(), "").unwrap();
-    //     let acceptor = TlsAcceptor::from(native_tls::TlsAcceptor::new(pkcs12).unwrap());
+    async fn run_echo_server(identity: ServerCertificate) -> u16 {
+        match Transport::new_tls("0.0.0.0:0", identity).await {
+            Ok(Transport::Tls(mut listener, acceptor)) => {
+                let port = listener.local_addr().unwrap().port();
 
-    //     let mut listener = TcpListener::bind("0.0.0.0:0").await.unwrap();
-    //     let port = listener.local_addr().unwrap().port();
+                tokio::spawn(async move {
+                    while let Some(stream) = listener.next().await {
+                        let acceptor = acceptor.clone();
+                        tokio::spawn(async move {
+                            let mut tls = accept(&acceptor, stream.unwrap()).await.unwrap();
+                            let mut buffer = [0_u8; 1024];
+                            while tls.read(&mut buffer).await.unwrap() > 0 {
+                                tls.write(&buffer).await.unwrap();
+                            }
+                        });
+                    }
+                });
 
-    //     tokio::spawn(async move {
-    //         while let Some(stream) = listener.next().await {
-    //             let acceptor = acceptor.clone();
-    //             tokio::spawn(async move {
-    //                 let mut tls = acceptor.accept(stream.unwrap()).await.unwrap();
-    //                 let mut buffer = [0_u8; 1024];
-    //                 while tls.read(&mut buffer).await.unwrap() > 0 {
-    //                     tls.write(&buffer).await.unwrap();
-    //                 }
-    //             });
-    //         }
-    //     });
+                port
+            }
+            _ => panic!("wrong protocol"),
+        }
+    }
 
-    //     port
-    // }
+    async fn run_echo_client(port: u16, message: &[u8]) -> Vec<u8> {
+        let mut builder = SslConnector::builder(SslMethod::tls()).unwrap();
 
-    // async fn run_echo_client(port: u16, message: &[u8]) -> Vec<u8> {
-    //     let mut builder = native_tls::TlsConnector::builder();
+        let mut certs = X509::stack_from_pem(CERTIFICATE.as_ref()).unwrap();
+        if let Some(ca) = certs.pop() {
+            builder.cert_store_mut().add_cert(ca).unwrap();
+        }
+        let connector = builder.build();
 
-    //     let mut certs = X509::stack_from_pem(CERTIFICATE.as_ref()).unwrap();
-    //     for cert in certs.split_off(1) {
-    //         let cert = native_tls::Certificate::from_der(&cert.to_der().unwrap()).unwrap();
-    //         builder.add_root_certificate(cert);
-    //     }
+        let addr = format!("127.0.0.1:{}", port);
+        let tcp = TcpStream::connect(addr).await.unwrap();
 
-    //     let connector = TlsConnector::from(builder.build().unwrap());
+        let config = connector.configure().unwrap();
+        let mut tls = connect(config, "localhost", tcp).await.unwrap();
 
-    //     let addr = format!("127.0.0.1:{}", port);
-    //     let tcp = TcpStream::connect(addr).await.unwrap();
-    //     let mut tls = connector.connect("localhost", tcp).await.unwrap();
+        tls.write(message.as_ref()).await.unwrap();
 
-    //     tls.write(message.as_ref()).await.unwrap();
+        let mut buffer = vec![0; message.len()];
+        tls.read(&mut buffer[..]).await.unwrap();
 
-    //     let mut buffer = vec![0; message.len()];
-    //     tls.read(&mut buffer[..]).await.unwrap();
+        buffer
+    }
 
-    //     buffer
-    // }
+    #[test]
+    fn it_converts_asn1_time() {
+        let certs = X509::stack_from_pem(CERTIFICATE.as_ref()).unwrap();
+        if let Some((cert, _)) = certs.split_first() {
+            let not_before = parse_openssl_time(cert.not_before()).unwrap();
+            assert_eq!(Utc.ymd(2020, 7, 9).and_hms(21, 29, 53), not_before);
 
-    // #[test]
-    // fn it_converts_asn1_time() {
-    //     let certs = X509::stack_from_pem(CERTIFICATE.as_ref()).unwrap();
-    //     if let Some((cert, _)) = certs.split_first() {
-    //         let not_before = parse_openssl_time(cert.not_before()).unwrap();
-    //         assert_eq!(Utc.ymd(2020, 7, 9).and_hms(21, 29, 53), not_before);
-
-    //         let not_after = super::parse_openssl_time(cert.not_after()).unwrap();
-    //         assert_eq!(Utc.ymd(2020, 10, 7).and_hms(20, 10, 2), not_after);
-    //     } else {
-    //         panic!("server cert expected");
-    //     }
-    // }
+            let not_after = super::parse_openssl_time(cert.not_after()).unwrap();
+            assert_eq!(Utc.ymd(2020, 10, 7).and_hms(20, 10, 2), not_after);
+        } else {
+            panic!("server cert expected");
+        }
+    }
 }
