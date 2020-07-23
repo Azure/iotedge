@@ -129,6 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
 
@@ -147,6 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
+                modelIdStore,
                 true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -176,9 +178,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceClient.Setup(dc => dc.OpenAsync()).ThrowsAsync(new TimeoutException());
 
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(deviceClient.Object);
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
 
@@ -197,6 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
+                modelIdStore,
                 true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -228,6 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .ReturnsAsync(Option.Some(deviceIdentity.Id));
 
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
@@ -244,6 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
+                modelIdStore,
                 true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -274,6 +280,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
             credentialsCache.Setup(c => c.Get(deviceIdentity)).ReturnsAsync(Option.Some((IClientCredentials)tokenCreds));
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
@@ -290,6 +297,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
+                modelIdStore,
                 true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -320,6 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
             credentialsCache.Setup(c => c.Get(deviceIdentity)).ReturnsAsync(Option.Some((IClientCredentials)tokenCreds));
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
@@ -336,6 +345,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 productInfoStore,
+                modelIdStore,
                 true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -409,7 +419,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static IClientProvider GetMockDeviceClientProvider()
         {
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(() => GetMockDeviceClient());
             return deviceClientProvider.Object;
         }

@@ -40,6 +40,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
         };
 
+        static readonly HostConfig HostIpcModeHostConfig = new HostConfig
+        {
+            IpcMode = "host"
+        };
+
+        static readonly HostConfig PrivateIpcModeHostConfig = new HostConfig
+        {
+            IpcMode = "private"
+        };
+
         static readonly KubernetesModuleOwner EdgeletModuleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
 
         [Fact]
@@ -703,6 +713,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal("100", container.Env.Single(e => e.Name == KubernetesConstants.PersistentVolumeClaimDefaultSizeInMbKey).Value);
             Assert.Equal("True", container.Env.Single(e => e.Name == "feature1").Value);
             Assert.Equal("False", container.Env.Single(e => e.Name == "feature2").Value);
+        }
+
+        [Fact]
+        public void NoIpcModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Null(deployment.Spec.Template.Spec.HostIPC);
+        }
+
+        [Fact]
+        public void HostIpcModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: HostIpcModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(true, deployment.Spec.Template.Spec.HostIPC);
+        }
+
+        [Fact]
+        public void PrivateIpcModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: PrivateIpcModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(false, deployment.Spec.Template.Spec.HostIPC);
         }
 
         static KubernetesDeploymentMapper CreateMapper(

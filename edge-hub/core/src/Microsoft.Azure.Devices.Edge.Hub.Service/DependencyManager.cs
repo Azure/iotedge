@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .GetOrElse(false);
             int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
             int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
-            bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
+            bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", true);
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
