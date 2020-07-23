@@ -151,6 +151,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId)
             => this.deviceScopeIdentitiesCache.GetDevicesAndModulesInTargetScopeAsync(targetDeviceId);
 
+        public Task<Option<ServiceIdentity>> GetIdentityAsync(string targetId)
+            => this.deviceScopeIdentitiesCache.GetServiceIdentity(targetId);
+
         public void Dispose()
         {
             this.Dispose(true);

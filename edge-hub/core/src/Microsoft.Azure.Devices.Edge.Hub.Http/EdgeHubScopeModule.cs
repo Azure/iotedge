@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             string generationId,
             AuthenticationMechanism authentication)
         {
-            this.Id = Preconditions.CheckNonWhiteSpace(moduleId, nameof(deviceId));
+            this.Id = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.GenerationId = Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
             this.Authentication = Preconditions.CheckNotNull(authentication);
