@@ -106,11 +106,9 @@ if [ "${REDUCED_LINKER}" = '1' ]; then
     # We don't want to disable these for everyone else, so only do it in this script
     # that the CI uses.
     >> "${PROJECT_ROOT}/Cargo.toml" cat <<-EOF
-
 [profile.dev]
 codegen-units = 1
 incremental = false
-
 [profile.test]
 codegen-units = 1
 incremental = false
@@ -118,4 +116,4 @@ EOF
 fi
 
 cd "${PROJECT_ROOT}"
-$CARGO build ${PACKAGES_FORMATTED} ${CARGO_ARGS} --target "$TARGET"
+$CARGO build ${PACKAGES_FORMATTED} $(echo "${CARGO_ARGS}") --target "$TARGET"
