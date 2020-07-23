@@ -2,9 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel;
-    using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
@@ -15,13 +13,62 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        Option<string> bootstrapAgentImage;
-        Option<Registry> bootstrapRegistry;
+        readonly Option<string> bootstrapAgentImage;
+        readonly Option<Registry> bootstrapRegistry;
+        readonly PackageManagement packageManagement;
 
-        public EdgeDaemon(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry)
+        public static async Task<EdgeDaemon> CreateAsync(
+            Option<string> bootstrapAgentImage,
+            Option<Registry> bootstrapRegistry,
+            CancellationToken token)
+        {
+            string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
+            if (platformInfo.Length == 1)
+            {
+                platformInfo = platformInfo[0].Split(' ');
+            }
+
+            string os = platformInfo[0].Trim();
+            string version = platformInfo[1].Trim();
+            SupportedPackageExtension packageExtension;
+
+            switch (os)
+            {
+                case "Ubuntu":
+                    os = os.ToLower();
+                    packageExtension = SupportedPackageExtension.Deb;
+                    break;
+                case "Raspbian":
+                    os = "debian";
+                    version = "stretch";
+                    packageExtension = SupportedPackageExtension.Deb;
+                    break;
+                case "CentOS":
+                    os = os.ToLower();
+                    version = version.Split('.')[0];
+                    packageExtension = SupportedPackageExtension.Rpm;
+
+                    if (version != "7")
+                    {
+                        throw new NotImplementedException($"Don't know how to install daemon on operating system '{os} {version}'");
+                    }
+
+                    break;
+                default:
+                    throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
+            }
+
+            return new EdgeDaemon(
+                bootstrapAgentImage,
+                bootstrapRegistry,
+                new PackageManagement(os, version, packageExtension));
+        }
+
+        EdgeDaemon(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry, PackageManagement packageManagement)
         {
             this.bootstrapAgentImage = bootstrapAgentImage;
             this.bootstrapRegistry = bootstrapRegistry;
+            this.packageManagement = packageManagement;
         }
 
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
@@ -35,48 +82,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     properties = properties.Append(p).ToArray();
                 });
 
-            string[] commands = await packagesPath.Match(
-                p =>
-                {
-                    string[] packages = Directory.GetFiles(p, "*.deb");
-                    return Task.FromResult(
-                        new[]
-                        {
-                            "set -e",
-                            $"dpkg --force-confnew -i {string.Join(' ', packages)}",
-                            "apt-get install -f"
-                        });
-                },
-                async () =>
-                {
-                    // Based on instructions at:
-                    // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
-
-                    // TODO: 8/30/2019 support curl behind a proxy
-                    string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
-                    string os = platformInfo[0].Trim();
-                    string version = platformInfo[1].Trim();
-                    switch (os)
-                    {
-                        case "Ubuntu":
-                            os = "ubuntu";
-                            break;
-                        case "Raspbian":
-                            os = "debian";
-                            version = "stretch";
-                            break;
-                        default:
-                            throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
-                    }
-
-                    return new[]
-                    {
-                        $"curl https://packages.microsoft.com/config/{os}/{version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
-                        "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                        "apt-get update",
-                        "apt-get install --yes iotedge"
-                    };
-                });
+            string[] commands = packagesPath.Match(
+                p => this.packageManagement.GetInstallCommandsFromLocal(p),
+                () => this.packageManagement.GetInstallCommandsFromMicrosoftProd());
 
             await Profiler.Run(
                 async () =>
@@ -131,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "stop iotedge.service iotedge.socket iotedge.mgmt.socket", token);
+            string[] output = await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
@@ -147,14 +155,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 Log.Verbose(e, "Failed to stop edge daemon, probably because it is already stopped");
             }
 
+            string[] commands = this.packageManagement.GetUninstallCommands();
+
             try
             {
                 await Profiler.Run(
                     async () =>
                     {
-                        string[] output =
-                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std iotedge", token);
-
+                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                         Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");
@@ -174,19 +182,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             while (true)
             {
-                Func<string, bool> stateMatchesDesired;
-                switch (desired)
+                Func<string, bool> stateMatchesDesired = desired switch
                 {
-                    case ServiceControllerStatus.Running:
-                        stateMatchesDesired = s => s == "active";
-                        break;
-                    case ServiceControllerStatus.Stopped:
-                        stateMatchesDesired = s => s == "inactive" || s == "failed";
-                        break;
-                    default:
-                        throw new NotImplementedException($"No handler for {desired.ToString()}");
-                }
-
+                    ServiceControllerStatus.Running => s => s == "active",
+                    ServiceControllerStatus.Stopped => s => s == "inactive" || s == "failed",
+                    _ => throw new NotImplementedException($"No handler for {desired}"),
+                };
                 string[] output = await Process.RunAsync("systemctl", "-p ActiveState show iotedge", token);
                 Log.Verbose(output.First());
                 if (stateMatchesDesired(output.First().Split("=").Last()))

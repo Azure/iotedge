@@ -96,7 +96,7 @@ fn start_api(
                 ))
             })
         })
-        .and_then(move |addr| {
+        .map(move |addr| {
             let new_service = ApiService::new();
 
             let server = Server::bind(&addr)
@@ -109,7 +109,7 @@ fn start_api(
                 settings.entrypoint(),
             );
 
-            Ok(server)
+            server
         })
         .into_future()
         .flatten()
