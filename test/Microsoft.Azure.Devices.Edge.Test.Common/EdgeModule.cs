@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
     using Serilog;
 
     public enum EdgeModuleStatus
@@ -163,11 +164,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .Select(
                         v =>
                         {
-                            if (v.Path.EndsWith("settings.createOptions") ||
-                                v.Path.EndsWith("net.azure-devices.edge.env"))
+                            if (v.Path.EndsWith("settings.createOptions"))
                             {
                                 // normalize stringized JSON inside "createOptions"
-                                v.Value = JObject.Parse((string)v.Value).ToString(Formatting.None);
+                                JObject obj = JObject.Parse((string)v.Value);
+
+                                if (v.Path.EndsWith("edgeAgent.settings.createOptions"))
+                                {
+                                    // Do some additional processing for edge agent's createOptions...
+                                    // Remove "net.azure-devices.edge.create-options" and
+                                    // "net.azure-devices.edge.env" labels because they're deeply
+                                    // nested stringized JSON, making them difficult to compare.
+                                    // Besides, they're created by edge agent and iotedged for
+                                    // internal use; they're not related to the deployment.
+                                    if (obj.TryGetValue("Labels", out JToken labels))
+                                    {
+                                        labels.Value<JObject>().Remove("net.azure-devices.edge.create-options");
+                                        labels.Value<JObject>().Remove("net.azure-devices.edge.env");
+                                    }
+                                }
+                                v.Value = obj.ToString(Formatting.None);
                             }
 
                             return v;

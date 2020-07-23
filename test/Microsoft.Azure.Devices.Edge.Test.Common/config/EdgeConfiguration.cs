@@ -112,15 +112,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             settings.TryAdd("createOptions", new JObject());
             JObject createOptions = settings.Value<JObject>("createOptions");
-            string createOptionsLabel = JsonConvert.SerializeObject(createOptions);
 
             createOptions.TryAdd("Labels", new JObject());
             JObject labels = createOptions.Value<JObject>("Labels");
 
-            JToken env = source.SelectToken("env") ?? new JObject();
-
-            labels.TryAdd("net.azure-devices.edge.create-options", new JValue(createOptionsLabel));
-            labels.TryAdd("net.azure-devices.edge.env", JsonConvert.SerializeObject(env));
             labels.TryAdd("net.azure-devices.edge.owner", new JValue("Microsoft.Azure.Devices.Edge.Agent"));
 
             return CreateExpectedModuleConfig(source);
