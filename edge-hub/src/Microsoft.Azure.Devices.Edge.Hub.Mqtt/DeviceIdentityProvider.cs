@@ -22,22 +22,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IAuthenticator authenticator;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
-        readonly IProductInfoStore productInfoStore;
-        readonly IModelIdStore modelIdStore;
+        readonly IMetadataStore metadataStore;
         Option<X509Certificate2> remoteCertificate;
         IList<X509Certificate2> remoteCertificateChain;
 
         public DeviceIdentityProvider(
             IAuthenticator authenticator,
             IClientCredentialsFactory clientCredentialsFactory,
-            IProductInfoStore productInfoStore,
-            IModelIdStore modelIdStore,
+            IMetadataStore metadataStore,
             bool clientCertAuthAllowed)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
-            this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
-            this.modelIdStore = Preconditions.CheckNotNull(modelIdStore, nameof(modelIdStore));
+            this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.remoteCertificate = Option.None<X509Certificate2>();
             this.remoteCertificateChain = new List<X509Certificate2>();
@@ -51,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = ParseUserName(username);
-                modelId.ForEach(async m => await this.modelIdStore.SetModelId(deviceId, m));
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
@@ -91,7 +87,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
 
-                await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, deviceClientType);
+                ConnectionMetadata connectionMetadata = new ConnectionMetadata() { ProductInfo = deviceClientType };
+                modelId.ForEach(m => connectionMetadata.ModelId = m);
+                await this.metadataStore.SetMetadata(deviceCredentials.Identity.Id, connectionMetadata);
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials, modelId);
             }

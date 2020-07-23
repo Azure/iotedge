@@ -14,8 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     public abstract class LinkHandler : ILinkHandler
     {
         readonly IConnectionHandler connectionHandler;
-        readonly IProductInfoStore productInfoStore;
-        readonly IModelIdStore modelIdStore;
+        readonly IMetadataStore metadataStore;
 
         protected LinkHandler(
             IIdentity identity,
@@ -24,8 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
-            IProductInfoStore productInfoStore,
-            IModelIdStore modelIdStore)
+            IMetadataStore metadataStore)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.MessageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -34,8 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.LinkUri = Preconditions.CheckNotNull(requestUri, nameof(requestUri));
             this.Link.SafeAddClosed(this.OnLinkClosed);
             this.connectionHandler = Preconditions.CheckNotNull(connectionHandler, nameof(connectionHandler));
-            this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
-            this.modelIdStore = Preconditions.CheckNotNull(modelIdStore, nameof(modelIdStore));
+            this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
 
             string clientVersion = null;
             if (this.Link.Settings?.Properties?.TryGetValue(IotHubAmqpProperty.ClientVersion, out clientVersion) ?? false)
@@ -116,10 +113,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             bool authenticated = await amqpAuth.AuthenticateAsync(this.Identity.Id);
             if (authenticated)
             {
-                await this.ClientVersion
+                ConnectionMetadata connectionMetadata = new ConnectionMetadata();
+                this.ClientVersion
                     .Filter(c => !string.IsNullOrWhiteSpace(c))
-                    .ForEachAsync(c => this.productInfoStore.SetProductInfo(this.Identity.Id, c));
-                await this.ModelId.ForEachAsync(m => this.modelIdStore.SetModelId(this.Identity.Id, m));
+                    .ForEach(c => connectionMetadata.ProductInfo = c);
+                this.ModelId.ForEach(m => connectionMetadata.ModelId = m);
+                await this.metadataStore.SetMetadata(this.Identity.Id, connectionMetadata);
             }
 
             return authenticated;
