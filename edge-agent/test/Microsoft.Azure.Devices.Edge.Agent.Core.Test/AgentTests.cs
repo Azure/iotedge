@@ -526,8 +526,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Fact]
         public async void ReconcileAsyncExecuteAsyncIncompleteDefaulsUnknown()
         {
-            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
-            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
+            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
+            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
             var commandList = new List<ICommand>
             {
                 new Mock<ICommand>().Object,
@@ -580,8 +580,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Fact]
         public async void ReconcileAsyncExecuteAsyncIncompleteReportsLastState()
         {
-            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
-            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
+            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
+            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
             var commandList = new List<ICommand>
             {
                 new Mock<ICommand>().Object,
