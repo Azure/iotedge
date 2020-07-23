@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.LastRestartTimeUtc,
             newStatus,
             this.ImagePullPolicy,
-            this.Priority,
+            this.StartupOrder,
             this.ConfigurationInfo,
             this.Env);
     }

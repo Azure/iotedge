@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(reportedModule.RestartCount, updatedModule.RestartCount);
             Assert.Equal(reportedModule.RestartPolicy, updatedModule.RestartPolicy);
             Assert.Equal(reportedModule.ImagePullPolicy, updatedModule.ImagePullPolicy);
-            Assert.Equal(reportedModule.Priority, updatedModule.Priority);
+            Assert.Equal(reportedModule.StartupOrder, updatedModule.StartupOrder);
             Assert.Equal(reportedModule.StatusDescription, updatedModule.StatusDescription);
             Assert.Equal(reportedModule.Type, updatedModule.Type);
             Assert.Equal(reportedModule.Version, updatedModule.Version);

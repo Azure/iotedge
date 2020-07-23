@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(lastStartTimeUtc, edgeAgent.LastStartTimeUtc);
-            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.StartupOrder);
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
-            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.StartupOrder);
         }
 
         [Fact]
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
-            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.StartupOrder);
         }
 
         [Fact]
