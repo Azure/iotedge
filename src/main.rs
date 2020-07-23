@@ -1,7 +1,6 @@
 mod backends;
 mod config;
 mod constants;
-mod ks;
 mod routes;
 mod store;
 mod util;

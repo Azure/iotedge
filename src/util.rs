@@ -6,7 +6,7 @@ use bytes::buf::BufExt;
 use hyper::{Body, Response};
 use hyper::body::to_bytes;
 use serde::de::DeserializeOwned;
-use serde_json::{Deserializer};
+use serde_json::Deserializer;
 
 pub type BoxResult<'a, T> = Result<T, Box<dyn std::error::Error + 'a>>;
 // pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = BoxResult<'a, T>> + Send + 'a>>;

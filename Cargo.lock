@@ -42,6 +42,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 
 [[package]]
+name = "aziot-key-client-async"
+version = "0.1.0"
+dependencies = [
+ "aziot-key-common",
+ "aziot-key-common-http",
+ "http",
+ "http-common",
+ "hyper",
+ "percent-encoding",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "aziot-key-common"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "aziot-key-common-http"
+version = "0.1.0"
+dependencies = [
+ "aziot-key-common",
+ "http-common",
+ "serde",
+]
+
+[[package]]
 name = "base64"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -426,6 +456,15 @@ checksum = "13d5ff830006f7646652e057693569bfe0d51760c0085a071769d142a205111b"
 dependencies = [
  "bytes",
  "http",
+]
+
+[[package]]
+name = "http-common"
+version = "0.1.0"
+dependencies = [
+ "base64 0.12.3",
+ "percent-encoding",
+ "serde",
 ]
 
 [[package]]
@@ -1099,7 +1138,8 @@ dependencies = [
 name = "secret-store"
 version = "0.1.0"
 dependencies = [
- "base64 0.12.3",
+ "aziot-key-client-async",
+ "aziot-key-common",
  "bytes",
  "futures",
  "hyper",
@@ -1108,7 +1148,6 @@ dependencies = [
  "iotedge-aad",
  "lazy_static",
  "libc",
- "percent-encoding",
  "regex",
  "reqwest",
  "ring",

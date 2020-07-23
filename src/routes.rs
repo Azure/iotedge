@@ -3,15 +3,14 @@ use crate::util::*;
 
 use std::str::FromStr;
 
-use base64::decode;
 use hyper::{Body, Method, Request, Response};
 use hyper::body::to_bytes;
 
 #[inline]
 async fn read_request<'a>(req: Request<Body>) -> BoxResult<'a, String> {
     Ok(
-        String::from_utf8(
-            decode(
+        serde_json::from_str(
+            &String::from_utf8(
                 to_bytes(req).await?
                     .to_vec()
             )?
