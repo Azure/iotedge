@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
             }
         }
 
-        public Task<string> GetSecretAsync(string secretName)
+        public override Task<string> GetSecretAsync(string secretName)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
@@ -220,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
             }
         }
 
-        public Task SetSecretAsync(string secretName, string secretValue)
+        public override Task SetSecretAsync(string secretName, string secretValue)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
             }
         }
 
-        public Task PullSecretAsync(string secretName, string akvId)
+        public override Task PullSecretAsync(string secretName, string akvId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
@@ -238,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
             }
         }
 
-        public Task RefreshSecretAsync(string secretName)
+        public override Task RefreshSecretAsync(string secretName)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
@@ -247,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
             }
         }
 
-        public Task DeleteSecretAsync(string secretName)
+        public override Task DeleteSecretAsync(string secretName)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {

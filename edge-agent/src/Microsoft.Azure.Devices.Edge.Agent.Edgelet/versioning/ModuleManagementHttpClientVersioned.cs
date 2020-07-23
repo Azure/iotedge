@@ -81,6 +81,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task ReprovisionDeviceAsync();
 
+        public virtual Task<string> GetSecretAsync(string secretName)
+        {
+            return Task.FromResult(string.Empty);
+        }
+
+        public virtual Task SetSecretAsync(string secretName, string secretValue)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task PullSecretAsync(string secretName, string akvId)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task RefreshSecretAsync(string secretName)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task DeleteSecretAsync(string secretName)
+        {
+            return Task.CompletedTask;
+        }
+
         public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
