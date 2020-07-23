@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     statusDescription = string.Empty,
                     type = "docker",
                     imagePullPolicy = "on-create",
-                    priority = Constants.HighestPriority,
+                    startupOrder = Constants.HighestPriority,
                     settings = new
                     {
                         image = "booyah:latest",
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     {
                         id = "bing"
                     },
-                    priority = 10
+                    startupOrder = 10
                 });
 
             // Act

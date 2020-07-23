@@ -260,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""Status"":""running"",
          ""RestartPolicy"": ""on-unhealthy"",
          ""ImagePullPolicy"": ""on-create"",
-         ""Priority"": 0,
+         ""StartupOrder"": 0,
          ""Settings"":{
             ""Image"":""image1:42"",
             ""CreateOptions"": {
