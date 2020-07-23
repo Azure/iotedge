@@ -310,7 +310,11 @@ where
                     session.send(event)?;
                 }
 
+                let subscriptions =
+                    StateChange::new_subscription_change(&client_id, Some(&session)).try_into()?;
+
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
+                self.publish_all(subscriptions)?;
             }
             OpenSession::DuplicateSession(mut old_session, ack) => {
                 // Drop the old connection

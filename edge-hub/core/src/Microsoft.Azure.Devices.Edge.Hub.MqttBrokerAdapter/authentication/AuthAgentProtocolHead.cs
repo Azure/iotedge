@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
