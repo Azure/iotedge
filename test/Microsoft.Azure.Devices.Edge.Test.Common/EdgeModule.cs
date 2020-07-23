@@ -153,42 +153,58 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             Dictionary<string, JValue> ProcessJson(object obj, string rootPath)
             {
-                // return all json values under root path, with their relative
-                // paths as keys
-                return JObject
+                // return all json values under root path, with their relative paths as keys
+                Dictionary<string, JValue> result = JObject
                     .FromObject(obj)
                     .SelectToken(rootPath)
                     .Cast<JContainer>()
                     .DescendantsAndSelf()
                     .OfType<JValue>()
-                    .Select(
-                        v =>
-                        {
-                            if (v.Path.EndsWith("settings.createOptions"))
-                            {
-                                // normalize stringized JSON inside "createOptions"
-                                JObject obj = JObject.Parse((string)v.Value);
-
-                                if (v.Path.EndsWith("edgeAgent.settings.createOptions"))
-                                {
-                                    // Do some additional processing for edge agent's createOptions...
-                                    // Remove "net.azure-devices.edge.create-options" and
-                                    // "net.azure-devices.edge.env" labels because they're deeply
-                                    // nested stringized JSON, making them difficult to compare.
-                                    // Besides, they're created by edge agent and iotedged for
-                                    // internal use; they're not related to the deployment.
-                                    if (obj.TryGetValue("Labels", out JToken labels))
-                                    {
-                                        labels.Value<JObject>().Remove("net.azure-devices.edge.create-options");
-                                        labels.Value<JObject>().Remove("net.azure-devices.edge.env");
-                                    }
-                                }
-                                v.Value = obj.ToString(Formatting.None);
-                            }
-
-                            return v;
-                        })
                     .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
+
+                var agentKeys = result.Keys
+                    .Where(k => k.EndsWith("edgeAgent.settings.createOptions"));
+                var otherKeys = result.Keys
+                    .Where(k => k.EndsWith("settings.createOptions"))
+                    .Except(agentKeys);
+
+                // normalize stringized JSON inside "createOptions"
+                foreach (var key in otherKeys)
+                {
+                    result[key].Value = JObject
+                        .Parse((string)result[key].Value)
+                        .ToString(Formatting.None);
+                }
+
+                // Do some additional processing for edge agent's createOptions...
+                // Remove "net.azure-devices.edge.*" labels because they can be deeply nested
+                // stringized JSON, making them difficult to compare. Besides, they're created by
+                // edge agent and iotedged for internal use; they're not related to the deployment.
+                foreach (var key in agentKeys)
+                {
+                    JObject createOptions = JObject.Parse((string)result[key].Value);
+                    if (createOptions.TryGetValue("Labels", out JToken labels))
+                    {
+                        string[] remove = labels
+                            .Children<JProperty>()
+                            .Where(label => label.Name.StartsWith("net.azure-devices.edge."))
+                            .Select(label => label.Name)
+                            .ToArray();
+                        foreach (var name in remove)
+                        {
+                            labels.Value<JObject>().Remove(name);
+                        }
+
+                        if (!labels.HasValues)
+                        {
+                            createOptions.Remove("Labels");
+                        }
+                    }
+
+                    result[key].Value = createOptions.ToString(Formatting.None);
+                }
+
+                return result;
             }
 
             Dictionary<string, JValue> referenceValues = ProcessJson(reference.obj, reference.rootPath);
