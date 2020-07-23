@@ -57,6 +57,67 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task ReprovisionDeviceAsync() => this.inner.ReprovisionDeviceAsync();
 
+        // TODO: how best to handle this kind of migration?
+        public Task<string> GetSecretAsync(string secretName)
+        {
+            if (this.inner is Version_2020_07_22.ModuleManagementHttpClient client)
+            {
+                return client.GetSecretAsync(secretName);
+            }
+            else
+            {
+                return Task.FromResult(string.Empty);
+            }
+        }
+
+        public Task SetSecretAsync(string secretName, string secretValue)
+        {
+            if (this.inner is Version_2020_07_22.ModuleManagementHttpClient client)
+            {
+                return client.SetSecretAsync(secretName, secretValue);
+            }
+            else
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        public Task PullSecretAsync(string secretName, string akvId)
+        {
+            if (this.inner is Version_2020_07_22.ModuleManagementHttpClient client)
+            {
+                return client.PullSecretAsync(secretName, akvId);
+            }
+            else
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        public Task RefreshSecretAsync(string secretName)
+        {
+            if (this.inner is Version_2020_07_22.ModuleManagementHttpClient client)
+            {
+                return client.RefreshSecretAsync(secretName);
+            }
+            else
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        public Task DeleteSecretAsync(string secretName)
+        {
+            if (this.inner is Version_2020_07_22.ModuleManagementHttpClient client)
+            {
+                return client.DeleteSecretAsync(secretName);
+            }
+            else
+            {
+                return Task.CompletedTask;
+            }
+        }
+
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
 
