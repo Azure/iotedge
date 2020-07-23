@@ -10,12 +10,11 @@ use futures_util::{
 use tokio::time;
 use tracing::{info, warn};
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server};
+use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server, ServerCertificate};
 use mqtt_broker_core::auth::Authorizer;
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     edgelet,
-    tls::ServerCertificate,
 };
 
 pub async fn broker(
@@ -55,7 +54,7 @@ where
             let identity = match tls.cert_path() {
                 Some(path) => {
                     info!("loading identity from {}", path.display());
-                    ServerCertificate::from_file(path)
+                    ServerCertificate::from_pkcs12(path)
                         .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
                 }
                 None => {
@@ -159,9 +158,9 @@ mod tests {
         MODULE_GENERATION_ID, MODULE_ID, WORKLOAD_URI,
     };
 
-    const PRIVATE_KEY: &str = include_str!("../../../../mqtt-edgehub/test/tls/pkey.pem");
+    const PRIVATE_KEY: &str = include_str!("../../../../mqtt-broker/test/tls/pkey.pem");
 
-    const CERTIFICATE: &str = include_str!("../../../../mqtt-edgehub/test/tls/cert.pem");
+    const CERTIFICATE: &str = include_str!("../../../../mqtt-broker/test/tls/cert.pem");
 
     #[tokio::test]
     async fn it_downloads_server_cert() {
