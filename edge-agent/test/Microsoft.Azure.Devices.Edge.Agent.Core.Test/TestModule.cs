@@ -174,10 +174,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             TestConfig config,
             RestartPolicy restartPolicy,
             ImagePullPolicy imagePullPolicy,
-            uint priority,
+            uint startupOrder,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env)
-            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, configuration, env)
+            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, startupOrder, configuration, env)
         {
         }
 
@@ -214,8 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestHubModule : TestModule, IEdgeHubModule
     {
-        public TestHubModule(string name, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint priority, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
-            : base(name ?? Constants.EdgeHubModuleName, string.Empty, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, configuration, env)
+        public TestHubModule(string name, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint startupOrder, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
+            : base(name ?? Constants.EdgeHubModuleName, string.Empty, type, desiredStatus, config, restartPolicy, imagePullPolicy, startupOrder, configuration, env)
         {
             this.Version = string.Empty;
         }
