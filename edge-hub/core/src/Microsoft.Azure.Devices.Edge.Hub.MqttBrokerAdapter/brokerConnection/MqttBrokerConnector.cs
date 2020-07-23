@@ -85,7 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     this.mqttClient = Option.None<MqttClient>();
                 }
 
-                throw new Exception("Failed to start mqtt-bridge connector");
+                Events.CouldNotConnect();
+                throw new Exception("Failed to start MQTT broker connector");
             }
 
             client.ConnectionClosed += this.TriggerReconnect;
@@ -400,7 +401,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ForwardingLoopStarted,
                 ForwardingLoopStopped,
                 MessageForwarded,
-                FailedToForward
+                FailedToForward,
+                CouldNotConnect
             }
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting mqtt-bridge connector");
@@ -418,6 +420,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void ForwardingLoopStopped() => Log.LogInformation((int)EventIds.ForwardingLoopStopped, "Forwarding loop stopped");
             public static void MessageForwarded(string consumer, bool accepted, string topic, int len) => Log.LogDebug((int)EventIds.MessageForwarded, "Message forwarded to {0} and it {1}. Topic {2}, Msg. len {3} bytes", consumer, accepted ? "accepted" : "ignored", topic, len);
             public static void FailedToForward(Exception e) => Log.LogError((int)EventIds.FailedToForward, e, "Failed to forward message.");
+            public static void CouldNotConnect() => Log.LogInformation((int)EventIds.CouldNotConnect, "Could not connect to MQTT Broker, possibly it is not running. To disable MQTT Broker Connector, please set 'mqttBrokerSettings__enabled' environment variable to 'false'");
         }
     }
 }
