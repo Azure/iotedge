@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             if (identity is IModuleIdentity)
             {
+<<<<<<< HEAD:edge-hub/core/src/Microsoft.Azure.Devices.Edge.Hub.CloudProxy/ClientProvider.cs
                 ModuleClient moduleClient = this.gatewayHostname.Match(
                     v =>
                     {
@@ -43,10 +44,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             o => ModuleClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings, o),
                             () => ModuleClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings));
                     });
+=======
+                ModuleClient moduleClient = options.Match(
+                    o => ModuleClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings, o),
+                    () => ModuleClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings));
+>>>>>>> c8a78ee97c8f301f886f8e38831dbcbbf24dc2a6:edge-hub/src/Microsoft.Azure.Devices.Edge.Hub.CloudProxy/ClientProvider.cs
                 return new ModuleClientWrapper(moduleClient);
             }
             else if (identity is IDeviceIdentity)
             {
+<<<<<<< HEAD:edge-hub/core/src/Microsoft.Azure.Devices.Edge.Hub.CloudProxy/ClientProvider.cs
                 DeviceClient deviceClient = this.gatewayHostname.Match(
                 v =>
                 {
@@ -60,6 +67,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         o => DeviceClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings, o),
                         () => DeviceClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings));
                 });
+=======
+                DeviceClient deviceClient = options.Match(
+                    o => DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings, o),
+                    () => DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings));
+>>>>>>> c8a78ee97c8f301f886f8e38831dbcbbf24dc2a6:edge-hub/src/Microsoft.Azure.Devices.Edge.Hub.CloudProxy/ClientProvider.cs
                 return new DeviceClientWrapper(deviceClient);
             }
 
