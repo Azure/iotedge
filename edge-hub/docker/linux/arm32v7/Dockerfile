@@ -3,13 +3,11 @@ FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ADD ./watchdog/target/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
-ADD ./mqttd/production.json /app/mqttd/production.json
-
-ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
+ADD ./mqttd/broker.json /app/mqttd/broker.json
 
 WORKDIR /app
 
-COPY $EXE_DIR/ ./edge-hub
+COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
 
 # Set broker log level
 ENV RUST_LOG=info
