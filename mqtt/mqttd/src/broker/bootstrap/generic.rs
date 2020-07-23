@@ -5,7 +5,9 @@ use std::{
 
 use anyhow::{Context, Result};
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Error, Server, ServerCertificate};
+use mqtt_broker::{
+    Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Error, Server, ServerCertificate,
+};
 use mqtt_broker_core::auth::{
     authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer,
 };

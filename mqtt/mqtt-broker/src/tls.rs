@@ -13,7 +13,7 @@ use openssl::{
 
 /// Identity certificate that holds server certificate, along with its corresponding private key
 /// and chain of certificates to a trusted root.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ServerCertificate {
     private_key: PKey<Private>,
     certificate: X509,
@@ -60,6 +60,16 @@ impl ServerCertificate {
         };
 
         Ok(identity)
+    }
+
+    pub fn from_pem(cert_path: &Path, pkey_path: &Path) -> Result<Self, ServerCertificateError> {
+        let certificate = fs::read(&cert_path)
+            .map_err(|e| ServerCertificateError::ReadFile(cert_path.to_path_buf(), e))?;
+
+        let private_key = fs::read(&pkey_path)
+            .map_err(|e| ServerCertificateError::ReadFile(pkey_path.to_path_buf(), e))?;
+
+        Self::from_pem_pair(certificate, private_key)
     }
 
     pub fn from_pkcs12(path: &Path) -> Result<Self, ServerCertificateError> {
