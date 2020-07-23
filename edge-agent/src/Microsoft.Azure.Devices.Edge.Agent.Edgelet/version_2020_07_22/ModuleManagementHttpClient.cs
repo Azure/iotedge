@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -30,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
         }
 
         internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
-            : base(managementUri, ApiVersion.Version20191105, new ErrorDetectionStrategy(), operationTimeout)
+            : base(managementUri, ApiVersion.Version20200722, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
@@ -207,6 +208,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
                 await this.Execute(() => edgeletHttpClient.ReprovisionDeviceAsync(this.Version.Name), "Reprovision device");
+            }
+        }
+
+        public Task<string> GetSecretAsync(string secretName)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                return this.Execute(() => edgeletHttpClient.GetSecretAsync(this.Version.Name, secretName), $"Get secret ${secretName}");
+            }
+        }
+
+        public Task SetSecretAsync(string secretName, string secretValue)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                return this.Execute(() => edgeletHttpClient.SetSecretAsync(this.Version.Name, secretName, secretValue), $"Set secret ${secretName}");
+            }
+        }
+
+        public Task PullSecretAsync(string secretName, string akvId)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                return this.Execute(() => edgeletHttpClient.PullSecretAsync(this.Version.Name, secretName, akvId), $"Pull secret ${secretName} from ${akvId}");
+            }
+        }
+
+        public Task RefreshSecretAsync(string secretName)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                return this.Execute(() => edgeletHttpClient.RefreshSecretAsync(this.Version.Name, secretName), $"Refresh secret ${secretName}");
+            }
+        }
+
+        public Task DeleteSecretAsync(string secretName)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                return this.Execute(() => edgeletHttpClient.DeleteSecretAsync(this.Version.Name, secretName), $"Delete secret ${secretName}");
             }
         }
 

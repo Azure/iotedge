@@ -1510,7 +1510,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22.Generate
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
                     request_.Method = new System.Net.Http.HttpMethod("GET");
-                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("text/plain"));
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     PrepareRequest(client_, request_, urlBuilder_);
                     var url_ = urlBuilder_.ToString();
@@ -1565,7 +1565,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22.Generate
         /// <param name="value">The value of the secret.</param>
         /// <returns>Ok</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task SetSecretAsync(string api_version, string name, System.IO.Stream value)
+        public System.Threading.Tasks.Task SetSecretAsync(string api_version, string name, string value)
         {
             return SetSecretAsync(api_version, name, value, System.Threading.CancellationToken.None);
         }
@@ -1577,7 +1577,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22.Generate
         /// <param name="value">The value of the secret.</param>
         /// <returns>Ok</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task SetSecretAsync(string api_version, string name, System.IO.Stream value, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task SetSecretAsync(string api_version, string name, string value, System.Threading.CancellationToken cancellationToken)
         {
             if (name == null)
                 throw new System.ArgumentNullException("name");
@@ -1599,8 +1599,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22.Generate
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
-                    var content_ = new System.Net.Http.StreamContent(value);
-                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("text/plain");
+                    var content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(value, _settings.Value));
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PUT");
 
@@ -1656,7 +1656,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22.Generate
         /// <param name="akvId">Azure Key Vault secret identifier.</param>
         /// <returns>Ok</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task PullSecretAsync(string api_version, string name, System.IO.Stream akvId)
+        public System.Threading.Tasks.Task PullSecretAsync(string api_version, string name, string akvId)
         {
             return PullSecretAsync(api_version, name, akvId, System.Threading.CancellationToken.None);
         }
@@ -1668,7 +1668,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22.Generate
         /// <param name="akvId">Azure Key Vault secret identifier.</param>
         /// <returns>Ok</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task PullSecretAsync(string api_version, string name, System.IO.Stream akvId, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task PullSecretAsync(string api_version, string name, string akvId, System.Threading.CancellationToken cancellationToken)
         {
             if (name == null)
                 throw new System.ArgumentNullException("name");
@@ -1690,8 +1690,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22.Generate
             {
                 using (var request_ = new System.Net.Http.HttpRequestMessage())
                 {
-                    var content_ = new System.Net.Http.StreamContent(akvId);
-                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("text/plain");
+                    var content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(akvId, _settings.Value));
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("POST");
 
