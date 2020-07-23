@@ -10,16 +10,19 @@ use std::{
 use bytes::{Buf, BufMut};
 use core::mem::MaybeUninit;
 use futures::stream::FuturesUnordered;
+use openssl::{
+    ssl::{SslAcceptor, SslMethod, SslVerifyMode},
+    x509::X509Ref,
+};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     net::{TcpListener, TcpStream, ToSocketAddrs},
     stream::Stream,
 };
+use tokio_openssl::{accept, HandshakeError, SslStream};
 use tracing::{debug, error, warn};
 
 use mqtt_broker_core::auth::Certificate;
-use openssl::ssl::{SslAcceptor, SslMethod, SslVerifyMode};
-use tokio_openssl::{accept, HandshakeError, SslStream};
 
 use crate::{Error, InitializeBrokerError, ServerCertificate};
 
@@ -239,16 +242,20 @@ impl GetPeerInfo for StreamSelector {
             Self::Tls(stream) => stream
                 .ssl()
                 .peer_certificate()
-                .and_then(|cert| {
-                    cert.map(|cert| cert.to_der().map(Certificate::from))
-                        .transpose()
-                })
-                .map_err(Error::PeerCertificate),
+                .map(|cert| stringify(cert.as_ref()))
+                .transpose(),
         }
     }
 
     fn peer_cert_chain(&self) -> Result<Option<Vec<Self::Certificate>>, Error> {
-        todo!()
+        match self {
+            Self::Tcp(_) => Ok(None),
+            Self::Tls(stream) => stream
+                .ssl()
+                .peer_cert_chain()
+                .map(|chain| chain.iter().map(stringify).collect())
+                .transpose(),
+        }
     }
 
     fn peer_addr(&self) -> Result<SocketAddr, Error> {
@@ -259,6 +266,15 @@ impl GetPeerInfo for StreamSelector {
 
         stream.peer_addr().map_err(Error::PeerAddr)
     }
+}
+
+fn stringify(cert: &X509Ref) -> Result<Certificate, Error> {
+    let pem = cert
+        .to_pem()
+        .map_err(|e| Error::PeerCertificate(Box::new(e)))?;
+
+    let pem = String::from_utf8(pem).map_err(|e| Error::PeerCertificate(Box::new(e)))?;
+    Ok(Certificate::from(pem))
 }
 
 impl AsyncRead for StreamSelector {

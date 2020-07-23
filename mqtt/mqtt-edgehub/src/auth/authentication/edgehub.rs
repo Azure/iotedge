@@ -80,20 +80,20 @@ pub struct EdgeHubAuthRequest<'a> {
     version: &'a str,
     username: Option<&'a str>,
     password: Option<&'a str>,
-    certificate: Option<String>,
-    certificate_chain: Option<Vec<String>>,
+    certificate: Option<&'a str>,
+    certificate_chain: Option<Vec<&'a str>>,
 }
 
 impl<'a> EdgeHubAuthRequest<'a> {
     fn from_auth(context: &'a AuthenticationContext) -> Self {
-        let certificate = context.certificate().map(base64::encode);
-
         Self {
             version: API_VERSION,
             username: context.username(),
             password: context.password(),
-            certificate,
-            certificate_chain: None,
+            certificate: context.certificate().map(|cert| cert.as_ref()),
+            certificate_chain: context
+                .cert_chain()
+                .map(|chain| chain.iter().map(|cert| cert.as_ref()).collect()),
         }
     }
 }

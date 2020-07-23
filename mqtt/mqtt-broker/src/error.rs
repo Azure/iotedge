@@ -55,7 +55,7 @@ pub enum Error {
     Persist(#[from] crate::persist::PersistError),
 
     #[error("Unable to obtain peer certificate.")]
-    PeerCertificate(#[source] openssl::error::ErrorStack),
+    PeerCertificate(#[source] Box<dyn StdError + Send + Sync>),
 
     #[error("Unable to obtain peer address.")]
     PeerAddr(#[source] std::io::Error),

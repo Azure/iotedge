@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1"
-base64 = "0.12.0"
 bytes = "0.5"
 chrono = "0.4"
 http = "0.2"
