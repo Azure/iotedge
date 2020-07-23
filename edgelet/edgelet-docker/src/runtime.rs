@@ -101,7 +101,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                 let json = serde_json::to_string(a).with_context(|_| {
                     ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
                 })?;
-                Ok(base64::encode(&json))
+                Ok(base64::encode_config(&json, base64::URL_SAFE))
             },
         );
 
