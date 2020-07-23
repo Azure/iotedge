@@ -58,6 +58,9 @@ pub enum ErrorKind {
     #[fail(display = "Could not initialize module runtime")]
     Initialization,
 
+    #[fail(display = "Could not initialize Notary configuration: {}", _0)]
+    InitializeNotary(String),
+
     #[fail(display = "Invalid docker image {:?}", _0)]
     InvalidImage(String),
 

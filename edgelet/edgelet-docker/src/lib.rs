@@ -16,6 +16,7 @@ mod error;
 mod module;
 mod runtime;
 mod settings;
+mod notary;
 
 pub use crate::config::DockerConfig;
 pub use error::{Error, ErrorKind};

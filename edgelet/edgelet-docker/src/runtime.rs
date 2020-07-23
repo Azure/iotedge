@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap,BTreeSet};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -20,7 +20,7 @@ use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt, RuntimeSettings
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -33,6 +33,7 @@ use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
 use crate::settings::Settings;
+use crate::notary;
 
 use edgelet_core::DiskInfo;
 use std::convert::TryInto;
@@ -59,6 +60,7 @@ lazy_static! {
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
     system_resources: Arc<Mutex<System>>,
+    notary_registries : BTreeSet<String>
 }
 
 impl DockerModuleRuntime {
@@ -206,8 +208,21 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         //      https://github.com/rust-lang/rust-clippy/issues/3730
         #[allow(clippy::result_map_unwrap_or_else)]
         let created = init_client(settings.moby_runtime().uri())
-            .map(|client| {
+            .and_then(|client| {
+                let home_dir = settings.homedir();
                 let network_id = settings.moby_runtime().network().name().to_string();
+                let mut notary_registries = BTreeSet::new();
+                if let Some(content_trust_map) = settings.moby_runtime().content_trust_root_ca_registry() {
+                    info!("Notary Content Trust is enabled");
+                    for (hostname, path) in content_trust_map {
+                        notary::notary_init(home_dir, hostname.to_string(), path.to_path_buf())
+                            .context(ErrorKind::Initialization)?;
+                        notary_registries.insert(hostname.clone());
+                    }
+                }
+                else {
+                    info!("Notary Content Trust is disabled");
+                }
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
 
@@ -249,10 +264,10 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         DockerModuleRuntime {
                             client,
                             system_resources: Arc::new(Mutex::new(system_resources)),
+                            notary_registries,
                         }
                     });
-
-                future::Either::A(fut)
+                Ok(future::Either::A(fut))
             })
             .unwrap_or_else(|err| {
                 log_failure(Level::Warn, &err);
@@ -1053,6 +1068,8 @@ mod tests {
     };
     use edgelet_test_utils::crypto::TestHsm;
     use provisioning::ReprovisioningStatus;
+    use tempfile::{TempDir,NamedTempFile};
+    use std::fs;
 
     fn provisioning_result() -> ProvisioningResult {
         ProvisioningResult::new(
@@ -1068,7 +1085,8 @@ mod tests {
         TestHsm::default()
     }
 
-    fn make_settings(merge_json: Option<JsonValue>) -> Settings {
+    fn make_settings(merge_json: Option<JsonValue>) -> (Settings, TempDir) {
+        let tmp_dir = TempDir::new().unwrap();
         let mut config = Config::default();
         let mut config_json = json!({
             "provisioning": {
@@ -1093,7 +1111,7 @@ mod tests {
                 "management_uri": "unix:///var/run/iotedge/mgmt.sock",
                 "workload_uri": "unix:///var/run/iotedge/workload.sock"
             },
-            "homedir": "/var/lib/iotedge",
+            "homedir": tmp_dir.path(),
             "moby_runtime": {
                 "uri": "unix:///var/run/docker.sock",
                 "network": "azure-iot-edge"
@@ -1108,12 +1126,12 @@ mod tests {
             .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
             .unwrap();
 
-        config.try_into().unwrap()
+        (config.try_into().unwrap() , tmp_dir)
     }
 
     #[test]
     fn invalid_uri_prefix_fails() {
-        let settings = make_settings(Some(json!({
+        let (settings, _tmp_dir) = make_settings(Some(json!({
             "moby_runtime": {
                 "uri": "foo:///this/is/not/valid"
             }
@@ -1129,7 +1147,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn invalid_uds_path_fails() {
-        let settings = make_settings(Some(json!({
+        let (settings, _tmp_dir) = make_settings(Some(json!({
             "moby_runtime": {
                 "uri": "unix:///this/file/does/not/exist"
             }
@@ -1140,6 +1158,75 @@ mod tests {
         assert!(failure::Fail::iter_chain(&err)
             .any(|err| err.to_string().contains("Socket file could not be found")));
     }
+
+    #[cfg(unix)]
+    #[test]
+    fn notary_initialization() {
+        let file1 = NamedTempFile::new().unwrap();
+        let file2 = NamedTempFile::new().unwrap();
+        let (settings, tmp_dir) = make_settings(Some(json!({
+            "moby_runtime": {
+                "uri": "unix:///var/run/docker.sock",
+                "content_trust_root_ca_registry" : {
+                    "registryserverurl1" : file1.path(),
+                    "registryserverurl2" : file2.path()
+                }
+            }
+        })));
+
+        let runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto());
+        let runtime = tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(runtime).unwrap();
+        
+        assert!(runtime.notary_registries.contains("registryserverurl1"));
+        let mut config_path1 = tmp_dir.path().to_owned();
+        config_path1.push("notary");
+        config_path1.push("registryserverurl1");
+        let trust_dir = config_path1.clone();
+        config_path1.push("config.json");
+
+        let actual_config1 = fs::read(config_path1).unwrap();
+        let actual_json_content :serde_json::Value = serde_json::from_slice(&actual_config1).unwrap();
+        let expected_json_content = json!({
+            "trust_dir" : trust_dir,
+            "remote_server": {
+              "url": "https://registryserverurl1"
+            },
+            "trust_pinning": {
+              "ca": {
+                "": file1.path()
+              },
+              "disable_tofu": "true"
+            }
+        });
+        assert_eq!(actual_json_content, expected_json_content);
+
+        assert!(runtime.notary_registries.contains("registryserverurl2"));
+        let mut config_path2 = tmp_dir.path().to_owned();
+        config_path2.push("notary");
+        config_path2.push("registryserverurl2");
+        let trust_dir = config_path2.clone();
+        config_path2.push("config.json");
+
+        let actual_config2 = fs::read(config_path2).unwrap();
+        let actual_json_content2 :serde_json::Value = serde_json::from_slice(&actual_config2).unwrap();
+        let expected_json_content2 = json!({
+            "trust_dir" : trust_dir,
+            "remote_server": {
+              "url": "https://registryserverurl2"
+            },
+            "trust_pinning": {
+              "ca": {
+                "": file2.path()
+              },
+              "disable_tofu": "true"
+            }
+        });
+        assert_eq!(actual_json_content2, expected_json_content2);
+    }
+
+
 
     #[test]
     fn merge_env_empty() {
