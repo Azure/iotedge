@@ -55,7 +55,7 @@ pub enum Error {
     Persist(#[from] crate::persist::PersistError),
 
     #[error("Unable to obtain peer certificate.")]
-    PeerCertificate(#[source] native_tls::Error),
+    PeerCertificate(#[source] Box<dyn StdError + Send + Sync>),
 
     #[error("Unable to obtain peer address.")]
     PeerAddr(#[source] std::io::Error),
@@ -73,9 +73,6 @@ pub enum InitializeBrokerError {
     #[error("An error occurred binding the server's listening socket on {0}.")]
     BindServer(String, #[source] std::io::Error),
 
-    #[error("An error occurred getting a connection's peer address.")]
-    ConnectionPeerAddress(#[source] std::io::Error),
-
     #[error("An error occurred getting local address.")]
     ConnectionLocalAddress(#[source] std::io::Error),
 
@@ -85,11 +82,8 @@ pub enum InitializeBrokerError {
     #[error("An error occurred loading identity from file {0}.")]
     LoadIdentity(PathBuf, #[source] std::io::Error),
 
-    #[error("An error occurred  decoding identity content.")]
-    DecodeIdentity(#[source] native_tls::Error),
-
     #[error("An error occurred  bootstrapping TLS")]
-    Tls(#[source] native_tls::Error),
+    Tls(#[from] openssl::error::ErrorStack),
 }
 
 pub struct DetailedErrorValue<'a, E>(pub &'a E);
