@@ -142,7 +142,7 @@ process_args()
         print_help_and_exit
     fi
 
-    registries=("edgebuilds.azurecr.io/" "edgerelease.azurecr.io/" "")
+    registries=("")
     DOCKER_IMAGE_TAGS=("${registries[@]/%/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION-linux-$ARCH}")
 }
 
