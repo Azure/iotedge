@@ -63,7 +63,7 @@ process_args()
             IFS=';' read -a PACKAGES <<< "$PACKAGES"
             save_next_arg=0
         elif [ ${save_next_arg} -eq 5 ]; then
-            CARGO_ARGS="${CARGO_ARGS} --features ${arg}"
+            CARGO_ARGS="${CARGO_ARGS} --features \"${arg}\""
             save_next_arg=0
         else
             case "$arg" in
@@ -116,4 +116,7 @@ EOF
 fi
 
 cd "${PROJECT_ROOT}"
-$CARGO build ${PACKAGES_FORMATTED} $(echo "${CARGO_ARGS}") --target "$TARGET"
+BUILD_COMMAND="$CARGO build ${PACKAGES_FORMATTED} ${CARGO_ARGS} --target \"$TARGET\""
+
+echo $BUILD_COMMAND
+eval $BUILD_COMMAND
