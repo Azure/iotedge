@@ -31,7 +31,7 @@ where
         Settings::from_file(path)?
     } else {
         info!("using default settings");
-        Settings::default()
+        Settings::new()?
     };
 
     Ok(config)
