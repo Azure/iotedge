@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
         }
 
         internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
-            : base(managementUri, ApiVersion.Version20191105, new ErrorDetectionStrategy(), operationTimeout)
+            : base(managementUri, ApiVersion.Version20200707, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
                 GeneratedCode.SystemInfo systemInfo = await this.Execute(
                     () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
                     "Getting System Info");
-                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
+                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, systemInfo.Server_version, systemInfo.Kernel_version, systemInfo.Operating_system, systemInfo.Cpus ?? 0);
             }
         }
 
