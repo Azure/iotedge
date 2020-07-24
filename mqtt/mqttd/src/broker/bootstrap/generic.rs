@@ -6,11 +6,10 @@ use std::{
 use anyhow::{Context, Result};
 use tracing::info;
 
-use mqtt_broker::{
-    Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Error, Server, ServerCertificate,
-};
-use mqtt_broker_core::auth::{
-    authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer,
+use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate};
+use mqtt_broker_core::{
+    auth::{authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer},
+    settings::BrokerConfig,
 };
 use mqtt_generic::settings::Settings;
 
@@ -68,7 +67,7 @@ where
     Ok(state)
 }
 
-fn load_server_certificate(path: &Path) -> Result<native_tls::Identity> {
+fn load_server_certificate(path: &Path) -> Result<ServerCertificate> {
     let identity = ServerCertificate::from_pkcs12(&path)
         .with_context(|| ServerCertificateLoadError::ParseCertificate(path.to_path_buf()))?;
 
