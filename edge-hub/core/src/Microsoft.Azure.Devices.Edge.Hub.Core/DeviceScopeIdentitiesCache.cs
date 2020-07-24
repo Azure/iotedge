@@ -73,10 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.refreshCacheSignal.Set();
         }
 
-        public async Task WaitForCacheRefresh(TimeSpan timeout)
-        {
-            await this.refreshCacheCompleteSignal.WaitAsync(timeout);
-        }
+        public Task WaitForCacheRefresh(TimeSpan timeout) => this.refreshCacheCompleteSignal.WaitAsync(timeout);
 
         public async Task RefreshServiceIdentity(string id)
         {
