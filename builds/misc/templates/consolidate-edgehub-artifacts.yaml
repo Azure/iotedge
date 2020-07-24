@@ -3,7 +3,6 @@
 parameters:
   dotnet.artifacts.path: 'publish/Microsoft.Azure.Devices.Edge.Hub.Service'
   mqttd.artifacts.path: 'mqtt/target/'
-  mqttd.config.path: 'mqtt/contrib/edgehub/broker.json'
   watchdog.artifacts.path: 'edge-hub/watchdog/target'
   all.artifacts.path: 'publish/edge-hub'
 
@@ -19,7 +18,6 @@ steps:
 
       # Copy mqtt artifacts
       cp  -r ${{ parameters['mqttd.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
-      cp ${{ parameters['mqttd.config.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
 
       # Copy edgehub artifacts
       mv  $(Build.BinariesDirectory)/${{ parameters['dotnet.artifacts.path'] }}/docker $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}

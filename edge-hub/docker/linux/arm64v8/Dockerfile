@@ -3,7 +3,6 @@ FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ADD ./watchdog/target/aarch64-unknown-linux-gnu/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/aarch64-unknown-linux-gnu/release/mqttd /usr/local/bin/mqttd
-ADD ./mqttd/broker.json /app/mqttd/broker.json
 
 WORKDIR /app
 
