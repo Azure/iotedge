@@ -191,11 +191,11 @@ impl ModuleRuntime for ModuleClient {
                 )
             })
             .then(|result| match result {
+                other @ Ok(_) => other,
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
                 },
-                other => other,
             });
         Box::new(start)
     }
@@ -214,11 +214,11 @@ impl ModuleRuntime for ModuleClient {
                 )
             })
             .then(|result| match result {
+                other @ Ok(_) => other,
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
                 },
-                other => other,
             });
         Box::new(stop)
     }
@@ -237,11 +237,11 @@ impl ModuleRuntime for ModuleClient {
                 )
             })
             .then(|result| match result {
+                other @ Ok(_) => other,
                 Err(e) => match e.kind() {
                     ErrorKind::NotModified => Ok(()),
                     _ => Err(e),
                 },
-                other => other,
             });
         Box::new(restart)
     }

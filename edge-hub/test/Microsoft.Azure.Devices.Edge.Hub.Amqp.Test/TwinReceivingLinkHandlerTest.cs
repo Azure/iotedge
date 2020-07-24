@@ -42,7 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var productInfoStore = Mock.Of<IProductInfoStore>();
-            var twinReceivingLinkHandler = new TwinReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore);
+            var modelIdStore = Mock.Of<IModelIdStore>();
+            var twinReceivingLinkHandler = new TwinReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
 
             string correlationId = Guid.NewGuid().ToString();
             AmqpMessage amqpMessage = AmqpMessage.Create();
@@ -85,7 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var productInfoStore = Mock.Of<IProductInfoStore>();
-            var twinReceivingLinkHandler = new TwinReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore);
+            var modelIdStore = Mock.Of<IModelIdStore>();
+            var twinReceivingLinkHandler = new TwinReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
 
             string correlationId = Guid.NewGuid().ToString();
             AmqpMessage amqpMessage = AmqpMessage.Create();
