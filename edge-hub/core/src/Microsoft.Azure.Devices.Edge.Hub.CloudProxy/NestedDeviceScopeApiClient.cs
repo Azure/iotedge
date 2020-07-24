@@ -160,6 +160,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 // Get the auth-chain for the target device
                 Option<string> maybeAuthChain = await this.serviceIdentityHierarchy.GetEdgeAuthChain(deviceId);
+
+                if (!maybeAuthChain.HasValue)
+                {
+                    // We might not have the target identity yet (e.g. it just got added).
+                    // In this case, we can still try to make the call as ourself, in case
+                    // the missing identity is one of our immediate children.
+                    maybeAuthChain = await this.serviceIdentityHierarchy.GetAuthChain(this.actorEdgeDeviceId);
+                }
+
                 string authChain = maybeAuthChain.Expect(() => new InvalidOperationException($"No valid authentication chain for {deviceId}"));
 
                 var payload = new IdentityOnBehalfOfRequest(deviceId, moduleId.OrDefault(), authChain);

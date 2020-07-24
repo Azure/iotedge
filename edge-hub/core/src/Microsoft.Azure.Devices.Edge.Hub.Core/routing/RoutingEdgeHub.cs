@@ -145,14 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
             => this.subscriptionProcessor.ProcessSubscriptions(id, subscriptions);
 
-        public Task<Option<string>> GetAuthChainForIdentity(string id)
-            => this.deviceScopeIdentitiesCache.GetAuthChain(id);
-
-        public Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId)
-            => this.deviceScopeIdentitiesCache.GetDevicesAndModulesInTargetScopeAsync(targetDeviceId);
-
-        public Task<Option<ServiceIdentity>> GetIdentityAsync(string targetId)
-            => this.deviceScopeIdentitiesCache.GetServiceIdentity(targetId);
+        public IDeviceScopeIdentitiesCache GetDeviceScopeIdentitiesCache() => this.deviceScopeIdentitiesCache;
 
         public void Dispose()
         {
