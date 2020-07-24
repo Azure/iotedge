@@ -543,6 +543,7 @@ pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),
     GetModuleLogs(String),
+    GetSupportBundle(String),
     Init,
     ListModules,
     RemoveModule(String),
@@ -561,6 +562,9 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::GetModule(name) => write!(f, "Could not get module {}", name),
             RuntimeOperation::GetModuleLogs(name) => {
                 write!(f, "Could not get logs for module {}", name)
+            }
+            RuntimeOperation::GetSupportBundle(reason) => {
+                write!(f, "Could not get support bundle: {}", reason)
             }
             RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "Could not list modules"),

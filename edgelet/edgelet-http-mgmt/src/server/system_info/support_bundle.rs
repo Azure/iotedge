@@ -33,10 +33,7 @@ impl Handler<Parameters> for GetSupportBundle {
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         debug!("Get Support Bundle");
 
-        let query = req
-        .uri()
-        .query()
-        .unwrap_or("");
+        let query = req.uri().query().unwrap_or("");
 
         let response = get_bundle(query)
             .and_then(|bundle: String| {
@@ -61,6 +58,7 @@ impl Handler<Parameters> for GetSupportBundle {
 }
 
 fn get_bundle(query: &str) -> Result<String, Error> {
+    println!("\n\n\nQuery: {}", query);
     let parse: Vec<_> = form_urlencoded::parse(query.as_bytes()).collect();
 
     let mut command = Command::new("iotedge");
@@ -74,7 +72,7 @@ fn get_bundle(query: &str) -> Result<String, Error> {
     }
 
     let response = command.output().context(ErrorKind::RuntimeOperation(
-        RuntimeOperation::GetModuleLogs("".to_owned()),
+        RuntimeOperation::GetSupportBundle("".to_owned()),
     ))?;
 
     str::from_utf8(&response.stdout)
