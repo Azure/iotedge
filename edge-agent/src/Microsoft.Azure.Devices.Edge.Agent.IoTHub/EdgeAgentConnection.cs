@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -35,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly IModuleConnection moduleConnection;
         readonly bool pullOnReconnect;
         readonly IDeviceManager deviceManager;
+        readonly IDeploymentMetrics deploymentMetrics;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -44,8 +46,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
-            IDeviceManager deviceManager)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
+            IDeviceManager deviceManager,
+            IDeploymentMetrics deploymentMetrics)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics)
         {
         }
 
@@ -55,8 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IRequestManager requestManager,
             IDeviceManager deviceManager,
             bool enableSubscriptions,
-            TimeSpan configRefreshFrequency)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
+            TimeSpan configRefreshFrequency,
+            IDeploymentMetrics deploymentMetrics)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics)
         {
         }
 
@@ -67,7 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan refreshConfigFrequency,
-            RetryStrategy retryStrategy)
+            RetryStrategy retryStrategy,
+            IDeploymentMetrics deploymentMetrics)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
@@ -79,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.pullOnReconnect = enableSubscriptions;
             this.deviceManager = Preconditions.CheckNotNull(deviceManager, nameof(deviceManager));
             Events.TwinRefreshInit(refreshConfigFrequency);
+            this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
@@ -258,11 +264,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 retryPolicy.Retrying += (_, args) => Events.RetryingGetTwin(args);
                 Twin twin = await retryPolicy.ExecuteAsync(GetTwinFunc);
                 Events.GotTwin(twin);
+                this.deploymentMetrics.ReportIotHubSync(true);
                 return Option.Some(twin);
             }
             catch (Exception e)
             {
                 Events.ErrorGettingTwin(e);
+                this.deploymentMetrics.ReportIotHubSync(false);
 
                 if (!retrying && moduleClient != null)
                 {
