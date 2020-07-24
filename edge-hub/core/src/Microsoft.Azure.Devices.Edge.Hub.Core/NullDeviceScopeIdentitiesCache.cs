@@ -39,6 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
         }
 
+        public Task WaitForCacheRefresh(TimeSpan _) => Task.CompletedTask;
+
         public Task RefreshServiceIdentities(IEnumerable<string> deviceIds) => Task.CompletedTask;
 
         public Task RefreshServiceIdentity(string deviceId) => Task.CompletedTask;

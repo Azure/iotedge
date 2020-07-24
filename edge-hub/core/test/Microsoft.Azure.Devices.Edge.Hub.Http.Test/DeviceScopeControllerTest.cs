@@ -185,19 +185,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
         private static DeviceScopeController MakeController(string targetEdgeId, IList<ServiceIdentity> resultIdentities, IDictionary<string, string> authChains)
         {
+            var identitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             var edgeHub = new Mock<IEdgeHub>();
-            edgeHub.Setup(e => e.GetDevicesAndModulesInTargetScopeAsync(It.Is<string>(id => id == targetEdgeId)))
+            edgeHub.Setup(e => e.GetDeviceScopeIdentitiesCache())
+                .Returns(identitiesCache.Object);
+
+            identitiesCache.Setup(c => c.GetDevicesAndModulesInTargetScopeAsync(It.Is<string>(id => id == targetEdgeId)))
                 .ReturnsAsync(resultIdentities);
 
             foreach (KeyValuePair<string, string> entry in authChains)
             {
-                edgeHub.Setup(e => e.GetAuthChainForIdentity(It.Is<string>(i => i == entry.Key)))
+                identitiesCache.Setup(c => c.GetAuthChain(It.Is<string>(i => i == entry.Key)))
                 .ReturnsAsync(Option.Some<string>(entry.Value));
             }
 
             foreach (ServiceIdentity identity in resultIdentities)
             {
-                edgeHub.Setup(e => e.GetIdentityAsync(It.Is<string>(id => id == identity.Id)))
+                identitiesCache.Setup(c => c.GetServiceIdentity(It.Is<string>(id => id == identity.Id)))
                 .ReturnsAsync(Option.Some(identity));
             }
 

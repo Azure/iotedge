@@ -21,6 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         void InitiateCacheRefresh();
 
+        Task WaitForCacheRefresh(TimeSpan timeout);
+
         Task RefreshServiceIdentities(IEnumerable<string> ids);
 
         Task RefreshServiceIdentity(string id);

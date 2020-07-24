@@ -65,7 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             // Check that the actor device is authorized to act OnBehalfOf the target
             IEdgeHub edgeHub = await this.edgeHubGetter;
-            if (!await this.AuthorizeActorAsync(edgeHub, actorDeviceId, actorModuleId, targetDeviceId))
+            IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+            if (!await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, actorModuleId, targetDeviceId))
             {
                 Events.UnauthorizedActor(actorDeviceId, actorModuleId, targetDeviceId);
                 result.Status = HttpStatusCode.Unauthorized;
@@ -73,8 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
 
             // Get the children of the target device and the target device itself;
-            IList<ServiceIdentity> identities = await edgeHub.GetDevicesAndModulesInTargetScopeAsync(targetDeviceId);
-            Option<ServiceIdentity> targetDevice = await edgeHub.GetIdentityAsync(targetDeviceId);
+            IList<ServiceIdentity> identities = await identitiesCache.GetDevicesAndModulesInTargetScopeAsync(targetDeviceId);
+            Option<ServiceIdentity> targetDevice = await identitiesCache.GetServiceIdentity(targetDeviceId);
             targetDevice.ForEach(d => identities.Add(d));
 
             // Construct the result from the identities
@@ -100,26 +101,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 targetId += "/" + request.TargetModuleId;
             }
 
-            // Check that the actor device is authorized to act OnBehalfOf the target
+            // Try updating our cache and get the target identity first
             IEdgeHub edgeHub = await this.edgeHubGetter;
-            if (!await this.AuthorizeActorAsync(edgeHub, actorDeviceId, actorModuleId, targetId))
+            IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+            Option<ServiceIdentity> targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
+
+            if (!targetIdentity.HasValue)
+            {
+                // Identity doesn't exist, this can happen if the target identity
+                // is newly created in IoT Hub. In this case, we try to refresh
+                // the target from upstream, which will cause any parent Edge
+                // devices to refresh their respective identity cache.
+                await identitiesCache.RefreshServiceIdentity(targetId);
+                targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
+
+                if (!targetIdentity.HasValue)
+                {
+                    // Identity still doesn't exist. It's possible that we're nested,
+                    // so we need to refresh our identity cache to satisfy the prior
+                    // logic, in case this call came from a child Edge device.
+                    identitiesCache.InitiateCacheRefresh();
+                    await identitiesCache.WaitForCacheRefresh(TimeSpan.FromSeconds(100));
+                    targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
+                }
+            }
+
+            // Now that our cache is up-to-date, check that the actor device is
+            // authorized to act OnBehalfOf the target
+            if (!await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, actorModuleId, targetId))
             {
                 Events.UnauthorizedActor(actorDeviceId, actorModuleId, targetId);
                 result.Status = HttpStatusCode.Unauthorized;
                 return result;
             }
 
-            // Get the target identity
+            // Add the identity to the result
             var identityList = new List<ServiceIdentity>();
-            Option<ServiceIdentity> identity = await edgeHub.GetIdentityAsync(targetId);
-            identity.ForEach(i => identityList.Add(i));
+            targetIdentity.ForEach(i => identityList.Add(i));
 
             // If the target is a module, we also need to
             // include the parent device as well to match
             // IoT Hub API behavior
             if (isModule)
             {
-                Option<ServiceIdentity> device = await edgeHub.GetIdentityAsync(request.TargetDeviceId);
+                Option<ServiceIdentity> device = await identitiesCache.GetServiceIdentity(request.TargetDeviceId);
                 device.ForEach(i => identityList.Add(i));
             }
 
@@ -152,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return false;
         }
 
-        async Task<bool> AuthorizeActorAsync(IEdgeHub edgeHub, string actorDeviceId, string actorModuleId, string targetId)
+        async Task<bool> AuthorizeActorAsync(IDeviceScopeIdentitiesCache identitiesCache, string actorDeviceId, string actorModuleId, string targetId)
         {
             if (actorModuleId != Constants.EdgeHubModuleId)
             {
@@ -162,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             // Actor device is claiming to be our child, and that the target device is its child.
             // So we should have an authchain already cached for the target device.
-            Option<string> targetAuthChain = await edgeHub.GetAuthChainForIdentity(targetId);
+            Option<string> targetAuthChain = await identitiesCache.GetAuthChain(targetId);
 
             if (!targetAuthChain.HasValue)
             {
