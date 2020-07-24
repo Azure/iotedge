@@ -3,7 +3,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-pub const API_VERSION: Version = Version::Version2019_11_05;
+pub const API_VERSION: Version = Version::Version2020_07_07;
 
 #[derive(Clone, Copy, Debug, PartialOrd, PartialEq)]
 pub enum Version {
@@ -11,6 +11,7 @@ pub enum Version {
     Version2019_01_30,
     Version2019_10_22,
     Version2019_11_05,
+    Version2020_07_07,
 }
 
 impl FromStr for Version {
@@ -22,6 +23,7 @@ impl FromStr for Version {
             "2019-01-30" => Ok(Version::Version2019_01_30),
             "2019-10-22" => Ok(Version::Version2019_10_22),
             "2019-11-05" => Ok(Version::Version2019_11_05),
+            "2020-07-07" => Ok(Version::Version2020_07_07),
             _ => Err(()),
         }
     }
@@ -34,6 +36,7 @@ impl fmt::Display for Version {
             Version::Version2019_01_30 => write!(f, "2019-01-30"),
             Version::Version2019_10_22 => write!(f, "2019-10-22"),
             Version::Version2019_11_05 => write!(f, "2019-11-05"),
+            Version::Version2020_07_07 => write!(f, "2020-07-07"),
         }
     }
 }

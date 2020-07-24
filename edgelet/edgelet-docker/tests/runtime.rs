@@ -120,7 +120,7 @@ fn make_get_networks_handler(
 }
 
 fn make_create_network_handler(
-    on_post: impl Fn(Request<Body>) -> () + Clone + Send + 'static,
+    on_post: impl Fn(Request<Body>) + Clone + Send + 'static,
 ) -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
     move |req| {
         on_post(req);
@@ -154,7 +154,7 @@ fn not_found_handler(_: Request<Body>) -> ResponseFuture {
 
 fn make_network_handler(
     on_get: impl Fn() -> String + Clone + Send + 'static,
-    on_post: impl Fn(Request<Body>) -> () + Clone + Send + 'static,
+    on_post: impl Fn(Request<Body>) + Clone + Send + 'static,
 ) -> impl Fn(Request<Body>) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> + Clone
 {
     let dispatch_table = routes!(
@@ -1871,8 +1871,8 @@ fn runtime_system_info_succeeds() {
 
     //assert
     assert_eq!(true, *system_info_got_called_lock_cloned.read().unwrap());
-    assert_eq!("linux", system_info.os_type());
-    assert_eq!("x86_64", system_info.architecture());
+    assert_eq!("linux", system_info.os_type);
+    assert_eq!("x86_64", system_info.architecture);
 }
 
 #[test]
@@ -1928,6 +1928,6 @@ fn runtime_system_info_none_returns_unkown() {
 
     //assert
     assert_eq!(true, *system_info_got_called_lock_cloned.read().unwrap());
-    assert_eq!("Unknown", system_info.os_type());
-    assert_eq!("Unknown", system_info.architecture());
+    assert_eq!("Unknown", system_info.os_type);
+    assert_eq!("Unknown", system_info.architecture);
 }

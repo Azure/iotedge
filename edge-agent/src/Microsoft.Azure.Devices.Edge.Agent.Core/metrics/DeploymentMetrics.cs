@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     {
         readonly IMetricsGauge running;
         readonly IMetricsGauge expectedRunning;
-        readonly IMetricsCounter successfulSyncs;
+        readonly IMetricsCounter unsuccessfulSyncs;
         readonly IMetricsCounter totalSyncs;
         readonly IMetricsHistogram deploymentTime;
 
@@ -47,9 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "The amount of time the module was specified in the deployment",
                 new List<string> { "module_name", MetricsConstants.MsTelemetry });
 
-            this.successfulSyncs = metricsProvider.CreateCounter(
-                "total_successful_iothub_syncs",
-                "The amount of times edgeAgent succesfully synced with iotHub",
+            this.unsuccessfulSyncs = metricsProvider.CreateCounter(
+                "total_unsuccessful_iothub_syncs",
+                "The amount of times edgeAgent failed to sync with iotHub",
                 new List<string> { MetricsConstants.MsTelemetry });
 
             this.totalSyncs = metricsProvider.CreateCounter(
@@ -161,9 +161,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             string[] tags = { true.ToString() };
             this.totalSyncs.Increment(1, tags);
 
-            if (successful)
+            if (!successful)
             {
-                this.successfulSyncs.Increment(1, tags);
+                this.unsuccessfulSyncs.Increment(1, tags);
             }
         }
 
