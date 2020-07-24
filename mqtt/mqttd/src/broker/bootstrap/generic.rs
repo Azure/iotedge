@@ -68,13 +68,13 @@ where
 }
 
 fn load_server_certificate(config: &CertificateConfig) -> Result<ServerCertificate> {
-     let identity = ServerCertificate::from_pem(config.cert_path(), config.private_key_path())
-                    .with_context(|| {
-                        ServerCertificateLoadError::ParseCertificate(
-                            config.cert_path().to_path_buf(),
-                            config.private_key_path().to_path_buf(),
-                        )
-                    })?;
+    let identity = ServerCertificate::from_pem(config.cert_path(), config.private_key_path())
+        .with_context(|| {
+            ServerCertificateLoadError::ParseCertificate(
+                config.cert_path().to_path_buf(),
+                config.private_key_path().to_path_buf(),
+            )
+        })?;
 
     Ok(identity)
 }
