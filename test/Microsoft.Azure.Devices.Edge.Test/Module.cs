@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(SensorName, sensorImage)
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                 },
-                token, false);
+                token);
 
             EdgeModule sensor = deployment.Modules[SensorName];
             await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         } );
                 },
-                token, false);
+                token);
 
             EdgeModule filter = deployment.Modules[filterName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token, false);
+                token);
 
             EdgeModule filter = deployment.Modules[filterFuncName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(methodReceiver, receiverImage)
                         .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
                 },
-                token, false);
+                token);
 
             EdgeModule sender = deployment.Modules[methodSender];
             await sender.WaitForEventsReceivedAsync(deployment.StartTime, token);
