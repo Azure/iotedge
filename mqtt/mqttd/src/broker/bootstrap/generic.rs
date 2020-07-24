@@ -11,7 +11,7 @@ use mqtt_broker_core::{
     auth::{authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer},
     settings::BrokerConfig,
 };
-use mqtt_generic::settings::Settings;
+use mqtt_generic::settings::{CertificateConfig, Settings};
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
 where
@@ -59,7 +59,7 @@ where
 
     if let Some(tls) = config.listener().tls() {
         let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
-        let identity = load_server_certificate(tls.cert_path())?;
+        let identity = load_server_certificate(tls.certificate())?;
         server.tls(tls.addr(), identity, authenticator)?;
     }
 
@@ -67,15 +67,20 @@ where
     Ok(state)
 }
 
-fn load_server_certificate(path: &Path) -> Result<ServerCertificate> {
-    let identity = ServerCertificate::from_pkcs12(&path)
-        .with_context(|| ServerCertificateLoadError::ParseCertificate(path.to_path_buf()))?;
+fn load_server_certificate(config: &CertificateConfig) -> Result<ServerCertificate> {
+    let identity = ServerCertificate::from_pem(config.cert_path(), config.private_key_path())
+        .with_context(|| {
+            ServerCertificateLoadError::ParseCertificate(
+                config.cert_path().to_path_buf(),
+                config.private_key_path().to_path_buf(),
+            )
+        })?;
 
     Ok(identity)
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {
-    #[error("unable to decode server certificate {0}")]
-    ParseCertificate(PathBuf),
+    #[error("unable to decode server certificate {0} and private key {1}")]
+    ParseCertificate(PathBuf, PathBuf),
 }

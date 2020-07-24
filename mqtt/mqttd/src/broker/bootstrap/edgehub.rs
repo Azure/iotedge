@@ -31,7 +31,7 @@ where
         Settings::from_file(path)?
     } else {
         info!("using default settings");
-        Settings::default()
+        Settings::new()?
     };
 
     Ok(config)
@@ -74,10 +74,15 @@ where
     // Add regular MQTT over TLS transport
     let renewal_signal = match config.listener().tls() {
         Some(tls) => {
-            let identity = if let Some(path) = tls.cert_path() {
-                info!("loading identity from {}", path.display());
-                ServerCertificate::from_pkcs12(path)
-                    .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
+            let identity = if let Some(config) = tls.certificate() {
+                info!("loading identity from {}", config.cert_path().display());
+                ServerCertificate::from_pem(config.cert_path(), config.private_key_path())
+                    .with_context(|| {
+                        ServerCertificateLoadError::File(
+                            config.cert_path().to_path_buf(),
+                            config.private_key_path().to_path_buf(),
+                        )
+                    })?
             } else {
                 info!("downloading identity from edgelet");
                 download_server_certificate()
@@ -120,8 +125,8 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {
-    #[error("unable to load server certificate from file {0}")]
-    File(PathBuf),
+    #[error("unable to load server certificate from file {0} and private key {1}")]
+    File(PathBuf, PathBuf),
 
     #[error("unable to download certificate from edgelet")]
     Edgelet,
@@ -135,10 +140,10 @@ pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 
 async fn download_server_certificate() -> Result<ServerCertificate> {
-    let uri = env::var(WORKLOAD_URI)?;
-    let hostname = env::var(EDGE_DEVICE_HOST_NAME)?;
-    let module_id = env::var(MODULE_ID)?;
-    let generation_id = env::var(MODULE_GENERATION_ID)?;
+    let uri = env::var(WORKLOAD_URI).context(WORKLOAD_URI)?;
+    let hostname = env::var(EDGE_DEVICE_HOST_NAME).context(EDGE_DEVICE_HOST_NAME)?;
+    let module_id = env::var(MODULE_ID).context(MODULE_GENERATION_ID)?;
+    let generation_id = env::var(MODULE_GENERATION_ID).context(MODULE_GENERATION_ID)?;
     let expiration = Utc::now() + Duration::days(CERTIFICATE_VALIDITY_DAYS);
 
     let client = edgelet::workload(&uri)?;

@@ -77,6 +77,7 @@ process_args()
                 "--reduced-linker" ) REDUCED_LINKER=1;;
                 "--manifest-path" ) MANIFEST_PATH=1;;
                 "--no-default-features" ) CARGO_ARGS="${CARGO_ARGS} --no-default-features";;
+                "--features" ) save_next_arg=5;;
                 * ) usage;;
             esac
         fi
