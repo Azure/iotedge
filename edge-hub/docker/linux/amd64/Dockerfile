@@ -5,9 +5,7 @@ FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 ADD ./watchdog/target/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
-ADD ./mqttd/production.json /app/mqttd/production.json
-
-ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
+ADD ./mqttd/broker.json /app/mqttd/broker.json
 
 # RocksDB requires snappy	
 RUN apk update && \	
@@ -26,7 +24,7 @@ COPY --from=builder publish/* /usr/local/lib/
 
 WORKDIR /app	
 
-COPY $EXE_DIR/ ./
+COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
 
 # Set broker log level
 ENV RUST_LOG=info

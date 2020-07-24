@@ -1,15 +1,13 @@
-ARG base_tag=1.0.5-linux-arm64v8
+ARG base_tag=1.0.6.0-linux-arm64v8
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ADD ./watchdog/target/aarch64-unknown-linux-gnu/release/watchdog /usr/local/bin/watchdog
 ADD ./mqttd/target/aarch64-unknown-linux-gnu/release/mqttd /usr/local/bin/mqttd
-ADD ./mqttd/production.json /app/mqttd/production.json
-
-ARG EXE_DIR=./Microsoft.Azure.Devices.Edge.Hub.Service
+ADD ./mqttd/broker.json /app/mqttd/broker.json
 
 WORKDIR /app
 
-COPY $EXE_DIR/ ./edge-hub
+COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
 
 # Set broker log level
 ENV RUST_LOG=info

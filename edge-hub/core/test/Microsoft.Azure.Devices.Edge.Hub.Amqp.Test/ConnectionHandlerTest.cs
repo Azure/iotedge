@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             }
 
             Assert.NotNull(deviceProxy);
-            Mock.Get(connectionProvider).Verify(c => c.GetDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<Option<string>>()), Times.Once);
+            Mock.Get(connectionProvider).Verify(c => c.GetDeviceListenerAsync(It.IsAny<IIdentity>(), Option.None<string>()), Times.Once);
             Mock.Get(deviceListener).Verify(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()), Times.Once);
         }
 

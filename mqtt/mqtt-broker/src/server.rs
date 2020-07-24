@@ -6,7 +6,6 @@ use futures_util::{
     pin_mut,
     stream::StreamExt,
 };
-use native_tls::Identity;
 use tokio::sync::oneshot;
 use tracing::{debug, error, info, span, warn, Level};
 use tracing_futures::Instrument;
@@ -16,8 +15,9 @@ use mqtt_broker_core::auth::{Authenticator, Authorizer};
 use crate::{
     broker::{Broker, BrokerHandle},
     connection,
-    transport::Transport,
-    BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, SystemEvent,
+    transport::{GetPeerInfo, Transport},
+    BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
+    SystemEvent,
 };
 
 pub struct Server<Z>
@@ -56,7 +56,7 @@ where
     pub fn tls<N>(
         &mut self,
         addr: &str,
-        identity: Identity,
+        identity: ServerCertificate,
         authenticator: N,
     ) -> Result<&mut Self, Error>
     where
@@ -223,9 +223,7 @@ where
     loop {
         match future::select(&mut shutdown_signal, incoming.next()).await {
             Either::Right((Some(Ok(stream)), _)) => {
-                let peer = stream
-                    .peer_addr()
-                    .map_err(InitializeBrokerError::ConnectionPeerAddress)?;
+                let peer = stream.peer_addr()?;
 
                 let broker_handle = handle.clone();
                 let span = span.clone();

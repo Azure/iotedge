@@ -21,6 +21,7 @@ mod session;
 mod snapshot;
 mod state_change;
 mod subscription;
+mod tls;
 mod transport;
 
 #[cfg(any(test, feature = "proptest"))]
@@ -47,6 +48,7 @@ pub use crate::snapshot::{
     BrokerSnapshot, SessionSnapshot, ShutdownHandle, Snapshotter, StateSnapshotHandle,
 };
 pub use crate::subscription::{Segment, Subscription, TopicFilter};
+pub use crate::tls::ServerCertificate;
 
 #[derive(Debug)]
 pub struct ConnReq {

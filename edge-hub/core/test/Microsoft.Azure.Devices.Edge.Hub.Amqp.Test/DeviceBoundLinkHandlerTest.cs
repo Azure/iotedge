@@ -32,9 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var identity = Mock.Of<IIdentity>(d => d.Id == "d1");
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
 
             // Act
-            ILinkHandler linkHandler = new DeviceBoundLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore);
+            ILinkHandler linkHandler = new DeviceBoundLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
 
             // Assert
             Assert.NotNull(linkHandler);
@@ -57,9 +58,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var identity = Mock.Of<IIdentity>(d => d.Id == "d1");
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
 
             // Act / Assert
-            Assert.Throws<ArgumentException>(() => new DeviceBoundLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore));
+            Assert.Throws<ArgumentException>(() => new DeviceBoundLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore));
         }
 
         [Fact]
@@ -91,8 +93,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = new AmqpMessageConverter();
             var identity = Mock.Of<IIdentity>(d => d.Id == "d1");
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
 
-            var sendingLinkHandler = new DeviceBoundLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore);
+            var sendingLinkHandler = new DeviceBoundLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
             var body = new byte[] { 0, 1, 2, 3 };
             IMessage message = new EdgeMessage.Builder(body).Build();
             var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(string.Empty), AmqpConstants.AcceptedOutcome.DescriptorCode);
