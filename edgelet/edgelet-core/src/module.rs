@@ -345,36 +345,18 @@ pub trait ModuleRegistry {
     fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SystemInfo {
     /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
-    os_type: String,
+    pub os_type: String,
     /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
-    architecture: String,
+    pub architecture: String,
     /// iotedge version string
-    version: &'static str,
-}
-
-impl SystemInfo {
-    pub fn new(os_type: String, architecture: String) -> Self {
-        SystemInfo {
-            os_type,
-            architecture,
-            version: super::version_with_source_version(),
-        }
-    }
-
-    pub fn os_type(&self) -> &str {
-        &self.os_type
-    }
-
-    pub fn architecture(&self) -> &str {
-        &self.architecture
-    }
-
-    pub fn version(&self) -> &str {
-        self.version
-    }
+    pub version: &'static str,
+    pub server_version: String,
+    pub kernel_version: String,
+    pub operating_system: String,
+    pub cpus: i32,
 }
 
 #[derive(Debug, serde_derive::Serialize)]
