@@ -140,10 +140,10 @@ pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 
 async fn download_server_certificate() -> Result<ServerCertificate> {
-    let uri = env::var(WORKLOAD_URI)?;
-    let hostname = env::var(EDGE_DEVICE_HOST_NAME)?;
-    let module_id = env::var(MODULE_ID)?;
-    let generation_id = env::var(MODULE_GENERATION_ID)?;
+    let uri = env::var(WORKLOAD_URI).context(WORKLOAD_URI)?;
+    let hostname = env::var(EDGE_DEVICE_HOST_NAME).context(EDGE_DEVICE_HOST_NAME)?;
+    let module_id = env::var(MODULE_ID).context(MODULE_GENERATION_ID)?;
+    let generation_id = env::var(MODULE_GENERATION_ID).context(MODULE_GENERATION_ID)?;
     let expiration = Utc::now() + Duration::days(CERTIFICATE_VALIDITY_DAYS);
 
     let client = edgelet::workload(&uri)?;
