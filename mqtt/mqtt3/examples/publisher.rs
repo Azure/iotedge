@@ -121,7 +121,7 @@ fn main() {
         use futures_util::StreamExt;
 
         let mut interval = tokio::time::interval(publish_frequency);
-        while let Some(_) = interval.next().await {
+        while interval.next().await.is_some() {
             let topic = topic.clone();
             log::info!("Publishing to {} ...", topic);
 

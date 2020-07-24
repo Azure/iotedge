@@ -3,28 +3,32 @@ use std::{
     future::Future,
     net::SocketAddr,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
 };
 
 use bytes::{Buf, BufMut};
 use core::mem::MaybeUninit;
 use futures::stream::FuturesUnordered;
-use native_tls::Identity;
+use openssl::{
+    ssl::{SslAcceptor, SslMethod, SslVerifyMode},
+    x509::X509Ref,
+};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     net::{TcpListener, TcpStream, ToSocketAddrs},
     stream::Stream,
 };
-use tokio_native_tls::{TlsAcceptor, TlsStream};
+use tokio_openssl::{accept, HandshakeError, SslStream};
 use tracing::{debug, error, warn};
 
 use mqtt_broker_core::auth::Certificate;
 
-use crate::{Error, InitializeBrokerError};
+use crate::{Error, InitializeBrokerError, ServerCertificate};
 
 pub enum Transport {
     Tcp(TcpListener),
-    Tls(TcpListener, TlsAcceptor),
+    Tls(TcpListener, SslAcceptor),
 }
 
 impl Transport {
@@ -39,20 +43,36 @@ impl Transport {
         Ok(Transport::Tcp(tcp))
     }
 
-    pub async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, InitializeBrokerError>
+    pub async fn new_tls<A>(
+        addr: A,
+        identity: ServerCertificate,
+    ) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs + Display,
     {
-        let acceptor = TlsAcceptor::from(
-            native_tls::TlsAcceptor::builder(identity)
-                .build()
-                .map_err(InitializeBrokerError::Tls)?,
-        );
         let tcp = TcpListener::bind(&addr)
             .await
             .map_err(|e| InitializeBrokerError::BindServer(addr.to_string(), e))?;
 
-        Ok(Transport::Tls(tcp, acceptor))
+        let (private_key, certificate, chain, ca) = identity.into_parts();
+
+        let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
+        acceptor.set_private_key(&private_key)?;
+        acceptor.set_certificate(&certificate)?;
+
+        if let Some(chain) = chain {
+            for cert in chain {
+                acceptor.add_extra_chain_cert(cert)?;
+            }
+        }
+
+        if let Some(ca) = ca {
+            acceptor.cert_store_mut().add_cert(ca)?;
+        }
+
+        acceptor.set_verify(SslVerifyMode::PEER);
+
+        Ok(Transport::Tls(tcp, acceptor.build()))
     }
 
     pub fn incoming(self) -> Incoming {
@@ -72,7 +92,7 @@ impl Transport {
 }
 
 type HandshakeFuture =
-    Pin<Box<dyn Future<Output = Result<TlsStream<TcpStream>, native_tls::Error>> + Send>>;
+    Pin<Box<dyn Future<Output = Result<SslStream<TcpStream>, HandshakeError<TcpStream>>> + Send>>;
 
 pub enum Incoming {
     Tcp(IncomingTcp),
@@ -132,15 +152,15 @@ impl Stream for IncomingTcp {
 
 pub struct IncomingTls {
     listener: TcpListener,
-    acceptor: TlsAcceptor,
+    acceptor: Arc<SslAcceptor>,
     connections: FuturesUnordered<HandshakeFuture>,
 }
 
 impl IncomingTls {
-    fn new(listener: TcpListener, acceptor: TlsAcceptor) -> Self {
+    fn new(listener: TcpListener, acceptor: SslAcceptor) -> Self {
         Self {
             listener,
-            acceptor,
+            acceptor: Arc::new(acceptor),
             connections: FuturesUnordered::default(),
         }
     }
@@ -156,7 +176,7 @@ impl Stream for IncomingTls {
                     Ok(()) => {
                         let acceptor = self.acceptor.clone();
                         self.connections
-                            .push(Box::pin(async move { acceptor.accept(stream).await }));
+                            .push(Box::pin(async move { accept(&acceptor, stream).await }));
                     }
                     Err(err) => warn!(
                         "TCP: Dropping client because failed to setup TCP properties: {}",
@@ -200,22 +220,15 @@ impl Stream for IncomingTls {
 
 pub enum StreamSelector {
     Tcp(TcpStream),
-    Tls(TlsStream<TcpStream>),
-}
-
-impl StreamSelector {
-    pub fn peer_addr(&self) -> std::io::Result<SocketAddr> {
-        match self {
-            Self::Tcp(stream) => stream.peer_addr(),
-            Self::Tls(stream) => stream.get_ref().get_ref().get_ref().peer_addr(),
-        }
-    }
+    Tls(SslStream<TcpStream>),
 }
 
 pub trait GetPeerInfo {
     type Certificate;
 
     fn peer_certificate(&self) -> Result<Option<Self::Certificate>, Error>;
+
+    fn peer_cert_chain(&self) -> Result<Option<Vec<Self::Certificate>>, Error>;
 
     fn peer_addr(&self) -> Result<SocketAddr, Error>;
 }
@@ -227,24 +240,41 @@ impl GetPeerInfo for StreamSelector {
         match self {
             Self::Tcp(_) => Ok(None),
             Self::Tls(stream) => stream
-                .get_ref()
+                .ssl()
                 .peer_certificate()
-                .and_then(|cert| {
-                    cert.map(|cert| cert.to_der().map(Certificate::from))
-                        .transpose()
-                })
-                .map_err(Error::PeerCertificate),
+                .map(|cert| stringify(cert.as_ref()))
+                .transpose(),
+        }
+    }
+
+    fn peer_cert_chain(&self) -> Result<Option<Vec<Self::Certificate>>, Error> {
+        match self {
+            Self::Tcp(_) => Ok(None),
+            Self::Tls(stream) => stream
+                .ssl()
+                .peer_cert_chain()
+                .map(|chain| chain.iter().map(stringify).collect())
+                .transpose(),
         }
     }
 
     fn peer_addr(&self) -> Result<SocketAddr, Error> {
         let stream = match self {
             Self::Tcp(stream) => &stream,
-            Self::Tls(stream) => stream.get_ref().get_ref().get_ref(),
+            Self::Tls(stream) => stream.get_ref(),
         };
 
         stream.peer_addr().map_err(Error::PeerAddr)
     }
+}
+
+fn stringify(cert: &X509Ref) -> Result<Certificate, Error> {
+    let pem = cert
+        .to_pem()
+        .map_err(|e| Error::PeerCertificate(Box::new(e)))?;
+
+    let pem = String::from_utf8(pem).map_err(|e| Error::PeerCertificate(Box::new(e)))?;
+    Ok(Certificate::from(pem))
 }
 
 impl AsyncRead for StreamSelector {

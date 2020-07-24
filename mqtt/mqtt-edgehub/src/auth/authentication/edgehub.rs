@@ -80,20 +80,20 @@ pub struct EdgeHubAuthRequest<'a> {
     version: &'a str,
     username: Option<&'a str>,
     password: Option<&'a str>,
-    certificate: Option<String>,
-    certificate_chain: Option<Vec<String>>,
+    certificate: Option<&'a str>,
+    certificate_chain: Option<Vec<&'a str>>,
 }
 
 impl<'a> EdgeHubAuthRequest<'a> {
     fn from_auth(context: &'a AuthenticationContext) -> Self {
-        let certificate = context.certificate().map(base64::encode);
-
         Self {
             version: API_VERSION,
             username: context.username(),
             password: context.password(),
-            certificate,
-            certificate_chain: None,
+            certificate: context.certificate().map(|cert| cert.as_ref()),
+            certificate_chain: context
+                .cert_chain()
+                .map(|chain| chain.iter().map(|cert| cert.as_ref()).collect()),
         }
     }
 }
@@ -155,21 +155,41 @@ pub enum AuthenticateError {
 
 #[cfg(test)]
 mod tests {
-    use base64::decode;
+    use std::net::SocketAddr;
+
     use mockito::{mock, Matcher};
 
     use mqtt_broker_core::auth::{AuthenticationContext, Certificate};
 
-    use crate::auth::EdgeHubAuthenticator;
-    use std::net::SocketAddr;
+    use super::EdgeHubAuthenticator;
+    use matches::assert_matches;
 
-    const CERT: &str = "MIIBLjCB1AIJAOTg4Zxl8B7jMAoGCCqGSM49BAMCMB8xHTAbBgNVBAMMFFRodW1i\
-                        cHJpbnQgVGVzdCBDZXJ0MB4XDTIwMDQyMzE3NTgwN1oXDTMzMTIzMTE3NTgwN1ow\
-                        HzEdMBsGA1UEAwwUVGh1bWJwcmludCBUZXN0IENlcnQwWTATBgcqhkjOPQIBBggq\
-                        hkjOPQMBBwNCAARDJJBtVlgM0mBWMhAYagF7Wuc2aQYefhj0cG4wAmn3M4XcxJ39\
-                        XkEup2RRAj7SSdOYhTmRpg5chhpZX/4/eF8gMAoGCCqGSM49BAMCA0kAMEYCIQD/\
-                        wNzMjU1B8De5/+jEif8rkLDtqnohmVRXuAE5dCfbvAIhAJTJ+Fyg19uLSKVyOK8R\
-                        5q87sIqhJXhTfNYvIt77Dq4J";
+    const CERT: &str = "-----BEGIN CERTIFICATE-----
+MIIEbjCCAlagAwIBAgIEdLDcUTANBgkqhkiG9w0BAQsFADAfMR0wGwYDVQQDDBRp
+b3RlZGdlZCB3b3JrbG9hZCBjYTAeFw0yMDA3MDkyMTI5NTNaFw0yMDEwMDcyMDEw
+MDJaMBQxEjAQBgNVBAMMCWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEP
+ADCCAQoCggEBAME8iPiXdDF1fS3Ppq53HOD01BQqkDlhv5+8Lxwrz8Hz+K9dM7q4
+xlXjywYeY/f6W7vL4vjxUbBSw3e0L7+X+UShwco8vwbiQqjbNfjAz95rlRwcrfff
+xl04+GEcy7Uahrv2143s32CIPtYKEgUH0HVdRxBh6KrwWjCQuUfsysoxHsM1KqPI
+5p4Gpp87Y4uRkX248IriJz3ap2+LWuAgV54VzuzAMx0SH9Mbgv0/g2k18PfoqJM5
+mCktU88brojoOx6SGOu/kXpT3KmWXmckVMKakjqFERa9GXTe+jggFUS7uVIKY2dz
+cV2fSnX9CiMRvXrtUKHrIg1qH2SPUsRYtgMCAwEAAaOBvDCBuTAJBgNVHRMEAjAA
+MA4GA1UdDwEB/wQEAwID+DATBgNVHSUEDDAKBggrBgEFBQcDATAdBgNVHREEFjAU
+gglsb2NhbGhvc3SCB2VkZ2VodWIwHQYDVR0OBBYEFNiOqy/sZzR6MHKk6pYU0SlR
+z7TGMEkGA1UdIwRCMECAFAbOyQy9xAl46d39FhI0dQXohbRPoSKkIDAeMRwwGgYD
+VQQDDBNUZXN0IEVkZ2UgRGV2aWNlIENBggRri0VnMA0GCSqGSIb3DQEBCwUAA4IC
+AQBGZvInLdwQ9mKMcwM2E6kjIWuCcBOb1HXEswyDc8IKmtJS504s6Ybir/+Pb30m
+rfeWfoMWMP8GS4UeIm9T0zzYFBuDcwqmsQxLZLSigUMmXryEwt6zp1ksZSIEIkFi
+mKNFLuJSzPmLFFACsNQwsgl3qG2qqaMhOrRDEl/OH57tCFbLFVnSLWwB3XX4CsF3
+vN/3Ys+Bf4Y1gtY6gctByI6NCimQQYEaC1BygSUh/nwyjlAy1H8Vu+8+TymJ0KHK
+eee+y/9OkCxUqPHDHmE6JKVefkNwqbb6w+Sl9MQZXRVepNfuTzVF3iTyKu4SARPE
+w19SRlNEfKM+W9U/T0shv3ay0W+3dry/5eY5nX6nuKx2Tt56iC5bjhCpUmsKuWoU
+XGE7z48ZhG2qwPIlNIbTzKFvXL4AXGEhoCot7xPwohTwPUxuDAYGibAB9BKjm3/0
+NgAPXqT82xpwX//mtRAoLFpSGct3E62KiLZD+RJnoC5A2X7KnQKnQndmEHwKGotS
+GJ1GZwU99C+kuG9MD+aNZJZBozcdoRZKT56438J25pOemjTy4MjFs+t3nWe4jtK8
+/gKeDoonQcvGbHR6+ukI+BDgyQwe+jvulA5ESanERONm42bnmZUuXxp2pZYKiB6q
+ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
+-----END CERTIFICATE-----";
 
     #[tokio::test]
     async fn response_ok_feeds_identity() {
@@ -303,7 +323,9 @@ mod tests {
     async fn cert_cred_sends_cert() {
         let _m = mock("POST", "/authenticate/")
             .with_status(200)
-            .match_body(Matcher::Regex("\"certificate\":\"MIIBL".to_string()))
+            .match_body(Matcher::Regex(
+                "\"certificate\":\"-----BEGIN CERTIFICATE-----".to_string(),
+            ))
             .with_body(
                 r#"{"result": 200, "identity":"somehub/somedevice","version": "2020-04-20"}"#,
             )
@@ -311,12 +333,12 @@ mod tests {
 
         let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
-        context.with_certificate(Certificate::from(decode(CERT.to_string()).unwrap()));
+        context.with_certificate(Certificate::from(CERT.to_string()));
 
         let authenticator = authenticator();
         let result = authenticator.authenticate(context).await;
 
-        assert!(result.is_ok());
+        assert_matches!(result, Ok(_));
     }
 
     #[tokio::test]

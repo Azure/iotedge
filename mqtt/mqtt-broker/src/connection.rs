@@ -100,6 +100,7 @@ where
     N: Authenticator + ?Sized,
 {
     let certificate = io.peer_certificate()?;
+    let cert_chain = io.peer_cert_chain()?;
     let peer_addr = io.peer_addr()?;
 
     let mut timeout = TimeoutStream::new(io);
@@ -154,6 +155,9 @@ where
 
                 if let Some(certificate) = certificate {
                     context.with_certificate(certificate);
+                    if let Some(chain) = cert_chain{
+                        context.with_cert_chain(chain);
+                    }
                 } else if let Some(password) = &connect.password {
                     context.with_password(password);
                 }

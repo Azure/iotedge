@@ -42,9 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             AmqpMessage message = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(body) });
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
 
             // Act
-            var receivingLinkHandler = new TestReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore);
+            var receivingLinkHandler = new TestReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
             await receivingLinkHandler.OpenAsync(Constants.DefaultTimeout);
             await receivingLinkHandler.ProcessMessageAsync(message);
 
@@ -64,8 +65,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
-            IProductInfoStore productInfoStore)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore)
+            IProductInfoStore productInfoStore,
+            IModelIdStore modelIdStore)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore)
         {
         }
 

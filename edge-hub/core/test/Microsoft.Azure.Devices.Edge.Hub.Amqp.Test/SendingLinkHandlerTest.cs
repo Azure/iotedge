@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             var feedbackStatus = FeedbackStatus.Abandon;
             var deviceListener = new Mock<IDeviceListener>();
             deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
@@ -56,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
 
-            var sendingLinkHandler = new TestSendingLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter, QualityOfService.AtLeastOnce, productInfoStore);
+            var sendingLinkHandler = new TestSendingLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter, QualityOfService.AtLeastOnce, productInfoStore, modelIdStore);
             var body = new byte[] { 0, 1, 2, 3 };
             IMessage message = new EdgeMessage.Builder(body).Build();
             var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(string.Empty), AmqpConstants.AcceptedOutcome.DescriptorCode);
@@ -87,6 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             var feedbackStatus = FeedbackStatus.Abandon;
             var deviceListener = new Mock<IDeviceListener>();
             deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
@@ -113,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
 
-            var sendingLinkHandler = new TestSendingLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter, QualityOfService.ExactlyOnce, productInfoStore);
+            var sendingLinkHandler = new TestSendingLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter, QualityOfService.ExactlyOnce, productInfoStore, modelIdStore);
             var body = new byte[] { 0, 1, 2, 3 };
             IMessage message = new EdgeMessage.Builder(body).Build();
             var deliveryState = new Mock<DeliveryState>(new AmqpSymbol(string.Empty), AmqpConstants.AcceptedOutcome.DescriptorCode);
@@ -144,6 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var deviceListener = new Mock<IDeviceListener>();
             deviceListener.Setup(d => d.ProcessMessageFeedbackAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>()))
@@ -169,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
 
-            var sendingLinkHandler = new TestSendingLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter, QualityOfService.AtMostOnce, productInfoStore);
+            var sendingLinkHandler = new TestSendingLinkHandler(identity, sendingLink, requestUri, boundVariables, connectionHandler, messageConverter, QualityOfService.AtMostOnce, productInfoStore, modelIdStore);
             var body = new byte[] { 0, 1, 2, 3 };
             IMessage message = new EdgeMessage.Builder(body).Build();
 
@@ -210,8 +213,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
             QualityOfService qualityOfService,
-            IProductInfoStore productInfoStore)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore)
+            IProductInfoStore productInfoStore,
+            IModelIdStore modelIdStore)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore)
         {
             this.QualityOfService = qualityOfService;
         }

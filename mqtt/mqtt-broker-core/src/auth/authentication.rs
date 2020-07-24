@@ -6,7 +6,7 @@ use crate::{auth::AuthId, ClientId};
 
 /// Represents a client certificate.
 #[derive(Clone, Debug)]
-pub struct Certificate(Vec<u8>);
+pub struct Certificate(String);
 
 impl AsRef<[u8]> for Certificate {
     fn as_ref(&self) -> &[u8] {
@@ -14,8 +14,14 @@ impl AsRef<[u8]> for Certificate {
     }
 }
 
-impl From<Vec<u8>> for Certificate {
-    fn from(certificate: Vec<u8>) -> Self {
+impl AsRef<str> for Certificate {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+impl From<String> for Certificate {
+    fn from(certificate: String) -> Self {
         Self(certificate)
     }
 }
@@ -46,6 +52,7 @@ pub struct AuthenticationContext {
     username: Option<String>,
     password: Option<String>,
     certificate: Option<Certificate>,
+    cert_chain: Option<Vec<Certificate>>,
 }
 
 impl AuthenticationContext {
@@ -56,6 +63,7 @@ impl AuthenticationContext {
             username: None,
             password: None,
             certificate: None,
+            cert_chain: None,
         }
     }
 
@@ -71,6 +79,11 @@ impl AuthenticationContext {
 
     pub fn with_certificate(&mut self, certificate: impl Into<Certificate>) -> &mut Self {
         self.certificate = Some(certificate.into());
+        self
+    }
+
+    pub fn with_cert_chain(&mut self, chain: Vec<Certificate>) -> &mut Self {
+        self.cert_chain = Some(chain);
         self
     }
 
@@ -92,6 +105,10 @@ impl AuthenticationContext {
 
     pub fn certificate(&self) -> Option<&Certificate> {
         self.certificate.as_ref()
+    }
+
+    pub fn cert_chain(&self) -> Option<&Vec<Certificate>> {
+        self.cert_chain.as_ref()
     }
 }
 

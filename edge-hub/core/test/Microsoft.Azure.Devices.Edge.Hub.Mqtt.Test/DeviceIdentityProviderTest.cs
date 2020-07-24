@@ -110,8 +110,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             var authenticator = new Mock<IAuthenticator>();
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new MqttUsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, true);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new MqttUsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, modelIdStore, true);
             if (certificate != null)
             {
                 deviceIdentityProvider.RegisterConnectionCertificate(certificate, chain);
@@ -128,8 +129,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             string iotHubHostName = "foo.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
             var productInfoStore = Mock.Of<IProductInfoStore>();
+            var modelIdStore = Mock.Of<IModelIdStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new MqttUsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, false);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new MqttUsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, modelIdStore, false);
             deviceIdentityProvider.RegisterConnectionCertificate(new X509Certificate2(), new List<X509Certificate2> { new X509Certificate2() });
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(
                 "Device_2",

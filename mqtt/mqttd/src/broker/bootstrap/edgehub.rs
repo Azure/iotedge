@@ -1,5 +1,4 @@
 use std::{
-    convert::TryInto,
     env,
     future::Future,
     path::{Path, PathBuf},
@@ -15,13 +14,12 @@ use futures_util::{
 use tokio::time;
 use tracing::{info, warn};
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Server};
+use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Server, ServerCertificate};
 use mqtt_broker_core::{auth::Authorizer, settings::BrokerConfig};
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     edgelet,
     settings::Settings,
-    tls::ServerCertificate,
 };
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
@@ -78,7 +76,7 @@ where
         Some(tls) => {
             let identity = if let Some(path) = tls.cert_path() {
                 info!("loading identity from {}", path.display());
-                ServerCertificate::from_file(path)
+                ServerCertificate::from_pkcs12(path)
                     .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
             } else {
                 info!("downloading identity from edgelet");
@@ -87,7 +85,7 @@ where
                     .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), identity.try_into()?, authenticator.clone())?;
+            server.tls(tls.addr(), identity, authenticator.clone())?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -179,9 +177,9 @@ mod tests {
         MODULE_GENERATION_ID, MODULE_ID, WORKLOAD_URI,
     };
 
-    const PRIVATE_KEY: &str = include_str!("../../../../mqtt-edgehub/test/tls/pkey.pem");
+    const PRIVATE_KEY: &str = include_str!("../../../../mqtt-broker/test/tls/pkey.pem");
 
-    const CERTIFICATE: &str = include_str!("../../../../mqtt-edgehub/test/tls/cert.pem");
+    const CERTIFICATE: &str = include_str!("../../../../mqtt-broker/test/tls/cert.pem");
 
     #[tokio::test]
     async fn it_downloads_server_cert() {

@@ -1,17 +1,16 @@
 use std::{
-    fs,
     future::Future,
     path::{Path, PathBuf},
 };
 
 use anyhow::{Context, Result};
-use native_tls::Identity;
 use tracing::info;
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Error, Server};
-use mqtt_broker_core::{
-    auth::{authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer},
-    settings::BrokerConfig,
+use mqtt_broker::{
+    Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Error, Server, ServerCertificate,
+};
+use mqtt_broker_core::auth::{
+    authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer,
 };
 use mqtt_generic::settings::Settings;
 
@@ -70,19 +69,14 @@ where
 }
 
 fn load_server_certificate(path: &Path) -> Result<native_tls::Identity> {
-    let cert_buffer = fs::read(path)
-        .with_context(|| ServerCertificateLoadError::ReadCertificate(path.to_path_buf()))?;
-
-    let identity = Identity::from_pkcs12(&cert_buffer, "")
+    let identity = ServerCertificate::from_pkcs12(&path)
         .with_context(|| ServerCertificateLoadError::ParseCertificate(path.to_path_buf()))?;
+
     Ok(identity)
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {
-    #[error("unable to read server certificate {0}")]
-    ReadCertificate(PathBuf),
-
     #[error("unable to decode server certificate {0}")]
     ParseCertificate(PathBuf),
 }

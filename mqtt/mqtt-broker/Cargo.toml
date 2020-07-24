@@ -15,7 +15,7 @@ flate2 = "1.0"
 futures = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 lazy_static = "1.4"
-native-tls = "0.2"
+openssl = "0.10"
 proptest = { version = "0.9", optional = true }
 rand = { version = "0.7", optional = true }
 regex = "1"
@@ -24,8 +24,8 @@ serde_json = "1.0"
 thiserror = "1.0"
 tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp"] }
 tokio-io-timeout = "0.4"
+tokio-openssl = "0.4"
 tokio-util = { version = "0.2", features = ["codec"] }
-tokio-native-tls = "0.1"
 tracing = "0.1"
 tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
