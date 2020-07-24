@@ -87,9 +87,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 return new Version_2019_11_05.ModuleManagementHttpClient(managementUri);
             }
 
-            if (supportedVersion == ApiVersion.Version20200221)
+            if (supportedVersion == ApiVersion.Version20200707)
             {
-                return new Version_2020_02_21.ModuleManagementHttpClient(managementUri);
+                return new Version_2020_07_07.ModuleManagementHttpClient(managementUri);
             }
 
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);

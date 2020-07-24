@@ -3,7 +3,7 @@ schemes:
   - http
 info:
   title: IoT Edge Management API
-  version: '2020_02_21'
+  version: '2020-07-07'
 tags:
   - name: Module
     x-displayName: Modules
@@ -457,6 +457,7 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
+  
   '/systeminfo/supportbundle':
     get:
       tags:
@@ -646,6 +647,14 @@ definitions:
         type: string
       version:
         type: string
+      server_version:
+        type: string
+      kernel_version:
+        type: string
+      operating_system:
+        type: string
+      cpus:
+        type: integer
     required:
       - osType
       - architecture
