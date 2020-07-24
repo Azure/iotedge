@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Collections.Generic;
     using System.Linq;
     using System.Security.Cryptography.X509Certificates;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -191,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             try
             {
-                var certificateContent = Convert.FromBase64String(encodedCertificate);
+                var certificateContent = Encoding.UTF8.GetBytes(encodedCertificate);
                 var certificate = new X509Certificate2(certificateContent);
 
                 return certificate;
