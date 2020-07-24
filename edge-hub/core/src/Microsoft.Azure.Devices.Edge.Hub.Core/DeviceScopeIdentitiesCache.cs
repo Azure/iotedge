@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
+        readonly AsyncManualResetEvent refreshCacheCompleteSignal = new AsyncManualResetEvent();
         readonly object refreshCacheLock = new object();
 
         Task refreshCacheTask;
@@ -68,7 +69,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public void InitiateCacheRefresh()
         {
             Events.ReceivedRequestToRefreshCache();
+            this.refreshCacheCompleteSignal.Reset();
             this.refreshCacheSignal.Set();
+        }
+
+        public async Task WaitForCacheRefresh(TimeSpan timeout)
+        {
+            await this.refreshCacheCompleteSignal.WaitAsync(timeout);
         }
 
         public async Task RefreshServiceIdentity(string id)
@@ -191,6 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 Events.DoneRefreshCycle(this.refreshRate);
+                this.refreshCacheCompleteSignal.Set();
                 await this.IsReady();
             }
         }
