@@ -74,10 +74,15 @@ where
     // Add regular MQTT over TLS transport
     let renewal_signal = match config.listener().tls() {
         Some(tls) => {
-            let identity = if let Some(path) = tls.cert_path() {
-                info!("loading identity from {}", path.display());
-                ServerCertificate::from_pkcs12(path)
-                    .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
+            let identity = if let Some(config) = tls.certificate() {
+                info!("loading identity from {}", config.cert_path().display());
+                ServerCertificate::from_pem(config.cert_path(), config.private_key_path())
+                    .with_context(|| {
+                        ServerCertificateLoadError::File(
+                            config.cert_path().to_path_buf(),
+                            config.private_key_path().to_path_buf(),
+                        )
+                    })?
             } else {
                 info!("downloading identity from edgelet");
                 download_server_certificate()
@@ -120,8 +125,8 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {
-    #[error("unable to load server certificate from file {0}")]
-    File(PathBuf),
+    #[error("unable to load server certificate from file {0} and private key {1}")]
+    File(PathBuf, PathBuf),
 
     #[error("unable to download certificate from edgelet")]
     Edgelet,
