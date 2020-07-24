@@ -273,7 +273,6 @@ where
                     Packet::Connect(_) => {
                         // [MQTT-3.1.0-2] - The Server MUST process a second CONNECT Packet
                         // sent from a Client as a protocol violation and disconnect the Client.
-
                         warn!("CONNECT packet received on an already established connection, dropping connection due to protocol violation");
                         return Err(Error::ProtocolViolation);
                     }

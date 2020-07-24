@@ -16,7 +16,7 @@ ADD . ./
 RUN rustup target add x86_64-unknown-linux-musl
 
 # Build our application.
-RUN cargo build --release --manifest-path mqttd/Cargo.toml --no-default-features \
+RUN cargo build --release --manifest-path mqttd/Cargo.toml --no-default-features --features "generic" \
     && strip /home/rust/src/target/x86_64-unknown-linux-musl/release/mqttd
 
 FROM busybox

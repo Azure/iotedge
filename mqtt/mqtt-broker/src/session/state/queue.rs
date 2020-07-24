@@ -1,8 +1,7 @@
 use std::{collections::VecDeque, num::NonZeroUsize};
 
 use mqtt3::proto;
-
-use crate::configuration::QueueFullAction;
+use mqtt_broker_core::settings::QueueFullAction;
 
 /// `BoundedQueue` is a queue of publications with bounds by count and total payload size in bytes.
 ///

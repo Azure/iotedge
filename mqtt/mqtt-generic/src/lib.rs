@@ -11,4 +11,4 @@
     clippy::missing_errors_doc
 )]
 
-pub mod broker;
+pub mod settings;

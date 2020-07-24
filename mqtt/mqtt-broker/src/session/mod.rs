@@ -212,12 +212,11 @@ mod tests {
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
-    use mqtt_broker_core::auth::AuthId;
+    use mqtt_broker_core::{auth::AuthId, settings::QueueFullAction};
 
     use super::{Session, SessionState};
     use crate::{
-        configuration::QueueFullAction, tests::peer_addr, Auth, ClientId, ConnReq,
-        ConnectionHandle, Error, SessionConfig,
+        tests::peer_addr, Auth, ClientId, ConnReq, ConnectionHandle, Error, SessionConfig,
     };
 
     fn connection_handle() -> ConnectionHandle {
