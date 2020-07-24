@@ -11,6 +11,7 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
+use serde_derive::Serialize;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
@@ -345,7 +346,7 @@ pub trait ModuleRegistry {
     fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct SystemInfo {
     /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
     pub os_type: String,
