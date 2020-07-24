@@ -349,6 +349,7 @@ pub trait ModuleRegistry {
 #[derive(Debug, Default, Serialize)]
 pub struct SystemInfo {
     /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
+    #[serde(rename = "osType")]
     pub os_type: String,
     /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
     pub architecture: String,
