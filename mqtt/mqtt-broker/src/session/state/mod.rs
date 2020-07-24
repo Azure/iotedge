@@ -347,12 +347,10 @@ mod tests {
     use matches::assert_matches;
 
     use mqtt3::proto;
+    use mqtt_broker_core::settings::{HumanSize, QueueFullAction};
 
     use super::SessionState;
-    use crate::{
-        configuration::{HumanSize, QueueFullAction},
-        ClientId, SessionConfig, Subscription,
-    };
+    use crate::{ClientId, SessionConfig, Subscription};
 
     #[test]
     fn test_publish_to_inflight() {

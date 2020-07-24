@@ -19,6 +19,7 @@ tracing-subscriber = "0.1"
 mqtt-broker = { path = "../mqtt-broker", default-features = false }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
+mqtt-generic = { path = "../mqtt-generic", optional = true }
 
 [dev-dependencies]
 mockito = "0.25"
@@ -27,3 +28,4 @@ serde_json = "1.0"
 [features]
 default = ["edgehub"]
 edgehub = ["mqtt-broker/edgehub", "mqtt-edgehub"]
+generic = ["mqtt-generic"]

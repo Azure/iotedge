@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     {
         readonly IConnectionHandler connectionHandler;
         readonly IProductInfoStore productInfoStore;
+        readonly IModelIdStore modelIdStore;
 
         protected LinkHandler(
             IIdentity identity,
@@ -23,7 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
-            IProductInfoStore productInfoStore)
+            IProductInfoStore productInfoStore,
+            IModelIdStore modelIdStore)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.MessageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -33,11 +35,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.Link.SafeAddClosed(this.OnLinkClosed);
             this.connectionHandler = Preconditions.CheckNotNull(connectionHandler, nameof(connectionHandler));
             this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
+            this.modelIdStore = Preconditions.CheckNotNull(modelIdStore, nameof(modelIdStore));
 
             string clientVersion = null;
             if (this.Link.Settings?.Properties?.TryGetValue(IotHubAmqpProperty.ClientVersion, out clientVersion) ?? false)
             {
                 this.ClientVersion = Option.Maybe(clientVersion);
+            }
+
+            string modelId = null;
+            if (this.Link.Settings?.Properties?.TryGetValue(IotHubAmqpProperty.ModelId, out modelId) ?? false)
+            {
+                this.ModelId = Option.Maybe(modelId);
             }
         }
 
@@ -60,6 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         protected IDictionary<string, string> BoundVariables { get; }
 
         protected Option<string> ClientVersion { get; }
+
+        public Option<string> ModelId { get; }
 
         public async Task OpenAsync(TimeSpan timeout)
         {
@@ -108,6 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 await this.ClientVersion
                     .Filter(c => !string.IsNullOrWhiteSpace(c))
                     .ForEachAsync(c => this.productInfoStore.SetProductInfo(this.Identity.Id, c));
+                await this.ModelId.ForEachAsync(m => this.modelIdStore.SetModelId(this.Identity.Id, m));
             }
 
             return authenticated;

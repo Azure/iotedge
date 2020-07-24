@@ -1,23 +1,16 @@
 [package]
-name = "mqtt-broker-core"
+name = "mqtt-generic"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
-async-trait = "0.1"
-humantime = "2.0"
-humantime-serde = "1.0"
+config = { version = "0.10", features = ["json"], default-features = false }
 lazy_static = "1.4"
-regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
-thiserror = "1.0"
-tokio = { version = "0.2", features = ["macros"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
+mqtt-broker-core = { path = "../mqtt-broker-core" }
 
 [dev-dependencies]
 matches = "0.1"
-proptest = "0.9"
-serde_json = "1.0"
-test-case = "1.0"

@@ -12,7 +12,6 @@
 )]
 
 mod broker;
-mod configuration;
 mod connection;
 mod error;
 mod persist;
@@ -33,10 +32,13 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
 
 use mqtt3::proto;
-use mqtt_broker_core::{auth::AuthId, ClientId};
+use mqtt_broker_core::{
+    auth::AuthId,
+    settings::{BrokerConfig, SessionConfig},
+    ClientId,
+};
 
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
-pub use crate::configuration::{BrokerConfig, SessionConfig};
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{
