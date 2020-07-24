@@ -116,11 +116,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 }
 
                 await moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                this.deploymentMetrics.ReportIotHubSync(true);
                 Events.UpdatedReportedProperties();
             }
             catch (Exception e)
             {
                 Events.ErrorUpdatingReportedProperties(e);
+                this.deploymentMetrics.ReportIotHubSync(false);
                 throw;
             }
         }
