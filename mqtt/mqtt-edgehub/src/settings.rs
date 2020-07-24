@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use config::{Config, ConfigError, File, FileFormat};
+use config::{Config, ConfigError, Environment, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
@@ -32,12 +32,24 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
-        let mut s = Config::new();
-        s.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        s.merge(File::from(path.as_ref()))?;
+    pub fn new() -> Result<Self, ConfigError> {
+        let mut config = Config::new();
+        config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
+        config.merge(Environment::new().separator("__"))?;
 
-        s.try_into()
+        config.try_into()
+    }
+
+    pub fn from_file<P>(path: P) -> Result<Self, ConfigError>
+    where
+        P: AsRef<Path>,
+    {
+        let mut config = Config::new();
+        config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
+        config.merge(File::from(path.as_ref()))?;
+        config.merge(Environment::new().separator("__"))?;
+
+        config.try_into()
     }
 
     pub fn broker(&self) -> &BrokerConfig {
@@ -104,15 +116,15 @@ pub struct TlsTransportConfig {
     #[serde(rename = "address")]
     addr: String,
 
-    #[serde(rename = "certificate")]
-    cert_path: Option<PathBuf>,
+    #[serde(flatten)]
+    certificate: Option<CertificateConfig>,
 }
 
 impl TlsTransportConfig {
-    pub fn new(addr: impl Into<String>, cert_path: Option<impl Into<PathBuf>>) -> Self {
+    pub fn new(addr: impl Into<String>, certificate: Option<CertificateConfig>) -> Self {
         Self {
             addr: addr.into(),
-            cert_path: cert_path.map(Into::into),
+            certificate,
         }
     }
 
@@ -120,8 +132,35 @@ impl TlsTransportConfig {
         &self.addr
     }
 
-    pub fn cert_path(&self) -> Option<&Path> {
-        self.cert_path.as_deref()
+    pub fn certificate(&self) -> Option<&CertificateConfig> {
+        self.certificate.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct CertificateConfig {
+    #[serde(rename = "certificate")]
+    cert_path: PathBuf,
+
+    #[serde(rename = "private_key")]
+    private_key_path: PathBuf,
+}
+
+impl CertificateConfig {
+    pub fn new(cert_path: impl Into<PathBuf>, private_key_path: impl Into<PathBuf>) -> Self {
+        Self {
+            cert_path: cert_path.into(),
+            private_key_path: private_key_path.into(),
+        }
+    }
+
+    pub fn cert_path(&self) -> &Path {
+        &self.cert_path
+    }
+
+    pub fn private_key_path(&self) -> &Path {
+        &self.private_key_path
     }
 }
 
@@ -141,19 +180,23 @@ impl AuthConfig {
     }
 
     pub fn url(&self) -> String {
-        format!("http://localhost:{}/{}", self.port, self.base_url)
+        format!("http://localhost:{}{}", self.port, self.base_url)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{env, time::Duration};
 
     use mqtt_broker_core::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
     };
 
-    use super::{AuthConfig, ListenerConfig, Settings, TcpTransportConfig, TlsTransportConfig};
+    use super::{
+        AuthConfig, CertificateConfig, ListenerConfig, Settings, TcpTransportConfig,
+        TlsTransportConfig,
+    };
+    use config::ConfigError;
 
     const DAYS: u64 = 24 * 60 * 60;
 
@@ -166,10 +209,7 @@ mod tests {
             Settings {
                 listener: ListenerConfig {
                     tcp: Some(TcpTransportConfig::new("0.0.0.0:1883")),
-                    tls: Some(TlsTransportConfig::new(
-                        "0.0.0.0:8883",
-                        Option::<&str>::None
-                    )),
+                    tls: Some(TlsTransportConfig::new("0.0.0.0:8883", None)),
                     system: TcpTransportConfig::new("0.0.0.0:1882"),
                 },
                 auth: AuthConfig::new(7120, "/authenticate/"),
@@ -193,5 +233,42 @@ mod tests {
     fn it_verifies_broker_config_defaults() {
         let settings = Settings::default();
         assert_eq!(settings.broker(), &BrokerConfig::default());
+    }
+
+    #[test]
+    fn new_overrides_settings_from_env() {
+        it_overrides_settings_from_env(Settings::new);
+    }
+
+    #[test]
+    fn from_file_overrides_settings_from_env() {
+        it_overrides_settings_from_env(|| Settings::from_file("config/default.json"));
+    }
+
+    fn it_overrides_settings_from_env<F>(make_settings: F)
+    where
+        F: FnOnce() -> Result<Settings, ConfigError>,
+    {
+        env::set_var("LISTENER__TCP__ADDRESS", "10.0.0.1:1883");
+        env::set_var("LISTENER__TLS__ADDRESS", "10.0.0.1:8883");
+        env::set_var("LISTENER__TLS__CERTIFICATE", "/tmp/edgehub/cert.pem");
+        env::set_var("LISTENER__TLS__PRIVATE_KEY", "/tmp/edgehub/pkey.pem");
+        env::set_var("AUTH__BASE_URL", "/auth/");
+
+        let settings = make_settings().unwrap();
+
+        assert_eq!(settings.listener().tcp().unwrap().addr(), "10.0.0.1:1883");
+
+        assert_eq!(
+            settings.listener().tls(),
+            Some(&TlsTransportConfig::new(
+                "10.0.0.1:8883",
+                Some(CertificateConfig::new(
+                    "/tmp/edgehub/cert.pem",
+                    "/tmp/edgehub/pkey.pem",
+                )),
+            ))
+        );
+        assert_eq!(settings.auth().url(), "http://localhost:7120/auth/");
     }
 }

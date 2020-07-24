@@ -94,15 +94,15 @@ pub struct TlsTransportConfig {
     #[serde(rename = "address")]
     addr: String,
 
-    #[serde(rename = "certificate")]
-    cert_path: PathBuf,
+    #[serde(flatten)]
+    certificate: CertificateConfig,
 }
 
 impl TlsTransportConfig {
-    pub fn new(addr: impl Into<String>, cert_path: impl Into<PathBuf>) -> Self {
+    pub fn new(addr: impl Into<String>, certificate: CertificateConfig) -> Self {
         Self {
             addr: addr.into(),
-            cert_path: cert_path.into(),
+            certificate,
         }
     }
 
@@ -110,8 +110,35 @@ impl TlsTransportConfig {
         &self.addr
     }
 
+    pub fn certificate(&self) -> &CertificateConfig {
+        &self.certificate
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct CertificateConfig {
+    #[serde(rename = "certificate")]
+    cert_path: PathBuf,
+
+    #[serde(rename = "private_key")]
+    private_key_path: PathBuf,
+}
+
+impl CertificateConfig {
+    pub fn new(cert_path: impl Into<PathBuf>, private_key_path: impl Into<PathBuf>) -> Self {
+        Self {
+            cert_path: cert_path.into(),
+            private_key_path: private_key_path.into(),
+        }
+    }
+
     pub fn cert_path(&self) -> &Path {
         &self.cert_path
+    }
+
+    pub fn private_key_path(&self) -> &Path {
+        &self.private_key_path
     }
 }
 
