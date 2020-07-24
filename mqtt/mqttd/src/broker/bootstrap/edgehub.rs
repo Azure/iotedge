@@ -1,4 +1,8 @@
-use std::{convert::TryInto, env, future::Future, path::PathBuf};
+use std::{
+    env,
+    future::Future,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
@@ -10,12 +14,28 @@ use futures_util::{
 use tokio::time;
 use tracing::{info, warn};
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server, ServerCertificate};
-use mqtt_broker_core::auth::Authorizer;
+use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Server, ServerCertificate};
+use mqtt_broker_core::{auth::Authorizer, settings::BrokerConfig};
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     edgelet,
+    settings::Settings,
 };
+
+pub fn config<P>(config_path: Option<P>) -> Result<Settings>
+where
+    P: AsRef<Path>,
+{
+    let config = if let Some(path) = config_path {
+        info!("loading settings from a file {}", path.as_ref().display());
+        Settings::from_file(path)?
+    } else {
+        info!("using default settings");
+        Settings::default()
+    };
+
+    Ok(config)
+}
 
 pub async fn broker(
     config: &BrokerConfig,
@@ -31,7 +51,7 @@ pub async fn broker(
 }
 
 pub async fn start_server<Z, F>(
-    config: &BrokerConfig,
+    config: Settings,
     broker: Broker<Z>,
     shutdown_signal: F,
 ) -> Result<BrokerSnapshot>
@@ -39,33 +59,33 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()> + Unpin,
 {
-    // TODO read from config
-    let url = "http://localhost:7120/authenticate/".into();
-    let authenticator = EdgeHubAuthenticator::new(url);
-
     let mut server = Server::from_broker(broker);
 
-    if let Some(tcp) = config.transports().tcp() {
+    // Add system transport to allow communication between edgehub components
+    let authenticator = LocalAuthenticator::new();
+    server.tcp(config.listener().system().addr(), authenticator);
+
+    // Add regular MQTT over TCP transport
+    let authenticator = EdgeHubAuthenticator::new(config.auth().url());
+    if let Some(tcp) = config.listener().tcp() {
         server.tcp(tcp.addr(), authenticator.clone());
     }
 
-    let renewal_signal = match config.transports().tls() {
+    // Add regular MQTT over TLS transport
+    let renewal_signal = match config.listener().tls() {
         Some(tls) => {
-            let identity = match tls.cert_path() {
-                Some(path) => {
-                    info!("loading identity from {}", path.display());
-                    ServerCertificate::from_pkcs12(path)
-                        .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
-                }
-                None => {
-                    info!("downloading identity from edgelet");
-                    download_server_certificate()
-                        .await
-                        .with_context(|| ServerCertificateLoadError::Edgelet)?
-                }
+            let identity = if let Some(path) = tls.cert_path() {
+                info!("loading identity from {}", path.display());
+                ServerCertificate::from_pkcs12(path)
+                    .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
+            } else {
+                info!("downloading identity from edgelet");
+                download_server_certificate()
+                    .await
+                    .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), identity.try_into()?, authenticator.clone())?;
+            server.tls(tls.addr(), identity, authenticator.clone())?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -73,12 +93,11 @@ where
         None => Either::Right(future::pending()),
     };
 
+    // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
-    // TODO read from config
-    server.tcp("localhost:1882", LocalAuthenticator::new());
-
+    // Start serving new connections
     let state = server.serve(shutdown).await?;
     Ok(state)
 }

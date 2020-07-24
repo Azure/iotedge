@@ -8,6 +8,7 @@ edition = "2018"
 async-trait = "0.1"
 bytes = "0.5"
 chrono = "0.4"
+config = { version = "0.10", features = ["json"], default-features = false }
 http = "0.2"
 hyper = "0.13"
 futures-util = "0.3"

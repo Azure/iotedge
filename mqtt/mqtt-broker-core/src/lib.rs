@@ -12,6 +12,7 @@
 )]
 
 pub mod auth;
+pub mod settings;
 
 use auth::AuthId;
 use serde::{Deserialize, Serialize};

@@ -1,11 +1,10 @@
-use std::{env, io};
+use std::{env, io, path::PathBuf};
 
 use anyhow::Result;
 use clap::{crate_description, crate_name, crate_version, App, Arg};
 use tracing::Level;
 use tracing_subscriber::{fmt, EnvFilter};
 
-use mqtt_broker::{BrokerConfig, Error, InitializeBrokerError};
 use mqttd::broker;
 
 #[tokio::main]
@@ -18,13 +17,12 @@ async fn main() -> Result<()> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
-    let config = create_app()
+    let config_path = create_app()
         .get_matches()
         .value_of("config")
-        .map_or(Ok(BrokerConfig::default()), BrokerConfig::from_file)
-        .map_err(|e| Error::from(InitializeBrokerError::LoadConfiguration(e)))?;
+        .map(PathBuf::from);
 
-    broker::run(config).await?;
+    broker::run(config_path).await?;
     Ok(())
 }
 

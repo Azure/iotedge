@@ -2,9 +2,9 @@ mod bootstrap;
 mod shutdown;
 mod snapshot;
 
-use std::env;
+use std::{env, path::Path};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures_util::pin_mut;
 use tokio::{
     task::JoinHandle,
@@ -13,25 +13,32 @@ use tokio::{
 use tracing::{info, warn};
 
 use mqtt_broker::{
-    Broker, BrokerConfig, BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist,
-    ShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
+    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
+    StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
-use mqtt_broker_core::auth::Authorizer;
 
-pub async fn run(config: BrokerConfig) -> Result<()> {
+pub async fn run<P>(config_path: Option<P>) -> Result<()>
+where
+    P: AsRef<Path>,
+{
+    let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
+
     info!("loading state...");
     let state_dir = env::current_dir().expect("can't get cwd").join("state");
     let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
     let state = persistor.load().await?;
     info!("state loaded.");
 
-    let broker = bootstrap::broker(&config, state).await?;
+    let broker = bootstrap::broker(config.broker(), state).await?;
 
     info!("starting snapshotter...");
     let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
 
+    let shutdown = shutdown::shutdown();
+    pin_mut!(shutdown);
+
     info!("starting server...");
-    let state = start_server(&config, broker).await?;
+    let state = bootstrap::start_server(config, broker, shutdown).await?;
 
     shutdown_handle.shutdown().await?;
     let mut persistor = join_handle.await?;
@@ -93,14 +100,6 @@ async fn tick_snapshot(
     }
 }
 
-async fn start_server<Z>(config: &BrokerConfig, broker: Broker<Z>) -> Result<BrokerSnapshot>
-where
-    Z: Authorizer + Send + 'static,
-{
-    // Setup the shutdown handle
-    let shutdown = shutdown::shutdown();
-    pin_mut!(shutdown);
-
-    // Run server
-    bootstrap::start_server(config, broker, shutdown).await
-}
+#[derive(Debug, thiserror::Error)]
+#[error("An error occurred loading configuration.")]
+pub struct LoadConfigurationError;
