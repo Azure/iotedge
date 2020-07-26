@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string InternalOriginInterface = "internal";
         public const string DownstreamOriginInterface = "downstream";
 
+        public const string EdgeAgentModuleId = "$edgeAgent";
         public const string EdgeHubModuleId = "$edgeHub";
         public const string IotEdgeIdentityCapability = "iotEdge";
         public const string ServiceIdentityRefreshMethodName = "RefreshDeviceScopeIdentityCache";
