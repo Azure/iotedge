@@ -100,7 +100,7 @@ where
         .ok_or_else(|| error::<D>(&s, &"256kb"))?;
     let base = captures[1]
         .parse::<T>()
-        .or_else(|_| Err(error::<D>(&captures[1], &"256")))?;
+        .map_err(|_| error::<D>(&captures[1], &"256"))?;
 
     let multiplier = captures[2].to_lowercase();
     let multiplier = get_multiplier::<T, D>(multiplier.as_ref())?;

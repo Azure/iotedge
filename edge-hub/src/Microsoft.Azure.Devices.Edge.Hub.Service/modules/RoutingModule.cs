@@ -212,6 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
+                        var modelIdStore = await c.Resolve<Task<IModelIdStore>>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                         var clientProvider = c.Resolve<IClientProvider>();
                         var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
@@ -235,7 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.operationTimeout,
                             this.useServerHeartbeat,
                             proxy,
-                            productInfoStore);
+                            productInfoStore,
+                            modelIdStore);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
@@ -603,7 +605,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 twinStoreOption = encryptionProvider.Map(
                     e =>
                     {
-                        IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}");
+                        IEntityStore<string, string> underlyingEntityStore = storeProvider.GetEntityStore<string, string>($"underlying{entityName}", entityName);
                         IKeyValueStore<string, string> es = new UpdatableEncryptedStore<string, string>(underlyingEntityStore, e);
                         ITypeMapper<string, string> keyMapper = new JsonMapper<string>();
                         ITypeMapper<TwinStoreEntity, string> valueMapper = new JsonMapper<TwinStoreEntity>();

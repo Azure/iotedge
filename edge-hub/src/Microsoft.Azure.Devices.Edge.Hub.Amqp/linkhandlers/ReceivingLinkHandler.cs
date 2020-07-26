@@ -26,8 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
-            IProductInfoStore productInfoStore)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore)
+            IProductInfoStore productInfoStore,
+            IModelIdStore modelIdStore)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore)
         {
             Preconditions.CheckArgument(link.IsReceiver, $"Link {requestUri} cannot receive");
             this.ReceivingLink = link;
