@@ -108,7 +108,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                 let json = serde_json::to_string(a).with_context(|_| {
                     ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
                 })?;
-                Ok(base64::encode(&json))
+                Ok(base64::encode_config(&json, base64::URL_SAFE))
             },
         );
 
@@ -199,14 +199,12 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         _: impl GetTrustBundle,
     ) -> Self::Future {
         info!("Initializing module runtime...");
-
-        // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
-        // with `.ok().map_or_else`. This is incorrect because `.ok()` will result in the error being dropped.
-        // So we suppress this lint. There's an open issue for this on the Clippy repo:
-        //      https://github.com/rust-lang/rust-clippy/issues/3730
-        #[allow(clippy::result_map_unwrap_or_else)]
-        let created = init_client(settings.moby_runtime().uri())
-            .map(|client| {
+        let created = init_client(settings.moby_runtime().uri()).map_or_else(
+            |err| {
+                log_failure(Level::Warn, &err);
+                future::Either::B(Err(err).into_future())
+            },
+            |client| {
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
@@ -253,11 +251,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     });
 
                 future::Either::A(fut)
-            })
-            .unwrap_or_else(|err| {
-                log_failure(Level::Warn, &err);
-                future::Either::B(Err(err).into_future())
-            });
+            },
+        );
 
         Box::new(created)
     }
@@ -334,7 +329,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let result = module
             .config()
             .clone_create_options()
-            .and_then(|create_options| {
+            .map(|create_options| {
                 // merge environment variables
                 let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
@@ -357,9 +352,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
                 // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
                 // It contains the logic to add a container to the iot edge network only if a network is not already specified.
-
-                Ok(self
-                    .client
+                self.client
                     .container_api()
                     .container_create(create_options, module.name())
                     .then(|result| match result {
@@ -370,7 +363,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 module.name().to_string(),
                             )),
                         )),
-                    }))
+                    })
             })
             .into_future()
             .flatten()
@@ -478,9 +471,9 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let wait_timeout = wait_before_kill.and_then(|s| match s.as_secs() {
-            s if s > i32::max_value() as u64 => Some(i32::max_value()),
-            s => Some(s as i32),
+        let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
+            s if s > i32::max_value() as u64 => i32::max_value(),
+            s => s as i32,
         });
 
         Box::new(

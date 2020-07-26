@@ -120,7 +120,7 @@ fn make_get_networks_handler(
 }
 
 fn make_create_network_handler(
-    on_post: impl Fn(Request<Body>) -> () + Clone + Send + 'static,
+    on_post: impl Fn(Request<Body>) + Clone + Send + 'static,
 ) -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
     move |req| {
         on_post(req);
@@ -154,7 +154,7 @@ fn not_found_handler(_: Request<Body>) -> ResponseFuture {
 
 fn make_network_handler(
     on_get: impl Fn() -> String + Clone + Send + 'static,
-    on_post: impl Fn(Request<Body>) -> () + Clone + Send + 'static,
+    on_post: impl Fn(Request<Body>) + Clone + Send + 'static,
 ) -> impl Fn(Request<Body>) -> Box<dyn Future<Item = Response<Body>, Error = HyperError> + Send> + Clone
 {
     let dispatch_table = routes!(
@@ -407,12 +407,12 @@ fn image_pull_with_invalid_creds_handler(req: Request<Body>) -> ResponseFuture {
         .headers()
         .get_all("X-Registry-Auth")
         .into_iter()
-        .map(|bytes| base64::decode(bytes).unwrap())
+        .map(|bytes| base64::decode_config(bytes, base64::URL_SAFE).unwrap())
         .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
         .collect::<String>();
     let auth_config: AuthConfig = serde_json::from_str(&auth_str).unwrap();
-    assert_eq!(auth_config.username(), Some("u1"));
-    assert_eq!(auth_config.password(), Some("wrong_password"));
+    assert_eq!(auth_config.username(), Some("us1"));
+    assert_eq!(auth_config.password(), Some("ac?ac~aaac???"));
     assert_eq!(auth_config.email(), Some("u1@bleh.com"));
     assert_eq!(auth_config.serveraddress(), Some("svr1"));
 
@@ -459,9 +459,10 @@ fn image_pull_with_invalid_creds_fails() {
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
         .and_then(|runtime| {
+            // password is written to guarantee base64 encoding has '-' and/or '_'
             let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("wrong_password".to_string())
+                .with_username("us1".to_string())
+                .with_password("ac?ac~aaac???".to_string())
                 .with_email("u1@bleh.com".to_string())
                 .with_serveraddress("svr1".to_string());
             let config = DockerConfig::new(
@@ -594,7 +595,7 @@ fn image_pull_with_creds_handler(req: Request<Body>) -> ResponseFuture {
         .headers()
         .get_all("X-Registry-Auth")
         .into_iter()
-        .map(|bytes| base64::decode(bytes).unwrap())
+        .map(|bytes| base64::decode_config(bytes, base64::URL_SAFE).unwrap())
         .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
         .collect::<String>();
     let auth_config: AuthConfig = serde_json::from_str(&auth_str).unwrap();

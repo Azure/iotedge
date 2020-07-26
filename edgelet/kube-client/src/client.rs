@@ -147,7 +147,9 @@ where
                 self.request(req, true)
                     .and_then(|response| match response {
                         ListResponse::Ok(list) => Ok(list),
-                        _ => Err(Error::from(ErrorKind::Response(RequestType::ConfigMapList))),
+                        ListResponse::Other(_) => {
+                            Err(Error::from(ErrorKind::Response(RequestType::ConfigMapList)))
+                        }
                     })
                     .map_err(|err| {
                         Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
@@ -265,7 +267,7 @@ where
                 self.request(req, true)
                     .and_then(|response| match response {
                         ListResponse::Ok(deployments) => Ok(deployments),
-                        _ => Err(Error::from(ErrorKind::Response(
+                        ListResponse::Other(_) => Err(Error::from(ErrorKind::Response(
                             RequestType::DeploymentList,
                         ))),
                     })
@@ -379,7 +381,9 @@ where
                 self.request(req, true)
                     .and_then(|response| match response {
                         ListResponse::Ok(list) => Ok(list),
-                        _ => Err(Error::from(ErrorKind::Response(RequestType::PodList))),
+                        ListResponse::Other(_) => {
+                            Err(Error::from(ErrorKind::Response(RequestType::PodList)))
+                        }
                     })
                     .map_err(|err| {
                         Error::from(err.context(ErrorKind::Response(RequestType::PodList)))
@@ -396,7 +400,9 @@ where
                 self.request(req, true)
                     .and_then(|response| match response {
                         ListResponse::Ok(list) => Ok(list),
-                        _ => Err(Error::from(ErrorKind::Response(RequestType::NodeList))),
+                        ListResponse::Other(_) => {
+                            Err(Error::from(ErrorKind::Response(RequestType::NodeList)))
+                        }
                     })
                     .map_err(|err| {
                         Error::from(err.context(ErrorKind::Response(RequestType::NodeList)))
@@ -422,7 +428,9 @@ where
                 self.request(req, false)
                     .and_then(|response| match response {
                         ListResponse::Ok(list) => Ok(list),
-                        _ => Err(Error::from(ErrorKind::Response(RequestType::SecretList))),
+                        ListResponse::Other(_) => {
+                            Err(Error::from(ErrorKind::Response(RequestType::SecretList)))
+                        }
                     })
                     .map_err(|err| {
                         Error::from(err.context(ErrorKind::Response(RequestType::SecretList)))
@@ -536,7 +544,7 @@ where
                 self.request(req, true)
                     .and_then(|response| match response {
                         ListResponse::Ok(list) => Ok(list),
-                        _ => Err(Error::from(ErrorKind::Response(
+                        ListResponse::Other(_) => Err(Error::from(ErrorKind::Response(
                             RequestType::ServiceAccountList,
                         ))),
                     })
@@ -598,9 +606,9 @@ where
                     api_core::ReadNamespacedServiceAccountResponse::Ok(service_account) => {
                         Ok(service_account)
                     }
-                    _ => Err(Error::from(ErrorKind::Response(
-                        RequestType::ServiceAccountGet,
-                    ))),
+                    api_core::ReadNamespacedServiceAccountResponse::Other(_) => Err(Error::from(
+                        ErrorKind::Response(RequestType::ServiceAccountGet),
+                    )),
                 })
                 .map_err(|err| {
                     Error::from(err.context(ErrorKind::Response(RequestType::ServiceAccountGet)))

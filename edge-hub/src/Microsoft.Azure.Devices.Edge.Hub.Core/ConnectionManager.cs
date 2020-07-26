@@ -68,6 +68,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
             Option<DeviceConnection> currentDeviceConnection = device.AddDeviceConnection(deviceProxy);
+            currentDeviceConnection.ForEach(async c =>
+                {
+                    // If we add a device connection that already has subscriptions, we will remake the cloud connection.
+                    // Otherwise the cloud connection won't get established until some other operation does it (i.e. telemetry)
+                    if (c.Subscriptions.Count > 0)
+                    {
+                        Events.GettingCloudConnectionForDeviceSubscriptions();
+                        await this.TryGetCloudConnection(identity.Id);
+                    }
+                });
             Events.NewDeviceConnection(identity);
             await currentDeviceConnection
                 .Filter(dc => dc.IsActive)
@@ -480,7 +490,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 InvokingCloudConnectionEstablishedEvent,
                 HandlingConnectionStatusChangedHandler,
                 CloudConnectionLostClosingClient,
-                CloudConnectionLostClosingAllClients
+                CloudConnectionLostClosingAllClients,
+                GettingCloudConnectionForDeviceSubscriptions
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -550,6 +561,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void CloudConnectionLostClosingAllClients()
             {
                 Log.LogDebug((int)EventIds.CloudConnectionLostClosingAllClients, Invariant($"Cloud connection lost, closing all clients."));
+            }
+
+            public static void GettingCloudConnectionForDeviceSubscriptions()
+            {
+                Log.LogDebug((int)EventIds.GettingCloudConnectionForDeviceSubscriptions, $"Device has subscriptions. Trying to get cloud connection.");
             }
         }
 

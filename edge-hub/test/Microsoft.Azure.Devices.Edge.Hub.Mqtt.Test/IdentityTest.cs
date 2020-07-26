@@ -337,12 +337,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal($"{deviceId}/{moduleId}", hubModuleIdentity.Id);
         }
 
-        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "", X509Certificate2 certificate = null, IList<X509Certificate2> chain = null, IProductInfoStore productInfoStore = null)
+        static async Task<IClientCredentials> GetClientCredentials(string iotHubHostName, string deviceId, string userName, string token, bool isCertAuthAllowed = false, string productInfo = "", X509Certificate2 certificate = null, IList<X509Certificate2> chain = null, IProductInfoStore productInfoStore = null, IModelIdStore modelIdStore = null)
         {
             productInfoStore = productInfoStore ?? Mock.Of<IProductInfoStore>();
+            modelIdStore = modelIdStore ?? Mock.Of<IModelIdStore>();
             var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
             var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName), productInfo);
-            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, productInfoStore, isCertAuthAllowed);
+            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, productInfoStore, modelIdStore, isCertAuthAllowed);
             if (certificate != null && chain != null)
             {
                 credentialIdentityProvider.RegisterConnectionCertificate(certificate, chain);

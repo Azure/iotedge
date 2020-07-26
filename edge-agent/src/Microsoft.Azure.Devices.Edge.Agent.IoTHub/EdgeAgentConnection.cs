@@ -264,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Events.ErrorGettingTwin(e);
 
-                if (!retrying && moduleClient != null && !(e is TimeoutException))
+                if (!retrying && moduleClient != null)
                 {
                     try
                     {
