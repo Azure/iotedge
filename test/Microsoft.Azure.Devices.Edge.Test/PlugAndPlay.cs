@@ -48,8 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             },
             token);
             EdgeModule filter = deployment.Modules[PlugAndPlayIdentityName];
-            await Task.Delay(TimeSpan.FromSeconds(15));
-            // await filter.WaitForEventsReceivedFromDeviceAsync(deployment.StartTime, token, DeviceId);
+            // await Task.Delay(TimeSpan.FromSeconds(15));
+            await filter.WaitForEventsReceivedFromDeviceAsync(deployment.StartTime, token, deviceId);
             await this.Validate(this.iotHub.Hostname, deviceId, TestModelId);
         }
 
@@ -57,9 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             // Verify that the device has been registered as a plug and play device
             string sasToken = GenerateSasToken($"{this.iotHub.Hostname}/devices/{deviceId}", this.iotHub.SharedAccessKey, "iothubowner");
-            Log.Verbose($"AccessKey: {this.iotHub.SharedAccessKey}");
-            Log.Verbose($"SAS: {sasToken}");
-
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
