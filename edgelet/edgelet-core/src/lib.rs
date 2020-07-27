@@ -26,6 +26,7 @@ mod logs;
 mod module;
 mod network;
 mod parse_since;
+mod secret;
 mod settings;
 pub mod watchdog;
 pub mod workload;
@@ -49,6 +50,7 @@ pub use module::{
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;
+pub use secret::{SecretManager, SecretOperation};
 pub use settings::{
     AttestationMethod, Certificates, Connect, Dps, External, Listen, Manual, ManualAuthMethod,
     ManualDeviceConnectionString, ManualX509Auth, Protocol, Provisioning, ProvisioningType,
