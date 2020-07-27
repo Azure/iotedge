@@ -53,7 +53,6 @@ usage()
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. (required)"
     echo "     --no-push        Build/tag only; don't push image to container registries"
-
     exit 1;
 }
 
