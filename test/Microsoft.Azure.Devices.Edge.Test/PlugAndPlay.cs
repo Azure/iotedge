@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("modelId", TestModelId),
                             ("deviceId", deviceId),
-                            ("iotHubConnectionString", Context.Current.PreviewConnectionString.Expect<ArgumentException>(() => throw new ArgumentException("Must use preview connection string with PlugAndPlay tests."))
+                            ("iotHubConnectionString", Context.Current.PreviewConnectionString.Expect<ArgumentException>(() => throw new ArgumentException("Must use preview connection string with PlugAndPlay tests.")))
                         });
             },
             token);
