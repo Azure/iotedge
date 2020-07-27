@@ -145,6 +145,8 @@ pub struct ModuleSpec<T> {
     config: T,
     #[serde(default = "BTreeMap::new")]
     env: BTreeMap<String, String>,
+    #[serde(default = "BTreeMap::new")]
+    secrets: BTreeMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
     image_pull_policy: ImagePullPolicy,
@@ -160,6 +162,7 @@ where
             type_: self.type_.clone(),
             config: self.config.clone(),
             env: self.env.clone(),
+            secrets: self.secrets.clone(),
             image_pull_policy: self.image_pull_policy,
         }
     }
@@ -171,16 +174,18 @@ impl<T> ModuleSpec<T> {
         type_: String,
         config: T,
         env: BTreeMap<String, String>,
+        secrets: BTreeMap<String, String>,
         image_pull_policy: ImagePullPolicy,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
         ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
 
-        Ok(ModuleSpec {
+        Ok(Self {
             name,
             type_,
             config,
             env,
+            secrets,
             image_pull_policy,
         })
     }
@@ -230,6 +235,19 @@ impl<T> ModuleSpec<T> {
 
     pub fn with_env(mut self, env: BTreeMap<String, String>) -> Self {
         self.env = env;
+        self
+    }
+
+    pub fn secrets(&self) -> &BTreeMap<String, String> {
+        &self.secrets
+    }
+
+    pub fn secrets_mut(&mut self) -> &mut BTreeMap<String, String> {
+        &mut self.secrets
+    }
+
+    pub fn with_secrets(mut self, secrets: BTreeMap<String, String>) -> Self {
+        self.secrets = secrets;
         self
     }
 
