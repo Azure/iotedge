@@ -24,11 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         const string PlugAndPlayIdentityName = "PnPIdentity";
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
-        const string DeviceId = "pnpTestDeviceId2";
+        const string DeviceIdPrefix = "pnpDevice-";
 
         [Test]
         public async Task DeviceClient()
         {
+            string deviceId = DeviceIdPrefix + Guid.NewGuid();
             string plugAndPlayIdentityImage = Context.Current.PlugAndPlayIdentityImage.Expect(() => new InvalidOperationException("Missing Plug and Play Identity image"));
             CancellationToken token = this.TestToken;
 
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         new[]
                         {
                             ("modelId", TestModelId),
-                            ("deviceId", DeviceId),
+                            ("deviceId", deviceId),
                             ("iotHubConnectionString", Context.Current.ConnectionString)
                         });
             },
@@ -49,13 +50,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeModule filter = deployment.Modules[PlugAndPlayIdentityName];
             await Task.Delay(TimeSpan.FromSeconds(15));
             // await filter.WaitForEventsReceivedFromDeviceAsync(deployment.StartTime, token, DeviceId);
-            await this.Validate(this.iotHub.HubName, this.iotHub.Hostname, DeviceId, TestModelId);
+            await this.Validate(this.iotHub.Hostname, deviceId, TestModelId);
         }
 
-        public async Task Validate(string hubName, string hostName, string deviceId, string expectedModelId)
+        public async Task Validate(string hostName, string deviceId, string expectedModelId)
         {
             // Verify that the device has been registered as a plug and play device
-            string sasToken = GenerateSasToken($"{this.iotHub.Hostname}/devices/{DeviceId}", this.iotHub.SharedAccessKey, "iothubowner");
+            string sasToken = GenerateSasToken($"{this.iotHub.Hostname}/devices/{deviceId}", this.iotHub.SharedAccessKey, "iothubowner");
             Log.Verbose($"AccessKey: {this.iotHub.SharedAccessKey}");
             Log.Verbose($"SAS: {sasToken}");
 
