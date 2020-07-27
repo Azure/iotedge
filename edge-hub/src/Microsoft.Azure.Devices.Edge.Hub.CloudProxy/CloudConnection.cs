@@ -119,9 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
             Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity, this.modelId);
-            IClient client = this.modelId.Match(
-                m => this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, m),
-                () => this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList));
+            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
 
             client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
