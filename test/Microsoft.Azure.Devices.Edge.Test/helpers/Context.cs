@@ -84,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
+            this.PreviewEventHubEndpoint = Option.Maybe(Get("PREVIEW_EVENT_HUB_ENDPOINT"));
             this.InstallerPath = Option.Maybe(Get("installerPath"));
             this.LogFile = Option.Maybe(Get("logFile"));
             this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
@@ -131,6 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> EdgeHubImage { get; }
 
         public string EventHubEndpoint { get; }
+
+        public Option<string> PreviewEventHubEndpoint { get; }
 
         public Option<string> InstallerPath { get; }
 

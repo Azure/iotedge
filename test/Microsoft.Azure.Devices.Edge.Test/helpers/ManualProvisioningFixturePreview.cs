@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
             this.iotHub = new IotHub(
                 Context.Current.PreviewConnectionString.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview connection string if using preview fixture.")),
-                Context.Current.EventHubEndpoint,
+                Context.Current.PreviewEventHubEndpoint.Expect<ArgumentException>(() => throw new ArgumentException("Must supply event hub endpoint if using preview fixture.")),
                 Context.Current.Proxy);
         }
 

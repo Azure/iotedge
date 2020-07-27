@@ -12,6 +12,7 @@ steps:
       TestContainerRegistryPassword,
       TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
+      TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
       TestPreviewIotHubConnectionString,
