@@ -32,6 +32,7 @@ parameters:
 jobs:
 
 - job: "run_pub_${{ parameters['id'] }}"
+  timeoutInMinutes: 0
   pool:
     name: $(pool.name)
     demands: mqtt-perf-tests-pub
@@ -49,6 +50,7 @@ jobs:
     continueOnError: true 
 
 - job: "run_sub_${{ parameters['id'] }}"
+  timeoutInMinutes: 0
   pool:
     name: $(pool.name)
     demands: mqtt-perf-tests-sub
