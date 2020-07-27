@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
             this.UpdateAgentImage(
-                agentImage.GetOrElse("mcr.microsoft.com/microsoft/azureiotedge-agent:1.0"),
+                agentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.0"),
                 agentRegistry);
         }
 
