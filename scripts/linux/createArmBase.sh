@@ -4,8 +4,6 @@
 # This script creates an ARM docker image as a base for the edgeHub module.
 # then pushes it to the appropriate registries.
 # It assumes that the caller is logged into registries:
-# edgebuilds.azurecr.io
-# edgerelease.azurecr.io
 # hub.docker.com
 ###############################################################################
 
@@ -55,7 +53,6 @@ usage()
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. (required)"
     echo "     --no-push        Build/tag only; don't push image to container registries"
-
     exit 1;
 }
 
@@ -142,7 +139,7 @@ process_args()
         print_help_and_exit
     fi
 
-    registries=("edgebuilds.azurecr.io/" "edgerelease.azurecr.io/" "")
+    registries=("")
     DOCKER_IMAGE_TAGS=("${registries[@]/%/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION-linux-$ARCH}")
 }
 
