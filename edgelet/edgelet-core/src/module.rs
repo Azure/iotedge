@@ -524,7 +524,7 @@ pub enum ModuleRuntimeErrorReason {
 }
 
 // Useful for error contexts
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ModuleOperation {
     RuntimeState,
 }

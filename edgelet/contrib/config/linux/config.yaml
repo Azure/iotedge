@@ -336,15 +336,15 @@ homedir: "/var/lib/iotedge"
 # content_trust_root_ca_registry - configures the mapping of registry URL and 
 # the location of root CA
 #
-# registryserverurl1 - URL of registry 1
+# registryserverhostname1 - Hostname of registry 1
 # "/path/to/root_registry1.ca" - path to the root CA for registry 1
 #
-# registryserverurl2 - URL of registry 2
+# registryserverhostname2 - Hostname of registry 2
 # "/path/to/root_registry2.ca" - path to the root CA for registry 2
 #
 # content_trust_root_ca_registry :
-#   registryserverurl1 : "/path/to/root_registry1.ca"
-#   registryserverurl2 : "/path/to/root_registry2.ca"
+#   registryserverhostname1 : "/path/to/root_registry1.ca"
+#   registryserverhostname2 : "/path/to/root_registry2.ca"
 # 
 # network:
 #   name: "azure-iot-edge"
@@ -364,8 +364,8 @@ homedir: "/var/lib/iotedge"
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
   # content_trust_root_ca_registry :
-  #   registryserverurl1 : "/path/to/root_registry1.ca"
-  #   registryserverurl2 : "/path/to/root_registry2.ca"
+  #   registryserverhostname1 : "/path/to/root_registry1.ca"
+  #   registryserverhostname2 : "/path/to/root_registry2.ca"
   #
   # network:
   #   name: "azure-iot-edge"

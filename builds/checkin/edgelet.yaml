@@ -111,6 +111,9 @@ jobs:
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: "vs2017-win2016"
+    variables:
+    - name : RUST_BACKTRACE
+      value : 1  
     steps:
       - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set env variables

@@ -14,9 +14,9 @@ mod client;
 mod config;
 mod error;
 mod module;
+mod notary;
 mod runtime;
 mod settings;
-mod notary;
 
 pub use crate::config::DockerConfig;
 pub use error::{Error, ErrorKind};

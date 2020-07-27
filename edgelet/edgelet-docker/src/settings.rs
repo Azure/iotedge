@@ -1159,11 +1159,11 @@ mod tests {
         let settings = Settings::new(Path::new(GOOD_SETTINGS_CONTENT_TRUST)).unwrap();
         if let Some(content_trust_map) = settings.moby_runtime().content_trust_root_ca_registry() {
             assert_eq!(
-                content_trust_map.get("registryserverurl1"),
+                content_trust_map.get("registryserverhostname1"),
                 Some(&std::path::PathBuf::from("/path/to/root_registry1.ca"))
             );
             assert_eq!(
-                content_trust_map.get("registryserverurl2"),
+                content_trust_map.get("registryserverhostname2"),
                 Some(&std::path::PathBuf::from("/path/to/root_registry2.ca"))
             );
             assert_eq!(
@@ -1171,13 +1171,13 @@ mod tests {
                 Some(&std::path::PathBuf::from("/path/to/root_registry3.ca"))
             );
             assert_eq!(
-                content_trust_map.get("registryserverurl4"),
+                content_trust_map.get("registryserverhostname4"),
                 Some(&std::path::PathBuf::from(
                     "/path/to/root_registryreplaced.ca"
                 ))
             );
             assert_eq!(
-                content_trust_map.get("registryserverurl5"),
+                content_trust_map.get("registryserverhostname5"),
                 Some(&std::path::PathBuf::from(""))
             );
         } else {
