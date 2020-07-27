@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Serilog;
 
     [EndToEnd]
-    public class PlugAndPlay : SasManualProvisioningFixture
+    public class PlugAndPlay : SasManualProvisioningFixturePreview
     {
         const string PlugAndPlayIdentityName = "PnPIdentity";
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
