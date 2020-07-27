@@ -17,7 +17,7 @@ use bytes::Bytes;
 use fail::fail_point;
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
-use tracing::{debug, info, span, Level};
+use tracing::{debug, info, info_span};
 
 use mqtt3::proto::Publication;
 
@@ -359,7 +359,7 @@ where
         let seq = self.seq;
 
         let res = tokio::task::spawn_blocking(move || {
-            let span = span!(Level::INFO, "persistor", dir = %dir.display());
+            let span = info_span!("persistor", dir = %dir.display());
             let _guard = span.enter();
 
             if !dir.exists() {
