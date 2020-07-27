@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("modelId", TestModelId),
                             ("deviceId", deviceId),
-                            ("iotHubConnectionString", Context.Current.ConnectionString)
+                            ("iotHubConnectionString", Context.Current.PreviewConnectionString)
                         });
             },
             token);
