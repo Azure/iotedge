@@ -33,6 +33,7 @@ use std::fs::{DirBuilder, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use failure::{Context, Fail, ResultExt};
 use futures::future::{Either, IntoFuture};
@@ -327,6 +328,18 @@ where
                     $provisioning_result.clone(),
                     crypto.clone(),
                 )?;
+
+                // Normally iotedged will stop all modules when it shuts down. But if it crashed,
+                // then modules will continue to run and they'll be holding stale file descriptors
+                // for the workload and management APIs. On some platforms (e.g. CentOS 7.5), calls
+                // to these APIs will begin to fail. Resilient modules should be able to deal with
+                // this, but we'll restart all modules to ensure a clean start.
+                const STOP_TIME: Duration = Duration::from_secs(30);
+                tokio_runtime
+                    .block_on(runtime.stop_all(Some(STOP_TIME)))
+                    .context(ErrorKind::Initialize(
+                        InitializeErrorReason::StopExistingModules
+                    ))?;
 
                 if $force_reprovision ||
                     ($provisioning_result.reconfigure() != ReprovisioningStatus::DeviceDataNotUpdated) {

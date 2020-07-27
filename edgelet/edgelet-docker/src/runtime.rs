@@ -315,6 +315,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type SystemResourcesFuture =
         Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
@@ -819,6 +820,24 @@ impl ModuleRuntime for DockerModuleRuntime {
         Box::new(self.list().and_then(move |list| {
             let n = list.into_iter().map(move |c| {
                 <DockerModuleRuntime as ModuleRuntime>::remove(&self_for_remove, c.name())
+            });
+            future::join_all(n).map(|_| ())
+        }))
+    }
+
+    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
+        let self_for_stop = self.clone();
+        Box::new(self.list().and_then(move |list| {
+            let n = list.into_iter().map(move |c| {
+                <DockerModuleRuntime as ModuleRuntime>::stop(
+                    &self_for_stop,
+                    c.name(),
+                    wait_before_kill,
+                )
+                .or_else(|err| match (&err).kind() {
+                    ErrorKind::NotFound(_) => Ok(()),
+                    _ => Err(err),
+                })
             });
             future::join_all(n).map(|_| ())
         }))
@@ -1479,6 +1498,7 @@ mod tests {
         type SystemResourcesFuture =
             Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
+        type StopAllFuture = FutureResult<(), Self::Error>;
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             unimplemented!()
@@ -1529,6 +1549,10 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
+            unimplemented!()
+        }
+
+        fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
             unimplemented!()
         }
     }
