@@ -7,13 +7,20 @@ use tracing_subscriber::{fmt, EnvFilter};
 
 use mqttd::broker;
 
+const LOG_LEVEL_ENV: &str = "RuntimeLogLevel";
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let log_level = match EnvFilter::try_from_env(LOG_LEVEL_ENV) {
+        Ok(filter) => filter,
+        Err(_) => EnvFilter::new("INFO"),
+    };
+
     let subscriber = fmt::Subscriber::builder()
         .with_ansi(atty::is(atty::Stream::Stderr))
         .with_max_level(Level::TRACE)
         .with_writer(io::stderr)
-        .with_env_filter(EnvFilter::from_default_env())
+        .with_env_filter(log_level)
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
