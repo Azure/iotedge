@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
             Option<ServiceIdentity> targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
 
-            if (this.NeedToRefreshIdentity(targetIdentity))
+            if (this.IsRefreshIdentityNeeded(targetIdentity))
             {
                 // Identity doesn't exist, this can happen if the target identity
                 // is newly created in IoT Hub. In this case, we try to refresh
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 await identitiesCache.RefreshServiceIdentity(targetId);
                 targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
 
-                if (this.NeedToRefreshIdentity(targetIdentity))
+                if (this.IsRefreshIdentityNeeded(targetIdentity))
                 {
                     // Identity still doesn't exist. It's possible that we're nested,
                     // so we need to refresh our identity cache to satisfy the prior
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return result;
         }
 
-        bool NeedToRefreshIdentity(Option<ServiceIdentity> identityOption)
+        bool IsRefreshIdentityNeeded(Option<ServiceIdentity> identityOption)
         {
             // Default refresh to true if we don't have the identity yet.
             bool needToRefresh = true;
