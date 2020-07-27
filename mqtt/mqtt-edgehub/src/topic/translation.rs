@@ -19,10 +19,7 @@ lazy_static! {
         TranslateC2D::new().expect("Invalid regex in tranlsation.");
 }
 
-pub fn translate_incoming_subscribe(
-    client_id: &ClientId,
-    mut subscribe: proto::Subscribe,
-) -> proto::Subscribe {
+pub fn translate_incoming_subscribe(client_id: &ClientId, subscribe: &mut proto::Subscribe) {
     for mut sub_to in &mut subscribe.subscribe_to {
         if let Some(new_topic) = TRANSLATE_C2D.to_internal(&sub_to.topic_filter, client_id) {
             debug!(
@@ -32,27 +29,17 @@ pub fn translate_incoming_subscribe(
             sub_to.topic_filter = new_topic;
         }
     }
-
-    subscribe
 }
 
-pub fn translate_incoming_unsubscribe(
-    client_id: &ClientId,
-    mut unsubscribe: proto::Unsubscribe,
-) -> proto::Unsubscribe {
+pub fn translate_incoming_unsubscribe(client_id: &ClientId, unsubscribe: &mut proto::Unsubscribe) {
     for unsub_from in &mut unsubscribe.unsubscribe_from {
         if let Some(new_topic) = TRANSLATE_C2D.to_internal(&unsub_from, client_id) {
             *unsub_from = new_topic;
         }
     }
-
-    unsubscribe
 }
 
-pub fn translate_incoming_publish(
-    client_id: &ClientId,
-    mut publish: proto::Publish,
-) -> proto::Publish {
+pub fn translate_incoming_publish(client_id: &ClientId, publish: &mut proto::Publish) {
     if let Some(new_topic) = TRANSLATE_D2C.to_internal(&publish.topic_name, client_id) {
         debug!(
             "Translating incoming publication {} to {}",
@@ -60,8 +47,6 @@ pub fn translate_incoming_publish(
         );
         publish.topic_name = new_topic;
     }
-
-    publish
 }
 
 pub fn translate_outgoing_publish(mut publish: proto::Publish) -> proto::Publish {

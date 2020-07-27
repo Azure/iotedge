@@ -14,7 +14,9 @@ use futures_util::{
 use tokio::time;
 use tracing::{info, warn};
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Server, ServerCertificate};
+use mqtt_broker::{
+    Broker, BrokerBuilder, BrokerSnapshot, MakeEdgeHubPacketProcessor, Server, ServerCertificate,
+};
 use mqtt_broker_core::{auth::Authorizer, settings::BrokerConfig};
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
@@ -59,7 +61,7 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()> + Unpin,
 {
-    let mut server = Server::from_broker(broker);
+    let mut server = Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor);
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();

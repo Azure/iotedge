@@ -39,7 +39,9 @@ use mqtt_broker_core::{
 };
 
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
-pub use crate::connection::ConnectionHandle;
+pub use crate::connection::{
+    ConnectionHandle, MakeEdgeHubPacketProcessor, MakeMqttPacketProcessor,
+};
 pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{
     FileFormat, FilePersistor, NullPersistor, Persist, PersistError, VersionedFileFormat,

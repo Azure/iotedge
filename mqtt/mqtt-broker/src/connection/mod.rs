@@ -1,3 +1,6 @@
+mod packet;
+pub use packet::*;
+
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
     net::SocketAddr,
@@ -28,8 +31,8 @@ use mqtt_broker_core::{
     auth::{AuthenticationContext, Authenticator, Certificate},
     ClientId,
 };
-
 #[cfg(feature = "edgehub")]
+#[allow(unused_imports)]
 use mqtt_edgehub::topic::translation::{
     translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
     translate_outgoing_publish,
@@ -89,18 +92,19 @@ impl PartialEq for ConnectionHandle {
 /// Receives a source of packets and a handle to the Broker.
 /// Starts two tasks (sending and receiving)
 #[allow(clippy::too_many_lines)]
-pub async fn process<I, N>(
+pub async fn process<I, N, P>(
     io: I,
     remote_addr: SocketAddr,
     mut broker_handle: BrokerHandle,
     authenticator: &N,
+    make_processor: P,
 ) -> Result<(), Error>
 where
     I: AsyncRead + AsyncWrite + GetPeerInfo<Certificate = Certificate> + Unpin,
     N: Authenticator + ?Sized,
+    P: MakePacketProcessor,
 {
     let certificate = io.peer_certificate()?;
-    let cert_chain = io.peer_cert_chain()?;
     let peer_addr = io.peer_addr()?;
 
     let mut timeout = TimeoutStream::new(io);
@@ -155,9 +159,6 @@ where
 
                 if let Some(certificate) = certificate {
                     context.with_certificate(certificate);
-                    if let Some(chain) = cert_chain{
-                        context.with_cert_chain(chain);
-                    }
                 } else if let Some(password) = &connect.password {
                     context.with_password(password);
                 }
@@ -178,8 +179,9 @@ where
 
                 // Start up the processing tasks
                 let (outgoing, incoming) = codec.split();
+                let processor = make_processor.make_incoming(&client_id, &broker_handle);
                 let incoming_task =
-                    incoming_task(client_id.clone(), incoming, broker_handle.clone());
+                    incoming_task(client_id.clone(), incoming, broker_handle.clone(), processor);
                 let outgoing_task = outgoing_task(client_id.clone(), events, outgoing, broker_handle.clone());
                 pin_mut!(incoming_task);
                 pin_mut!(outgoing_task);
@@ -251,13 +253,15 @@ where
     }
 }
 
-async fn incoming_task<S>(
+async fn incoming_task<S, P>(
     client_id: ClientId,
     mut incoming: S,
     mut broker: BrokerHandle,
+    mut processor: P,
 ) -> Result<(), Error>
 where
     S: Stream<Item = Result<Packet, DecodeError>> + Unpin,
+    P: InPacketProcessor,
 {
     // We limit the number of incoming publications (PublishFrom) per client
     // in order to avoid (a single) publisher to occupy whole BrokerHandle queue.
@@ -269,49 +273,9 @@ where
     while let Some(maybe_packet) = incoming.next().await {
         match maybe_packet {
             Ok(packet) => {
-                let event = match packet {
-                    Packet::Connect(_) => {
-                        // [MQTT-3.1.0-2] - The Server MUST process a second CONNECT Packet
-                        // sent from a Client as a protocol violation and disconnect the Client.
-                        warn!("CONNECT packet received on an already established connection, dropping connection due to protocol violation");
-                        return Err(Error::ProtocolViolation);
-                    }
-                    Packet::ConnAck(connack) => ClientEvent::ConnAck(connack),
-                    Packet::Disconnect(disconnect) => {
-                        let event = ClientEvent::Disconnect(disconnect);
-                        let message = Message::Client(client_id.clone(), event);
-                        broker.send(message).await?;
-                        debug!("disconnect received. shutting down receive side of connection");
-                        return Ok(());
-                    }
-                    Packet::PingReq(ping) => ClientEvent::PingReq(ping),
-                    Packet::PingResp(pingresp) => ClientEvent::PingResp(pingresp),
-                    Packet::PubAck(puback) => ClientEvent::PubAck(puback),
-                    Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
-                    Packet::Publish(publish) => {
-                        #[cfg(feature = "edgehub")]
-                        let publish = translate_incoming_publish(&client_id, publish);
-                        let perm = incoming_pub_limit.clone().acquire_owned().await;
-                        ClientEvent::PublishFrom(publish, Some(perm))
-                    }
-                    Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
-                    Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
-                    Packet::Subscribe(subscribe) => {
-                        #[cfg(feature = "edgehub")]
-                        let subscribe = translate_incoming_subscribe(&client_id, subscribe);
-                        ClientEvent::Subscribe(subscribe)
-                    }
-                    Packet::SubAck(suback) => ClientEvent::SubAck(suback),
-                    Packet::Unsubscribe(unsubscribe) => {
-                        #[cfg(feature = "edgehub")]
-                        let unsubscribe = translate_incoming_unsubscribe(&client_id, unsubscribe);
-                        ClientEvent::Unsubscribe(unsubscribe)
-                    }
-                    Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
-                };
-
-                let message = Message::Client(client_id.clone(), event);
-                broker.send(message).await?;
+                if processor.process(packet, &incoming_pub_limit).await? == Processed::Stop {
+                    return Ok(());
+                }
             }
             Err(e) => {
                 warn!(message="error occurred while reading from connection", error=%e);
