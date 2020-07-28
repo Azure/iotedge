@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
             Option<ServiceIdentity> targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
 
-            if (!targetIdentity.HasValue)
+            if (this.IsRefreshIdentityNeeded(targetIdentity))
             {
                 // Identity doesn't exist, this can happen if the target identity
                 // is newly created in IoT Hub. In this case, we try to refresh
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 await identitiesCache.RefreshServiceIdentity(targetId);
                 targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
 
-                if (!targetIdentity.HasValue)
+                if (this.IsRefreshIdentityNeeded(targetIdentity))
                 {
                     // Identity still doesn't exist. It's possible that we're nested,
                     // so we need to refresh our identity cache to satisfy the prior
@@ -153,6 +153,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             result.Status = HttpStatusCode.OK;
 
             return result;
+        }
+
+        bool IsRefreshIdentityNeeded(Option<ServiceIdentity> identityOption)
+        {
+            // Default refresh to true if we don't have the identity yet.
+            bool needToRefresh = true;
+
+            identityOption.ForEach(id =>
+            {
+                // Identities can initially be created with no auth, and
+                // have their auth type updated later. In this case we
+                // must refresh the identity or we won't be able to auth
+                // incoming OnBehalfOf connections for those identities.
+                needToRefresh = id.Authentication.Type == ServiceAuthenticationType.None;
+            });
+
+            return needToRefresh;
         }
 
         bool TryGetTargetDeviceId(string authChain, out string targetDeviceId)
