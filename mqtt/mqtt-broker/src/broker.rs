@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use std::panic;
 
 use tokio::sync::mpsc::{self, Receiver, Sender};
-use tracing::{debug, error, info, span, warn, Level};
+use tracing::{debug, error, info, info_span, warn};
 
 use mqtt3::proto;
 use mqtt_broker_core::{
@@ -53,14 +53,14 @@ where
         while let Some(message) = self.messages.recv().await {
             match message {
                 Message::Client(client_id, event) => {
-                    let span = span!(Level::INFO, "broker", client_id = %client_id, event="client");
+                    let span = info_span!("broker", client_id = %client_id, event="client");
                     let _enter = span.enter();
                     if let Err(e) = self.process_message(client_id, event) {
                         warn!(message = "an error occurred processing a message", error = %e);
                     }
                 }
                 Message::System(event) => {
-                    let span = span!(Level::INFO, "broker", event = "system");
+                    let span = info_span!("broker", event = "system");
                     let _enter = span.enter();
                     match event {
                         SystemEvent::Shutdown => {
