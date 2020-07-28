@@ -834,10 +834,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                     c.name(),
                     wait_before_kill,
                 )
-                .or_else(|err| match (&err).kind() {
-                    ErrorKind::NotFound(_) | ErrorKind::NotModified => Ok(()),
-                    _ => Err(err),
-                })
+                .or_else(|err| match Fail::find_root_cause(&err).downcast_ref::<ErrorKind>() {
+                        Some(ErrorKind::NotFound(_)) | Some(ErrorKind::NotModified) => Ok(()),
+                        _ => Err(err),
+                    }
+                )
             });
             future::join_all(n).map(|_| ())
         }))

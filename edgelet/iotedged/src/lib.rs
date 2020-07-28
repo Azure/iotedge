@@ -335,11 +335,13 @@ where
                 // to these APIs will begin to fail. Resilient modules should be able to deal with
                 // this, but we'll restart all modules to ensure a clean start.
                 const STOP_TIME: Duration = Duration::from_secs(30);
+                info!("Stopping all modules...");
                 tokio_runtime
                     .block_on(runtime.stop_all(Some(STOP_TIME)))
                     .context(ErrorKind::Initialize(
                         InitializeErrorReason::StopExistingModules
                     ))?;
+                info!("Finished stopping modules.");
 
                 if $force_reprovision ||
                     ($provisioning_result.reconfigure() != ReprovisioningStatus::DeviceDataNotUpdated) {
