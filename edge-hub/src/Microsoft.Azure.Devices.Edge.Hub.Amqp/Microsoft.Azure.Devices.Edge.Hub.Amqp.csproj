@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Amqp" Version="2.4.4" />
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.0" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.0-dybronso-1-dybronso-1" />
   </ItemGroup>
 
   <ItemGroup>
