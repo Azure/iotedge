@@ -22,6 +22,7 @@ use edgelet_http::Version;
 mod device_actions;
 mod identity;
 mod module;
+mod secret;
 mod system_info;
 
 use self::device_actions::ReprovisionDevice;

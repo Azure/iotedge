@@ -680,6 +680,7 @@ mod tests {
             "docker".to_string(),
             10_i32,
             BTreeMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -700,6 +701,7 @@ mod tests {
             name.clone(),
             "docker".to_string(),
             10_i32,
+            BTreeMap::new(),
             BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
@@ -722,6 +724,7 @@ mod tests {
             type_.clone(),
             10_i32,
             BTreeMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -742,6 +745,7 @@ mod tests {
             "m1".to_string(),
             type_.clone(),
             10_i32,
+            BTreeMap::new(),
             BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
