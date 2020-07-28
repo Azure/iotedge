@@ -10,6 +10,7 @@ use crate::check::{checker::Checker, Check, CheckResult};
 pub(crate) struct HostConnectDpsEndpoint {
     dps_endpoint: Option<String>,
     dps_hostname: Option<String>,
+    proxy: Option<String>,
 }
 
 impl Checker for HostConnectDpsEndpoint {
@@ -49,7 +50,14 @@ impl HostConnectDpsEndpoint {
         })?;
         self.dps_hostname = Some(dps_hostname.to_owned());
 
-        resolve_and_tls_handshake(&dps_endpoint, dps_hostname, dps_hostname)?;
+        let proxy = settings
+            .agent()
+            .env()
+            .get("https_proxy")
+            .map(|s| s.as_str());
+        self.proxy = proxy.map(|s| s.to_owned());
+
+        resolve_and_tls_handshake(&dps_endpoint, dps_hostname, dps_hostname, proxy)?;
 
         Ok(CheckResult::Ok)
     }
@@ -64,6 +72,7 @@ pub fn resolve_and_tls_handshake(
     to_socket_addrs: &impl std::net::ToSocketAddrs,
     tls_hostname: &str,
     hostname_display: &str,
+    _proxy: Option<&str>,
 ) -> Result<(), failure::Error> {
     let host_addr = to_socket_addrs
         .to_socket_addrs()

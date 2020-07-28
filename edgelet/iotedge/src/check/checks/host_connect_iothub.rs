@@ -1,3 +1,5 @@
+use edgelet_core::RuntimeSettings;
+
 use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
@@ -26,6 +28,7 @@ pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
 pub(crate) struct HostConnectIotHub {
     port_number: u16,
     iothub_hostname: Option<String>,
+    proxy: Option<String>,
     #[serde(skip)]
     id: &'static str,
     #[serde(skip)]
@@ -57,10 +60,16 @@ impl HostConnectIotHub {
         };
         self.iothub_hostname = Some(iothub_hostname.clone());
 
+        self.proxy = check
+            .settings
+            .as_ref()
+            .and_then(|settings| settings.agent().env().get("https_proxy").map(|s| s.clone()));
+
         super::host_connect_dps_endpoint::resolve_and_tls_handshake(
             &(&**iothub_hostname, self.port_number),
             iothub_hostname,
             &format!("{}:{}", iothub_hostname, self.port_number),
+            self.proxy.as_deref(),
         )?;
 
         Ok(CheckResult::Ok)
@@ -77,5 +86,6 @@ fn make_check(
         description,
         port_number: upstream_protocol_port.as_port(),
         iothub_hostname: None,
+        proxy: None,
     })
 }

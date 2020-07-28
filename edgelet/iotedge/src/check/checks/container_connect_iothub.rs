@@ -1,3 +1,5 @@
+use edgelet_core::RuntimeSettings;
+
 use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
@@ -52,6 +54,7 @@ pub(crate) struct ContainerConnectIotHub {
     iothub_hostname: Option<String>,
     network_name: Option<String>,
     diagnostics_image_name: Option<String>,
+    proxy: Option<String>,
     #[serde(skip)]
     id: &'static str,
     #[serde(skip)]
@@ -118,6 +121,13 @@ impl ContainerConnectIotHub {
         ]);
         self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
 
+        let proxy = settings
+            .agent()
+            .env()
+            .get("https_proxy")
+            .map(|s| s.as_str());
+        self.proxy = proxy.map(|s| s.to_owned());
+
         if let Err((_, err)) = super::docker(docker_host_arg, args) {
             return Err(err
                 .context(format!(
@@ -151,5 +161,6 @@ fn make_check(
         iothub_hostname: None,
         network_name: None,
         diagnostics_image_name: None,
+        proxy: None,
     })
 }
