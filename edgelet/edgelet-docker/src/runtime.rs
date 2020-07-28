@@ -835,7 +835,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     wait_before_kill,
                 )
                 .or_else(|err| match (&err).kind() {
-                    ErrorKind::NotFound(_) => Ok(()),
+                    ErrorKind::NotFound(_) | ErrorKind::NotModified => Ok(()),
                     _ => Err(err),
                 })
             });
