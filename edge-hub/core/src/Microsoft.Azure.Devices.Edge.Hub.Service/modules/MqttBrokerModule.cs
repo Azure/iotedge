@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
     class MqttBrokerModule : Module
     {
-        static readonly int defaultPort = 1883;
+        static readonly int defaultPort = 1882;
         static readonly string defaultUrl = "127.0.0.1";
 
         readonly IConfiguration config;

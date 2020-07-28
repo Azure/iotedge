@@ -115,7 +115,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                             c.MqttMsgPublishReceived -= this.ForwardPublish;
                             c.ConnectionClosed -= this.TriggerReconnect;
 
-                            c.Disconnect();
+                            if (c.IsConnected)
+                            {
+                                try
+                                {
+                                    c.Disconnect();
+                                }
+                                catch
+                                {
+                                    // swallowing: when the container is shutting down, it is possible that the broker disconnected.
+                                    // in those case an internal socket will be deleted and this Disconnect() call ends up in a
+                                    // Disposed() exception.
+                                }
+                            }
 
                             await this.StopForwardingLoopAsync();
 
