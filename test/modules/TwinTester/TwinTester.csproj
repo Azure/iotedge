@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.0-dybronso-1-dybronso-1" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.27.0-dybronso-1-dybronso-1" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.0-dybronso-1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.27.0-dybronso-1" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.3" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="3.1.3" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="3.1.3" />

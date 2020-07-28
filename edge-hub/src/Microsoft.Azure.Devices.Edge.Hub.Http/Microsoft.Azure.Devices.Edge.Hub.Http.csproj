@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.0-dybronso-1-dybronso-1" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.0-dybronso-1" />
   </ItemGroup>
 
   <ItemGroup>
