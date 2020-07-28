@@ -19,7 +19,7 @@ use tokio::sync::{
 };
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
-use tracing::{debug, info, span, trace, warn, Level};
+use tracing::{debug, info, info_span, trace, warn};
 use tracing_futures::Instrument;
 use uuid::Uuid;
 
@@ -122,7 +122,7 @@ where
             let client_id = client_id(&connect.client_id);
             let (sender, events) = mpsc::unbounded_channel();
             let connection_handle = ConnectionHandle::from_sender(sender);
-            let span = span!(Level::INFO, "connection", client_id=%client_id, remote_addr=%remote_addr, connection=%connection_handle);
+            let span = info_span!("connection", client_id=%client_id, remote_addr=%remote_addr, connection=%connection_handle);
 
             // async block to attach instrumentation context
             async {
@@ -166,7 +166,7 @@ where
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
                     Err(e) => {
-                        warn!(message = "error authenticating client: {}", error =% *e);
+                        warn!(message = "error authenticating client", error =% *e);
                         Auth::Failure
                     }
                 };

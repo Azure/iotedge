@@ -7,7 +7,7 @@ use futures_util::{
     stream::StreamExt,
 };
 use tokio::sync::oneshot;
-use tracing::{debug, error, info, span, warn, Level};
+use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
 
 use mqtt_broker_core::auth::{Authenticator, Authorizer};
@@ -213,50 +213,55 @@ where
 {
     let io = new_transport.await?;
     let addr = io.local_addr()?;
-    let span = span!(Level::INFO, "server", listener=%addr);
-    let _enter = span.enter();
+    let span = info_span!("transport", listener=%addr);
 
-    let mut incoming = io.incoming();
+    let inner_span = span.clone();
 
-    info!("Listening on address {}", addr);
+    async move {
+        let mut incoming = io.incoming();
 
-    loop {
-        match future::select(&mut shutdown_signal, incoming.next()).await {
-            Either::Right((Some(Ok(stream)), _)) => {
-                let peer = stream.peer_addr()?;
+        info!("Listening on address {}", addr);
 
-                let broker_handle = handle.clone();
-                let span = span.clone();
-                let authenticator = authenticator.clone();
-                tokio::spawn(async move {
-                    if let Err(e) =
-                        connection::process(stream, peer, broker_handle, &*authenticator)
-                            .instrument(span)
-                            .await
-                    {
-                        warn!(message = "failed to process connection", error =% DetailedErrorValue(&e));
-                    }
-                });
-            }
-            Either::Left(_) => {
-                info!(
-                    "accept loop shutdown. no longer accepting connections on {}",
-                    addr
-                );
-                break;
-            }
-            Either::Right((Some(Err(e)), _)) => {
-                warn!(
-                    "accept loop exiting due to an error - {}",
-                    DetailedErrorValue(&e)
-                );
-                break;
-            }
-            Either::Right((None, _)) => {
-                warn!("accept loop exiting due to no more incoming connections (incoming returned None)");
-                break;
+        loop {
+            match future::select(&mut shutdown_signal, incoming.next()).await {
+                Either::Right((Some(Ok(stream)), _)) => {
+                    let peer = stream.peer_addr()?;
+
+                    let broker_handle = handle.clone();
+                    let span = inner_span.clone();
+                    let authenticator = authenticator.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) =
+                            connection::process(stream, peer, broker_handle, &*authenticator)
+                                .instrument(span)
+                                .await
+                        {
+                            warn!(message = "failed to process connection", error =% DetailedErrorValue(&e));
+                        }
+                    });
+                }
+                Either::Left(_) => {
+                    info!(
+                        "accept loop shutdown. no longer accepting connections on {}",
+                        addr
+                    );
+                    break;
+                }
+                Either::Right((Some(Err(e)), _)) => {
+                    warn!(
+                        message = "accept loop exiting due to an error",
+                        error =% DetailedErrorValue(&e)
+                    );
+                    break;
+                }
+                Either::Right((None, _)) => {
+                    warn!("accept loop exiting due to no more incoming connections (incoming returned None)");
+                    break;
+                }
             }
         }
+        Ok(())
     }
-    Ok(())
+    .instrument(span)
+    .await
 }
