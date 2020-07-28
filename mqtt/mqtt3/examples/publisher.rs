@@ -117,7 +117,7 @@ fn main() {
     let publish_handle = client
         .publish_handle()
         .expect("couldn't get publish handle");
-    runtime_handle.clone().spawn(async move {
+    runtime.spawn(async move {
         use futures_util::StreamExt;
 
         let mut interval = tokio::time::interval(publish_frequency);

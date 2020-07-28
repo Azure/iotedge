@@ -1,4 +1,8 @@
-use std::{collections::VecDeque, num::NonZeroUsize};
+use std::{
+    collections::VecDeque,
+    fmt::{Display, Formatter, Result as FmtResult},
+    num::NonZeroUsize,
+};
 
 use mqtt3::proto;
 use mqtt_broker_core::settings::QueueFullAction;
@@ -48,22 +52,27 @@ impl BoundedQueue {
         }
     }
 
-    pub fn enqueue(&mut self, publication: proto::Publication) {
+    pub fn enqueue(&mut self, publication: proto::Publication) -> Option<LimitReached> {
         if let Some(max_len) = self.max_len {
             if self.inner.len() >= max_len.get() {
-                return self.handle_queue_limit(publication);
+                return self
+                    .handle_queue_limit(publication)
+                    .map(LimitReached::QueueLength);
             }
         }
 
         if let Some(max_size) = self.max_size {
             let pub_len = publication.payload.len();
             if self.current_size + pub_len > max_size.get() {
-                return self.handle_queue_limit(publication);
+                return self
+                    .handle_queue_limit(publication)
+                    .map(LimitReached::Memory);
             }
         }
 
         self.current_size += publication.payload.len();
         self.inner.push_back(publication);
+        None
     }
 
     #[cfg(test)]
@@ -76,22 +85,51 @@ impl BoundedQueue {
         self.inner.iter()
     }
 
-    fn handle_queue_limit(&mut self, publication: proto::Publication) {
+    fn handle_queue_limit(
+        &mut self,
+        publication: proto::Publication,
+    ) -> Option<proto::Publication> {
         match self.when_full {
-            QueueFullAction::DropNew => {
-                // do nothing
-            }
+            QueueFullAction::DropNew => Some(publication),
             QueueFullAction::DropOld => {
-                let _ = self.dequeue();
+                let dequed = self.dequeue();
                 self.current_size += publication.payload.len();
                 self.inner.push_back(publication);
+
+                dequed
             }
-        };
+        }
     }
 }
 
 impl Extend<proto::Publication> for BoundedQueue {
     fn extend<T: IntoIterator<Item = proto::Publication>>(&mut self, iter: T) {
-        iter.into_iter().for_each(|item| self.enqueue(item));
+        iter.into_iter().for_each(|item| {
+            let _ = self.enqueue(item);
+        });
+    }
+}
+
+#[derive(Debug)]
+pub enum LimitReached {
+    Memory(proto::Publication),
+    QueueLength(proto::Publication),
+}
+
+impl LimitReached {
+    pub fn publication(&self) -> &proto::Publication {
+        match self {
+            Self::Memory(publication) => publication,
+            Self::QueueLength(publication) => publication,
+        }
+    }
+}
+
+impl Display for LimitReached {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Self::Memory(_) => write!(f, "out of memory limits"),
+            Self::QueueLength(_) => write!(f, "out of queue length limits"),
+        }
     }
 }
