@@ -48,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             },
             token);
             EdgeModule filter = deployment.Modules[PlugAndPlayIdentityName];
-            // await Task.Delay(TimeSpan.FromSeconds(15));
             await filter.WaitForEventsReceivedFromDeviceAsync(deployment.StartTime, token, deviceId);
             await this.Validate(this.iotHub.Hostname, deviceId, TestModelId);
         }
@@ -56,15 +55,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task Validate(string hostName, string deviceId, string expectedModelId)
         {
             // Verify that the device has been registered as a plug and play device
+            // We must generate a SAS token and use the endpoint until the service SDK comes out with a way to get the
+            // modelId from the device's digital twin.
             string sasToken = GenerateSasToken($"{this.iotHub.Hostname}/devices/{deviceId}", this.iotHub.SharedAccessKey, "iothubowner");
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             Log.Verbose($"Request string: https://{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
-            Log.Verbose($"HTTPCLIENT method response status code: {responseMessage.StatusCode}");
-            Log.Verbose($"HTTPCLIENT method response headers: {responseMessage.Headers}");
-            Log.Verbose($"HTTPCLIENT method response content: {await responseMessage.Content.ReadAsStringAsync()}");
+            Log.Verbose($"HttpClient method response status code: {responseMessage.StatusCode}");
             var jo = JObject.Parse(await responseMessage.Content.ReadAsStringAsync());
             var modelId = jo["$metadata"]["$model"].ToString();
             Assert.AreEqual(expectedModelId, modelId);
