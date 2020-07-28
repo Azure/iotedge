@@ -20,25 +20,25 @@ pub trait SecretManager {
 
 #[derive(Clone, Debug)]
 pub enum SecretOperation {
-    CreateSecret(String),
-    DeleteSecret(String),
-    GetSecret(String),
-    PullSecret(String, String),
-    RefreshSecret(String)
+    Create(String),
+    Delete(String),
+    Get(String),
+    Pull(String, String),
+    Refresh(String)
 }
 
 impl fmt::Display for SecretOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SecretOperation::CreateSecret(id) =>
+            SecretOperation::Create(id) =>
                 write!(f, "Could not create secret {}", id),
-            SecretOperation::DeleteSecret(id) =>
+            SecretOperation::Delete(id) =>
                 write!(f, "Could not delete secret {}", id),
-            SecretOperation::GetSecret(id) =>
+            SecretOperation::Get(id) =>
                 write!(f, "Could not get secret {}", id),
-            SecretOperation::PullSecret(id, uri) =>
+            SecretOperation::Pull(id, uri) =>
                 write!(f, "Could not pull secret {} from {}", id, uri),
-            SecretOperation::RefreshSecret(id) =>
+            SecretOperation::Refresh(id) =>
                 write!(f, "Could not refresh secret {}", id)
         }
     }
