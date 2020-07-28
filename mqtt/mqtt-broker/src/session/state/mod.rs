@@ -8,7 +8,7 @@ use set::SmallIndexSet;
 
 use std::{cmp, collections::HashMap};
 
-use tracing::debug;
+use tracing::{debug, info};
 
 use mqtt3::proto;
 
@@ -123,7 +123,11 @@ impl SessionState {
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
         if let Some(publication) = self.filter(publication) {
-            self.waiting_to_be_sent.enqueue(publication);
+            if let Some(limit) = self.waiting_to_be_sent.enqueue(publication) {
+                let dropped = limit.publication();
+                info!("{}. drop publication {}", limit, dropped.topic_name);
+                debug!("dropped publication {:?}", dropped)
+            }
         }
         Ok(())
     }
@@ -139,7 +143,11 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                self.waiting_to_be_sent.enqueue(publication);
+                if let Some(limit) = self.waiting_to_be_sent.enqueue(publication) {
+                    let dropped = limit.publication();
+                    info!("{}. drop publication {}", limit, dropped.topic_name);
+                    debug!("dropped publication {:?}", dropped)
+                }
                 Ok(None)
             }
         } else {
