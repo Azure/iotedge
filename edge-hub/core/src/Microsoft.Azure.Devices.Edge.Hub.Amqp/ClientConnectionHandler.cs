@@ -141,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             using (await this.initializationLock.LockAsync())
             {
                 await this.deviceListener.ForEachAsync(d => d.CloseAsync());
+                this.deviceListener = Option.None<IDeviceListener>();
             }
         }
 
