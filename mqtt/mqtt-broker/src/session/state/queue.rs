@@ -2,6 +2,7 @@ use std::{collections::VecDeque, num::NonZeroUsize};
 
 use mqtt3::proto;
 use mqtt_broker_core::settings::QueueFullAction;
+use tracing::info;
 
 /// `BoundedQueue` is a queue of publications with bounds by count and total payload size in bytes.
 ///
@@ -79,9 +80,10 @@ impl BoundedQueue {
     fn handle_queue_limit(&mut self, publication: proto::Publication) {
         match self.when_full {
             QueueFullAction::DropNew => {
-                // do nothing
+                info!("Dropping new message for topic {}", publication.topic_name);
             }
             QueueFullAction::DropOld => {
+                info!("Dropping old message for topic {}", publication.topic_name);
                 let _ = self.dequeue();
                 self.current_size += publication.payload.len();
                 self.inner.push_back(publication);
