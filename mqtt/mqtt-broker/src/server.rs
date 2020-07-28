@@ -213,7 +213,7 @@ where
 {
     let io = new_transport.await?;
     let addr = io.local_addr()?;
-    let span = info_span!("server", listener=%addr);
+    let span = info_span!("transport", listener=%addr);
 
     let inner_span = span.clone();
 
@@ -249,8 +249,8 @@ where
                 }
                 Either::Right((Some(Err(e)), _)) => {
                     warn!(
-                        "accept loop exiting due to an error - {}",
-                        DetailedErrorValue(&e)
+                        message = "accept loop exiting due to an error",
+                        error =% DetailedErrorValue(&e)
                     );
                     break;
                 }
