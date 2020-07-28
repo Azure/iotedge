@@ -16,7 +16,7 @@ namespace PlugAndPlayDevice
 
     class Program
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("PlugAndPlayDeviceModule");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("PlugAndPlayIdentity");
 
         static async Task Main(string[] args)
         {
@@ -32,6 +32,7 @@ namespace PlugAndPlayDevice
 
         public static async Task StartAsync(CancellationToken ct)
         {
+            Logger.LogInformation("Starting PlugAndPlayIdentity...");
             // TODO: You cannot install certificate on Windows by script - we need to implement certificate verification callback handler.
             IEnumerable<X509Certificate2> certs = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(Settings.Current.WorkloadUri), Settings.Current.ApiVersion, Settings.Current.ApiVersion, Settings.Current.ModuleId, Settings.Current.ModuleGenerationId);
             ITransportSettings transportSettings = ((Protocol)Enum.Parse(typeof(Protocol), Settings.Current.TransportType.ToString())).ToTransportSettings();
@@ -44,7 +45,9 @@ namespace PlugAndPlayDevice
                 string deviceConnectionString = $"HostName={Settings.Current.IotHubHostName};DeviceId={Settings.Current.DeviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={Settings.Current.GatewayHostName}";
                 ClientOptions clientOptions = new ClientOptions { ModelId = Settings.Current.ModelId };
 
+                Logger.LogInformation("Creating device client...");
                 deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings }, clientOptions);
+                Logger.LogInformation("Device client created successfully.");
             }
             catch (Exception ex)
             {
