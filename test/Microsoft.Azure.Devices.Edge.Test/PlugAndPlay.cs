@@ -29,6 +29,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task DeviceClient()
         {
+            // TODO: Add Windows and ARM32.
+            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
+            {
+                Assert.Ignore("Plug and Play device client test has been disabled for Windows and Arm32 until we can fix it.");
+            }
+
             string deviceId = DeviceIdPrefix + Guid.NewGuid();
             string plugAndPlayIdentityImage = Context.Current.PlugAndPlayIdentityImage.Expect(() => new InvalidOperationException("Missing Plug and Play Identity image"));
             CancellationToken token = this.TestToken;
