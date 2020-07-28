@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    fmt::{Display, Formatter, Result},
+    fmt::{Display, Formatter, Result as FmtResult},
     num::NonZeroUsize,
 };
 
@@ -126,7 +126,7 @@ impl LimitReached {
 }
 
 impl Display for LimitReached {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             Self::Memory(_) => write!(f, "out of memory limits"),
             Self::QueueLength(_) => write!(f, "out of queue length limits"),
