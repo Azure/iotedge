@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Log.Verbose($"EventHub: {this.iotHub.EntityPath}");
                 string resultBody = null;
                 await this.iotHub.ReceiveEventsAsync(
-                    this.deviceId,
+                    deviceId,
                     seekTime,
                     data =>
                     {
