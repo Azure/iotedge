@@ -1,0 +1,130 @@
+swagger: "2.0"
+schemes:
+- "http"
+info:
+  description: "IoT Edge Secret Service API"
+  version: "2020-07-22"
+  title: "Secret Service"
+    
+paths:
+  "/{id}":
+    get:
+      operationId: "GetSecret"
+      produces:
+        - "application/json"
+      parameters:
+        - $ref: "#/parameters/api-version"
+        - $ref: "#/parameters/id"
+      responses:
+        "200":
+          description: "Ok"
+          schema:
+            type: "string"
+        "404":
+          description: "NotFound"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        default:
+          description: "Error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    put:
+      operationId: "SetSecret"
+      consumes:
+        - "application/json"
+      parameters:
+        - $ref: "#/parameters/api-version"
+        - $ref: "#/parameters/id"
+        - in: "body"
+          name: "value"
+          description: "The value of the secret."
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "204":
+          description: "Ok"
+        default:
+          description: "Error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    post:
+      operationId: "PullSecret"
+      consumes:
+        - "application/json"
+      parameters:
+        - $ref: "#/parameters/api-version"
+        - $ref: "#/parameters/id"
+        - in: "body"
+          name: "akvURI"
+          description: "Azure Key Vault secret URI."
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "204":
+          description: "Ok"
+        default:
+          description: "Error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    patch:
+      operationId: "RefreshSecret"
+      parameters:
+        - $ref: "#/parameters/api-version"
+        - $ref: "#/parameters/id"
+      responses:
+        "204":
+          description: "Ok"
+        "400":
+          description: "NoSource"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        "404":
+          description: "NotFound"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        default:
+          description: "Error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+    delete:
+      operationId: "DeleteSecret"
+      parameters:
+        - $ref: "#/parameters/api-version"
+        - $ref: "#/parameters/id"
+      responses:
+        "204":
+          description: "Ok"
+        "404":
+          description: "NotFound"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+        default:
+          description: "Error"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+
+definitions:
+  ErrorResponse:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+    required:
+      - "message"
+        
+parameters:
+  id:
+    in: "path"
+    name: "id"
+    description: "The secret ID."
+    required: true
+    type: "string"
+  api-version:
+    in: "query"
+    name: "api-version"
+    description: "The API version."
+    required: true
+    type: "string"
+    default: "2020-07-22"

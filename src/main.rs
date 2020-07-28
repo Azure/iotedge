@@ -5,7 +5,8 @@ mod routes;
 mod store;
 mod util;
 
-use store::{Store, StoreBackend};
+use crate::backends::rocksdb;
+use crate::store::{Store, StoreBackend as _};
 
 use std::error::Error as StdError;
 use std::fs::remove_file;
@@ -46,7 +47,7 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
 
     let store = {
         let conf = config::load(Path::new("store.toml"));
-        let backend = crate::backends::rocksdb::RocksDBBackend::new()?;
+        let backend = rocksdb::RocksDBBackend::new()?;
         Arc::new(Store::new(backend, conf))
     };
     
