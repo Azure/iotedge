@@ -388,7 +388,7 @@ fn run() -> Result<(), Error> {
             let verbose = !args.is_present("quiet");
             let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
             let output_location = if location == "-" {
-                OutputLocation::Console
+                OutputLocation::Memory
             } else {
                 OutputLocation::File(location.to_owned())
             };

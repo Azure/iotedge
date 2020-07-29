@@ -60,7 +60,7 @@ where
                     );
                 }),
             ),
-            OutputLocation::Console => Box::new(
+            OutputLocation::Memory => Box::new(
                 Self::bundle_all(future::result(self.make_vector_state())).and_then(|mut state| {
                     stdout()
                         .write_all(
@@ -96,6 +96,29 @@ where
             verbose,
             iothub_hostname,
             output_location,
+        }
+    }
+
+    pub fn get_result(self) -> Box<dyn Future<Item = Box<dyn Read>, Error = Error> + Send> {
+        match self.output_location.clone() {
+            OutputLocation::File(location) => Box::new(
+                Self::bundle_all(future::result(self.make_file_state())).map(|mut state| {
+                    let path = PathBuf::from(location);
+                    println!(
+                        "Created support bundle at {}",
+                        path.canonicalize().unwrap_or_else(|_| path).display()
+                    );
+
+                    let result: Box<dyn Read> = Box::new(state.zip_writer.finish().unwrap());
+                    result
+                }),
+            ),
+            OutputLocation::Memory => Box::new(
+                Self::bundle_all(future::result(self.make_vector_state())).map(|mut state| {
+                    let result: Box<dyn Read> = Box::new(state.zip_writer.finish().unwrap());
+                    result
+                }),
+            ),
         }
     }
 
@@ -560,7 +583,7 @@ where
 #[derive(Clone, Debug, PartialEq)]
 pub enum OutputLocation {
     File(OsString),
-    Console,
+    Memory,
 }
 
 impl OutputLocation {
