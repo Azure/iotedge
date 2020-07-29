@@ -32,18 +32,25 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task DeviceClient()
         {
             // TODO: Add Windows and ARM32.
+            /*
             if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
             {
                 Assert.Ignore("Plug and Play device client test has been disabled for Windows and Arm32 until we can fix it.");
             }
+            */
             CancellationToken token = this.TestToken;
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(token);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", "Mqtt") });
+                },
+                token);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
-                Protocol.Amqp,
+                Protocol.Mqtt,
                 AuthenticationType.Sas,
                 Option.None<string>(),
                 false,
