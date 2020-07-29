@@ -9,9 +9,6 @@ WORKDIR /app
 
 COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
 
-# Set broker log level
-ENV RUST_LOG=info
-
 # Expose MQTT, AMQP and HTTPS ports
 EXPOSE 1883/tcp
 EXPOSE 8883/tcp
