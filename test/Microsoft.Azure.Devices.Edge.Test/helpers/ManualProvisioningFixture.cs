@@ -24,7 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.iotHub = new IotHub(connectionString, eventHubEndpoint, Context.Current.Proxy);
         }
 
-        public ManualProvisioningFixture() : this(Context.Current.ConnectionString, Context.Current.EventHubEndpoint) { }
+        public ManualProvisioningFixture()
+            : this(Context.Current.ConnectionString, Context.Current.EventHubEndpoint)
+        {
+        }
 
         [OneTimeSetUp]
         protected async Task BeforeAllTestsAsync()

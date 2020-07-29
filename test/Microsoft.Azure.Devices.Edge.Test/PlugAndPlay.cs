@@ -26,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
 
-        public PlugAndPlay() : base(
+        public PlugAndPlay()
+            : base(
             Context.Current.PreviewConnectionString.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview connection string for PlugAndPlay tests.")),
             Context.Current.PreviewEventHubEndpoint.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview Event Hub endpoint for PlugAndPlay tests.")))
         {
@@ -62,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     DateTime seekTime = DateTime.Now;
                     await leaf.SendEventAsync(token);
                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await Validate(this.iotHub.Hostname, leafDeviceId, TestModelId);
+                    await this.Validate(this.iotHub.Hostname, leafDeviceId, TestModelId);
                 },
                 async () =>
                 {

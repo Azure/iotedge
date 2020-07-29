@@ -2,8 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
-    using System.Linq;
-    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -14,10 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected EdgeRuntime runtime;
 
         public SasManualProvisioningFixture()
-            : base() { }
+            : base()
+        {
+        }
 
         public SasManualProvisioningFixture(string connectionString, string eventHubEndpoint)
-            : base(connectionString, eventHubEndpoint) { }
+            : base(connectionString, eventHubEndpoint)
+        {
+        }
 
         [SetUp]
         public virtual async Task SasProvisionEdgeAsync()
