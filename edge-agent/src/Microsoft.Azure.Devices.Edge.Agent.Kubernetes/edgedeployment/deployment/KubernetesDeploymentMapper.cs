@@ -124,6 +124,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             config.HostConfig.FlatMap(h => Option.Maybe(h.IpcMode).Map(ipcMode => string.Compare(ipcMode, KubernetesConstants.HostIPC, true) == 0))
                              .Match(i => i, () => default(bool?));
 
+        bool? IsHostNetwork(CreatePodParameters config) =>
+            config.HostConfig.FlatMap(h => Option.Maybe(h.NetworkMode).Map(networkMode => string.Compare(networkMode, KubernetesConstants.HostNetwork, true) == 0))
+                             .Match(i => i, () => default(bool?));
+
         V1PodTemplateSpec GetPod(string name, IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             // Convert docker labels to annotations because docker labels don't have the same restrictions as Kubernetes labels.
@@ -135,6 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             var (proxyContainer, proxyVolumes) = this.PrepareProxyContainer(module);
             var (moduleContainer, moduleVolumes) = this.PrepareModuleContainer(name, identity, module);
             bool? hostIpc = this.IsHostIpc(module.Config.CreateOptions);
+            bool? hostNetwork = this.IsHostNetwork(module.Config.CreateOptions);
+            string dnsPolicy = (hostNetwork ?? false) ? KubernetesConstants.HostNetworkDnsPolicy : default(string);
 
             var imagePullSecrets = new List<Option<string>> { this.proxyImagePullSecretName, module.Config.AuthConfig.Map(auth => auth.Name) }
                 .FilterMap()
@@ -164,6 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     ServiceAccountName = name,
                     NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault(),
                     HostIPC = hostIpc,
+                    HostNetwork = hostNetwork,
+                    DnsPolicy = dnsPolicy,
                 }
             };
         }
