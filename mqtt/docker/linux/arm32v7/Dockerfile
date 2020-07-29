@@ -26,7 +26,6 @@ ARG MQTTDUSER_ID=1000
 
 RUN adduser -Du ${MQTTDUSER_ID} mqttduser
 
-ENV RUST_LOG=info
 EXPOSE 1883/tcp
 EXPOSE 8883/tcp
 
