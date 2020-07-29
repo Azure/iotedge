@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             if (!this.TryGetTargetDeviceId(request.AuthChain, out string targetDeviceId))
             {
-                Events.InvalidAuthchain(request.AuthChain);
+                Events.InvalidRequestAuthchain(request.AuthChain);
                 result.Status = HttpStatusCode.BadRequest;
                 return result;
             }
@@ -200,12 +200,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             if (actorModuleId != Constants.EdgeHubModuleId)
             {
                 // Only child EdgeHubs are allowed to act OnBehalfOf of devices/modules.
+                Events.AuthFail_BadActor(actorDeviceId, actorModuleId);
                 return false;
             }
 
             if (!this.Request.Headers.TryGetValue(Constants.ServiceApiIdHeaderKey, out StringValues clientIds) || clientIds.Count == 0)
             {
                 // Must have presented Edge header for AuthN earlier
+                Events.AuthFail_NoHeader();
                 return false;
             }
 
@@ -214,27 +216,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             if (clientIdParts.Length != 2)
             {
                 // Edge header should have been a module
+                Events.AuthFail_BadHeader(clientIds.First());
                 return false;
             }
 
             if (actorDeviceId != clientIdParts[0] || actorModuleId != clientIdParts[1])
             {
-                // Actor ID from request should match actor from Edge header
+                // Actor from request should match actor from Edge header
+                Events.AuthFail_ActorMismatch(actorDeviceId, actorModuleId, clientIdParts[0], clientIdParts[1]);
                 return false;
             }
 
             // Actor device is claiming to be our child, and that the target device is its child.
             // So we should have an authchain already cached for the target device.
-            Option<string> targetAuthChain = await identitiesCache.GetAuthChain(targetId);
+            Option<string> targetAuthChainOption = await identitiesCache.GetAuthChain(targetId);
 
-            if (!targetAuthChain.HasValue)
+            if (!targetAuthChainOption.HasValue)
             {
+                Events.AuthFail_NoAuthChain(targetId);
                 return false;
             }
 
             // Validate the target auth-chain
-            if (!AuthChainHelpers.ValidateAuthChain(actorDeviceId, targetId, targetAuthChain.Expect(() => new InvalidOperationException())))
+            string targetAuthChain = targetAuthChainOption.Expect(() => new InvalidOperationException());
+            if (!AuthChainHelpers.ValidateAuthChain(actorDeviceId, targetId, targetAuthChain))
             {
+                Events.AuthFail_InvalidAuthChain(actorDeviceId, targetId, targetAuthChain);
                 return false;
             }
 
@@ -287,9 +294,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 ReceivedScopeRequest = IdStart,
                 ReceivedIdentityOnBehalfOfRequest,
                 SendingScopeResult,
-                AuthchainMismatch,
                 UnauthorizedActor,
-                InvalidAuthchain
+                InvalidRequestAuthchain,
+                AuthFail_BadActor,
+                AuthFail_NoHeader,
+                AuthFail_BadHeader,
+                AuthFail_ActorMismatch,
+                AuthFail_NoAuthChain,
+                AuthFail_InvalidAuthChain
             }
 
             public static void ReceivedScopeRequest(string actorDeviceId, string actorModuleId, NestedScopeRequest request)
@@ -312,9 +324,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 Log.LogError((int)EventIds.UnauthorizedActor, $"{actorDeviceId}/{actorModuleId} not authorized to act OnBehalfOf {targetDeviceId}");
             }
 
-            public static void InvalidAuthchain(string authChain)
+            public static void InvalidRequestAuthchain(string authChain)
             {
-                Log.LogError((int)EventIds.AuthchainMismatch, $"Invalid auth chain: {authChain}");
+                Log.LogError((int)EventIds.InvalidRequestAuthchain, $"Invalid auth chain: {authChain}");
+            }
+
+            public static void AuthFail_BadActor(string actorDeviceId, string actorModuleId)
+            {
+                Log.LogError((int)EventIds.AuthFail_BadActor, $"Only EdgeHub is allowed to act OnBehalfOf another identity: {actorDeviceId}/{actorModuleId}");
+            }
+
+            public static void AuthFail_NoHeader()
+            {
+                Log.LogError((int)EventIds.AuthFail_NoHeader, $"Missing identity header in request");
+            }
+
+            public static void AuthFail_BadHeader(string header)
+            {
+                Log.LogError((int)EventIds.AuthFail_BadHeader, $"Bad identity header in request: {header}");
+            }
+
+            public static void AuthFail_ActorMismatch(string uriActorDevice, string uriActorModule, string headerActorDevice, string headerActorModule)
+            {
+                Log.LogError((int)EventIds.AuthFail_ActorMismatch, $"Mismatched actors, uri: {uriActorDevice}/{uriActorModule}, header: {headerActorDevice}/{headerActorModule}");
+            }
+
+            public static void AuthFail_NoAuthChain(string targetId)
+            {
+                Log.LogError((int)EventIds.AuthFail_NoAuthChain, $"No auth chain for target identity: {targetId}");
+            }
+
+            public static void AuthFail_InvalidAuthChain(string actorId, string targetId, string authChain)
+            {
+                Log.LogError((int)EventIds.AuthFail_InvalidAuthChain, $"Invalid auth chain, actor: {actorId}, target: {targetId}, auth chain: {authChain}");
             }
         }
     }
