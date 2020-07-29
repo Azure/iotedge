@@ -102,7 +102,6 @@ steps:
       relayerImage = "$imagePrefix-relayer:$imageTag";
       networkControllerImage = "$imagePrefix-network-controller:$imageTag";
       testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
-      plugAndPlayIdentityImage = "$imagePrefix-plugandplayidentity:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
       edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
       registries = @(

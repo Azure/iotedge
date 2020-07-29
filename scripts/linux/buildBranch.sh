@@ -244,7 +244,6 @@ publish_app "DeploymentTester"
 publish_app "EdgeHubRestartTester"
 publish_app "MetricsValidator"
 publish_app "CloudToDeviceMessageTester"
-publish_app "PlugAndPlayIdentity"
 
 publish_lib "EdgeHubTriggerCSharp"
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"

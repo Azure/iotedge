@@ -104,7 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
             this.NetworkControllerImage = Option.Maybe(Get("networkControllerImage"));
-            this.PlugAndPlayIdentityImage = Option.Maybe(Get("plugAndPlayIdentityImage"));
             this.EdgeAgentBootstrapImage = Option.Maybe(Get("edgeAgentBootstrapImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
@@ -172,8 +171,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> RelayerImage { get; }
 
         public Option<string> NetworkControllerImage { get; }
-
-        public Option<string> PlugAndPlayIdentityImage { get; }
 
         public Option<string> EdgeAgentBootstrapImage { get; }
 

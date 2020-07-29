@@ -24,20 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [EndToEnd]
     public class PlugAndPlay : SasManualProvisioningFixturePreview
     {
-        const string PlugAndPlayIdentityName = "PnPIdentity";
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
-        const string DeviceIdPrefix = "pnpDevice-";
 
         [Test]
         public async Task DeviceClient()
         {
-            // TODO: Add Windows and ARM32.
-            /*
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
-            {
-                Assert.Ignore("Plug and Play device client test has been disabled for Windows and Arm32 until we can fix it.");
-            }
-            */
             CancellationToken token = this.TestToken;
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
@@ -58,29 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.iotHub,
                 token,
                 Option.Some(TestModelId));
-            /*
-            string deviceId = DeviceIdPrefix + Guid.NewGuid();
-            string plugAndPlayIdentityImage = Context.Current.PlugAndPlayIdentityImage.Expect(() => new InvalidOperationException("Missing Plug and Play Identity image"));
-            CancellationToken token = this.TestToken;
-            
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-            builder =>
-            {
-                builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", "Mqtt") });
-                builder.AddModule(PlugAndPlayIdentityName, plugAndPlayIdentityImage)
-                    .WithEnvironment(
-                        new[]
-                        {
-                            ("modelId", TestModelId),
-                            ("deviceId", deviceId),
-                            ("iotHubConnectionString", Context.Current.PreviewConnectionString.Expect<ArgumentException>(() => throw new ArgumentException("Must use preview connection string with PlugAndPlay tests.")))
-                        });
-            },
-            token);
-            EdgeModule filter = deployment.Modules[PlugAndPlayIdentityName];
-            await filter.WaitForEventsReceivedFromDeviceAsync(deployment.StartTime, token, leafDeviceId);
-            */
-            //                     await Validate(this.iotHub.Hostname, leafDeviceId, TestModelId);
+
             await TryFinally.DoAsync(
                 async () =>
                 {
@@ -93,8 +62,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     await leaf.DeleteIdentityAsync(token);
                 });
-
-
         }
 
         public async Task Validate(string hostName, string deviceId, string expectedModelId)

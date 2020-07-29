@@ -67,7 +67,6 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*metricsvalidator\..*</ModulePath>
                 <ModulePath>.*modulerestarter\..*</ModulePath>
                 <ModulePath>.*networkcontroller\..*</ModulePath>
-                <ModulePath>.*plugandplaydevice\..*</ModulePath>
                 <ModulePath>.*relayer\..*</ModulePath>
                 <ModulePath>.*simulatedtemperaturesensor\..*</ModulePath>
                 <ModulePath>.*temperaturefilter\..*</ModulePath>
