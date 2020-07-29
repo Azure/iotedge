@@ -121,35 +121,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.deviceId,
             this.iotHub.EntityPath);
 
-        public Task<string> WaitForEventsReceivedFromDeviceAsync(
-            DateTime seekTime,
-            CancellationToken token,
-            string deviceId,
-            params string[] requiredProperties) => Profiler.Run(
-            async () =>
-            {
-                string resultBody = null;
-                await this.iotHub.ReceiveEventsAsync(
-                    deviceId,
-                    seekTime,
-                    data =>
-                    {
-                        data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
-
-                        resultBody = Encoding.UTF8.GetString(data.Body);
-                        Log.Verbose($"Received event for '{devId}' with body '{resultBody}'");
-
-                        return devId != null && devId.ToString().Equals(deviceId)
-                            && requiredProperties.All(data.Properties.ContainsKey);
-                    },
-                    token);
-
-                return resultBody;
-            },
-            "Received events from device '{Device}' on Event Hub '{EventHub}'",
-            deviceId,
-            this.iotHub.EntityPath);
-
         public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token) => Profiler.Run(
             () => this.iotHub.UpdateTwinAsync(this.deviceId, this.Id, patch, token),
             "Updated twin for module '{Module}'",
