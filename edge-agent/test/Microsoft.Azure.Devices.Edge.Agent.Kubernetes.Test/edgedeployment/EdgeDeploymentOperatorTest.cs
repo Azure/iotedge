@@ -172,8 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            Exception ex = await Assert.ThrowsAsync<Exception>(() => edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition));
-            Assert.Equal(controllerException, ex);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
             Assert.True(reportedStatus.HasValue);
             Assert.Equal(expectedStatus, reportedStatus.OrDefault());
             Mock.Get(controller).VerifyAll();
@@ -184,9 +183,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
         public async void StatusIsFailedWithSpecialMessageWhenHttpExceptionIsThrown()
         {
             HttpOperationException controllerException = new HttpOperationException(ExceptionMessage)
-                {
-                    Request = new HttpRequestMessageWrapper(new HttpRequestMessage(HttpMethod.Put, new Uri("http://valid-uri")), "content")
-                };
+            {
+                Request = new HttpRequestMessageWrapper(new HttpRequestMessage(HttpMethod.Put, new Uri("http://valid-uri")), "content")
+            };
             Option<EdgeDeploymentStatus> reportedStatus = Option.None<EdgeDeploymentStatus>();
             EdgeDeploymentStatus expectedStatus = EdgeDeploymentStatus.Failure($"{controllerException.Request.Method} [{controllerException.Request.RequestUri}]({controllerException.Message})");
             var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
@@ -216,8 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            HttpOperationException ex = await Assert.ThrowsAsync<HttpOperationException>(() => edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition));
-            Assert.Equal(controllerException, ex);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
             Assert.True(reportedStatus.HasValue);
             Assert.Equal(expectedStatus, reportedStatus.OrDefault());
             Mock.Get(controller).VerifyAll();
