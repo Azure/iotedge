@@ -49,7 +49,7 @@ pub fn translate_incoming_publish(client_id: &ClientId, publish: &mut proto::Pub
     }
 }
 
-pub fn translate_outgoing_publish(mut publish: proto::Publish) -> proto::Publish {
+pub fn translate_outgoing_publish(publish: &mut proto::Publish) {
     if let Some(new_topic) = TRANSLATE_C2D.to_external(&publish.topic_name) {
         debug!(
             "Translating outgoing publication {} to {}",
@@ -57,8 +57,6 @@ pub fn translate_outgoing_publish(mut publish: proto::Publish) -> proto::Publish
         );
         publish.topic_name = new_topic;
     }
-
-    publish
 }
 
 const DEVICE_ID: &str = r"(?P<device_id>[^/]+)";

@@ -61,7 +61,8 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()> + Unpin,
 {
-    let mut server = Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor);
+    let mut server =
+        Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor::default());
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();

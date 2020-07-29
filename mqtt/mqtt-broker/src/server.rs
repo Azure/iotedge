@@ -1,8 +1,7 @@
 use std::{error::Error as StdError, future::Future, sync::Arc};
 
-use futures_util::future::BoxFuture;
 use futures_util::{
-    future::{self, Either, FutureExt},
+    future::{self, BoxFuture, Either, FutureExt},
     pin_mut,
     stream::StreamExt,
 };
@@ -12,10 +11,11 @@ use tracing_futures::Instrument;
 
 use mqtt_broker_core::auth::{Authenticator, Authorizer};
 
-use crate::connection::{MakeMqttPacketProcessor, MakePacketProcessor};
 use crate::{
     broker::{Broker, BrokerHandle},
-    connection,
+    connection::{
+        self, MakeIncomingPacketProcessor, MakeMqttPacketProcessor, MakeOutgoingPacketProcessor,
+    },
     transport::{GetPeerInfo, Transport},
     BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
     SystemEvent,
@@ -50,7 +50,7 @@ where
 impl<Z, P> Server<Z, P>
 where
     Z: Authorizer + Send + 'static,
-    P: MakePacketProcessor + Clone + Send + Sync + 'static,
+    P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
 {
     pub fn tcp<N>(&mut self, addr: &str, authenticator: N) -> &mut Self
     where
@@ -237,7 +237,7 @@ where
     F: Future<Output = ()> + Unpin,
     N: Authenticator + ?Sized + Send + Sync + 'static,
     T: Future<Output = Result<Transport, InitializeBrokerError>>,
-    P: MakePacketProcessor + Clone + Send + Sync + 'static,
+    P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
 {
     let io = new_transport.await?;
     let addr = io.local_addr()?;
