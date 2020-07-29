@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Primitives;
     using Newtonsoft.Json;
 
     public class DeviceScopeController : Controller
@@ -199,6 +200,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             if (actorModuleId != Constants.EdgeHubModuleId)
             {
                 // Only child EdgeHubs are allowed to act OnBehalfOf of devices/modules.
+                return false;
+            }
+
+            if (!this.Request.Headers.TryGetValue(Constants.ServiceApiIdHeaderKey, out StringValues clientIds) || clientIds.Count == 0)
+            {
+                // Must have presented Edge header for AuthN earlier
+                return false;
+            }
+
+            string clientId = clientIds.First();
+            string[] clientIdParts = clientId.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            if (clientIdParts.Length != 2)
+            {
+                // Edge header should have been a module
+                return false;
+            }
+
+            if (actorDeviceId != clientIdParts[0] || actorModuleId != clientIdParts[1])
+            {
+                // Actor ID from request should match actor from Edge header
                 return false;
             }
 
