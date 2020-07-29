@@ -45,12 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return this.Json(GetErrorResult());
             }
 
-            // FIXME: this can be removed, one the broker skips authentication for special clients
-            if (this.IsSystemComponent(request))
-            {
-                return this.Json(this.AuthenticateSystemComponent(request));
-            }
-
             try
             {
                 var isAuthenticated = default(bool);
@@ -70,22 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Events.ErrorProcessingRequest(e);
                 return this.Json(GetErrorResult());
             }
-        }
-
-        // FIXME: this can be removed, one the broker skips authentication for special clients
-        bool IsSystemComponent(AuthRequest request)
-        {
-            return string.Equals(request.Username, this.systemComponentIdProvider.EdgeHubBridgeId);
-        }
-
-        object AuthenticateSystemComponent(AuthRequest request)
-        {
-            return new
-            {
-                result = AuthAgentConstants.Authenticated,
-                identity = this.systemComponentIdProvider.EdgeHubBridgeId,
-                version = AuthAgentConstants.ApiVersion
-            };
         }
 
         Option<ClientInfo> GetIdsFromUsername(AuthRequest request)
