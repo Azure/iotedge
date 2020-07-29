@@ -200,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             if (actorModuleId != Constants.EdgeHubModuleId)
             {
                 // Only child EdgeHubs are allowed to act OnBehalfOf of devices/modules.
-                Events.AuthFail_BadActor(actorDeviceId, actorModuleId);
+                Events.AuthFail_BadActor(actorDeviceId, actorModuleId, targetId);
                 return false;
             }
 
@@ -329,9 +329,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 Log.LogError((int)EventIds.InvalidRequestAuthchain, $"Invalid auth chain: {authChain}");
             }
 
-            public static void AuthFail_BadActor(string actorDeviceId, string actorModuleId)
+            public static void AuthFail_BadActor(string actorDeviceId, string actorModuleId, string targetId)
             {
-                Log.LogError((int)EventIds.AuthFail_BadActor, $"Only EdgeHub is allowed to act OnBehalfOf another identity: {actorDeviceId}/{actorModuleId}");
+                Log.LogError((int)EventIds.AuthFail_BadActor, $"{actorDeviceId}/{actorModuleId} not authorized to connect OnBehalfOf {targetId}");
             }
 
             public static void AuthFail_NoHeader()
