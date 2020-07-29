@@ -163,6 +163,7 @@ where
     type SystemResourcesFuture =
         Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         Box::new(create_module(self, module))
@@ -313,6 +314,10 @@ where
     }
 
     fn remove_all(&self) -> Self::RemoveAllFuture {
+        Box::new(future::ok(()))
+    }
+
+    fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
         Box::new(future::ok(()))
     }
 }
