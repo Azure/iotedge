@@ -68,11 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             message.SystemProperties.TryGetValue(SystemProperties.LockToken, out string lockToken);
 
+            // ProtocolGateway rejects messages if the message creation time is > Subscription time.
+            // To make sure all messages reach the client, always set the createdTime = UtcNow.
             DateTime createdTimeUtc = DateTime.UtcNow;
-            if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string createdTime))
-            {
-                createdTimeUtc = DateTime.Parse(createdTime, null, DateTimeStyles.RoundtripKind);
-            }
 
             if (!message.SystemProperties.TryGetValue(SystemProperties.OutboundUri, out string uriTemplateKey))
             {
