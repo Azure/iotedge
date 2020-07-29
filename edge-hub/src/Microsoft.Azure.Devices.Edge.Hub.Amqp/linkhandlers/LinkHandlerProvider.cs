@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         readonly IMessageConverter<AmqpMessage> methodMessageConverter;
         readonly IIdentityProvider identityProvider;
         readonly IProductInfoStore productInfoStore;
+        readonly IModelIdStore modelIdStore;
         readonly IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList;
 
         public LinkHandlerProvider(
@@ -42,8 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IMessageConverter<AmqpMessage> twinMessageConverter,
             IMessageConverter<AmqpMessage> methodMessageConverter,
             IIdentityProvider identityProvider,
-            IProductInfoStore productInfoStore)
-            : this(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider, productInfoStore, DefaultTemplatesList)
+            IProductInfoStore productInfoStore,
+            IModelIdStore modelIdStore)
+            : this(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider, productInfoStore, modelIdStore, DefaultTemplatesList)
         {
         }
 
@@ -53,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IMessageConverter<AmqpMessage> methodMessageConverter,
             IIdentityProvider identityProvider,
             IProductInfoStore productInfoStore,
+            IModelIdStore modelIdStore,
             IDictionary<(UriPathTemplate Template, bool IsReceiver), LinkType> templatesList)
         {
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -60,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             this.methodMessageConverter = Preconditions.CheckNotNull(methodMessageConverter, nameof(methodMessageConverter));
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
+            this.modelIdStore = Preconditions.CheckNotNull(modelIdStore, nameof(modelIdStore));
             this.templatesList = Preconditions.CheckNotNull(templatesList, nameof(templatesList));
         }
 
@@ -86,25 +90,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 switch (linkType)
                 {
                     case LinkType.C2D:
-                        return new DeviceBoundLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.productInfoStore);
+                        return new DeviceBoundLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.productInfoStore, this.modelIdStore);
 
                     case LinkType.Events:
-                        return new EventsLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.productInfoStore);
+                        return new EventsLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.productInfoStore, this.modelIdStore);
 
                     case LinkType.ModuleMessages:
-                        return new ModuleMessageLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.productInfoStore);
+                        return new ModuleMessageLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.messageConverter, this.productInfoStore, this.modelIdStore);
 
                     case LinkType.MethodSending:
-                        return new MethodSendingLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.methodMessageConverter, this.productInfoStore);
+                        return new MethodSendingLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.methodMessageConverter, this.productInfoStore, this.modelIdStore);
 
                     case LinkType.MethodReceiving:
-                        return new MethodReceivingLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.methodMessageConverter, this.productInfoStore);
+                        return new MethodReceivingLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.methodMessageConverter, this.productInfoStore, this.modelIdStore);
 
                     case LinkType.TwinReceiving:
-                        return new TwinReceivingLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.twinMessageConverter, this.productInfoStore);
+                        return new TwinReceivingLinkHandler(identity, link as IReceivingAmqpLink, uri, boundVariables, connectionHandler, this.twinMessageConverter, this.productInfoStore, this.modelIdStore);
 
                     case LinkType.TwinSending:
-                        return new TwinSendingLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.twinMessageConverter, this.productInfoStore);
+                        return new TwinSendingLinkHandler(identity, link as ISendingAmqpLink, uri, boundVariables, connectionHandler, this.twinMessageConverter, this.productInfoStore, this.modelIdStore);
 
                     default:
                         throw new InvalidOperationException($"Invalid link type {linkType}");

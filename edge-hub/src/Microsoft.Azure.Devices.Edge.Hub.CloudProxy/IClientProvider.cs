@@ -8,14 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public interface IClientProvider
     {
-        IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings);
+        IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings, Option<string> modelId);
 
         IClient Create(IIdentity identity, string connectionString, ITransportSettings[] transportSettings);
 
         Task<IClient> CreateAsync(IIdentity identity, ITransportSettings[] transportSettings);
 
-        IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings);
-
-        IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, string modelId);
+        IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, Option<string> modelId);
     }
 }
