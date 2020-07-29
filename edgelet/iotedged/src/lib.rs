@@ -330,10 +330,12 @@ where
                 )?;
 
                 // Normally iotedged will stop all modules when it shuts down. But if it crashed,
-                // then modules will continue to run and they'll be holding stale file descriptors
-                // for the workload and management APIs. On some platforms (e.g. CentOS 7.5), calls
-                // to these APIs will begin to fail. Resilient modules should be able to deal with
-                // this, but we'll restart all modules to ensure a clean start.
+                // modules will continue to run. On Linux systems where iotedged is responsible for
+                // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
+                // support systemd socket activation), modules will be left holding stale file
+                // descriptors for the workload and management APIs and calls on these APIs will
+                // begin to fail. Resilient modules should be able to deal with this, but we'll
+                // restart all modules to ensure a clean start.
                 const STOP_TIME: Duration = Duration::from_secs(30);
                 info!("Stopping all modules...");
                 tokio_runtime
