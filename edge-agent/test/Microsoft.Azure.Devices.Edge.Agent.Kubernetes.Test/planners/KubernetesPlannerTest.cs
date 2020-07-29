@@ -161,6 +161,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
         [Fact]
         [Unit]
+        public async void KubernetesPlannerStatusCommandExistsWhenEdgeDeploymentHasStatus()
+        {
+            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            KubernetesConfig kc1 = new KubernetesConfig("image1", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            KubernetesConfig kc2 = new KubernetesConfig("image2", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            EdgeDeploymentStatus status = EdgeDeploymentStatus.Success("This went very well.");
+            var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>() { new KubernetesModule(m1, kc1, EdgeletModuleOwner), new KubernetesModule(m2, kc2, EdgeletModuleOwner) }, status);
+            bool getCrdCalled = false;
+
+            using (var server = new KubernetesApiServer(
+                resp: string.Empty,
+                shouldNext: async httpContext =>
+                {
+                    string pathStr = httpContext.Request.Path.Value;
+                    string method = httpContext.Request.Method;
+                    if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
+                        {
+                            getCrdCalled = true;
+                            await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(edgeDefinition, EdgeDeploymentSerialization.SerializerSettings).ToBody());
+                        }
+                    }
+
+                    return false;
+                }))
+            {
+                ModuleSet desired = ModuleSet.Create(m1, m2);
+                ModuleSet current = ModuleSet.Create(m1, m2);
+
+                var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
+                var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
+                var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
+                Assert.True(getCrdCalled);
+                Assert.Equal(2, plan.Commands.Count);
+                Assert.True(plan.Commands.First() is EdgeDeploymentCommand);
+                Assert.True(plan.Commands.Last() is EdgeDeploymentStatusCommand);
+            }
+        }
+
+        [Fact]
+        [Unit]
         public async void KubernetesPlannerPlanExistsWhenNoChanges()
         {
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
@@ -195,8 +238,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                 var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
                 var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
                 Assert.True(getCrdCalled);
-                Assert.Single(plan.Commands);
+                Assert.Equal(2, plan.Commands.Count);
                 Assert.True(plan.Commands.First() is EdgeDeploymentCommand);
+                Assert.True(plan.Commands.Last() is EdgeDeploymentStatusCommand);
             }
         }
 
@@ -234,8 +278,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                 var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
                 var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
                 Assert.True(getCrdCalled);
-                Assert.Single(plan.Commands);
+                Assert.Equal(2, plan.Commands.Count);
                 Assert.True(plan.Commands.First() is EdgeDeploymentCommand);
+                Assert.True(plan.Commands.Last() is EdgeDeploymentStatusCommand);
             }
         }
 

@@ -95,6 +95,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 {
                     planCommand
                 };
+                await activeDeployment.ForEachAsync(async edgeDeployment =>
+                {
+                    var deploymentStatusCommand = new EdgeDeploymentStatusCommand(edgeDeployment.Status);
+                    var statusCommand = await this.commandFactory.WrapAsync(deploymentStatusCommand);
+                    planList.Add(statusCommand);
+                });
                 Events.PlanCreated(planList);
                 plan = new Plan(planList);
             }
