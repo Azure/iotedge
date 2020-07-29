@@ -33,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 CertificateAuthority.GetQuickstart(),
                 this.iotHub,
-                token);
+                token,
+                Option.None<string>());
 
             await TryFinally.DoAsync(
                 async () =>
