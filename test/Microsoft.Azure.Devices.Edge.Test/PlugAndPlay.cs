@@ -12,8 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
@@ -34,11 +36,26 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Assert.Ignore("Plug and Play device client test has been disabled for Windows and Arm32 until we can fix it.");
             }
+            CancellationToken token = this.TestToken;
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(token);
 
+            string leafDeviceId = DeviceId.Current.Generate();
+
+            var leaf = await LeafDevice.CreateAsync(
+                leafDeviceId,
+                Protocol.Amqp,
+                AuthenticationType.Sas,
+                Option.None<string>(),
+                false,
+                CertificateAuthority.GetQuickstart(),
+                this.iotHub,
+                token,
+                Option.Some(TestModelId));
+            /*
             string deviceId = DeviceIdPrefix + Guid.NewGuid();
             string plugAndPlayIdentityImage = Context.Current.PlugAndPlayIdentityImage.Expect(() => new InvalidOperationException("Missing Plug and Play Identity image"));
             CancellationToken token = this.TestToken;
-
+            
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
             builder =>
             {
@@ -54,8 +71,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
             },
             token);
             EdgeModule filter = deployment.Modules[PlugAndPlayIdentityName];
-            await filter.WaitForEventsReceivedFromDeviceAsync(deployment.StartTime, token, deviceId);
-            await this.Validate(this.iotHub.Hostname, deviceId, TestModelId);
+            await filter.WaitForEventsReceivedFromDeviceAsync(deployment.StartTime, token, leafDeviceId);
+            */
+            //                     await Validate(this.iotHub.Hostname, leafDeviceId, TestModelId);
+            await TryFinally.DoAsync(
+                async () =>
+                {
+                    DateTime seekTime = DateTime.Now;
+                    await leaf.SendEventAsync(token);
+                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
+                    await Validate(this.iotHub.Hostname, leafDeviceId, TestModelId);
+                },
+                async () =>
+                {
+                    await leaf.DeleteIdentityAsync(token);
+                });
+
+
         }
 
         public async Task Validate(string hostName, string deviceId, string expectedModelId)

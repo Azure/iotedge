@@ -128,8 +128,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             params string[] requiredProperties) => Profiler.Run(
             async () =>
             {
-                Log.Verbose("Waiting for event...");
-                Log.Verbose($"EventHub: {this.iotHub.EntityPath}");
                 string resultBody = null;
                 await this.iotHub.ReceiveEventsAsync(
                     deviceId,
@@ -149,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 return resultBody;
             },
             "Received events from device '{Device}' on Event Hub '{EventHub}'",
-            this.deviceId,
+            deviceId,
             this.iotHub.EntityPath);
 
         public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token) => Profiler.Run(
