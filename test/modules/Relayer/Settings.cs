@@ -17,7 +17,7 @@ namespace Relayer
             TransportType transportType,
             string inputName,
             string outputName,
-            Uri testResultCoordinatorUrl,
+            string testResultCoordinatorUrl,
             string moduleId,
             bool receiveOnly,
             Option<int> uniqueResultsExpected)
@@ -46,7 +46,7 @@ namespace Relayer
                 configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue("inputName", "input1"),
                 configuration.GetValue("outputName", "output1"),
-                configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
+                configuration.GetValue("testResultCoordinatorUrl", "http://testresultcoordinator:5001"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue<bool>("receiveOnly", false),
                 uniqueResultsExpected);
@@ -58,7 +58,7 @@ namespace Relayer
 
         public string OutputName { get; }
 
-        public Uri TestResultCoordinatorUrl { get; }
+        public string TestResultCoordinatorUrl { get; }
 
         public string ModuleId { get; }
 
@@ -75,7 +75,7 @@ namespace Relayer
                 { nameof(this.OutputName), this.OutputName },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
-                { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
+                { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl },
                 { nameof(this.ReceiveOnly), this.ReceiveOnly.ToString() }
             };
 
