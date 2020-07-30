@@ -170,7 +170,7 @@ where
 
                 let (outgoing, incoming) = codec.split();
 
-                // prepate processing incoming packets
+                // prepare processing incoming packets
                 let incoming_processor = make_processor.make_incoming(&client_id);
                 let incoming_task =
                     incoming_task(client_id.clone(), incoming, broker_handle.clone(), incoming_processor);

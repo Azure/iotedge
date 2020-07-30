@@ -241,7 +241,7 @@ where
     let io = new_transport.await?;
     let addr = io.local_addr()?;
 
-    let span = info_span!("transport", listener=%addr);
+    let span = info_span!("server", listener=%addr);
     let inner_span = span.clone();
 
     async move {
