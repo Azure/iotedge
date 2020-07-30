@@ -104,7 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             }
 
             ITransportSettings[] settings = GetTransportSettings();
-            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}].");
+            string modelIdIsPresent = !string.IsNullOrEmpty(options.ModelId) ? $"with modelId {options.ModelId}" : string.Empty;
+            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}] {modelIdIsPresent}.");
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings, options);
             await moduleClient.OpenAsync();
 
