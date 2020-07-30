@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             string requestString = moduleId.Match(
-                m => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/{m}?api-version=2020-05-31-preview",
+                m => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/modules/{m}?api-version=2020-05-31-preview",
                 () => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/?api-version=2020-05-31-preview");
             Log.Verbose($"Request string: {requestString}");
             HttpResponseMessage responseMessage = await httpClient.GetAsync(requestString);
