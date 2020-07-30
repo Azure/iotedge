@@ -54,7 +54,7 @@ steps:
     # aren't included in the TRX. Copy them manually here.
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
-    Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+    Copy-Item "$(binDir)/testoutput-$(Agent.Name).log" "$logDir/"
   displayName: Collect Logs
   condition: succeededOrFailed()
 
