@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     async m =>
                     {
                         await this.modelIdStore.SetModelId(deviceCredentials.Identity.Id, m);
-                        Events.PrintMe($"Stored modelId {m}");
+                        Events.PrintMe($"Stored modelId {m} for id {deviceCredentials.Identity.Id}");
                     },
                     () =>
                     {
