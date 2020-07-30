@@ -16,7 +16,7 @@ thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = "0.1"
 
-mqtt-broker = { path = "../mqtt-broker", default-features = false }
+mqtt-broker = { path = "../mqtt-broker" }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt-generic = { path = "../mqtt-generic", optional = true }
@@ -27,5 +27,5 @@ serde_json = "1.0"
 
 [features]
 default = ["edgehub"]
-edgehub = ["mqtt-broker/edgehub", "mqtt-edgehub"]
+edgehub = ["mqtt-edgehub"]
 generic = ["mqtt-generic"]

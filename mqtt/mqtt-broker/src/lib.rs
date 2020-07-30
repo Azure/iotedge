@@ -40,7 +40,8 @@ use mqtt_broker_core::{
 
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
 pub use crate::connection::{
-    ConnectionHandle, MakeEdgeHubPacketProcessor, MakeMqttPacketProcessor,
+    ConnectionHandle, IncomingPacketProcessor, MakeIncomingPacketProcessor,
+    MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, OutgoingPacketProcessor, PacketAction,
 };
 pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{

@@ -12,56 +12,6 @@ use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tracing::{debug, warn};
 
-pub struct EdgeHubPacketProcessor<P> {
-    inner: P,
-    client_id: ClientId,
-}
-
-#[async_trait]
-impl<P> IncomingPacketProcessor for EdgeHubPacketProcessor<P>
-where
-    P: IncomingPacketProcessor + Send,
-{
-    async fn process(
-        &mut self,
-        mut packet: Packet,
-    ) -> Result<PacketAction<Message, Message>, Error> {
-        match &mut packet {
-            Packet::Publish(ref mut publish) => {
-                translate_incoming_publish(&self.client_id, publish);
-            }
-            Packet::Subscribe(subscribe) => {
-                translate_incoming_subscribe(&self.client_id, subscribe);
-            }
-            Packet::Unsubscribe(unsubscribe) => {
-                translate_incoming_unsubscribe(&self.client_id, unsubscribe);
-            }
-            _ => (),
-        }
-        self.inner.process(packet).await
-    }
-}
-
-#[async_trait]
-impl<P> OutgoingPacketProcessor for EdgeHubPacketProcessor<P>
-where
-    P: OutgoingPacketProcessor + Send,
-{
-    async fn process(
-        &mut self,
-        mut message: Message,
-    ) -> PacketAction<Option<(Packet, Option<Message>)>, ()> {
-        match &mut message {
-            Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_id, publish)))
-            | Message::Client(_, ClientEvent::PublishTo(Publish::QoS0(_id, publish))) => {
-                translate_outgoing_publish(publish);
-            }
-            _ => (),
-        }
-        self.inner.process(message).await
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PacketAction<C, S> {
     Continue(C),
@@ -128,51 +78,6 @@ impl MakeOutgoingPacketProcessor for MakeMqttPacketProcessor {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct MakeEdgeHubPacketProcessor<P>(P);
-
-impl Default for MakeEdgeHubPacketProcessor<MakeMqttPacketProcessor> {
-    fn default() -> Self {
-        Self::new(MakeMqttPacketProcessor)
-    }
-}
-
-impl<P> MakeEdgeHubPacketProcessor<P> {
-    pub fn new(make_processor: P) -> Self {
-        Self(make_processor)
-    }
-}
-
-impl<P> MakeIncomingPacketProcessor for MakeEdgeHubPacketProcessor<P>
-where
-    P: MakeIncomingPacketProcessor,
-{
-    type Processor = EdgeHubPacketProcessor<P::Processor>;
-
-    fn make_incoming(&self, client_id: &ClientId) -> Self::Processor {
-        let inner = self.0.make_incoming(client_id);
-        Self::Processor {
-            client_id: client_id.clone(),
-            inner,
-        }
-    }
-}
-
-impl<P> MakeOutgoingPacketProcessor for MakeEdgeHubPacketProcessor<P>
-where
-    P: MakeOutgoingPacketProcessor,
-{
-    type Processor = EdgeHubPacketProcessor<P::Processor>;
-
-    fn make_outgoing(&self, client_id: &ClientId) -> Self::Processor {
-        let inner = self.0.make_outgoing(client_id);
-        Self::Processor {
-            client_id: client_id.clone(),
-            inner,
-        }
-    }
-}
-
 #[async_trait]
 impl IncomingPacketProcessor for MqttIncomingPacketProcessor {
     async fn process(&mut self, packet: Packet) -> Result<PacketAction<Message, Message>, Error> {
@@ -187,7 +92,6 @@ impl IncomingPacketProcessor for MqttIncomingPacketProcessor {
             Packet::Disconnect(disconnect) => {
                 let event = ClientEvent::Disconnect(disconnect);
                 let message = Message::Client(self.client_id.clone(), event);
-                // self.broker.send(message).await?;
                 debug!("disconnect received. shutting down receive side of connection");
                 return Ok(PacketAction::Stop(message));
             }
@@ -208,7 +112,6 @@ impl IncomingPacketProcessor for MqttIncomingPacketProcessor {
         };
 
         let message = Message::Client(self.client_id.clone(), event);
-        // self.broker.send(message).await?;
         Ok(PacketAction::Continue(message))
     }
 }

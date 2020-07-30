@@ -26,6 +26,7 @@ url = "2.1"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
+mqtt-broker = { path = "../mqtt-broker" }
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.7"

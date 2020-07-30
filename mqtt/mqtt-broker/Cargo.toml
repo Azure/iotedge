@@ -31,7 +31,6 @@ tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
 
 [dev-dependencies]
@@ -71,8 +70,6 @@ harness = false
 required-features = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 
 [features]
-default = ["edgehub"]
-edgehub = ["mqtt-edgehub"]
 benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 
 # Internal (PRIVATE!) features used to aid testing.
