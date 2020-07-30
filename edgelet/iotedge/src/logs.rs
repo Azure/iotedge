@@ -38,5 +38,5 @@ where
             .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
             .map(drop);
         Box::new(result)
-    }s
+    }
 }
