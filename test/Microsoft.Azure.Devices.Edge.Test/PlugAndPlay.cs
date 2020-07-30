@@ -107,12 +107,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            string requestString = moduleId.Match(
-                m => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/modules/{m}?api-version=2020-05-31-preview",
-                () => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/?api-version=2020-05-31-preview");
+            string requestString = $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/?api-version=2020-05-31-preview";
+            // string requestString = moduleId.Match(
+            //    m => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/modules/{m}?api-version=2020-05-31-preview",
+            //    () => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/?api-version=2020-05-31-preview");
             Log.Verbose($"Request string: {requestString}");
             HttpResponseMessage responseMessage = await httpClient.GetAsync(requestString);
             Log.Verbose($"HttpClient method response status code: {responseMessage.StatusCode}");
+            Log.Verbose($"Got this from d twin: {await responseMessage.Content.ReadAsStringAsync()}");
             var jo = JObject.Parse(await responseMessage.Content.ReadAsStringAsync());
             var modelId = jo["$metadata"]["$model"].ToString();
             Assert.AreEqual(expectedModelId, modelId);
