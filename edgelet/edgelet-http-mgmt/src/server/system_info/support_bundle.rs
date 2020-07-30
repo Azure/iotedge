@@ -51,14 +51,14 @@ where
             self.runtime.clone(),
         )
         .map_err(|_| Error::from(ErrorKind::SupportBundle))
-        .and_then(|bundle: Box<dyn Read + Send>| {
+        .and_then(|(bundle, size)| {
             let body = Body::wrap_stream(ReadStream(bundle));
 
             Response::builder()
                 .status(StatusCode::OK)
                 .header(CONTENT_TYPE, "application/zip")
                 .header(CONTENT_ENCODING, "zip")
-                .header(CONTENT_LENGTH, 0.to_string().as_str())
+                .header(CONTENT_LENGTH, size.to_string().as_str())
                 .body(body)
                 .map_err(|_err| {
                     Error::from(ErrorKind::RuntimeOperation(

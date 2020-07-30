@@ -65,7 +65,7 @@ where
 
         let result = bundle
             .map_err(|_| Error::from(ErrorKind::SupportBundle))
-            .and_then(|mut bundle| -> Result<(), Error> {
+            .and_then(|(mut bundle, _size)| -> Result<(), Error> {
                 match output_location {
                     OutputLocation::File(location) => {
                         let path = PathBuf::from(location);

@@ -25,7 +25,7 @@ pub fn make_bundle<M>(
     verbose: bool,
     iothub_hostname: Option<String>,
     runtime: M,
-) -> Box<dyn Future<Item = Box<dyn Read + Send>, Error = Error> + Send>
+) -> Box<dyn Future<Item = (Box<dyn Read + Send>, u64), Error = Error> + Send>
 where
     M: 'static + ModuleRuntime + Clone + Send + Sync,
 {
@@ -49,15 +49,16 @@ where
 
             let bundle = state.and_then(|state| state.bundle_all());
 
-            let read = bundle.and_then(|mut bundle| -> Result<Box<dyn Read + Send>, Error> {
-                let result: Box<dyn Read + Send> = Box::new(
-                    bundle
-                        .zip_writer
-                        .finish()
-                        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
-                );
-                Ok(result)
-            });
+            let read =
+                bundle.and_then(|mut bundle| -> Result<(Box<dyn Read + Send>, u64), Error> {
+                    let result: Box<dyn Read + Send> = Box::new(
+                        bundle
+                            .zip_writer
+                            .finish()
+                            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
+                    );
+                    Ok((result, 0)) // TODO: Get Size
+                });
 
             Box::new(read)
         }
@@ -77,15 +78,17 @@ where
 
             let bundle = state.and_then(|state| state.bundle_all());
 
-            let read = bundle.and_then(|mut bundle| -> Result<Box<dyn Read + Send>, Error> {
-                let result: Box<dyn Read + Send> = Box::new(
-                    bundle
+            let read =
+                bundle.and_then(|mut bundle| -> Result<(Box<dyn Read + Send>, u64), Error> {
+                    let mut cursor = bundle
                         .zip_writer
                         .finish()
-                        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
-                );
-                Ok(result)
-            });
+                        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+                    let len = cursor.position();
+                    cursor.set_position(0);
+                    let reader: Box<dyn Read + Send> = Box::new(cursor);
+                    Ok((reader, len))
+                });
 
             Box::new(read)
         }
