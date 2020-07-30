@@ -2,7 +2,7 @@
 
 use std::io::Read;
 
-use futures::Future;
+use futures::{Async, Future, Poll, Stream};
 use hyper::header::{CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
@@ -51,13 +51,15 @@ where
             self.runtime.clone(),
         )
         .map_err(|_| Error::from(ErrorKind::SupportBundle))
-        .and_then(|_bundle: Box<dyn Read + Send>| {
+        .and_then(|bundle: Box<dyn Read + Send>| {
+            let body = Body::wrap_stream(ReadStream(bundle));
+
             Response::builder()
                 .status(StatusCode::OK)
                 .header(CONTENT_TYPE, "application/zip")
                 .header(CONTENT_ENCODING, "zip")
-                .header(CONTENT_LENGTH, 6.to_string().as_str())
-                .body("bundle".into())
+                .header(CONTENT_LENGTH, 0.to_string().as_str())
+                .body(body)
                 .map_err(|_err| {
                     Error::from(ErrorKind::RuntimeOperation(
                         RuntimeOperation::GetModuleLogs("".to_owned()),
@@ -67,6 +69,26 @@ where
         .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
+    }
+}
+
+struct ReadStream(Box<dyn Read + Send>);
+
+impl Stream for ReadStream {
+    type Item = Vec<u8>;
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        let mut part: Vec<u8> = vec![0; 1024];
+        let size = self.0.read(&mut part)?;
+        if size > 0 {
+            println!("Sending {} bytes", size);
+            part.resize(size, 0);
+            Ok(Async::Ready(Some(part)))
+        } else {
+            println!("Finished sending bytes");
+            Ok(Async::Ready(None))
+        }
     }
 }
 
