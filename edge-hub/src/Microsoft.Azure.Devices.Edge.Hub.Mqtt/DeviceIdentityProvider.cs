@@ -51,17 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = ParseUserName(username);
-                await modelId.ForEachAsync(
-                    async m =>
-                    {
-                        await this.modelIdStore.SetModelId(deviceId, m);
-                        Events.PrintMe($"Stored modelId {m}");
-                    },
-                    () =>
-                    {
-                        Events.PrintMe("No modelId to store");
-                        return Task.CompletedTask;
-                    });
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
@@ -102,6 +91,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
 
                 await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, deviceClientType);
+                await modelId.ForEachAsync(
+                    async m =>
+                    {
+                        await this.modelIdStore.SetModelId(deviceCredentials.Identity.Id, m);
+                        Events.PrintMe($"Stored modelId {m}");
+                    },
+                    () =>
+                    {
+                        Events.PrintMe("No modelId to store");
+                        return Task.CompletedTask;
+                    });
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials, modelId);
             }
