@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
     using Serilog;
@@ -25,6 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class PlugAndPlay : SasManualProvisioningFixture
     {
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
+        const string TrcModuleName = "testResultCoordinator";
+        const string LoadGenModuleName = "loadGenModule";
 
         public PlugAndPlay()
             : base(
@@ -63,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     DateTime seekTime = DateTime.Now;
                     await leaf.SendEventAsync(token);
                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await this.Validate(this.iotHub.Hostname, leafDeviceId, TestModelId);
+                    await this.Validate(leafDeviceId, TestModelId);
                 },
                 async () =>
                 {
@@ -71,7 +74,36 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        public async Task Validate(string hostName, string deviceId, string expectedModelId)
+        [Test]
+        public async Task ModuleClient()
+        {
+            CancellationToken token = this.TestToken;
+            string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", "Mqtt") });
+                    builder.AddModule(LoadGenModuleName, loadGenImage)
+                    .WithEnvironment(new[]
+                    {
+                            ("testStartDelay", "00:00:00"),
+                            ("messageFrequency", "00:00:00.5"),
+                            ("transportType", Client.TransportType.Mqtt.ToString())
+                    });
+                },
+                token);
+            EdgeModule filter = deployment.Modules[LoadGenModuleName];
+            await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
+            await this.ValidateModule(token);
+        }
+
+        public async Task ValidateModule(CancellationToken token)
+        {
+            Twin twin = await this.iotHub.GetTwinAsync(this.runtime.DeviceId, LoadGenModuleName, token);
+            Assert.Equals(TestModelId, twin.ModelId);
+        }
+
+        public async Task Validate(string deviceId, string expectedModelId)
         {
             // Verify that the device has been registered as a plug and play device
             // We must generate a SAS token and use the endpoint until the service SDK comes out with a way to get the
@@ -80,8 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            Log.Verbose($"Request string: https://{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
-            HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{hostName}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
+            Log.Verbose($"Request string: https://{this.iotHub.Hostname}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
+            HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
             Log.Verbose($"HttpClient method response status code: {responseMessage.StatusCode}");
             var jo = JObject.Parse(await responseMessage.Content.ReadAsStringAsync());
             var modelId = jo["$metadata"]["$model"].ToString();
