@@ -93,7 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         static ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
-            Console.WriteLine($"\n\n\n{serverSupportedApiVersion}\n{clientSupportedApiVersion}\n\n\n");
             var serverVersion = ApiVersion.ParseVersion(serverSupportedApiVersion);
             var clientVersion = ApiVersion.ParseVersion(clientSupportedApiVersion);
 
