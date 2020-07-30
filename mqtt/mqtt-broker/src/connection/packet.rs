@@ -8,42 +8,51 @@ use mqtt3::proto::Packet;
 
 use crate::{ClientEvent, ClientId, Error, Message, Publish};
 
+/// Action result of packet processing operation.
+/// * `Continue` - processor suggests move to the next packet.
+/// * `Stop` - processor requests stop processing on the next packet.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PacketAction<C, S> {
     Continue(C),
     Stop(S),
 }
 
+/// Processes incoming MQTT packets.
 #[async_trait]
 pub trait IncomingPacketProcessor {
+    /// Converts incoming `proto::Packet` into `Message` that broker can process.
     async fn process(&mut self, packet: Packet) -> Result<PacketAction<Message, Message>, Error>;
 }
 
+/// Processes outgoing MQTT packets.
 #[async_trait]
 pub trait OutgoingPacketProcessor {
+    /// Converts outgoing `Message` into pair (`proto::Packet`, `Option<Message>`)
+    /// * packet to be sent to the connected client
+    /// * optional message to be sent back to the broker (eg. ACK for QoS0 publication)
     async fn process(
         &mut self,
         message: Message,
     ) -> PacketAction<Option<(Packet, Option<Message>)>, ()>;
 }
 
-pub struct MqttIncomingPacketProcessor {
-    client_id: ClientId,
-    incoming_pub_limit: Arc<Semaphore>,
-}
-
+/// A trait to make a new instance of incoming packet processor.
 pub trait MakeIncomingPacketProcessor {
     type Processor: IncomingPacketProcessor + Send + Sync;
 
+    /// Creates a new instance of incoming packet processor.
     fn make_incoming(&self, client_id: &ClientId) -> Self::Processor;
 }
 
+/// A trait to make a new instance of outgoing packet processor.
 pub trait MakeOutgoingPacketProcessor {
     type Processor: OutgoingPacketProcessor + Send + Sync;
 
+    /// Creates a new instance of outgoing packet processor.
     fn make_outgoing(&self, client_id: &ClientId) -> Self::Processor;
 }
 
+/// Makes a new instance of default MQTT packet processor.
 #[derive(Debug, Clone)]
 pub struct MakeMqttPacketProcessor;
 
@@ -51,16 +60,7 @@ impl MakeIncomingPacketProcessor for MakeMqttPacketProcessor {
     type Processor = MqttIncomingPacketProcessor;
 
     fn make_incoming(&self, client_id: &ClientId) -> Self::Processor {
-        // We limit the number of incoming publications (PublishFrom) per client
-        // in order to avoid (a single) publisher to occupy whole BrokerHandle queue.
-        // This helps with QoS 0 messages throughput, due to the fact that outgoing_task
-        // also uses sends PubAck0 for QoS 0 messages to BrokerHandle queue.
-        let incoming_pub_limit = Arc::new(Semaphore::new(10));
-
-        Self::Processor {
-            client_id: client_id.clone(),
-            incoming_pub_limit,
-        }
+        Self::Processor::new(client_id.clone(), 10)
     }
 }
 
@@ -68,8 +68,27 @@ impl MakeOutgoingPacketProcessor for MakeMqttPacketProcessor {
     type Processor = MqttOutgoingPacketProcessor;
 
     fn make_outgoing(&self, client_id: &ClientId) -> Self::Processor {
-        Self::Processor {
-            client_id: client_id.clone(),
+        Self::Processor::new(client_id.clone())
+    }
+}
+
+/// A default implementation of processor that converts incoming MQTT packets into messages.
+pub struct MqttIncomingPacketProcessor {
+    client_id: ClientId,
+    incoming_pub_limit: Arc<Semaphore>,
+}
+
+impl MqttIncomingPacketProcessor {
+    fn new(client_id: impl Into<ClientId>, incoming_pub_limit: usize) -> Self {
+        // We limit the number of incoming publications (PublishFrom) per client
+        // in order to avoid (a single) publisher to occupy whole BrokerHandle queue.
+        // This helps with QoS 0 messages throughput, due to the fact that outgoing_task
+        // also uses sends PubAck0 for QoS 0 messages to BrokerHandle queue.
+        let incoming_pub_limit = Arc::new(Semaphore::new(incoming_pub_limit));
+
+        Self {
+            client_id: client_id.into(),
+            incoming_pub_limit,
         }
     }
 }
@@ -112,8 +131,17 @@ impl IncomingPacketProcessor for MqttIncomingPacketProcessor {
     }
 }
 
+/// A default implementation of processor that converts outgoing messages into MQTT packets.
 pub struct MqttOutgoingPacketProcessor {
     client_id: ClientId,
+}
+
+impl MqttOutgoingPacketProcessor {
+    fn new(client_id: impl Into<ClientId>) -> Self {
+        Self {
+            client_id: client_id.into(),
+        }
+    }
 }
 
 #[async_trait]

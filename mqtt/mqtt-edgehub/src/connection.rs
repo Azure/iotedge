@@ -12,9 +12,20 @@ use crate::topic::translation::{
     translate_outgoing_publish,
 };
 
+/// MQTT packet processor wrapper. It identifies `IoTHub` topics and converts
+/// them into a format internal for Broker-EdgeHub communication.
 pub struct EdgeHubPacketProcessor<P> {
-    inner: P,
     client_id: ClientId,
+    inner: P,
+}
+
+impl<P> EdgeHubPacketProcessor<P> {
+    pub fn new(client_id: impl Into<ClientId>, inner: P) -> Self {
+        Self {
+            client_id: client_id.into(),
+            inner,
+        }
+    }
 }
 
 #[async_trait]
@@ -62,6 +73,7 @@ where
     }
 }
 
+/// Creates a wrapper around default MQTT packet processor.
 #[derive(Debug, Clone)]
 pub struct MakeEdgeHubPacketProcessor<P>(P);
 
@@ -85,10 +97,7 @@ where
 
     fn make_incoming(&self, client_id: &ClientId) -> Self::Processor {
         let inner = self.0.make_incoming(client_id);
-        Self::Processor {
-            client_id: client_id.clone(),
-            inner,
-        }
+        Self::Processor::new(client_id.clone(), inner)
     }
 }
 
@@ -100,9 +109,6 @@ where
 
     fn make_outgoing(&self, client_id: &ClientId) -> Self::Processor {
         let inner = self.0.make_outgoing(client_id);
-        Self::Processor {
-            client_id: client_id.clone(),
-            inner,
-        }
+        Self::Processor::new(client_id.clone(), inner)
     }
 }

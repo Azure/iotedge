@@ -50,9 +50,8 @@ use tracing::{info, warn};
 
 use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 use mqtt_broker::{
-    auth::{authorize_fn_ok, Authorization},
-    Auth, AuthId, BrokerBuilder, BrokerHandle, ClientEvent, ClientId, ConnReq, ConnectionHandle,
-    Message, Publish, SystemEvent,
+    auth::AllowAll, Auth, AuthId, BrokerBuilder, BrokerHandle, ClientEvent, ClientId, ConnReq,
+    ConnectionHandle, Message, Publish, SystemEvent,
 };
 
 criterion_group!(

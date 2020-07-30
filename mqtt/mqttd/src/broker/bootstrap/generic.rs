@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use tracing::info;
 
 use mqtt_broker::{
-    auth::{authenticate_fn_ok, Authorizer, AllowAll},
+    auth::{authenticate_fn_ok, AllowAll, Authorizer},
     settings::BrokerConfig,
     AuthId, Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
 };
