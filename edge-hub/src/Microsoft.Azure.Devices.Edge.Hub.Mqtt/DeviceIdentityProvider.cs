@@ -51,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = ParseUserName(username);
+                modelId.ForEach(async m => await this.modelIdStore.SetModelId(deviceId, m));
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
@@ -91,17 +92,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
 
                 await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, deviceClientType);
-                await modelId.ForEachAsync(
-                    async m =>
-                    {
-                        await this.modelIdStore.SetModelId(deviceCredentials.Identity.Id, m);
-                        Events.PrintMe($"Stored modelId {m} for id {deviceCredentials.Identity.Id}");
-                    },
-                    () =>
-                    {
-                        Events.PrintMe("No modelId to store");
-                        return Task.CompletedTask;
-                    });
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials, modelId);
             }
@@ -218,7 +208,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             if (queryParameters.TryGetValue(ModelIdKey, out string modelId) && !string.IsNullOrWhiteSpace(modelId))
             {
                 modelIdOption = Option.Some(modelId);
-                Events.PrintMe($"Found modelId in username: {modelId}");
             }
 
             return (deviceId, moduleId, deviceClientType, modelIdOption);
@@ -252,11 +241,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 CertAuthNotEnabled,
                 AuthNotFound,
                 ErrorCreatingIdentity
-            }
-
-            public static void PrintMe(string printMe)
-            {
-                Log.LogDebug($"DRB - {printMe}");
             }
 
             public static void Success(string clientId, string username)

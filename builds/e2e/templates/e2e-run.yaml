@@ -11,7 +11,7 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
 
-      dotnet vstest $testFile --logger:trx /Tests:PlugAndPlay
+      dotnet vstest $testFile --logger:trx
     }
     else
     {
@@ -22,7 +22,7 @@ steps:
       }
       else
       {
-        sudo --preserve-env dotnet vstest $testFile --logger:trx /Tests:PlugAndPlay
+        sudo --preserve-env dotnet vstest $testFile --logger:trx
       }
     }
   displayName: Run tests
