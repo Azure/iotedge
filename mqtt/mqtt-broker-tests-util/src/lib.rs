@@ -388,9 +388,9 @@ impl Stream for PacketStream {
 /// Used to control server lifetime during tests. Implements
 /// Drop to cleanup resources after every test.
 pub struct ServerHandle {
-    address: String,
-    shutdown: Option<Sender<()>>,
-    task: Option<JoinHandle<Result<BrokerSnapshot, Error>>>,
+    pub address: String,
+    pub shutdown: Option<Sender<()>>,
+    pub task: Option<JoinHandle<Result<BrokerSnapshot, Error>>>,
 }
 
 #[allow(dead_code)]
@@ -450,6 +450,7 @@ where
     }
 }
 
+// TODO move to mqtt-broker::auth
 pub struct DummyAuthenticator(AuthId);
 
 impl DummyAuthenticator {

@@ -12,7 +12,6 @@ chrono = "0.4"
 criterion = { version = "0.3", optional = true }
 fail = "0.3"
 flate2 = "1.0"
-futures = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 humantime = "2.0"
 humantime-serde = "1.0"
@@ -40,11 +39,12 @@ bytes = "0.5"
 fail = { version = "0.3", features = ["failpoints"] }
 itertools = "0.9"
 matches = "0.1"
-proptest = "0.9"
 tempfile = "3"
 test-case = "1.0"
 tokio = { version = "0.2", features = ["dns", "macros"] }
 tracing-subscriber = "0.1"
+
+mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 
 [[test]]
 name = "persist_failpoints"
@@ -53,11 +53,6 @@ required-features = ["fail/failpoints"]
 [[test]]
 name = "broker_model"
 path = "tests/broker_model.rs"
-required-features = ["proptest"]
-
-[[test]]
-name = "translation"
-path = "tests/translation.rs"
 required-features = ["proptest"]
 
 [[bench]]

@@ -2,6 +2,7 @@
 members = [
     "mqtt3",
     "mqtt-broker",
+    "mqtt-broker-tests-util",
     "mqtt-edgehub",
     "mqtt-generic",
     "mqttd",
