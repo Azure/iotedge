@@ -607,7 +607,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec, SystemInfo};
+    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec};
 
     use std::str::FromStr;
     use std::string::ToString;
@@ -722,27 +722,5 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn system_info_new_and_access_succeed() {
-        //arrange
-        let system_info = SystemInfo::new(
-            "testValueOsType".to_string(),
-            "testArchitectureType".to_string(),
-        );
-        let expected_value_os_type = "testValueOsType";
-        let expected_test_architecture_type = "testArchitectureType";
-
-        //act
-        let current_value_os_type = system_info.os_type();
-        let current_value_architecture_type = system_info.architecture();
-
-        //assert
-        assert_eq!(expected_value_os_type, current_value_os_type);
-        assert_eq!(
-            expected_test_architecture_type,
-            current_value_architecture_type
-        );
     }
 }
