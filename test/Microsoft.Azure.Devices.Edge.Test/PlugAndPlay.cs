@@ -27,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class PlugAndPlay : SasManualProvisioningFixture
     {
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
-        const string TrcModuleName = "testResultCoordinator";
         const string LoadGenModuleName = "loadGenModule";
 
         public PlugAndPlay()
@@ -67,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     DateTime seekTime = DateTime.Now;
                     await leaf.SendEventAsync(token);
                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await this.Validate(leafDeviceId, Option.None<string>(), TestModelId);
+                    await this.ValidateDevice(leafDeviceId, TestModelId);
                 },
                 async () =>
                 {
@@ -89,34 +88,52 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                             ("testStartDelay", "00:00:00"),
                             ("messageFrequency", "00:00:00.5"),
-                            ("transportType", Client.TransportType.Mqtt.ToString())
+                            ("transportType", Client.TransportType.Mqtt.ToString()),
+                            ("modelId", TestModelId)
                     });
                 },
                 token);
             EdgeModule filter = deployment.Modules[LoadGenModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
-            await this.Validate(this.runtime.DeviceId, Option.Some(LoadGenModuleName), TestModelId);
+            await this.ValidateModule(this.runtime.DeviceId, LoadGenModuleName, TestModelId);
         }
 
-        public async Task Validate(string deviceId, Option<string> moduleId, string expectedModelId)
+        async Task ValidateModule(string deviceId, string moduleId, string expectedModelId)
+        {
+            string requestString = $"https://{this.iotHub.Hostname}/twins/{deviceId}/modules/{moduleId}?api-version=2020-05-31-preview";
+            var jo = await this.MakeHttpGetRequest(requestString, deviceId);
+            var modelId = jo["modelId"].ToString();
+            Assert.AreEqual(expectedModelId, modelId);
+        }
+
+        async Task ValidateDevice(string deviceId, string expectedModelId)
         {
             // Verify that the device has been registered as a plug and play device
+            string requestString = $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/?api-version=2020-05-31-preview";
+            var jo = await this.MakeHttpGetRequest(requestString, deviceId);
+            var modelId = jo["$metadata"]["$model"].ToString();
+            Assert.AreEqual(expectedModelId, modelId);
+        }
+
+        async Task<JObject> MakeHttpGetRequest(string requestString, string deviceId)
+        {
+            HttpClient httpClient = this.SetupHttpClient(deviceId);
+            Log.Verbose($"Request string: {requestString}");
+            HttpResponseMessage responseMessage = await httpClient.GetAsync(requestString);
+            Log.Verbose($"HttpClient method response status code: {responseMessage.StatusCode}");
+            Log.Verbose($"Got this from response: {await responseMessage.Content.ReadAsStringAsync()}");
+            return JObject.Parse(await responseMessage.Content.ReadAsStringAsync());
+        }
+
+        HttpClient SetupHttpClient(string deviceId)
+        {
             // We must generate a SAS token and use the endpoint until the service SDK comes out with a way to get the
             // modelId from the device's digital twin.
             string sasToken = GenerateSasToken($"{this.iotHub.Hostname}/devices/{deviceId}", this.iotHub.SharedAccessKey, "iothubowner");
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            string requestString = moduleId.Match(
-                m => $"https://{this.iotHub.Hostname}/twins/{deviceId}/modules/{m}?api-version=2020-05-31-preview",
-                () => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/?api-version=2020-05-31-preview");
-            Log.Verbose($"Request string: {requestString}");
-            HttpResponseMessage responseMessage = await httpClient.GetAsync(requestString);
-            Log.Verbose($"HttpClient method response status code: {responseMessage.StatusCode}");
-            Log.Verbose($"Got this from response: {await responseMessage.Content.ReadAsStringAsync()}");
-            var jo = JObject.Parse(await responseMessage.Content.ReadAsStringAsync());
-            var modelId = jo["$metadata"]["$model"].ToString();
-            Assert.AreEqual(expectedModelId, modelId);
+            return httpClient;
         }
 
         public static string GenerateSasToken(string resourceUri, string key, string policyName, int expiryInSeconds = 3600)
