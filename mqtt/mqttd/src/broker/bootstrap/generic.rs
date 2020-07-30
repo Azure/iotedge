@@ -6,11 +6,12 @@ use std::{
 use anyhow::{Context, Result};
 use tracing::info;
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate};
-use mqtt_broker_core::{
-    auth::{authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer},
+use mqtt_broker::{
+    auth::{authenticate_fn_ok, authorize_fn_ok, Authorization, Authorizer},
     settings::BrokerConfig,
+    AuthId,
 };
+use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate};
 use mqtt_generic::settings::{CertificateConfig, Settings};
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
