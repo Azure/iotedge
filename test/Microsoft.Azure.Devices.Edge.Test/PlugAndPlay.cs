@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.VisualStudio.TestPlatform.ObjectModel;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
     using Serilog;
@@ -66,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     DateTime seekTime = DateTime.Now;
                     await leaf.SendEventAsync(token);
                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await this.Validate(leafDeviceId, TestModelId);
+                    await this.Validate(leafDeviceId, Option.None<string>(), TestModelId);
                 },
                 async () =>
                 {
@@ -94,16 +95,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
             EdgeModule filter = deployment.Modules[LoadGenModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
-            await this.ValidateModule(token);
+            await this.Validate(this.runtime.DeviceId, Option.Some(LoadGenModuleName), TestModelId);
         }
 
-        public async Task ValidateModule(CancellationToken token)
-        {
-            Twin twin = await this.iotHub.GetTwinAsync(this.runtime.DeviceId, LoadGenModuleName, token);
-            Assert.Equals(TestModelId, twin.ModelId);
-        }
-
-        public async Task Validate(string deviceId, string expectedModelId)
+        public async Task Validate(string deviceId, Option<string> moduleId, string expectedModelId)
         {
             // Verify that the device has been registered as a plug and play device
             // We must generate a SAS token and use the endpoint until the service SDK comes out with a way to get the
@@ -112,8 +107,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             HttpClient httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(sasToken);
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            Log.Verbose($"Request string: https://{this.iotHub.Hostname}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
-            HttpResponseMessage responseMessage = await httpClient.GetAsync($"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}?api-version=2020-05-31-preview");
+            string requestString = moduleId.Match(
+                m => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/{m}?api-version=2020-05-31-preview",
+                () => $"https://{this.iotHub.Hostname}/digitaltwins/{deviceId}/?api-version=2020-05-31-preview");
+            Log.Verbose($"Request string: {requestString}");
+            HttpResponseMessage responseMessage = await httpClient.GetAsync(requestString);
             Log.Verbose($"HttpClient method response status code: {responseMessage.StatusCode}");
             var jo = JObject.Parse(await responseMessage.Content.ReadAsStringAsync());
             var modelId = jo["$metadata"]["$model"].ToString();
