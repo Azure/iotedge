@@ -16,10 +16,11 @@ use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
+use support_bundle::OutputLocation;
 
 use iotedge::{
-    Check, Command, Error, ErrorKind, List, Logs, OutputFormat, OutputLocation, Restart,
-    SupportBundle, Unknown, Version,
+    Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
+    Unknown, Version,
 };
 
 fn main() {
@@ -394,7 +395,7 @@ fn run() -> Result<(), Error> {
             };
 
             tokio_runtime.block_on(
-                SupportBundle::new(
+                SupportBundleCommand::new(
                     options,
                     include_ms_only,
                     verbose,
