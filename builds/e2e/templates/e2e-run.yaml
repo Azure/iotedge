@@ -54,14 +54,7 @@ steps:
     # aren't included in the TRX. Copy them manually here.
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
-    if ('$(Agent.Name)'.Contains('centos'))
-      {
-        Copy-Item "$(binDir)/testoutput.log" "$logDir/testoutput-centos.log"
-      }
-      else
-      {
-        Copy-Item "$(binDir)/testoutput.log" "$logDir/testoutput.log"
-      }
+    Copy-Item "$(binDir)/testoutput.log" "$logDir/"
   displayName: Collect Logs
   condition: succeededOrFailed()
 
@@ -69,5 +62,5 @@ steps:
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)
+    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)-$(artifactName)
   condition: succeededOrFailed()
