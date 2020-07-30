@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use mqtt3::proto;
 use mqtt_broker::{
-    auth::{authorize_fn_ok, Authorization},
+    auth::AllowAll,
     proptest::{arb_client_id_weighted, arb_connect, arb_subscribe, arb_unsubscribe},
     Auth, AuthId, BrokerBuilder, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
 };
@@ -37,9 +37,7 @@ proptest! {
 }
 
 async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEvent>) {
-    let mut broker = BrokerBuilder::default()
-        .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-        .build();
+    let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let mut model = BrokerModel::default();
 

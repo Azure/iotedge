@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use std::{
-    convert::Infallible,
     error::Error as StdError,
     sync::atomic::{AtomicU32, Ordering},
     task::{Context, Poll},
@@ -28,7 +27,7 @@ use mqtt3::{
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 use mqtt_broker::{
-    auth::{Activity, AuthenticationContext, Authenticator, Authorization, Authorizer},
+    auth::{AuthenticationContext, Authenticator, Authorizer},
     AuthId, Broker, BrokerSnapshot, Error, Server,
 };
 
@@ -450,7 +449,6 @@ where
     }
 }
 
-// TODO move to mqtt-broker::auth
 pub struct DummyAuthenticator(AuthId);
 
 impl DummyAuthenticator {
@@ -465,21 +463,5 @@ impl Authenticator for DummyAuthenticator {
 
     async fn authenticate(&self, _: AuthenticationContext) -> Result<Option<AuthId>, Self::Error> {
         Ok(Some(self.0.clone()))
-    }
-}
-
-pub struct DummyAuthorizer(Authorization);
-
-impl DummyAuthorizer {
-    pub fn allow() -> Self {
-        Self(Authorization::Allowed)
-    }
-}
-
-impl Authorizer for DummyAuthorizer {
-    type Error = Infallible;
-
-    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
-        Ok(self.0.clone())
     }
 }

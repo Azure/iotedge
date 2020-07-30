@@ -8,7 +8,7 @@ use tracing::{debug, error, info, info_span, warn};
 use mqtt3::proto;
 
 use crate::{
-    auth::{Activity, AuthId, Authorization, Authorizer, DefaultAuthorizer, Operation},
+    auth::{Activity, AuthId, Authorization, Authorizer, DenyAll, Operation},
     session::{ConnectedSession, Session, SessionState},
     state_change::StateChange,
     subscription::Subscription,
@@ -936,11 +936,11 @@ pub struct BrokerBuilder<Z> {
     config: BrokerConfig,
 }
 
-impl Default for BrokerBuilder<DefaultAuthorizer> {
+impl Default for BrokerBuilder<DenyAll> {
     fn default() -> Self {
         Self {
             state: None,
-            authorizer: DefaultAuthorizer,
+            authorizer: DenyAll,
             config: BrokerConfig::default(),
         }
     }
@@ -1036,7 +1036,7 @@ pub(crate) mod tests {
 
     use super::OpenSession;
     use crate::{
-        auth::{authorize_fn_ok, Authorization, Operation},
+        auth::{authorize_fn_ok, AllowAll, Authorization, Operation},
         broker::{BrokerBuilder, BrokerHandle},
         error::Error,
         session::Session,
@@ -1077,9 +1077,7 @@ pub(crate) mod tests {
     #[tokio::test]
     #[should_panic]
     async fn test_double_connect_protocol_violation() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1151,9 +1149,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_double_connect_drop_first_transient() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1230,9 +1226,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_invalid_protocol_name() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1274,9 +1268,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_invalid_protocol_level() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1328,9 +1320,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_auth_succeeded() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1376,9 +1366,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_unknown_client() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1431,9 +1419,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_authentication_failed() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1598,9 +1584,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_empty_transient() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1629,9 +1613,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_empty_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1661,9 +1643,7 @@ pub(crate) mod tests {
     #[test]
     #[should_panic]
     fn test_add_session_same_connection_transient() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1701,9 +1681,7 @@ pub(crate) mod tests {
     #[test]
     #[should_panic]
     fn test_add_session_same_connection_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1740,9 +1718,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_transient_then_transient() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1777,9 +1753,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_transient_then_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1814,9 +1788,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_persistent_then_transient() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1851,9 +1823,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_persistent_then_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1888,9 +1858,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_offline_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1934,9 +1902,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_offline_transient() {
-        let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -2067,9 +2033,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_single_connection() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2108,9 +2072,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_multiple_connection() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2139,9 +2101,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_connection() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2177,9 +2137,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_subscription() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2213,9 +2171,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_multiple_subscriptions() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2252,9 +2208,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_existing_subscriptions() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-            .build();
+        let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));

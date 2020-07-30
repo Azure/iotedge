@@ -14,21 +14,17 @@ use mqtt3::{
     ReceivedPublication,
 };
 use mqtt_broker::{
-    auth::{Authenticator, Authorizer},
+    auth::{AllowAll, Authenticator, Authorizer},
     proptest::arb_clientid,
     Broker, BrokerBuilder, Server,
 };
-use mqtt_broker_tests_util::{
-    DummyAuthenticator, DummyAuthorizer, ServerHandle, TestClient, TestClientBuilder,
-};
+use mqtt_broker_tests_util::{DummyAuthenticator, ServerHandle, TestClient, TestClientBuilder};
 use mqtt_edgehub::connection::MakeEdgeHubPacketProcessor;
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#retrieving-a-device-twins-properties
 #[tokio::test]
 async fn translation_twin_retrieve() {
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::allow())
-        .build();
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
@@ -73,9 +69,7 @@ async fn translation_twin_retrieve() {
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#update-device-twins-reported-properties
 #[tokio::test]
 async fn translation_twin_update() {
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::allow())
-        .build();
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
@@ -124,9 +118,7 @@ async fn translation_twin_update() {
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#receiving-desired-properties-update-notifications
 #[tokio::test]
 async fn translation_twin_receive() {
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::allow())
-        .build();
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
@@ -166,9 +158,7 @@ async fn translation_twin_receive() {
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#respond-to-a-direct-method
 #[tokio::test]
 async fn translation_direct_method_response() {
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::allow())
-        .build();
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
@@ -242,9 +232,7 @@ proptest! {
 }
 
 async fn test_twin_with_client_id(client_id: &str) {
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::allow())
-        .build();
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 

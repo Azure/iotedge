@@ -133,9 +133,7 @@ fn dispatch_messages(
 ) {
     let mut runtime = Runtime::new().expect("runtime");
 
-    let mut broker = BrokerBuilder::default()
-        .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
-        .build();
+    let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let (on_publish_tx, mut on_publish_rx) = mpsc::unbounded_channel();
     broker.on_publish = Some(on_publish_tx);

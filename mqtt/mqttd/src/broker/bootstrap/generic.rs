@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use tracing::info;
 
 use mqtt_broker::{
-    auth::{authenticate_fn_ok, authorize_fn_ok, Authorization, Authorizer},
+    auth::{authenticate_fn_ok, Authorizer, AllowAll},
     settings::BrokerConfig,
     AuthId, Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
 };
@@ -33,7 +33,7 @@ pub async fn broker(
     state: Option<BrokerSnapshot>,
 ) -> Result<Broker<impl Authorizer>, Error> {
     let broker = BrokerBuilder::default()
-        .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
+        .with_authorizer(AllowAll)
         .with_state(state.unwrap_or_default())
         .with_config(config.clone())
         .build();

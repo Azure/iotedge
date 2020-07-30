@@ -39,6 +39,7 @@ bytes = "0.5"
 fail = { version = "0.3", features = ["failpoints"] }
 itertools = "0.9"
 matches = "0.1"
+proptest = "0.9"
 tempfile = "3"
 test-case = "1.0"
 tokio = { version = "0.2", features = ["dns", "macros"] }
