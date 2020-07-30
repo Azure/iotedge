@@ -5,7 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use backoff::{future::FutureOperation as _, ExponentialBackoff};
+use backoff::{future::FutureOperation as _, Error, ExponentialBackoff};
 use bytes::buf::BufExt;
 use http::{header, StatusCode};
 use hyper::{body, client::HttpConnector, Body, Client, Request};
@@ -72,16 +72,24 @@ impl Authenticator for EdgeHubAuthenticator {
         &self,
         context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
-        let auth_id = (|| async {
+        let authenticate = || async {
             info!("authenticate client");
-            let auth_id = self.authenticate(&context).await?;
-            Ok(auth_id)
-        })
-        .retry(ExponentialBackoff {
-            max_elapsed_time: Some(Duration::from_secs(60)),
-            ..ExponentialBackoff::default()
-        })
-        .await?;
+            self.authenticate(&context).await.map_err(|e| match e {
+                error @ AuthenticateError::SendRequest(_) => Error::Transient(error),
+                error @ AuthenticateError::UnsuccessfullResponse(_) => Error::Transient(error),
+                error => Error::Permanent(error),
+            })
+        };
+
+        // try to authenticate a client and give up after 1min of trying.
+        // it starts with 500ms interval and exponentially increases timeout.
+        // it will make 10 attempts during 1min interval.
+        let auth_id = authenticate
+            .retry(ExponentialBackoff {
+                max_elapsed_time: Some(Duration::from_secs(60)),
+                ..ExponentialBackoff::default()
+            })
+            .await?;
 
         Ok(auth_id)
     }
@@ -168,14 +176,15 @@ pub enum AuthenticateError {
 
 #[cfg(test)]
 mod tests {
-    use std::net::SocketAddr;
+    use std::{error::Error as StdError, net::SocketAddr, time::Duration};
 
+    use matches::assert_matches;
     use mockito::{mock, Matcher};
+    use tokio::{sync::oneshot, time};
 
-    use mqtt_broker_core::auth::{AuthenticationContext, Certificate};
+    use mqtt_broker_core::auth::{AuthenticationContext, Authenticator, Certificate};
 
     use super::EdgeHubAuthenticator;
-    use matches::assert_matches;
 
     const CERT: &str = "-----BEGIN CERTIFICATE-----
 MIIEbjCCAlagAwIBAgIEdLDcUTANBgkqhkiG9w0BAQsFADAfMR0wGwYDVQQDDBRp
@@ -375,6 +384,39 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn it_retries_when_edgehub_unavailable_for_some_time() {
+        let (tx, rx) = oneshot::channel();
+
+        let handle = tokio::spawn(async {
+            // emulate edgehub startup delay 1s
+            // it will make authenticator make 1 or 2 attempts to get response
+            time::delay_for(Duration::from_secs(1)).await;
+
+            let _m = mock("POST", "/authenticate/")
+                .with_status(200)
+                .with_body(
+                    r#"{"result": 200, "identity":"somehub/somedevice","version": "2020-04-20"}"#,
+                )
+                .create();
+
+            // wait until test finishes
+            rx.await.unwrap();
+        });
+
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
+        let authenticator: &dyn Authenticator<Error = Box<dyn StdError>> = &authenticator();
+        let result = authenticator.authenticate(context).await.unwrap().unwrap();
+
+        tx.send(()).unwrap();
+        handle.await.unwrap();
+
+        assert_eq!(result, "somehub/somedevice".into());
     }
 
     fn authenticator() -> EdgeHubAuthenticator {
