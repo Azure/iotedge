@@ -1,16 +1,12 @@
-use crate::{ClientEvent, Error, Message, Publish};
-use async_trait::async_trait;
-use mqtt3::proto::Packet;
-use mqtt_broker_core::ClientId;
-#[cfg(feature = "edgehub")]
-#[allow(unused_imports)]
-use mqtt_edgehub::topic::translation::{
-    translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
-    translate_outgoing_publish,
-};
 use std::sync::Arc;
+
+use async_trait::async_trait;
 use tokio::sync::Semaphore;
 use tracing::{debug, warn};
+
+use mqtt3::proto::Packet;
+
+use crate::{ClientEvent, ClientId, Error, Message, Publish};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PacketAction<C, S> {

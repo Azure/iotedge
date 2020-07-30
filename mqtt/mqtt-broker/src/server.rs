@@ -9,16 +9,14 @@ use tokio::sync::oneshot;
 use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
 
-use mqtt_broker_core::auth::{Authenticator, Authorizer};
-
 use crate::{
     broker::{Broker, BrokerHandle},
     connection::{
         self, MakeIncomingPacketProcessor, MakeMqttPacketProcessor, MakeOutgoingPacketProcessor,
     },
     transport::{GetPeerInfo, Transport},
-    BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
-    SystemEvent,
+    Authenticator, Authorizer, BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError,
+    Message, ServerCertificate, SystemEvent,
 };
 
 pub struct Server<Z, P>

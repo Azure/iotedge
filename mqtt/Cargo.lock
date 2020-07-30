@@ -924,10 +924,11 @@ dependencies = [
  "flate2",
  "futures",
  "futures-util",
+ "humantime 2.0.1",
+ "humantime-serde",
  "itertools",
  "lazy_static",
  "matches",
- "mqtt-broker-core",
  "mqtt3",
  "openssl",
  "proptest",
@@ -949,25 +950,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mqtt-broker-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "humantime 2.0.1",
- "humantime-serde",
- "lazy_static",
- "matches",
- "mqtt3",
- "proptest",
- "regex",
- "serde",
- "serde_json",
- "test-case",
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "mqtt-edgehub"
 version = "0.1.0"
 dependencies = [
@@ -983,7 +965,6 @@ dependencies = [
  "matches",
  "mockito",
  "mqtt-broker",
- "mqtt-broker-core",
  "mqtt3",
  "openssl",
  "regex",
@@ -1005,7 +986,7 @@ dependencies = [
  "config",
  "lazy_static",
  "matches",
- "mqtt-broker-core",
+ "mqtt-broker",
  "mqtt3",
  "serde",
 ]
@@ -1038,7 +1019,6 @@ dependencies = [
  "futures-util",
  "mockito",
  "mqtt-broker",
- "mqtt-broker-core",
  "mqtt-edgehub",
  "mqtt-generic",
  "serde_json",

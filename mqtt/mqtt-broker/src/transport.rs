@@ -22,9 +22,7 @@ use tokio::{
 use tokio_openssl::{accept, HandshakeError, SslStream};
 use tracing::{debug, error, warn};
 
-use mqtt_broker_core::auth::Certificate;
-
-use crate::{Error, InitializeBrokerError, ServerCertificate};
+use crate::{Certificate, Error, InitializeBrokerError, ServerCertificate};
 
 pub enum Transport {
     Tcp(TcpListener),

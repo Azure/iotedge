@@ -6,16 +6,14 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, error, info, info_span, warn};
 
 use mqtt3::proto;
-use mqtt_broker_core::{
-    auth::{Activity, AuthId, Authorization, Authorizer, DefaultAuthorizer, Operation},
-    ClientId, ClientInfo,
-};
 
 use crate::{
+    auth::{Activity, AuthId, Authorization, Authorizer, DefaultAuthorizer, Operation},
     session::{ConnectedSession, Session, SessionState},
     state_change::StateChange,
     subscription::Subscription,
-    Auth, BrokerConfig, BrokerSnapshot, ClientEvent, ConnReq, Error, Message, SystemEvent,
+    Auth, BrokerConfig, BrokerSnapshot, ClientEvent, ClientId, ClientInfo, ConnReq, Error, Message,
+    SystemEvent,
 };
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;

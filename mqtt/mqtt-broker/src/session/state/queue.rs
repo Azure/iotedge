@@ -5,7 +5,8 @@ use std::{
 };
 
 use mqtt3::proto;
-use mqtt_broker_core::settings::QueueFullAction;
+
+use crate::settings::QueueFullAction;
 
 /// `BoundedQueue` is a queue of publications with bounds by count and total payload size in bytes.
 ///

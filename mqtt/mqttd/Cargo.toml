@@ -17,7 +17,6 @@ tracing = "0.1"
 tracing-subscriber = "0.1"
 
 mqtt-broker = { path = "../mqtt-broker" }
-mqtt-broker-core = { path = "../mqtt-broker-core" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt-generic = { path = "../mqtt-generic", optional = true }
 

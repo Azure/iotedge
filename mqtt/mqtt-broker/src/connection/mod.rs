@@ -13,25 +13,18 @@ use futures_util::{
     stream::{Stream, StreamExt},
 };
 use lazy_static::lazy_static;
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 use tracing::{debug, info, info_span, trace, warn};
 use tracing_futures::Instrument;
 use uuid::Uuid;
 
+use crate::{AuthenticationContext, Authenticator, Certificate, ClientId};
 use mqtt3::proto::{self, DecodeError, Packet, PacketCodec};
-use mqtt_broker_core::{
-    auth::{AuthenticationContext, Authenticator, Certificate},
-    ClientId,
-};
-#[cfg(feature = "edgehub")]
-#[allow(unused_imports)]
-use mqtt_edgehub::topic::translation::{
-    translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
-    translate_outgoing_publish,
-};
 
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerInfo;
