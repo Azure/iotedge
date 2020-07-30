@@ -31,6 +31,7 @@ use std::{
     collections::HashSet,
     fmt::{Display, Formatter, Result as FmtResult},
     iter::FromIterator,
+    net::SocketAddr,
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -49,8 +50,9 @@ use tracing::{info, warn};
 
 use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 use mqtt_broker::{
-    AuthId, BrokerBuilder, BrokerHandle, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
-    Publish, SystemEvent,
+    auth::{authorize_fn_ok, Authorization},
+    Auth, AuthId, BrokerBuilder, BrokerHandle, ClientEvent, ClientId, ConnReq, ConnectionHandle,
+    Message, Publish, SystemEvent,
 };
 
 criterion_group!(
@@ -132,8 +134,7 @@ fn dispatch_messages(
     let mut runtime = Runtime::new().expect("runtime");
 
     let mut broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
+        .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
         .build();
 
     let (on_publish_tx, mut on_publish_rx) = mpsc::unbounded_channel();
@@ -173,13 +174,13 @@ fn dispatch_messages(
             let mut total_execution_time = Duration::from_millis(0);
 
             for _i in 0..iters {
-                criterion::black_box({
+                criterion::black_box(|| {
                     let topic = strategy.pub_topic(&publish_handle.id);
                     let publish = publish_handle.publish(qos, topic, size);
 
                     let message = Message::Client(
                         publish_handle.id.as_client_id(),
-                        ClientEvent::PublishFrom(publish),
+                        ClientEvent::PublishFrom(publish, None),
                     );
                     runtime
                         .block_on(broker_handle.send(message))
@@ -246,7 +247,13 @@ impl Client {
             protocol_name: PROTOCOL_NAME.into(),
             protocol_level: PROTOCOL_LEVEL,
         };
-        let connreq = ConnReq::new(client.id.as_client_id(), connect, None, connection_handle);
+        let connreq = ConnReq::new(
+            client.id.as_client_id(),
+            peer_addr(),
+            connect,
+            Auth::Identity(AuthId::Anonymous),
+            connection_handle,
+        );
         let message = Message::Client(client.id.as_client_id(), ClientEvent::ConnReq(connreq));
         client.broker_handle.send(message).await.expect("connect");
 
@@ -457,4 +464,8 @@ impl Strategy {
             Self::SharedTopic => PREFIX.into(),
         }
     }
+}
+
+fn peer_addr() -> SocketAddr {
+    "127.0.0.1:12345".parse().unwrap()
 }

@@ -9,9 +9,8 @@ use tracing::info;
 use mqtt_broker::{
     auth::{authenticate_fn_ok, authorize_fn_ok, Authorization, Authorizer},
     settings::BrokerConfig,
-    AuthId,
+    AuthId, Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
 };
-use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate};
 use mqtt_generic::settings::{CertificateConfig, Settings};
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
