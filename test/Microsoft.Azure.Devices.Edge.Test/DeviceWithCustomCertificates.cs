@@ -35,7 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 testAuth.UseSecondaryCertificate(),
                 this.ca,
                 this.iotHub,
-                token);
+                token,
+                Option.None<string>());
 
             await TryFinally.DoAsync(
                 async () =>
