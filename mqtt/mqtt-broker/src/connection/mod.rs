@@ -10,6 +10,7 @@ use std::{
 use futures_util::{
     future::{select, Either},
     pin_mut,
+    sink::{Sink, SinkExt},
     stream::{Stream, StreamExt},
 };
 use lazy_static::lazy_static;
@@ -23,14 +24,14 @@ use tracing::{debug, info, info_span, trace, warn};
 use tracing_futures::Instrument;
 use uuid::Uuid;
 
-use crate::{AuthenticationContext, Authenticator, Certificate, ClientId};
 use mqtt3::proto::{self, DecodeError, Packet, PacketCodec};
 
-use crate::broker::BrokerHandle;
-use crate::transport::GetPeerInfo;
-use crate::{Auth, ClientEvent, ConnReq, Error, Message};
-use futures::{Sink, SinkExt};
-use proto::EncodeError;
+use crate::{
+    auth::{AuthenticationContext, Authenticator, Certificate},
+    broker::BrokerHandle,
+    transport::GetPeerInfo,
+    Auth, ClientEvent, ClientId, ConnReq, Error, Message,
+};
 
 lazy_static! {
     static ref DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -290,7 +291,7 @@ async fn outgoing_task<S, P>(
     mut processor: P,
 ) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
-    S: Sink<Packet, Error = EncodeError> + Unpin,
+    S: Sink<Packet, Error = proto::EncodeError> + Unpin,
     P: OutgoingPacketProcessor,
 {
     debug!("outgoing_task start");

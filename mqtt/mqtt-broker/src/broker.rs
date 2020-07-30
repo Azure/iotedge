@@ -1033,10 +1033,10 @@ pub(crate) mod tests {
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
-    use mqtt_broker_core::auth::{authorize_fn_ok, Authorization, Operation};
 
     use super::OpenSession;
     use crate::{
+        auth::{authorize_fn_ok, Authorization, Operation},
         broker::{BrokerBuilder, BrokerHandle},
         error::Error,
         session::Session,

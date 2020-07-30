@@ -10,13 +10,14 @@ use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
 
 use crate::{
+    auth::{Authenticator, Authorizer},
     broker::{Broker, BrokerHandle},
     connection::{
         self, MakeIncomingPacketProcessor, MakeMqttPacketProcessor, MakeOutgoingPacketProcessor,
     },
     transport::{GetPeerInfo, Transport},
-    Authenticator, Authorizer, BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError,
-    Message, ServerCertificate, SystemEvent,
+    BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
+    SystemEvent,
 };
 
 pub struct Server<Z, P>

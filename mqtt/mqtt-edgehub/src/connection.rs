@@ -2,11 +2,10 @@ use async_trait::async_trait;
 
 use mqtt3::proto::Packet;
 use mqtt_broker::{
-    ClientEvent, Error, IncomingPacketProcessor, MakeIncomingPacketProcessor,
+    ClientEvent, ClientId, Error, IncomingPacketProcessor, MakeIncomingPacketProcessor,
     MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, Message, OutgoingPacketProcessor,
     PacketAction, Publish,
 };
-use mqtt_broker_core::ClientId;
 
 use crate::topic::translation::{
     translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,

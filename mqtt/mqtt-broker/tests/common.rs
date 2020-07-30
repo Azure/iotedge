@@ -9,8 +9,7 @@ use std::{
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use futures::{future::select, pin_mut, Stream};
-use futures_util::{sink::SinkExt, FutureExt, StreamExt};
+use futures_util::{future::select, pin_mut, sink::SinkExt, stream::Stream, FutureExt, StreamExt};
 use lazy_static::lazy_static;
 use tokio::{
     net::{TcpStream, ToSocketAddrs},
@@ -28,9 +27,9 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
-use mqtt_broker::{Broker, BrokerSnapshot, Error, Server};
-use mqtt_broker_core::auth::{
-    Activity, AuthId, AuthenticationContext, Authenticator, Authorization, Authorizer,
+use mqtt_broker::{
+    auth::{Activity, AuthenticationContext, Authenticator, Authorization, Authorizer},
+    AuthId, Broker, BrokerSnapshot, Error, Server,
 };
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.

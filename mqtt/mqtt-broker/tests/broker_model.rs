@@ -6,12 +6,12 @@ use uuid::Uuid;
 
 use mqtt3::proto;
 use mqtt_broker::{
+    auth::{authorize_fn_ok, Authorization},
+    AuthId, ClientId,
+};
+use mqtt_broker::{
     proptest::{arb_client_id_weighted, arb_connect, arb_subscribe, arb_unsubscribe},
     Auth, BrokerBuilder, ClientEvent, ConnReq, ConnectionHandle, Message,
-};
-use mqtt_broker_core::{
-    auth::{authorize_fn_ok, AuthId, Authorization},
-    ClientId,
 };
 
 proptest! {

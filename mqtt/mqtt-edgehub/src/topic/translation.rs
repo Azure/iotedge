@@ -10,7 +10,7 @@ use regex::Regex;
 use tracing::debug;
 
 use mqtt3::proto;
-use mqtt_broker_core::ClientId;
+use mqtt_broker::ClientId;
 
 lazy_static! {
     static ref TRANSLATE_D2C: TranslateD2C =

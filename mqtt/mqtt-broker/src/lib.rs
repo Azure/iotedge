@@ -11,14 +11,14 @@
     clippy::missing_errors_doc
 )]
 
-mod auth;
+pub mod auth;
 mod broker;
 mod connection;
 mod error;
 mod persist;
 mod server;
 mod session;
-mod settings;
+pub mod settings;
 mod snapshot;
 mod state_change;
 mod subscription;
@@ -39,10 +39,7 @@ use tokio::sync::OwnedSemaphorePermit;
 
 use mqtt3::proto;
 
-pub use crate::auth::{
-    authenticate_fn_ok, authorize_fn_ok, AuthId, AuthenticationContext, Authenticator,
-    Authorization, Authorizer, Certificate,
-};
+pub use crate::auth::{AuthId, Identity};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
 pub use crate::connection::{
     ConnectionHandle, IncomingPacketProcessor, MakeIncomingPacketProcessor,
