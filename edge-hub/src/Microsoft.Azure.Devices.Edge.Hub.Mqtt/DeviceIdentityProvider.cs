@@ -51,7 +51,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = ParseUserName(username);
-                modelId.ForEach(async m => await this.modelIdStore.SetModelId(deviceId, m));
+                await modelId.ForEachAsync(
+                    async m =>
+                    {
+                        await this.modelIdStore.SetModelId(deviceId, m);
+                        Events.PrintMe($"Stored modelId {m}");
+                    },
+                    () =>
+                    {
+                        Events.PrintMe("No modelId to store");
+                        return Task.CompletedTask;
+                    });
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
@@ -120,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // We recognize three property names:
             //   "api-version" [mandatory]
             //   "DeviceClientType" [optional]
-            //   "digital-twin-model-id" [optional]
+            //   "model-id" [optional]
             // We ignore any properties we don't recognize.
             // Note - this logic does not check the query parameters for special characters, and '?' is treated as a valid value
             // and not used as a separator, unless it is the first character of the last segment
@@ -208,6 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             if (queryParameters.TryGetValue(ModelIdKey, out string modelId) && !string.IsNullOrWhiteSpace(modelId))
             {
                 modelIdOption = Option.Some(modelId);
+                Events.PrintMe($"Found modelId in username: {modelId}");
             }
 
             return (deviceId, moduleId, deviceClientType, modelIdOption);
@@ -241,6 +252,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 CertAuthNotEnabled,
                 AuthNotFound,
                 ErrorCreatingIdentity
+            }
+
+            public static void PrintMe(string printMe)
+            {
+                Log.LogDebug($"DRB - {printMe}");
             }
 
             public static void Success(string clientId, string username)
