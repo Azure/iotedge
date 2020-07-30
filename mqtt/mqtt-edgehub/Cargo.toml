@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1"
+backoff = { version = "0.2", features = ["tokio"] }
 bytes = "0.5"
 chrono = "0.4"
 config = { version = "0.10", features = ["json"], default-features = false }

@@ -1,14 +1,17 @@
 use std::{
     convert::{TryFrom, TryInto},
     error::Error as StdError,
+    time::Duration,
 };
 
 use async_trait::async_trait;
+use backoff::{future::FutureOperation as _, ExponentialBackoff};
 use bytes::buf::BufExt;
 use http::{header, StatusCode};
 use hyper::{body, client::HttpConnector, Body, Client, Request};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
+use tracing::info;
 
 use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
 
@@ -28,9 +31,9 @@ impl EdgeHubAuthenticator {
 
     async fn authenticate(
         &self,
-        context: AuthenticationContext,
+        context: &AuthenticationContext,
     ) -> Result<Option<AuthId>, AuthenticateError> {
-        let auth_req = EdgeHubAuthRequest::from_auth(&context);
+        let auth_req = EdgeHubAuthRequest::from_auth(context);
         let body = serde_json::to_string(&auth_req).map_err(AuthenticateError::SerializeRequest)?;
         let req = Request::post(&self.url)
             .header(header::CONTENT_TYPE, "application/json; charset=utf-8")
@@ -69,7 +72,17 @@ impl Authenticator for EdgeHubAuthenticator {
         &self,
         context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
-        let auth_id = self.authenticate(context).await?;
+        let auth_id = (|| async {
+            info!("authenticate client");
+            let auth_id = self.authenticate(&context).await?;
+            Ok(auth_id)
+        })
+        .retry(ExponentialBackoff {
+            max_elapsed_time: Some(Duration::from_secs(60)),
+            ..ExponentialBackoff::default()
+        })
+        .await?;
+
         Ok(auth_id)
     }
 }
@@ -205,7 +218,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await.unwrap().unwrap();
+        let result = authenticator.authenticate(&context).await.unwrap().unwrap();
 
         assert_eq!(result, "somehub/somedevice".into());
     }
@@ -222,7 +235,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_err());
     }
@@ -239,7 +252,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await.unwrap();
+        let result = authenticator.authenticate(&context).await.unwrap();
 
         assert!(result.is_none());
     }
@@ -258,7 +271,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_err());
     }
@@ -277,7 +290,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_err());
     }
@@ -294,7 +307,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_err());
     }
@@ -314,7 +327,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_ok());
     }
@@ -336,7 +349,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_certificate(Certificate::from(CERT.to_string()));
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert_matches!(result, Ok(_));
     }
@@ -359,7 +372,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_ok());
     }
