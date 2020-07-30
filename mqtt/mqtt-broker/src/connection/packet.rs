@@ -11,7 +11,7 @@ use crate::{ClientEvent, ClientId, Error, Message, Publish};
 /// Action result of packet processing operation.
 /// * `Continue` - processor suggests move to the next packet.
 /// * `Stop` - processor requests stop processing on the next packet.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug)]
 pub enum PacketAction<C, S> {
     Continue(C),
     Stop(S),
