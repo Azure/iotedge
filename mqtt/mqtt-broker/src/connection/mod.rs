@@ -1,7 +1,9 @@
+mod packet;
+pub use packet::*;
+
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
     net::SocketAddr,
-    sync::Arc,
     time::Duration,
 };
 
@@ -12,10 +14,9 @@ use futures_util::{
     stream::{Stream, StreamExt},
 };
 use lazy_static::lazy_static;
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::{
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
-    Semaphore,
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
@@ -23,21 +24,14 @@ use tracing::{debug, info, info_span, trace, warn};
 use tracing_futures::Instrument;
 use uuid::Uuid;
 
-use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
-use mqtt_broker_core::{
+use mqtt3::proto::{self, DecodeError, Packet, PacketCodec};
+
+use crate::{
     auth::{AuthenticationContext, Authenticator, Certificate},
-    ClientId,
+    broker::BrokerHandle,
+    transport::GetPeerInfo,
+    Auth, ClientEvent, ClientId, ConnReq, Error, Message,
 };
-
-#[cfg(feature = "edgehub")]
-use mqtt_edgehub::topic::translation::{
-    translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
-    translate_outgoing_publish,
-};
-
-use crate::broker::BrokerHandle;
-use crate::transport::GetPeerInfo;
-use crate::{Auth, ClientEvent, ConnReq, Error, Message, Publish};
 
 lazy_static! {
     static ref DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -89,18 +83,19 @@ impl PartialEq for ConnectionHandle {
 /// Receives a source of packets and a handle to the Broker.
 /// Starts two tasks (sending and receiving)
 #[allow(clippy::too_many_lines)]
-pub async fn process<I, N>(
+pub async fn process<I, N, P>(
     io: I,
     remote_addr: SocketAddr,
     mut broker_handle: BrokerHandle,
     authenticator: &N,
+    make_processor: P,
 ) -> Result<(), Error>
 where
     I: AsyncRead + AsyncWrite + GetPeerInfo<Certificate = Certificate> + Unpin,
     N: Authenticator + ?Sized,
+    P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor,
 {
     let certificate = io.peer_certificate()?;
-    let cert_chain = io.peer_cert_chain()?;
     let peer_addr = io.peer_addr()?;
 
     let mut timeout = TimeoutStream::new(io);
@@ -155,9 +150,6 @@ where
 
                 if let Some(certificate) = certificate {
                     context.with_certificate(certificate);
-                    if let Some(chain) = cert_chain{
-                        context.with_cert_chain(chain);
-                    }
                 } else if let Some(password) = &connect.password {
                     context.with_password(password);
                 }
@@ -176,12 +168,17 @@ where
                 let message = Message::Client(client_id.clone(), event);
                 broker_handle.send(message).await?;
 
-                // Start up the processing tasks
                 let (outgoing, incoming) = codec.split();
+
+                // prepare processing incoming packets
+                let incoming_processor = make_processor.make_incoming(&client_id);
                 let incoming_task =
-                    incoming_task(client_id.clone(), incoming, broker_handle.clone());
-                let outgoing_task = outgoing_task(client_id.clone(), events, outgoing, broker_handle.clone());
+                    incoming_task(client_id.clone(), incoming, broker_handle.clone(), incoming_processor);
                 pin_mut!(incoming_task);
+
+                // prepare processing outgoing packets
+                let outgoing_processor = make_processor.make_outgoing(&client_id);
+                let outgoing_task = outgoing_task(events, outgoing, broker_handle.clone(), outgoing_processor);
                 pin_mut!(outgoing_task);
 
                 match select(incoming_task, outgoing_task).await {
@@ -251,68 +248,28 @@ where
     }
 }
 
-async fn incoming_task<S>(
+async fn incoming_task<S, P>(
     client_id: ClientId,
     mut incoming: S,
     mut broker: BrokerHandle,
+    mut processor: P,
 ) -> Result<(), Error>
 where
     S: Stream<Item = Result<Packet, DecodeError>> + Unpin,
+    P: IncomingPacketProcessor,
 {
-    // We limit the number of incoming publications (PublishFrom) per client
-    // in order to avoid (a single) publisher to occupy whole BrokerHandle queue.
-    // This helps with QoS 0 messages throughput, due to the fact that outgoing_task
-    // also uses sends PubAck0 for QoS 0 messages to BrokerHandle queue.
-    let incoming_pub_limit = Arc::new(Semaphore::new(10));
-
     debug!("incoming_task start");
     while let Some(maybe_packet) = incoming.next().await {
         match maybe_packet {
-            Ok(packet) => {
-                let event = match packet {
-                    Packet::Connect(_) => {
-                        // [MQTT-3.1.0-2] - The Server MUST process a second CONNECT Packet
-                        // sent from a Client as a protocol violation and disconnect the Client.
-                        warn!("CONNECT packet received on an already established connection, dropping connection due to protocol violation");
-                        return Err(Error::ProtocolViolation);
-                    }
-                    Packet::ConnAck(connack) => ClientEvent::ConnAck(connack),
-                    Packet::Disconnect(disconnect) => {
-                        let event = ClientEvent::Disconnect(disconnect);
-                        let message = Message::Client(client_id.clone(), event);
-                        broker.send(message).await?;
-                        debug!("disconnect received. shutting down receive side of connection");
-                        return Ok(());
-                    }
-                    Packet::PingReq(ping) => ClientEvent::PingReq(ping),
-                    Packet::PingResp(pingresp) => ClientEvent::PingResp(pingresp),
-                    Packet::PubAck(puback) => ClientEvent::PubAck(puback),
-                    Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
-                    Packet::Publish(publish) => {
-                        #[cfg(feature = "edgehub")]
-                        let publish = translate_incoming_publish(&client_id, publish);
-                        let perm = incoming_pub_limit.clone().acquire_owned().await;
-                        ClientEvent::PublishFrom(publish, Some(perm))
-                    }
-                    Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
-                    Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
-                    Packet::Subscribe(subscribe) => {
-                        #[cfg(feature = "edgehub")]
-                        let subscribe = translate_incoming_subscribe(&client_id, subscribe);
-                        ClientEvent::Subscribe(subscribe)
-                    }
-                    Packet::SubAck(suback) => ClientEvent::SubAck(suback),
-                    Packet::Unsubscribe(unsubscribe) => {
-                        #[cfg(feature = "edgehub")]
-                        let unsubscribe = translate_incoming_unsubscribe(&client_id, unsubscribe);
-                        ClientEvent::Unsubscribe(unsubscribe)
-                    }
-                    Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
-                };
-
-                let message = Message::Client(client_id.clone(), event);
-                broker.send(message).await?;
-            }
+            Ok(packet) => match processor.process(packet).await? {
+                PacketAction::Continue(message) => {
+                    broker.send(message).await?;
+                }
+                PacketAction::Stop(message) => {
+                    broker.send(message).await?;
+                    return Ok(());
+                }
+            },
             Err(e) => {
                 warn!(message="error occurred while reading from connection", error=%e);
                 return Err(e.into());
@@ -327,77 +284,37 @@ where
     Ok(())
 }
 
-async fn outgoing_task<S>(
-    client_id: ClientId,
+async fn outgoing_task<S, P>(
     mut messages: UnboundedReceiver<Message>,
     mut outgoing: S,
     mut broker: BrokerHandle,
+    mut processor: P,
 ) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
-    S: Sink<Packet, Error = EncodeError> + Unpin,
+    S: Sink<Packet, Error = proto::EncodeError> + Unpin,
+    P: OutgoingPacketProcessor,
 {
     debug!("outgoing_task start");
     while let Some(message) = messages.recv().await {
         debug!("outgoing: {:?}", message);
-        let maybe_packet = match message {
-            Message::Client(_client_id, event) => match event {
-                ClientEvent::ConnReq(_) => None,
-                ClientEvent::ConnAck(connack) => Some(Packet::ConnAck(connack)),
-                ClientEvent::Disconnect(_) => {
-                    debug!("asked to disconnect. outgoing_task completing...");
-                    return Ok(());
+        match processor.process(message).await {
+            PacketAction::Continue(Some((packet, message))) => {
+                // send a packet to a client
+                if let Err(e) = outgoing.send(packet).await {
+                    warn!(message = "error occurred while writing to connection", error=%e);
+                    return Err((messages, e.into()));
                 }
-                ClientEvent::DropConnection => {
-                    debug!("asked to drop connection. outgoing_task completing...");
-                    return Ok(());
-                }
-                ClientEvent::PingReq(req) => Some(Packet::PingReq(req)),
-                ClientEvent::PingResp(response) => Some(Packet::PingResp(response)),
-                ClientEvent::Subscribe(sub) => Some(Packet::Subscribe(sub)),
-                ClientEvent::SubAck(suback) => Some(Packet::SubAck(suback)),
-                ClientEvent::Unsubscribe(unsub) => Some(Packet::Unsubscribe(unsub)),
-                ClientEvent::UnsubAck(unsuback) => Some(Packet::UnsubAck(unsuback)),
-                ClientEvent::PublishTo(Publish::QoS12(_id, publish)) => {
-                    #[cfg(feature = "edgehub")]
-                    let publish = translate_outgoing_publish(publish);
-                    Some(Packet::Publish(publish))
-                }
-                ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
-                    #[cfg(feature = "edgehub")]
-                    let publish = translate_outgoing_publish(publish);
-                    let result = outgoing.send(Packet::Publish(publish)).await;
 
-                    if let Err(e) = result {
-                        warn!(message = "error occurred while writing to connection", error=%e);
-                        return Err((messages, e.into()));
-                    } else {
-                        let message = Message::Client(client_id.clone(), ClientEvent::PubAck0(id));
-                        if let Err(e) = broker.send(message).await {
-                            warn!(message = "error occurred while sending QoS ack to broker", error=%e);
-                            return Err((messages, e));
-                        }
+                // send a message back to broker
+                if let Some(message) = message {
+                    if let Err(e) = broker.send(message).await {
+                        warn!(message = "error occurred while sending QoS ack to broker", error=%e);
+                        return Err((messages, e));
                     }
-                    None
                 }
-                ClientEvent::PubAck(puback) => Some(Packet::PubAck(puback)),
-                ClientEvent::PubRec(pubrec) => Some(Packet::PubRec(pubrec)),
-                ClientEvent::PubRel(pubrel) => Some(Packet::PubRel(pubrel)),
-                ClientEvent::PubComp(pubcomp) => Some(Packet::PubComp(pubcomp)),
-                event => {
-                    warn!("ignoring event for outgoing_task: {:?}", event);
-                    None
-                }
-            },
-            Message::System(_event) => None,
-        };
-
-        if let Some(packet) = maybe_packet {
-            let result = outgoing.send(packet).await;
-
-            if let Err(e) = result {
-                warn!(message = "error occurred while writing to connection", error=%e);
-                return Err((messages, e.into()));
             }
+            PacketAction::Continue(None) => (),
+            PacketAction::Stop(_) => return Ok(()),
         }
     }
     debug!("outgoing_task completing...");

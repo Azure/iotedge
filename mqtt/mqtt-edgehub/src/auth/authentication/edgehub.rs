@@ -13,7 +13,10 @@ use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 use tracing::info;
 
-use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
+use mqtt_broker::{
+    auth::{AuthenticationContext, Authenticator},
+    AuthId,
+};
 
 const API_VERSION: &str = "2020-04-20";
 
@@ -182,7 +185,7 @@ mod tests {
     use mockito::{mock, Matcher};
     use tokio::{sync::oneshot, time};
 
-    use mqtt_broker_core::auth::{AuthenticationContext, Authenticator, Certificate};
+    use mqtt_broker::auth::{AuthenticationContext, Authenticator, Certificate};
 
     use super::EdgeHubAuthenticator;
 

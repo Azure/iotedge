@@ -5,7 +5,7 @@ pub use authentication::{
     authenticate_fn_ok, AuthenticationContext, Authenticator, Certificate, DefaultAuthenticator,
 };
 pub use authorization::{
-    authorize_fn_ok, Activity, Authorization, Authorizer, Connect, DefaultAuthorizer, Operation,
+    authorize_fn_ok, Activity, AllowAll, Authorization, Authorizer, Connect, DenyAll, Operation,
     Publication, Publish, Subscribe,
 };
 

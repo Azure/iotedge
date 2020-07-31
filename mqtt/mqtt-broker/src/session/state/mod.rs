@@ -12,10 +12,9 @@ use tracing::{debug, info};
 
 use mqtt3::proto;
 
-use super::identifiers::PacketIdentifiers;
 use crate::{
-    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientId, Error, Publish,
-    SessionConfig,
+    session::identifiers::PacketIdentifiers, snapshot::SessionSnapshot, subscription::Subscription,
+    ClientEvent, ClientId, Error, Publish, SessionConfig,
 };
 
 /// Common data and functions for broker sessions.
@@ -355,10 +354,12 @@ mod tests {
     use matches::assert_matches;
 
     use mqtt3::proto;
-    use mqtt_broker_core::settings::{HumanSize, QueueFullAction};
 
     use super::SessionState;
-    use crate::{ClientId, SessionConfig, Subscription};
+    use crate::{
+        settings::{HumanSize, QueueFullAction},
+        ClientId, SessionConfig, Subscription,
+    };
 
     #[test]
     fn test_publish_to_inflight() {

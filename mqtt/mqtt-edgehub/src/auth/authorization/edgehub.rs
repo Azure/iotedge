@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, convert::Infallible};
 
-use mqtt_broker_core::{
-    auth::{Activity, AuthId, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
-    ClientId, ClientInfo,
+use mqtt_broker::{
+    auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
+    AuthId, ClientId, ClientInfo,
 };
 
 #[derive(Debug, Default)]
@@ -182,7 +182,7 @@ mod tests {
     use test_case::test_case;
 
     use mqtt3::proto;
-    use mqtt_broker_core::{
+    use mqtt_broker::{
         auth::{Activity, AuthId, Authorization, Authorizer, Operation},
         ClientInfo,
     };
