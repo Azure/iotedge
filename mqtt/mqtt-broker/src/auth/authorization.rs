@@ -43,15 +43,27 @@ where
 
 /// Default implementation that always denies any operation a client intends to perform.
 /// This implementation will be used if custom authorization mechanism was not provided.
-pub struct DefaultAuthorizer;
+pub struct DenyAll;
 
-impl Authorizer for DefaultAuthorizer {
+impl Authorizer for DenyAll {
     type Error = Infallible;
 
     fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
         Ok(Authorization::Forbidden(
             "not allowed by default".to_string(),
         ))
+    }
+}
+
+/// Default implementation that always allows any operation a client intends to perform.
+/// This implementation will be used if custom authorization mechanism was not provided.
+pub struct AllowAll;
+
+impl Authorizer for AllowAll {
+    type Error = Infallible;
+
+    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
+        Ok(Authorization::Allowed)
     }
 }
 
@@ -222,9 +234,7 @@ mod tests {
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    use super::{
-        authorize_fn_ok, Activity, Authorization, Authorizer, DefaultAuthorizer, Operation,
-    };
+    use super::{Activity, AllowAll, Authorization, Authorizer, DenyAll, Operation};
     use crate::ClientInfo;
 
     fn connect() -> proto::Connect {
@@ -241,7 +251,7 @@ mod tests {
 
     #[test]
     fn default_auth_always_deny_any_action() {
-        let auth = DefaultAuthorizer;
+        let auth = DenyAll;
         let activity = Activity::new(
             "client-auth-id",
             ClientInfo::new(peer_addr(), "client-id"),
@@ -255,7 +265,7 @@ mod tests {
 
     #[test]
     fn authorizer_wrapper_around_function() {
-        let auth = authorize_fn_ok(|_| Authorization::Allowed);
+        let auth = AllowAll;
         let activity = Activity::new(
             "client-auth-id",
             ClientInfo::new(peer_addr(), "client-id"),

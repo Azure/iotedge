@@ -1,0 +1,18 @@
+[package]
+name = "mqtt-broker-tests-util"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+
+[dependencies]
+async-trait = "0.1"
+bytes = "0.5"
+futures-util = { version = "0.3", features = ["sink"] }
+lazy_static = "1.4"
+tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp", "dns"] }
+tokio-io-timeout = "0.4"
+tokio-util = { version = "0.2", features = ["codec"] }
+
+
+mqtt3 = { path = "../mqtt3", features = ["serde1"] }
+mqtt-broker = { path = "../mqtt-broker" }
