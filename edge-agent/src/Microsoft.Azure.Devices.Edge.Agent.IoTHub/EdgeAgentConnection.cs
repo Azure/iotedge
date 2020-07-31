@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -18,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
-        internal static readonly Version ExpectedSchemaVersion = new Version("1.0");
+        internal static readonly Version ExpectedSchemaVersion = new Version("1.1.0");
         static readonly TimeSpan DefaultConfigRefreshFrequency = TimeSpan.FromHours(1);
         static readonly TimeSpan DeviceClientInitializationWaitTime = TimeSpan.FromSeconds(5);
 
@@ -141,11 +142,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        internal static void ValidateSchemaVersion(string schemaVersion)
+        internal static void ValidateSchemaVersion(DeploymentConfig config)
         {
-            if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
+            string schemaVersion = config.SchemaVersion;
+
+            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version actualSchemaVersion))
             {
-                Events.MismatchedMinorVersions(schemaVersion, ExpectedSchemaVersion);
+                throw new InvalidSchemaVersionException($"Invalid desired properties schema version {schemaVersion}");
+            }
+
+            // Check major version and upper bound
+            if (actualSchemaVersion.Major != ExpectedSchemaVersion.Major ||
+                actualSchemaVersion.Major > ExpectedSchemaVersion.Major)
+            {
+                throw new InvalidSchemaVersionException($"The desired properties schema version {schemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
+            }
+
+            // Validate minor versions
+            if (actualSchemaVersion.Minor == 0)
+            {
+                // 1.0
+                //
+                // Module startup order is not supported
+                foreach (KeyValuePair<string, IModule> kvp in config.Modules)
+                {
+                    IModule moduleConfig = kvp.Value;
+
+                    if (moduleConfig.StartupOrder != Constants.DefaultPriority)
+                    {
+                        throw new InvalidSchemaVersionException($"Module startup order is not supported in schema {actualSchemaVersion}.");
+                    }
+                }
+            }
+            else if (actualSchemaVersion.Minor == 1)
+            {
+                // 1.1.0
+                //
+                // Everything from 1.0 is supported
+            }
+            else
+            {
+                throw new InvalidSchemaVersionException($"The deployment schema version {actualSchemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
             }
         }
 
@@ -332,7 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             try
             {
                 // Do any validation on deploymentConfig if necessary
-                ValidateSchemaVersion(deploymentConfig.SchemaVersion);
+                ValidateSchemaVersion(deploymentConfig);
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(desiredProperties.Version, deploymentConfig));
                 Events.UpdatedDeploymentConfig();
             }
@@ -390,13 +427,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
                 Log.LogDebug((int)EventIds.ConnectionStatusChanged, $"Connection status changed to {status} with reason {reason}");
-            }
-
-            public static void MismatchedMinorVersions(string receivedVersion, Version expectedVersion)
-            {
-                Log.LogWarning(
-                    (int)EventIds.MismatchedSchemaVersion,
-                    $"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported.");
             }
 
             public static void GotTwin(Twin twin)
