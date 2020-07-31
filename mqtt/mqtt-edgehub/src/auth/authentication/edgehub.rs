@@ -10,7 +10,10 @@ use hyper::{body, client::HttpConnector, Body, Client, Request};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
-use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
+use mqtt_broker::{
+    auth::{AuthenticationContext, Authenticator},
+    AuthId,
+};
 
 const API_VERSION: &str = "2020-04-20";
 
@@ -159,7 +162,7 @@ mod tests {
 
     use mockito::{mock, Matcher};
 
-    use mqtt_broker_core::auth::{AuthenticationContext, Certificate};
+    use mqtt_broker::auth::{AuthenticationContext, Certificate};
 
     use super::EdgeHubAuthenticator;
     use matches::assert_matches;

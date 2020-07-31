@@ -10,7 +10,7 @@ lazy_static = "1.4"
 serde = { version = "1.0", features = ["derive", "rc"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-mqtt-broker-core = { path = "../mqtt-broker-core" }
+mqtt-broker = { path = "../mqtt-broker" }
 
 [dev-dependencies]
 matches = "0.1"

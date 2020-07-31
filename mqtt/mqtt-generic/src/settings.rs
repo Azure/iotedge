@@ -4,7 +4,7 @@ use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-use mqtt_broker_core::settings::BrokerConfig;
+use mqtt_broker::BrokerConfig;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -148,7 +148,7 @@ mod tests {
 
     use matches::assert_matches;
 
-    use mqtt_broker_core::settings::{
+    use mqtt_broker::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
     };
 
