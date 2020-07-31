@@ -225,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -396,7 +396,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -575,7 +575,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -769,7 +769,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -1375,7 +1375,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -1886,7 +1886,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
