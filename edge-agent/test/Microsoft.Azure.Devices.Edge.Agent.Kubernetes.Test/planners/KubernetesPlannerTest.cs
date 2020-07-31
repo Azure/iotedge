@@ -291,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
         class NonDockerModule : IModule<string>
         {
-            public NonDockerModule(string name, string version, string type, ModuleStatus desiredStatus, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint priority, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, string config)
+            public NonDockerModule(string name, string version, string type, ModuleStatus desiredStatus, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint startupOrder, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, string config)
             {
                 this.Name = name;
                 this.Version = version;
@@ -299,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                 this.DesiredStatus = desiredStatus;
                 this.RestartPolicy = restartPolicy;
                 this.ImagePullPolicy = imagePullPolicy;
-                this.Priority = priority;
+                this.StartupOrder = startupOrder;
                 this.ConfigurationInfo = configurationInfo;
                 this.Env = env;
                 this.Config = config;
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
             public ImagePullPolicy ImagePullPolicy { get; }
 
-            public uint Priority { get; }
+            public uint StartupOrder { get; }
 
             public ConfigurationInfo ConfigurationInfo { get; }
 

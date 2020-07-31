@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                       ""edgeAgent"": { 
                         ""type"": ""test"",
                         ""imagePullPolicy"": ""on-create"",
-                        ""priority"": 10,
+                        ""startupOrder"": 10,
                         ""settings"": {
                           ""image"": ""edge-agent""
                         },
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""status"": ""running"", 
                         ""restartPolicy"": ""always"",
                         ""imagePullPolicy"": ""on-create"",
-                        ""priority"": 10,
+                        ""startupOrder"": 10,
                         ""settings"": {
                           ""image"": ""edge-hub:latest""
                         },
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""status"": ""running"",
                         ""restartPolicy"": ""on-unhealthy"",
                         ""imagePullPolicy"": ""never"",
-                        ""priority"": 0, 
+                        ""startupOrder"": 0, 
                         ""settings"": {
                           ""image"": ""image1""
                         },
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                       ""edgeAgent"": { 
                         ""type"": ""test"",
                         ""imagePullPolicy"": ""on-create"",
-                        ""priority"": 10,
+                        ""startupOrder"": 10,
                         ""settings"": {
                           ""image"": ""edge-agent""
                         },
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""status"": ""running"", 
                         ""restartPolicy"": ""always"",
                         ""imagePullPolicy"": ""on-create"",
-                        ""priority"": 10,
+                        ""startupOrder"": 10,
                         ""settings"": {
                           ""image"": ""edge-hub:latest""
                         },
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
                         ""status"": ""stopped"",
                         ""restartPolicy"": ""on-unhealthy"",
                         ""imagePullPolicy"": ""never"",
-                        ""priority"": 0, 
+                        ""startupOrder"": 0, 
                         ""settings"": {
                           ""image"": ""image1""
                         },

@@ -294,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             // build expected execution list
             IList<TestRecordType> expectedExecutionList = data
-                .OrderBy(m => m.UpdatedModule.Priority)
+                .OrderBy(m => m.UpdatedModule.StartupOrder)
                 .Where(d => d.UpdatedModule.RestartPolicy > RestartPolicy.Never || d.RunningModule.LastStartTimeUtc == DateTime.MinValue)
                 .Select(d => new TestRecordType(TestCommandType.TestStart, d.RunningModule))
                 .ToList();
@@ -315,7 +315,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     // Asserting whether the execution list commands are ordered based on module priority.
                     for (int i = 1; i < r.ExecutionList.Count; i++)
                     {
-                        Assert.True(r.ExecutionList[i - 1].Module.Priority <= r.ExecutionList[i].Module.Priority);
+                        Assert.True(r.ExecutionList[i - 1].Module.StartupOrder <= r.ExecutionList[i].Module.StartupOrder);
                     }
                 });
         }
@@ -388,7 +388,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 // Asserting whether the execution list commands are ordered based on module priority.
                 for (int i = 1; i < r.ExecutionList.Count; i++)
                 {
-                    Assert.True(r.ExecutionList[i - 1].Module.Priority <= r.ExecutionList[i].Module.Priority);
+                    Assert.True(r.ExecutionList[i - 1].Module.StartupOrder <= r.ExecutionList[i].Module.StartupOrder);
                 }
             });
         }
@@ -454,7 +454,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 // Asserting whether the execution list commands are ordered based on module priority.
                 for (int i = 1; i < r.ExecutionList.Count; i++)
                 {
-                    Assert.True(r.ExecutionList[i - 1].Module.Priority <= r.ExecutionList[i].Module.Priority);
+                    Assert.True(r.ExecutionList[i - 1].Module.StartupOrder <= r.ExecutionList[i].Module.StartupOrder);
                 }
             });
         }

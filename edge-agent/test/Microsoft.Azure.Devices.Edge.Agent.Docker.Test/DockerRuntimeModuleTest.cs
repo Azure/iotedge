@@ -494,7 +494,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""Status"":""running"",
          ""RestartPolicy"":""on-failure"",
          ""ImagePullPolicy"": ""on-create"",
-         ""Priority"": 0,
+         ""StartupOrder"": 0,
          ""Settings"":{
             ""Image"":""image1:42""
          },
@@ -752,7 +752,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(m2.RestartCount, newM2.RestartCount);
             Assert.Equal(m2.RestartPolicy, newM2.RestartPolicy);
             Assert.Equal(m2.ImagePullPolicy, newM2.ImagePullPolicy);
-            Assert.Equal(m2.Priority, newM2.Priority);
+            Assert.Equal(m2.StartupOrder, newM2.StartupOrder);
             Assert.Equal(m2.StatusDescription, newM2.StatusDescription);
             Assert.Equal(m2.Type, newM2.Type);
             Assert.Equal(m2.Version, newM2.Version);

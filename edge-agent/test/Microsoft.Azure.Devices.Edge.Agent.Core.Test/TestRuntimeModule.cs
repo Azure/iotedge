@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.LastRestartTimeUtc,
             newStatus,
             this.ImagePullPolicy,
-            this.Priority,
+            this.StartupOrder,
             this.ConfigurationInfo);
     }
 }
