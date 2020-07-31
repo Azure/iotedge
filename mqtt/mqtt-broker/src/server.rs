@@ -1,8 +1,7 @@
 use std::{error::Error as StdError, future::Future, sync::Arc};
 
-use futures_util::future::BoxFuture;
 use futures_util::{
-    future::{self, Either, FutureExt},
+    future::{self, BoxFuture, Either, FutureExt},
     pin_mut,
     stream::StreamExt,
 };
@@ -10,17 +9,18 @@ use tokio::sync::oneshot;
 use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
 
-use mqtt_broker_core::auth::{Authenticator, Authorizer};
-
 use crate::{
+    auth::{Authenticator, Authorizer},
     broker::{Broker, BrokerHandle},
-    connection,
+    connection::{
+        self, MakeIncomingPacketProcessor, MakeMqttPacketProcessor, MakeOutgoingPacketProcessor,
+    },
     transport::{GetPeerInfo, Transport},
     BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
     SystemEvent,
 };
 
-pub struct Server<Z>
+pub struct Server<Z, P>
 where
     Z: Authorizer,
 {
@@ -30,9 +30,10 @@ where
         BoxFuture<'static, Result<Transport, InitializeBrokerError>>,
         Arc<(dyn Authenticator<Error = Box<dyn StdError>> + Send + Sync)>,
     )>,
+    make_processor: P,
 }
 
-impl<Z> Server<Z>
+impl<Z> Server<Z, MakeMqttPacketProcessor>
 where
     Z: Authorizer + Send + 'static,
 {
@@ -40,9 +41,16 @@ where
         Self {
             broker,
             transports: Vec::new(),
+            make_processor: MakeMqttPacketProcessor,
         }
     }
+}
 
+impl<Z, P> Server<Z, P>
+where
+    Z: Authorizer + Send + 'static,
+    P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
+{
     pub fn tcp<N>(&mut self, addr: &str, authenticator: N) -> &mut Self
     where
         N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
@@ -69,11 +77,23 @@ where
         Ok(self)
     }
 
+    pub fn packet_processor<P1>(self, make_processor: P1) -> Server<Z, P1> {
+        Server {
+            broker: self.broker,
+            transports: self.transports,
+            make_processor,
+        }
+    }
+
     pub async fn serve<F>(self, shutdown_signal: F) -> Result<BrokerSnapshot, Error>
     where
         F: Future<Output = ()> + Unpin,
     {
-        let Server { broker, transports } = self;
+        let Server {
+            broker,
+            transports,
+            make_processor,
+        } = self;
         let mut handle = broker.handle();
         let broker_task = tokio::spawn(broker.run());
 
@@ -83,8 +103,13 @@ where
             let (itx, irx) = oneshot::channel::<()>();
             shutdown_handles.push(itx);
 
-            let incoming_task =
-                incoming_task(new_transport, handle.clone(), irx.map(drop), authenticator);
+            let incoming_task = incoming_task(
+                new_transport,
+                handle.clone(),
+                irx.map(drop),
+                authenticator,
+                make_processor.clone(),
+            );
 
             let incoming_task = Box::pin(incoming_task);
             incoming_tasks.push(incoming_task);
@@ -200,21 +225,23 @@ where
     }
 }
 
-async fn incoming_task<F, N, T>(
+async fn incoming_task<F, N, T, P>(
     new_transport: T,
     handle: BrokerHandle,
     mut shutdown_signal: F,
     authenticator: Arc<N>,
+    make_processor: P,
 ) -> Result<(), Error>
 where
     F: Future<Output = ()> + Unpin,
     N: Authenticator + ?Sized + Send + Sync + 'static,
     T: Future<Output = Result<Transport, InitializeBrokerError>>,
+    P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
 {
     let io = new_transport.await?;
     let addr = io.local_addr()?;
-    let span = info_span!("transport", listener=%addr);
 
+    let span = info_span!("server", listener=%addr);
     let inner_span = span.clone();
 
     async move {
@@ -230,9 +257,10 @@ where
                     let broker_handle = handle.clone();
                     let span = inner_span.clone();
                     let authenticator = authenticator.clone();
+                    let make_processor = make_processor.clone();
                     tokio::spawn(async move {
                         if let Err(e) =
-                            connection::process(stream, peer, broker_handle, &*authenticator)
+                            connection::process(stream, peer, broker_handle, &*authenticator, make_processor)
                                 .instrument(span)
                                 .await
                         {

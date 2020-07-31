@@ -22,7 +22,7 @@ Since message priority and TTL are associated with routes, the route section of 
 |Property name      | Description           | Default Value             |
 |-------------------|-----------------------|---------------------------|
 |*route*            |The routing string, same as existing version.<br>FROM *[source]* WHERE *[condition]* INTO *[sink]*     |Must be present    |
-|*priority*         |UINT value specifying the priority for this route.<br>0-9, with 0 being highest priority.<br>If more than one route has the same priority on the same endpoint, then messages are handled on a first-come-first-serve basis (existing behavior).|2,000,000,000|
+|*priority*         |UINT value specifying the priority for this route.<br>0-9, with 0 being highest priority.<br>If more than one route has the same priority on the same endpoint, then messages are handled on a first-come-first-serve basis (existing behavior).|>10 (lowest priority)|
 |*timeToLiveSecs*   |The TTL for this route, overrides the legacy value in *storeAndForwardConfiguration* |Inherits from storeAndForwardConfiguration |
 
 For backwards compatibility, the legacy way of specifying routes as just a string property remains valid.  If a route is redefined by both the old and new format, then only the new format will be used.
@@ -30,24 +30,40 @@ For backwards compatibility, the legacy way of specifying routes as just a strin
 For TTL, the property in storeAndForwardConfiguration section is now treated as the global TTL value, and can be overridden by the route specific TTLs.
 
 <pre>
-"$edgeHub": {
-  "properties.desired": {
-    "routes": {
-      <b>"route1": {
-        "route": <string>,
-        "priority": <uint>,
-        "timeToLiveSecs": <uint>,
-        "Recency": {
-          "Seconds": <uint>,
-          "FallbackPriority": <uint>
-          }
-        },</b>
-      "route2": <string>
-    },
-    "storeAndForwardConfiguration": {
-      "timeToLiveSecs": 7200
+"routes": {
+    "type": "object",
+    "patternProperties": {
+        "^[^\\.\\$# ]+$": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "pattern": "^.+$"
+                },
+                <b>{
+                    "type": "object",
+                    "required": [
+                        "route"
+                    ],
+                    "properties": {
+                        "route": {
+                            "type": "string",
+                            "pattern": "^.+$"
+                        },
+                        "priority": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9
+                        },
+                        "timeToLiveSecs": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4294967295
+                        }
+                    }
+                }</b>
+            ]
+        }
     }
-  }
 }
 </pre>
 
