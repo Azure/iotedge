@@ -99,6 +99,10 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
+    fn parent_hostname(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
     fn connect(&self) -> &Connect {
         unimplemented!()
     }
@@ -344,6 +348,7 @@ where
     type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
     type SystemResourcesFuture = FutureResult<SystemResources, Self::Error>;
     type RemoveAllFuture = FutureResult<(), Self::Error>;
+    type StopAllFuture = FutureResult<(), Self::Error>;
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         match self.module.as_ref().unwrap() {
@@ -447,6 +452,10 @@ where
     }
 
     fn remove_all(&self) -> Self::RemoveAllFuture {
+        future::ok(())
+    }
+
+    fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
         future::ok(())
     }
 }

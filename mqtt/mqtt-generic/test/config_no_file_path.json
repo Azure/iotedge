@@ -1,0 +1,8 @@
+{
+    "broker": {
+        "persistence": {
+            "time_interval": "2h",
+            "unsaved_message_count": 5
+        }
+    }
+}

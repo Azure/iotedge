@@ -6,8 +6,9 @@ use uuid::Uuid;
 
 use mqtt3::proto;
 use mqtt_broker::{
+    auth::AllowAll,
     proptest::{arb_client_id_weighted, arb_connect, arb_subscribe, arb_unsubscribe},
-    AuthId, BrokerBuilder, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
+    Auth, AuthId, BrokerBuilder, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
 };
 
 proptest! {
@@ -36,10 +37,7 @@ proptest! {
 }
 
 async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEvent>) {
-    let mut broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let mut model = BrokerModel::default();
 
@@ -84,7 +82,13 @@ fn into_events(
             clients.push(rx);
 
             let connection_handle = ConnectionHandle::from_sender(tx);
-            let connreq = ConnReq::new(client_id.clone(), connect.clone(), None, connection_handle);
+            let connreq = ConnReq::new(
+                client_id.clone(),
+                "127.0.0.1:12345".parse().expect("peer_addr"),
+                connect.clone(),
+                Auth::Identity(AuthId::Anonymous),
+                connection_handle,
+            );
             (
                 client_id,
                 ClientEvent::ConnReq(connreq),
