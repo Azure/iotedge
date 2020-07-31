@@ -57,7 +57,7 @@ impl HostConnectUpstream {
             return Ok(CheckResult::Skipped);
         };
 
-        let iothub_hostname = if let Some(parent_hostname) = RuntimeSettings::parent_hostname(settings) {
+        let upstream_hostname = if let Some(parent_hostname) = RuntimeSettings::parent_hostname(settings) {
             parent_hostname
         } else if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
@@ -66,9 +66,9 @@ impl HostConnectUpstream {
         };
 
         super::host_connect_dps_endpoint::resolve_and_tls_handshake(
-            &(iothub_hostname, self.port_number),
-            iothub_hostname,
-            &format!("{}:{}", iothub_hostname, self.port_number),
+            &(upstream_hostname, self.port_number),
+            upstream_hostname,
+            &format!("{}:{}", upstream_hostname, self.port_number),
         )?;
 
         Ok(CheckResult::Ok)

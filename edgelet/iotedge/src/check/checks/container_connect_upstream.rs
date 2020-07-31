@@ -48,7 +48,7 @@ pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
 }
 
 #[derive(serde_derive::Serialize)]
-pub(crate) struct ContainerConnectIotHub {
+pub(crate) struct ContainerConnectUpstream {
     port_number: u16,
     iothub_hostname: Option<String>,
     network_name: Option<String>,
@@ -61,7 +61,7 @@ pub(crate) struct ContainerConnectIotHub {
     use_container_runtime_network: bool,
 }
 
-impl Checker for ContainerConnectIotHub {
+impl Checker for ContainerConnectUpstream {
     fn id(&self) -> &'static str {
         self.id
     }
@@ -76,7 +76,7 @@ impl Checker for ContainerConnectIotHub {
         serde_json::to_value(self).unwrap()
     }
 }
-impl ContainerConnectIotHub {
+impl ContainerConnectUpstream {
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
@@ -90,7 +90,7 @@ impl ContainerConnectIotHub {
             return Ok(CheckResult::Skipped);
         };
 
-        let iothub_hostname = if let Some(parent_hostname) = RuntimeSettings::parent_hostname(settings) {
+        let upstream_hostname = if let Some(parent_hostname) = RuntimeSettings::parent_hostname(settings) {
             parent_hostname
         } else if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
@@ -114,7 +114,7 @@ impl ContainerConnectIotHub {
             "/iotedge-diagnostics",
             "iothub",
             "--hostname",
-            iothub_hostname,
+            upstream_hostname,
             "--port",
             &port,
         ]);
@@ -129,7 +129,7 @@ impl ContainerConnectIotHub {
                     } else {
                         "default"
                     },
-                    iothub_hostname,
+                    upstream_hostname,
                     port,
                 ))
                 .into());
@@ -144,8 +144,8 @@ fn make_check(
     description: &'static str,
     upstream_protocol_port: UpstreamProtocolPort,
     use_container_runtime_network: bool,
-) -> Box<ContainerConnectIotHub> {
-    Box::new(ContainerConnectIotHub {
+) -> Box<ContainerConnectUpstream> {
+    Box::new(ContainerConnectUpstream {
         id,
         description,
         port_number: upstream_protocol_port.as_port(),
