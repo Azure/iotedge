@@ -21,7 +21,6 @@ use mqtt_broker::{
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     connection::MakeEdgeHubPacketProcessor,
-    edgelet,
     settings::Settings,
 };
 

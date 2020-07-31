@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use http::{Request, StatusCode};
 use hyper::{body, Body, Client};
 
-use crate::edgelet::{
+use crate::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, Scheme, ServerCertificateRequest,
 };
 
@@ -78,7 +78,7 @@ mod tests {
     use serde_json::json;
 
     use super::{make_hyper_uri, ApiError, Scheme, WorkloadError};
-    use crate::edgelet::workload;
+    use crate::workload;
 
     #[test]
     fn it_makes_hyper_uri() {
