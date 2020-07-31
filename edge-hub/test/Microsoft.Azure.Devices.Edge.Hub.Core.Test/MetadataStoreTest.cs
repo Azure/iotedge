@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -104,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ConnectionMetadata connectionMetadata = new ConnectionMetadata()
             {
                 ProductInfo = productInfo,
-                ModelId = modelId
+                ModelId = Option.Some(modelId)
             };
 
             // Act
@@ -117,7 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionMetadataOption.ForEach(
                 c =>
                 {
-                    Assert.Equal(modelId, c.ModelId);
+                    Assert.True(c.ModelId.HasValue);
+                    c.ModelId.ForEach(m => Assert.Equal(modelId, m));
                     Assert.Equal(productInfo, c.ProductInfo);
                 });
             Assert.Equal(productInfo, await metadataStore.GetProductInfo(id));
@@ -157,6 +159,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        public async Task NoProductInfoTest()
+        {
+            // Arrange
+            string edgeProductInfo = "IoTEdge 1.0.7";
+            var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+            IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("connectionMetadata");
+            var metadataStore = new MetadataStore(store, edgeProductInfo);
+
+            // Act
+            string productInfoValue = await metadataStore.GetProductInfo("d1");
+
+            // Assert
+            Assert.Equal(string.Empty, productInfoValue);
+        }
+
+        [Fact]
         public async Task EmptyModelIdTest()
         {
             // Arrange
@@ -170,6 +188,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Assert
             Assert.False(modelId.HasValue);
+        }
+
+        [Fact]
+        public async Task ModelIdMigrationTest()
+        {
+            string testProductInfo = "testProductInfo";
+            var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+            Mock<IEntityStore<string, string>> store = new Mock<IEntityStore<string, string>>();
+            store.Setup(m => m.Get(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(testProductInfo)));
+            var metadataStore = new MetadataStore(store.Object, this.dummyProductInfo);
+            Option<string> modelId = await metadataStore.GetModelId("d1");
+            Assert.False(modelId.HasValue);
+            Option<ConnectionMetadata> metadata = await metadataStore.GetMetadata("d1");
+            Assert.True(metadata.HasValue);
+            metadata.ForEach(m =>
+            {
+                Assert.Equal(testProductInfo, m.ProductInfo);
+                Assert.False(m.ModelId.HasValue);
+            });
+        }
+
+        [Fact]
+        public async Task ProductInfoMigrationTest()
+        {
+            string testProductInfo = "testProductInfo";
+            var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+            Mock<IEntityStore<string, string>> store = new Mock<IEntityStore<string, string>>();
+            store.Setup(m => m.Get(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(testProductInfo)));
+            var metadataStore = new MetadataStore(store.Object, this.dummyProductInfo);
+            string productInfo = await metadataStore.GetProductInfo("d1");
+            Assert.Equal(testProductInfo, productInfo);
         }
 
         [Fact]

@@ -40,9 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     try
                     {
-                        return Option.Some(JsonConvert.DeserializeObject<ConnectionMetadata>(v).ModelId);
+                        return JsonConvert.DeserializeObject<ConnectionMetadata>(v).ModelId;
                     }
-                    catch (JsonSerializationException)
+                    catch (JsonException)
                     {
                         // If deserialization fails, assume the string is an old productInfo.
                         return Option.None<string>();
@@ -62,17 +62,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 () => Task.FromResult(string.Empty));
         }
 
-        async Task<ConnectionMetadata> GetOrMigrateConnectionMetadata(string id, string productInfo)
+        async Task<ConnectionMetadata> GetOrMigrateConnectionMetadata(string id, string entityValue)
         {
             try
             {
-                return JsonConvert.DeserializeObject<ConnectionMetadata>(productInfo);
+                return JsonConvert.DeserializeObject<ConnectionMetadata>(entityValue);
             }
-            catch (JsonSerializationException)
+            catch (JsonException)
             {
                 // If deserialization fails, assume the string is an old productInfo.
                 // We must do this only for migration purposes, since this store used to just be a productInfoStore.
-                ConnectionMetadata metadata = new ConnectionMetadata() { ProductInfo = productInfo };
+                ConnectionMetadata metadata = new ConnectionMetadata() { ProductInfo = entityValue };
                 await this.SetMetadata(id, metadata);
                 return metadata;
             }
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             if (!string.IsNullOrWhiteSpace(modelId))
             {
                 ConnectionMetadata metadata = (await this.GetMetadata(id)).GetOrElse(new ConnectionMetadata());
-                metadata.ModelId = modelId;
+                metadata.ModelId = Option.Some(modelId);
                 await this.metadataEntityStore.Put(id, JsonConvert.SerializeObject(metadata));
             }
         }

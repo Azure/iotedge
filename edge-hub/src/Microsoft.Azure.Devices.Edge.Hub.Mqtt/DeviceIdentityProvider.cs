@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
 
                 ConnectionMetadata connectionMetadata = new ConnectionMetadata() { ProductInfo = deviceClientType };
-                modelId.ForEach(m => connectionMetadata.ModelId = m);
+                connectionMetadata.ModelId = modelId;
                 await this.metadataStore.SetMetadata(deviceCredentials.Identity.Id, connectionMetadata);
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials, modelId);

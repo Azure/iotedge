@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 this.ClientVersion
                     .Filter(c => !string.IsNullOrWhiteSpace(c))
                     .ForEach(c => connectionMetadata.ProductInfo = c);
-                this.ModelId.ForEach(m => connectionMetadata.ModelId = m);
+                connectionMetadata.ModelId = this.ModelId;
                 await this.metadataStore.SetMetadata(this.Identity.Id, connectionMetadata);
             }
 
