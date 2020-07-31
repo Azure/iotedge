@@ -14,6 +14,7 @@ hyper = "0.13"
 futures-util = "0.3"
 lazy_static = "1.4"
 openssl = "0.10"
+proptest = { version = "0.9", optional = true }
 regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
@@ -25,13 +26,22 @@ tracing = "0.1"
 url = "2.1"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-mqtt-broker-core = { path = "../mqtt-broker-core" }
+mqtt-broker = { path = "../mqtt-broker" }
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.7"
 
 [dev-dependencies]
+lazy_static = "1.4"
 matches = "0.1"
 mockito = "0.25"
+proptest = "0.9"
 test-case = "1.0"
 tokio = { version = "0.2", features = ["macros"] }
+
+mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
+
+[[test]]
+name = "translation"
+path = "tests/translation.rs"
+required-features = ["proptest"]

@@ -1,9 +1,9 @@
 use fail::FailScenario;
 
-use mqtt_broker::{BrokerSnapshot, FilePersistor, Persist, PersistError, VersionedFileFormat};
-use proptest::collection::vec;
-use proptest::prelude::*;
+use proptest::{collection::vec, prelude::*};
 use tempfile::TempDir;
+
+use mqtt_broker::{BrokerSnapshot, FilePersistor, Persist, PersistError, VersionedFileFormat};
 
 const FAILPOINTS: &[&str] = &[
     "consolidatestate.load.deserialize_from",

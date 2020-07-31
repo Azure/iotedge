@@ -3,11 +3,10 @@ use std::collections::HashMap;
 use tracing::warn;
 
 use mqtt3::proto;
-use mqtt_broker_core::ClientInfo;
 
 use crate::{
-    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientId, ConnectionHandle,
-    Error, Message, SessionState,
+    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientId, ClientInfo,
+    ConnectionHandle, Error, Message, SessionState,
 };
 
 #[derive(Debug)]

@@ -1,7 +1,6 @@
 use mqtt3::proto;
-use mqtt_broker_core::ClientInfo;
 
-use crate::{ClientEvent, ClientId, ConnectionHandle, Error, Message};
+use crate::{ClientEvent, ClientId, ClientInfo, ConnectionHandle, Error, Message};
 
 #[derive(Debug)]
 pub struct DisconnectingSession {
