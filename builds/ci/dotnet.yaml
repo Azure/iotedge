@@ -5,6 +5,7 @@ trigger:
       - master
       - release/*
       - iiot
+      - preview/iiot
 pr: none
 variables:
   build.configuration: Release
