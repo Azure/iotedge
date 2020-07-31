@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 throw new InvalidOperationException($"Unable to find authentication mechanism for AMQP connection for identity {this.Identity.Id}");
             }
 
-            bool authenticated = await amqpAuth.AuthenticateAsync(this.Identity.Id);
+            bool authenticated = await amqpAuth.AuthenticateAsync(this.Identity.Id, this.ModelId);
             if (authenticated)
             {
                 await this.ClientVersion

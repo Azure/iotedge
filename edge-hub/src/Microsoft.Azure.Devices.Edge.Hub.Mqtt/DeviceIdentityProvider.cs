@@ -51,12 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = ParseUserName(username);
-                modelId.ForEach(async m => await this.modelIdStore.SetModelId(deviceId, m));
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false);
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false, modelId);
                 }
                 else if (this.remoteCertificate.HasValue)
                 {
@@ -74,7 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                 moduleId,
                                 deviceClientType,
                                 cert,
-                                this.remoteCertificateChain);
+                                this.remoteCertificateChain,
+                                modelId);
                         });
                 }
                 else
@@ -92,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
 
                 await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, deviceClientType);
+                modelId.ForEach(async m => await this.modelIdStore.SetModelId(deviceCredentials.Identity.Id, m));
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials, modelId);
             }
