@@ -51,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = ParseUserName(username);
-                modelId.ForEach(async m => await this.modelIdStore.SetModelId(deviceId, m));
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
@@ -92,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
 
                 await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, deviceClientType);
+                modelId.ForEach(async m => await this.modelIdStore.SetModelId(deviceCredentials.Identity.Id, m));
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials, modelId);
             }
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // We recognize three property names:
             //   "api-version" [mandatory]
             //   "DeviceClientType" [optional]
-            //   "digital-twin-model-id" [optional]
+            //   "model-id" [optional]
             // We ignore any properties we don't recognize.
             // Note - this logic does not check the query parameters for special characters, and '?' is treated as a valid value
             // and not used as a separator, unless it is the first character of the last segment
