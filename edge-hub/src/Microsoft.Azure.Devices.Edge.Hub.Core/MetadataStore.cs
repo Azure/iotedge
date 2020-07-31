@@ -24,18 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return await value.Match(
                 async v =>
                 {
-                    try
-                    {
-                        return Option.Some(JsonConvert.DeserializeObject<ConnectionMetadata>(v));
-                    }
-                    catch (JsonSerializationException)
-                    {
-                        // If deserialization fails, assume the string is an old productInfo.
-                        // We must do this only for migration purposes, since this store used to just be a productInfoStore.
-                        ConnectionMetadata metadata = new ConnectionMetadata() { ProductInfo = v };
-                        await this.SetMetadata(id, metadata);
-                        return Option.Maybe(metadata);
-                    }
+                    return Option.Maybe(await this.GetOrMigrateConnectionMetadata(id, v));
                 },
                 () =>
                 {
@@ -68,20 +57,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return await value.Match(
                 async v =>
                 {
-                    try
-                    {
-                        return JsonConvert.DeserializeObject<ConnectionMetadata>(v).ProductInfo;
-                    }
-                    catch (JsonSerializationException)
-                    {
-                        // If deserialization fails, assume the string is an old productInfo.
-                        // We must do this only for migration purposes, since this store used to just be a productInfoStore.
-                        ConnectionMetadata metadata = new ConnectionMetadata() { ProductInfo = v };
-                        await this.metadataEntityStore.Put(id, JsonConvert.SerializeObject(metadata));
-                        return v;
-                    }
+                    return (await this.GetOrMigrateConnectionMetadata(id, v)).ProductInfo;
                 },
                 () => Task.FromResult(string.Empty));
+        }
+
+        async Task<ConnectionMetadata> GetOrMigrateConnectionMetadata(string id, string productInfo)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<ConnectionMetadata>(productInfo);
+            }
+            catch (JsonSerializationException)
+            {
+                // If deserialization fails, assume the string is an old productInfo.
+                // We must do this only for migration purposes, since this store used to just be a productInfoStore.
+                ConnectionMetadata metadata = new ConnectionMetadata() { ProductInfo = productInfo };
+                await this.SetMetadata(id, metadata);
+                return metadata;
+            }
         }
 
         public async Task SetMetadata(string id, ConnectionMetadata metadata) => await this.metadataEntityStore.Put(id, JsonConvert.SerializeObject(metadata));
