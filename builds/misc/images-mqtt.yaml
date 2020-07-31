@@ -3,6 +3,7 @@ trigger:
   branches:
     include:
       - iiot
+      - preview/iiot
 pr: none
 
 jobs:
