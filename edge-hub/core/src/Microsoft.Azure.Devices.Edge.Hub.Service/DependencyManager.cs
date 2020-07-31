@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, true);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, true);
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
