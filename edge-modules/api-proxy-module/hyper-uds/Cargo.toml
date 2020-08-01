@@ -1,0 +1,13 @@
+[package]
+name = "hyper-uds"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+license = "MIT"
+edition = "2018"
+
+[dependencies]
+bytes = "0.5"
+futures = "0.3"
+hex = "0.4"
+hyper = "0.13"
+tokio = { version = "0.2", features = ["blocking", "io-util", "macros", "sync"] }
