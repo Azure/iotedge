@@ -200,7 +200,7 @@ impl<T: PartialEq> PartialEq for Enableble<T> {
 }
 
 #[cfg(test)]
-mod enableble_tests {
+mod tests {
     use super::Enableble;
 
     #[test]
