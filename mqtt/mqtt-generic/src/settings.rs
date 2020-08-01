@@ -4,7 +4,7 @@ use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-use mqtt_broker::BrokerConfig;
+use mqtt_broker::{settings::Enableble, BrokerConfig};
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -57,17 +57,23 @@ impl Default for Settings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ListenerConfig {
-    tcp: Option<TcpTransportConfig>,
-    tls: Option<TlsTransportConfig>,
+    tcp: Enableble<TcpTransportConfig>,
+    tls: Enableble<TlsTransportConfig>,
 }
 
 impl ListenerConfig {
+    pub fn new(tcp: Option<TcpTransportConfig>, tls: Option<TlsTransportConfig>) -> Self {
+        Self {
+            tcp: tcp.into(),
+            tls: tls.into(),
+        }
+    }
     pub fn tcp(&self) -> Option<&TcpTransportConfig> {
-        self.tcp.as_ref()
+        self.tcp.as_inner()
     }
 
     pub fn tls(&self) -> Option<&TlsTransportConfig> {
-        self.tls.as_ref()
+        self.tls.as_inner()
     }
 }
 
@@ -163,10 +169,7 @@ mod tests {
         assert_eq!(
             settings,
             Settings {
-                listener: ListenerConfig {
-                    tcp: Some(TcpTransportConfig::new("0.0.0.0:1883")),
-                    tls: None,
-                },
+                listener: ListenerConfig::new(Some(TcpTransportConfig::new("0.0.0.0:1883")), None,),
                 broker: BrokerConfig::new(
                     RetainedMessagesConfig::new(1000, Duration::from_secs(60 * DAYS)),
                     SessionConfig::new(

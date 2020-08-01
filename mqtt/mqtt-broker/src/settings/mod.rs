@@ -153,3 +153,74 @@ pub struct SessionPersistenceConfig {
     time_interval: Duration,
     unsaved_message_count: u32,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Enableble<T> {
+    enabled: Option<bool>,
+
+    #[serde(flatten)]
+    value: Option<T>,
+}
+
+impl<T> Enableble<T> {
+    fn new(enabled: Option<bool>, value: Option<T>) -> Self {
+        Self { enabled, value }
+    }
+
+    pub fn enabled(value: T) -> Self {
+        Self::new(Some(true), Some(value))
+    }
+
+    pub fn disabled() -> Self {
+        Self::new(None, None)
+    }
+
+    pub fn as_inner(&self) -> Option<&T> {
+        match (self.enabled, self.value.as_ref()) {
+            (None, Some(value)) => Some(value),
+            (Some(true), Some(value)) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+impl<T> From<Option<T>> for Enableble<T> {
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => Enableble::enabled(value),
+            None => Enableble::disabled(),
+        }
+    }
+}
+
+impl<T: PartialEq> PartialEq for Enableble<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_inner() == other.as_inner()
+    }
+}
+
+#[cfg(test)]
+mod enableble_tests {
+    use super::Enableble;
+
+    #[test]
+    fn it_returns_inner() {
+        let value: Enableble<()> = Enableble::new(None, None);
+        assert_eq!(value.as_inner(), None);
+
+        let value: Enableble<()> = Enableble::new(Some(true), None);
+        assert_eq!(value.as_inner(), None);
+
+        let value: Enableble<()> = Enableble::new(Some(false), None);
+        assert_eq!(value.as_inner(), None);
+
+        let value: Enableble<()> = Enableble::new(None, Some(()));
+        assert_eq!(value.as_inner(), Some(&()));
+
+        let value: Enableble<()> = Enableble::new(Some(true), Some(()));
+        assert_eq!(value.as_inner(), Some(&()));
+
+        let value: Enableble<()> = Enableble::new(Some(false), Some(()));
+        assert_eq!(value.as_inner(), None);
+    }
+}
