@@ -10,6 +10,8 @@ resources:
       branches:
       - master
       - release/*
+      - iiot
+      - preview/iiot
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: master

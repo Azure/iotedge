@@ -4,6 +4,7 @@ trigger:
     include:
       - master
       - iiot
+      - preview/iiot
 pr: none
 variables:
   REVISION: '1'
