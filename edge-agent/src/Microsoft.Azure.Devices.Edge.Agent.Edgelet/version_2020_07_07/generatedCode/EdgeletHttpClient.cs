@@ -1461,33 +1461,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
                     PrepareRequest(client_, request_, url_);
 
                     var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                    try
-                    {
-                        var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
-                        if (response_.Content != null && response_.Content.Headers != null)
-                        {
-                            foreach (var item_ in response_.Content.Headers)
-                                headers_[item_.Key] = item_.Value;
-                        }
 
-                        ProcessResponse(client_, response_);
-
-                        var status_ = ((int)response_.StatusCode).ToString();
-                        if (status_ == "200" || status_ == "206")
-                        {
-                            return default(FileResponse);
-                        }
-                        else
-                        {
-                            var objectResponse_ = await ReadObjectResponseAsync<ErrorResponse>(response_, headers_).ConfigureAwait(false);
-                            throw new SwaggerException<ErrorResponse>("Error", (int)response_.StatusCode, objectResponse_.Text, headers_, objectResponse_.Object, null);
-                        }
-                    }
-                    finally
-                    {
-                        if (response_ != null)
-                            response_.Dispose();
-                    }
+                    return new FileResponse((int)response_.StatusCode, null, await response_.Content.ReadAsStreamAsync(), client_, response_);
                 }
             }
             finally
