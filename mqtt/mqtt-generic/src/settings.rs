@@ -4,7 +4,7 @@ use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-use mqtt_broker::{settings::Enableble, BrokerConfig};
+use mqtt_broker::{settings::Enable, BrokerConfig};
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -57,23 +57,24 @@ impl Default for Settings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ListenerConfig {
-    tcp: Enableble<TcpTransportConfig>,
-    tls: Enableble<TlsTransportConfig>,
+    tcp: Option<Enable<TcpTransportConfig>>,
+    tls: Option<Enable<TlsTransportConfig>>,
 }
 
 impl ListenerConfig {
     pub fn new(tcp: Option<TcpTransportConfig>, tls: Option<TlsTransportConfig>) -> Self {
         Self {
-            tcp: tcp.into(),
-            tls: tls.into(),
+            tcp: tcp.map(|tcp| Enable::from(Some(tcp))),
+            tls: tls.map(|tls| Enable::from(Some(tls))),
         }
     }
+
     pub fn tcp(&self) -> Option<&TcpTransportConfig> {
-        self.tcp.as_inner()
+        self.tcp.as_ref().and_then(Enable::as_inner)
     }
 
     pub fn tls(&self) -> Option<&TlsTransportConfig> {
-        self.tls.as_inner()
+        self.tls.as_ref().and_then(Enable::as_inner)
     }
 }
 
