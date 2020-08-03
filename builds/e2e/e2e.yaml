@@ -53,7 +53,6 @@ jobs:
         netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
         Write-Output '>>> AFTER:'
         netsh interface ipv6 show prefixpolicies
-        net stop dnscache
       displayName: Prefer IPv4
 
     - template: templates/e2e-run.yaml
