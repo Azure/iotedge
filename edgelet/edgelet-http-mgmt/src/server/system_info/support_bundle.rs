@@ -40,37 +40,67 @@ where
         debug!("Get Support Bundle");
 
         let query = req.uri().query().unwrap_or("");
-        let _parse: Vec<_> = form_urlencoded::parse(query.as_bytes()).collect();
 
-        let response = make_bundle(
-            OutputLocation::Memory,
-            LogOptions::default(),
-            false,
-            false,
-            None,
-            self.runtime.clone(),
-        )
-        .map_err(|_| Error::from(ErrorKind::SupportBundle))
-        .and_then(|(bundle, size)| -> Result<_, Error> {
-            println!("Got bundle size: {}", size);
-            let body = Body::wrap_stream(ReadStream(bundle));
-            println!("made body");
+        let response = get_bundle(self.runtime.clone(), query)
+            .and_then(|(bundle, size)| -> Result<_, Error> {
+                println!("Got bundle size: {}", size);
+                let body = Body::wrap_stream(ReadStream(bundle));
+                println!("made body");
 
-            let response = Response::builder()
-                .status(StatusCode::OK)
-                .header(CONTENT_TYPE, "application/zip")
-                .header(CONTENT_ENCODING, "zip")
-                .header(CONTENT_LENGTH, size.to_string().as_str())
-                .body(body)
-                .context(ErrorKind::RuntimeOperation(
-                    RuntimeOperation::GetSupportBundle,
-                ))?;
-            Ok(response)
-        })
-        .or_else(|e| Ok(e.into_response()));
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/zip")
+                    .header(CONTENT_ENCODING, "zip")
+                    .header(CONTENT_LENGTH, size.to_string().as_str())
+                    .body(body)
+                    .context(ErrorKind::RuntimeOperation(
+                        RuntimeOperation::GetSupportBundle,
+                    ))?;
+                Ok(response)
+            })
+            .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
     }
+}
+
+fn get_bundle<M>(
+    runtime: M,
+    query: &str,
+) -> Box<dyn Future<Item = (Box<dyn Read + Send>, u64), Error = Error> + Send>
+where
+    M: 'static + ModuleRuntime + Send + Clone + Sync,
+{
+    println!("\n\n\nQuery: {}", query);
+    let parse: Vec<_> = form_urlencoded::parse(query.as_bytes()).collect();
+
+    let mut log_options = LogOptions::new();
+    if let Some((_, since)) = parse.iter().find(|&(ref key, _)| key == "since") {
+        log_options = log_options.with_since(since.parse::<i32>().unwrap_or(0));
+    }
+
+    let iothub_hostname = parse
+        .iter()
+        .find(|&(ref key, _)| key == "iothub_hostname")
+        .map(|(_, iothub_hostname)| iothub_hostname.to_string());
+
+    let edge_runtime_only = parse
+        .iter()
+        .find(|&(ref key, _)| key == "edge_runtime_only")
+        .map(|(_, edge_runtime_only)| edge_runtime_only == "true" || edge_runtime_only == "True")
+        .unwrap_or_default();
+
+    let result = make_bundle(
+        OutputLocation::Memory,
+        log_options,
+        edge_runtime_only,
+        false,
+        iothub_hostname,
+        runtime,
+    )
+    .map_err(|_| Error::from(ErrorKind::SupportBundle));
+
+    Box::new(result)
 }
 
 struct ReadStream(Box<dyn Read + Send>);
@@ -92,30 +122,3 @@ impl Stream for ReadStream {
         }
     }
 }
-
-// fn get_bundle(query: &str) -> Result<String, Error> {
-//     println!("\n\n\nQuery: {}", query);
-//     let parse: Vec<_> = form_urlencoded::parse(query.as_bytes()).collect();
-
-//     let mut command = Command::new("iotedge");
-//     if let Some((_, host)) = parse.iter().find(|&(ref key, _)| key == "host") {
-//         command.args(&["-H", host]);
-//     }
-//     command.arg("support-bundle");
-//     command.args(&["-o", "-"]);
-//     if let Some((_, since)) = parse.iter().find(|&(ref key, _)| key == "since") {
-//         command.args(&["--since", since]);
-//     }
-
-//     let response = command.output().context(ErrorKind::RuntimeOperation(
-//         RuntimeOperation::GetSupportBundle("".to_owned()),
-//     ))?;
-
-//     str::from_utf8(&response.stdout)
-//         .map(std::borrow::ToOwned::to_owned)
-//         .map_err(|_err| {
-//             Error::from(ErrorKind::RuntimeOperation(
-//                 RuntimeOperation::GetModuleLogs("".to_owned()),
-//             ))
-//         })
-// }
