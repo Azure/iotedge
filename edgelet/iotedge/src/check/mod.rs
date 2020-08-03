@@ -685,6 +685,77 @@ mod tests {
             }
 
             // Pretend it's Moby
+            check.docker_server_version = Some("19.03.12+azure".to_owned());
+
+            match ContainerEngineIsMoby::default().execute(&mut check) {
+                CheckResult::Ok => (),
+                check_result => panic!(
+                    "checking moby_runtime.uri in {} returned {:?}",
+                    filename, check_result
+                ),
+            }
+        }
+    }
+
+    #[test]
+    fn config_file_checks_ok_old_moby() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
+            let config_file = format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                if cfg!(windows) { "windows" } else { "linux" },
+                filename,
+            );
+
+            let mut check = runtime
+                .block_on(Check::new(
+                    config_file.into(),
+                    "daemon.json".into(), // unused for this test
+                    "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                    Default::default(),
+                    Some("1.0.0".to_owned()),      // unused for this test
+                    "iotedged".into(),             // unused for this test
+                    None,                          // unused for this test
+                    "pool.ntp.org:123".to_owned(), // unused for this test
+                    super::OutputFormat::Text,     // unused for this test
+                    false,
+                    false,
+                ))
+                .unwrap();
+
+            match WellFormedConfig::default().execute(&mut check) {
+                CheckResult::Ok => (),
+                check_result => panic!("parsing {} returned {:?}", filename, check_result),
+            }
+
+            match WellFormedConnectionString::default().execute(&mut check) {
+                CheckResult::Ok => (),
+                check_result => panic!(
+                    "checking connection string in {} returned {:?}",
+                    filename, check_result
+                ),
+            }
+
+            match Hostname::default().execute(&mut check) {
+                CheckResult::Failed(err) => {
+                    let message = err.to_string();
+                    assert!(
+                        message
+                            .starts_with("config.yaml has hostname localhost but device reports"),
+                        "checking hostname in {} produced unexpected error: {}",
+                        filename,
+                        message,
+                    );
+                }
+                check_result => panic!(
+                    "checking hostname in {} returned {:?}",
+                    filename, check_result
+                ),
+            }
+
+            // Pretend it's Moby
             check.docker_server_version = Some("3.0.3".to_owned());
 
             match ContainerEngineIsMoby::default().execute(&mut check) {
@@ -860,7 +931,7 @@ mod tests {
         }
 
         // Pretend it's Moby even though named pipe indicates otherwise
-        check.docker_server_version = Some("3.0.3".to_owned());
+        check.docker_server_version = Some("19.03.12+azure".to_owned());
 
         match ContainerEngineIsMoby::default().execute(&mut check) {
             CheckResult::Warning(warning) => assert!(
@@ -913,7 +984,7 @@ mod tests {
         }
 
         // Pretend it's Docker
-        check.docker_server_version = Some("18.09.1".to_owned());
+        check.docker_server_version = Some("19.03.12".to_owned());
 
         match ContainerEngineIsMoby::default().execute(&mut check) {
             CheckResult::Warning(warning) => assert!(
