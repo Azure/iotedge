@@ -122,14 +122,14 @@ impl<'a> EdgeHubAuthRequest<'a> {
     }
 }
 
-#[derive(Deserialize_repr, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize_repr)]
 #[repr(i32)]
 pub enum EdgeHubResultCode {
     Authenticated = 200,
     Unauthenticated = 403,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct EdgeHubAuthResponse {
     version: String,
@@ -392,6 +392,10 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
     #[tokio::test]
     async fn it_retries_when_edgehub_unavailable_for_some_time() {
         let (tx, rx) = oneshot::channel();
+
+        // create mock http server with unused endpoint just to prevent
+        // other tests to make endpoint which could override the current one
+        let _ = mock("POST", "/unused").create();
 
         let handle = tokio::spawn(async {
             // emulate edgehub startup delay 1s
