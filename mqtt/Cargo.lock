@@ -363,7 +363,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
 
 [[package]]
-name = "edgelet"
+name = "edgelet-client"
 version = "0.1.0"
 dependencies = [
  "async-trait",
@@ -1039,7 +1039,7 @@ dependencies = [
  "atty",
  "chrono",
  "clap",
- "edgelet",
+ "edgelet-client",
  "futures-util",
  "mockito",
  "mqtt-broker",

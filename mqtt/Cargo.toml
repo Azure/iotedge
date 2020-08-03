@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "edgelet",
+    "edgelet-client",
     "mqtt3",
     "mqtt-broker",
     "mqtt-broker-tests-util",

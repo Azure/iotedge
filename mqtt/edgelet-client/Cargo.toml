@@ -1,5 +1,5 @@
 [package]
-name = "edgelet"
+name = "edgelet-client"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 edition = "2018"
