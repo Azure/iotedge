@@ -2,7 +2,10 @@ use std::error::Error as StdError;
 
 use async_trait::async_trait;
 
-use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
+use mqtt_broker::{
+    auth::{AuthenticationContext, Authenticator},
+    AuthId,
+};
 
 /// Allows to connect any MQTT client connected to locahost.
 /// It is intended to use to authenticate client for local communication
@@ -41,7 +44,10 @@ mod tests {
     use test_case::test_case;
     use tokio::runtime::Runtime;
 
-    use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator, Identity};
+    use mqtt_broker::{
+        auth::{AuthenticationContext, Authenticator, Identity},
+        AuthId,
+    };
 
     use super::LocalAuthenticator;
 

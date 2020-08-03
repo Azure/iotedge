@@ -11,13 +11,14 @@
     clippy::missing_errors_doc
 )]
 
+pub mod auth;
 mod broker;
-mod configuration;
 mod connection;
 mod error;
 mod persist;
 mod server;
 mod session;
+pub mod settings;
 mod snapshot;
 mod state_change;
 mod subscription;
@@ -27,28 +28,79 @@ mod transport;
 #[cfg(any(test, feature = "proptest"))]
 pub mod proptest;
 
-use std::net::SocketAddr;
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    net::SocketAddr,
+    sync::Arc,
+};
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
 
 use mqtt3::proto;
-use mqtt_broker_core::{auth::AuthId, ClientId};
 
+pub use crate::auth::{AuthId, Identity};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
-pub use crate::configuration::{BrokerConfig, SessionConfig};
-pub use crate::connection::ConnectionHandle;
+pub use crate::connection::{
+    ConnectionHandle, IncomingPacketProcessor, MakeIncomingPacketProcessor,
+    MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, OutgoingPacketProcessor, PacketAction,
+};
 pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{
     FileFormat, FilePersistor, NullPersistor, Persist, PersistError, VersionedFileFormat,
 };
 pub use crate::server::Server;
 pub use crate::session::SessionState;
+pub use crate::settings::{BrokerConfig, SessionConfig};
 pub use crate::snapshot::{
     BrokerSnapshot, SessionSnapshot, ShutdownHandle, Snapshotter, StateSnapshotHandle,
 };
 pub use crate::subscription::{Segment, Subscription, TopicFilter};
 pub use crate::tls::ServerCertificate;
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ClientId(Arc<String>);
+
+impl ClientId {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl<T: Into<String>> From<T> for ClientId {
+    fn from(s: T) -> ClientId {
+        ClientId(Arc::new(s.into()))
+    }
+}
+
+impl Display for ClientId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ClientInfo {
+    peer_addr: SocketAddr,
+    auth_id: AuthId,
+}
+
+impl ClientInfo {
+    pub fn new(peer_addr: SocketAddr, auth_id: impl Into<AuthId>) -> Self {
+        Self {
+            peer_addr,
+            auth_id: auth_id.into(),
+        }
+    }
+
+    pub fn peer_addr(&self) -> SocketAddr {
+        self.peer_addr
+    }
+
+    pub fn auth_id(&self) -> &AuthId {
+        &self.auth_id
+    }
+}
 
 #[derive(Debug)]
 pub struct ConnReq {

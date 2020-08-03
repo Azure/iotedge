@@ -9,9 +9,9 @@ use std::{
 
 use bytes::{Buf, BufMut};
 use core::mem::MaybeUninit;
-use futures::stream::FuturesUnordered;
+use futures_util::stream::FuturesUnordered;
 use openssl::{
-    ssl::{SslAcceptor, SslMethod, SslVerifyMode},
+    ssl::{SslAcceptor, SslMethod, SslOptions, SslVerifyMode},
     x509::X509Ref,
 };
 use tokio::{
@@ -22,9 +22,7 @@ use tokio::{
 use tokio_openssl::{accept, HandshakeError, SslStream};
 use tracing::{debug, error, warn};
 
-use mqtt_broker_core::auth::Certificate;
-
-use crate::{Error, InitializeBrokerError, ServerCertificate};
+use crate::{auth::Certificate, Error, InitializeBrokerError, ServerCertificate};
 
 pub enum Transport {
     Tcp(TcpListener),
@@ -57,20 +55,33 @@ impl Transport {
         let (private_key, certificate, chain, ca) = identity.into_parts();
 
         let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
+
+        // add server certificate and private key
         acceptor.set_private_key(&private_key)?;
         acceptor.set_certificate(&certificate)?;
 
+        // add all certificates from a chain
         if let Some(chain) = chain {
             for cert in chain {
                 acceptor.add_extra_chain_cert(cert)?;
             }
         }
 
+        // install CA certificate in the store
         if let Some(ca) = ca {
             acceptor.cert_store_mut().add_cert(ca)?;
         }
 
-        acceptor.set_verify(SslVerifyMode::PEER);
+        // set options to support some clients
+        acceptor.set_options(
+            SslOptions::NO_SESSION_RESUMPTION_ON_RENEGOTIATION | SslOptions::NO_TICKET,
+        );
+
+        // request client certificate for verification but disabel certificate verification
+        acceptor.set_verify_callback(SslVerifyMode::PEER, |_, _| true);
+
+        // check that private key corresponds to certificate
+        acceptor.check_private_key()?;
 
         Ok(Transport::Tls(tcp, acceptor.build()))
     }

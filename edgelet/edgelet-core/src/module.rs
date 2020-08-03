@@ -501,6 +501,7 @@ pub trait ModuleRuntime: Sized {
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type SystemResourcesFuture: Future<Item = SystemResources, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
+    type StopAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn get(&self, id: &str) -> Self::GetFuture;
@@ -515,6 +516,7 @@ pub trait ModuleRuntime: Sized {
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;
+    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture;
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Security.Authentication;
     using System.Threading;
     using System.Threading.Tasks;
@@ -98,12 +99,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             await configUpdater.Init(configSource);
 
-            if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
+            // TODO: Re-enable after adding disconnect support in MQTT Broker Adapter
+            /* if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)
             {
                 ConnectionReauthenticator connectionReauthenticator = await container.Resolve<Task<ConnectionReauthenticator>>();
                 connectionReauthenticator.Init();
             }
+            */
 
             TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
@@ -161,14 +164,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
             }
 
-            if (configuration.GetValue("authAgentSettings:enabled", true))
-            {
-                protocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
-            }
-
+            var orderedProtocolHeads = new List<IProtocolHead>();
             if (configuration.GetValue("mqttBrokerSettings:enabled", true))
             {
-                protocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
+                orderedProtocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
+            }
+
+            if (configuration.GetValue("authAgentSettings:enabled", true))
+            {
+                orderedProtocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
+            }
+
+            switch (orderedProtocolHeads.Count)
+            {
+                case 0:
+                    break;
+
+                case 1:
+                    protocolHeads.Add(orderedProtocolHeads.First());
+                    break;
+
+                default:
+                    protocolHeads.Add(new OrderedProtocolHead(orderedProtocolHeads));
+                    break;
             }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);

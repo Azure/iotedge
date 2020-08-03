@@ -6,7 +6,6 @@ use std::{
 use chrono::{DateTime, NaiveDateTime, ParseResult, Utc};
 use openssl::{
     asn1::Asn1TimeRef,
-    pkcs12::Pkcs12,
     pkey::{PKey, Private},
     x509::X509,
 };
@@ -70,32 +69,6 @@ impl ServerCertificate {
             .map_err(|e| ServerCertificateError::ReadFile(pkey_path.to_path_buf(), e))?;
 
         Self::from_pem_pair(certificate, private_key)
-    }
-
-    pub fn from_pkcs12(path: &Path) -> Result<Self, ServerCertificateError> {
-        let cert_buffer =
-            fs::read(&path).map_err(|e| ServerCertificateError::ReadFile(path.to_path_buf(), e))?;
-
-        let pksc12 = Pkcs12::from_der(&cert_buffer)?;
-        let parts = pksc12.parse("")?;
-
-        let chain = parts
-            .chain
-            .map(|chain| chain.into_iter().collect::<Vec<_>>());
-        let ca = chain.as_ref().and_then(|chain| chain.last().cloned());
-
-        let not_before = parse_openssl_time(parts.cert.not_before())?;
-        let not_after = parse_openssl_time(parts.cert.not_after())?;
-
-        let identity = Self {
-            private_key: parts.pkey,
-            certificate: parts.cert,
-            chain,
-            ca,
-            not_before,
-            not_after,
-        };
-        Ok(identity)
     }
 
     pub fn into_parts(self) -> (PKey<Private>, X509, Option<Vec<X509>>, Option<X509>) {

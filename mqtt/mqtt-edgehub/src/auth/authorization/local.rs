@@ -1,6 +1,6 @@
 use std::error::Error as StdError;
 
-use mqtt_broker_core::auth::{Activity, Authorization, Authorizer};
+use mqtt_broker::auth::{Activity, Authorization, Authorizer};
 
 pub struct LocalAuthorizer<Z>(Z);
 
@@ -37,7 +37,7 @@ mod tests {
     use test_case::test_case;
 
     use mqtt3::proto;
-    use mqtt_broker_core::{
+    use mqtt_broker::{
         auth::{authorize_fn_ok, Activity, AuthId, Authorization, Authorizer, Operation},
         ClientInfo,
     };

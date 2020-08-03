@@ -47,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
+            controller.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, $"{parentEdgeId}/$edgeHub");
             var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
             await controller.GetDevicesAndModulesInTargetDeviceScopeAsync(parentEdgeId, "$edgeHub", request);
 
@@ -112,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
+            controller.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, $"{parentEdgeId}/$edgeHub");
             var request = new IdentityOnBehalfOfRequest(childEdgeId, moduleId, $"{childEdgeId};{parentEdgeId}");
             await controller.GetDeviceAndModuleOnBehalfOfAsync(parentEdgeId, "$edgeHub", request);
 
@@ -151,6 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
+            controller.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, $"{parentEdgeId}/$edgeHub");
             var request = new IdentityOnBehalfOfRequest(deviceId, null, $"{deviceId};{childEdgeId};{parentEdgeId}");
             await controller.GetDeviceAndModuleOnBehalfOfAsync(parentEdgeId, "$edgeHub", request);
 
@@ -185,19 +188,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
         private static DeviceScopeController MakeController(string targetEdgeId, IList<ServiceIdentity> resultIdentities, IDictionary<string, string> authChains)
         {
+            var identitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             var edgeHub = new Mock<IEdgeHub>();
-            edgeHub.Setup(e => e.GetDevicesAndModulesInTargetScopeAsync(It.Is<string>(id => id == targetEdgeId)))
+            edgeHub.Setup(e => e.GetDeviceScopeIdentitiesCache())
+                .Returns(identitiesCache.Object);
+
+            identitiesCache.Setup(c => c.GetDevicesAndModulesInTargetScopeAsync(It.Is<string>(id => id == targetEdgeId)))
                 .ReturnsAsync(resultIdentities);
 
             foreach (KeyValuePair<string, string> entry in authChains)
             {
-                edgeHub.Setup(e => e.GetAuthChainForIdentity(It.Is<string>(i => i == entry.Key)))
+                identitiesCache.Setup(c => c.GetAuthChain(It.Is<string>(i => i == entry.Key)))
                 .ReturnsAsync(Option.Some<string>(entry.Value));
             }
 
             foreach (ServiceIdentity identity in resultIdentities)
             {
-                edgeHub.Setup(e => e.GetIdentityAsync(It.Is<string>(id => id == identity.Id)))
+                identitiesCache.Setup(c => c.GetServiceIdentity(It.Is<string>(id => id == identity.Id)))
                 .ReturnsAsync(Option.Some(identity));
             }
 

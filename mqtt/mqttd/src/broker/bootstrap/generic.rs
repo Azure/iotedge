@@ -4,20 +4,36 @@ use std::{
 };
 
 use anyhow::{Context, Result};
+use tracing::info;
 
 use mqtt_broker::{
-    Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Error, Server, ServerCertificate,
+    auth::{authenticate_fn_ok, AllowAll, Authorizer},
+    settings::BrokerConfig,
+    AuthId, Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
 };
-use mqtt_broker_core::auth::{
-    authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer,
-};
+use mqtt_generic::settings::{CertificateConfig, Settings};
+
+pub fn config<P>(config_path: Option<P>) -> Result<Settings>
+where
+    P: AsRef<Path>,
+{
+    let config = if let Some(path) = config_path {
+        info!("loading settings from a file {}", path.as_ref().display());
+        Settings::from_file(path)?
+    } else {
+        info!("using default settings");
+        Settings::default()
+    };
+
+    Ok(config)
+}
 
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
 ) -> Result<Broker<impl Authorizer>, Error> {
     let broker = BrokerBuilder::default()
-        .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
+        .with_authorizer(AllowAll)
         .with_state(state.unwrap_or_default())
         .with_config(config.clone())
         .build();
@@ -26,7 +42,7 @@ pub async fn broker(
 }
 
 pub async fn start_server<Z, F>(
-    config: &BrokerConfig,
+    config: Settings,
     broker: Broker<Z>,
     shutdown_signal: F,
 ) -> Result<BrokerSnapshot>
@@ -36,14 +52,14 @@ where
 {
     let mut server = Server::from_broker(broker);
 
-    if let Some(tcp) = config.transports().tcp() {
+    if let Some(tcp) = config.listener().tcp() {
         let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
         server.tcp(tcp.addr(), authenticator);
     }
 
-    if let Some(tls) = config.transports().tls() {
+    if let Some(tls) = config.listener().tls() {
         let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
-        let identity = load_server_certificate(tls.cert_path())?;
+        let identity = load_server_certificate(tls.certificate())?;
         server.tls(tls.addr(), identity, authenticator)?;
     }
 
@@ -51,20 +67,20 @@ where
     Ok(state)
 }
 
-fn load_server_certificate(path: Option<&Path>) -> Result<ServerCertificate> {
-    let path = path.ok_or_else(|| ServerCertificateLoadError::MissingPath)?;
-
-    let identity = ServerCertificate::from_pkcs12(&path)
-        .with_context(|| ServerCertificateLoadError::ParseCertificate(path.to_path_buf()))?;
+fn load_server_certificate(config: &CertificateConfig) -> Result<ServerCertificate> {
+    let identity = ServerCertificate::from_pem(config.cert_path(), config.private_key_path())
+        .with_context(|| {
+            ServerCertificateLoadError::ParseCertificate(
+                config.cert_path().to_path_buf(),
+                config.private_key_path().to_path_buf(),
+            )
+        })?;
 
     Ok(identity)
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {
-    #[error("missing path to server certificate")]
-    MissingPath,
-
-    #[error("unable to decode server certificate {0}")]
-    ParseCertificate(PathBuf),
+    #[error("unable to decode server certificate {0} and private key {1}")]
+    ParseCertificate(PathBuf, PathBuf),
 }

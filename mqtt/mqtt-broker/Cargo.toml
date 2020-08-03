@@ -9,11 +9,9 @@ async-trait = "0.1"
 bincode = "1.2"
 bytes = "0.5"
 chrono = "0.4"
-config = { version = "0.10", default-features = false, features = ["json"] }
 criterion = { version = "0.3", optional = true }
 fail = "0.3"
 flate2 = "1.0"
-futures = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 humantime = "2.0"
 humantime-serde = "1.0"
@@ -34,8 +32,6 @@ tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
-mqtt-broker-core = { path = "../mqtt-broker-core" }
 
 [dev-dependencies]
 atty = "0.2"
@@ -49,6 +45,8 @@ test-case = "1.0"
 tokio = { version = "0.2", features = ["dns", "macros"] }
 tracing-subscriber = "0.1"
 
+mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
+
 [[test]]
 name = "persist_failpoints"
 required-features = ["fail/failpoints"]
@@ -56,11 +54,6 @@ required-features = ["fail/failpoints"]
 [[test]]
 name = "broker_model"
 path = "tests/broker_model.rs"
-required-features = ["proptest"]
-
-[[test]]
-name = "translation"
-path = "tests/translation.rs"
 required-features = ["proptest"]
 
 [[bench]]
@@ -74,8 +67,6 @@ harness = false
 required-features = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 
 [features]
-default = ["edgehub"]
-edgehub = ["mqtt-edgehub"]
 benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 
 # Internal (PRIVATE!) features used to aid testing.

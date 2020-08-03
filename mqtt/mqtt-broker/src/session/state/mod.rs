@@ -8,14 +8,13 @@ use set::SmallIndexSet;
 
 use std::{cmp, collections::HashMap};
 
-use tracing::debug;
+use tracing::{debug, info};
 
 use mqtt3::proto;
 
-use super::identifiers::PacketIdentifiers;
 use crate::{
-    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientId, Error, Publish,
-    SessionConfig,
+    session::identifiers::PacketIdentifiers, snapshot::SessionSnapshot, subscription::Subscription,
+    ClientEvent, ClientId, Error, Publish, SessionConfig,
 };
 
 /// Common data and functions for broker sessions.
@@ -123,7 +122,11 @@ impl SessionState {
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
         if let Some(publication) = self.filter(publication) {
-            self.waiting_to_be_sent.enqueue(publication);
+            if let Some(limit) = self.waiting_to_be_sent.enqueue(publication) {
+                let dropped = limit.publication();
+                info!("{}. drop publication {}", limit, dropped.topic_name);
+                debug!("dropped publication {:?}", dropped)
+            }
         }
         Ok(())
     }
@@ -139,7 +142,11 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                self.waiting_to_be_sent.enqueue(publication);
+                if let Some(limit) = self.waiting_to_be_sent.enqueue(publication) {
+                    let dropped = limit.publication();
+                    info!("{}. drop publication {}", limit, dropped.topic_name);
+                    debug!("dropped publication {:?}", dropped)
+                }
                 Ok(None)
             }
         } else {
@@ -350,7 +357,7 @@ mod tests {
 
     use super::SessionState;
     use crate::{
-        configuration::{HumanSize, QueueFullAction},
+        settings::{HumanSize, QueueFullAction},
         ClientId, SessionConfig, Subscription,
     };
 

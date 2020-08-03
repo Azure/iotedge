@@ -61,13 +61,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             if (parts.Length == 3)
             {
                 hostName = parts[0];
-                deviceId = parts[2];
+                deviceId = WebUtility.UrlDecode(parts[2]);
             }
             else if (parts.Length == 5)
             {
                 hostName = parts[0];
-                deviceId = parts[2];
-                moduleId = Option.Some(parts[4]);
+                deviceId = WebUtility.UrlDecode(parts[2]);
+                moduleId = Option.Some(WebUtility.UrlDecode(parts[4]));
             }
             else
             {

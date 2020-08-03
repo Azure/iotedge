@@ -1,4 +1,8 @@
-use std::{convert::TryInto, env, future::Future, path::PathBuf};
+use std::{
+    env,
+    future::Future,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
@@ -10,12 +14,31 @@ use futures_util::{
 use tokio::time;
 use tracing::{info, warn};
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server, ServerCertificate};
-use mqtt_broker_core::auth::Authorizer;
+use mqtt_broker::{
+    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server,
+    ServerCertificate,
+};
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
+    connection::MakeEdgeHubPacketProcessor,
     edgelet,
+    settings::Settings,
 };
+
+pub fn config<P>(config_path: Option<P>) -> Result<Settings>
+where
+    P: AsRef<Path>,
+{
+    let config = if let Some(path) = config_path {
+        info!("loading settings from a file {}", path.as_ref().display());
+        Settings::from_file(path)?
+    } else {
+        info!("using default settings");
+        Settings::new()?
+    };
+
+    Ok(config)
+}
 
 pub async fn broker(
     config: &BrokerConfig,
@@ -31,7 +54,7 @@ pub async fn broker(
 }
 
 pub async fn start_server<Z, F>(
-    config: &BrokerConfig,
+    config: Settings,
     broker: Broker<Z>,
     shutdown_signal: F,
 ) -> Result<BrokerSnapshot>
@@ -39,33 +62,39 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()> + Unpin,
 {
-    // TODO read from config
-    let url = "http://localhost:7120/authenticate/".into();
-    let authenticator = EdgeHubAuthenticator::new(url);
+    let mut server =
+        Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor::default());
 
-    let mut server = Server::from_broker(broker);
+    // Add system transport to allow communication between edgehub components
+    let authenticator = LocalAuthenticator::new();
+    server.tcp(config.listener().system().addr(), authenticator);
 
-    if let Some(tcp) = config.transports().tcp() {
+    // Add regular MQTT over TCP transport
+    let authenticator = EdgeHubAuthenticator::new(config.auth().url());
+    if let Some(tcp) = config.listener().tcp() {
         server.tcp(tcp.addr(), authenticator.clone());
     }
 
-    let renewal_signal = match config.transports().tls() {
+    // Add regular MQTT over TLS transport
+    let renewal_signal = match config.listener().tls() {
         Some(tls) => {
-            let identity = match tls.cert_path() {
-                Some(path) => {
-                    info!("loading identity from {}", path.display());
-                    ServerCertificate::from_pkcs12(path)
-                        .with_context(|| ServerCertificateLoadError::File(path.to_path_buf()))?
-                }
-                None => {
-                    info!("downloading identity from edgelet");
-                    download_server_certificate()
-                        .await
-                        .with_context(|| ServerCertificateLoadError::Edgelet)?
-                }
+            let identity = if let Some(config) = tls.certificate() {
+                info!("loading identity from {}", config.cert_path().display());
+                ServerCertificate::from_pem(config.cert_path(), config.private_key_path())
+                    .with_context(|| {
+                        ServerCertificateLoadError::File(
+                            config.cert_path().to_path_buf(),
+                            config.private_key_path().to_path_buf(),
+                        )
+                    })?
+            } else {
+                info!("downloading identity from edgelet");
+                download_server_certificate()
+                    .await
+                    .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), identity.try_into()?, authenticator.clone())?;
+            server.tls(tls.addr(), identity, authenticator.clone())?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -73,12 +102,11 @@ where
         None => Either::Right(future::pending()),
     };
 
+    // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
-    // TODO read from config
-    server.tcp("localhost:1882", LocalAuthenticator::new());
-
+    // Start serving new connections
     let state = server.serve(shutdown).await?;
     Ok(state)
 }
@@ -101,8 +129,8 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {
-    #[error("unable to load server certificate from file {0}")]
-    File(PathBuf),
+    #[error("unable to load server certificate from file {0} and private key {1}")]
+    File(PathBuf, PathBuf),
 
     #[error("unable to download certificate from edgelet")]
     Edgelet,
@@ -116,10 +144,10 @@ pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 
 async fn download_server_certificate() -> Result<ServerCertificate> {
-    let uri = env::var(WORKLOAD_URI)?;
-    let hostname = env::var(EDGE_DEVICE_HOST_NAME)?;
-    let module_id = env::var(MODULE_ID)?;
-    let generation_id = env::var(MODULE_GENERATION_ID)?;
+    let uri = env::var(WORKLOAD_URI).context(WORKLOAD_URI)?;
+    let hostname = env::var(EDGE_DEVICE_HOST_NAME).context(EDGE_DEVICE_HOST_NAME)?;
+    let module_id = env::var(MODULE_ID).context(MODULE_GENERATION_ID)?;
+    let generation_id = env::var(MODULE_GENERATION_ID).context(MODULE_GENERATION_ID)?;
     let expiration = Utc::now() + Duration::days(CERTIFICATE_VALIDITY_DAYS);
 
     let client = edgelet::workload(&uri)?;
