@@ -5,6 +5,7 @@
 //----------------------
 
 // Note: Code manually changed to replace System.Uri.EscapeDataString with System.Net.WebUtility.UrlEncode
+// Note: GetSupportBundleAsync manualy modified to correctly return stream
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.GeneratedCode
 {

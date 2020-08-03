@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task ReprovisionDeviceAsync();
 
-        public abstract Task<Stream> GetSupportBundle(Option<string> since, Option<bool> edgeRuntimeOnly, CancellationToken token);
+        public abstract Task<Stream> GetSupportBundle(Option<string> since, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token);
 
         public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
         {

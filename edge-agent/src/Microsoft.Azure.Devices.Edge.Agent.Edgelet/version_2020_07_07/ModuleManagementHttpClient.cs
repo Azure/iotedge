@@ -145,12 +145,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
             }
         }
 
-        public override async Task<Stream> GetSupportBundle(Option<string> since, Option<bool> edgeRuntimeOnly, CancellationToken token)
+        public override async Task<Stream> GetSupportBundle(Option<string> since, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                FileResponse response = await this.Execute(() => edgeletHttpClient.GetSupportBundleAsync(this.Version.Name, since.OrDefault(), null, null, edgeRuntimeOnly.Map<bool?>(e => e).OrDefault()), "reprovision the device");
+                FileResponse response = await this.Execute(() => edgeletHttpClient.GetSupportBundleAsync(this.Version.Name, since.OrDefault(), null, iothubHostname.OrDefault(), edgeRuntimeOnly.Map<bool?>(e => e).OrDefault()), "reprovision the device");
 
                 return response.Stream;
             }
