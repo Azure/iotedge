@@ -263,7 +263,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                             {
                                 // Tag the message with the priority that we're currently
                                 // processing, so it can be used by metrics later
-                                messages.Select(m => m.ProcessedPriority = priority);
+                                foreach (IMessage msg in messages)
+                                {
+                                    msg.ProcessedPriority = priority;
+                                }
 
                                 Events.ProcessingMessages(this, messages, priority);
                                 await this.ProcessMessages(messages, fsm);
