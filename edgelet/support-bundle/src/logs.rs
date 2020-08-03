@@ -9,7 +9,6 @@ use edgelet_core::{Chunked, LogChunk, LogDecode, LogOptions, ModuleRuntime};
 
 use crate::error::{Error, ErrorKind};
 
-
 pub fn pull_logs<M, W>(
     runtime: &M,
     id: &str,

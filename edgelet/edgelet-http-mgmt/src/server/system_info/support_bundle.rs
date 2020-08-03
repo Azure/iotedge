@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 use std::io::Read;
 
+use failure::ResultExt;
 use futures::{Async, Future, Poll, Stream};
 use hyper::header::{CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -51,20 +51,21 @@ where
             self.runtime.clone(),
         )
         .map_err(|_| Error::from(ErrorKind::SupportBundle))
-        .and_then(|(bundle, size)| {
+        .and_then(|(bundle, size)| -> Result<_, Error> {
+            println!("Got bundle size: {}", size);
             let body = Body::wrap_stream(ReadStream(bundle));
+            println!("made body");
 
-            Response::builder()
+            let response = Response::builder()
                 .status(StatusCode::OK)
                 .header(CONTENT_TYPE, "application/zip")
                 .header(CONTENT_ENCODING, "zip")
                 .header(CONTENT_LENGTH, size.to_string().as_str())
                 .body(body)
-                .map_err(|_err| {
-                    Error::from(ErrorKind::RuntimeOperation(
-                        RuntimeOperation::GetModuleLogs("".to_owned()),
-                    ))
-                })
+                .context(ErrorKind::RuntimeOperation(
+                    RuntimeOperation::GetSupportBundle,
+                ))?;
+            Ok(response)
         })
         .or_else(|e| Ok(e.into_response()));
 
