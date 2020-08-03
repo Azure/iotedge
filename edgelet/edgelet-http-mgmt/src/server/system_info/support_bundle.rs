@@ -9,7 +9,7 @@ use log::debug;
 use serde::Serialize;
 use url::form_urlencoded;
 
-use edgelet_core::{LogOptions, Module, ModuleRuntime, RuntimeOperation};
+use edgelet_core::{parse_since, LogOptions, Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use support_bundle::{make_bundle, OutputLocation};
@@ -43,9 +43,7 @@ where
 
         let response = get_bundle(self.runtime.clone(), query)
             .and_then(|(bundle, size)| -> Result<_, Error> {
-                println!("Got bundle size: {}", size);
                 let body = Body::wrap_stream(ReadStream(bundle));
-                println!("made body");
 
                 let response = Response::builder()
                     .status(StatusCode::OK)
@@ -71,12 +69,13 @@ fn get_bundle<M>(
 where
     M: 'static + ModuleRuntime + Send + Clone + Sync,
 {
-    println!("\n\n\nQuery: {}", query);
     let parse: Vec<_> = form_urlencoded::parse(query.as_bytes()).collect();
 
     let mut log_options = LogOptions::new();
     if let Some((_, since)) = parse.iter().find(|&(ref key, _)| key == "since") {
-        log_options = log_options.with_since(since.parse::<i32>().unwrap_or(0));
+        if let Ok(since) = parse_since(since) {
+            log_options = log_options.with_since(since);
+        }
     }
 
     let iothub_hostname = parse
@@ -113,11 +112,9 @@ impl Stream for ReadStream {
         let mut part: Vec<u8> = vec![0; 1024];
         let size = self.0.read(&mut part)?;
         if size > 0 {
-            println!("Sending {} bytes", size);
             part.resize(size, 0);
             Ok(Async::Ready(Some(part)))
         } else {
-            println!("Finished sending bytes");
             Ok(Async::Ready(None))
         }
     }
