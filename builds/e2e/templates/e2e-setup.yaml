@@ -120,7 +120,6 @@ steps:
     if ($IsWindows)
     {
       $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
-      $context['testTimeoutMinutes'] = 10
     }
 
     if ('$(arch)' -eq 'arm32v7')
