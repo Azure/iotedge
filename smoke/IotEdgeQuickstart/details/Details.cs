@@ -57,6 +57,9 @@ namespace IotEdgeQuickstart.Details
 		    ""env"": {
 				""OptimizeForPerformance"": {
 					""value"": ""<optimized-for-performance>""
+				},
+				""NestedEdgeEnabled"": {
+					""value"": ""false""
 				}
 			},
           }
