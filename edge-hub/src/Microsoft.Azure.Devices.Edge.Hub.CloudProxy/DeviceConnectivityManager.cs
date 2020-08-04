@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         void OnDisconnected()
         {
             Events.OnDisconnected();
-            Metrics.Instance.LogOfflineCounter(1);
+            Metrics.Instance.LogOfflineCounter(1, this.testClientIdentity.Id);
             this.stopWatch.Restart();
             this.DeviceDisconnected?.Invoke(this, EventArgs.Empty);
             this.disconnectedTimer.Start();
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Events.OnDisconnectedExit();
             this.stopWatch.Stop();
-            Metrics.Instance.LogOfflineDuration(TimeSpan.FromMilliseconds(this.stopWatch.ElapsedMilliseconds).TotalSeconds);
+            Metrics.Instance.LogOfflineDuration(TimeSpan.FromMilliseconds(this.stopWatch.ElapsedMilliseconds).TotalSeconds, this.testClientIdentity.Id);
             this.DeviceConnected?.Invoke(this, EventArgs.Empty);
             this.disconnectedTimer.Stop();
         }
@@ -306,24 +306,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.offlineCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                     "offline_count",
                     "EdgeHub offline count",
-                    new List<string> { MetricsConstants.MsTelemetry });
+                    new List<string> { "id", MetricsConstants.MsTelemetry });
 
                 this.offlineDuration = Util.Metrics.Metrics.Instance.CreateDuration(
                     "offline_duration",
                     "EdgeHub offline time",
-                    new List<string> { MetricsConstants.MsTelemetry });
+                    new List<string> { "id", MetricsConstants.MsTelemetry });
             }
 
             public static Metrics Instance { get; } = new Metrics();
 
-            public void LogOfflineDuration(double duration)
+            public void LogOfflineDuration(double duration, string id)
             {
-                this.offlineDuration.Set(duration, new[] { bool.TrueString });
+                this.offlineDuration.Set(duration, new[] { id, bool.TrueString });
             }
 
-            public void LogOfflineCounter(long metricValue)
+            public void LogOfflineCounter(long metricValue, string id)
             {
-                this.offlineCounter.Increment(metricValue, new[] { bool.TrueString });
+                this.offlineCounter.Increment(metricValue, new[] { id, bool.TrueString });
             }
         }
     }

@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
             catch (Exception ex)
             {
-                Routing.UserMetricLogger.LogIngressFailureMetric(1, this.Endpoint.IotHubName, message, "storage failure");
+                Routing.UserMetricLogger.LogIngressFailureMetric(1, this.Endpoint.IotHubName, message, "storage_failure");
                 Events.AddMessageFailure(this, ex);
                 throw;
             }

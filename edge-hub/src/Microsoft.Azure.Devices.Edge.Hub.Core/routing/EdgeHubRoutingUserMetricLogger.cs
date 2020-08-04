@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             switch (messageStatus)
             {
                 case MessageRoutingStatus.Orphaned:
-                    this.orphanedCounter.Increment(metricValue, new[] { "no route", message.GetSenderId(), message.GetOutput() });
+                    this.orphanedCounter.Increment(metricValue, new[] { "no_route", message.GetSenderId(), message.GetOutput() });
                     break;
             }
         }

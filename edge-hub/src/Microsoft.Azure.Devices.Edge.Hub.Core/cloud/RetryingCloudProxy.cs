@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         readonly AsyncLock cloudProxyLock = new AsyncLock();
         readonly Func<Task<Try<ICloudProxy>>> cloudProxyGetter;
         readonly string id;
-        readonly IMetricsCounter retriesCounter;
 
         ICloudProxy innerCloudProxy;
 
@@ -24,10 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
             this.id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
             this.cloudProxyGetter = Preconditions.CheckNotNull(cloudProxyGetter, nameof(cloudProxyGetter));
             this.innerCloudProxy = Preconditions.CheckNotNull(cloudProxyImplementation, nameof(cloudProxyImplementation));
-            this.retriesCounter = Metrics.Instance.CreateCounter(
-                "operation_retry",
-                "Operation retries",
-                new List<string> { "operation", MetricsConstants.MsTelemetry });
         }
 
         public bool IsActive => this.innerCloudProxy.IsActive;
@@ -90,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                         throw;
                     }
 
-                    this.retriesCounter.Increment(1, new[] { operation, bool.TrueString });
+                    OperationMetrics.Instance.LogRetryOperation(1, this.id, operation);
                     Events.Retrying(this.id, e, operation);
                 }
             }

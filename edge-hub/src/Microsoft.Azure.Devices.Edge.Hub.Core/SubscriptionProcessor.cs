@@ -37,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>> pendingSubscriptions;
         readonly ActionBlock<string> processSubscriptionsBlock;
         readonly IInvokeMethodHandler invokeMethodHandler;
-        readonly IMetricsCounter retriesCounter;
 
         public SubscriptionProcessor(IConnectionManager connectionManager, IInvokeMethodHandler invokeMethodHandler, IDeviceConnectivityManager deviceConnectivityManager)
             : base(connectionManager)
@@ -48,10 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.processSubscriptionsBlock = new ActionBlock<string>(this.ProcessPendingSubscriptions);
             deviceConnectivityManager.DeviceConnected += this.CloudConnectivityEstablished;
             connectionManager.CloudConnectionEstablished += this.ClientCloudConnectionEstablished;
-            this.retriesCounter = Metrics.Instance.CreateCounter(
-                "operation_retry",
-                "Operation retries",
-                new List<string> { "operation", MetricsConstants.MsTelemetry });
         }
 
         protected override void HandleSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptions) =>
@@ -73,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     () => this.ProcessSubscription(id, cloudProxy, deviceSubscription, addSubscription),
                     r =>
                         {
-                            this.retriesCounter.Increment(1, new[] { addSubscription ? "AddSubscription" : "RemoveSubscription", bool.TrueString });
+                            OperationMetrics.Instance.LogRetryOperation(1, id, addSubscription ? "AddSubscription" : "RemoveSubscription");
                             Events.ErrorProcessingSubscription(id, deviceSubscription, addSubscription, r);
                         });
             }
