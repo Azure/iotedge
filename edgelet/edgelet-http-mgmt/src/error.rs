@@ -2,7 +2,7 @@
 
 use std::fmt::{self, Display};
 
-use edgelet_core::{IdentityOperation, ModuleOperation, RuntimeOperation};
+use edgelet_core::{IdentityOperation, ModuleOperation, RuntimeOperation, SecretOperation};
 use edgelet_docker::ErrorKind as DockerErrorKind;
 use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
@@ -61,6 +61,9 @@ pub enum ErrorKind {
 
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
+
+    #[fail(display = "{}", _0)]
+    SecretOperation(SecretOperation),
 
     #[fail(display = "An error occurred in the secret store.")]
     SecretStore(u16),

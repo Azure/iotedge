@@ -4,7 +4,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use edgelet_core::SecretManager;
-use edgelet_http::{API_VERSION, IntoResponse};
+use edgelet_http::API_VERSION;
 use futures::Future;
 use secret_store::apis::client::APIClient;
 use secret_store::apis::{ApiError, Error as SecretError};
