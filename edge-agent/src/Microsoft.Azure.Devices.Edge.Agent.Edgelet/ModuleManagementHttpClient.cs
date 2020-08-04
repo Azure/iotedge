@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
 
-    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager
+    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager, ISecretManager
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
@@ -57,15 +57,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task ReprovisionDeviceAsync() => this.inner.ReprovisionDeviceAsync();
 
-        public Task<string> GetSecretAsync(string secretName) => this.inner.GetSecretAsync(secretName);
+        public Task<string> GetSecretAsync(string name, string secretId) => this.inner.GetSecretAsync(name, secretId);
 
-        public Task SetSecretAsync(string secretName, string secretValue) => this.inner.SetSecretAsync(secretName, secretValue);
+        public Task SetSecretAsync(string name, string secretId, string secretValue) => this.inner.SetSecretAsync(name, secretId, secretValue);
 
-        public Task PullSecretAsync(string secretName, string akvId) => this.inner.PullSecretAsync(secretName, akvId);
+        public Task PullSecretAsync(string name, string secretId, string akvId) => this.inner.PullSecretAsync(name, secretId, akvId);
 
-        public Task RefreshSecretAsync(string secretName) => this.inner.RefreshSecretAsync(secretName);
+        public Task RefreshSecretAsync(string name, string secretId) => this.inner.RefreshSecretAsync(name, secretId);
 
-        public Task DeleteSecretAsync(string secretName) => this.inner.DeleteSecretAsync(secretName);
+        public Task DeleteSecretAsync(string name, string secretId) => this.inner.DeleteSecretAsync(name, secretId);
 
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
