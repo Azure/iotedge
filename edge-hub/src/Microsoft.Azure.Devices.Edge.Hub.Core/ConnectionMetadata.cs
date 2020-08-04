@@ -9,11 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         [JsonConstructor]
         public ConnectionMetadata(string productInfo, string modelId, string edgeProductInfo)
+            : this(productInfo, Option.Maybe(modelId), edgeProductInfo)
         {
-            Preconditions.CheckNonWhiteSpace(edgeProductInfo, nameof(edgeProductInfo));
-            this.ModelId = Option.Maybe(modelId);
-            this.ProductInfo = productInfo;
-            this.EdgeProductInfo = edgeProductInfo;
         }
 
         public ConnectionMetadata(string productInfo, Option<string> modelId, string edgeProductInfo)
@@ -25,19 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         public ConnectionMetadata(string productInfo, string edgeProductInfo)
+            : this(productInfo, Option.None<string>(), edgeProductInfo)
         {
-            Preconditions.CheckNonWhiteSpace(edgeProductInfo, nameof(edgeProductInfo));
-            this.ProductInfo = productInfo;
-            this.ModelId = Option.None<string>();
-            this.EdgeProductInfo = this.BuildEdgeProductInfo(productInfo, edgeProductInfo);
         }
 
         public ConnectionMetadata(string edgeProductInfo)
+            : this(string.Empty, Option.None<string>(), edgeProductInfo)
         {
-            Preconditions.CheckNonWhiteSpace(edgeProductInfo, nameof(edgeProductInfo));
-            this.EdgeProductInfo = this.BuildEdgeProductInfo(string.Empty, edgeProductInfo);
-            // To be backward compatible, set productInfo to be empty if it doesn't exist
-            this.ProductInfo = string.Empty;
         }
 
         string BuildEdgeProductInfo(string clientProductInfo, string edgeProductInfo)
