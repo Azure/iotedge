@@ -393,6 +393,7 @@ where
                 architecture: "architecture_sample".to_string(),
                 version: edgelet_core::version_with_source_version(),
                 cpus: 0,
+                kernel_version: "test".to_string(),
                 operating_system: "test".to_string(),
                 server_version: "test".to_string(),
             }),

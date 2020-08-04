@@ -582,19 +582,19 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 .architecture()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                            version: edgelet_core::version(),
+                            version: edgelet_core::version_with_source_version(),
                             cpus: system_info.NCPU().unwrap_or_default(),
                             kernel_version: system_info
                                 .kernel_version()
-                                .map(|v| v.to_string())
+                                .map(std::string::ToString::to_string)
                                 .unwrap_or_default(),
                             operating_system: system_info
                                 .operating_system()
-                                .map(|v| v.to_string())
+                                .map(std::string::ToString::to_string)
                                 .unwrap_or_default(),
                             server_version: system_info
                                 .server_version()
-                                .map(|v| v.to_string())
+                                .map(std::string::ToString::to_string)
                                 .unwrap_or_default(),
                         };
                         info!("Successfully queried system info");

@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -245,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
-            IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+            IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
             return edgeAgentConnection;
         }
 
@@ -546,7 +547,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
@@ -596,7 +597,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -652,7 +653,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -724,7 +725,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceManager.Setup(x => x.ReprovisionDeviceAsync()).Returns(Task.CompletedTask);
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -791,7 +792,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -857,7 +858,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object);
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -940,7 +941,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object);
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1009,7 +1010,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1112,7 +1113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(edgeAgentModule);
                 Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
 
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
                 edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
@@ -1210,7 +1211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 // Assert
                 await Assert.ThrowsAsync<DeviceNotFoundException>(() => serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping")));
 
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object);
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
                 CloudToDeviceMethodResult methodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping"));
@@ -1305,7 +1306,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(3)))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(3), Mock.Of<IDeploymentMetrics>()))
             {
                 await Task.Delay(TimeSpan.FromSeconds(8));
 
@@ -1382,7 +1383,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>()))
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -1493,7 +1494,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>()))
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -1596,7 +1597,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var deviceManager = new Mock<IDeviceManager>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object);
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
 
             // Assert
             // The connection hasn't been created yet. So wait for it.

@@ -38,6 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) => throw new NotImplementedException();
 
-        public Task<Stream> GetSupportBundle(Option<string> since, Option<bool> edgeRuntimeOnly, CancellationToken token) => throw new NotImplementedException();
+        public Task<Stream> GetSupportBundle(Option<string> since, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) => throw new NotImplementedException();
     }
 }
