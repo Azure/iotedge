@@ -154,6 +154,8 @@ pub struct SessionPersistenceConfig {
     unsaved_message_count: u32,
 }
 
+/// This type is a Option-like wrapper around any type T. The primary goal is
+/// to make config section to be enabled/disabled during desirialization.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Enable<T> {
     enabled: Option<bool>,
@@ -175,6 +177,11 @@ impl<T> Enable<T> {
         Self::new(None, None)
     }
 
+    /// Returns the borrowed reference to a stored value.
+    ///
+    /// When optional `enabled` flag is set to false, the value will be
+    /// disabled and None returned. When `enabled` is not set or equals true, the
+    /// value will return.
     pub fn as_inner(&self) -> Option<&T> {
         match (self.enabled, self.value.as_ref()) {
             (None, Some(value)) => Some(value),
