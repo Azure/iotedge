@@ -363,6 +363,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
 
 [[package]]
+name = "edgelet-client"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "http",
+ "hyper",
+ "hyperlocal",
+ "lazy_static",
+ "matches",
+ "mockito",
+ "openssl",
+ "serde",
+ "serde_json",
+ "test-case",
+ "thiserror",
+ "tokio",
+ "tower-service",
+ "url",
+]
+
+[[package]]
 name = "either"
 version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -960,7 +984,6 @@ dependencies = [
  "futures-util",
  "http",
  "hyper",
- "hyperlocal",
  "lazy_static",
  "matches",
  "mockito",
@@ -976,9 +999,7 @@ dependencies = [
  "test-case",
  "thiserror",
  "tokio",
- "tower-service",
  "tracing",
- "url",
 ]
 
 [[package]]
@@ -1018,6 +1039,7 @@ dependencies = [
  "atty",
  "chrono",
  "clap",
+ "edgelet-client",
  "futures-util",
  "mockito",
  "mqtt-broker",
