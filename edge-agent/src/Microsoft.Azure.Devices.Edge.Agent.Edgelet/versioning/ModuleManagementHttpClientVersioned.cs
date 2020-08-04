@@ -81,27 +81,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task ReprovisionDeviceAsync();
 
-        public virtual Task<string> GetSecretAsync(string secretName)
+        public virtual Task<string> GetSecretAsync(string name, string secretId)
         {
             return Task.FromResult(string.Empty);
         }
 
-        public virtual Task SetSecretAsync(string secretName, string secretValue)
+        public virtual Task SetSecretAsync(string name, string secretId, string secretValue)
         {
             return Task.CompletedTask;
         }
 
-        public virtual Task PullSecretAsync(string secretName, string akvId)
+        public virtual Task PullSecretAsync(string name, string secretId, string akvId)
         {
             return Task.CompletedTask;
         }
 
-        public virtual Task RefreshSecretAsync(string secretName)
+        public virtual Task RefreshSecretAsync(string name, string secretId)
         {
             return Task.CompletedTask;
         }
 
-        public virtual Task DeleteSecretAsync(string secretName)
+        public virtual Task DeleteSecretAsync(string name, string secretId)
         {
             return Task.CompletedTask;
         }
