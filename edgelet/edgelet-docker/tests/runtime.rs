@@ -1871,8 +1871,8 @@ fn runtime_system_info_succeeds() {
 
     //assert
     assert_eq!(true, *system_info_got_called_lock_cloned.read().unwrap());
-    assert_eq!("linux", system_info.os_type());
-    assert_eq!("x86_64", system_info.architecture());
+    assert_eq!("linux", system_info.os_type);
+    assert_eq!("x86_64", system_info.architecture);
 }
 
 #[test]
@@ -1928,6 +1928,6 @@ fn runtime_system_info_none_returns_unkown() {
 
     //assert
     assert_eq!(true, *system_info_got_called_lock_cloned.read().unwrap());
-    assert_eq!("Unknown", system_info.os_type());
-    assert_eq!("Unknown", system_info.architecture());
+    assert_eq!("Unknown", system_info.os_type);
+    assert_eq!("Unknown", system_info.architecture);
 }

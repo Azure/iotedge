@@ -11,3 +11,7 @@ RUN apt-get update && \
     ln -s /lib/aarch64-linux-gnu/libc.so.6 /usr/lib/aarch64-linux-gnu/libc.so.6
 
 COPY  librocksdb.so /usr/lib
+
+# Add an unprivileged user account for running the module
+RUN useradd -ms /bin/bash moduleuser
+USER moduleuser

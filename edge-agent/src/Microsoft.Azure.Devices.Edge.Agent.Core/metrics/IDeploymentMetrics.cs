@@ -2,9 +2,13 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 {
-    public interface IAvailabilityMetric
+    using System;
+
+    public interface IDeploymentMetrics
     {
         void ComputeAvailability(ModuleSet desired, ModuleSet current);
         void IndicateCleanShutdown();
+        void ReportIotHubSync(bool successful);
+        IDisposable ReportDeploymentTime();
     }
 }

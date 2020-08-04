@@ -10,7 +10,6 @@ use serde::Serialize;
 use edgelet_core::{Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
-use management::models::SystemInfo;
 
 use crate::error::{Error, ErrorKind};
 use crate::IntoResponse;
@@ -44,20 +43,14 @@ where
                 let system_info = system_info
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
-                let body = SystemInfo::new(
-                    system_info.os_type().to_string(),
-                    system_info.architecture().to_string(),
-                    system_info.version().to_string(),
-                );
-
-                let b = serde_json::to_string(&body)
+                let body = serde_json::to_string(&system_info)
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
-                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                    .body(b.into())
+                    .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                    .body(body.into())
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
                 Ok(response)
             })
