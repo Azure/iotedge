@@ -76,5 +76,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             this.unackCounter.Increment(metricValue, new[] { reason, message.GetSenderId(), message.GetOutput() });
         }
+
+        public void LogRetryOperation(long metricValue, string iothubName, string id, string type)
+        {
+            string operationName = "SendMessage";
+            if (type == typeof(ModuleEndpoint).Name)
+            {
+                operationName = " SendMessageToModule";
+            }
+            else if (type == typeof(CloudEndpoint).Name)
+            {
+                operationName = " SendMessageToCloud";
+            }
+
+            OperationMetrics.Instance.LogRetryOperation(metricValue, id, operationName);
+        }
     }
 }

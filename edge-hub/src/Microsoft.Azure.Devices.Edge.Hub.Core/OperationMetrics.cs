@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
+namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;

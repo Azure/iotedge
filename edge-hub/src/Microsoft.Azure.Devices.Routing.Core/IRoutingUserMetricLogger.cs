@@ -24,5 +24,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         void LogBuiltInEndpointLatencyMetric(long metricValue, string iotHubName);
 
         void LogIngressFailureMetric(long metricValue, string iothubName, IMessage message, string reason);
+
+        void LogRetryOperation(long metricValue, string iothubName, string id, string type);
     }
 }

@@ -545,6 +545,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         {
             try
             {
+                Routing.UserMetricLogger.LogRetryOperation(1, this.Endpoint.IotHubName, this.Endpoint.Name, this.Endpoint.Type);
                 this.retryTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                 await this.RunAsync(Commands.Retry);
             }

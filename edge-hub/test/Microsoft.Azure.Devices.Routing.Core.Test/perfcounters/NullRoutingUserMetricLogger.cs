@@ -46,5 +46,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.PerfCounters
         public void LogIngressFailureMetric(long metricValue, string iothubName, IMessage message, string reason)
         {
         }
+
+        public void LogRetryOperation(long metricValue, string iothubName, string id, string type)
+        {
+        }
     }
 }
