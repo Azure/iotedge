@@ -1,10 +1,7 @@
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::panic;
+use std::{collections::HashMap, convert::TryInto, panic};
 
 use future::Either;
-use futures::pin_mut;
-use futures_util::future;
+use futures_util::{future, pin_mut};
 use tokio::{
     sync::mpsc::{self, error::TryRecvError, Receiver, Sender, UnboundedReceiver, UnboundedSender},
     task,
