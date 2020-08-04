@@ -3,12 +3,12 @@ use crate::error::{Error, ErrorKind};
 
 use std::sync::{Arc, Mutex};
 
-use edgelet_core::SecretManager;
+use edgelet_core::{SecretManager, SecretOperation};
 use edgelet_http::Error as HttpError;
 use edgelet_http::route::{Handler, Parameters};
 
 use failure::ResultExt;
-use futures::{future, IntoFuture, Future, Stream};
+use futures::{Future, IntoFuture, Stream};
 use hyper::{Body, Chunk, Request, Response};
 
 pub struct SetSecret<S> {
@@ -28,6 +28,8 @@ where
     S: 'static + SecretManager + Send
 {
     fn handle(&self, req: Request<Body>, params: Parameters) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let secret_manager = self.secret_manager.clone();
+
         let response = params.name("id")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("id")))
             .map(|id| {
@@ -43,35 +45,17 @@ where
             })
             .into_future()
             .flatten()
-            .and_then(|(id, val)| {
-                let secret_manager = self.secret_manager.lock().unwrap();
-                future::ok(())
+            .and_then(move |(id, val)| {
+                let secret_manager = secret_manager.lock().unwrap();
+                secret_manager.set(&id, &val)
+                    .then(|result| {
+                        result.context(ErrorKind::SecretOperation(SecretOperation::Set(id)))?;
+                        Ok(())
+                    })
             })
-            .and_then(|_| Response::new(Body::empty()))
-            .or_else(|e| e.into_response());
+            .and_then(|_| Ok(Response::new(Body::empty())))
+            .or_else(|e| Ok(e.into_response()));
+
         Box::new(response)
     }
 }
-/*
-            params.name("id")
-                .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("id")))
-                .and_then(|id| {
-                    let id = id.to_string();
-                    let val = req
-                        .into_body()
-                        .concat2()
-                        .then(|b| -> Result<_, Error> {
-                            let b: hyper::body::Chunk = b.context(ErrorKind::MalformedRequestBody)?;
-                            let val = serde_json::from_slice::<String>(&b)
-                                .context(ErrorKind::MalformedRequestBody)?;
-                            Ok(val)
-                        });
-                    Ok((id, val))
-                })
-                .map(|(id, val)| set_secret(&self.client, API_VERSION, &id, val))
-                .and_then(|res| match res {
-                    Ok(()) => Ok(Response::new(Body::empty())),
-                    Err(e) => Ok(Response::new(Body::empty()))
-                })
-                .or_else(|e| Ok(e.into_response()))
-*/

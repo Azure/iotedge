@@ -41,12 +41,7 @@ pub trait DefaultApi: Send + Sync {
 }
 
 
-impl<C> DefaultApi for DefaultApiClient<C>
-where
-    C: hyper::client::connect::Connect + 'static,
-    <C as hyper::client::connect::Connect>::Transport: 'static,
-    <C as hyper::client::connect::Connect>::Future: 'static
-{
+impl<C: hyper::client::connect::Connect + 'static> DefaultApi for DefaultApiClient<C> {
     fn delete_secret(&self, api_version: &str, id: &str) -> Box<Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
