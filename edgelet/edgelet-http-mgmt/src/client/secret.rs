@@ -3,21 +3,38 @@ use crate::error::{Error, ErrorKind};
 use std::fmt;
 use std::sync::Arc;
 
-use edgelet_core::SecretManager;
-use edgelet_http::API_VERSION;
+use edgelet_core::{SecretManager, UrlExt};
+use edgelet_http::{API_VERSION, UrlConnector};
+use failure::ResultExt;
 use futures::Future;
+use hyper::Client;
 use secret_store::apis::client::APIClient;
+use secret_store::apis::configuration::Configuration;
 use secret_store::apis::{ApiError, Error as SecretError};
+use url::Url;
 
 pub struct SecretClient {
     client: Arc<APIClient>
 }
 
 impl SecretClient {
-    pub fn new(client: APIClient) -> Self {
-        Self {
-            client: Arc::new(client)
-        }
+    pub fn new(url: &Url) -> Result<Self, Error> {
+        let client = Client::builder()
+            .build(UrlConnector::new(url).context(ErrorKind::InitializeSecretClient)?);
+
+        let base_path = url
+            .to_base_path()
+            .context(ErrorKind::InitializeSecretClient)?;
+        let mut configuration = Configuration::new(client);
+        configuration.base_path = base_path
+            .to_str()
+            .ok_or(ErrorKind::InitializeSecretClient)?
+            .to_string();
+
+        let secret_client = Self {
+            client: Arc::new(APIClient::new(configuration)),
+        };
+        Ok(secret_client)
     }
 }
 

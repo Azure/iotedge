@@ -12,6 +12,7 @@ use serde::Serialize;
 
 use edgelet_core::{
     Authenticator, IdentityManager, Module, ModuleRuntime, ModuleRuntimeErrorReason, Policy,
+    SecretManager
 };
 use edgelet_http::authentication::Authentication;
 use edgelet_http::authorization::Authorization;
@@ -27,6 +28,7 @@ mod system_info;
 
 use self::device_actions::ReprovisionDevice;
 use self::identity::{CreateIdentity, DeleteIdentity, ListIdentities, UpdateIdentity};
+use self::secret::*;
 pub use self::module::*;
 use self::system_info::{GetSystemInfo, GetSystemResources};
 use crate::error::{Error, ErrorKind};
@@ -42,9 +44,10 @@ pub struct ManagementService {
 }
 
 impl ManagementService {
-    pub fn new<M, I>(
+    pub fn new<M, I, S>(
         runtime: &M,
         identity: &I,
+        secret: &S,
         initiate_shutdown_and_reprovision: UnboundedSender<()>,
     ) -> impl Future<Item = Self, Error = Error>
     where
@@ -54,6 +57,7 @@ impl ManagementService {
         M::Logs: Into<Body>,
         I: IdentityManager + Clone + Send + Sync + 'static,
         I::Identity: Serialize,
+        S: SecretManager + Clone + Send + Sync + 'static,
         <M::AuthenticateFuture as Future>::Error: Fail,
     {
         let router = router!(
@@ -72,6 +76,12 @@ impl ManagementService {
             post    Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities"                        => CreateIdentity::new(identity.clone()),
             put     Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => UpdateIdentity::new(identity.clone()),
             delete  Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => DeleteIdentity::new(identity.clone()),
+
+            get     Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => GetSecret::new(secret.clone()),
+            put     Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => SetSecret::new(secret.clone()),
+            post    Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => PullSecret::new(secret.clone()),
+            patch   Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => RefreshSecret::new(secret.clone()),
+            delete  Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => DeleteSecret::new(secret.clone()),
 
             get     Version2018_06_28 runtime Policy::Anonymous             => "/systeminfo"                        => GetSystemInfo::new(runtime.clone()),
             get     Version2019_11_05 runtime Policy::Anonymous             => "/systeminfo/resources"              => GetSystemResources::new(runtime.clone()),
