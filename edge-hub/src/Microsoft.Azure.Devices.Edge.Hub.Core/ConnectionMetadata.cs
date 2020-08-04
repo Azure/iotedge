@@ -9,8 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         [JsonConstructor]
         public ConnectionMetadata(string productInfo, string modelId, string edgeProductInfo)
-            : this(productInfo, Option.Maybe(modelId), edgeProductInfo)
         {
+            Preconditions.CheckNonWhiteSpace(edgeProductInfo, nameof(edgeProductInfo));
+            this.ModelId = Option.Maybe(modelId);
+            this.ProductInfo = productInfo;
+            this.EdgeProductInfo = edgeProductInfo;
         }
 
         public ConnectionMetadata(string productInfo, Option<string> modelId, string edgeProductInfo)
