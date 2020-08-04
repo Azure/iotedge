@@ -236,7 +236,7 @@ where
                         SystemInfo {
                             os_type: "Kubernetes".to_string(),
                             architecture: serde_json::to_string(&architectures).unwrap(),
-                            version: edgelet_core::version(),
+                            version: edgelet_core::version_with_source_version(),
                             cpus: 0,
                             kernel_version: not_supported.clone(),
                             operating_system: not_supported.clone(),
@@ -249,7 +249,7 @@ where
             future::Either::B(future::ok(SystemInfo {
                 os_type: "Kubernetes".to_string(),
                 architecture: "Kubernetes".to_string(),
-                version: edgelet_core::version(),
+                version: edgelet_core::version_with_source_version(),
                 cpus: 0,
                 kernel_version: not_supported.clone(),
                 operating_system: not_supported.clone(),
