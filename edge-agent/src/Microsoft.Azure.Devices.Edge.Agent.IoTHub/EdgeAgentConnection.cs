@@ -80,11 +80,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.moduleConnection = new ModuleConnection(moduleClientProvider, requestManager, this.OnConnectionStatusChanged, this.OnDesiredPropertiesUpdated, enableSubscriptions);
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
             this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
-            this.initTask = this.ForceRefreshTwin();
             this.pullOnReconnect = enableSubscriptions;
             this.deviceManager = Preconditions.CheckNotNull(deviceManager, nameof(deviceManager));
             Events.TwinRefreshInit(refreshConfigFrequency);
             this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
+            this.initTask = this.ForceRefreshTwin();
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
