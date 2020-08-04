@@ -11,7 +11,7 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
 
-      dotnet vstest $testFile --logger:trx
+      dotnet vstest $testFile --logger:trx --filter 'ValidateMetrics'
     }
     else
     {
