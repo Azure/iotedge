@@ -5,22 +5,22 @@ use futures::Future;
 
 pub trait SecretManager {
     type Error: Fail;
-    type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
+    type SetFuture: Future<Item = (), Error = Self::Error> + Send;
     type DeleteFuture: Future<Item = (), Error = Self::Error> + Send;
     type GetFuture: Future<Item = String, Error = Self::Error> + Send;
     type PullFuture: Future<Item = (), Error = Self::Error> + Send;
     type RefreshFuture: Future<Item = (), Error = Self::Error> + Send;
     
-    fn create(&mut self, id: String, value: String) -> Self::CreateFuture;
-    fn delete(&mut self, id: String) -> Self::DeleteFuture;
-    fn get(&mut self, id: String) -> Self::GetFuture;
-    fn pull(&mut self, id: String, akv_id: String) -> Self::PullFuture;
-    fn refresh(&mut self, id: String) -> Self::RefreshFuture;
+    fn set(&self, id: &str, value: &str) -> Self::SetFuture;
+    fn delete(&self, id: &str) -> Self::DeleteFuture;
+    fn get(&self, id: &str) -> Self::GetFuture;
+    fn pull(&self, id: &str, akv_id: &str) -> Self::PullFuture;
+    fn refresh(&self, id: &str) -> Self::RefreshFuture;
 }
 
 #[derive(Clone, Debug)]
 pub enum SecretOperation {
-    Create(String),
+    Set(String),
     Delete(String),
     Get(String),
     Pull(String, String),
@@ -30,7 +30,7 @@ pub enum SecretOperation {
 impl fmt::Display for SecretOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SecretOperation::Create(id) =>
+            SecretOperation::Set(id) =>
                 write!(f, "Could not create secret {}", id),
             SecretOperation::Delete(id) =>
                 write!(f, "Could not delete secret {}", id),
