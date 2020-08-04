@@ -17,6 +17,7 @@ mod error;
 mod server;
 
 pub use client::ModuleClient;
+pub use client::SecretClient;
 pub use error::{Error, ErrorKind};
 pub use server::ListModules;
 pub use server::ManagementService;

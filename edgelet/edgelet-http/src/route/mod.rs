@@ -91,6 +91,14 @@ pub trait Builder: Sized {
         self.route(Method::PUT, version, pattern, handler)
     }
 
+    fn patch<S, H>(self, version: Version, pattern: S, handler: H) -> Self
+    where
+        S: AsRef<str>,
+        H: Handler<<Self::Recognizer as Recognizer>::Parameters> + Sync
+    {
+        self.route(Method::PATCH, version, pattern, handler)
+    }
+
     fn delete<S, H>(self, version: Version, pattern: S, handler: H) -> Self
     where
         S: AsRef<str>,
