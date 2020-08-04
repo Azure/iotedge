@@ -274,7 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 metricsConfig = new MetricsConfig(configuration);
                 builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
 
-                bool diagnosticsEnabled = configuration.GetValue("SendProductQualityTelemetry", false);
+                bool diagnosticsEnabled = configuration.GetValue("SendRuntimeQualityTelemetry", true);
                 diagnosticConfig = new DiagnosticConfig(diagnosticsEnabled, storagePath, configuration);
                 builder.RegisterModule(new DiagnosticsModule(diagnosticConfig));
 
