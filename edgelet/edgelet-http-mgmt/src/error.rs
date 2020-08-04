@@ -62,6 +62,9 @@ pub enum ErrorKind {
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
 
+    #[fail(display = "An error occurred in the secret store.")]
+    SecretStore(u16),
+
     #[fail(display = "Could not start management service")]
     StartService,
 

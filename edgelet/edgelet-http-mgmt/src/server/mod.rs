@@ -31,6 +31,7 @@ pub use self::module::*;
 use self::system_info::{GetSystemInfo, GetSystemResources};
 use crate::error::{Error, ErrorKind};
 
+// NOTE: is lazy_static not completely unnecessary?
 lazy_static! {
     static ref AGENT_NAME: String = "edgeAgent".to_string();
 }
