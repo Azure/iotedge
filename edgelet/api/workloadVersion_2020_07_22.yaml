@@ -211,24 +211,7 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
-  '/trust-bundle':
-    get:
-      tags:
-        - Workload
-      summary: ''
-      operationId: TrustBundle
-      parameters:
-        - $ref: '#/parameters/api-version'
-      responses:
-        '200':
-          description: Ok
-          schema:
-            $ref: '#/definitions/TrustBundleResponse'
-        default:
-          description: Error
-          schema:
-            $ref: '#/definitions/ErrorResponse'
-  '/secrets/{name}':
+  '/modules/{name}/secrets/{secretId}':
     get:
       tags:
         - Secret
@@ -240,7 +223,12 @@ paths:
         - $ref: '#/parameters/api-version'
         - in: path
           name: name
-          description: The name of the secret to fetch. (urlencoded)
+          description: The module name. (urlencoded)
+          required: true
+          type: string
+        - in: path
+          name: secretId
+          description: The name of the secret. (urlencoded)
           required: true
           type: string
       responses:
@@ -248,6 +236,10 @@ paths:
           description: Ok
           schema:
             type: string
+        '403':
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ErrorResponse'
         '404':
           description: NotFound
           schema:
@@ -267,7 +259,12 @@ paths:
         - $ref: '#/parameters/api-version'
         - in: path
           name: name
-          description: The name of the secret to set. (urlencoded)
+          description: The module name. (urlencoded)
+          required: true
+          type: string
+        - in: path
+          name: secretId
+          description: The name of the secret. (urlencoded)
           required: true
           type: string
         - in: body
@@ -296,7 +293,12 @@ paths:
         - $ref: '#/parameters/api-version'
         - in: path
           name: name
-          description: The name of the secret to delete. (urlencoded)
+          description: The module name. (urlencoded)
+          required: true
+          type: string
+        - in: path
+          name: secretId
+          description: The name of the secret. (urlencoded)
           required: true
           type: string
       responses:
@@ -310,6 +312,23 @@ paths:
           description: NotFound
           schema:
             $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/trust-bundle':
+    get:
+      tags:
+        - Workload
+      summary: ''
+      operationId: TrustBundle
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/TrustBundleResponse'
         default:
           description: Error
           schema:
