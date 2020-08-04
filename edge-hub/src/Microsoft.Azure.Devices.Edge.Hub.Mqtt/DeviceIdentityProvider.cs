@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
@@ -87,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     || !clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)
                     || !await this.authenticator.AuthenticateAsync(deviceCredentials))
                 {
-                    DeviceConnectionMetrics.Instance.LogAuthenticationFailure(1, clientId, "not authenticated", "MQTT");
+                    Core.Device.DeviceConnectionMetrics.Instance.LogAuthenticationFailure(1, clientId, "not authenticated", "MQTT");
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
