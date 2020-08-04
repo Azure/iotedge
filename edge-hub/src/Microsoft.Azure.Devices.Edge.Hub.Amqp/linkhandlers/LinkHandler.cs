@@ -113,12 +113,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             bool authenticated = await amqpAuth.AuthenticateAsync(this.Identity.Id);
             if (authenticated)
             {
-                ConnectionMetadata connectionMetadata = new ConnectionMetadata();
+                string productInfo = string.Empty;
                 this.ClientVersion
                     .Filter(c => !string.IsNullOrWhiteSpace(c))
-                    .ForEach(c => connectionMetadata.ProductInfo = c);
-                connectionMetadata.ModelId = this.ModelId;
-                await this.metadataStore.SetMetadata(this.Identity.Id, connectionMetadata);
+                    .ForEach(c => productInfo = c);
+                await this.metadataStore.SetMetadata(this.Identity.Id, productInfo, this.ModelId);
             }
 
             return authenticated;

@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
     /// <summary>

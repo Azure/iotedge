@@ -342,8 +342,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             await linkHandler.OpenAsync(TimeSpan.FromSeconds(1));
 
             // Assert
-            string productInfo = await metadataStore.GetProductInfo(identity.Id);
-            string deviceEdgeProductInfo = await metadataStore.GetEdgeProductInfo(identity.Id);
+            ConnectionMetadata connectionMetadata = await metadataStore.GetMetadata(identity.Id);
+            string productInfo = connectionMetadata.ProductInfo;
+            string deviceEdgeProductInfo = connectionMetadata.EdgeProductInfo;
             Assert.Equal(clientVersion, productInfo);
             Assert.Equal($"{clientVersion} {edgeProductInfo}", deviceEdgeProductInfo);
         }
@@ -394,7 +395,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             await linkHandler.OpenAsync(TimeSpan.FromSeconds(1));
 
             // Assert
-            Option<string> modelIdFromStore = await metadataStore.GetModelId(identity.Id);
+            ConnectionMetadata connectionMetadata = await metadataStore.GetMetadata(identity.Id);
+            Option<string> modelIdFromStore = connectionMetadata.ModelId;
             Assert.True(modelIdFromStore.HasValue);
             modelIdFromStore.ForEach(m => Assert.Equal(modelId, m));
         }

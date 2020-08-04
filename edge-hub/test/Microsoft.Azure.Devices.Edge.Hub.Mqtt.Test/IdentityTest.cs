@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -276,8 +277,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             string receivedProductInfo = null;
             var metadataStore = new Mock<IMetadataStore>();
-            metadataStore.Setup(p => p.SetMetadata(It.IsAny<string>(), It.IsAny<ConnectionMetadata>()))
-                .Callback<string, ConnectionMetadata>((_, c) => receivedProductInfo = c.ProductInfo)
+            metadataStore.Setup(p => p.SetMetadata(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Option<string>>()))
+                .Callback<string, string, Option<string>>((_, p, __) => receivedProductInfo = p)
                 .Returns(Task.CompletedTask);
 
             IClientCredentials clientCredentials = await GetClientCredentials(Hostname, DeviceId, username, SasToken, false, productInfo, metadataStore: metadataStore.Object);
@@ -295,8 +296,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             string receivedProductInfo = null;
             var metadataStore = new Mock<IMetadataStore>();
-            metadataStore.Setup(p => p.SetMetadata(It.IsAny<string>(), It.IsAny<ConnectionMetadata>()))
-                .Callback<string, ConnectionMetadata>((_, c) => receivedProductInfo = c.ProductInfo)
+            metadataStore.Setup(p => p.SetMetadata(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Option<string>>()))
+                .Callback<string, string, Option<string>>((_, p, __) => receivedProductInfo = p)
                 .Returns(Task.CompletedTask);
 
             IClientCredentials clientCredentials = await GetClientCredentials(Hostname, clientId, username, SasToken, metadataStore: metadataStore.Object);

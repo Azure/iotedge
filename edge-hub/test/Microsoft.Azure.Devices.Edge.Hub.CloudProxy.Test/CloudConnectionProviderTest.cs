@@ -128,7 +128,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task ConnectUsingTokenCredentialsTest()
         {
             // Arrange
-            var metadataStore = Mock.Of<IMetadataStore>();
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
@@ -144,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore);
+                metadataStore.Object);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
@@ -172,7 +173,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(deviceClient.Object);
-            var metadataStore = Mock.Of<IMetadataStore>();
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
@@ -188,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore);
+                metadataStore.Object);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
@@ -212,7 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id), false))
                 .ReturnsAsync(Option.Some(deviceServiceIdentity));
-            var metadataStore = Mock.Of<IMetadataStore>();
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
@@ -228,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore);
+                metadataStore.Object);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -255,7 +258,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
             credentialsCache.Setup(c => c.Get(deviceIdentity)).ReturnsAsync(Option.Some((IClientCredentials)tokenCreds));
-            var metadataStore = Mock.Of<IMetadataStore>();
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
@@ -271,7 +275,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore);
+                metadataStore.Object);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -298,7 +302,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
             credentialsCache.Setup(c => c.Get(deviceIdentity)).ReturnsAsync(Option.Some((IClientCredentials)tokenCreds));
-            var metadataStore = Mock.Of<IMetadataStore>();
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var edgeHub = Mock.Of<IEdgeHub>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 MessageConverterProvider,
@@ -314,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore);
+                metadataStore.Object);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act

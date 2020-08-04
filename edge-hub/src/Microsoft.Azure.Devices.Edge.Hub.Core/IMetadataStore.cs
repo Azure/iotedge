@@ -8,16 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         Task SetModelId(string id, string modelId);
 
-        Task<Option<string>> GetModelId(string id);
-
         Task SetProductInfo(string id, string productInfo);
 
-        Task<string> GetProductInfo(string id);
+        Task<ConnectionMetadata> GetMetadata(string id);
 
-        Task<string> GetEdgeProductInfo(string id);
-
-        Task<Option<ConnectionMetadata>> GetMetadata(string id);
-
-        Task SetMetadata(string id, ConnectionMetadata metadata);
+        Task SetMetadata(string id, string productInfo, Option<string> modelId);
     }
 }

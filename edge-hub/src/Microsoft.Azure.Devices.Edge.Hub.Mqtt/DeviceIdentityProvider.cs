@@ -87,9 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
 
-                ConnectionMetadata connectionMetadata = new ConnectionMetadata() { ProductInfo = deviceClientType };
-                connectionMetadata.ModelId = modelId;
-                await this.metadataStore.SetMetadata(deviceCredentials.Identity.Id, connectionMetadata);
+                await this.metadataStore.SetMetadata(deviceCredentials.Identity.Id, deviceClientType, modelId);
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials, modelId);
             }

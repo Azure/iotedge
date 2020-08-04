@@ -58,9 +58,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
+            ConnectionMetadata connectionMetadata = new ConnectionMetadata("edgeProdInfo");
             var metadataStore = new Mock<IMetadataStore>();
-            metadataStore.Setup(p => p.GetEdgeProductInfo(Id))
-                .ReturnsAsync("ProdInfo1");
+            metadataStore.Setup(p => p.GetMetadata(Id))
+                .ReturnsAsync(connectionMetadata);
 
             var identityProvider = new Mock<IIdentityProvider>();
             identityProvider.Setup(i => i.Create(Id)).Returns(identity);
@@ -158,9 +159,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
+            ConnectionMetadata connectionMetadata = new ConnectionMetadata("edgeProdInfo");
             var metadataStore = new Mock<IMetadataStore>();
-            metadataStore.Setup(p => p.GetEdgeProductInfo(Id))
-                .ReturnsAsync("ProdInfo1");
+            metadataStore.Setup(p => p.GetMetadata(Id))
+                .ReturnsAsync(connectionMetadata);
 
             var identityProvider = new Mock<IIdentityProvider>();
             identityProvider.Setup(i => i.Create(Id)).Returns(identity);
@@ -242,9 +244,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
+            ConnectionMetadata connectionMetadata = new ConnectionMetadata("edgeProdInfo");
             var metadataStore = new Mock<IMetadataStore>();
-            metadataStore.Setup(p => p.GetEdgeProductInfo(Id))
-                .ReturnsAsync("ProdInfo1");
+            metadataStore.Setup(p => p.GetMetadata(Id))
+                .ReturnsAsync(connectionMetadata);
 
             var identityProvider = new Mock<IIdentityProvider>();
             identityProvider.Setup(i => i.Create(Id)).Returns(identity);
