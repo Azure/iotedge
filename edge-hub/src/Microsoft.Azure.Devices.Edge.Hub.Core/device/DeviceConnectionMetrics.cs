@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 {
-    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
 
     public class DeviceConnectionMetrics
     {

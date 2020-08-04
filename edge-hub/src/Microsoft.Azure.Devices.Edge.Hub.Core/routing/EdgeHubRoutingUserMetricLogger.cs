@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
 
     public class EdgeHubRoutingUserMetricLogger : IRoutingUserMetricLogger
     {
@@ -21,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.unackCounter = Metrics.Instance.CreateCounter(
                "messages_unack",
                "Messages not acknowledged",
-               new List<string> { "reason", "from", "from_route_output"});
+               new List<string> { "reason", "from", "from_route_output" });
         }
 
         public static EdgeHubRoutingUserMetricLogger Instance { get; } = new EdgeHubRoutingUserMetricLogger();
