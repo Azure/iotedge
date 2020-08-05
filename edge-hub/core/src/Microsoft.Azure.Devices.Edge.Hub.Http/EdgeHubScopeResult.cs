@@ -11,6 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         [JsonIgnore]
         public HttpStatusCode Status { get; set; }
 
+        [JsonIgnore]
+        public string ErrorMsg { get; set; }
+
         [JsonProperty(PropertyName = "devices", Required = Required.AllowNull)]
         public IEnumerable<EdgeHubScopeDevice> Devices { get; set; }
 

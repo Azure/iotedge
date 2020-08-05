@@ -3,16 +3,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Primitives;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
@@ -21,23 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         static readonly string supportedContentType = "application/json; charset=utf-8";
 
         readonly Task<IEdgeHub> edgeHubGetter;
+        readonly Task<IHttpRequestAuthenticator> authenticatorGetter;
         readonly IValidator<MethodRequest> validator;
-        IIdentity identity;
 
-        public TwinsController(Task<IEdgeHub> edgeHub, IValidator<MethodRequest> validator)
+        public TwinsController(Task<IEdgeHub> edgeHub, Task<IHttpRequestAuthenticator> authenticator, IValidator<MethodRequest> validator)
         {
             this.edgeHubGetter = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
+            this.authenticatorGetter = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.validator = Preconditions.CheckNotNull(validator, nameof(validator));
-        }
-
-        public override void OnActionExecuting(ActionExecutingContext context)
-        {
-            if (context.HttpContext.Items.TryGetValue(HttpConstants.IdentityKey, out object contextIdentity))
-            {
-                this.identity = contextIdentity as IIdentity;
-            }
-
-            base.OnActionExecuting(context);
         }
 
         [HttpPost]
@@ -65,6 +56,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             await this.SendResponse(methodResult);
         }
 
+        bool TryGetActorId(out string deviceId, out string moduleId)
+        {
+            deviceId = string.Empty;
+            moduleId = string.Empty;
+
+            if (!this.Request.Headers.TryGetValue(Constants.ServiceApiIdHeaderKey, out StringValues clientIds) || clientIds.Count == 0)
+            {
+                // Must have valid header to specify actor
+                return false;
+            }
+
+            string clientId = clientIds.First();
+            string[] clientIdParts = clientId.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            if (clientIdParts.Length != 2)
+            {
+                // Actor should always be <deviceId>/<moduleId>
+                return false;
+            }
+
+            deviceId = clientIdParts[0];
+            moduleId = clientIdParts[1];
+            return true;
+        }
+
         internal static MethodResult GetMethodResult(DirectMethodResponse directMethodResponse) =>
             directMethodResponse.Exception.Map(e => new MethodErrorResult(directMethodResponse.HttpStatusCode, e.Message) as MethodResult)
                 .GetOrElse(() => new MethodSuccessResult(directMethodResponse.Status, GetRawJson(directMethodResponse.Data)));
@@ -82,18 +97,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
         async Task<MethodResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
         {
-            Events.ReceivedMethodCall(directMethodRequest, this.identity);
+            Events.ReceivedMethodCall(directMethodRequest);
             IEdgeHub edgeHub = await this.edgeHubGetter;
 
-            using (Metrics.TimeDirectMethod(this.identity.Id, directMethodRequest.Id))
+            MethodResult methodResult;
+            string currentEdgeDeviceId = edgeHub.GetEdgeDeviceId();
+
+            if (this.TryGetActorId(out string actorDeviceId, out string actorModuleId))
             {
-                DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
-                Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
+                string actorId = $"{actorDeviceId}/{actorModuleId}";
 
-                MethodResult methodResult = GetMethodResult(directMethodResponse);
+                if (actorDeviceId == currentEdgeDeviceId)
+                {
+                    IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
+                    HttpAuthResult authResult = await authenticator.AuthenticateRequest(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
 
-                return methodResult;
+                    if (authResult.Authenticated)
+                    {
+                        using (Metrics.TimeDirectMethod(actorDeviceId, directMethodRequest.Id))
+                        {
+                            DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(actorId, directMethodRequest);
+                            Events.ReceivedMethodCallResponse(directMethodRequest, actorId);
+
+                            methodResult = GetMethodResult(directMethodResponse);
+                        }
+                    }
+                    else
+                    {
+                        methodResult = new MethodErrorResult(HttpStatusCode.Unauthorized, authResult.ErrorMsg);
+                    }
+                }
+                else
+                {
+                    methodResult = new MethodErrorResult(HttpStatusCode.Unauthorized, "Only modules on the same device can invoke DirectMethods");
+                }
             }
+            else
+            {
+                methodResult = new MethodErrorResult(HttpStatusCode.BadRequest, $"Invalid header value for {Constants.ServiceApiIdHeaderKey}");
+            }
+
+            return methodResult;
         }
 
         async Task SendResponse(MethodResult methodResult)
@@ -119,14 +163,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 ReceivedMethodResponse
             }
 
-            public static void ReceivedMethodCall(DirectMethodRequest methodRequest, IIdentity identity)
+            public static void ReceivedMethodCall(DirectMethodRequest methodRequest)
             {
-                Log.LogDebug((int)EventIds.ReceivedMethodCall, $"Received call to invoke method {methodRequest.Name} on device or module {methodRequest.Id} from module {identity.Id}");
+                Log.LogDebug((int)EventIds.ReceivedMethodCall, $"Received call to invoke method {methodRequest.Name} on device or module {methodRequest.Id}");
             }
 
-            public static void ReceivedMethodCallResponse(DirectMethodRequest methodRequest, IIdentity identity)
+            public static void ReceivedMethodCallResponse(DirectMethodRequest methodRequest, string actorId)
             {
-                Log.LogDebug((int)EventIds.ReceivedMethodResponse, $"Received response from call to method {methodRequest.Name} from device or module {methodRequest.Id}. Method invoked by module {identity.Id}");
+                Log.LogDebug((int)EventIds.ReceivedMethodResponse, $"Received response from call to method {methodRequest.Name} from device or module {methodRequest.Id}. Method invoked by module {actorId}");
             }
         }
 
