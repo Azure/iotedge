@@ -78,15 +78,23 @@ where
         }
     }
 
-    let iothub_hostname = parse
-        .iter()
-        .find(|&(ref key, _)| key == "iothub_hostname")
-        .map(|(_, iothub_hostname)| iothub_hostname.to_string());
+    let iothub_hostname = parse.iter().find_map(|(ref key, iothub_hostname)| {
+        if key == "iothub_hostname" {
+            Some(iothub_hostname.to_string())
+        } else {
+            None
+        }
+    });
 
     let edge_runtime_only = parse
         .iter()
-        .find(|&(ref key, _)| key == "edge_runtime_only")
-        .map(|(_, edge_runtime_only)| edge_runtime_only == "true" || edge_runtime_only == "True")
+        .find_map(|(ref key, edge_runtime_only)| {
+            if key == "edge_runtime_only" {
+                Some(edge_runtime_only == "true" || edge_runtime_only == "True")
+            } else {
+                None
+            }
+        })
         .unwrap_or_default();
 
     let result = make_bundle(
