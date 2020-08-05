@@ -549,7 +549,7 @@ mod tests {
             .to_str()
             .unwrap()
             .to_owned();
-            
+
         let bundle = make_bundle(
             OutputLocation::File(OsString::from(file_path.to_owned())),
             LogOptions::default(),
@@ -635,98 +635,22 @@ mod tests {
             .any(|f| network_in_inspect.is_match(&f)));
     }
 
-    // #[test]
-    // fn get_logs() {
-    //     let module_name = "test-module";
-    //     let runtime = make_runtime(module_name);
+    #[test]
+    fn get_logs() {
+        let module_name = "test-module";
+        let runtime = make_runtime(module_name);
 
-    //     let options = LogOptions::new()
-    //         .with_follow(false)
-    //         .with_tail(LogTail::Num(0))
-    //         .with_since(0);
+        let options = LogOptions::new()
+            .with_follow(false)
+            .with_tail(LogTail::Num(0))
+            .with_since(0);
 
-    //     let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new())
-    //         .wait()
-    //         .unwrap();
-    //     let result_str = str::from_utf8(&result).unwrap();
-    //     assert_eq!("Roses are redviolets are blue", result_str);
-    // }
-
-    // #[test]
-    // fn get_modules() {
-    //     let runtime = make_runtime("test-module");
-    //     let tmp_dir = tempdir().unwrap();
-    //     let file_path = tmp_dir
-    //         .path()
-    //         .join("iotedge_bundle.zip")
-    //         .to_str()
-    //         .unwrap()
-    //         .to_owned();
-    //     let bundle = make_state(
-    //         LogOptions::default(),
-    //         false,
-    //         true,
-    //         None,
-    //         OutputLocation::File(OsString::from(file_path.to_owned())),
-    //         runtime,
-    //     );
-
-    //     let state = bundle.make_file_state().unwrap();
-
-    //     let (modules, mut state) = Self::get_modules(state).wait().unwrap();
-    //     assert_eq!(modules.len(), 1);
-
-    //     state.include_ms_only = true;
-
-    //     let (modules, _state) = Self::get_modules(state).wait().unwrap();
-    //     assert_eq!(modules.len(), 0);
-
-    //     /* with edge agent */
-    //     let runtime = make_runtime("edgeAgent");
-    //     let bundle = make_state(
-    //         LogOptions::default(),
-    //         false,
-    //         true,
-    //         None,
-    //         OutputLocation::File(OsString::from(file_path)),
-    //         runtime,
-    //     );
-
-    //     let state = bundle.make_file_state().unwrap();
-
-    //     let (modules, mut state) = Self::get_modules(state).wait().unwrap();
-    //     assert_eq!(modules.len(), 1);
-
-    //     state.include_ms_only = true;
-
-    //     let (modules, _state) = Self::get_modules(state).wait().unwrap();
-    //     assert_eq!(modules.len(), 1);
-    // }
-
-    // #[test]
-    // fn write_logs_to_file() {
-    //     let runtime = make_runtime("test-module");
-    //     let tmp_dir = tempdir().unwrap();
-    //     let file_path = tmp_dir
-    //         .path()
-    //         .join("iotedge_bundle.zip")
-    //         .to_str()
-    //         .unwrap()
-    //         .to_owned();
-
-    //     let bundle = make_state(
-    //         LogOptions::default(),
-    //         false,
-    //         true,
-    //         None,
-    //         OutputLocation::File(OsString::from(file_path.to_owned())),
-    //         runtime,
-    //     );
-
-    //     bundle.execute().wait().unwrap();
-
-    //     File::open(file_path).unwrap();
-    // }
+        let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new())
+            .wait()
+            .unwrap();
+        let result_str = str::from_utf8(&result).unwrap();
+        assert_eq!("Roses are redviolets are blue", result_str);
+    }
 
     fn make_runtime(module_name: &str) -> TestRuntime<Error, TestSettings> {
         let logs = vec![
