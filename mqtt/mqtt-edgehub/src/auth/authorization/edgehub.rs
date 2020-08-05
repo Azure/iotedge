@@ -150,6 +150,7 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
         format!("$edgehub/{}/methods/res", client_id),
         format!("$edgehub/{}/inputs", client_id),
         format!("$edgehub/{}/outputs", client_id),
+        format!("$edgehub/Custom/disconnect"),
     ]
 }
 
