@@ -313,8 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 });
 
             var credentialsCache = Mock.Of<ICredentialsCache>();
-            var productInfoStore = Mock.Of<IProductInfoStore>();
-            var modelIdStore = Mock.Of<IModelIdStore>();
+            var metadataStore = Mock.Of<IMetadataStore>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 converters,
                 ConnectionPoolSize,
@@ -329,8 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                productInfoStore,
-                modelIdStore);
+                metadataStore);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             var clientTokenProvider = new ClientTokenProvider(new SharedAccessKeySignatureProvider(sasKey), iotHubHostName, deviceId, TimeSpan.FromHours(1));
