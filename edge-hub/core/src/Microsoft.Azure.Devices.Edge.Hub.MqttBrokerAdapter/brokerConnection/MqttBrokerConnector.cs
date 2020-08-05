@@ -269,18 +269,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                             continue;
                                         }
 
+                                        var accepted = false;
                                         foreach (var consumer in this.components.Consumers)
                                         {
                                             try
                                             {
-                                                var accepted = await consumer.HandleAsync(publishInfo);
-                                                Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
+                                                accepted = await consumer.HandleAsync(publishInfo);
+                                                if (accepted)
+                                                {
+                                                    Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
+                                                    break;
+                                                }
                                             }
                                             catch (Exception e)
                                             {
                                                 Events.FailedToForward(e);
                                                 // Keep going with other consumers...
                                             }
+                                        }
+
+                                        if (!accepted)
+                                        {
+                                            Events.MessageNotForwarded(publishInfo.Topic, publishInfo.Payload.Length);
                                         }
                                     }
 
@@ -413,6 +423,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ForwardingLoopStarted,
                 ForwardingLoopStopped,
                 MessageForwarded,
+                MessageNotForwarded,
                 FailedToForward,
                 CouldNotConnect
             }
@@ -431,6 +442,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void ForwardingLoopStarted() => Log.LogInformation((int)EventIds.ForwardingLoopStarted, "Forwarding loop started");
             public static void ForwardingLoopStopped() => Log.LogInformation((int)EventIds.ForwardingLoopStopped, "Forwarding loop stopped");
             public static void MessageForwarded(string consumer, bool accepted, string topic, int len) => Log.LogDebug((int)EventIds.MessageForwarded, "Message forwarded to {0} and it {1}. Topic {2}, Msg. len {3} bytes", consumer, accepted ? "accepted" : "ignored", topic, len);
+            public static void MessageNotForwarded(string topic, int len) => Log.LogDebug((int)EventIds.MessageForwarded, "Message has not been forwarded to any consumers. Topic {0}, Msg. len {1} bytes", topic, len);
             public static void FailedToForward(Exception e) => Log.LogError((int)EventIds.FailedToForward, e, "Failed to forward message.");
             public static void CouldNotConnect() => Log.LogInformation((int)EventIds.CouldNotConnect, "Could not connect to MQTT Broker, possibly it is not running. To disable MQTT Broker Connector, please set 'mqttBrokerSettings__enabled' environment variable to 'false'");
         }
