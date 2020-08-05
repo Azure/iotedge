@@ -123,12 +123,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             if (this.experimentalFeatures.EnableUploadSupportBundle)
             {
-                // Task<IRequestHandler> - LogsUploadRequestHandler
+                // Task<IRequestHandler> - SupportBundleRequestHandler
                 builder.Register(
                         async c =>
                         {
                             await Task.Yield();
-                            return new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>()) as IRequestHandler;
+                            return new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>(), this.iotHubHostName) as IRequestHandler;
                         })
                     .As<Task<IRequestHandler>>()
                     .SingleInstance();

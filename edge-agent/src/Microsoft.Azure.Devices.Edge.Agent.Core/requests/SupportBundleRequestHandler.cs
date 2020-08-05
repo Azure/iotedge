@@ -18,11 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
         readonly GetSupportBundle getSupportBundle;
         readonly IRequestsUploader requestsUploader;
+        readonly string iotHubHostName;
 
-        public SupportBundleRequestHandler(GetSupportBundle getSupportBundle, IRequestsUploader requestsUploader)
+        public SupportBundleRequestHandler(GetSupportBundle getSupportBundle, IRequestsUploader requestsUploader, string iotHubHostName)
         {
             this.getSupportBundle = getSupportBundle;
             this.requestsUploader = requestsUploader;
+            this.iotHubHostName = iotHubHostName;
         }
 
         public override string RequestName => "UploadSupportBundle";
@@ -34,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(
                 async () =>
                     {
-                        Stream source = await this.getSupportBundle(payload.Since, payload.IothubHostname, payload.EdgeRuntimeOnly, cancellationToken);
+                        Stream source = await this.getSupportBundle(payload.Since, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, cancellationToken);
                         await this.requestsUploader.UploadSupportBundle(payload.SasUrl, source);
                     },
                 "upload support bundle",
