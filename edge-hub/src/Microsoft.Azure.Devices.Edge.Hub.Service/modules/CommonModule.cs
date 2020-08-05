@@ -239,28 +239,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IStoreProvider>>()
                 .SingleInstance();
 
-            // Task<IProductInfoStore>
+            // Task<IMetadataStore>
             builder.Register(
                     async c =>
                     {
                         var storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
-                        IProductInfoStore productInfoStore = new ProductInfoStore(entityStore, this.productInfo);
-                        return productInfoStore;
+                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo", "MetadataStore");
+                        IMetadataStore metadataStore = new MetadataStore(entityStore, this.productInfo);
+                        return metadataStore;
                     })
-                .As<Task<IProductInfoStore>>()
-                .SingleInstance();
-
-            // Task<IModelIdStore>
-            builder.Register(
-                    async c =>
-                    {
-                        var storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ModelIdStore");
-                        IModelIdStore modelIdStore = new ModelIdStore(entityStore);
-                        return modelIdStore;
-                    })
-                .As<Task<IModelIdStore>>()
+                .As<Task<IMetadataStore>>()
                 .SingleInstance();
 
             // ITokenProvider
