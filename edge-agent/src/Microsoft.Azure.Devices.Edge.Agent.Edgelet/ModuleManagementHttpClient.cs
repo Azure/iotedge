@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
 
-    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager, IDisposable
+    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
@@ -111,11 +111,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
 
             return serverVersion.Value < clientVersion.Value ? serverVersion : clientVersion;
-        }
-
-        public void Dispose()
-        {
-            this.inner.Dispose();
         }
     }
 }

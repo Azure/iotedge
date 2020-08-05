@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
-    abstract class ModuleManagementHttpClientVersioned : IDisposable
+    abstract class ModuleManagementHttpClientVersioned
     {
         const string LogsUrlTemplate = "{0}/modules/{1}/logs?api-version={2}&follow={3}";
         const string LogsUrlTailParameter = "tail";
@@ -148,10 +148,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             var transientRetryPolicy = new RetryPolicy(transientErrorDetectionStrategy, TransientRetryStrategy);
             transientRetryPolicy.Retrying += (_, args) => onRetry(args);
             return transientRetryPolicy.ExecuteAsync(func);
-        }
-
-        public virtual void Dispose()
-        {
         }
 
         static class Events
