@@ -26,7 +26,9 @@ jobs:
     displayName: Windows amd64
 
     pool:
-      vmImage: windows-2019
+      name: $(pool.name)
+      demands:
+        - damon-win -equals 1
 
     variables:
       os: windows
