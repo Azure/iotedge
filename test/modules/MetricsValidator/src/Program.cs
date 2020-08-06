@@ -22,7 +22,7 @@ namespace MetricsValidator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsValidator");
 
-        readonly ConsoleEventListener _listener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client");
+        readonly ConsoleEventListener listener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client");
 
         public static int Main() => MainAsync().Result;
 

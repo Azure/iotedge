@@ -1,30 +1,29 @@
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using System.Globalization;
-using System.Linq;
-
 namespace System.Diagnostics.Tracing
 {
+    using System.Globalization;
+    using System.Linq;
+
     public sealed class ConsoleEventListener : EventListener
     {
-        private readonly string[] _eventFilters;
-        private readonly object _lock = new object();
+        private readonly string[] eventFilters;
+        private readonly object @lock = new object();
 
         public ConsoleEventListener(string filter)
         {
-            _eventFilters = new string[1];
-            _eventFilters[0] = filter ?? throw new ArgumentNullException(nameof(filter));
+            this.eventFilters = new string[1];
+            this.eventFilters[0] = filter ?? throw new ArgumentNullException(nameof(filter));
 
-            InitializeEventSources();
+            this.InitializeEventSources();
         }
 
         public ConsoleEventListener(string[] filters)
         {
-            _eventFilters = filters ?? throw new ArgumentNullException(nameof(filters));
-            if (_eventFilters.Length == 0) throw new ArgumentException("Filters cannot be empty", nameof(filters));
+            this.eventFilters = filters ?? throw new ArgumentNullException(nameof(filters));
+            if (this.eventFilters.Length == 0)
+                throw new ArgumentException("Filters cannot be empty", nameof(filters));
 
-            foreach (string filter in _eventFilters)
+            foreach (string filter in this.eventFilters)
             {
                 if (string.IsNullOrWhiteSpace(filter))
                 {
@@ -32,36 +31,38 @@ namespace System.Diagnostics.Tracing
                 }
             }
 
-            InitializeEventSources();
+            this.InitializeEventSources();
         }
 
         private void InitializeEventSources()
         {
             foreach (EventSource source in EventSource.GetSources())
             {
-                EnableEvents(source, EventLevel.LogAlways);
+                this.EnableEvents(source, EventLevel.LogAlways);
             }
         }
 
         protected override void OnEventSourceCreated(EventSource eventSource)
         {
             base.OnEventSourceCreated(eventSource);
-            EnableEvents(
+            this.EnableEvents(
                 eventSource,
-                EventLevel.LogAlways
 #if !NET451
-                , EventKeywords.All
+                EventLevel.LogAlways,
+                EventKeywords.All);
+#else
+                EventLevel.LogAlways);
 #endif
-                );
         }
 
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
-            if (_eventFilters == null) return;
+            if (this.eventFilters == null)
+                return;
 
-            lock (_lock)
+            lock (this.@lock)
             {
-                if (_eventFilters.Any(ef => eventData.EventSource.Name.StartsWith(ef, StringComparison.Ordinal)))
+                if (this.eventFilters.Any(ef => eventData.EventSource.Name.StartsWith(ef, StringComparison.Ordinal)))
                 {
                     string eventIdent;
 #if NET451
@@ -70,7 +71,7 @@ namespace System.Diagnostics.Tracing
 #else
                     eventIdent = eventData.EventName;
 #endif
-                    string text = $"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)} [{eventData.EventSource.Name}-{eventIdent}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : "")}";
+                    string text = $"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)} [{eventData.EventSource.Name}-{eventIdent}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : string.Empty)}";
 
                     ConsoleColor origForeground = Console.ForegroundColor;
                     Console.ForegroundColor = ConsoleColor.DarkYellow;
