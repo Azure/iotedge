@@ -18,33 +18,12 @@ use mqtt_broker_tests_util::{start_server, DummyAuthenticator, PacketStream, Tes
 use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
 use tokio::task::JoinHandle;
 
-// TODO: create integration tests with PacketStream rather than mqtt3
-
-// TEST 1: DISCONNECTION
-// connect client
-// create command handler
-// verify client connected
-// publish message to disconnect client
-// verify client disconnected
-
-// TEST 2: DISCONNECTION / RECONNECTION / DISCONNECTION
-// connect client
-// create command handler
-// verify client connected
-// publish message to disconnect client
-// verify client disconnected
-// reconnect client
-// verify client still connected (wait?)
-// publish message
-// verify client disconnects
-
 /// Scenario:
-///	- Client connects with clean session.
-///	- Client subscribes to a TopicA
-///	- Client publishes to a TopicA with QoS 0
-///	- Client publishes to a TopicA with QoS 1
-///	- Client publishes to a TopicA with QoS 2
-///	- Expects to receive back three messages.
+// create broker
+// create command handler
+// connect client
+// publish message to disconnect client
+// verify client disconnected
 #[tokio::test]
 async fn command_handler_client_disconnection() {
     let topic = "$edgehub/test-client/disconnect";
