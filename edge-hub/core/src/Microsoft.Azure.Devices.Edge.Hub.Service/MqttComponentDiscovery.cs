@@ -10,22 +10,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class MqttBridgeComponentDiscovery : IComponentDiscovery
     {
-        readonly ILogger logger;
-
         public IReadOnlyCollection<IMessageProducer> Producers { get; private set; }
         public IReadOnlyCollection<IMessageConsumer> Consumers { get; private set; }
 
         public static Type[] CandidateInterfaces { get; } = new[] { typeof(IMessageProducer), typeof(IMessageConsumer) };
 
-        public MqttBridgeComponentDiscovery(ILogger logger)
+        private MqttBridgeComponentDiscovery(IReadOnlyCollection<IMessageProducer> producers, IReadOnlyCollection<IMessageConsumer> consumers)
         {
-            this.logger = Preconditions.CheckNotNull(logger);
-
-            this.Producers = new IMessageProducer[0];
-            this.Consumers = new IMessageConsumer[0];
+            this.Producers = Preconditions.CheckNotNull(producers);
+            this.Consumers = Preconditions.CheckNotNull(consumers);
         }
 
-        public void Discover(IComponentContext context)
+        public static MqttBridgeComponentDiscovery Discover(IComponentContext context)
         {
             var componentInstances = GetCandidateTypes().Select(t => context.Resolve(t));
 
@@ -37,18 +33,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 if (component is IMessageProducer producer)
                 {
                     producers.Add(producer);
-                    this.logger.LogDebug("Added class [{0}] as producer", producer.GetType().Name);
                 }
 
                 if (component is IMessageConsumer consumer)
                 {
                     consumers.Add(consumer);
-                    this.logger.LogDebug("Added class [{0}] as consumer", consumer.GetType().Name);
                 }
             }
 
-            this.Producers = producers;
-            this.Consumers = consumers;
+            return new MqttBridgeComponentDiscovery(producers, consumers);
         }
 
         public static IEnumerable<Type> GetCandidateTypes()
