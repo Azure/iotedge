@@ -11,20 +11,20 @@ use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
 // TODO: get device id from env
 const CLIENT_ID: &str = "deviceid/$edgeHub/$broker/$control";
-const TOPIC_FILTER: &str = "$edgehub/{}/disconnect";
-const CLIENT_EXTRACTION_REGEX: &str = r"(?<=\$edgehub\/)(.*)(?=\/disconnect)";
+const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
+// const CLIENT_EXTRACTION_REGEX: &str = r"(?<=\$edgehub\/)(.*)(?=\/disconnect)";
+const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub\/(.*?)\/disconnect";
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
 
-// TODO: return self.shutdown_handle which is oneshot
 // TODO REVIEW: We need this to map the err in a structured way?
 impl ShutdownHandle {
     pub async fn shutdown(&mut self) -> Result<(), Error> {
         self.0
             .shutdown()
             .await
-            .map_err(|_| Error::SendSnapshotMessage)?; // TODO: new error type
+            .map_err(|e| Error::ShutdownClient(e))?;
         Ok(())
     }
 }
@@ -144,4 +144,81 @@ impl CommandHandler {
             }
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // use std::{
+    //     env,
+    //     time::{Duration as StdDuration, Instant},
+    // };
+
+    // use chrono::{Duration, Utc};
+    // use mockito::mock;
+    // use serde_json::json;
+
+    #[tokio::test]
+    async fn it_does_basic_thing() {
+        // mock broker handle
+        // mock client
+
+        // create command handler
+
+        // test case 1: create
+        // test case 2: call run and verify
+        //              a) subscribed to a given topic
+        //              b) subscribed with a given qos
+        // test case 3: connect client to broker, simulate a message on the subscribed topic, and verify
+        //              a) ForceClientDisconnection
+    }
+
+    // #[tokio::test]
+    // async fn it_downloads_server_cert() {
+    //     let expiration = Utc::now() + Duration::days(90);
+    //     let res = json!(
+    //         {
+    //             "privateKey": { "type": "key", "bytes": PRIVATE_KEY },
+    //             "certificate": CERTIFICATE,
+    //             "expiration": expiration.to_rfc3339()
+    //         }
+    //     );
+
+    //     let _m = mock(
+    //         "POST",
+    //         "/modules/$edgeHub/genid/12345678/certificate/server?api-version=2019-01-30",
+    //     )
+    //     .with_status(201)
+    //     .with_body(serde_json::to_string(&res).unwrap())
+    //     .create();
+
+    //     env::set_var(WORKLOAD_URI, mockito::server_url());
+    //     env::set_var(EDGE_DEVICE_HOST_NAME, "localhost");
+    //     env::set_var(MODULE_ID, "$edgeHub");
+    //     env::set_var(MODULE_GENERATION_ID, "12345678");
+
+    //     let res = download_server_certificate().await;
+    //     assert!(res.is_ok());
+    // }
+
+    // #[tokio::test]
+    // async fn it_schedules_cert_renewal_in_future() {
+    //     let now = Instant::now();
+
+    //     let renew_at = Utc::now() + Duration::milliseconds(100);
+    //     server_certificate_renewal(renew_at).await;
+
+    //     let elapsed = now.elapsed();
+    //     assert!(elapsed > StdDuration::from_millis(100));
+    //     assert!(elapsed < StdDuration::from_millis(500));
+    // }
+
+    // #[tokio::test]
+    // async fn it_does_not_schedule_cert_renewal_in_past() {
+    //     let now = Instant::now();
+
+    //     let renew_at = Utc::now();
+    //     server_certificate_renewal(renew_at).await;
+
+    //     assert!(now.elapsed() < StdDuration::from_millis(100));
+    // }
 }
