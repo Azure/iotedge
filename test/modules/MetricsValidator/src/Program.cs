@@ -3,6 +3,7 @@ namespace MetricsValidator
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -20,6 +21,8 @@ namespace MetricsValidator
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsValidator");
+
+        readonly ConsoleEventListener _listener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client");
 
         public static int Main() => MainAsync().Result;
 
