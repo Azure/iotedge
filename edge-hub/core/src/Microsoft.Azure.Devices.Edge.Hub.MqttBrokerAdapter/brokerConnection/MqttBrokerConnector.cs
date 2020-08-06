@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Option<Task> forwardingLoop;
         Option<MqttClient> mqttClient;
 
+        int isRetrying = 0;
+
         public MqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
         {
             this.components = Preconditions.CheckNotNull(components);
@@ -91,6 +93,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             client.ConnectionClosed += this.TriggerReconnect;
+
+            if (!client.IsConnected)
+            {
+                // at this point it is not known that 'TriggerReconnect' was subscribed in time,
+                // let's trigger it manually - if started twice, that is not a problem
+                this.TriggerReconnect(this, new EventArgs());
+            }
 
             Events.Started();
         }
@@ -211,30 +220,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             Task.Run(async () =>
             {
-                var client = default(MqttClient);
-
-                lock (this.guard)
+                var wasRetrying = Interlocked.Exchange(ref this.isRetrying, 1);
+                if (wasRetrying == 1)
                 {
-                    if (!this.mqttClient.HasValue)
-                    {
-                        return;
-                    }
-
-                    client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
+                    return;
                 }
 
-                // don't trigger it to ourselves while we are trying
-                client.ConnectionClosed -= this.TriggerReconnect;
+                var client = default(MqttClient);
 
-                var isConnected = false;
-
-                while (!isConnected)
+                try
                 {
-                    await Task.Delay(ReconnectDelayMs);
-
                     lock (this.guard)
                     {
-                        // seems Disconnect has been called since.
                         if (!this.mqttClient.HasValue)
                         {
                             return;
@@ -243,10 +240,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
                     }
 
-                    isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                    // don't trigger it to ourselves while we are trying
+                    client.ConnectionClosed -= this.TriggerReconnect;
+
+                    var isConnected = false;
+
+                    while (!isConnected)
+                    {
+                        await Task.Delay(ReconnectDelayMs);
+
+                        lock (this.guard)
+                        {
+                            // seems Disconnect has been called since.
+                            if (!this.mqttClient.HasValue)
+                            {
+                                return;
+                            }
+
+                            client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
+                        }
+
+                        isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                    }
+
+                    client.ConnectionClosed += this.TriggerReconnect;
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref this.isRetrying);
                 }
 
-                client.ConnectionClosed += this.TriggerReconnect;
+                if (!client.IsConnected)
+                {
+                    // at this point it is not known that 'TriggerReconnect' was subscribed in time,
+                    // let's trigger it manually - if started twice, that is not a problem
+                    this.TriggerReconnect(this, new EventArgs());
+                }
             });
         }
 
