@@ -22,7 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task ValidateMetrics()
         {
-            CancellationToken token = CancellationToken.None; // this.TestToken;
+            var source = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+            CancellationToken token = source.Token; // this.TestToken;
             await this.DeployAsync(token);
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
