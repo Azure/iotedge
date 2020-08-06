@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public ConnectionMetadata(string productInfo, Option<string> modelId, string edgeProductInfo)
         {
-            Preconditions.CheckNonWhiteSpace(edgeProductInfo, nameof(edgeProductInfo));
+            Preconditions.CheckNotNull(edgeProductInfo, nameof(edgeProductInfo));
             this.ModelId = modelId;
             this.ProductInfo = productInfo;
             this.EdgeProductInfo = this.BuildEdgeProductInfo(productInfo, edgeProductInfo);
