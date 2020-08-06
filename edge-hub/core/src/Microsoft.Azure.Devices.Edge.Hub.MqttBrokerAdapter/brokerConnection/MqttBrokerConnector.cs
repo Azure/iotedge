@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class MqttBrokerConnector : IMqttBrokerConnector
     {
         const int ReconnectDelayMs = 2000;
+        const int SubAckTimeoutSecs = 10;
 
         readonly IComponentDiscovery components;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
@@ -374,9 +375,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                             Enumerable.Range(1, subscriber.Subscriptions.Count).Select(i => (byte)1).ToArray());
                     }
 
-                    await acksArrived.WaitAsync();
-
-                    client.MqttMsgSubscribed -= ConfirmSubscribe;
+                    try
+                    {
+                        await acksArrived.WaitAsync(TimeSpan.FromSeconds(SubAckTimeoutSecs));
+                    }
+                    catch (Exception ex)
+                    {
+                        Events.TimeoutReceivingSubAcks(ex);
+                        throw new Exception("MQTT server did not acknowledged subscriptions", ex);
+                    }
+                    finally
+                    {
+                        client.MqttMsgSubscribed -= ConfirmSubscribe;
+                    }
 
                     if (!Volatile.Read(ref allQosGranted))
                     {
@@ -420,7 +431,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 MessageForwarded,
                 MessageNotForwarded,
                 FailedToForward,
-                CouldNotConnect
+                CouldNotConnect,
+                TimeoutReceivingSubAcks
             }
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting mqtt-bridge connector");
@@ -440,6 +452,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void MessageNotForwarded(string topic, int len) => Log.LogDebug((int)EventIds.MessageForwarded, "Message has not been forwarded to any consumers. Topic {0}, Msg. len {1} bytes", topic, len);
             public static void FailedToForward(Exception e) => Log.LogError((int)EventIds.FailedToForward, e, "Failed to forward message.");
             public static void CouldNotConnect() => Log.LogInformation((int)EventIds.CouldNotConnect, "Could not connect to MQTT Broker, possibly it is not running. To disable MQTT Broker Connector, please set 'mqttBrokerSettings__enabled' environment variable to 'false'");
+            public static void TimeoutReceivingSubAcks(Exception e) => Log.LogError((int)EventIds.TimeoutReceivingSubAcks, e, "MQTT Broker has not acknowledged subscriptions in time");
         }
     }
 }
