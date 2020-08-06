@@ -6,7 +6,6 @@ description = """
 The iotedge tool is used to manage the IoT Edge runtime.
 """
 edition = "2018"
-
 [dependencies]
 atty = "0.2"
 bytes = "0.4"
@@ -36,6 +35,7 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 management = { path = "../management" }
 mini-sntp = { path = "../mini-sntp" }
+support-bundle = { path = "../support-bundle" }
 
 [target.'cfg(unix)'.dependencies]
 byte-unit = "3.0.3"
@@ -48,3 +48,4 @@ winapi = { version = "0.3", features = ["ntdef", "ntstatus", "winnt", "winsock2"
 [dev-dependencies]
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 tempfile = "3.1.0"
+

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.IO;
     using System.Linq;
     using System.Net.Http;
     using System.Runtime.ExceptionServices;
@@ -141,6 +142,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
                     "Getting System Resources");
 
                 return new SystemResources(systemResources.Host_uptime, systemResources.Process_uptime, systemResources.Used_cpu, systemResources.Used_ram, systemResources.Total_ram, systemResources.Disks.Select(d => new Disk(d.Name, d.Available_space, d.Total_space, d.File_system, d.File_type)).ToArray(), systemResources.Docker_stats);
+            }
+        }
+
+        public override async Task<Stream> GetSupportBundle(Option<string> since, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                FileResponse response = await this.Execute(() => edgeletHttpClient.GetSupportBundleAsync(this.Version.Name, since.OrDefault(), null, iothubHostname.OrDefault(), edgeRuntimeOnly.Map<bool?>(e => e).OrDefault()), "reprovision the device");
+
+                return response.Stream;
             }
         }
 

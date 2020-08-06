@@ -59,8 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // ILogsUploader
-            builder.Register(c => new AzureBlobLogsUploader(this.iotHubHostName, this.deviceId))
-                .As<ILogsUploader>()
+            builder.Register(c => new AzureBlobRequestsUploader(this.iotHubHostName, this.deviceId))
+                .As<IRequestsUploader>()
                 .SingleInstance();
 
             // Task<ILogsProvider>
@@ -94,12 +94,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 builder.Register(
                         async c =>
                         {
-                            var logsUploader = c.Resolve<ILogsUploader>();
+                            var requestUploader = c.Resolve<IRequestsUploader>();
                             var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
                             var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
                             IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
                             ILogsProvider logsProvider = await logsProviderTask;
-                            return new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
+                            return new ModuleLogsUploadRequestHandler(requestUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
                         })
                     .As<Task<IRequestHandler>>()
                     .SingleInstance();
@@ -115,7 +115,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
                             IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
                             ILogsProvider logsProvider = await logsProviderTask;
-                            return new LogsRequestHandler(logsProvider, runtimeInfoProvider) as IRequestHandler;
+                            return new ModuleLogsRequestHandler(logsProvider, runtimeInfoProvider) as IRequestHandler;
+                        })
+                    .As<Task<IRequestHandler>>()
+                    .SingleInstance();
+            }
+
+            if (this.experimentalFeatures.EnableUploadSupportBundle)
+            {
+                // Task<IRequestHandler> - SupportBundleRequestHandler
+                builder.Register(
+                        async c =>
+                        {
+                            await Task.Yield();
+                            return new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>(), this.iotHubHostName) as IRequestHandler;
                         })
                     .As<Task<IRequestHandler>>()
                     .SingleInstance();
