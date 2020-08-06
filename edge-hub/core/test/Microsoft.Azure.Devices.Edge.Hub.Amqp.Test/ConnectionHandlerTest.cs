@@ -249,6 +249,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             // Assert
             deviceListener.Verify(d => d.CloseAsync(), Times.Once);
+
+            // Act
+            await connectionHandler.GetDeviceListener();
+
+            // Assert
+            deviceListener.Verify(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()), Times.Exactly(2));
         }
     }
 }
