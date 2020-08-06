@@ -457,6 +457,45 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
+  
+  '/systeminfo/supportbundle':
+    get:
+      tags:
+        - SystemInformation
+      summary: Return zip of support bundle.
+      produces:
+        - application/zip
+      operationId: GetSupportBundle
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: query
+          name: since
+          description: Duration to get logs from. Can be relative (1d, 10m, 1h30m etc.) or absolute (unix timestamp or rfc 3339)
+          required: false
+          type: string
+        - in: query
+          name: host
+          description: Path to the management host
+          required: false
+          type: string
+        - in: query
+          name: iothub_hostname
+          description: Hub to use when calling iotedge check
+          required: false
+          type: string
+        - in: query
+          name: edge_runtime_only
+          description: Exclude customer module logs
+          required: false
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Ok
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
   '/device/reprovision':
     post:

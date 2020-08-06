@@ -11,26 +11,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class LogsUploadRequestHandler : RequestHandlerBase<LogsUploadRequest, TaskStatusResponse>
+    public class ModuleLogsUploadRequestHandler : RequestHandlerBase<ModuleLogsUploadRequest, TaskStatusResponse>
     {
         static readonly Version ExpectedSchemaVersion = new Version("1.0");
 
-        readonly ILogsUploader logsUploader;
+        readonly IRequestsUploader requestsUploader;
         readonly ILogsProvider logsProvider;
         readonly IRuntimeInfoProvider runtimeInfoProvider;
 
-        public LogsUploadRequestHandler(ILogsUploader logsUploader, ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
+        public ModuleLogsUploadRequestHandler(IRequestsUploader requestsUploader, ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
         {
             this.logsProvider = Preconditions.CheckNotNull(logsProvider, nameof(logsProvider));
-            this.logsUploader = Preconditions.CheckNotNull(logsUploader, nameof(logsUploader));
+            this.requestsUploader = Preconditions.CheckNotNull(requestsUploader, nameof(requestsUploader));
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
         }
 
-        public override string RequestName => "UploadLogs";
+        public override string RequestName => "UploadModuleLogs";
 
-        protected override async Task<Option<TaskStatusResponse>> HandleRequestInternal(Option<LogsUploadRequest> payloadOption, CancellationToken cancellationToken)
+        protected override async Task<Option<TaskStatusResponse>> HandleRequestInternal(Option<ModuleLogsUploadRequest> payloadOption, CancellationToken cancellationToken)
         {
-            LogsUploadRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
+            ModuleLogsUploadRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
             if (ExpectedSchemaVersion.CompareMajorVersion(payload.SchemaVersion, "logs upload request schema") != 0)
             {
                 Events.MismatchedMinorVersions(payload.SchemaVersion, ExpectedSchemaVersion);
@@ -69,11 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             if (moduleLogOptions.ContentType == LogsContentType.Json)
             {
                 byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
-                await this.logsUploader.Upload(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+                await this.requestsUploader.UploadLogs(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
             }
             else if (moduleLogOptions.ContentType == LogsContentType.Text)
             {
-                Func<ArraySegment<byte>, Task> uploaderCallback = await this.logsUploader.GetUploaderCallback(sasUrl, id, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+                Func<ArraySegment<byte>, Task> uploaderCallback = await this.requestsUploader.GetLogsUploaderCallback(sasUrl, id, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
                 await this.logsProvider.GetLogsStream(id, moduleLogOptions, uploaderCallback, token);
             }
 
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         static class Events
         {
             const int IdStart = AgentEventIds.LogsUploadRequestHandler;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<LogsUploadRequestHandler>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleLogsUploadRequestHandler>();
 
             enum EventIds
             {
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 Log.LogWarning((int)EventIds.MismatchedMinorVersions, $"Logs upload request schema version {payloadSchemaVersion} does not match expected schema version {expectedSchemaVersion}. Some settings may not be supported.");
             }
 
-            public static void ProcessingRequest(LogsUploadRequest payload)
+            public static void ProcessingRequest(ModuleLogsUploadRequest payload)
             {
                 Log.LogInformation((int)EventIds.ProcessingRequest, $"Processing request to upload logs for {payload.ToJson()}");
             }
