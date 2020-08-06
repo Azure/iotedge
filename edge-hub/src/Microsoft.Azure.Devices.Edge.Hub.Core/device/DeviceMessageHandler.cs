@@ -502,7 +502,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsCounter GetTwinCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "gettwin",
                 "Get twin calls",
-                new List<string> { "source", "id" });
+                new List<string> { "source", "id", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "reported_properties_update_duration_seconds",
@@ -512,7 +512,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsCounter ReportedPropertiesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "reported_properties",
                 "Reported properties update calls",
-                new List<string> { "target", "id" });
+                new List<string> { "target", "id", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
@@ -528,11 +528,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "edge_hub", id });
 
-            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "edge_hub", id });
+            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "edge_hub", id, bool.TrueString });
 
             public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "edge_hub", id });
 
-            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "edge_hub", id });
+            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "edge_hub", id, bool.TrueString });
 
             public static void MessageProcessingLatency(IIdentity identity, IMessage message)
             {

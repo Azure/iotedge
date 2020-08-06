@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 this.expiredCounter = Metrics.Instance.CreateCounter(
                    "messages_dropped",
                    "Messages cleaned up because of TTL expired",
-                   new List<string> { "reason", "from", "from_route_output" });
+                   new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
             }
 
             public void Dispose()
@@ -307,7 +307,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 {
                                     if (enqueuedTime >= messageRef.TimeToLive)
                                     {
-                                        this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput() } );
+                                        this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString } );
                                     }
 
                                     await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);

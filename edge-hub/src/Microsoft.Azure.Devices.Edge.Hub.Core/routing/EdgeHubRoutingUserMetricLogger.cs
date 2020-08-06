@@ -15,12 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.orphanedCounter = Metrics.Instance.CreateCounter(
                "messages_dropped",
                "Messages dropped",
-               new List<string> { "reason", "from", "from_route_output" });
+               new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
 
             this.unackCounter = Metrics.Instance.CreateCounter(
                "messages_unack",
                "Messages not acknowledged",
-               new List<string> { "reason", "from", "from_route_output" });
+               new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
         }
 
         public static EdgeHubRoutingUserMetricLogger Instance { get; } = new EdgeHubRoutingUserMetricLogger();
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             switch (messageStatus)
             {
                 case MessageRoutingStatus.Orphaned:
-                    this.orphanedCounter.Increment(metricValue, new[] { "no_route", message.GetSenderId(), message.GetOutput() });
+                    this.orphanedCounter.Increment(metricValue, new[] { "no_route", message.GetSenderId(), message.GetOutput(), bool.TrueString });
                     break;
             }
         }
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public void LogIngressFailureMetric(long metricValue, string iothubName, IMessage message, string reason)
         {
-            this.unackCounter.Increment(metricValue, new[] { reason, message.GetSenderId(), message.GetOutput() });
+            this.unackCounter.Increment(metricValue, new[] { reason, message.GetSenderId(), message.GetOutput(), bool.TrueString });
         }
 
         public void LogRetryOperation(long metricValue, string iothubName, string id, string type)

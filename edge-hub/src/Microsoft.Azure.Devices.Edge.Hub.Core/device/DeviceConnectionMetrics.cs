@@ -10,17 +10,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         DeviceConnectionMetrics()
         {
-            this.authCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+            this.authCounter = Metrics.Instance.CreateCounter(
                 "client_connect_failed",
                 "Client connection failure",
-                new List<string> { "id", "reason", "protocol" });
+                new List<string> { "id", "reason", "protocol", MetricsConstants.MsTelemetry });
         }
 
         public static DeviceConnectionMetrics Instance { get; } = new DeviceConnectionMetrics();
 
         public void LogAuthenticationFailure(long metricValue, string id, string reason, string protocol)
         {
-            this.authCounter.Increment(metricValue, new[] { id, reason, protocol });
+            this.authCounter.Increment(metricValue, new[] { id, reason, protocol, bool.TrueString });
         }
     }
 }

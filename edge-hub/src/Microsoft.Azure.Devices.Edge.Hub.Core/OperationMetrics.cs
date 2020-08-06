@@ -13,14 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.retriesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "operation_retry",
                 "Operation retries",
-                new List<string> { "id", "operation" });
+                new List<string> { "id", "operation", MetricsConstants.MsTelemetry });
         }
 
         public static OperationMetrics Instance { get; } = new OperationMetrics();
 
         public void LogRetryOperation(long metricValue, string id, string operation)
         {
-            this.retriesCounter.Increment(metricValue, new[] { id, operation });
+            this.retriesCounter.Increment(metricValue, new[] { id, operation, bool.TrueString });
         }
     }
 }
