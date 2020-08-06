@@ -9,6 +9,7 @@ use tracing::{error, info};
 use mqtt3::{proto, Client, IoSource, ShutdownError};
 use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
+// TODO REVIEW: do we want failures making the client to percolate all the way up and blow up broker?
 // TODO: get device id from env
 const CLIENT_ID: &str = "deviceid/$edgeHub/$broker/$control";
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
