@@ -82,16 +82,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var proxy = default(IDeviceListener);
-            var proxyMaybe = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var listener = default(IDeviceListener);
+            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
 
-            if (!proxyMaybe.HasValue)
+            if (!maybeListener.HasValue)
             {
                 return true;
             }
             else
             {
-                proxy = proxyMaybe.Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
 
             foreach (var subscriptionPattern in this.subscriptionPatterns)
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 try
                 {
-                    await AddOrRemoveSubscription(proxy, subscribes, subscriptionPattern.Subscrition);
+                    await AddOrRemoveSubscription(listener, subscribes, subscriptionPattern.Subscrition);
                 }
                 catch (Exception e)
                 {
@@ -137,15 +137,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return false;
         }
 
-        static Task AddOrRemoveSubscription(IDeviceListener proxy, bool add, DeviceSubscription subscription)
+        static Task AddOrRemoveSubscription(IDeviceListener listener, bool add, DeviceSubscription subscription)
         {
             if (add)
             {
-                return proxy.AddSubscription(subscription);
+                return listener.AddSubscription(subscription);
             }
             else
             {
-                return proxy.RemoveSubscription(subscription);
+                return listener.RemoveSubscription(subscription);
             }
         }
 

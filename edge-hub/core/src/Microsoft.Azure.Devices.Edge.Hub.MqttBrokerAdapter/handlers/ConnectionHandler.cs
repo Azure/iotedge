@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Text;
-    using System.Threading.Channels;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;

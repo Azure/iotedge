@@ -146,9 +146,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Task<bool> HandleTwinGet(Match match, MqttPublishInfo publishInfo)
         {
             return this.HandleUpstreamRequest(
-                        async (proxy, rid) =>
+                        async (listener, rid) =>
                         {
-                            await proxy.SendGetTwinRequest(rid);
+                            await listener.SendGetTwinRequest(rid);
                         },
                         match,
                         publishInfo);
@@ -157,10 +157,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Task<bool> HandleUpdateReported(Match match, MqttPublishInfo publishInfo)
         {
             return this.HandleUpstreamRequest(
-                        async (proxy, rid) =>
+                        async (listener, rid) =>
                         {
                             var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
-                            await proxy.UpdateReportedPropertiesAsync(message, rid);
+                            await listener.UpdateReportedPropertiesAsync(message, rid);
                         },
                         match,
                         publishInfo);
@@ -176,21 +176,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeProxy = await this.connectionRegistry.GetDeviceListenerAsync(identity);
-            var proxy = default(IDeviceListener);
+            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var listener = default(IDeviceListener);
 
             try
             {
-                proxy = maybeProxy.Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {
-                Events.MissingProxy(identity.Id);
+                Events.MissingListener(identity.Id);
                 return false;
             }
 
             var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
-            await action(proxy, rid.Value);
+            await action(listener, rid.Value);
 
             return true;
         }
@@ -240,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 DesiredPropertiesUpdate,
                 DesiredPropertiesUpdateFailed,
                 DesiredPropertiesUpdateIncompete,
-                MissingProxy,
+                MissingListener,
                 UnexpectedTwinTopic,
                 BadIdentityFormat,
                 FailedToSendTwinUpdateMessage,
@@ -254,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void DesiredPropertiesUpdateFailed(string id, string version, int messageLen) => Log.LogError((int)EventIds.DesiredPropertiesUpdateFailed, $"Failed to send Desired Properties Update to client: {id}, status: {version}, msg len: {messageLen}");
             public static void TwinUpdateIncompete(string id) => Log.LogError((int)EventIds.TwinUpdateIncompete, $"Failed to send Twin Update to client {id} because the message is incomplete - not all system properties are present");
             public static void DesiredPropertiesUpdateIncompete(string id) => Log.LogError((int)EventIds.DesiredPropertiesUpdateIncompete, $"Failed to send Desired Properties Update to client {id} because the message is incomplete - not all system properties are present");
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing device listener for {id}");
+            public static void MissingListener(string id) => Log.LogError((int)EventIds.MissingListener, $"Missing device listener for {id}");
             public static void UnexpectedTwinTopic(string topic) => Log.LogWarning((int)EventIds.UnexpectedTwinTopic, $"Twin-like topic strucure with unexpected format {topic}");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void FailedToSendTwinUpdateMessage(Exception e) => Log.LogError((int)EventIds.FailedToSendTwinUpdateMessage, e, "Failed to send twin update message");
