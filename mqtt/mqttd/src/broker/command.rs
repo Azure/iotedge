@@ -12,8 +12,7 @@ use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 // TODO: get device id from env
 const CLIENT_ID: &str = "deviceid/$edgeHub/$broker/$control";
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
-// const CLIENT_EXTRACTION_REGEX: &str = r"(?<=\$edgehub\/)(.*)(?=\/disconnect)";
-const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub\/(.*?)\/disconnect";
+const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -97,7 +96,7 @@ impl CommandHandler {
             match event {
                 Ok(event) => {
                     if let mqtt3::Event::Publication(publication) = event {
-                        let client_id = Self::parse_client_id(publication.topic_name);
+                        let client_id = parse_client_id(publication.topic_name);
 
                         match client_id {
                             Some(client_id) => {
@@ -121,107 +120,110 @@ impl CommandHandler {
             }
         }
     }
+}
 
-    // TODO: move out so we can test
-    fn parse_client_id(topic_name: String) -> Option<String> {
-        lazy_static! {
-            static ref REGEX: Regex = Regex::new(CLIENT_EXTRACTION_REGEX)
-                .expect("failed to create new Regex from pattern");
-        }
+// TODO: create integration tests with PacketStream rather than mqtt3
+// mock broker handle
+// mock client
 
-        // TODO: clean up
-        // TODO: look at configuration
-        match REGEX.captures(topic_name.as_ref()) {
-            Some(capture) => match capture.get(0) {
-                Some(captured_match) => Some(captured_match.as_str().to_string()),
-                None => {
-                    error!("no client id found for client disconnect topic");
-                    None
+// create command handler
+
+// test case 1: create
+// test case 2: call run and verify
+//              a) subscribed to a given topic
+//              b) subscribed with a given qos
+// test case 3: connect client to broker, simulate a message on the subscribed topic, and verify
+//              a) ForceClientDisconnection
+
+fn parse_client_id(topic_name: String) -> Option<String> {
+    lazy_static! {
+        static ref REGEX: Regex =
+            Regex::new(CLIENT_EXTRACTION_REGEX).expect("failed to create new Regex from pattern");
+    }
+
+    // TODO: clean up
+    // TODO: look at configuration
+    match REGEX.captures(topic_name.as_ref()) {
+        Some(capture) => match capture.get(1) {
+            Some(captured_match) => {
+                let captured_match = captured_match.as_str().to_string();
+                if String::is_empty(&captured_match) {
+                    error!("client id empty for client disconnect topic");
+                    return None;
                 }
-            },
+
+                Some(captured_match)
+            }
             None => {
-                error!("could not parse client id from client disconnect topic");
+                error!("topic name did not match expected structure");
                 None
             }
+        },
+        None => {
+            error!("failed to apply regex to topic name");
+            None
         }
     }
 }
 
-// TODO: create integration tests with PacketStream rather than mqtt3
-
 #[cfg(test)]
 mod tests {
-    // use std::{
-    //     env,
-    //     time::{Duration as StdDuration, Instant},
-    // };
-
-    // use chrono::{Duration, Utc};
-    // use mockito::mock;
-    // use serde_json::json;
+    use crate::broker::command::parse_client_id;
 
     #[tokio::test]
-    async fn it_does_basic_thing() {
-        // mock broker handle
-        // mock client
+    async fn it_parses_client_id() {
+        let client_id: String = "test-client".to_string();
+        let topic: String = "$edgehub/test-client/disconnect".to_string();
 
-        // create command handler
+        let output = parse_client_id(topic).unwrap();
 
-        // test case 1: create
-        // test case 2: call run and verify
-        //              a) subscribed to a given topic
-        //              b) subscribed with a given qos
-        // test case 3: connect client to broker, simulate a message on the subscribed topic, and verify
-        //              a) ForceClientDisconnection
+        assert_eq!(output, client_id);
     }
 
-    // #[tokio::test]
-    // async fn it_downloads_server_cert() {
-    //     let expiration = Utc::now() + Duration::days(90);
-    //     let res = json!(
-    //         {
-    //             "privateKey": { "type": "key", "bytes": PRIVATE_KEY },
-    //             "certificate": CERTIFICATE,
-    //             "expiration": expiration.to_rfc3339()
-    //         }
-    //     );
+    #[tokio::test]
+    async fn it_parses_client_id_with_slash() {
+        let client_id: String = "test/client".to_string();
+        let topic: String = "$edgehub/test/client/disconnect".to_string();
 
-    //     let _m = mock(
-    //         "POST",
-    //         "/modules/$edgeHub/genid/12345678/certificate/server?api-version=2019-01-30",
-    //     )
-    //     .with_status(201)
-    //     .with_body(serde_json::to_string(&res).unwrap())
-    //     .create();
+        let output = parse_client_id(topic).unwrap();
 
-    //     env::set_var(WORKLOAD_URI, mockito::server_url());
-    //     env::set_var(EDGE_DEVICE_HOST_NAME, "localhost");
-    //     env::set_var(MODULE_ID, "$edgeHub");
-    //     env::set_var(MODULE_GENERATION_ID, "12345678");
+        assert_eq!(output, client_id);
+    }
 
-    //     let res = download_server_certificate().await;
-    //     assert!(res.is_ok());
-    // }
+    #[tokio::test]
+    async fn it_parses_client_id_with_slash_disconnect_suffix() {
+        let client_id: String = "test/disconnect".to_string();
+        let topic: String = "$edgehub/test/disconnect/disconnect".to_string();
 
-    // #[tokio::test]
-    // async fn it_schedules_cert_renewal_in_future() {
-    //     let now = Instant::now();
+        let output = parse_client_id(topic).unwrap();
 
-    //     let renew_at = Utc::now() + Duration::milliseconds(100);
-    //     server_certificate_renewal(renew_at).await;
+        assert_eq!(output, client_id);
+    }
 
-    //     let elapsed = now.elapsed();
-    //     assert!(elapsed > StdDuration::from_millis(100));
-    //     assert!(elapsed < StdDuration::from_millis(500));
-    // }
+    #[tokio::test]
+    async fn it_parses_empty_client_id_returning_none() {
+        let topic: String = "$edgehub//disconnect".to_string();
 
-    // #[tokio::test]
-    // async fn it_does_not_schedule_cert_renewal_in_past() {
-    //     let now = Instant::now();
+        let output = parse_client_id(topic);
 
-    //     let renew_at = Utc::now();
-    //     server_certificate_renewal(renew_at).await;
+        assert_eq!(output, None);
+    }
 
-    //     assert!(now.elapsed() < StdDuration::from_millis(100));
-    // }
+    #[tokio::test]
+    async fn it_parses_bad_topic_returning_none() {
+        let topic: String = "$edgehub/disconnect/client-id".to_string();
+
+        let output = parse_client_id(topic);
+
+        assert_eq!(output, None);
+    }
+
+    #[tokio::test]
+    async fn it_parses_empty_topic_returning_none() {
+        let topic: String = "".to_string();
+
+        let output = parse_client_id(topic);
+
+        assert_eq!(output, None);
+    }
 }
