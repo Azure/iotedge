@@ -1,5 +1,4 @@
 mod bootstrap;
-mod command;
 mod shutdown;
 mod snapshot;
 
@@ -13,14 +12,12 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use command::CommandHandler;
-use command::ShutdownHandle as CommandShutdownHandle;
 use mqtt3::ShutdownError;
 use mqtt_broker::{
-    BrokerHandle, FilePersistor, Message, Persist,
-    ShutdownHandle as SnapshotShutdownHandle, Snapshotter, StateSnapshotHandle, SystemEvent,
-    VersionedFileFormat,
+    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle as SnapshotShutdownHandle,
+    Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
+use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where

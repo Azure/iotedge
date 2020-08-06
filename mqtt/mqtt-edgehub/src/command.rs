@@ -120,16 +120,6 @@ impl CommandHandler {
     }
 }
 
-// TODO: create integration tests with PacketStream rather than mqtt3
-// mock broker handle
-// mock client
-
-// create command handler
-
-// test case 1: connect client to broker, simulate a message on the subscribed topic, and verify
-//              a) client disconnected
-// test case 2: same as test case 1 but reconnection
-
 fn parse_client_id(topic_name: String) -> Option<String> {
     lazy_static! {
         static ref REGEX: Regex =
@@ -163,7 +153,7 @@ fn parse_client_id(topic_name: String) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::broker::command::parse_client_id;
+    use crate::command::parse_client_id;
 
     #[tokio::test]
     async fn it_parses_client_id() {

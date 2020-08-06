@@ -15,19 +15,16 @@ use mqtt3::{
 use mqtt_broker::{auth::AllowAll, BrokerBuilder};
 use mqtt_broker_tests_util::{start_server, DummyAuthenticator, PacketStream, TestClientBuilder};
 
-// TEST 1: BASIC
-// connect client
-// create command handler
-// verify client connected
+// TODO: create integration tests with PacketStream rather than mqtt3
 
-// TEST 2: DISCONNECTION
+// TEST 1: DISCONNECTION
 // connect client
 // create command handler
 // verify client connected
 // publish message to disconnect client
 // verify client disconnected
 
-// TEST 3: RECONNECTION / DISCONNECTION
+// TEST 2: DISCONNECTION / RECONNECTION / DISCONNECTION
 // connect client
 // create command handler
 // verify client connected
