@@ -27,9 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly DeviceProxy.Factory deviceProxyFactory;
 
-        readonly Channel<MqttPublishInfo> notifications;
-        readonly Task processingLoop;
-
         AsyncLock guard = new AsyncLock();
 
         // Normal dictionary would be sufficient because of the locks, however we need AddOrUpdate()
@@ -44,15 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             this.identityProvider = Preconditions.CheckNotNull(identityProvider);
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.deviceProxyFactory = Preconditions.CheckNotNull(deviceProxyFactory);
-
-            this.notifications = Channel.CreateUnbounded<MqttPublishInfo>(
-                                    new UnboundedChannelOptions
-                                    {
-                                        SingleReader = true,
-                                        SingleWriter = true
-                                    });
-
-            this.processingLoop = this.StartProcessingLoop();
         }
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
@@ -88,27 +76,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
+        public async Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {
-            switch (publishInfo.Topic)
+            if (string.Equals(publishInfo.Topic, TopicDeviceConnected))
             {
-                case TopicDeviceConnected:
-                    if (!this.notifications.Writer.TryWrite(publishInfo))
-                    {
-                        Events.ErrorEnqueueingNotification();
-                    }
-
-                    return Task.FromResult(true);
-
-                default:
-                    return Task.FromResult(false);
+                try
+                {
+                    await this.HandleDeviceConnectedAsync(publishInfo);
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorProcessingNotification(e);
+                    return false;
+                }
             }
-        }
 
-        public void ProducerStopped()
-        {
-            this.notifications.Writer.Complete();
-            this.processingLoop.Wait();
+            return false;
         }
 
         async Task HandleDeviceConnectedAsync(MqttPublishInfo mqttPublishInfo)
@@ -232,37 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Option.Some(result);
         }
 
-        bool IsSystemComponent(string id)
-        {
-            return string.Equals(id, this.systemComponentIdProvider.EdgeHubBridgeId);
-        }
-
-        Task StartProcessingLoop()
-        {
-            var loopTask = Task.Run(
-                                async () =>
-                                {
-                                    Events.ProcessingLoopStarted();
-
-                                    while (await this.notifications.Reader.WaitToReadAsync())
-                                    {
-                                        var publishInfo = await this.notifications.Reader.ReadAsync();
-
-                                        try
-                                        {
-                                            await this.HandleDeviceConnectedAsync(publishInfo);
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Events.ErrorProcessingNotification(e);
-                                        }
-                                    }
-
-                                    Events.ProcessingLoopStopped();
-                                });
-
-            return loopTask;
-        }
+        bool IsSystemComponent(string id) => string.Equals(id, this.systemComponentIdProvider.EdgeHubBridgeId);
 
         static class Events
         {
@@ -276,9 +230,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 UnknownClientDisconnected,
                 ExistingClientAdded,
                 BlockingDependencyInjection,
-                ProcessingLoopStarted,
-                ProcessingLoopStopped,
-                ErrorEnqueueingNotification,
                 ErrorProcessingNotification,
                 FailedToObtainConnectionProvider
             }
@@ -287,9 +238,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void UnknownClientDisconnected(string identity) => Log.LogWarning((int)EventIds.UnknownClientDisconnected, $"Received disconnect notification about a not-connected client {identity}");
             public static void ExistingClientAdded(string identity) => Log.LogWarning((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
-            public static void ProcessingLoopStarted() => Log.LogInformation((int)EventIds.ProcessingLoopStarted, "Processing loop started");
-            public static void ProcessingLoopStopped() => Log.LogInformation((int)EventIds.ProcessingLoopStopped, "Processing loop stopped");
-            public static void ErrorEnqueueingNotification() => Log.LogError((int)EventIds.ErrorEnqueueingNotification, "Error enqueueing notification");
             public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing [Connect] notification");
             public static void FailedToObtainConnectionProvider() => Log.LogError((int)EventIds.FailedToObtainConnectionProvider, "Failed to obtain ConnectionProvider");
         }

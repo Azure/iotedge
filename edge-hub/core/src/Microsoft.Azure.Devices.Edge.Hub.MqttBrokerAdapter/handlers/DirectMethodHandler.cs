@@ -52,10 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.FromResult(false);
         }
 
-        public void ProducerStopped()
-        {
-        }
-
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
         public async Task<DirectMethodResponse> CallDirectMethodAsync(DirectMethodRequest request, IIdentity identity)

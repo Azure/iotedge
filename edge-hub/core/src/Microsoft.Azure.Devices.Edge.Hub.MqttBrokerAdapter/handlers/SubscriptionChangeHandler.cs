@@ -121,10 +121,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return true;
         }
 
-        public void ProducerStopped()
-        {
-        }
-
         static bool IsMatchWithIds(Match match, Group id1, Group id2)
         {
             if (match.Success)

@@ -45,10 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.FromResult(false);
         }
 
-        public void ProducerStopped()
-        {
-        }
-
         async Task<bool> HandleTelemetry(Match match, MqttPublishInfo publishInfo)
         {
             var id1 = match.Groups["id1"];
