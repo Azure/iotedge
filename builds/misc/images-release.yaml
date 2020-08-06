@@ -28,7 +28,6 @@ jobs:
           targetType: filePath
       - bash: "echo \"##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH\""
         displayName: "Modify path"
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
       - bash: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
@@ -350,7 +349,6 @@ jobs:
             docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
             docker login $(registry.address) -u $(registry.user) -p $(registry.password)
         displayName: 'docker login'
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
         displayName: "Build ($(configuration))"
