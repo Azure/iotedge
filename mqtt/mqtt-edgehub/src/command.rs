@@ -9,6 +9,7 @@ use tracing::{error, info};
 use mqtt3::{proto, Client, IoSource, ShutdownError};
 use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
+// TODO: what if client connects with same id as the command handler client?
 // TODO REVIEW: do we want failures making the client to percolate all the way up and blow up broker?
 // TODO: get device id from env
 const CLIENT_ID: &str = "deviceid/$edgeHub/$broker/$control";
@@ -90,15 +91,14 @@ impl CommandHandler {
         };
 
         while let Some(event) = self.client.next().await {
-            info!("received data");
-
             match event {
                 Ok(event) => {
                     if let mqtt3::Event::Publication(publication) = event {
                         let client_id = parse_client_id(publication.topic_name);
-
                         match client_id {
                             Some(client_id) => {
+                                info!("received disconnection request for client {}", client_id);
+
                                 if let Err(e) = self
                                     .broker_handle
                                     .send(Message::System(SystemEvent::ForceClientDisconnect(
@@ -106,7 +106,9 @@ impl CommandHandler {
                                     )))
                                     .await
                                 {
-                                    error!(message = "failed to signal broker to disconnect client", error=%e);
+                                    error!(message = "failed sending broker signal to disconnect client", error=%e);
+                                } else {
+                                    info!("succeeded sending broker signal to disconnect client")
                                 }
                             }
                             None => {
