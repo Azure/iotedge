@@ -17,7 +17,6 @@ const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
 
-// TODO REVIEW: We need this to map the err in a structured way?
 impl ShutdownHandle {
     pub async fn shutdown(&mut self) -> Result<(), Error> {
         self.0
@@ -65,7 +64,6 @@ impl CommandHandler {
     }
 
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
-        // TODO: handle unwrap
         self.client
             .shutdown_handle()
             .map_or(Err(ShutdownError::ClientDoesNotExist), |shutdown_handle| {
@@ -128,12 +126,9 @@ impl CommandHandler {
 
 // create command handler
 
-// test case 1: create
-// test case 2: call run and verify
-//              a) subscribed to a given topic
-//              b) subscribed with a given qos
-// test case 3: connect client to broker, simulate a message on the subscribed topic, and verify
-//              a) ForceClientDisconnection
+// test case 1: connect client to broker, simulate a message on the subscribed topic, and verify
+//              a) client disconnected
+// test case 2: same as test case 1 but reconnection
 
 fn parse_client_id(topic_name: String) -> Option<String> {
     lazy_static! {
