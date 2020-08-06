@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class LogsRequestHandler : RequestHandlerBase<LogsRequest, IEnumerable<LogsResponse>>
+    public class ModuleLogsRequestHandler : RequestHandlerBase<ModuleLogsRequest, IEnumerable<ModuleLogsResponse>>
     {
         const int MaxTailValue = 500;
 
@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         readonly ILogsProvider logsProvider;
         readonly IRuntimeInfoProvider runtimeInfoProvider;
 
-        public LogsRequestHandler(ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
+        public ModuleLogsRequestHandler(ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
         {
             this.logsProvider = Preconditions.CheckNotNull(logsProvider, nameof(logsProvider));
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
@@ -28,9 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
         public override string RequestName => "GetLogs";
 
-        protected override async Task<Option<IEnumerable<LogsResponse>>> HandleRequestInternal(Option<LogsRequest> payloadOption, CancellationToken cancellationToken)
+        protected override async Task<Option<IEnumerable<ModuleLogsResponse>>> HandleRequestInternal(Option<ModuleLogsRequest> payloadOption, CancellationToken cancellationToken)
         {
-            LogsRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
+            ModuleLogsRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
             if (ExpectedSchemaVersion.CompareMajorVersion(payload.SchemaVersion, "logs upload request schema") != 0)
             {
                 Events.MismatchedMinorVersions(payload.SchemaVersion, ExpectedSchemaVersion);
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 false);
 
             IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
-            IEnumerable<Task<LogsResponse>> uploadLogsTasks = logOptionsList.Select(
+            IEnumerable<Task<ModuleLogsResponse>> uploadLogsTasks = logOptionsList.Select(
                 async l =>
                 {
                     Events.ReceivedLogOptions(l);
@@ -65,17 +65,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
                     Events.ReceivedModuleLogs(moduleLogs, l.id);
                     return logOptions.ContentEncoding == LogsContentEncoding.Gzip
-                        ? new LogsResponse(l.id, moduleLogs)
-                        : new LogsResponse(l.id, moduleLogs.FromBytes());
+                        ? new ModuleLogsResponse(l.id, moduleLogs)
+                        : new ModuleLogsResponse(l.id, moduleLogs.FromBytes());
                 });
-            IEnumerable<LogsResponse> response = await Task.WhenAll(uploadLogsTasks);
+            IEnumerable<ModuleLogsResponse> response = await Task.WhenAll(uploadLogsTasks);
             return Option.Some(response);
         }
 
         static class Events
         {
             const int IdStart = AgentEventIds.LogsRequestHandler;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<LogsRequestHandler>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ModuleLogsRequestHandler>();
 
             enum EventIds
             {
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 }
             }
 
-            public static void ProcessingRequest(LogsRequest payload)
+            public static void ProcessingRequest(ModuleLogsRequest payload)
             {
                 Log.LogInformation((int)EventIds.ProcessingRequest, $"Processing request to get logs for {payload.ToJson()}");
             }
