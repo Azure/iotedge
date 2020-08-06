@@ -122,6 +122,7 @@ impl CommandHandler {
         }
     }
 
+    // TODO: move out so we can test
     fn parse_client_id(topic_name: String) -> Option<String> {
         lazy_static! {
             static ref REGEX: Regex = Regex::new(CLIENT_EXTRACTION_REGEX)
@@ -145,6 +146,8 @@ impl CommandHandler {
         }
     }
 }
+
+// TODO: create integration tests with PacketStream rather than mqtt3
 
 #[cfg(test)]
 mod tests {
