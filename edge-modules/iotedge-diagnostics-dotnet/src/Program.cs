@@ -86,18 +86,9 @@ namespace Diagnostics
                 proxyClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
 
                 //Get TcpClient to futher work
-                try
-                {
-                    var client = proxyClient.CreateConnection(hostname, int.Parse(port));
-                    client.GetStream();
-                }
-                catch (ProxyException ex)
-                {
-                    // forbidden is ok, ignore
-                    if(!ex.Message.Contains("403")) {
-                        throw ex;
-                    }
-                }
+                var client = proxyClient.CreateConnection(hostname, int.Parse(port));
+                client.GetStream();
+
             }
             else
             {
