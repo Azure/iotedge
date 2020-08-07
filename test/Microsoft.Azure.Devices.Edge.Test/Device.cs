@@ -36,9 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 dns = new[] { "1.1.1.1" }
             });
 
+            File.WriteAllText(configPath, config);
+
             await this.runtime.DeployConfigurationAsync(token);
 
-            File.WriteAllText("C:\\ProgramData\\iotedge-moby\\config\\daemon.json", config);
             string after = await File.ReadAllTextAsync(configPath, token);
             Log.Information($">>> Contents of '{configPath}' after write:\n{after}");
 
