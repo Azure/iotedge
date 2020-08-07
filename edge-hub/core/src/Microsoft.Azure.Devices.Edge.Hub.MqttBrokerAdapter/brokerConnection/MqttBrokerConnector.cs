@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(10);
         readonly IComponentDiscovery components;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
-        readonly Dictionary<ushort, TaskCompletionSource<bool>> pendingAcks = new Dictionary<ushort, TaskCompletionSource<bool>>();
         readonly IMqttClientProvider _mqttClientProvider;
         readonly object guard = new object();
         bool _connecting;
@@ -59,14 +58,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 client.RegisterMessageHandler(this);
                 this.mqttClient =  Option.Some(client);
                 _connecting = true;
+
+                this.publications = Option.Some(Channel.CreateUnbounded<MqttPublishInfo>(
+                                        new UnboundedChannelOptions
+                                        {
+                                            SingleReader = true,
+                                            SingleWriter = true
+                                        }));
             }
 
-            this.publications = Option.Some(Channel.CreateUnbounded<MqttPublishInfo>(
-                                    new UnboundedChannelOptions
-                                    {
-                                        SingleReader = true,
-                                        SingleWriter = true
-                                    }));
 
             this.forwardingLoop = Option.Some(this.StartForwardingLoop());
 
@@ -100,44 +100,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 clientToStop = this.mqttClient;
                 this.mqttClient = Option.None<IMqttClient>();
+                this.publications = Option.None<Channel<MqttPublishInfo>>();
                 _connecting = false;
             }
 
-            try
-            {
-                await clientToStop.ForEachAsync(
-                        async client =>
+            await clientToStop.ForEachAsync(
+                    async client =>
+                    {
+                        try
                         {
-                            try
-                            {
-                                await client.DisconnectAsync(new CancellationTokenSource(OperationTimeout).Token);
-                            }
-                            catch
-                            {
-                                // swallowing: when the container is shutting down, it is possible that the broker disconnected.
-                                // in those case an internal socket will be deleted and this Disconnect() call ends up in a
-                                // Disposed() exception.
-                            }
-
-                            await this.StopForwardingLoopAsync();
-
-                            Events.Closed();
-                        },
-                        () =>
+                            await client.DisconnectAsync(new CancellationTokenSource(OperationTimeout).Token);
+                        }
+                        catch
                         {
-                            Events.ClosedWhenNotRunning();
-                            throw new InvalidOperationException("Cannot stop mqtt-bridge connector when not running");
-                        });
-            }
-            finally
-            {
-                foreach (var tcs in this.pendingAcks.Values)
-                {
-                    tcs.SetCanceled();
-                }
+                            // swallowing: when the container is shutting down, it is possible that the broker disconnected.
+                            // in those case an internal socket will be deleted and this Disconnect() call ends up in a
+                            // Disposed() exception.
+                        }
 
-                this.pendingAcks.Clear();
-            }
+                        await this.StopForwardingLoopAsync();
+
+                        Events.Closed();
+                    },
+                    () =>
+                    {
+                        Events.ClosedWhenNotRunning();
+                        throw new InvalidOperationException("Cannot stop mqtt-bridge connector when not running");
+                    });
+            
         }
 
         public async Task<bool> SendAsync(string topic, byte[] payload)
