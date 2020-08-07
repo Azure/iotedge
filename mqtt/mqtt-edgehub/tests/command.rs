@@ -26,8 +26,6 @@ use tokio::task::JoinHandle;
 // verify client disconnected
 #[tokio::test]
 async fn command_handler_client_disconnection() {
-    let topic = "$edgehub/test-client/disconnect";
-
     let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let (mut command_handler_shutdown_handle, join_handle) = start_command_handler(broker.handle())
@@ -50,6 +48,7 @@ async fn command_handler_client_disconnection() {
         .with_client_id(ClientId::IdWithCleanSession("$edgehub".into()))
         .build();
 
+    let topic = "$edgehub/test-client/disconnect";
     edgehub_client.publish_qos1(topic, "qos 1", false).await;
 
     assert_eq!(
