@@ -1,5 +1,3 @@
-#![allow(warnings)]
-
 use std::convert::TryInto;
 use std::net::TcpStream;
 use std::str::FromStr;
@@ -7,9 +5,8 @@ use std::str::FromStr;
 use failure::{Context, ResultExt};
 use hyper::client::connect::{Connect, Destination};
 use hyper::client::HttpConnector;
-use hyper::{Client, Request, Uri};
-
-use hyper_proxy::*;
+use hyper::Uri;
+use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 
 use edgelet_core::{self, ProvisioningType, RuntimeSettings};
 
@@ -63,8 +60,8 @@ impl HostConnectDpsEndpoint {
             .agent()
             .env()
             .get("https_proxy")
-            .map(|s| s.as_str());
-        self.proxy = proxy.map(|s| s.to_owned());
+            .map(std::string::String::as_str);
+        self.proxy = proxy.map(std::borrow::ToOwned::to_owned);
 
         resolve_and_tls_handshake(&dps_endpoint, dps_hostname, dps_hostname, proxy)?;
 
@@ -101,7 +98,7 @@ pub fn resolve_and_tls_handshake(
 
     if let Some(proxy_str) = proxy {
         let proxy_uri = Uri::from_str(proxy_str).with_context(|_| "Could not make proxy uri")?;
-        let mut proxy_obj = Proxy::new(Intercept::All, proxy_uri);
+        let proxy_obj = Proxy::new(Intercept::All, proxy_uri);
         let mut http_connector = HttpConnector::new(1);
         http_connector.set_local_address(Some(host_addr.ip()));
         let proxy_connector = ProxyConnector::from_proxy(http_connector, proxy_obj)

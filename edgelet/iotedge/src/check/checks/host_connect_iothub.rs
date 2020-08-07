@@ -63,7 +63,7 @@ impl HostConnectIotHub {
         self.proxy = check
             .settings
             .as_ref()
-            .and_then(|settings| settings.agent().env().get("https_proxy").map(|s| s.clone()));
+            .and_then(|settings| settings.agent().env().get("https_proxy").cloned());
 
         super::host_connect_dps_endpoint::resolve_and_tls_handshake(
             &(&**iothub_hostname, self.port_number),

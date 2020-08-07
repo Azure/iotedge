@@ -114,8 +114,8 @@ impl ContainerConnectIotHub {
             .agent()
             .env()
             .get("https_proxy")
-            .map(|s| s.as_str());
-        self.proxy = proxy.map(|s| s.to_owned());
+            .map(std::string::String::as_str);
+        self.proxy = proxy.map(std::borrow::ToOwned::to_owned);
 
         self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
         args.extend(&[
