@@ -1,6 +1,15 @@
+#![allow(warnings)]
+
+use std::convert::TryInto;
 use std::net::TcpStream;
+use std::str::FromStr;
 
 use failure::{Context, ResultExt};
+use hyper::client::connect::{Connect, Destination};
+use hyper::client::HttpConnector;
+use hyper::{Client, Request, Uri};
+
+use hyper_proxy::*;
 
 use edgelet_core::{self, ProvisioningType, RuntimeSettings};
 
@@ -72,7 +81,7 @@ pub fn resolve_and_tls_handshake(
     to_socket_addrs: &impl std::net::ToSocketAddrs,
     tls_hostname: &str,
     hostname_display: &str,
-    _proxy: Option<&str>,
+    proxy: Option<&str>,
 ) -> Result<(), failure::Error> {
     let host_addr = to_socket_addrs
         .to_socket_addrs()
@@ -90,24 +99,43 @@ pub fn resolve_and_tls_handshake(
             ))
         })?;
 
-    let stream = TcpStream::connect_timeout(&host_addr, std::time::Duration::from_secs(10))
-        .with_context(|_| format!("Could not connect to {}", hostname_display))?;
+    if let Some(proxy_str) = proxy {
+        let proxy_uri = Uri::from_str(proxy_str).with_context(|_| "Could not make proxy uri")?;
+        let mut proxy_obj = Proxy::new(Intercept::All, proxy_uri);
+        let mut http_connector = HttpConnector::new(1);
+        http_connector.set_local_address(Some(host_addr.ip()));
+        let proxy_connector = ProxyConnector::from_proxy(http_connector, proxy_obj)
+            .with_context(|_| "Could not make proxy connector")?;
 
-    let tls_connector = native_tls::TlsConnector::new().with_context(|_| {
-        format!(
-            "Could not connect to {} : could not create TLS connector",
-            hostname_display,
-        )
-    })?;
+        let hostname =
+            Uri::from_str(tls_hostname).with_context(|_| "Could not make hostname uri")?;
+        let hostname: Result<Destination, _> = hostname.try_into();
+        let hostname = hostname.with_context(|_| "Could not make hostname uri")?;
+        let connect_future = proxy_connector.connect(hostname);
 
-    let _ = tls_connector
-        .connect(tls_hostname, stream)
-        .with_context(|_| {
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(connect_future)
+            .with_context(|_| format!("Could not connect to {}", hostname_display))?;
+    } else {
+        let stream = TcpStream::connect_timeout(&host_addr, std::time::Duration::from_secs(10))
+            .with_context(|_| format!("Could not connect to {}", hostname_display))?;
+
+        let tls_connector = native_tls::TlsConnector::new().with_context(|_| {
             format!(
-                "Could not connect to {} : could not complete TLS handshake",
+                "Could not connect to {} : could not create TLS connector",
                 hostname_display,
             )
         })?;
+        let _ = tls_connector
+            .connect(tls_hostname, stream)
+            .with_context(|_| {
+                format!(
+                    "Could not connect to {} : could not complete TLS handshake",
+                    hostname_display,
+                )
+            })?;
+    }
 
     Ok(())
 }
