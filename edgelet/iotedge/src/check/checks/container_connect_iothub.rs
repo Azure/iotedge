@@ -110,13 +110,6 @@ impl ContainerConnectIotHub {
             args.extend(&["--network", network_name]);
         }
 
-        let proxy = settings
-            .agent()
-            .env()
-            .get("https_proxy")
-            .map(std::string::String::as_str);
-        self.proxy = proxy.map(std::borrow::ToOwned::to_owned);
-
         self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
         args.extend(&[
             &check.diagnostics_image_name,
@@ -127,6 +120,16 @@ impl ContainerConnectIotHub {
             "--port",
             &port,
         ]);
+
+        let proxy = settings
+            .agent()
+            .env()
+            .get("https_proxy")
+            .map(std::string::String::as_str);
+        self.proxy = proxy.map(std::borrow::ToOwned::to_owned);
+        if let Some(proxy) = proxy {
+            args.extend(&["--proxy", proxy]);
+        }
 
         if let Err((_, err)) = super::docker(docker_host_arg, args) {
             return Err(err
