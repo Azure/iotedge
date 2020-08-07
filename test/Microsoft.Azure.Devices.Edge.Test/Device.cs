@@ -28,7 +28,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 output = await Process.RunAsync(
                     "iotedge",
-                    "check --dont-run iotedged-version certificates-quickstart container-engine-logrotate edge-agent-storage-mounted-from-host edge-hub-storage-mounted-from-host",
+                    new[]
+                    {
+                        "check",
+                        "--diagnostics-image-name",
+                        "mcr.microsoft.com/azureiotedge-diagnostics:1.0.10-rc1",
+                        "--dont-run",
+                        "iotedged-version",
+                        "certificates-quickstart",
+                        "container-engine-logrotate",
+                        "edge-agent-storage-mounted-from-host",
+                        "edge-hub-storage-mounted-from-host"
+                    }.Join(" "),
                     token);
             }
             catch (Exception e)
