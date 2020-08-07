@@ -25,8 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ImagePullPolicy imagePullPolicy,
             uint priority,
             ConfigurationInfo configuration,
-            IDictionary<string, EnvVal> env)
-            : base(name, version, desiredStatus, restartPolicy, config, imagePullPolicy, priority, configuration, env)
+            IDictionary<string, EnvVal> env,
+            IDictionary<string, string> secrets)
+            : base(name, version, desiredStatus, restartPolicy, config, imagePullPolicy, priority, configuration, env, secrets)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
@@ -55,7 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ImagePullPolicy imagePullPolicy,
             uint priority,
             ConfigurationInfo configurationInfo,
-            IDictionary<string, EnvVal> env)
+            IDictionary<string, EnvVal> env,
+            IDictionary<string, string> secrets)
             : this(
                 name,
                 version,
@@ -72,7 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 imagePullPolicy,
                 priority,
                 configurationInfo,
-                env)
+                env,
+                secrets)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
         }
@@ -162,6 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.ImagePullPolicy,
             this.Priority,
             this.ConfigurationInfo,
-            this.Env);
+            this.Env,
+            this.Secrets);
     }
 }
