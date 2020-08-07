@@ -91,10 +91,12 @@ namespace Diagnostics
                     var client = proxyClient.CreateConnection(hostname, int.Parse(port));
                     client.GetStream();
                 }
-                catch (AggregateException ae)
+                catch (ProxyException ex)
                 {
-                    // forbidden exceptions are fine, ignore
-                    ae.Handle(ex => (ex is ProxyException) ? ex.Message.Contains("403") : false);
+                    // forbidden is ok, ignore
+                    if(!ex.Message.Contains("403")) {
+                        throw ex;
+                    }
                 }
             }
             else
