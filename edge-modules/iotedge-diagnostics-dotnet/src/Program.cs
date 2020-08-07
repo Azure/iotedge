@@ -19,6 +19,7 @@ namespace Diagnostics
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using ProxyLib.Proxy;
+    using ProxyLib.Proxy.Exceptions;
 
     class Program
     {
@@ -73,19 +74,28 @@ namespace Diagnostics
         {
             if (proxy != null)
             {
+                // Uses https://github.com/grinay/ProxyLib
                 var tempProxy = proxy.Split(':');
                 string proxyAddress = tempProxy[0];
                 int proxyPort = int.Parse(tempProxy[1]);
                 ProxyClientFactory factory = new ProxyClientFactory();
-                IProxyClient proxyClient = factory.CreateProxyClient(ProxyType.None, proxyAddress, proxyPort);
+                IProxyClient proxyClient = factory.CreateProxyClient(ProxyType.Http, proxyAddress, proxyPort);
 
                 //Setup timeouts
                 proxyClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
                 proxyClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
 
                 //Get TcpClient to futher work
-                var client = proxyClient.CreateConnection(hostname, int.Parse(port));
-                client.GetStream();
+                try
+                {
+                    var client = proxyClient.CreateConnection(hostname, int.Parse(port));
+                    client.GetStream();
+                }
+                catch (AggregateException ae)
+                {
+                    // forbidden exceptions are fine, ignore
+                    ae.Handle(ex => (ex is ProxyException) ? ex.Message.Contains("403") : false);
+                }
             }
             else
             {
