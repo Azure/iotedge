@@ -21,20 +21,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config1 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.None<string>());
         static readonly DockerConfig Config2 = new DockerConfig("image2:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.None<string>());
         static readonly IDictionary<string, EnvVal> DefaultEnvVals = new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val1") };
-        static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module3 = new DockerModule("mod3", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module4 = new DockerModule("mod1", "version2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module6 = new DockerModule("mod1", "version1", ModuleStatus.Unknown, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module7 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module10 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val2") });
-        static readonly IModule Module11 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.Never, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule Module12 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly IModule ModuleWithConfig = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("c1"), DefaultEnvVals);
-        static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
-        static readonly DockerModule ValidJsonModuleWithPriority = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IDictionary<string, string> DefaultSecrets = new Dictionary<string, string> { ["A"] = "B" };
+        static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule Module3 = new DockerModule("mod3", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule Module4 = new DockerModule("mod1", "version2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule Module6 = new DockerModule("mod1", "version1", ModuleStatus.Unknown, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule Module7 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly DockerModule Module8 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule Module10 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val2") }, DefaultSecrets);
+        static readonly IModule Module11 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.Never, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule Module12 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly IModule ModuleWithConfig = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("c1"), DefaultEnvVals, DefaultSecrets);
+        static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
+        static readonly DockerModule ValidJsonModuleWithPriority = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, DefaultEnvVals, DefaultSecrets);
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
             @"
@@ -361,10 +362,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, (ImagePullPolicy)int.MaxValue, Constants.DefaultPriority, null, null));
+            Assert.Throws<ArgumentNullException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, (ImagePullPolicy)int.MaxValue, Constants.DefaultPriority, null, null, null));
         }
 
         [Fact]
@@ -478,7 +479,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // Arrange
             string createOptions = @"{""Env"": [""k1=v1"",""k2=v2""]}";
             var config = new DockerConfig("ubuntu:latest", createOptions, Option.None<string>());
-            var module = new DockerModule("testser", "1.0", ModuleStatus.Running, RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
+            var module = new DockerModule("testser", "1.0", ModuleStatus.Running, RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null, null);
 
             // Act
             string json = ModuleSerde.Instance.Serialize(module);

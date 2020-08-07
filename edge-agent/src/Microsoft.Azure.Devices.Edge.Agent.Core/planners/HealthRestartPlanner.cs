@@ -36,17 +36,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     {
         readonly ICommandFactory commandFactory;
         readonly IEntityStore<string, ModuleState> store;
+        readonly ISecretStore secretStore;
         readonly TimeSpan intensiveCareTime;
         readonly IRestartPolicyManager restartManager;
 
         public HealthRestartPlanner(
             ICommandFactory commandFactory,
             IEntityStore<string, ModuleState> store,
+            ISecretStore secretStore,
             TimeSpan intensiveCareTime,
             IRestartPolicyManager restartManager)
         {
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
             this.store = Preconditions.CheckNotNull(store, nameof(store));
+            this.secretStore = Preconditions.CheckNotNull(secretStore);
             this.intensiveCareTime = intensiveCareTime;
             this.restartManager = Preconditions.CheckNotNull(restartManager, nameof(restartManager));
         }
@@ -74,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             List<ICommand> commands = new List<ICommand>();
 
             // WARN: handles all secret commands irrespective of priority
-            commands.AddRange(await GetUpdateSecretsCommands(desired.Modules.Values, current.Modules.Values));
+            commands.AddRange(GetUpdateSecretsCommands(desired.Modules.Values, current.Modules.Values));
 
             // Create a grouping of desired and current modules based on their priority.
             // We want to process all the modules in the deployment (desired modules) and also include the modules
@@ -393,7 +396,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return updateRuntimeCommands;
         }
 
-        async Task<IEnumerable<ICommand>> GetUpdateSecretsCommands(IEnumerable<IModule> currentModules, IEnumerable<IModule> desiredModules)
+        IEnumerable<ICommand> GetUpdateSecretsCommands(IEnumerable<IModule> currentModules, IEnumerable<IModule> desiredModules)
         {
             IList<(IModule, string, string)> currentSecrets = currentModules
                 .SelectMany(mod => mod.Secrets.Select(ent => (mod, ent.Key, ent.Value)))
@@ -402,16 +405,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                  .SelectMany(mod => mod.Secrets.Select(ent => (mod, ent.Key, ent.Value)))
                  .ToImmutableList();
 
-            IEnumerable<ICommand> removeSecretCommands = await Task.WhenAll(
-                    currentSecrets
+            IEnumerable<ICommand> removeSecretCommands = currentSecrets
                         .Except(desiredSecrets)
-                        .Select(ent => this.commandFactory.DeleteSecretAsync(ent.Item1, ent.Item2))
-                );
-            IEnumerable<ICommand> addSecretCommands = await Task.WhenAll(
-                    desiredSecrets
+                        .Select(ent => new DeleteSecretCommand(this.secretStore, ent.Item1, ent.Item2));
+            IEnumerable<ICommand> addSecretCommands = desiredSecrets
                         .Except(currentSecrets)
-                        .Select(async ent => await this.commandFactory.PullSecretAsync(ent.Item1, ent.Item2, ent.Item3))
-                );
+                        .Select(ent => new PullSecretCommand(this.secretStore, ent.Item1, ent.Item2, ent.Item3));
 
             return removeSecretCommands.Concat(addSecretCommands);
         }

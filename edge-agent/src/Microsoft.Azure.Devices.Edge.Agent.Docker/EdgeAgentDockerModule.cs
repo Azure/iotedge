@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -13,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonConstructor]
         public EdgeAgentDockerModule(string type, DockerConfig settings, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env, string version = "")
-            : base(Core.Constants.EdgeAgentModuleName, version, ModuleStatus.Running, RestartPolicy.Always, settings, imagePullPolicy, Core.Constants.HighestPriority, configuration, env)
+            : base(Core.Constants.EdgeAgentModuleName, version, ModuleStatus.Running, RestartPolicy.Always, settings, imagePullPolicy, Core.Constants.HighestPriority, configuration, env, ImmutableDictionary<string, string>.Empty)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
         }

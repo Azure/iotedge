@@ -149,9 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             string minDockerVersion = "20";
             string dockerLoggingOptions = "dummy logging options";
 
-            var module1 = new DockerModule("module1", "v1", ModuleStatus.Stopped, RestartPolicy.Always, new DockerConfig("mod1:v1", "{\"Env\":[\"foo=bar\"]}", Option.None<string>()), ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null);
-            var module2 = new DockerModule("module2", "v2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, new DockerConfig("mod2:v2", "{\"Env\":[\"foo2=bar2\"]}", Option.None<string>()), ImagePullPolicy.Never, Constants.DefaultPriority, new ConfigurationInfo(), null);
-            var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}", Option.None<string>()), ImagePullPolicy.OnCreate, Constants.HighestPriority, new ConfigurationInfo(), null);
+            var module1 = new DockerModule("module1", "v1", ModuleStatus.Stopped, RestartPolicy.Always, new DockerConfig("mod1:v1", "{\"Env\":[\"foo=bar\"]}", Option.None<string>()), ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null, null);
+            var module2 = new DockerModule("module2", "v2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, new DockerConfig("mod2:v2", "{\"Env\":[\"foo2=bar2\"]}", Option.None<string>()), ImagePullPolicy.Never, Constants.DefaultPriority, new ConfigurationInfo(), null, null);
+            var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}", Option.None<string>()), ImagePullPolicy.OnCreate, Constants.HighestPriority, new ConfigurationInfo(), null, null);
             var edgeAgentModule = new EdgeAgentDockerModule("docker", new DockerConfig("edgeAgent:v1", string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
             var deploymentConfig = new DeploymentConfig(
                 "1.0",

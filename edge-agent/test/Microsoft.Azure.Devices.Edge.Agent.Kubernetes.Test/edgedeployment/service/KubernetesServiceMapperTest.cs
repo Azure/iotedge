@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
 
         static readonly IDictionary<string, EnvVal> EnvVarsDict = new Dictionary<string, EnvVal>();
+        static readonly IDictionary<string, string> SecretsDict = new Dictionary<string, string>();
 
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
 
@@ -54,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         static KubernetesModule CreateKubernetesModule(CreatePodParameters podParameters)
         {
             var config = new KubernetesConfig("image", podParameters, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict, SecretsDict);
             var owner = new KubernetesModuleOwner("v1", "Owner", "an-owner", "a-uid");
             return new KubernetesModule(docker, config, owner);
         }

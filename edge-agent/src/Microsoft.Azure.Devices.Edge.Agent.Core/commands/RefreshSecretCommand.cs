@@ -5,27 +5,27 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
-    public class GetSecretCommand : ICommand
+    public class RefreshSecretCommand : ICommand
     {
         readonly IModule module;
-        readonly ISecretManager secretManager;
+        readonly ISecretStore secretManager;
         readonly string secretId;
 
-        public GetSecretCommand(ISecretManager secretManager, IModule module, string secretId)
+        public RefreshSecretCommand(ISecretStore secretManager, IModule module, string secretId)
         {
             this.secretManager = secretManager;
             this.module = module;
             this.secretId = secretId;
         }
 
-        public string Id => $"GetSecret({this.module.Name}, {this.secretId})";
+        public string Id => $"RefreshSecret({this.module.Name}, {this.secretId})";
 
         public Task ExecuteAsync(CancellationToken _token) => this.secretManager.GetSecretAsync(this.module.Name, this.secretId);
 
         public Task UndoAsync(CancellationToken _token) => Task.CompletedTask;
 
-        public string Show() => $"Get secret {this.secretId} for module {this.module.Name}";
+        public string Show() => $"Refresh secret {this.secretId} for module {this.module.Name}";
     }
 }
