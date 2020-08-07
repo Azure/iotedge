@@ -39,7 +39,7 @@ jobs:
           command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
-          buildContext: .
+          buildContext: mqtt/.
           tags: $(Build.BuildNumber)-$(os)-$(arch)
       
       - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
@@ -81,7 +81,7 @@ jobs:
           command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
-          buildContext: .
+          buildContext: mqtt/.
           tags: $(Build.BuildNumber)-$(os)-$(arch)
 
       - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt

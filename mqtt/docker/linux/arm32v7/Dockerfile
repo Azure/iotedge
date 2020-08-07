@@ -8,7 +8,7 @@ RUN adduser -Du ${MQTTDUSER_ID} mqttduser
 EXPOSE 1883/tcp
 EXPOSE 8883/tcp
 
-ADD ./mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
+ADD ./target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
 
 USER mqttduser
 
