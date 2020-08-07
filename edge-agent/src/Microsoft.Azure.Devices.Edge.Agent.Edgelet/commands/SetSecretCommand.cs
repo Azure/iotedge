@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 {
     public class SetSecretCommand : ICommand
     {

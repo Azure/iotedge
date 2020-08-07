@@ -4,9 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Diagnostics;
     using System.Linq;
-    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -14,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
-    using Org.BouncyCastle.Math.EC.Rfc7748;
     using DiffState = System.ValueTuple<
         // added modules
         System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
@@ -75,6 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Events.LogCurrent(current);
 
             List<ICommand> commands = new List<ICommand>();
+
+            // WARN: handles all secret commands irrespective of priority
+            commands.AddRange(await GetUpdateSecretsCommands(desired.Modules.Values, current.Modules.Values));
 
             // Create a grouping of desired and current modules based on their priority.
             // We want to process all the modules in the deployment (desired modules) and also include the modules
@@ -391,6 +391,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             }
 
             return updateRuntimeCommands;
+        }
+
+        async Task<IEnumerable<ICommand>> GetUpdateSecretsCommands(IEnumerable<IModule> currentModules, IEnumerable<IModule> desiredModules)
+        {
+            IList<(IModule, string, string)> currentSecrets = currentModules
+                .SelectMany(mod => mod.Secrets.Select(ent => (mod, ent.Key, ent.Value)))
+                .ToImmutableList();
+            IList<(IModule, string, string)> desiredSecrets = desiredModules
+                 .SelectMany(mod => mod.Secrets.Select(ent => (mod, ent.Key, ent.Value)))
+                 .ToImmutableList();
+
+            IEnumerable<ICommand> removeSecretCommands = await Task.WhenAll(
+                    currentSecrets
+                        .Except(desiredSecrets)
+                        .Select(ent => this.commandFactory.DeleteSecretAsync(ent.Item1, ent.Item2))
+                );
+            IEnumerable<ICommand> addSecretCommands = await Task.WhenAll(
+                    desiredSecrets
+                        .Except(currentSecrets)
+                        .Select(async ent => await this.commandFactory.PullSecretAsync(ent.Item1, ent.Item2, ent.Item3))
+                );
+
+            return removeSecretCommands.Concat(addSecretCommands);
         }
 
         static class Events
