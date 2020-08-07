@@ -11,10 +11,34 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using NUnit.Framework;
+    using Serilog;
 
     [EndToEnd]
     class Device : SasManualProvisioningFixture
     {
+        [Test]
+        public async Task IotedgeCheck()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token);
+
+            string[] output = null;
+            try
+            {
+                output = await Process.RunAsync(
+                    "iotedge",
+                    "check --dont-run iotedged-version certificates-quickstart container-engine-logrotate edge-agent-storage-mounted-from-host edge-hub-storage-mounted-from-host",
+                    token);
+            }
+            catch (Exception e)
+            {
+                Log.Information($"iotedge check failed with error:\n{e.ToString()}");
+            }
+
+            Log.Information($">>> iotedge check results:\n{output?.Join("\n") ?? "<none>"}");
+        }
+
         [Test]
         [Category("CentOsSafe")]
         public async Task QuickstartCerts()
