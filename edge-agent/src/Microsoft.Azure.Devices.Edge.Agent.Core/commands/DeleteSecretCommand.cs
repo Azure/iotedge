@@ -5,15 +5,15 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
     public class DeleteSecretCommand : ICommand
     {
         readonly IModule module;
-        readonly ISecretManager secretManager;
+        readonly ISecretStore secretManager;
         readonly string secretId;
 
-        public DeleteSecretCommand(ISecretManager secretManager, IModule module, string secretId)
+        public DeleteSecretCommand(ISecretStore secretManager, IModule module, string secretId)
         {
             this.secretManager = secretManager;
             this.module = module;

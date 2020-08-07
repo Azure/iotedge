@@ -100,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .As<IDeviceManager>()
+                .As<ISecretStore>()
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager

@@ -5,16 +5,16 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 {
     public class PullSecretCommand : ICommand
     {
         readonly IModule module;
-        readonly ISecretManager secretManager;
+        readonly ISecretStore secretManager;
         readonly string secretId;
         readonly string akvId;
 
-        public PullSecretCommand(ISecretManager secretManager, IModule module, string secretId, string akvId)
+        public PullSecretCommand(ISecretStore secretManager, IModule module, string secretId, string akvId)
         {
             this.secretManager = secretManager;
             this.module = module;
