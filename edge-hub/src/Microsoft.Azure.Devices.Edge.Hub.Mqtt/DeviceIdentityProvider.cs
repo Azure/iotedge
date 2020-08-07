@@ -83,7 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     || !clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)
                     || !await this.authenticator.AuthenticateAsync(deviceCredentials))
                 {
-                    Core.Device.DeviceConnectionMetrics.Instance.LogAuthenticationFailure(1, clientId, "not authenticated", "MQTT");
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
                 }

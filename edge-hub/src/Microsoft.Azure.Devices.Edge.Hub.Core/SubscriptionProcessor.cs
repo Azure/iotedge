@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     () => this.ProcessSubscription(id, cloudProxy, deviceSubscription, addSubscription),
                     r =>
                         {
-                            OperationMetrics.Instance.LogRetryOperation(1, id, addSubscription ? "AddSubscription" : "RemoveSubscription");
+                            Metrics.AddRetryOperation(id, addSubscription ? "AddSubscription" : "RemoveSubscription");
                             Events.ErrorProcessingSubscription(id, deviceSubscription, addSubscription, r);
                         });
             }
@@ -299,6 +299,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Log.LogInformation((int)EventIds.ProcessingSubscriptionsNoCloudProxy, Invariant($"Processing pending subscriptions for {id}, but no cloud proxy was found"));
             }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsCounter RetriesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "operation_retry",
+                "Operation retries",
+                new List<string> { "id", "operation", MetricsConstants.MsTelemetry});
+
+            public static void AddRetryOperation(string id, string operation) => RetriesCounter.Increment(1, new[] { id, operation, bool.TrueString });
         }
     }
 }

@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                         throw;
                     }
 
-                    OperationMetrics.Instance.LogRetryOperation(1, this.id, operation);
+                    Metrics.AddRetryOperation(this.id, operation);
                     Events.Retrying(this.id, e, operation);
                 }
             }
@@ -152,6 +152,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
             {
                 Log.LogDebug((int)EventIds.GotNewCloudProxy, $"Get new cloud proxy for client {id}");
             }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsCounter RetriesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                    "operation_retry",
+                    "Operation retries",
+                    new List<string> { "id", "operation", MetricsConstants.MsTelemetry });
+
+            public static void AddRetryOperation(string id, string operation) => RetriesCounter.Increment(1, new[] { id, operation, bool.TrueString });
         }
     }
 }

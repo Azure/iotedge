@@ -142,7 +142,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             if (!await authenticator.AuthenticateAsync(clientCredentials))
             {
-                DeviceConnectionMetrics.Instance.LogAuthenticationFailure(1, identity.Id, "not authenticated", "HTTP");
                 return LogAndReturnFailure($"Unable to authenticate device with Id {identity.Id}");
             }
 

@@ -73,7 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
         {
             if (!await this.Authenticate())
             {
-                DeviceConnectionMetrics.Instance.LogAuthenticationFailure(1, this.Identity?.Id, "not authenticated", "AMQP");
                 throw new InvalidOperationException($"Unable to open {this.Type} link as the connection could not be authenticated");
             }
 
