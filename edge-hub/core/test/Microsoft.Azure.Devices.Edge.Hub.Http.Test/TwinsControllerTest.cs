@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Newtonsoft.Json;
@@ -24,14 +25,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     [Unit]
     public class TwinsControllerTest
     {
-        static readonly string defaultModuleIdentity = "edgedevice/module1";
+        static readonly string actorDevice = "actorEdgeDevice";
+        static readonly string actorId = $"{actorDevice}/actorModule";
 
         [Fact]
         public async Task InvokeDeviceMethodNoPayloadReturnsOk()
         {
-            var sut = SetupControllerToRespond(200, new byte[0]);
-
             string toDeviceId = "device1";
+            var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, new byte[0]);
+            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
@@ -48,10 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [Fact]
         public async Task InvokeModuleMethodNoPayloadReturnsOk()
         {
-            var sut = SetupControllerToRespond(200, new byte[0]);
-
             string toDeviceId = "edgedevice";
             string toModuleId = "module2";
+            var sut = SetupControllerToRespond(toDeviceId, Option.Some(toModuleId), 200, new byte[0]);
+            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
@@ -68,12 +72,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [Fact]
         public async Task InvokeDeviceMethodExpectPayloadReturnsOk()
         {
+            string toDeviceId = "device1";
             var reponsePayloadJson = "{ \"resp1\" : \"respvalue1\" }";
             var responsePayloadBytes = Encoding.UTF8.GetBytes(reponsePayloadJson);
 
-            var sut = SetupControllerToRespond(200, responsePayloadBytes);
+            var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, responsePayloadBytes);
+            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
 
-            string toDeviceId = "device1";
             string command = "showdown";
             string cmdPayload = "{ \"prop1\" : \"value1\" }";
 
@@ -90,13 +95,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [Fact]
         public async Task InvokeModuleMethodExpectPayloadReturnsOk()
         {
+            string toDeviceId = "edgedevice";
+            string toModuleId = "module2";
             var reponsePayloadJson = "{ \"resp1\" : \"respvalue1\" }";
             var responsePayloadBytes = Encoding.UTF8.GetBytes(reponsePayloadJson);
 
-            var sut = SetupControllerToRespond(200, responsePayloadBytes);
+            var sut = SetupControllerToRespond(toDeviceId, Option.Some(toModuleId), 200, responsePayloadBytes);
+            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
 
-            string toDeviceId = "edgedevice";
-            string toModuleId = "module2";
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
@@ -111,11 +117,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         }
 
         [Fact]
+        public async Task NoActorHeaderReturnsError()
+        {
+            string toDeviceId = "device1";
+            var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, new byte[0]);
+
+            string command = "showdown";
+            string payload = "{ \"prop1\" : \"value1\" }";
+
+            var methodRequest = new MethodRequest(command, new JRaw(payload));
+            await sut.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
+
+            Assert.Equal((int)HttpStatusCode.BadRequest, sut.HttpContext.Response.StatusCode);
+        }
+
+        [Fact]
+        public async Task ActorNotModuleReturnsError()
+        {
+            string toDeviceId = "device1";
+            var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, new byte[0]);
+            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, $"{actorDevice}");
+
+            string command = "showdown";
+            string payload = "{ \"prop1\" : \"value1\" }";
+
+            var methodRequest = new MethodRequest(command, new JRaw(payload));
+            await sut.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
+
+            Assert.Equal((int)HttpStatusCode.BadRequest, sut.HttpContext.Response.StatusCode);
+        }
+
+        [Fact]
+        public async Task ActorTargetDeviceMismatchReturnsError()
+        {
+            string toDeviceId = "device1";
+            var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, new byte[0]);
+            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, $"differentEdge/module1");
+
+            string command = "showdown";
+            string payload = "{ \"prop1\" : \"value1\" }";
+
+            var methodRequest = new MethodRequest(command, new JRaw(payload));
+            await sut.InvokeDeviceMethodAsync(toDeviceId, methodRequest);
+
+            Assert.Equal((int)HttpStatusCode.Unauthorized, sut.HttpContext.Response.StatusCode);
+        }
+
+        [Fact]
         public async Task InvokeDeviceMethodThrowingReturnsError()
         {
-            var sut = SetupControllerToThrow(HttpStatusCode.GatewayTimeout, new EdgeHubTimeoutException("EdgeHub timed out"));
-
             string toDeviceId = "device1";
+            var sut = SetupControllerToThrow(toDeviceId, Option.None<string>(), HttpStatusCode.GatewayTimeout, new EdgeHubTimeoutException("EdgeHub timed out"));
+            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+
             string command = "showdown";
             string cmdPayload = "{ \"prop1\" : \"value1\" }";
 
@@ -132,16 +186,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [Fact]
         public async Task InvokeModuleMethodMultibyteContentSetsContentLength()
         {
+            string toDeviceId = "edgedevice";
+            string toModuleId = "module2";
             var reponsePayloadJson = "{ \"resp1\" : \"王明是中国人。\" }"; // supposed to be "Wang Ming is Chinese."
             var responsePayloadBytes = Encoding.UTF8.GetBytes(reponsePayloadJson);
 
             // make sure that this is a good test and the string length and the encoding length is not the same
             Assert.True(reponsePayloadJson.Length != responsePayloadBytes.Length);
 
-            var sut = SetupControllerToRespond(200, responsePayloadBytes);
+            var sut = SetupControllerToRespond(toDeviceId, Option.Some(toModuleId), 200, responsePayloadBytes);
+            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
 
-            string toDeviceId = "edgedevice";
-            string toModuleId = "module2";
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
 
@@ -210,11 +265,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             controller.ControllerContext = controllerContext;
         }
 
-        private static Task<IEdgeHub> CreateEdgeHubGetter(string id, DirectMethodResponse directMethodResponse)
+        private static Task<IEdgeHub> CreateEdgeHubGetter(string targetDevice, Option<string> targetModule, DirectMethodResponse directMethodResponse)
         {
+            string targetId = targetDevice + targetModule.Match(module => $"/{module}", () => string.Empty);
+
             var edgeHub = new Mock<IEdgeHub>();
-            edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<string>(i => i == id), It.IsAny<DirectMethodRequest>()))
+            edgeHub.Setup(e => e.InvokeMethodAsync(It.Is<string>(i => i == actorId), It.Is<DirectMethodRequest>(r => r.Id == targetId)))
                 .ReturnsAsync(directMethodResponse);
+            edgeHub.Setup(e => e.GetEdgeDeviceId())
+                .Returns(actorDevice);
 
             return Task.FromResult(edgeHub.Object);
         }
@@ -227,32 +286,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             return validator.Object;
         }
 
-        private static TwinsController SetupControllerToRespond(int responseStatusCode, byte[] responsePayload)
+        private static TwinsController SetupControllerToRespond(string targetDevice, Option<string> targetModule, int responseStatusCode, byte[] responsePayload)
         {
             return SetupController(
-                      defaultModuleIdentity,
                       CreateEdgeHubGetter(
-                          defaultModuleIdentity,
+                          targetDevice,
+                          targetModule,
                           new DirectMethodResponse(Guid.NewGuid().ToString(), responsePayload, responseStatusCode)));
         }
 
-        private static TwinsController SetupControllerToThrow(HttpStatusCode responseStatusCode, Exception exception)
+        private static TwinsController SetupControllerToThrow(string targetDevice, Option<string> targetModule, HttpStatusCode responseStatusCode, Exception exception)
         {
             return SetupController(
-                      defaultModuleIdentity,
                       CreateEdgeHubGetter(
-                          defaultModuleIdentity,
+                          targetDevice,
+                          targetModule,
                           new DirectMethodResponse(exception, responseStatusCode)));
         }
 
-        private static TwinsController SetupController(string id, Task<IEdgeHub> edgeHubGetter)
+        private static TwinsController SetupController(Task<IEdgeHub> edgeHubGetter)
         {
-            var identity = Mock.Of<IIdentity>(i => i.Id == id);
-            ActionExecutingContext actionExecutingContext = GetActionExecutingContextMock(identity);
+            var authenticator = new Mock<IHttpRequestAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateRequest(It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))
+                .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
-            var controller = new TwinsController(edgeHubGetter, CreateLetThroughValidator());
-
-            controller.OnActionExecuting(actionExecutingContext);
+            var controller = new TwinsController(edgeHubGetter, Task.FromResult(authenticator.Object), CreateLetThroughValidator());
             SetupControllerContext(controller);
 
             return controller;

@@ -208,7 +208,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                 .ReturnsAsync(Option.Some(identity));
             }
 
-            var controller = new DeviceScopeController(Task.FromResult(edgeHub.Object));
+            var authenticator = new Mock<IHttpRequestAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateRequest(It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))
+                .ReturnsAsync(new HttpAuthResult(true, string.Empty));
+
+            var controller = new DeviceScopeController(Task.FromResult(edgeHub.Object), Task.FromResult(authenticator.Object));
             SetupControllerContext(controller);
 
             return controller;
