@@ -18,6 +18,7 @@ namespace Diagnostics
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using ProxyLib.Proxy;
 
     class Program
     {
@@ -72,20 +73,19 @@ namespace Diagnostics
         {
             if (proxy != null)
             {
-                TcpClient client = new TcpClient();
-                await client.ConnectAsync(hostname, int.Parse(port));
-                var stream = client.GetStream();
+                var tempProxy = proxy.Split(':');
+                string proxyAddress = tempProxy[0];
+                int proxyPort = int.Parse(tempProxy[1]);
+                ProxyClientFactory factory = new ProxyClientFactory();
+                IProxyClient proxyClient = factory.CreateProxyClient(ProxyType.None, proxyAddress, proxyPort);
 
-                // Based on https://stackoverflow.com/questions/3127127/how-to-open-socket-thru-proxy-server-in-net-c/3127176#3127176
-                await stream.WriteAsync(Encoding.UTF8.GetBytes("CONNECT Host:Port HTTP/1.1<CR><LF>"));
-                await stream.WriteAsync(Encoding.UTF8.GetBytes("<CR><LF>"));
-                byte[] buffer = new byte[4096];
-                int len = await stream.ReadAsync(buffer);
-                string result = Encoding.UTF8.GetString(buffer, 0, len);
-                if (!result.Contains("200"))
-                {
-                    throw new Exception("could not connect through proxy");
-                }
+                //Setup timeouts
+                proxyClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+                proxyClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+
+                //Get TcpClient to futher work
+                var client = proxyClient.CreateConnection(hostname, int.Parse(port));
+                client.GetStream();
             }
             else
             {
