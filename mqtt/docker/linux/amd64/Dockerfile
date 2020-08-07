@@ -8,6 +8,8 @@ RUN adduser -Du ${MQTTDUSER_ID} mqttduser
 EXPOSE 1883/tcp
 EXPOSE 8883/tcp
 
+RUN pwd
+RUN ls
 ADD ./target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 
 USER mqttduser
