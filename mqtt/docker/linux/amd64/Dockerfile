@@ -2,6 +2,9 @@ FROM busybox
 
 RUN pwd
 RUN ls
+COPY . ./
+run ls
+
 ADD ./target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 
 # Add an unprivileged user account for running mqttd	
