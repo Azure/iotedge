@@ -306,7 +306,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             static readonly IMetricsCounter RetriesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "operation_retry",
                 "Operation retries",
-                new List<string> { "id", "operation", MetricsConstants.MsTelemetry});
+                new List<string> { "id", "operation", MetricsConstants.MsTelemetry });
 
             public static void AddRetryOperation(string id, string operation) => RetriesCounter.Increment(1, new[] { id, operation, bool.TrueString });
         }

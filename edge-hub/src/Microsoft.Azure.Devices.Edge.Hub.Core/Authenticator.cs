@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             Events.AuthResult(clientCredentials, reAuthenticating, isAuthenticated);
-            
+
             return isAuthenticated;
         }
 
