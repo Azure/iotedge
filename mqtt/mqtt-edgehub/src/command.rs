@@ -1,3 +1,4 @@
+use std::env;
 use std::time::Duration;
 
 use futures_util::{future::BoxFuture, StreamExt};
@@ -11,8 +12,6 @@ use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
 // TODO REVIEW: what if client connects with same id as the command handler client?
 // TODO REVIEW: do we want failures making the client to percolate all the way up and blow up broker?
-// TODO: get device id from env
-const CLIENT_ID: &str = "deviceid/$edgeHub/$broker/$control";
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
 const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
 
@@ -56,10 +55,23 @@ pub struct CommandHandler {
 impl CommandHandler {
     pub fn new(broker_handle: BrokerHandle, address: String) -> Self {
         // TODO: create broker connection
+
+        let device_id = match env::var("IOTEDGE_DEVICEID") {
+            Ok(id) => id,
+            Err(e) => {
+                error!(
+                    message = "couldn't find expected IOTEDGE_DEVICEID environment variable",
+                    error=%e
+                );
+                "generic-edge-device".to_string()
+            }
+        };
+        let client_id = format!("{}/$edgeHub/$broker/$control", device_id).to_string();
+
         let broker_connection = BrokerConnection { address };
 
         let client = mqtt3::Client::new(
-            Some(CLIENT_ID.to_string()),
+            Some(client_id),
             None,
             None,
             broker_connection,
@@ -88,13 +100,13 @@ impl CommandHandler {
             qos,
         }) {
             error!(
-                "could not subscribe to command topic '{}' for command client '{}'",
-                TOPIC_FILTER, CLIENT_ID
+                "could not subscribe command handler to command topic '{}'",
+                TOPIC_FILTER
             )
         } else {
             info!(
-                "successfully subscribed to command topic '{}' for command client '{}'",
-                TOPIC_FILTER, CLIENT_ID
+                "command handler subscribed to command topic '{}'",
+                TOPIC_FILTER
             )
         };
 
