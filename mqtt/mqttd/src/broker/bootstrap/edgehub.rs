@@ -21,7 +21,6 @@ use mqtt_broker::{
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     connection::MakeEdgeHubPacketProcessor,
-    edgelet,
     settings::Settings,
 };
 
@@ -150,7 +149,7 @@ async fn download_server_certificate() -> Result<ServerCertificate> {
     let generation_id = env::var(MODULE_GENERATION_ID).context(MODULE_GENERATION_ID)?;
     let expiration = Utc::now() + Duration::days(CERTIFICATE_VALIDITY_DAYS);
 
-    let client = edgelet::workload(&uri)?;
+    let client = edgelet_client::workload(&uri)?;
     let cert = client
         .create_server_cert(&module_id, &generation_id, &hostname, expiration)
         .await?;

@@ -19,6 +19,7 @@ tracing = "0.1"
 tracing-subscriber = "0.1"
 lazy_static = "1.4"
 
+edgelet-client = { path = "../edgelet-client", optional = true }
 mqtt-broker = { path = "../mqtt-broker" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
@@ -30,5 +31,5 @@ serde_json = "1.0"
 
 [features]
 default = ["edgehub"]
-edgehub = ["mqtt-edgehub"]
+edgehub = ["mqtt-edgehub", "edgelet-client"]
 generic = ["mqtt-generic"]

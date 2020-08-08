@@ -15,22 +15,16 @@ hyper = "0.13"
 futures-util = "0.3"
 lazy_static = "1.4"
 openssl = "0.10"
-proptest = { version = "0.9", optional = true }
 regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 serde_repr = "0.1"
 thiserror = "1.0"
 tokio = "0.2"
-tower-service = "0.3"
 tracing = "0.1"
-url = "2.1"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker = { path = "../mqtt-broker" }
-
-[target.'cfg(unix)'.dependencies]
-hyperlocal = "0.7"
 
 [dev-dependencies]
 lazy_static = "1.4"

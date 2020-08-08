@@ -153,3 +153,139 @@ pub struct SessionPersistenceConfig {
     time_interval: Duration,
     unsaved_message_count: u32,
 }
+
+/// This type is a Option-like wrapper around any type T. The primary goal is
+/// to make config section to be enabled/disabled during desirialization.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Enable<T> {
+    enabled: Option<bool>,
+
+    #[serde(flatten)]
+    value: Option<T>,
+}
+
+impl<T> Enable<T> {
+    fn new(enabled: Option<bool>, value: Option<T>) -> Self {
+        Self { enabled, value }
+    }
+
+    pub fn enabled(value: T) -> Self {
+        Self::new(Some(true), Some(value))
+    }
+
+    pub fn disabled() -> Self {
+        Self::new(None, None)
+    }
+
+    /// Returns the borrowed reference to a stored value.
+    ///
+    /// When optional `enabled` flag is set to false, the value will be
+    /// disabled and None returned. When `enabled` is not set or equals true, the
+    /// value will return.
+    pub fn as_inner(&self) -> Option<&T> {
+        match (self.enabled, self.value.as_ref()) {
+            (None, Some(value)) => Some(value),
+            (Some(true), Some(value)) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+impl<T> From<Option<T>> for Enable<T> {
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => Enable::enabled(value),
+            None => Enable::disabled(),
+        }
+    }
+}
+
+impl<T: PartialEq> PartialEq for Enable<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_inner() == other.as_inner()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde::Deserialize;
+
+    use super::Enable;
+
+    #[test]
+    fn it_returns_inner() {
+        let value: Enable<()> = Enable::new(None, None);
+        assert_eq!(value.as_inner(), None);
+
+        let value: Enable<()> = Enable::new(Some(true), None);
+        assert_eq!(value.as_inner(), None);
+
+        let value: Enable<()> = Enable::new(Some(false), None);
+        assert_eq!(value.as_inner(), None);
+
+        let value: Enable<()> = Enable::new(None, Some(()));
+        assert_eq!(value.as_inner(), Some(&()));
+
+        let value: Enable<()> = Enable::new(Some(true), Some(()));
+        assert_eq!(value.as_inner(), Some(&()));
+
+        let value: Enable<()> = Enable::new(Some(false), Some(()));
+        assert_eq!(value.as_inner(), None);
+    }
+
+    #[test]
+    fn it_deserializes_as_option_when_some() {
+        let json = serde_json::json!({ "foo": { "bar": 42 } });
+        let value: Container = serde_json::from_value(json).unwrap();
+
+        assert_eq!(value.foo(), Some(&Foo { bar: 42 }))
+    }
+
+    #[test]
+    fn it_deserializes_as_option_when_none() {
+        let json = serde_json::json!({ "foo": {  } });
+        let value: Container = serde_json::from_value(json).unwrap();
+
+        assert_eq!(value.foo(), None)
+    }
+
+    #[test]
+    fn it_deserializes_as_option_when_enabled() {
+        let json = serde_json::json!({ "foo": { "enabled": true, "bar": 42 } });
+        let value: Container = serde_json::from_value(json).unwrap();
+
+        assert_eq!(value.foo(), Some(&Foo { bar: 42 }))
+    }
+
+    #[test]
+    fn it_deserializes_as_option_when_disabled() {
+        let json = serde_json::json!({ "foo": { "enabled": false, "bar": 42 } });
+        let value: Container = serde_json::from_value(json).unwrap();
+
+        assert_eq!(value.foo(), None)
+    }
+
+    #[test]
+    fn it_deserializes_as_option_when_missing() {
+        let json = serde_json::json!({});
+        let value: Container = serde_json::from_value(json).unwrap();
+
+        assert_eq!(value.foo(), None)
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct Container {
+        foo: Option<Enable<Foo>>,
+    }
+
+    impl Container {
+        fn foo(&self) -> Option<&Foo> {
+            self.foo.as_ref().and_then(Enable::as_inner)
+        }
+    }
+
+    #[derive(Debug, PartialEq, Deserialize)]
+    struct Foo {
+        bar: i32,
+    }
+}

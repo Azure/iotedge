@@ -5,8 +5,9 @@ use chrono::{DateTime, Utc};
 use http::{Request, StatusCode};
 use hyper::{body, Body, Client};
 
-use crate::edgelet::{
+use crate::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, Scheme, ServerCertificateRequest,
+    TrustBundleResponse,
 };
 
 #[derive(Debug)]
@@ -61,6 +62,37 @@ impl WorkloadClient {
 
         Ok(cert)
     }
+
+    pub async fn trust_bundle(&self) -> Result<TrustBundleResponse, WorkloadError> {
+        let uri = make_hyper_uri(&self.scheme, "/trust-bundle?api-version=2019-01-30")
+            .map_err(|e| ApiError::ConstructRequestUrl(e))?;
+
+        let req = Request::get(uri)
+            .body(Body::default())
+            .map_err(ApiError::ConstructRequest)?;
+
+        let res = self
+            .client
+            .request(req)
+            .await
+            .map_err(ApiError::ExecuteRequest)?;
+
+        let status = res.status();
+        let body = body::aggregate(res)
+            .await
+            .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
+
+        if status != StatusCode::OK {
+            let text =
+                str::from_utf8(body.bytes()).map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
+            return Err(ApiError::UnsuccessfulResponse(status, text.into()).into());
+        }
+
+        let trust_bundle =
+            serde_json::from_reader(body.reader()).map_err(ApiError::ParseResponseBody)?;
+
+        Ok(trust_bundle)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -78,7 +110,7 @@ mod tests {
     use serde_json::json;
 
     use super::{make_hyper_uri, ApiError, Scheme, WorkloadError};
-    use crate::edgelet::workload;
+    use crate::workload;
 
     #[test]
     fn it_makes_hyper_uri() {
@@ -140,5 +172,19 @@ mod tests {
             res,
             WorkloadError::Api(ApiError::UnsuccessfulResponse(StatusCode::BAD_REQUEST, _))
         )
+    }
+
+    #[tokio::test]
+    async fn it_downloads_trust_bundle() {
+        let res = json!( { "certificate": "CERTIFICATE" } );
+
+        let _m = mock("GET", "/trust-bundle?api-version=2019-01-30")
+            .with_status(200)
+            .with_body(serde_json::to_string(&res).unwrap())
+            .create();
+        let client = workload(&mockito::server_url()).expect("client");
+        let res = client.trust_bundle().await.unwrap();
+
+        assert_eq!(res.certificate(), "CERTIFICATE");
     }
 }
