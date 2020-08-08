@@ -23,6 +23,7 @@ lazy_static! {
     };
 }
 
+// TODO: add device id somewhere
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Settings {

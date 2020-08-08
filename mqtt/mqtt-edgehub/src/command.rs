@@ -9,7 +9,7 @@ use tracing::{error, info};
 use mqtt3::{proto, Client, IoSource, ShutdownError};
 use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
-// TODO: what if client connects with same id as the command handler client?
+// TODO REVIEW: what if client connects with same id as the command handler client?
 // TODO REVIEW: do we want failures making the client to percolate all the way up and blow up broker?
 // TODO: get device id from env
 const CLIENT_ID: &str = "deviceid/$edgeHub/$broker/$control";
@@ -29,15 +29,20 @@ impl ShutdownHandle {
     }
 }
 
-pub struct BrokerConnection;
+pub struct BrokerConnection {
+    address: String,
+}
+
+// pub struct BrokerConnection;
 impl IoSource for BrokerConnection {
     type Io = TcpStream;
     type Error = std::io::Error;
     type Future = BoxFuture<'static, Result<(TcpStream, Option<String>), std::io::Error>>;
 
     fn connect(&mut self) -> Self::Future {
+        let address = self.address.clone();
         Box::pin(async move {
-            let io = TcpStream::connect("127.0.0.1:1882").await; // TODO: read from config or broker
+            let io = TcpStream::connect(address).await;
             io.map(|io| (io, None))
         })
     }
@@ -49,12 +54,15 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub fn new(broker_handle: BrokerHandle) -> Self {
+    pub fn new(broker_handle: BrokerHandle, address: String) -> Self {
+        // TODO: create broker connection
+        let broker_connection = BrokerConnection { address };
+
         let client = mqtt3::Client::new(
             Some(CLIENT_ID.to_string()),
             None,
             None,
-            BrokerConnection,
+            broker_connection,
             Duration::from_secs(1),
             Duration::from_secs(60),
         );
