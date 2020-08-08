@@ -69,7 +69,7 @@ async fn start_command_handler(
     broker_handle: BrokerHandle,
 ) -> Result<(CommandShutdownHandle, JoinHandle<()>), ShutdownError> {
     // TODO: read from config and pass in hardcoded address and device id
-    let command_handler = CommandHandler::new(broker_handle);
+    let command_handler = CommandHandler::new(broker_handle, "0.0.0.0:1882".to_string());
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());
