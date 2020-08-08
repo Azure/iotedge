@@ -18,6 +18,7 @@ use mqtt_broker::{
     Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
+use mqtt_edgehub::settings::ListenerConfig;
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
@@ -36,7 +37,7 @@ where
     #[cfg(feature = "edgehub")]
     info!("starting command handler...");
     let (mut command_handler_shutdown_handle, command_handler_join_handle) =
-        start_command_handler(broker.handle()).await?;
+        start_command_handler(broker.handle(), config.listener()).await?;
 
     info!("starting snapshotter...");
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
@@ -67,9 +68,11 @@ where
 
 async fn start_command_handler(
     broker_handle: BrokerHandle,
+    listener_config: &ListenerConfig,
 ) -> Result<(CommandShutdownHandle, JoinHandle<()>), ShutdownError> {
-    // TODO: read from config and pass in hardcoded address and device id
-    let command_handler = CommandHandler::new(broker_handle, "0.0.0.0:1882".to_string());
+    let address = listener_config.system().addr().to_string();
+
+    let command_handler = CommandHandler::new(broker_handle, address);
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());
