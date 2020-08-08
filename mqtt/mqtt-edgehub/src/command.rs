@@ -110,6 +110,7 @@ impl CommandHandler {
             )
         };
 
+        // TODO: split into functions
         while let Some(event) = self.client.next().await {
             match event {
                 Ok(event) => {

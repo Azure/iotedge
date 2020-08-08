@@ -51,10 +51,7 @@ async fn command_handler_client_disconnection() {
     let topic = "$edgehub/test-client/disconnect";
     edgehub_client.publish_qos1(topic, "qos 1", false).await;
 
-    assert_eq!(
-        test_client.next().await,
-        Some(Packet::Disconnect(Disconnect {}))
-    );
+    assert_eq!(test_client.next().await, None);
 
     command_handler_shutdown_handle
         .shutdown()
@@ -70,7 +67,7 @@ async fn command_handler_client_disconnection() {
 async fn start_command_handler(
     broker_handle: BrokerHandle,
 ) -> Result<(CommandShutdownHandle, JoinHandle<()>), ShutdownError> {
-    let command_handler = CommandHandler::new(broker_handle);
+    let command_handler = CommandHandler::new(broker_handle, "localhost:5555".to_string());
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());
