@@ -51,6 +51,21 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public abstract Task<string> SignAsync(string keyId, string algorithm, string data);
 
+        public virtual Task<string> GetSecretAsync(string secretId) => Task.FromResult(string.Empty);
+
+        public virtual Task SetSecretAsync(string secretId, string secretValue) => Task.CompletedTask;
+
+        public virtual Task DeleteSecretAsync(string secretId) => Task.CompletedTask;
+
+        protected Task Execute(Func<Task> func, string operation) =>
+            this.Execute(
+                async () =>
+                {
+                    await func();
+                    return 1;
+                },
+                operation);
+
         protected internal async Task<T> Execute<T>(Func<Task<T>> func, string operation)
         {
             try

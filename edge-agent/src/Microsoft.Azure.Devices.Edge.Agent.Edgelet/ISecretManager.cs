@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Core
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
-    public interface ISecretStore
+    public interface ISecretManager
     {
         Task<string> GetSecretAsync(string moduleName, string secretId);
 

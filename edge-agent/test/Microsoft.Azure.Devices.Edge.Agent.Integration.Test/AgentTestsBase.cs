@@ -123,8 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             var availabilityMetric = Mock.Of<IAvailabilityMetric>();
 
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
-            var secretStore = Mock.Of<ISecretStore>();
-            HealthRestartPlanner restartPlanner = new HealthRestartPlanner(commandFactory, store, secretStore, TimeSpan.FromSeconds(10), restartManager);
+            HealthRestartPlanner restartPlanner = new HealthRestartPlanner(commandFactory, store, TimeSpan.FromSeconds(10), restartManager);
 
             Agent agent = await Agent.Create(
                 configSource.Object,
