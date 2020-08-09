@@ -157,14 +157,27 @@ where
                 Utc,
             );
             let since_local: DateTime<Local> = DateTime::from(since_time);
+            let until_local = self.log_options.until().map(|until| {
+                let until_time: DateTime<Utc> = DateTime::from_utc(
+                    NaiveDateTime::from_timestamp(until.into(), 0),
+                    Utc,
+                );
+                let until_local: DateTime<Local> = DateTime::from(until_time);
+                until_local
+            });
             let max_lines = if let LogTail::Num(tail) = self.log_options.tail() {
                 format!("(maximum {} lines) ", tail)
             } else {
                 "".to_owned()
             };
+            let until_string = if let Some(until) = until_local {
+format!(" until {}", until)
+            }else{
+                "".to_string()
+            };
             println!(
-                "Writing all logs {}since {} (local time {})",
-                max_lines, since_time, since_local
+                "Writing all logs since {} (local time {}){} with {} max_lines",
+                since_time, since_local, until_string, max_lines
             );
         }
 
