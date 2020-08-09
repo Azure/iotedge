@@ -158,10 +158,8 @@ where
             );
             let since_local: DateTime<Local> = DateTime::from(since_time);
             let until_local = self.log_options.until().map(|until| {
-                let until_time: DateTime<Utc> = DateTime::from_utc(
-                    NaiveDateTime::from_timestamp(until.into(), 0),
-                    Utc,
-                );
+                let until_time: DateTime<Utc> =
+                    DateTime::from_utc(NaiveDateTime::from_timestamp(until.into(), 0), Utc);
                 let until_local: DateTime<Local> = DateTime::from(until_time);
                 until_local
             });
@@ -171,8 +169,8 @@ where
                 "".to_owned()
             };
             let until_string = if let Some(until) = until_local {
-format!(" until {}", until)
-            }else{
+                format!(" until {}", until)
+            } else {
                 "".to_string()
             };
             println!(
