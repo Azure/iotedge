@@ -57,6 +57,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
             return Task.FromResult(NullCommand.Instance as ICommand);
         }
 
+        public Task<ICommand> DeleteSecretAsync(IModule module, string secretId)
+        {
+            this.RecordedCommands.Add(("deleteSecret", module.Name));
+            return Task.FromResult(NullCommand.Instance as ICommand);
+        }
+
+        public Task<ICommand> PullSecretAsync(IModule module, string secretId, string akvId)
+        {
+            this.RecordedCommands.Add(("pullSecret", module.Name));
+            return Task.FromResult(NullCommand.Instance as ICommand);
+        }
+
         public Task<ICommand> WrapAsync(ICommand command)
         {
             return Task.FromResult(NullCommand.Instance as ICommand);

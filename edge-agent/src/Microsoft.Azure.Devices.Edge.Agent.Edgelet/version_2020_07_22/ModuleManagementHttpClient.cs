@@ -211,48 +211,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
             }
         }
 
-        public override Task<string> GetSecretAsync(string name, string secretName)
+        public override Task<string> GetSecretAsync(string name, string secretId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.GetSecretAsync(this.Version.Name, name, secretName), $"Get secret ${secretName} for module {name}");
+                return this.Execute(() => edgeletHttpClient.GetSecretAsync(this.Version.Name, name, secretId), $"Get secret ${secretId} for module {name}");
             }
         }
 
-        public override Task SetSecretAsync(string name, string secretName, string secretValue)
+        public override Task SetSecretAsync(string name, string secretId, string secretValue)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.SetSecretAsync(this.Version.Name, name, secretName, secretValue), $"Set secret ${secretName} for module {name}");
+                return this.Execute(() => edgeletHttpClient.SetSecretAsync(this.Version.Name, name, secretId, secretValue), $"Set secret ${secretId} for module {name}");
             }
         }
 
-        public override Task PullSecretAsync(string name, string secretName, string akvId)
+        public override Task PullSecretAsync(string name, string secretId, string akvId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.PullSecretAsync(this.Version.Name, name, secretName, akvId), $"Pull secret ${secretName} from ${akvId} for module {name}");
+                return this.Execute(() => edgeletHttpClient.PullSecretAsync(this.Version.Name, name, secretId, akvId), $"Pull secret ${secretId} from ${akvId} for module {name}");
             }
         }
 
-        public override Task RefreshSecretAsync(string name, string secretName)
+        public override Task RefreshSecretAsync(string name, string secretId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.RefreshSecretAsync(this.Version.Name, name, secretName), $"Refresh secret ${secretName} for module {name}");
+                return this.Execute(() => edgeletHttpClient.RefreshSecretAsync(this.Version.Name, name, secretId), $"Refresh secret ${secretId} for module {name}");
             }
         }
 
-        public override Task DeleteSecretAsync(string name, string secretName)
+        public override Task DeleteSecretAsync(string name, string secretId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.DeleteSecretAsync(this.Version.Name, name, secretName), $"Delete secret ${secretName} for module {name}");
+                return this.Execute(() => edgeletHttpClient.DeleteSecretAsync(this.Version.Name, name, secretId), $"Delete secret ${secretId} for module {name}");
             }
         }
 

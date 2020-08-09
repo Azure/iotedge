@@ -29,13 +29,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         [Unit]
         public void TestCreateValidation()
         {
-            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, Mock<ISecretStore> secretStore, IRestartPolicyManager restartManager, _) = CreatePlanner();
+            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, _) = CreatePlanner();
 
-            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(null, store.Object, secretStore.Object, IntensiveCareTime, restartManager));
-            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, null, secretStore.Object, IntensiveCareTime, restartManager));
-            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, store.Object, null, IntensiveCareTime, restartManager));
-            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, store.Object, secretStore.Object, IntensiveCareTime, null));
-            Assert.NotNull(new HealthRestartPlanner(factory, store.Object, secretStore.Object, IntensiveCareTime, restartManager));
+            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(null, store.Object, IntensiveCareTime, restartManager));
+            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, null, IntensiveCareTime, restartManager));
+            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager));
+            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, null));
+            Assert.NotNull(new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager));
         }
 
         [Fact]
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async void TestMinimalTest()
         {
             // Arrange
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
             var token = default(CancellationToken);
             var expectedExecutionList = new List<TestRecordType>();
 
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         [Unit]
         public async void TestAddRunningModule()
         {
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         [Unit]
         public async void TestAddStoppedModule()
         {
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         [Unit]
         public async void TestUpdateModule()
         {
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             IRuntimeModule currentModule = new TestRuntimeModule(
                 "mod1",
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         [Unit]
         public async void TestRemoveModule()
         {
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             IRuntimeModule removeModule = new TestRuntimeModule(
                 "mod1",
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         [Unit]
         public async Task TestRemoveKitchenSink()
         {
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             IRuntimeModule[] removedModules = GetRemoveTestData();
 
@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // on whether it undergoes a re-deploy or not.
 
             // Arrange
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
             (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetUpdateDeployTestData();
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
             // build "current" and "desired" module sets
@@ -245,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // change in the desired status then only the runtime status of the module is changed.
 
             // Arrange
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
             (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetUpdateDeployStatusChangeTestData();
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
             // build "current" and "desired" module sets
@@ -285,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // a stopped state is started
 
             // Arrange
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             (IRuntimeModule RunningModule, IModule UpdatedModule)[] data = GetStoppedModuleTestData();
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(data.Select(d => d.UpdatedModule).ToList());
@@ -326,7 +326,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async Task TestUpdateStateChangedKitchenSink()
         {
             // Arrange
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             // prepare list of modules whose configurations have been updated
             (IRuntimeModule RunningModule, IModule UpdatedModule)[] updateDeployModules = GetUpdateDeployTestData();
@@ -399,7 +399,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async Task TestUpdateStateChanged_Offline_NoIdentities()
         {
             // Arrange
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             // prepare list of modules whose configurations have been updated
             (IRuntimeModule RunningModule, IModule UpdatedModule)[] updateDeployModules = GetUpdateDeployTestData();
@@ -465,7 +465,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async Task TestResetStatsForHealthyModules()
         {
             // Arrange
-            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, _, HealthRestartPlanner planner) = CreatePlanner();
 
             // derive list of "running great" modules from GetUpdateStateChangeTestData()
             IList<IRuntimeModule> runningGreatModules = GetUpdateStateChangeTestData()
@@ -514,7 +514,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Running)
             };
 
-            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, _, HealthRestartPlanner planner) = CreatePlanner();
 
             store.Setup(s => s.Contains(It.IsAny<string>()))
                 .Returns(() => Task.FromResult(true));
@@ -536,7 +536,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async Task CreateShutdownPlanTest()
         {
             // Arrange
-            (TestCommandFactory factory, _, _, _, HealthRestartPlanner planner) = CreatePlanner();
+            (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
             IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
@@ -561,15 +561,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(r => Assert.Equal(executionList, r.ExecutionList));
         }
 
-        static (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, Mock<ISecretStore>, IRestartPolicyManager restartManager, HealthRestartPlanner planner) CreatePlanner()
+        static (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, IRestartPolicyManager restartManager, HealthRestartPlanner planner) CreatePlanner()
         {
             var factory = new TestCommandFactory();
             var store = new Mock<IEntityStore<string, ModuleState>>();
-            var secretStore = new Mock<ISecretStore>();
             var restartManager = new RestartPolicyManager(MaxRestartCount, CoolOffTimeUnitInSeconds);
-            var planner = new HealthRestartPlanner(factory, store.Object, secretStore.Object, IntensiveCareTime, restartManager);
+            var planner = new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager);
 
-            return (factory, store, secretStore, restartManager, planner);
+            return (factory, store, restartManager, planner);
         }
 
         static IRuntimeModule[] GetRemoveTestData() => new IRuntimeModule[]

@@ -93,6 +93,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     ? new RestartCommand(this.client, (DockerRuntimeModule)module)
                     : (ICommand)NullCommand.Instance);
 
+        public Task<ICommand> DeleteSecretAsync(IModule module, string secretId) => Task.FromResult(NullCommand.Instance as ICommand);
+
+        public Task<ICommand> PullSecretAsync(IModule module, string secretId, string akvId) => Task.FromResult(NullCommand.Instance as ICommand);
+
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
     }
 }

@@ -29,6 +29,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public Task<string> SignAsync(string keyId, string algorithm, string data) => this.inner.SignAsync(keyId, algorithm, data);
 
+        public Task<string> GetSecretAsync(string secretId) => this.inner.GetSecretAsync(secretId);
+
+        public Task SetSecretAsync(string secretId, string secretValue) => this.inner.SetSecretAsync(secretId, secretValue);
+
+        public Task DeleteSecretAsync(string secretId) => this.inner.DeleteSecretAsync(secretId);
+
         internal WorkloadClientVersioned GetVersionedWorkloadClient(Uri workloadUri, string serverSupportedApiVersion, string clientSupportedApiVersion, string moduleId, string moduleGenerationId)
         {
             ApiVersion supportedVersion = this.GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
@@ -40,6 +46,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             if (supportedVersion == ApiVersion.Version20190130)
             {
                 return new Version_2019_01_30.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
+            }
+
+            if (supportedVersion == ApiVersion.Version20200722)
+            {
+                return new Version_2020_07_22.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
             return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);

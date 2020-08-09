@@ -233,10 +233,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         var commandFactory = c.Resolve<Task<ICommandFactory>>();
                         var entityStore = c.Resolve<Task<IEntityStore<string, ModuleState>>>();
-                        var secretStore = c.Resolve<ISecretStore>();
                         var policyManager = c.Resolve<IRestartPolicyManager>();
 
-                        return new HealthRestartPlanner(await commandFactory, await entityStore, secretStore, this.intensiveCareTime, policyManager) as IPlanner;
+                        return new HealthRestartPlanner(await commandFactory, await entityStore, this.intensiveCareTime, policyManager) as IPlanner;
                     })
                 .As<Task<IPlanner>>()
                 .SingleInstance();
