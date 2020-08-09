@@ -258,33 +258,49 @@ where
             NaiveDateTime::from_timestamp(self.log_options.since().into(), 0),
             Utc,
         );
+        let until_time: Option<DateTime<Utc>> = self
+            .log_options
+            .until()
+            .map(|until| DateTime::from_utc(NaiveDateTime::from_timestamp(until.into(), 0), Utc));
 
         #[cfg(unix)]
-        let inspect = ShellCommand::new("journalctl")
-            .arg("-a")
-            .args(&["-u", "iotedge"])
-            .args(&["-S", &since_time.format("%F %T").to_string()])
-            .arg("--no-pager")
-            .output();
+        let command = {
+            let command = ShellCommand::new("journalctl");
+            command
+                .arg("-a")
+                .args(&["-u", "iotedge"])
+                .args(&["-S", &since_time.format("%F %T").to_string()])
+                .arg("--no-pager");
+            if let Some(until) = until_time {
+                command.args(&["-U", &until.format("%F %T").to_string()]);
+            }
+
+            command.output()
+        };
 
         #[cfg(windows)]
-         let inspect = ShellCommand::new("powershell.exe")
-            .arg("-NoProfile")
-            .arg("-Command")
-            .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
-                            Select TimeCreated, Message |
-                            Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
-                            Format-List", since_time.to_rfc3339()))
-            .output();
+        let command = {
+            let until = until_time
+                .map(|until| format!(";EndTime='{}'", until))
+                .unwrap_or_else(|| "".to_owned());
+            ShellCommand::new("powershell.exe")
+                .arg("-NoProfile")
+                .arg("-Command")
+                .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'{}}} |
+                                Select TimeCreated, Message |
+                                Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
+                                Format-List", since_time.to_rfc3339(), until))
+                .output()
+        };
 
-        let (file_name, output) = if let Ok(result) = inspect {
+        let (file_name, output) = if let Ok(result) = command {
             if result.status.success() {
                 ("iotedged.txt", result.stdout)
             } else {
                 ("iotedged_err.txt", result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().to_string();
+            let err_message = command.err().unwrap().to_string();
             println!(
             "Could not find system logs for iotedge. Including error in bundle.\nError message: {}",
             err_message
