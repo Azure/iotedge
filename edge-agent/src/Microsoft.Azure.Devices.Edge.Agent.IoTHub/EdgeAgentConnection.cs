@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
                     if (moduleConfig.StartupOrder != Constants.DefaultStartupOrder)
                     {
-                        throw new InvalidSchemaVersionException($"Module startup order is not supported in schema {actualSchemaVersion}.");
+                        throw new InvalidSchemaVersionException($"Module startup order is not supported in schema {actualSchemaVersion}, module: {moduleConfig.Name}, startupOrder: {moduleConfig.StartupOrder}");
                     }
                 }
             }
