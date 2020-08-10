@@ -193,6 +193,7 @@ pub enum InitializeErrorReason {
     #[cfg(windows)]
     RegisterWindowsService,
     RemoveExistingModules,
+    StopExistingModules,
     SaveSettings,
     #[cfg(windows)]
     StartWindowsService,
@@ -339,6 +340,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::RemoveExistingModules => {
                 write!(f, "Could not remove existing modules")
+            }
+
+            InitializeErrorReason::StopExistingModules => {
+                write!(f, "Could not stop existing modules")
             }
 
             InitializeErrorReason::SaveSettings => write!(f, "Could not save settings file"),
