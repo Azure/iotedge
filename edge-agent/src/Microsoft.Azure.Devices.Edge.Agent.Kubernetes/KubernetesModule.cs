@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.ConfigurationInfo = module.ConfigurationInfo ?? new ConfigurationInfo(string.Empty);
             this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.ImagePullPolicy = module.ImagePullPolicy;
-            this.StartupOrder = Core.Constants.DefaultPriority;
+            this.StartupOrder = Core.Constants.DefaultStartupOrder;
             this.Config = config;
             this.Owner = owner;
         }
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.Config = settings;
             this.ImagePullPolicy = imagePullPolicy;
-            this.StartupOrder = Core.Constants.DefaultPriority;
+            this.StartupOrder = Core.Constants.DefaultStartupOrder;
             this.Owner = owner;
         }
 

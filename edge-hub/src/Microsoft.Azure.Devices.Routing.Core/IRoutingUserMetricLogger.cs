@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 {
     public interface IRoutingUserMetricLogger
     {
-        void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, string messageSource);
+        void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, IMessage message);
 
         void LogEgressFallbackMetric(long metricValue, string iotHubName);
 
@@ -22,5 +22,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
         void LogBuiltInEndpointEgressSuccessMetric(long metricValue, string iotHubName);
 
         void LogBuiltInEndpointLatencyMetric(long metricValue, string iotHubName);
+
+        void LogIngressFailureMetric(long metricValue, string iothubName, IMessage message, string reason);
+
+        void LogRetryOperation(long metricValue, string iothubName, string id, string type);
     }
 }

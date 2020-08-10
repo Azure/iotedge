@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -15,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.Properties = Preconditions.CheckNotNull(properties, nameof(properties));
             this.SystemProperties = Preconditions.CheckNotNull(systemProperties, nameof(systemProperties));
             this.ProcessedPriority = RouteFactory.DefaultPriority;
+            this.EnqueuedTimestamp = Stopwatch.GetTimestamp();
         }
 
         public EdgeMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, uint processedPriority)
@@ -23,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.Properties = Preconditions.CheckNotNull(properties, nameof(properties));
             this.SystemProperties = Preconditions.CheckNotNull(systemProperties, nameof(systemProperties));
             this.ProcessedPriority = processedPriority;
+            this.EnqueuedTimestamp = Stopwatch.GetTimestamp();
         }
 
         public byte[] Body { get; }
@@ -32,6 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public IDictionary<string, string> SystemProperties { get; }
 
         public uint ProcessedPriority { get; }
+
+        public long EnqueuedTimestamp { get; }
 
         public bool Equals(EdgeMessage other)
         {
