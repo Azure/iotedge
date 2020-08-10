@@ -60,8 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
 
-        public Task<Stream> GetSupportBundle(Option<string> since, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
-            this.inner.GetSupportBundle(since, iothubHostname, edgeRuntimeOnly, token);
+        public Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
+            this.inner.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token);
 
         internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
