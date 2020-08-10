@@ -15,7 +15,7 @@ use futures::Future;
 use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
-use edgelet_http_mgmt::ModuleClient;
+use edgelet_http_mgmt::{ModuleClient, SecretClient};
 
 use iotedge::{
     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, OutputLocation, Restart,
@@ -40,8 +40,9 @@ fn main() {
 
 #[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
-    let (default_mgmt_uri, default_config_path, default_container_engine_config_path) =
+    let (default_secret_uri, default_mgmt_uri, default_config_path, default_container_engine_config_path) =
         if cfg!(windows) {
+            panic!("NO WINDOWS SUPPORT");
             let program_data: PathBuf = std::env::var_os("PROGRAMDATA")
                 .map_or_else(|| r"C:\ProgramData".into(), Into::into);
 
@@ -71,12 +72,14 @@ fn run() -> Result<(), Error> {
             )
         } else {
             (
+                Cow::Borrowed("unix:///var/run/secretstore/cmd.sock"),
                 Cow::Borrowed("unix:///var/run/iotedge/mgmt.sock"),
                 Cow::Borrowed(Path::new("/etc/iotedge/config.yaml")),
                 Cow::Borrowed(Path::new("/etc/docker/daemon.json")),
             )
         };
 
+    let default_secret_uri = option_env!("SECRET_HOST").unwrap_or(&*default_secret_uri);
     let default_mgmt_uri = option_env!("IOTEDGE_HOST").unwrap_or(&*default_mgmt_uri);
 
     let default_diagnostics_image_name = format!(
@@ -101,6 +104,15 @@ fn run() -> Result<(), Error> {
                 .global(true)
                 .env("IOTEDGE_HOST")
                 .default_value(default_mgmt_uri),
+            Arg::with_name("secret_host")
+                .help("Secret store daemon socket to connect to")
+                .short("SHH") // NOTE: I am very funny
+                .long("secret-host")
+                .takes_value(true)
+                .value_name("SECRET_HOST")
+                .global(true)
+                .env("SECRET_HOST")
+                .default_value(default_secret_uri)
         )
         .subcommand(
             SubCommand::with_name("check")
@@ -295,6 +307,19 @@ fn run() -> Result<(), Error> {
         let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
         Ok(runtime)
     };
+
+    let secret = || -> Result<_, Error> {
+        let url = matches.value_of("secret_host")
+            .map_or_else(
+                || Err(Error::from(ErrorKind::MissingSecretHostParameter)),
+                |sec_host| Url::parse(sec_host)
+                    .context(ErrorKind::BadSecretHostParameter)
+                    .map_err(Error::from)
+            )?;
+        let secret = SecretClient::new(&url)
+            .context(ErrorKind::SecretStore);
+        Ok(secret)
+    }
 
     let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
