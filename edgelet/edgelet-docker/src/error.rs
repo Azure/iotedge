@@ -74,6 +74,9 @@ pub enum ErrorKind {
     InvalidSocketUri(String),
 
     #[fail(display = "{}", _0)]
+    LaunchNotary(String),
+
+    #[fail(display = "{}", _0)]
     ModuleOperation(ModuleOperation),
 
     #[fail(display = "{}", _0)]

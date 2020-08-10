@@ -63,6 +63,7 @@ pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
+    notary_lock: tokio::sync::lock::Lock<()>,
 }
 
 impl DockerModuleRuntime {
@@ -95,6 +96,17 @@ impl std::fmt::Debug for DockerModuleRuntime {
     }
 }
 
+struct MutexFuture<T>(tokio::sync::lock::Lock<T>);
+
+impl<T> Future for MutexFuture<T> {
+    type Item = tokio::sync::lock::LockGuard<T>;
+    type Error = Error;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        Ok(self.0.poll_lock())
+    }
+}
+
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
     type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
@@ -102,23 +114,88 @@ impl ModuleRegistry for DockerModuleRuntime {
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
-        let image = config.image().to_string();
+        let image_with_tag = config.image().to_string();
+        // check if the serveraddress exists & check if it exists in notary_registries
+        let registry_auth = config.auth();
+        let (registry_hostname, registry_username, registry_password) = match registry_auth {
+            Some(a) => (a.serveraddress(), a.username(), a.password()),
+            None => (None, None, None),
+        };
+        let hostname = registry_hostname.unwrap_or_default();
+        let username = registry_username.unwrap_or_default();
+        let password = registry_password.unwrap_or_default();
 
-        info!("Pulling image {}...", image);
+        let image = if !hostname.is_empty() && !username.is_empty() && !password.is_empty() {
+            let config_path = self.notary_registries.get(hostname);
+            if let Some(c) = config_path {
+                info!("{} is enabled for notary content trust", hostname);
+                let config_path_buf = c;
+                let config_path_string_result =
+                    config_path_buf.clone().into_os_string().into_string();
+                let config_path_str;
+                match config_path_string_result {
+                    Ok(c) => config_path_str = c,
+                    Err(_) => config_path_str = "".to_string(),
+                }
+                let mut image_with_tag_parts = image_with_tag.split(':');
+                let gun = image_with_tag_parts
+                    .next()
+                    .expect("split always returns atleast one element")
+                    .to_owned();
+                let gun: Arc<str> = gun.into();
+                let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
+                let notary_auth = format!("{}:{}", username, password);
+                let notary_auth = base64::encode(&notary_auth);
+                let lock = self.notary_lock.clone();
+                let mutex = MutexFuture(lock);
+                future::Either::A(
+                    mutex
+                        .and_then({
+                            let gun = gun.clone();
+                            move |lock| {
+                                notary::notary_lookup(
+                                    &notary_auth,
+                                    &gun,
+                                    &tag,
+                                    &config_path_str,
+                                    lock,
+                                )
+                            }
+                        })
+                        .map(move |digest| (format!("{}@{}", gun, digest), true)),
+                )
+            } else {
+                info!("{} is not enabled for notary content trust", hostname);
+                future::Either::B(futures::future::ok((image_with_tag, false)))
+            }
+        } else {
+            future::Either::B(futures::future::ok((image_with_tag, false)))
+        };
 
-        let creds: Result<String> = config.auth().map_or_else(
-            || Ok("".to_string()),
-            |a| {
-                let json = serde_json::to_string(a).with_context(|_| {
-                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
-                })?;
-                Ok(base64::encode(&json))
-            },
-        );
-
-        let response = creds
-            .map(|creds| {
-                self.client
+        let creds = config.auth().cloned();
+        let client_copy = self.client.clone();
+        let response = image
+            .and_then(|(image, is_content_trust_enabled)| {
+                let creds = match creds {
+                    Some(a) => {
+                        let json = serde_json::to_string(&a).with_context(|_| {
+                            ErrorKind::RegistryOperation(RegistryOperation::PullImage(
+                                image.clone(),
+                            ))
+                        })?;
+                        base64::encode_config(&json, base64::URL_SAFE)
+                    }
+                    None => String::new(),
+                };
+                Ok((image, is_content_trust_enabled, creds))
+            })
+            .and_then(move |(image, is_content_trust_enabled, creds)| {
+                if is_content_trust_enabled {
+                    info!("Pulling image via digest {}...", image);
+                } else {
+                    info!("Pulling image via tag {}...", image);
+                }
+                client_copy
                     .image_api()
                     .image_create(&image, "", "", "", "", &creds, "")
                     .then(|result| match result {
@@ -129,8 +206,6 @@ impl ModuleRegistry for DockerModuleRuntime {
                         )),
                     })
             })
-            .into_future()
-            .flatten()
             .then(move |result| match result {
                 Ok(image) => {
                     info!("Successfully pulled image {}", image);
@@ -264,10 +339,12 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
+                        let notary_lock = tokio::sync::lock::Lock::new(());
                         DockerModuleRuntime {
                             client,
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             notary_registries,
+                            notary_lock,
                         }
                     });
                 Ok(future::Either::A(fut))

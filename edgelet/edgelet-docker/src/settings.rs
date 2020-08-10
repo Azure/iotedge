@@ -434,10 +434,6 @@ mod tests {
         "test/windows/bad_sample_settings.dyn.repro.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_TLS: &str = "test/windows/sample_settings.tls.yaml";
-    #[cfg(windows)]
-    static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/windows/sample_settings_content_trust.yaml";
-    #[cfg(windows)]
-    static BAD_SETTINGS_CONTENT_TRUST: &str = "test/windows/bad_settings_content_trust.yaml";
 
     fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {

@@ -1,10 +1,13 @@
 use crate::{Error, ErrorKind};
 use failure::ResultExt;
+use futures::Future;
 use log::{debug, info};
 use serde_json::json;
 use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use tokio_process::CommandExt;
 
 pub fn notary_init(homedir: &Path, hostname: &str, path: &PathBuf) -> Result<PathBuf, Error> {
     // Validate inputs
@@ -93,6 +96,39 @@ pub fn notary_init(homedir: &Path, hostname: &str, path: &PathBuf) -> Result<Pat
     debug!("Config JSON file created successfully");
     Ok(config_file_path)
     // config_file_path;
+}
+
+pub fn notary_lookup(
+    notary_auth: &str,
+    image_gun: &str,
+    tag: &str,
+    config_path: &str,
+    lock: tokio::sync::lock::LockGuard<()>,
+) -> impl Future<Item = String, Error = Error> {
+    Command::new("notary")
+        .env("NOTARY_AUTH", notary_auth)
+        .arg("lookup")
+        .args(&[image_gun, tag])
+        .args(&["-c", config_path])
+        .output_async()
+        .then(|notary_output| {
+            drop(lock);
+            let notary_output = notary_output.with_context(|_| {
+                ErrorKind::LaunchNotary("could not spawn notary process".to_owned())
+            })?;
+            let notary_output_string =
+                String::from_utf8(notary_output.stdout).with_context(|_| {
+                    ErrorKind::LaunchNotary("could not retrieve notary output as string".to_owned())
+                })?;
+            let split_array: Vec<&str> = notary_output_string.split_whitespace().collect();
+            if split_array.len() < 2 {
+                return Err(ErrorKind::LaunchNotary(
+                    "notary digest split array is empty".to_owned(),
+                )
+                .into());
+            }
+            Ok(split_array[1].to_string())
+        })
 }
 
 #[cfg(test)]
