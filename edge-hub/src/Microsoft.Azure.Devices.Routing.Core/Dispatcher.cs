@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Extensions.Logging;
@@ -279,7 +280,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 // Only telemetry messages should be marked as orphaned for user logging / metric purposes.
                 if (message.MessageSource.IsTelemetry())
                 {
-                    Routing.UserMetricLogger.LogEgressMetric(1, iotHubName, MessageRoutingStatus.Orphaned, message.MessageSource.ToString());
+                    Routing.UserMetricLogger.LogEgressMetric(1, iotHubName, MessageRoutingStatus.Orphaned, message);
                     Routing.UserAnalyticsLogger.LogOrphanedMessage(iotHubName, message);
                 }
             }

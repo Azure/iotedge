@@ -8,27 +8,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
-    public class LogsRequest
+    public class ModuleLogsUploadRequest
     {
-        public LogsRequest(
+        public ModuleLogsUploadRequest(
             string schemaVersion,
             List<LogRequestItem> items,
             LogsContentEncoding encoding,
-            LogsContentType contentType)
+            LogsContentType contentType,
+            string sasUrl)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Encoding = encoding;
             this.ContentType = contentType;
+            this.SasUrl = Preconditions.CheckNotNull(sasUrl, nameof(sasUrl));
             this.Items = Preconditions.CheckNotNull(items, nameof(items));
         }
 
         [JsonConstructor]
-        LogsRequest(
+        ModuleLogsUploadRequest(
             string schemaVersion,
             List<LogRequestItem> items,
             LogsContentEncoding? encoding,
-            LogsContentType? contentType)
-            : this(schemaVersion, items, encoding ?? LogsContentEncoding.None, contentType ?? LogsContentType.Json)
+            LogsContentType? contentType,
+            string sasUrl)
+            : this(schemaVersion, items, encoding ?? LogsContentEncoding.None, contentType ?? LogsContentType.Json, sasUrl)
         {
         }
 
@@ -46,5 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         [JsonProperty("contentType", DefaultValueHandling = DefaultValueHandling.Populate)]
         [DefaultValue(LogsContentType.Text)]
         public LogsContentType ContentType { get; }
+
+        [JsonIgnore]
+        public string SasUrl { get; }
     }
 }

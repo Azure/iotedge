@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                     {
-                        Routing.UserMetricLogger = NullRoutingUserMetricLogger.Instance;
+                        Routing.UserMetricLogger = EdgeHubRoutingUserMetricLogger.Instance;
                         return Routing.UserMetricLogger;
                     })
                 .As<IRoutingUserMetricLogger>()
