@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 {
                     IModule moduleConfig = kvp.Value;
 
-                    if (moduleConfig.StartupOrder != Constants.DefaultPriority)
+                    if (moduleConfig.StartupOrder != Constants.DefaultStartupOrder)
                     {
                         throw new InvalidSchemaVersionException($"Module startup order is not supported in schema {actualSchemaVersion}.");
                     }
