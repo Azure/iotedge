@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
+                        var metadataStore = await c.Resolve<Task<IMetadataStore>>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                         var clientProvider = c.Resolve<IClientProvider>();
                         var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
@@ -235,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.operationTimeout,
                             this.useServerHeartbeat,
                             proxy,
-                            productInfoStore);
+                            metadataStore);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
