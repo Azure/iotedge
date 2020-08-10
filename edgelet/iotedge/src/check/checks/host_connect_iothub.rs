@@ -69,7 +69,6 @@ impl HostConnectIotHub {
             &(&**iothub_hostname, self.port_number),
             iothub_hostname,
             &format!("{}:{}", iothub_hostname, self.port_number),
-            self.proxy.as_deref(),
         )?;
 
         Ok(CheckResult::Ok)
