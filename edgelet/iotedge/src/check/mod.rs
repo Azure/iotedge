@@ -627,7 +627,7 @@ mod tests {
 
     #[test]
     fn config_file_checks_ok() {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
         for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
             let config_file = format!(
@@ -653,12 +653,12 @@ mod tests {
                 ))
                 .unwrap();
 
-            match WellFormedConfig::default().execute(&mut check) {
+            match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
 
-            match WellFormedConnectionString::default().execute(&mut check) {
+            match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking connection string in {} returned {:?}",
@@ -666,7 +666,7 @@ mod tests {
                 ),
             }
 
-            match Hostname::default().execute(&mut check) {
+            match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
                     let message = err.to_string();
                     assert!(
@@ -686,7 +686,7 @@ mod tests {
             // Pretend it's Moby
             check.docker_server_version = Some("3.0.3".to_owned());
 
-            match ContainerEngineIsMoby::default().execute(&mut check) {
+            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking moby_runtime.uri in {} returned {:?}",
@@ -698,7 +698,7 @@ mod tests {
 
     #[test]
     fn parse_settings_err() {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
         let filename = "bad_sample_settings.yaml";
         let config_file = format!(
@@ -724,7 +724,7 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check) {
+        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Failed(err) => {
                 let err = err
                     .iter_causes()
@@ -745,7 +745,7 @@ mod tests {
 
     #[test]
     fn settings_connection_string_dps() {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
         let filename = "sample_settings.dps.sym.yaml";
         let config_file = format!(
@@ -771,12 +771,12 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check) {
+        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
-        match WellFormedConnectionString::default().execute(&mut check) {
+        match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
@@ -784,7 +784,7 @@ mod tests {
 
     #[test]
     fn settings_connection_string_dps_err() {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
         let filename = "sample_settings.dps.sym.yaml";
         let config_file = format!(
@@ -810,12 +810,12 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check) {
+        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
-        match WellFormedConnectionString::default().execute(&mut check) {
+        match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
             CheckResult::Warning(err) => assert!(err.to_string().contains("Device not configured with manual provisioning, in this configuration 'iotedge check' is not able to discover the device's backing IoT Hub.")),
             check_result => panic!(
                 "checking connection string in {} returned {:?}",
@@ -827,7 +827,7 @@ mod tests {
     #[test]
     #[cfg(windows)]
     fn moby_runtime_uri_windows_wants_moby_based_on_runtime_uri() {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
         let filename = "sample_settings_notmoby.yaml";
         let config_file = format!(
@@ -853,7 +853,7 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check) {
+        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
@@ -861,7 +861,7 @@ mod tests {
         // Pretend it's Moby even though named pipe indicates otherwise
         check.docker_server_version = Some("3.0.3".to_owned());
 
-        match ContainerEngineIsMoby::default().execute(&mut check) {
+        match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
             CheckResult::Warning(warning) => assert!(
                 warning.to_string().contains(
                     "Device is not using a production-supported container engine (moby-engine)."
@@ -880,7 +880,7 @@ mod tests {
 
     #[test]
     fn moby_runtime_uri_wants_moby_based_on_server_version() {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
         let filename = "sample_settings.yaml";
         let config_file = format!(
@@ -906,7 +906,7 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check) {
+        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
@@ -914,7 +914,7 @@ mod tests {
         // Pretend it's Docker
         check.docker_server_version = Some("18.09.1".to_owned());
 
-        match ContainerEngineIsMoby::default().execute(&mut check) {
+        match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
             CheckResult::Warning(warning) => assert!(
                 warning.to_string().contains(
                     "Device is not using a production-supported container engine (moby-engine)."
