@@ -833,7 +833,7 @@ where
             .append_pair("stderr", &stderr.to_string())
             .append_pair("since", &since.to_string())
             .append_pair("timestamps", &timestamps.to_string())
-            .append_pair("tail", &tail.to_string());
+            .append_pair("tail", tail);
         if let Some(until) = until {
             serializer.append_pair("until", &until.to_string());
         }

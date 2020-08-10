@@ -171,11 +171,11 @@ where
             let until_string = if let Some(until) = until_local {
                 format!(" until {}", until)
             } else {
-                "".to_string()
+                "".to_owned()
             };
             println!(
-                "Writing all logs since {} (local time {}){} with {} max_lines",
-                since_time, since_local, until_string, max_lines
+                "Writing all logs {}since {} (local time {}){}",
+                max_lines, since_time, since_local, until_string
             );
         }
 
@@ -265,7 +265,7 @@ where
 
         #[cfg(unix)]
         let command = {
-            let command = ShellCommand::new("journalctl");
+            let mut command = ShellCommand::new("journalctl");
             command
                 .arg("-a")
                 .args(&["-u", "iotedge"])
@@ -282,7 +282,7 @@ where
         let command = {
             let until = until_time
                 .map(|until| format!(";EndTime='{}'", until))
-                .unwrap_or_else(|| "".to_owned());
+                .unwrap_or_else(String::new);
             ShellCommand::new("powershell.exe")
                 .arg("-NoProfile")
                 .arg("-Command")
@@ -554,7 +554,7 @@ mod tests {
     };
 
     use super::{
-        make_bundle, make_state, pull_logs, Fail, File, Future, LogOptions, LogTail, OsString,
+        make_bundle, pull_logs, Fail, File, Future, LogOptions, LogTail, OsString,
         OutputLocation,
     };
 
