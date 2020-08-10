@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             DateTime fakeTime = DateTime.Now;
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
-            AvailabilityMetrics availabilityMetrics = new AvailabilityMetrics(metricsProvider.Object, Path.GetTempPath(), systemTime.Object);
+            DeploymentMetrics availabilityMetrics = new DeploymentMetrics(metricsProvider.Object, Path.GetTempPath(), systemTime.Object);
 
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
             ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);
