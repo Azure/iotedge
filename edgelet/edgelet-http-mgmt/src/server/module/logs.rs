@@ -91,8 +91,13 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
 
     if let Some(until) = parse
         .iter()
-        .find(|&(ref key, _)| key == "until")
-        .map(|(_, val)| parse_since(val))
+        .find_map(|&(ref key, ref val)| {
+            if key == "until" {
+                Some(parse_since(val))
+            } else {
+                None
+            }
+        })
         .transpose()
         .context(ErrorKind::MalformedRequestParameter("until"))?
     {
