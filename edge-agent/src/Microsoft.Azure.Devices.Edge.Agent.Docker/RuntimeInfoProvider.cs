@@ -90,7 +90,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
             since.ForEach(t => containerLogsParameters.Since = t.ToString());
 
-// TODO: UnTIL
             return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }
 
