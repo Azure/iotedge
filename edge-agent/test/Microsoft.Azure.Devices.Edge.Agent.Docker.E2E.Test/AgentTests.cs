@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     dockerConfig,
                     imagePullPolicy,
-                    Constants.DefaultPriority,
+                    Constants.DefaultStartupOrder,
                     null,
                     null);
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };

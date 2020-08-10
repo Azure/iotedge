@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const uint HighestPriority = 0;
 
-        public const uint DefaultPriority = uint.MaxValue;
+        public const uint DefaultStartupOrder = uint.MaxValue;
 
         public static class Labels
         {
