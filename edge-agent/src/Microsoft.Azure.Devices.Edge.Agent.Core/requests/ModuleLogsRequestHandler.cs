@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                         .GetOrElse(
                             () =>
                             {
-                                var filter = new ModuleLogFilter(Option.Some(MaxTailValue), l.logOptions.Filter.Since, l.logOptions.Filter.LogLevel, l.logOptions.Filter.RegexString);
+                                var filter = new ModuleLogFilter(Option.Some(MaxTailValue), l.logOptions.Filter.Since, l.logOptions.Filter.Until, l.logOptions.Filter.LogLevel, l.logOptions.Filter.RegexString);
                                 return new ModuleLogOptions(l.logOptions.ContentEncoding, l.logOptions.ContentType, filter, l.logOptions.OutputFraming, l.logOptions.OutputGroupingConfig, l.logOptions.Follow);
                             });
 

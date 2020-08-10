@@ -835,9 +835,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <param name="since">Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp.</param>
         /// <returns>Logs returned as a string in response body</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, string since)
+        public System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, string since, string until)
         {
-            return ModuleLogsAsync(api_version, name, follow, tail, since, System.Threading.CancellationToken.None);
+            return ModuleLogsAsync(api_version, name, follow, tail, since, until, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -849,7 +849,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <param name="since">Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp.</param>
         /// <returns>Logs returned as a string in response body</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, string since, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, string since, string until, System.Threading.CancellationToken cancellationToken)
         {
             if (name == null)
                 throw new System.ArgumentNullException("name");
@@ -872,6 +872,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
             if (since != null)
             {
                 urlBuilder_.Append(System.Net.WebUtility.UrlEncode("since") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(since, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (until != null)
+            {
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("until") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(until, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             }
             urlBuilder_.Length--;
 
@@ -1408,9 +1412,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <param name="edge_runtime_only">Exclude customer module logs</param>
         /// <returns>Ok</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task<FileResponse> GetSupportBundleAsync(string api_version, string since, string host, string iothub_hostname, bool? edge_runtime_only)
+        public System.Threading.Tasks.Task<FileResponse> GetSupportBundleAsync(string api_version, string since, string until, string host, string iothub_hostname, bool? edge_runtime_only)
         {
-            return GetSupportBundleAsync(api_version, since, host, iothub_hostname, edge_runtime_only, System.Threading.CancellationToken.None);
+            return GetSupportBundleAsync(api_version, since, until, host, iothub_hostname, edge_runtime_only, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -1422,7 +1426,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <param name="edge_runtime_only">Exclude customer module logs</param>
         /// <returns>Ok</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task<FileResponse> GetSupportBundleAsync(string api_version, string since, string host, string iothub_hostname, bool? edge_runtime_only, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task<FileResponse> GetSupportBundleAsync(string api_version, string since, string until, string host, string iothub_hostname, bool? edge_runtime_only, System.Threading.CancellationToken cancellationToken)
         {
             if (api_version == null)
                 throw new System.ArgumentNullException("api_version");
@@ -1433,6 +1437,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
             if (since != null)
             {
                 urlBuilder_.Append(System.Net.WebUtility.UrlEncode("since") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(since, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (until != null)
+            {
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("until") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(until, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             }
             if (host != null)
             {
