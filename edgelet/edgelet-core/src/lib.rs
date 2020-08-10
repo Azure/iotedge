@@ -55,7 +55,7 @@ pub use settings::{
     AttestationMethod, Certificates, Connect, Dps, External, Listen, Manual, ManualAuthMethod,
     ManualDeviceConnectionString, ManualX509Auth, Protocol, Provisioning, ProvisioningType,
     RetryLimit, RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
-    WatchdogSettings, X509AttestationInfo,
+    WatchdogSettings, SecretSettings, X509AttestationInfo,
 };
 pub use workload::WorkloadConfig;
 
@@ -123,3 +123,5 @@ pub const UNIX_SCHEME: &str = "unix";
 
 /// This is the name of the network created by the iotedged
 pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";
+
+pub const DEFAULT_SECRET_STORE_SOCKET: &str = "unix:///var/secretstore/cmd.sock";
