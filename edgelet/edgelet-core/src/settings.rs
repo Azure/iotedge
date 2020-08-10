@@ -12,7 +12,7 @@ use url::Url;
 use crate::crypto::MemoryKey;
 use crate::error::{Error, ErrorKind};
 use crate::module::ModuleSpec;
-use crate::DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS;
+use crate::{DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS, DEFAULT_SECRET_STORE_SOCKET};
 
 const DEVICEID_KEY: &str = "DeviceId";
 const HOSTNAME_KEY: &str = "HostName";
@@ -677,6 +677,22 @@ impl WatchdogSettings {
     }
 }
 
+fn default_secret_host() -> String {
+    DEFAULT_SECRET_STORE_SOCKET.to_string()
+}
+
+#[derive(Clone, Debug, Default, serde_derive::Deserialize, serde_derive::Serialize)]
+pub struct SecretSettings {
+    #[serde(default = "default_secret_host")]
+    secret_host: String
+}
+
+impl SecretSettings {
+    pub fn secret_host(&self) -> &str {
+        &self.secret_host
+    }
+}
+
 pub trait RuntimeSettings {
     type Config;
 
@@ -689,6 +705,7 @@ pub trait RuntimeSettings {
     fn homedir(&self) -> &Path;
     fn certificates(&self) -> &Certificates;
     fn watchdog(&self) -> &WatchdogSettings;
+    fn secret(&self) -> &SecretSettings;
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -702,6 +719,8 @@ pub struct Settings<T> {
     certificates: Option<Certificates>,
     #[serde(default)]
     watchdog: WatchdogSettings,
+    #[serde(default)]
+    secret: SecretSettings
 }
 
 impl<T> RuntimeSettings for Settings<T>
@@ -751,6 +770,10 @@ where
 
     fn watchdog(&self) -> &WatchdogSettings {
         &self.watchdog
+    }
+
+    fn secret(&self) -> &SecretSettings {
+        &self.secret
     }
 }
 
