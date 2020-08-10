@@ -54,6 +54,13 @@ jobs:
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
 
+      # Dotnet Diagnostics Module
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Diagnostics
+          imageName: azureiotedge-diagnostics
+          project: DotnetDiagnosticsModule
+
       # Temperature Filter
       - template: templates/image-linux.yaml
         parameters:
