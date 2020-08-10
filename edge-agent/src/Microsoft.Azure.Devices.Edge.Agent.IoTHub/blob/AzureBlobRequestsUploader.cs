@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
 {
     using System;
     using System.Globalization;
+    using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
@@ -11,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
     using Microsoft.Extensions.Logging;
     using Microsoft.WindowsAzure.Storage.Blob;
 
-    public class AzureBlobLogsUploader : ILogsUploader
+    public class AzureBlobRequestsUploader : IRequestsUploader
     {
         const int RetryCount = 2;
 
@@ -24,19 +25,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
         readonly string deviceId;
         readonly IAzureBlobUploader azureBlobUploader;
 
-        public AzureBlobLogsUploader(string iotHubName, string deviceId)
+        public AzureBlobRequestsUploader(string iotHubName, string deviceId)
             : this(iotHubName, deviceId, new AzureBlobUploader())
         {
         }
 
-        public AzureBlobLogsUploader(string iotHubName, string deviceId, IAzureBlobUploader azureBlobUploader)
+        public AzureBlobRequestsUploader(string iotHubName, string deviceId, IAzureBlobUploader azureBlobUploader)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.azureBlobUploader = Preconditions.CheckNotNull(azureBlobUploader, nameof(azureBlobUploader));
         }
 
-        public async Task Upload(string uri, string id, byte[] payload, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
+        public async Task UploadLogs(string uri, string id, byte[] payload, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
         {
             Preconditions.CheckNonWhiteSpace(uri, nameof(uri));
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
@@ -45,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             try
             {
                 var containerUri = new Uri(uri);
-                string blobName = this.GetBlobName(id, logsContentEncoding, logsContentType);
+                string blobName = this.GetBlobName(id, GetLogsExtension(logsContentEncoding, logsContentType));
                 var container = new CloudBlobContainer(containerUri);
                 Events.Uploading(blobName, container.Name);
                 await ExecuteWithRetry(
@@ -65,20 +66,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
         }
 
         // This method returns a func instead of IAzureAppendBlob interface to keep the ILogsUploader interface non Azure specific.
-        public async Task<Func<ArraySegment<byte>, Task>> GetUploaderCallback(string uri, string id, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
+        public async Task<Func<ArraySegment<byte>, Task>> GetLogsUploaderCallback(string uri, string id, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
         {
             Preconditions.CheckNonWhiteSpace(uri, nameof(uri));
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
             var containerUri = new Uri(uri);
-            string blobName = this.GetBlobName(id, logsContentEncoding, logsContentType);
+            string blobName = this.GetBlobName(id, GetLogsExtension(logsContentEncoding, logsContentType));
             var container = new CloudBlobContainer(containerUri);
             Events.Uploading(blobName, container.Name);
             IAzureAppendBlob blob = await this.azureBlobUploader.GetAppendBlob(containerUri, blobName, GetContentType(logsContentType), GetContentEncoding(logsContentEncoding));
             return blob.AppendByteArray;
         }
 
-        internal static string GetExtension(LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
+        public async Task UploadSupportBundle(string uri, Stream source)
+        {
+            Preconditions.CheckNonWhiteSpace(uri, nameof(uri));
+            Preconditions.CheckNotNull(source, nameof(source));
+
+            try
+            {
+                var containerUri = new Uri(uri);
+                string blobName = this.GetBlobName("support-bundle", "zip");
+                var container = new CloudBlobContainer(containerUri);
+                Events.Uploading(blobName, container.Name);
+                await ExecuteWithRetry(
+                    () =>
+                    {
+                        IAzureBlob blob = this.azureBlobUploader.GetBlob(containerUri, blobName, Option.Some("application/zip"), Option.Some("zip"));
+                        return blob.UploadFromStreamAsync(source);
+                    },
+                    r => Events.UploadErrorRetrying(blobName, container.Name, r));
+                Events.UploadSuccess(blobName, container.Name);
+            }
+            catch (Exception e)
+            {
+                Events.UploadError(e, "support-bundle");
+                throw;
+            }
+        }
+
+        internal static string GetLogsExtension(LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
         {
             if (logsContentEncoding == LogsContentEncoding.Gzip)
             {
@@ -90,9 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             }
         }
 
-        internal string GetBlobName(string id, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)
+        internal string GetBlobName(string id, string extension)
         {
-            string extension = GetExtension(logsContentEncoding, logsContentType);
             string blobName = $"{id}-{DateTime.UtcNow.ToString("yyyy-MM-dd--HH-mm-ss", CultureInfo.InvariantCulture)}";
             return $"{this.iotHubName}/{this.deviceId}/{blobName}.{extension}";
         }
@@ -139,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
         static class Events
         {
             const int IdStart = AgentEventIds.AzureBlobLogsUploader;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<AzureBlobLogsUploader>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<AzureBlobRequestsUploader>();
 
             enum EventIds
             {

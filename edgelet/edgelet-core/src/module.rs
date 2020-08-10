@@ -11,6 +11,7 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
+use serde_derive::Serialize;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
@@ -345,36 +346,19 @@ pub trait ModuleRegistry {
     fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize)]
 pub struct SystemInfo {
     /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
-    os_type: String,
+    #[serde(rename = "osType")]
+    pub os_type: String,
     /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
-    architecture: String,
+    pub architecture: String,
     /// iotedge version string
-    version: &'static str,
-}
-
-impl SystemInfo {
-    pub fn new(os_type: String, architecture: String) -> Self {
-        SystemInfo {
-            os_type,
-            architecture,
-            version: super::version_with_source_version(),
-        }
-    }
-
-    pub fn os_type(&self) -> &str {
-        &self.os_type
-    }
-
-    pub fn architecture(&self) -> &str {
-        &self.architecture
-    }
-
-    pub fn version(&self) -> &str {
-        self.version
-    }
+    pub version: &'static str,
+    pub server_version: String,
+    pub kernel_version: String,
+    pub operating_system: String,
+    pub cpus: i32,
 }
 
 #[derive(Debug, serde_derive::Serialize)]
@@ -501,6 +485,7 @@ pub trait ModuleRuntime: Sized {
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type SystemResourcesFuture: Future<Item = SystemResources, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
+    type StopAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn get(&self, id: &str) -> Self::GetFuture;
@@ -515,6 +500,7 @@ pub trait ModuleRuntime: Sized {
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;
+    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -559,6 +545,7 @@ pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),
     GetModuleLogs(String),
+    GetSupportBundle,
     Init,
     ListModules,
     RemoveModule(String),
@@ -578,6 +565,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::GetModuleLogs(name) => {
                 write!(f, "Could not get logs for module {}", name)
             }
+            RuntimeOperation::GetSupportBundle => write!(f, "Could not get support bundle"),
             RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "Could not list modules"),
             RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
@@ -621,7 +609,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec, SystemInfo};
+    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec};
 
     use std::str::FromStr;
     use std::string::ToString;
@@ -736,27 +724,5 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn system_info_new_and_access_succeed() {
-        //arrange
-        let system_info = SystemInfo::new(
-            "testValueOsType".to_string(),
-            "testArchitectureType".to_string(),
-        );
-        let expected_value_os_type = "testValueOsType";
-        let expected_test_architecture_type = "testArchitectureType";
-
-        //act
-        let current_value_os_type = system_info.os_type();
-        let current_value_architecture_type = system_info.architecture();
-
-        //assert
-        assert_eq!(expected_value_os_type, current_value_os_type);
-        assert_eq!(
-            expected_test_architecture_type,
-            current_value_architecture_type
-        );
     }
 }
