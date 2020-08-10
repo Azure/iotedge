@@ -11,14 +11,17 @@ use edgelet_core::{self, ProvisioningType, RuntimeSettings};
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
-#[derive(Default, serde_derive::Serialize)]
-pub(crate) struct HostConnectDpsEndpoint {
+#[derive(serde_derive::Serialize)]
+pub(crate) struct HostConnectDpsEndpoint<'a> {
     dps_endpoint: Option<String>,
     dps_hostname: Option<String>,
     proxy: Option<String>,
+
+    #[serde(skip)]
+    runtime: &'a mut tokio::runtime::Runtime,
 }
 
-impl Checker for HostConnectDpsEndpoint {
+impl<'a> Checker for HostConnectDpsEndpoint<'a> {
     fn id(&self) -> &'static str {
         "host-connect-dps-endpoint"
     }
@@ -34,8 +37,17 @@ impl Checker for HostConnectDpsEndpoint {
     }
 }
 
-impl HostConnectDpsEndpoint {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, Error> {
+impl<'a> HostConnectDpsEndpoint<'a> {
+    pub fn new(runtime: &'a mut tokio::runtime::Runtime) -> Self {
+        Self {
+            dps_endpoint: None,
+            dps_hostname: None,
+            proxy: None,
+            runtime,
+        }
+    }
+
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -117,7 +129,7 @@ pub fn resolve_and_tls_handshake(
 
 pub fn resolve_and_tls_handshake_proxy<'a>(
     tls_hostname: &'a str,
-    port: i16,
+    port: u16,
     proxy: &'a str,
 ) -> impl Future<Item = (), Error = Error> + 'a {
     futures::future::ok(())
@@ -142,7 +154,10 @@ pub fn resolve_and_tls_handshake_proxy<'a>(
         .and_then(move |(client, hostname)| {
             client.get(hostname).then(move |r| {
                 Ok(r.with_context(|_| {
-                    format!("Could not get {}:{} through proxy {}", tls_hostname, port, proxy)
+                    format!(
+                        "Could not get {}:{} through proxy {}",
+                        tls_hostname, port, proxy
+                    )
                 })?)
             })
         })
