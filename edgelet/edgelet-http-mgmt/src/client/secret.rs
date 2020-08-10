@@ -38,6 +38,8 @@ impl SecretClient {
     }
 }
 
+// NOTE: potentially split into workload and management and move to edgelet-http
+//       VERY LOW PRIORITY
 impl SecretManager for SecretClient {
     type Error = Error;
     type SetFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;

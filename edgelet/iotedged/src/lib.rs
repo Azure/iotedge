@@ -59,7 +59,7 @@ use edgelet_core::{
     CertificateType, Dps, MakeModuleRuntime, ManualAuthMethod, Module, ModuleRuntime,
     ModuleRuntimeErrorReason, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
     ProvisioningType, RuntimeSettings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
-    WorkloadConfig, X509AttestationInfo,
+    WorkloadConfig, X509AttestationInfo, SecretManager
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
@@ -2033,9 +2033,10 @@ where
     env
 }
 
-fn start_management<C, K, HC, M>(
+fn start_management<C, K, I, HC, M>(
     settings: &M::Settings,
     runtime: &M::ModuleRuntime,
+    secret: &I,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -2044,6 +2045,7 @@ fn start_management<C, K, HC, M>(
 where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
+    I: 'static + SecretManager + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
     M: MakeModuleRuntime,
     M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
