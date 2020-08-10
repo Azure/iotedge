@@ -554,8 +554,7 @@ mod tests {
     };
 
     use super::{
-        make_bundle, pull_logs, Fail, File, Future, LogOptions, LogTail, OsString,
-        OutputLocation,
+        make_bundle, pull_logs, Fail, File, Future, LogOptions, LogTail, OsString, OutputLocation,
     };
 
     #[allow(dead_code)]
