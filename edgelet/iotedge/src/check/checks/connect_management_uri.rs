@@ -20,7 +20,7 @@ impl Checker for ConnectManagementUri {
     fn description(&self) -> &'static str {
         "config.yaml has correct URIs for daemon mgmt endpoint"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }

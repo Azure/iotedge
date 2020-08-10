@@ -17,7 +17,7 @@ impl Checker for ContainerLocalTime {
     fn description(&self) -> &'static str {
         "container time is close to host time"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }

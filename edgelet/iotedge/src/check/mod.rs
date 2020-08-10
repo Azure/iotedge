@@ -6,8 +6,7 @@ use std::path::PathBuf;
 
 use failure::Fail;
 use failure::{self, ResultExt};
-use futures::future::{self, FutureResult};
-use futures::{Future, IntoFuture, Stream};
+use futures::{future, Future, Stream};
 
 use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
@@ -248,7 +247,7 @@ impl Check {
             ),
             ("Connectivity checks", {
                 let mut tests: Vec<Box<dyn Checker>> = Vec::new();
-                tests.push(Box::new(HostConnectDpsEndpoint::new()));
+                tests.push(Box::new(HostConnectDpsEndpoint::default()));
                 tests.extend(get_host_connect_iothub_tests());
                 tests.extend(get_host_container_iothub_tests());
                 tests
@@ -310,7 +309,7 @@ impl Check {
         Ok(())
     }
 
-    fn execute_inner(&mut self) -> Result<(), Error> {
+    pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
         let mut checks: BTreeMap<&str, CheckOutputSerializable> = Default::default();
         let mut check_data = Check::checks();
 
@@ -343,7 +342,7 @@ impl Check {
                 let check_result = if self.dont_run.contains(check.id()) {
                     CheckResult::Ignored
                 } else {
-                    check.execute(self)
+                    check.execute(self, runtime)
                 };
 
                 match check_result {
@@ -575,14 +574,6 @@ impl Check {
         }
 
         result
-    }
-}
-
-impl crate::Command for Check {
-    type Future = FutureResult<(), Error>;
-
-    fn execute(mut self) -> Self::Future {
-        self.execute_inner().into_future()
     }
 }
 

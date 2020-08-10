@@ -15,7 +15,7 @@ impl Checker for ContainerEngineIsMoby {
     fn description(&self) -> &'static str {
         "production readiness: container engine"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }

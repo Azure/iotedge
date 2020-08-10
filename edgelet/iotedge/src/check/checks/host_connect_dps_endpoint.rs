@@ -1,5 +1,6 @@
 use std::net::TcpStream;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use failure::{Context, Error, ResultExt};
 use futures::Future;
@@ -11,25 +12,22 @@ use edgelet_core::{self, ProvisioningType, RuntimeSettings};
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
-#[derive(serde_derive::Serialize)]
-pub(crate) struct HostConnectDpsEndpoint<'a> {
+#[derive(serde_derive::Serialize, Default)]
+pub(crate) struct HostConnectDpsEndpoint {
     dps_endpoint: Option<String>,
     dps_hostname: Option<String>,
     proxy: Option<String>,
-
-    #[serde(skip)]
-    runtime: &'a mut tokio::runtime::Runtime,
 }
 
-impl<'a> Checker for HostConnectDpsEndpoint<'a> {
+impl Checker for HostConnectDpsEndpoint {
     fn id(&self) -> &'static str {
         "host-connect-dps-endpoint"
     }
     fn description(&self) -> &'static str {
         "host can connect to and perform TLS handshake with DPS endpoint"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
-        self.inner_execute(check)
+    fn execute(&mut self, check: &mut Check, runtime: &mut tokio::runtime::Runtime) -> CheckResult {
+        self.inner_execute(check, runtime)
             .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
@@ -37,17 +35,12 @@ impl<'a> Checker for HostConnectDpsEndpoint<'a> {
     }
 }
 
-impl<'a> HostConnectDpsEndpoint<'a> {
-    pub fn new(runtime: &'a mut tokio::runtime::Runtime) -> Self {
-        Self {
-            dps_endpoint: None,
-            dps_hostname: None,
-            proxy: None,
-            runtime,
-        }
-    }
-
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+impl HostConnectDpsEndpoint {
+    fn inner_execute(
+        &mut self,
+        check: &mut Check,
+        runtime: &mut tokio::runtime::Runtime,
+    ) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
@@ -74,7 +67,15 @@ impl<'a> HostConnectDpsEndpoint<'a> {
             .map(std::string::String::as_str);
         self.proxy = proxy.map(std::borrow::ToOwned::to_owned);
 
-        resolve_and_tls_handshake(&dps_endpoint, dps_hostname, dps_hostname)?;
+        if let Some(proxy) = &self.proxy {
+            runtime.block_on(resolve_and_tls_handshake_proxy(
+                dps_endpoint.as_str().to_owned(),
+                dps_endpoint.port(),
+                proxy.clone(),
+            ))?;
+        } else {
+            resolve_and_tls_handshake(&dps_endpoint, dps_hostname, dps_hostname)?;
+        }
 
         Ok(CheckResult::Ok)
     }
@@ -127,35 +128,45 @@ pub fn resolve_and_tls_handshake(
     Ok(())
 }
 
-pub fn resolve_and_tls_handshake_proxy<'a>(
-    tls_hostname: &'a str,
-    port: u16,
-    proxy: &'a str,
-) -> impl Future<Item = (), Error = Error> + 'a {
+pub fn resolve_and_tls_handshake_proxy(
+    tls_hostname: String,
+    port: Option<u16>,
+    proxy: String,
+) -> impl Future<Item = (), Error = Error> {
+    let proxy: Arc<str> = proxy.into();
+    let tls_hostname: Arc<str> = tls_hostname.into();
+
     futures::future::ok(())
-        .and_then(move |_| -> Result<_, Error> {
-            let proxy_uri = Uri::from_str(proxy)
-                .with_context(|_| format!("Could not make proxi uri from {}", proxy))?;
+        .and_then({
+            let proxy = proxy.clone();
+            let tls_hostname = tls_hostname.clone();
+            move |_| -> Result<_, Error> {
+                let proxy_uri = Uri::from_str(&proxy)
+                    .with_context(|_| format!("Could not make proxi uri from {}", proxy))?;
 
-            println!("proxy uri {:#?}", proxy_uri);
+                println!("proxy uri {:#?}", proxy_uri);
 
-            let proxy_obj = Proxy::new(Intercept::All, proxy_uri);
-            let http_connector = HttpConnector::new(1);
-            let proxy_connector = ProxyConnector::from_proxy(http_connector, proxy_obj)
-                .with_context(|_| format!("Could not make proxy connector"))?;
+                let proxy_obj = Proxy::new(Intercept::All, proxy_uri);
+                let http_connector = HttpConnector::new(1);
+                let proxy_connector = ProxyConnector::from_proxy(http_connector, proxy_obj)
+                    .with_context(|_| format!("Could not make proxy connector"))?;
 
-            let hostname = Uri::from_str(&format!("http://{}:{}", tls_hostname, port))
-                .with_context(|_| format!("Could not make uri from {}:{}", tls_hostname, port))?;
-            println!("hostname: {}", hostname);
+                let port = port.map(|p| format!(":{}", p)).unwrap_or_default();
+                let hostname = Uri::from_str(&format!("http://{}{}", tls_hostname, port))
+                    .with_context(|_| {
+                        format!("Could not make uri from {}{}", tls_hostname, port)
+                    })?;
+                println!("hostname: {}", hostname);
 
-            let client: Client<_, Body> = Client::builder().build(proxy_connector);
-            Ok((client, hostname))
+                let client: Client<_, Body> = Client::builder().build(proxy_connector);
+                Ok((client, hostname))
+            }
         })
         .and_then(move |(client, hostname)| {
             client.get(hostname).then(move |r| {
                 Ok(r.with_context(|_| {
                     format!(
-                        "Could not get {}:{} through proxy {}",
+                        "Could not get {}:{:#?} through proxy {}",
                         tls_hostname, port, proxy
                     )
                 })?)

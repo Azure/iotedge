@@ -16,7 +16,7 @@ impl Checker for WellFormedConfig {
     fn description(&self) -> &'static str {
         "config.yaml is well-formed"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         Self::inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {

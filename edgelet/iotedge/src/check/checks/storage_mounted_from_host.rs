@@ -20,7 +20,7 @@ impl Checker for EdgeAgentStorageMounted {
     fn description(&self) -> &'static str {
         "production readiness: Edge Agent's storage directory is persisted on the host filesystem"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         storage_mounted_from_host(
             check,
             "edgeAgent",
@@ -48,7 +48,7 @@ impl Checker for EdgeHubStorageMounted {
     fn description(&self) -> &'static str {
         "production readiness: Edge Hub's storage directory is persisted on the host filesystem"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         storage_mounted_from_host(
             check,
             "edgeHub",
