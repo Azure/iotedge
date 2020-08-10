@@ -15,6 +15,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid value for --host parameter")]
     BadHostParameter,
 
+    #[fail(display = "Invalid value for --secret-host parameter")]
+    BadSecretHostParameter,
+
     #[fail(display = "Invalid value for --since parameter")]
     BadSinceParameter,
 
@@ -36,8 +39,14 @@ pub enum ErrorKind {
     #[fail(display = "Missing --host parameter")]
     MissingHostParameter,
 
+    #[fail(display = "Missing --secret-host parameter")]
+    MissingSecretHostParameter,
+
     #[fail(display = "A module runtime error occurred")]
     ModuleRuntime,
+
+    #[fail(display = "A secret store error occurred")]
+    SecretStore,
 
     #[fail(display = "Could not generate support bundle")]
     SupportBundle,
