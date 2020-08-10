@@ -149,7 +149,7 @@ pub fn resolve_and_tls_handshake_proxy(
                 let proxy_obj = Proxy::new(Intercept::All, proxy_uri);
                 let http_connector = HttpConnector::new(1);
                 let proxy_connector = ProxyConnector::from_proxy(http_connector, proxy_obj)
-                    .with_context(|_| format!("Could not make proxy connector"))?;
+                    .with_context(|_| "Could not make proxy connector".to_owned())?;
 
                 let port = port.map(|p| format!(":{}", p)).unwrap_or_default();
                 let hostname = Uri::from_str(&format!("http://{}{}", tls_hostname, port))
