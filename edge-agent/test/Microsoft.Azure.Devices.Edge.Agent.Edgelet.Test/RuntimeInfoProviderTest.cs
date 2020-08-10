@@ -101,13 +101,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Stream GetLogsStream() => new MemoryStream(Encoding.UTF8.GetBytes(dummyLogs));
 
             var moduleManager = new Mock<IModuleManager>();
-            moduleManager.Setup(m => m.GetModuleLogs(id, It.IsAny<bool>(), It.IsAny<Option<int>>(), It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
+            moduleManager.Setup(m => m.GetModuleLogs(id, It.IsAny<bool>(), It.IsAny<Option<int>>(), It.IsAny<Option<string>>(), It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(GetLogsStream);
 
             var runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager.Object);
 
             // Act
-            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), CancellationToken.None);
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), Option.None<string>(), CancellationToken.None);
 
             // Assert
             var buffer = new byte[1024];
