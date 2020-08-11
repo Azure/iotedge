@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Text;
     using System.Threading;
@@ -629,7 +630,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent from edge hub",
-                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
@@ -639,7 +640,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsCounter GetTwinCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "gettwin",
                 "Get twin calls",
-                new List<string> { "source", "id" });
+                new List<string> { "source", "id", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "reported_properties_update_duration_seconds",
@@ -649,7 +650,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsCounter ReportedPropertiesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "reported_properties",
                 "Reported properties update calls",
-                new List<string> { "target", "id" });
+                new List<string> { "target", "id", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsTimer DirectMethodsTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "direct_method_duration_seconds",
@@ -659,34 +660,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to", "priority" });
+                new List<string> { "from", "to", "priority", MetricsConstants.MsTelemetry });
 
             public static IDisposable TimeMessageSend(string id, string fromRoute) => MessagesTimer.GetTimer(new[] { id, "upstream", fromRoute, string.Empty });
 
             public static void AddSentMessages(string id, int count, string fromRoute, uint priority) =>
-                SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty, priority.ToString() });
+                SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty, priority.ToString(), bool.TrueString });
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "upstream", id });
 
-            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "upstream", id });
+            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "upstream", id, bool.TrueString });
 
             public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "upstream", id });
 
-            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id });
+            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id, bool.TrueString });
 
             public static IDisposable TimeDirectMethod(string id) => DirectMethodsTimer.GetTimer(new[] { "upstream", id });
 
             public static void MessageProcessingLatency(string id, IMessage message)
             {
-                if (message.SystemProperties != null
-                    && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
-                    && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
+                if (message.EnqueuedTimestamp != 0)
                 {
-                    TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
+                    TimeSpan duration = TimeSpan.FromTicks(Stopwatch.GetTimestamp() - message.EnqueuedTimestamp);
                     string priority = message.ProcessedPriority.ToString();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { id, "upstream", priority });
+                        new[] { id, "upstream", priority, bool.TrueString });
                 }
             }
         }

@@ -65,6 +65,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public string Hostname =>
             IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
 
+        public string SharedAccessKey =>
+            IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).SharedAccessKey;
+
         public string EntityPath =>
             new EventHubsConnectionStringBuilder(this.eventHubEndpoint).EntityPath;
 

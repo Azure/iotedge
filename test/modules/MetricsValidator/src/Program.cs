@@ -42,6 +42,7 @@ namespace MetricsValidator
                 Logger.LogInformation("Make Client");
                 using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     transportType,
+                    new ClientOptions(),
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger))
