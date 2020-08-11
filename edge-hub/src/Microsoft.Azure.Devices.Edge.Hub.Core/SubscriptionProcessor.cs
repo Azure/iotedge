@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             new ExponentialBackoff(2, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4));
 
         readonly ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>> pendingSubscriptions;
+        readonly ConcurrentDictionary<string, bool> subscriptionsBeingProcessed;
         readonly ActionBlock<string> processSubscriptionsBlock;
         readonly IInvokeMethodHandler invokeMethodHandler;
 
@@ -43,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
             this.pendingSubscriptions = new ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>>();
+            this.subscriptionsBeingProcessed = new ConcurrentDictionary<string, bool>();
             this.processSubscriptionsBlock = new ActionBlock<string>(this.ProcessPendingSubscriptions);
             connectionManager.DeviceConnected += this.DeviceConnected;
             deviceConnectivityManager.DeviceConnected += this.CloudConnectivityEstablished;
@@ -51,9 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async void DeviceConnected(object sender, IIdentity identity)
         {
-            // Temporarily disable clientCloudConnectionEstablished while we process subscriptions, so
-            // we don't trigger processing subscriptions twice.
-            this.ConnectionManager.CloudConnectionEstablished -= this.ClientCloudConnectionEstablished;
+            // Set a flag for an identity that temporarily disables clientCloudConnectionEstablished
+            // while we process subscriptions, so we don't trigger processing subscriptions twice.
+            this.subscriptionsBeingProcessed.TryAdd(identity.Id, true);
             try
             {
                 Events.ProcessingSubscriptionsOnDeviceConnectedToEdgeHub(identity);
@@ -66,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             finally
             {
                 this.ConnectionManager.CloudConnectionEstablished += this.ClientCloudConnectionEstablished;
+                this.subscriptionsBeingProcessed.TryRemove(identity.Id, out bool removed);
             }
         }
 
@@ -149,7 +152,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             try
             {
-                IEnumerable<Task> tasks = this.ConnectionManager.GetConnectedClients().Select(id => ProcessSubscriptionByIdentity(id));
+                IEnumerable<Task> tasks = this.ConnectionManager.GetConnectedClients().Select(id =>
+                {
+                    if (!this.subscriptionsBeingProcessed.ContainsKey(id.Id))
+                    {
+                        return ProcessSubscriptionByIdentity(id);
+                    }
+                    else
+                    {
+                        return Task.CompletedTask;
+                    }
+                });
                 await Task.WhenAll(tasks);
             }
             catch (Exception e)
@@ -160,14 +173,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async void ClientCloudConnectionEstablished(object sender, IIdentity identity)
         {
-            try
+            if (!this.subscriptionsBeingProcessed.ContainsKey(identity.Id))
             {
-                Events.ClientConnectedProcessingSubscriptions(identity);
-                await this.ProcessExistingSubscriptions(identity.Id);
-            }
-            catch (Exception e)
-            {
-                Events.ErrorProcessingSubscriptions(e, identity);
+                try
+                {
+                    Events.ClientConnectedProcessingSubscriptions(identity);
+                    await this.ProcessExistingSubscriptions(identity.Id);
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorProcessingSubscriptions(e, identity);
+                }
             }
         }
 
