@@ -14,6 +14,7 @@ use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 // TODO REVIEW: do we want failures making the client to percolate all the way up and blow up broker?
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
 const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
+const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -54,13 +55,11 @@ pub struct CommandHandler {
 
 impl CommandHandler {
     pub fn new(broker_handle: BrokerHandle, address: String) -> Self {
-        // TODO: create broker connection
-
-        let device_id = match env::var("IOTEDGE_DEVICEID") {
+        let device_id = match env::var(DEVICE_ID_ENV) {
             Ok(id) => id,
             Err(e) => {
                 error!(
-                    message = "couldn't find expected IOTEDGE_DEVICEID environment variable",
+                    message = "couldn't find expected device id environment variable",
                     error=%e
                 );
                 "generic-edge-device".to_string()

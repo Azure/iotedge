@@ -1,17 +1,6 @@
-use std::time::Duration;
-
-use bytes::Bytes;
 use futures_util::StreamExt;
-use matches::assert_matches;
 
-use mqtt3::{
-    proto::{
-        ClientId, ConnAck, Connect, ConnectReturnCode, ConnectionRefusedReason, Disconnect, Packet,
-        PacketIdentifier, PacketIdentifierDupQoS, PingReq, PubAck, Publication, Publish, QoS,
-        SubAck, SubAckQos, Subscribe, SubscribeTo,
-    },
-    Event, ReceivedPublication, ShutdownError, PROTOCOL_LEVEL, PROTOCOL_NAME,
-};
+use mqtt3::{proto::ClientId, ShutdownError};
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
 use mqtt_broker_tests_util::{start_server, DummyAuthenticator, PacketStream, TestClientBuilder};
 
@@ -25,7 +14,7 @@ use tokio::task::JoinHandle;
 // publish message to disconnect client
 // verify client disconnected
 #[tokio::test]
-async fn command_handler_client_disconnection() {
+async fn disconnect_client() {
     let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let (mut command_handler_shutdown_handle, join_handle) = start_command_handler(broker.handle())
@@ -53,6 +42,7 @@ async fn command_handler_client_disconnection() {
 
     assert_eq!(test_client.next().await, None);
 
+    // TODO REVIEW: shutdown broker?
     command_handler_shutdown_handle
         .shutdown()
         .await
