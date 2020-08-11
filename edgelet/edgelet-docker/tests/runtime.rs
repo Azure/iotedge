@@ -1212,7 +1212,8 @@ fn container_logs_succeeds() {
             let options = LogOptions::new()
                 .with_follow(true)
                 .with_tail(LogTail::All)
-                .with_since(100_000);
+                .with_since(100_000)
+                .with_until(200_000);
 
             runtime.logs("mod1", &options)
         });

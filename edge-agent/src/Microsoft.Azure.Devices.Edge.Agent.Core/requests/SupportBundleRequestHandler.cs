@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
     public class SupportBundleRequestHandler : RequestHandlerBase<SupportBundleRequest, TaskStatusResponse>
     {
-        public delegate Task<Stream> GetSupportBundle(Option<string> since, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token);
+        public delegate Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token);
 
         readonly GetSupportBundle getSupportBundle;
         readonly IRequestsUploader requestsUploader;
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(
                 async () =>
                     {
-                        Stream source = await this.getSupportBundle(payload.Since, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, cancellationToken);
+                        Stream source = await this.getSupportBundle(payload.Since, payload.Until, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, cancellationToken);
                         await this.requestsUploader.UploadSupportBundle(payload.SasUrl, source);
                     },
                 "upload support bundle",
