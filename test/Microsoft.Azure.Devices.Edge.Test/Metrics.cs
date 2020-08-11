@@ -30,8 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string[] output = null;
             string command = new[]
             {
-                "-H",
-                "npipe:////./pipe/iotedge_moby_engine",
+                // "-H",
+                // "npipe:////./pipe/iotedge_moby_engine",
                 "exec",
                 "-t",
                 ModuleName,
