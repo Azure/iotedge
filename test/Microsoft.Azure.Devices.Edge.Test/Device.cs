@@ -74,9 +74,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             try
             {
                 output = await Process.RunAsync(
-                    "cmd",
-                    $"/c \"echo Q | openssl {command}\"",
-                    token);
+                    "openssl",
+                    command,
+                    new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token);
             }
             catch (TaskCanceledException)
             {
