@@ -6,12 +6,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Newtonsoft.Json;
     using NUnit.Framework;
-
+    using Serilog;
     using ConfigModuleName = Microsoft.Azure.Devices.Edge.Test.Common.Config.ModuleName;
 
     [EndToEnd]
@@ -24,6 +26,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
             await this.DeployAsync(token);
+
+            string[] output = null;
+            string command = new[]
+            {
+                "-H",
+                "'npipe:////./pipe/iotedge_moby_engine'",
+                "exec",
+                "-it",
+                ModuleName,
+                "cmd",
+                "/c",
+                $"'curl -v http://{Dns.GetHostName().ToLower()}/ || exit 0'"
+            }.Join(" ");
+
+            try
+            {
+                output = await Process.RunAsync("docker", command, token);
+            }
+            catch (Exception e)
+            {
+                Log.Information($"'docker exec' failed with error:\n{e.ToString()}");
+            }
+
+            Log.Information($">>> Command 'docker {command}' returned:\n{output.Join("\n")}");
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
