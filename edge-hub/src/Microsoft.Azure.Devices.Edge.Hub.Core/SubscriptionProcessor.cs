@@ -174,7 +174,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async void ClientCloudConnectionEstablished(object sender, IIdentity identity)
         {
-            if (!this.subscriptionsBeingProcessed.ContainsKey(identity.Id))
+            if (this.subscriptionsBeingProcessed.ContainsKey(identity.Id))
+            {
+                Events.SkippingProcessingSubscription(identity.Id);
+            }
+            else
             {
                 try
                 {
