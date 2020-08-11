@@ -113,7 +113,6 @@ impl CommandHandler {
             match event {
                 Ok(event) => {
                     if let mqtt3::Event::Publication(publication) = event {
-                        // TODO: move
                         let client_id = parse_client_id(publication.topic_name);
                         match client_id {
                             Some(client_id) => {
