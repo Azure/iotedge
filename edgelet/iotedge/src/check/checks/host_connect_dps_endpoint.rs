@@ -61,13 +61,11 @@ impl HostConnectDpsEndpoint {
         })?;
         self.dps_hostname = Some(dps_hostname.to_owned());
 
-        // let proxy = settings
-        //     .agent()
-        //     .env()
-        //     .get("https_proxy")
-        //     .map(std::string::String::as_str);
-
-        let proxy = Some("http://127.0.0.53:3218");
+        let proxy = settings
+            .agent()
+            .env()
+            .get("https_proxy")
+            .map(std::string::String::as_str);
         self.proxy = proxy.map(std::borrow::ToOwned::to_owned);
 
         if let Some(proxy) = &self.proxy {
@@ -141,9 +139,6 @@ pub fn resolve_and_tls_handshake_proxy(
             move |_| -> Result<_, Error> {
                 let proxy_uri = Uri::from_str(&proxy)
                     .with_context(|_| format!("Could not make proxi uri from {}", proxy))?;
-
-                println!("proxy uri {:#?}", proxy_uri);
-
                 let proxy_obj = Proxy::new(Intercept::All, proxy_uri);
                 let http_connector = HttpConnector::new(1);
                 let proxy_connector = ProxyConnector::from_proxy(http_connector, proxy_obj)
@@ -154,7 +149,6 @@ pub fn resolve_and_tls_handshake_proxy(
                     .with_context(|_| {
                         format!("Could not make uri from {}{}", tls_hostname, port)
                     })?;
-                println!("hostname: {}", hostname);
 
                 let hostname: Result<Destination, _> = hostname.try_into();
                 let hostname = hostname.with_context(|_| "Could not make hostname uri")?;
