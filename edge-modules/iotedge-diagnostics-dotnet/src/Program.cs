@@ -27,11 +27,7 @@ namespace Diagnostics
 
         static async Task MainAsync(string[] args)
         {
-            Console.WriteLine(JsonConvert.SerializeObject(args));
-
             var config = new ConfigurationBuilder().AddCommandLine(args).Build();
-            Console.WriteLine(config["arg1"]);
-
             switch (args[0])
             {
                 case "edge-agent":
