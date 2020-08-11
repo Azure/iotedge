@@ -55,13 +55,4 @@ jobs:
         netsh interface ipv6 show prefixpolicies
       displayName: Prefer IPv4
 
-    - pwsh: |
-        $configDir = 'C:/ProgramData/iotedge-moby/config'
-        New-Item $configDir -ItemType 'directory' -Force | Out-Null
-        $daemon = @{
-          dns = new[] { "1.1.1.1" }
-        }
-        $daemon | ConvertTo-Json | Out-File -Encoding Ascii "$configDir/config.yaml"
-      displayName: Set up moby DNS
-
     - template: templates/e2e-run.yaml
