@@ -115,7 +115,7 @@ impl CommandHandler {
                     if let mqtt3::Event::Publication(publication) = event {
                         let client_id = parse_client_id(publication.topic_name);
                         match client_id {
-                            Some(client_id) => {
+                            Ok(client_id) => {
                                 info!("received disconnection request for client {}", client_id);
 
                                 if let Err(e) = self
@@ -130,8 +130,8 @@ impl CommandHandler {
                                     info!("succeeded sending broker signal to disconnect client")
                                 }
                             }
-                            None => {
-                                error!("no client id in disconnect request");
+                            Err(e) => {
+                                error!(message = "failed parsing client id", error=%e);
                             }
                         }
                     }
@@ -142,40 +142,40 @@ impl CommandHandler {
     }
 }
 
-fn parse_client_id(topic_name: String) -> Option<String> {
+fn parse_client_id(topic_name: String) -> Result<String, ParseClientIdError> {
     lazy_static! {
         static ref REGEX: Regex =
             Regex::new(CLIENT_EXTRACTION_REGEX).expect("failed to create new Regex from pattern");
     }
 
-    // TODO: clean up
-    // TODO: look at configuration
-    match REGEX.captures(topic_name.as_ref()) {
-        Some(capture) => match capture.get(1) {
-            Some(captured_match) => {
-                let captured_match = captured_match.as_str().to_string();
-                if String::is_empty(&captured_match) {
-                    error!("client id empty for client disconnect topic");
-                    return None;
-                }
+    let captures = REGEX
+        .captures(topic_name.as_ref())
+        .ok_or_else(|| ParseClientIdError::RegexFailure())?;
 
-                Some(captured_match)
-            }
-            None => {
-                error!("topic name did not match expected structure");
-                None
-            }
-        },
-        None => {
-            error!("failed to apply regex to topic name");
-            None
-        }
+    let value = captures
+        .get(1)
+        .ok_or_else(|| ParseClientIdError::RegexFailure())?;
+
+    let client_id = value.as_str();
+    match client_id {
+        "" => Err(ParseClientIdError::NoClientId()),
+        id => Ok(id.to_string()),
     }
+}
+
+#[derive(Debug, PartialEq, thiserror::Error)]
+pub enum ParseClientIdError {
+    #[error("regex does not match disconnect topic")]
+    RegexFailure(),
+
+    #[error("client id not found for client disconnect topic")]
+    NoClientId(),
 }
 
 #[cfg(test)]
 mod tests {
     use crate::command::parse_client_id;
+    use crate::command::ParseClientIdError;
 
     #[tokio::test]
     async fn it_parses_client_id() {
@@ -213,7 +213,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, None);
+        assert_eq!(output, Err(ParseClientIdError::NoClientId()));
     }
 
     #[tokio::test]
@@ -222,7 +222,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, None);
+        assert_eq!(output, Err(ParseClientIdError::RegexFailure()));
     }
 
     #[tokio::test]
@@ -231,6 +231,6 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, None);
+        assert_eq!(output, Err(ParseClientIdError::RegexFailure()));
     }
 }
