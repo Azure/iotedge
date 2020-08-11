@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -11,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
-    using Newtonsoft.Json;
     using NUnit.Framework;
     using Serilog;
 
@@ -23,24 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            const string configPath = "C:\\ProgramData\\iotedge-moby\\config\\daemon.json";
-            if (File.Exists(configPath))
-            {
-                string before = await File.ReadAllTextAsync(configPath, token);
-                Log.Information($">>> Contents of '{configPath}' before write:\n{before}");
-            }
-
-            // Add DNS settings to iotedge-moby config
-            string config = JsonConvert.SerializeObject(new
-            {
-                dns = new[] { "1.1.1.1" }
-            });
-
             await this.runtime.DeployConfigurationAsync(token);
-
-            File.WriteAllText("C:\\ProgramData\\iotedge-moby\\config\\daemon.json", config);
-            string after = await File.ReadAllTextAsync(configPath, token);
-            Log.Information($">>> Contents of '{configPath}' after write:\n{after}");
 
             string[] output = null;
             try
