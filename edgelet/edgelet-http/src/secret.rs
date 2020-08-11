@@ -1,10 +1,9 @@
+use crate::{API_VERSION, UrlConnector};
 use crate::error::{Error, ErrorKind};
 
-use std::fmt;
 use std::sync::Arc;
 
 use edgelet_core::{SecretManager, UrlExt};
-use edgelet_http::{API_VERSION, UrlConnector};
 use failure::ResultExt;
 use futures::Future;
 use hyper::Client;
@@ -13,6 +12,7 @@ use secret_store::apis::configuration::Configuration;
 use secret_store::apis::{ApiError, Error as SecretError};
 use url::Url;
 
+#[derive(Clone)]
 pub struct SecretClient {
     client: Arc<APIClient>
 }
@@ -20,15 +20,15 @@ pub struct SecretClient {
 impl SecretClient {
     pub fn new(url: &Url) -> Result<Self, Error> {
         let client = Client::builder()
-            .build(UrlConnector::new(url).context(ErrorKind::InitializeSecretClient)?);
+            .build(UrlConnector::new(url).context(ErrorKind::Initialization)?);
 
         let base_path = url
             .to_base_path()
-            .context(ErrorKind::InitializeSecretClient)?;
+            .context(ErrorKind::Initialization)?;
         let mut configuration = Configuration::new(client);
         configuration.base_path = base_path
             .to_str()
-            .ok_or(ErrorKind::InitializeSecretClient)?
+            .ok_or(ErrorKind::Initialization)?
             .to_string();
 
         let secret_client = Self {
@@ -126,31 +126,5 @@ impl SecretManager for SecretClient {
             });
 
         Box::new(response)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum SecretOperation {
-    Set(String),
-    Delete(String),
-    Get(String),
-    Pull(String, String),
-    Refresh(String)
-}
-
-impl fmt::Display for SecretOperation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SecretOperation::Set(id) =>
-                write!(f, "Could not create secret {}", id),
-            SecretOperation::Delete(id) =>
-                write!(f, "Could not delete secret {}", id),
-            SecretOperation::Get(id) =>
-                write!(f, "Could not get secret {}", id),
-            SecretOperation::Pull(id, uri) =>
-                write!(f, "Could not pull secret {} from {}", id, uri),
-            SecretOperation::Refresh(id) =>
-                write!(f, "Could not refresh secret {}", id)
-        }
     }
 }

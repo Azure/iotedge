@@ -2,6 +2,7 @@
 
 use std::fmt::{self, Display};
 
+use edgelet_core::SecretOperation;
 use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
@@ -39,6 +40,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Module not found")]
     ModuleNotFound(String),
+
+    #[fail(display = "{}", _0)]
+    SecretOperation(SecretOperation),
 
     #[fail(display = "Could not start workload service")]
     StartService,

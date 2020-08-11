@@ -194,6 +194,7 @@ pub enum InitializeErrorReason {
     RegisterWindowsService,
     RemoveExistingModules,
     SaveSettings,
+    SecretClient,
     #[cfg(windows)]
     StartWindowsService,
     Tokio,
@@ -342,6 +343,10 @@ impl fmt::Display for InitializeErrorReason {
             }
 
             InitializeErrorReason::SaveSettings => write!(f, "Could not save settings file"),
+
+            InitializeErrorReason::SecretClient => {
+                write!(f, "Could not initialize secret store client")
+            },
 
             #[cfg(windows)]
             InitializeErrorReason::StartWindowsService => {

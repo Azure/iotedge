@@ -96,6 +96,9 @@ pub enum ErrorKind {
     )]
     PKCS12Identity(String),
 
+    #[fail(display = "An error occurred in the secret store")]
+    SecretStore(u16),
+
     #[fail(display = "An error occurred in the service")]
     ServiceError,
 

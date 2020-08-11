@@ -28,6 +28,7 @@ tokio-tls = "0.2"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-utils = { path = "../edgelet-utils" }
+secret-store = { path = "../secret-store" }
 systemd = { path = "../systemd" }
 
 [target.'cfg(unix)'.dependencies]

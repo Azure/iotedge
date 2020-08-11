@@ -32,7 +32,7 @@ fn cert_to_response<T: Certificate>(cert: &T, context: ErrorKind) -> Result<Cert
 
     let private_key = match cert.get_private_key() {
         Ok(Some(PrivateKey::Ref(ref_))) => {
-            PrivateKeyResponse::new("ref".to_string()).with_ref(ref_)
+            PrivateKeyResponse::new("ref".to_string()).with_ref_(ref_)
         }
         Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => {
             PrivateKeyResponse::new("key".to_string())
