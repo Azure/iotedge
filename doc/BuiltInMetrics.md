@@ -3,7 +3,12 @@
 The IoT Edge Hub and Edge Agent module expose a number of metrics in the Prometheus exposition format that provide insights into its operational state.
 
 ## How to enable
+### Version 1.0.10+
+As of release 1.0.10, metrics are exposed automatically exposed on http port **9600** of the Edge Hub and Edge Agent module. 
 
+If you wish to disable metrics, simply set the `MetricsEnabled` environment variable to false.
+
+### Version 1.0.9
 As of release 1.0.9, metrics are exposed as an experimental feature available at http port **9600** of the Edge Hub and Edge Agent module. To enable, the following environment variables should be set for each module (make note of the double underscores):
 
 | Environment Variable Name                | value  |
@@ -66,6 +71,10 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgeAgent_module_start_total` | `module_name`, `module_version` | Number of times edgeAgent asked docker to start the module.  | Counter |
 | `edgeAgent_module_stop_total` | `module_name`, `module_version` | Number of times edgeAgent asked docker to stop the module. | Counter |
 | `edgeAgent_command_latency_seconds` | `command` | How long it took docker to execute the given command. Possible commands are: create, update,  remove, start, stop, restart | Gauge |
+| `edgeAgent_iothub_syncs_total` |  | The amount of times edgeAgent attempted to sync its twin with iotHub, both successful and unsuccessful. This incudes both agent requesting a twin and hub notifying of a twin update | Counter |
+| `edgeAgent_unsuccessful_iothub_syncs_total` |  | The amount of times edgeAgent failed to sync its twin with iotHub. | Counter |
+| `edgeAgent_deployment_time_seconds` |  | The amount of time it took to complete a new deployment after recieving a change. | Counter |
+| `edgeagent_direct_method_invocations_count` | `method_name` | Number of times a built-in edgeAgent direct method is called, such as Ping or Restart. | Counter |
 |||
 | `edgeAgent_host_uptime_seconds` || How long the host has been on | Gauge |
 | `edgeAgent_iotedged_uptime_seconds` || How long iotedged has been running | Gauge |
@@ -79,6 +88,9 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgeAgent_total_network_out_bytes` | `module_name` | The amount of bytes sent to network | Gauge |
 | `edgeAgent_total_disk_read_bytes` | `module_name` | The amount of bytes read from the disk | Gauge |
 | `edgeAgent_total_disk_write_bytes` | `module_name` | The amount of bytes written to disk | Gauge |
+|||
+| `edgeAgent_metadata` | `edge_agent_version`, `experimental_features`, `host_information` | General metadata about the device. The value is always 0, information is encoded in the tags. Note `experimental_features` and `host_information` are json objects. `host_information` looks like ```{"OperatingSystemType": "linux", "Architecture": "x86_64", "Version": "1.0.10~dev20200803.4", "ServerVersion": "19.03.6", "KernelVersion": "5.0.0-25-generic", "OperatingSystem": "Ubuntu 18.04.4 LTS", "NumCpus": 6}```. Note `ServerVersion` is the Docker version and `Version` is the IoT Edge Security Daemon version. | Gauge |
+
 
 ### Collecting
 
