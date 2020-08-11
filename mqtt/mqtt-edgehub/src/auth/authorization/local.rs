@@ -25,8 +25,7 @@ where
             return Ok(Authorization::Allowed);
         }
 
-        return Ok(Authorization::Allowed);
-        // self.0.authorize(activity)
+        self.0.authorize(activity)
     }
 }
 

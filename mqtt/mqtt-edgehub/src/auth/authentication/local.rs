@@ -30,8 +30,7 @@ impl Authenticator for LocalAuthenticator {
         let auth_id = if context.peer_addr().ip().is_loopback() {
             Some(context.client_id().as_str().into())
         } else {
-            // None
-            Some(context.client_id().as_str().into())
+            None
         };
 
         Ok(auth_id)
