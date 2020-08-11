@@ -1,11 +1,13 @@
-using System;
-using System.Text;
-using System.IO;
-using System.Net;
-using System.Net.Sockets;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Diagnostics
 {
+    using System;
+    using System.IO;
+    using System.Net;
+    using System.Net.Sockets;
+    using System.Text;
+
     // From https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets.socket?view=netcore-3.1#System_Net_Sockets_Socket_Connect_System_Net_EndPoint_
     public class GetSocket
     {
@@ -38,6 +40,7 @@ namespace Diagnostics
                     continue;
                 }
             }
+
             return s;
         }
 
@@ -46,16 +49,15 @@ namespace Diagnostics
         {
             string request = $"GET ${endpoint} HTTP/1.1\r\nHost: " + server +
                 "\r\nConnection: Close\r\n\r\n";
-            Byte[] bytesSent = Encoding.ASCII.GetBytes(request);
-            Byte[] bytesReceived = new Byte[256];
-            string page = "";
+            byte[] bytesSent = Encoding.ASCII.GetBytes(request);
+            byte[] bytesReceived = new byte[256];
+            string page = string.Empty;
 
             // Create a socket connection with the specified server and port.
             using (Socket s = ConnectSocket(server))
             {
-
                 if (s == null)
-                    return ("Connection failed");
+                    return "Connection failed";
 
                 // Send request to the server.
                 s.Send(bytesSent, bytesSent.Length, 0);

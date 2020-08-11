@@ -47,6 +47,7 @@ namespace Diagnostics
                     throw new Exception("Invalid args");
             }
         }
+
         static async Task EdgeAgent(string managementUri)
         {
             string modules;
@@ -81,14 +82,13 @@ namespace Diagnostics
                 ProxyClientFactory factory = new ProxyClientFactory();
                 IProxyClient proxyClient = factory.CreateProxyClient(ProxyType.Http, proxyAddress, proxyPort);
 
-                //Setup timeouts
+                // Setup timeouts
                 proxyClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
                 proxyClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
 
-                //Get TcpClient to futher work
+                // Get TcpClient to futher work
                 var client = proxyClient.CreateConnection(hostname, int.Parse(port));
                 client.GetStream();
-
             }
             else
             {
@@ -98,5 +98,4 @@ namespace Diagnostics
             }
         }
     }
-
 }
