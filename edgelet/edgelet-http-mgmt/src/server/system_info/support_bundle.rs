@@ -77,6 +77,11 @@ where
             log_options = log_options.with_since(since);
         }
     }
+    if let Some((_, until)) = parse.iter().find(|&(ref key, _)| key == "until") {
+        if let Ok(until) = parse_since(until) {
+            log_options = log_options.with_until(until);
+        }
+    }
 
     let iothub_hostname = parse.iter().find_map(|(ref key, iothub_hostname)| {
         if key == "iothub_hostname" {

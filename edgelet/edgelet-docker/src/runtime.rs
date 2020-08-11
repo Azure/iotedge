@@ -812,6 +812,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 true,
                 options.since(),
+                options.until(),
                 false,
                 tail,
             )
