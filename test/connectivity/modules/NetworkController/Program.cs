@@ -92,7 +92,7 @@ namespace NetworkController
             // Setting GatewayHostname to empty, since the module will be talking directly to IoTHub, bypassing edge
             // NetworkController is on the host, so it should always have connection
             Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
+            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, new ClientOptions(), ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
             await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity, new Tuple<string, CancellationToken>(networkInterfaceName, token));
         }
 

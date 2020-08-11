@@ -39,6 +39,7 @@ namespace TemperatureFilter
 
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 transportType,
+                new ClientOptions(),
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 Logger);
