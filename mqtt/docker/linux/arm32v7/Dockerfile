@@ -1,6 +1,6 @@
 FROM busybox
 
-ADD ./target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
+ADD ./armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
 
 # Add an unprivileged user account for running mqttd	
 ARG MQTTDUSER_ID=1000

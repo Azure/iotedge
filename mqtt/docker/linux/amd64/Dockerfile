@@ -1,6 +1,6 @@
 FROM busybox
 
-ADD ./target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
+ADD ./x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 
 # Add an unprivileged user account for running mqttd	
 ARG MQTTDUSER_ID=1000

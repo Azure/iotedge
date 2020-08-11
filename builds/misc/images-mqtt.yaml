@@ -32,6 +32,13 @@ jobs:
           filePath: scripts/linux/cross-platform-rust-build.sh
           arguments: --os ubuntu18.04 --arch amd64 --build-path mqtt/mqttd
 
+      - template: templates/move-rust-artifacts.yaml
+        parameters:
+          should.publish.amd64: 'true'
+          artifact.folder.path: 'mqtt/target'
+          destination.folder.path: 'mqtt/build-context'
+          artifact.name: 'mqttd'
+
       - task: Docker@2
         displayName: Build amd64 image
         inputs:
@@ -39,7 +46,7 @@ jobs:
           command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
-          buildContext: mqtt/.
+          buildContext: mqtt/build-context
           tags: $(Build.BuildNumber)-$(os)-$(arch)
       
       - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
@@ -74,6 +81,13 @@ jobs:
           filePath: scripts/linux/cross-platform-rust-build.sh
           arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd
 
+      - template: templates/move-rust-artifacts.yaml
+        parameters:
+          should.publish.arm32v7: 'true'
+          artifact.folder.path: 'mqtt/target'
+          destination.folder.path: 'mqtt/build-context'
+          artifact.name: 'mqttd'
+
       - task: Docker@2
         displayName: Build arm32v7 image
         inputs:
@@ -81,7 +95,7 @@ jobs:
           command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
-          buildContext: mqtt/.
+          buildContext: mqtt/build-context
           tags: $(Build.BuildNumber)-$(os)-$(arch)
 
       - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
