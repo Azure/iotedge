@@ -1,15 +1,15 @@
-# \WorkloadApi
+# workload\WorkloadApi
 
 All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**create_identity_certificate**](WorkloadApi.md#create_identity_certificate) | **Post** /modules/{name}/certificate/identity | 
-[**create_server_certificate**](WorkloadApi.md#create_server_certificate) | **Post** /modules/{name}/genid/{genid}/certificate/server | 
-[**decrypt**](WorkloadApi.md#decrypt) | **Post** /modules/{name}/genid/{genid}/decrypt | 
-[**encrypt**](WorkloadApi.md#encrypt) | **Post** /modules/{name}/genid/{genid}/encrypt | 
-[**sign**](WorkloadApi.md#sign) | **Post** /modules/{name}/genid/{genid}/sign | 
-[**trust_bundle**](WorkloadApi.md#trust_bundle) | **Get** /trust-bundle | 
+[**create_identity_certificate**](WorkloadApi.md#create_identity_certificate) | **POST** /modules/{name}/certificate/identity | 
+[**create_server_certificate**](WorkloadApi.md#create_server_certificate) | **POST** /modules/{name}/genid/{genid}/certificate/server | 
+[**decrypt**](WorkloadApi.md#decrypt) | **POST** /modules/{name}/genid/{genid}/decrypt | 
+[**encrypt**](WorkloadApi.md#encrypt) | **POST** /modules/{name}/genid/{genid}/encrypt | 
+[**sign**](WorkloadApi.md#sign) | **POST** /modules/{name}/genid/{genid}/sign | 
+[**trust_bundle**](WorkloadApi.md#trust_bundle) | **GET** /trust-bundle | 
 
 
 # **create_identity_certificate**

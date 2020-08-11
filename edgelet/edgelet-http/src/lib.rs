@@ -57,6 +57,7 @@ pub mod error;
 pub mod logging;
 mod pid;
 pub mod route;
+pub mod secret;
 mod unix;
 mod util;
 mod version;

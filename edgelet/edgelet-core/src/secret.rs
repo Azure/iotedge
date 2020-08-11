@@ -18,7 +18,7 @@ pub trait SecretManager {
     fn refresh(&self, id: &str) -> Self::RefreshFuture;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SecretOperation {
     Set(String),
     Delete(String),

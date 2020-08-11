@@ -28,8 +28,8 @@ mod system_info;
 
 use self::device_actions::ReprovisionDevice;
 use self::identity::{CreateIdentity, DeleteIdentity, ListIdentities, UpdateIdentity};
-use self::secret::*;
 pub use self::module::*;
+use self::secret::*;
 use self::system_info::{GetSystemInfo, GetSystemResources};
 use crate::error::{Error, ErrorKind};
 

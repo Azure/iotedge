@@ -63,10 +63,11 @@ use edgelet_core::{
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
+use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams, API_VERSION};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams, API_VERSION};
+use edgelet_http::secret::SecretClient;
 use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
@@ -1422,14 +1423,16 @@ where
     let hostname = format!("https://{}", hub_name);
     let token_source = SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key);
     let http_client = HttpClient::new(
-        hyper_client,
-        Some(token_source),
-        IOTHUB_API_VERSION.to_string(),
-        Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
-    )
-    .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
+            hyper_client,
+            Some(token_source),
+            IOTHUB_API_VERSION.to_string(),
+            Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
+        )
+        .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
     let device_client = DeviceClient::new(http_client, device_id.clone())
         .context(ErrorKind::Initialize(InitializeErrorReason::DeviceClient))?;
+    let secret_man = SecretClient::new(&Url::parse(settings.secret().secret_host()).unwrap())
+        .context(ErrorKind::Initialize(InitializeErrorReason::SecretClient))?;
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
@@ -1467,18 +1470,20 @@ where
 
     let cert_manager = Arc::new(cert_manager);
 
-    let mgmt = start_management::<_, _, _, M>(
+    let mgmt = start_management::<_, _, _, _, M>(
         settings,
         runtime,
+        &secret_man,
         &id_man,
         mgmt_rx,
         cert_manager.clone(),
         mgmt_stop_and_reprovision_tx,
     );
 
-    let workload = start_workload::<_, _, _, _, M>(
+    let workload = start_workload::<_, _, _, _, _, M>(
         settings,
         key_store,
+        &secret_man,
         runtime,
         work_rx,
         crypto,
@@ -2033,10 +2038,10 @@ where
     env
 }
 
-fn start_management<C, K, I, HC, M>(
+fn start_management<C, K, S, HC, M>(
     settings: &M::Settings,
     runtime: &M::ModuleRuntime,
-    secret: &I,
+    secret: &S,
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
@@ -2045,7 +2050,7 @@ fn start_management<C, K, I, HC, M>(
 where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
-    I: 'static + SecretManager + Clone + Send + Sync,
+    S: 'static + SecretManager + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
     M: MakeModuleRuntime,
     M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
@@ -2060,7 +2065,7 @@ where
     let url = settings.listen().management_uri().clone();
     let min_protocol_version = settings.listen().min_tls_version();
 
-    ManagementService::new(runtime, id_man, initiate_shutdown_and_reprovision)
+    ManagementService::new(runtime, id_man, secret, initiate_shutdown_and_reprovision)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManagementService,
@@ -2084,9 +2089,10 @@ where
         .flatten()
 }
 
-fn start_workload<K, C, CE, W, M>(
+fn start_workload<K, S, C, CE, W, M>(
     settings: &M::Settings,
     key_store: &K,
+    secret_store: &S,
     runtime: &M::ModuleRuntime,
     shutdown: Receiver<()>,
     crypto: &C,
@@ -2095,6 +2101,7 @@ fn start_workload<K, C, CE, W, M>(
 ) -> impl Future<Item = (), Error = Error>
 where
     K: KeyStore + Clone + Send + Sync + 'static,
+    S: SecretManager + Clone + Send + Sync + 'static,
     C: CreateCertificate
         + Decrypt
         + Encrypt
@@ -2121,7 +2128,7 @@ where
     let url = settings.listen().workload_uri().clone();
     let min_protocol_version = settings.listen().min_tls_version();
 
-    WorkloadService::new(key_store, crypto.clone(), runtime, config)
+    WorkloadService::new(key_store, secret_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::WorkloadService,
