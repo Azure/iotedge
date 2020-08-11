@@ -31,13 +31,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string command = new[]
             {
                 "-H",
-                "'npipe:////./pipe/iotedge_moby_engine'",
+                "npipe:////./pipe/iotedge_moby_engine",
                 "exec",
                 "-it",
                 ModuleName,
                 "cmd",
                 "/c",
-                $"'curl -v http://{Dns.GetHostName().ToLower()}/ || exit 0'"
+                $"curl -v http://{Dns.GetHostName().ToLower()}/ || exit 0"
             }.Join(" ");
 
             try
