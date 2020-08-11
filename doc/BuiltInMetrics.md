@@ -4,30 +4,9 @@ The IoT Edge Hub and Edge Agent module expose a number of metrics in the Prometh
 
 ## How to enable
 ### Version 1.0.10+
-As of release 1.0.10, metrics are exposed automatically exposed on http port **9600** of the Edge Hub and Edge Agent module. 
+As of release 1.0.10, metrics are exposed automatically exposed by default on http port **9600** of the Edge Hub and Edge Agent module. 
 
 If you wish to disable metrics, simply set the `MetricsEnabled` environment variable to false.
-
-### Version 1.0.9
-As of release 1.0.9, metrics are exposed as an experimental feature available at http port **9600** of the Edge Hub and Edge Agent module. To enable, the following environment variables should be set for each module (make note of the double underscores):
-
-| Environment Variable Name                | value  |
-|------------------------------------------|--------|
-| `ExperimentalFeatures__Enabled`          | `true` |
-| `ExperimentalFeatures__EnableMetrics`    | `true` |
-
-### Windows Note (1.0.9 only)
-Metrics on Windows are not fully supported the 1.0.9 experimental release. Host metrics (cpu, memory and disk usage) will all show as 0. Moby metrics are supported. In addition, edgeHub must be started as a container administrator to expose metrics. 
-
-This is no longer required in the 1.0.10 release
-
-Add the following to EdgeHub createOptions (on Windows only):
-```JSON
-createOptions: {
-  "User": "ContainerAdministrator",
-  "ExposedPorts": {}
-}
-```
 
 ## Metrics
 

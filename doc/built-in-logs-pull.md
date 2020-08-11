@@ -11,16 +11,6 @@ IoT Edge supports native retrieval of module logs and upload to Azure Blob Stora
 ### Version 1.0.10+
 As of release 1.0.10, these direct methods are no longer experimental and are always available. 
 
-### Version 1.0.8/1.0.9
-As of [1.0.8 release](https://github.com/Azure/azure-iotedge/releases/tag/1.0.8) of IoT Edge, this capability is available as an experimental feature. To enable it, the following environment variables need to be set for the edgeAgent (make note of the double underscores):
-
-| Environment Variable Name                | value  |
-|------------------------------------------|--------|
-| `ExperimentalFeatures__Enabled`          | `true` |
-| `ExperimentalFeatures__EnableUploadLogs` | `true` |
-
-Due to certain design limitations, settings for the Edge Agent do not take affect unless its image is also changed (as of 1.0.8 release). If you are using the default Edge Agent settings, change the image to use a specific tag along with the environment variables above, e.g. `mcr.microsoft.com/azureiotedge-agent:1.0.8`.
-
 ## Recommended logging format
 
 For best compatibility with this feature, the recommended logging format is:
