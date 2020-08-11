@@ -4,7 +4,7 @@ The IoT Edge Hub and Edge Agent module expose a number of metrics in the Prometh
 
 ## How to enable
 ### Version 1.0.10+
-As of release 1.0.10, metrics are exposed automatically exposed by default on http port **9600** of the Edge Hub and Edge Agent module. 
+As of release 1.0.10, metrics are automatically exposed by default on http port **9600** of the Edge Hub and Edge Agent module. 
 
 If you wish to disable metrics, simply set the `MetricsEnabled` environment variable to false.
 
