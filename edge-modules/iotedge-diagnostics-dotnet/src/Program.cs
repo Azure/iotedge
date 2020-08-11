@@ -60,9 +60,9 @@ namespace Diagnostics
                 }
             }
 
-            if (modules.Length == 0)
+            if (!modules.StartsWith("HTTP/1.1 200 OK"))
             {
-                throw new Exception("no module response");
+                throw new Exception($"Got bad response: {modules}");
             }
         }
 

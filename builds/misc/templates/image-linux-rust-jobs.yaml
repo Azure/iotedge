@@ -33,14 +33,14 @@ jobs:
           targetArch: ${{ parameters.targetArch }}
           configuration: $(Build.Configuration)
 
-      - template: build-edgelet-linux.yaml
-        parameters:
-          filePath: scripts/linux/buildEdgelet.sh
-          name: Edge Diagnostics
-          imageName: azureiotedge-diagnostics
-          project: iotedge-diagnostics
-          targetArch: ${{ parameters.targetArch }}
-          configuration: $(Build.Configuration)
+      # - template: build-edgelet-linux.yaml
+      #   parameters:
+      #     filePath: scripts/linux/buildEdgelet.sh
+      #     name: Edge Diagnostics
+      #     imageName: azureiotedge-diagnostics
+      #     project: iotedge-diagnostics
+      #     targetArch: ${{ parameters.targetArch }}
+      #     configuration: $(Build.Configuration)
 
       - template: build-edgelet-linux.yaml
         parameters:
@@ -59,13 +59,13 @@ jobs:
           project: azureiotedge-iotedged
           targetArch: ${{ parameters.targetArch }}
 
-      # Edge Diagnostics
-      - template: image-linux-rust.yaml
-        parameters:
-          name: Edge Diagnostics
-          imageName: azureiotedge-diagnostics
-          project: azureiotedge-diagnostics
-          targetArch: ${{ parameters.targetArch }}
+      # # Edge Diagnostics
+      # - template: image-linux-rust.yaml
+      #   parameters:
+      #     name: Edge Diagnostics
+      #     imageName: azureiotedge-diagnostics
+      #     project: azureiotedge-diagnostics
+      #     targetArch: ${{ parameters.targetArch }}
 
       # Edge Proxy
       - template: image-linux-rust.yaml

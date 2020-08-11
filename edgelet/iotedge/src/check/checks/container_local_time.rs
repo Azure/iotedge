@@ -40,7 +40,8 @@ impl ContainerLocalTime {
                 "run",
                 "--rm",
                 &check.diagnostics_image_name,
-                "/iotedge-diagnostics",
+                "dotnet",
+                "IotedgeDiagnosticsDotnet.dll",
                 "local-time",
             ],
         )
