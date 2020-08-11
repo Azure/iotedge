@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.IO;
-    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -69,20 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             Log.Information($">>> iotedge check results:\n{output?.Join("\n") ?? "<none>"}");
-
-            string command = $"s_client -connect {Dns.GetHostName()}:5671";
-            try
-            {
-                output = await Process.RunAsync(
-                    "openssl",
-                    command,
-                    new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token);
-            }
-            catch (TaskCanceledException)
-            {
-            }
-
-            Log.Information($">>> openssl {command} returned:\n{output?.Join("\n") ?? "<none>"}");
         }
 
         [Test]
