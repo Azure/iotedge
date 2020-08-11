@@ -10,8 +10,7 @@ namespace Diagnostics
     {
         public static string GetSocketResponse(string server, string endpoint)
         {
-            string request = $"GET {endpoint} HTTP/1.1\r\nHost: " + server +
-                "\r\nConnection: Close\r\n\r\n";
+            string request = $"GET {endpoint} HTTP/1.1\r\nHost: {server}\r\nConnection: Close\r\n\r\n";
             Byte[] bytesSent = Encoding.ASCII.GetBytes(request);
             Byte[] bytesReceived = new Byte[256];
             string page = "";
