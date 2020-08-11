@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public static Type[] CandidateInterfaces { get; } = new[] { typeof(IMessageProducer), typeof(IMessageConsumer) };
 
-        private MqttBridgeComponentDiscovery(IReadOnlyCollection<IMessageProducer> producers, IReadOnlyCollection<IMessageConsumer> consumers)
+        MqttBridgeComponentDiscovery(IReadOnlyCollection<IMessageProducer> producers, IReadOnlyCollection<IMessageConsumer> consumers)
         {
             this.Producers = Preconditions.CheckNotNull(producers);
             this.Consumers = Preconditions.CheckNotNull(consumers);

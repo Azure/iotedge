@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading.Channels;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using uPLibrary.Networking.M2Mqtt;
     using uPLibrary.Networking.M2Mqtt.Messages;
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Option<Task> forwardingLoop;
         Option<MqttClient> mqttClient;
 
-        int isRetrying = 0;
+        AtomicBoolean isRetrying = new AtomicBoolean(false);
 
         public MqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
         {
@@ -220,8 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             Task.Run(async () =>
             {
-                var wasRetrying = Interlocked.Exchange(ref this.isRetrying, 1);
-                if (wasRetrying == 1)
+                if (this.isRetrying.GetAndSet(true))
                 {
                     return;
                 }
@@ -267,7 +267,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 }
                 finally
                 {
-                    Interlocked.Decrement(ref this.isRetrying);
+                    this.isRetrying.Set(false);
                 }
 
                 if (!client.IsConnected)
@@ -387,13 +387,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static async Task SubscribeAsync(MqttClient client, IReadOnlyCollection<IMessageConsumer> subscribers)
         {
-            var expectedAckCount = subscribers.Count;
+            var expectedAckCount = new AtomicLong(subscribers.Count);
 
-            if (expectedAckCount > 0)
+            if (expectedAckCount.Get() > 0)
             {
                 using (var acksArrived = new SemaphoreSlim(0, 1))
                 {
-                    var allQosGranted = default(bool);
+                    var allQosGranted = new AtomicBoolean(false);
 
                     client.MqttMsgSubscribed += ConfirmSubscribe;
 
@@ -411,14 +411,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     catch (Exception ex)
                     {
                         Events.TimeoutReceivingSubAcks(ex);
-                        throw new Exception("MQTT server did not acknowledged subscriptions", ex);
+                        throw new TimeoutException("MQTT server did not acknowledge subscriptions", ex);
                     }
                     finally
                     {
                         client.MqttMsgSubscribed -= ConfirmSubscribe;
                     }
 
-                    if (!Volatile.Read(ref allQosGranted))
+                    if (!allQosGranted.Get())
                     {
                         Events.QosMismatch();
                         throw new Exception("MQTT server did not grant QoS-1 for every requested subscription");
@@ -426,9 +426,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                     void ConfirmSubscribe(object sender, MqttMsgSubscribedEventArgs e)
                     {
-                        if (Interlocked.Decrement(ref expectedAckCount) == 0)
+                        if (expectedAckCount.Decrement() == 0)
                         {
-                            Volatile.Write(ref allQosGranted, e.GrantedQoSLevels.All(qos => qos == 1));
+                            allQosGranted.Set(e.GrantedQoSLevels.All(qos => qos == 1));
 
                             acksArrived.Release();
                         }
