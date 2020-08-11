@@ -21,6 +21,7 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-iothub = { path = "../edgelet-iothub" }
 management = { path = "../management" }
 provisioning = { path = "../provisioning" }
+support-bundle = { path = "../support-bundle" }
 
 [dev-dependencies]
 chrono = { version = "0.4", features = ["serde"] }

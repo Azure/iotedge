@@ -119,7 +119,7 @@ if ($CreateTemplate) {
             'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/docker.exe'
         }
         else {
-            'https://mby.blob.core.windows.net/mby-win-amd64/docker-3.0.5.exe'
+            'https://mby.blob.core.windows.net/mby-win-amd64/docker-19.03.12+azure.exe'
         }
     $docker_cli_license_uri = 'https://mby.blob.core.windows.net/mby/LICENSE-cli'
     $docker_cli_tpn_uri = 'https://mby.blob.core.windows.net/mby/ThirdPartyNotices-cli'
@@ -129,7 +129,7 @@ if ($CreateTemplate) {
             'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/dockerd.exe'
         }
         else {
-            'https://mby.blob.core.windows.net/mby-win-amd64/dockerd-3.0.5.exe'
+            'https://mby.blob.core.windows.net/mby-win-amd64/dockerd-19.03.12+azure.exe'
         }
     $docker_engine_license_uri = 'https://mby.blob.core.windows.net/mby/LICENSE-engine'
     $docker_engine_tpn_uri = 'https://mby.blob.core.windows.net/mby/ThirdPartyNotices-engine'

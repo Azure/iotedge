@@ -863,7 +863,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(index);
 
-            char tmp_msg[64];
+            char tmp_msg[96];
             sprintf(tmp_msg, "hsm_client_tpm_sign_data failure in test %zu/%zu", index, count);
 
             //act
@@ -1074,7 +1074,7 @@ BEGIN_TEST_SUITE(hsm_client_tpm_ut)
             umock_c_negative_tests_reset();
             umock_c_negative_tests_fail_call(index);
 
-            char tmp_msg[96];
+            char tmp_msg[128];
             sprintf(tmp_msg, "hsm_client_derive_and_sign_with_identity failure in test %zu/%zu", index, count);
 
             //act
