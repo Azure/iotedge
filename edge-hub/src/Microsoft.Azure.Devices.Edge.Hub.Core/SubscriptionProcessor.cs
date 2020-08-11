@@ -156,6 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     if (!this.subscriptionsBeingProcessed.ContainsKey(id.Id))
                     {
+                        Events.SkippingProcessingSubscription(id.Id);
                         return ProcessSubscriptionByIdentity(id);
                     }
                     else
@@ -255,7 +256,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ProcessingSubscription,
                 DeviceConnectedToEdgeHubProcessingSubscription,
                 ClientConnectedProcessingSubscriptions,
-                ProcessingSubscriptionsNoCloudProxy
+                ProcessingSubscriptionsNoCloudProxy,
+                SkippingProcessingSubscription
             }
 
             public static void ErrorProcessingSubscriptions(Exception ex, IIdentity identity)
@@ -326,6 +328,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void ClientConnectedProcessingSubscriptions(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.ClientConnectedProcessingSubscriptions, Invariant($"Client {identity.Id} connected to cloud, processing existing subscriptions."));
+            }
+
+            public static void SkippingProcessingSubscription(string id)
+            {
+                Log.LogInformation((int)EventIds.SkippingProcessingSubscription, Invariant($"Skipping {id} for subscription processing, as it is currently being processed."));
             }
 
             public static void ProcessingSubscriptions(string id)
