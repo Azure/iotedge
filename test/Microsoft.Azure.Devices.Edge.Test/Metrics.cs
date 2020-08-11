@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 "-H",
                 "npipe:////./pipe/iotedge_moby_engine",
                 "exec",
-                "-it",
+                "-t",
                 ModuleName,
                 "cmd",
                 "/c",
