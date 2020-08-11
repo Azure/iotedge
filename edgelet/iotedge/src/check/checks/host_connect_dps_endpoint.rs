@@ -1,11 +1,12 @@
+use std::convert::TryInto;
 use std::net::TcpStream;
 use std::str::FromStr;
-use std::sync::Arc;
 
-use failure::{Context, Error, ResultExt};
+use failure::{format_err, Context, Error, ResultExt};
 use futures::Future;
+use hyper::client::connect::{Connect, Destination};
 use hyper::client::HttpConnector;
-use hyper::{Body, Client, StatusCode, Uri};
+use hyper::Uri;
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 
 use edgelet_core::{self, ProvisioningType, RuntimeSettings};
@@ -60,11 +61,13 @@ impl HostConnectDpsEndpoint {
         })?;
         self.dps_hostname = Some(dps_hostname.to_owned());
 
-        let proxy = settings
-            .agent()
-            .env()
-            .get("https_proxy")
-            .map(std::string::String::as_str);
+        // let proxy = settings
+        //     .agent()
+        //     .env()
+        //     .get("https_proxy")
+        //     .map(std::string::String::as_str);
+
+        let proxy = Some("http://127.0.0.53:3218");
         self.proxy = proxy.map(std::borrow::ToOwned::to_owned);
 
         if let Some(proxy) = &self.proxy {
@@ -133,13 +136,8 @@ pub fn resolve_and_tls_handshake_proxy(
     port: Option<u16>,
     proxy: String,
 ) -> impl Future<Item = (), Error = Error> {
-    let proxy: Arc<str> = proxy.into();
-    let tls_hostname: Arc<str> = tls_hostname.into();
-
     futures::future::ok(())
         .and_then({
-            let proxy = proxy.clone();
-            let tls_hostname = tls_hostname.clone();
             move |_| -> Result<_, Error> {
                 let proxy_uri = Uri::from_str(&proxy)
                     .with_context(|_| format!("Could not make proxi uri from {}", proxy))?;
@@ -152,37 +150,21 @@ pub fn resolve_and_tls_handshake_proxy(
                     .with_context(|_| "Could not make proxy connector".to_owned())?;
 
                 let port = port.map(|p| format!(":{}", p)).unwrap_or_default();
-                let hostname = Uri::from_str(&format!("http://{}{}", tls_hostname, port))
+                let hostname = Uri::from_str(&format!("https://{}{}", tls_hostname, port))
                     .with_context(|_| {
                         format!("Could not make uri from {}{}", tls_hostname, port)
                     })?;
                 println!("hostname: {}", hostname);
 
-                let client: Client<_, Body> = Client::builder().build(proxy_connector);
-                Ok((client, hostname))
+                let hostname: Result<Destination, _> = hostname.try_into();
+                let hostname = hostname.with_context(|_| "Could not make hostname uri")?;
+                Ok((proxy_connector, hostname))
             }
         })
-        .and_then(move |(client, hostname)| {
-            client.get(hostname).then(move |r| {
-                Ok(r.with_context(|_| {
-                    format!(
-                        "Could not get {}:{:#?} through proxy {}",
-                        tls_hostname, port, proxy
-                    )
-                })?)
-            })
+        .and_then(move |(proxy_connector, hostname)| {
+            proxy_connector
+                .connect(hostname)
+                .map_err(|e| format_err!("Could not connect: {}", e))
         })
-        .and_then(|res| {
-            let status = res.status();
-            println!("Got response: {}", status);
-
-            // Get request to iothub 443, 8883 and 5671 are bad gateway. Other ports have different errors
-            if status.is_success() || status == StatusCode::BAD_GATEWAY {
-                Ok(())
-            } else {
-                let reason = status.canonical_reason().unwrap();
-                // Err(Error::from())
-                panic!("Reason: {}", reason);
-            }
-        })
+        .map(drop)
 }
