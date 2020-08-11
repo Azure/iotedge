@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetDeviceHostname(string value)
         {
-            this.config.ReplaceOrAdd("hostname", value);
+            this.config.ReplaceOrAdd("hostname", value.ToLowerInvariant());
         }
 
         public void SetCertificates(CaCertificates certs)
