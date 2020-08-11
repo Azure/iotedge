@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
             catch (Exception e)
             {
-                Log.Information($"'docker exec' failed with error:\n{e.ToString()}");
+                Log.Information($">>> Command 'docker {command}' failed with error:\n{e.ToString()}");
             }
 
             Log.Information($">>> Command 'docker {command}' returned:\n{output.Join("\n")}");
