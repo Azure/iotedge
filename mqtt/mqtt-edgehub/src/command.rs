@@ -7,7 +7,7 @@ use regex::Regex;
 use tokio::net::TcpStream;
 use tracing::{error, info};
 
-use mqtt3::{proto, Client, IoSource, ShutdownError};
+use mqtt3::{proto, Client, Event, IoSource, ShutdownError};
 use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
 // TODO REVIEW: what if client connects with same id as the command handler client?
@@ -110,35 +110,41 @@ impl CommandHandler {
 
         // TODO: split into functions
         while let Some(event) = self.client.next().await {
-            match event {
-                Ok(event) => {
-                    if let mqtt3::Event::Publication(publication) = event {
-                        let client_id = parse_client_id(publication.topic_name);
-                        match client_id {
-                            Ok(client_id) => {
-                                info!("received disconnection request for client {}", client_id);
+            // match event {
+            //     Ok(event) => {}
+            //     Err(e) => error!(message = "client read bad event.", error = %e),
+            // }
 
-                                if let Err(e) = self
-                                    .broker_handle
-                                    .send(Message::System(SystemEvent::ForceClientDisconnect(
-                                        client_id.into(),
-                                    )))
-                                    .await
-                                {
-                                    error!(message = "failed sending broker signal to disconnect client", error=%e);
-                                } else {
-                                    info!("succeeded sending broker signal to disconnect client")
-                                }
-                            }
-                            Err(e) => {
-                                error!(message = "failed parsing client id", error=%e);
-                            }
-                        }
+            event.
+        }
+    }
+
+    // TODO: convert to handle pub
+    async fn handle_event(&mut self, event: Event) -> Result<(), Error> {
+        if let Event::Publication(publication) = event {
+            let client_id = parse_client_id(publication.topic_name);
+            match client_id {
+                Ok(client_id) => {
+                    info!("received disconnection request for client {}", client_id);
+
+                    if let Err(e) = self
+                        .broker_handle
+                        .send(Message::System(SystemEvent::ForceClientDisconnect(
+                            client_id.into(),
+                        )))
+                        .await
+                    {
+                        error!(message = "failed sending broker signal to disconnect client", error=%e);
+                    } else {
+                        info!("succeeded sending broker signal to disconnect client")
                     }
                 }
-                Err(e) => error!(message = "client read bad event.", error = %e),
+                Err(e) => {
+                    error!(message = "failed parsing client id", error=%e);
+                }
             }
         }
+        Ok(())
     }
 }
 
