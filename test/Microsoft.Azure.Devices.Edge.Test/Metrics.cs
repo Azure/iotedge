@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -25,15 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             var source = new CancellationTokenSource(TimeSpan.FromMinutes(30));
             CancellationToken token = source.Token; // this.TestToken;
-
-            const string configPath = "C:\\ProgramData\\iotedge-moby\\config\\daemon.json";
-            // Add DNS settings to iotedge-moby config
-            string config = JsonConvert.SerializeObject(new
-            {
-                dns = new[] { "1.1.1.1" }
-            });
-            File.WriteAllText(configPath, config);
-
             await this.DeployAsync(token);
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
