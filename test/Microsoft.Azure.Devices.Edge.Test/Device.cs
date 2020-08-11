@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.IO;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -48,6 +50,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             Log.Information($">>> iotedge check results:\n{output?.Join("\n") ?? "<none>"}");
+
+            Log.Information($">>> hostname: {Dns.GetHostName()}");
+
+            Log.Information($">>> config.yaml\n{await File.ReadAllTextAsync("C:\\ProgramData\\iotedge\\config.yaml", token)}");
         }
 
         [Test]
