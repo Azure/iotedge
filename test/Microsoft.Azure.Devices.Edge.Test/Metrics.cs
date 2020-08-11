@@ -33,11 +33,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 // "-H",
                 // "npipe:////./pipe/iotedge_moby_engine",
                 "exec",
-                "-t",
+                // "-t",
                 ModuleName,
-                "cmd",
-                "/c",
-                $"curl -v http://{Dns.GetHostName().ToLower()}/ || exit 0"
+                // "cmd",
+                // "/c",
+                "sh",
+                "-c",
+                $"wget http://{Dns.GetHostName().ToLower()}/ || true"
+                // $"curl -v http://{Dns.GetHostName().ToLower()}/ || exit 0"
             }.Join(" ");
 
             try
