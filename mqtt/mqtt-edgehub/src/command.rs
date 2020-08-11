@@ -5,12 +5,12 @@ use futures_util::{future::BoxFuture, StreamExt};
 use lazy_static::lazy_static;
 use regex::Regex;
 use tokio::net::TcpStream;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use mqtt3::{proto, Client, Event, IoSource, ShutdownError};
 use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
-// TODO REVIEW: what if client connects with same id as the command handler client?
+// TODO REVIEW: What if client connects with same id as the command handler client? I assume that the same problem exists for the eh-bridge client id, so its fine
 // TODO REVIEW: do we want failures making the client to percolate all the way up and blow up broker?
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
 const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
@@ -68,7 +68,7 @@ impl CommandHandler {
 
         let broker_connection = BrokerConnection { address };
 
-        let client = mqtt3::Client::new(
+        let client = Client::new(
             Some(client_id),
             None,
             None,
@@ -108,47 +108,41 @@ impl CommandHandler {
             )
         };
 
-        // TODO: split into functions
-        while let Some(event) = self.client.next().await {
-            // match event {
-            //     Ok(event) => {}
-            //     Err(e) => error!(message = "client read bad event.", error = %e),
-            // }
-
-            event.
+        while let Some(Ok(event)) = self.client.next().await {
+            if let Err(e) = self.handle_event(event).await {
+                warn!(message = "failed to disconnect client", error = %e);
+            }
         }
     }
 
-    // TODO: convert to handle pub
-    async fn handle_event(&mut self, event: Event) -> Result<(), Error> {
+    async fn handle_event(&mut self, event: Event) -> Result<(), DisconnectClientError> {
         if let Event::Publication(publication) = event {
-            let client_id = parse_client_id(publication.topic_name);
-            match client_id {
-                Ok(client_id) => {
-                    info!("received disconnection request for client {}", client_id);
+            let topic_name = publication.topic_name;
+            let client_id = parse_client_id(topic_name)?;
 
-                    if let Err(e) = self
-                        .broker_handle
-                        .send(Message::System(SystemEvent::ForceClientDisconnect(
-                            client_id.into(),
-                        )))
-                        .await
-                    {
-                        error!(message = "failed sending broker signal to disconnect client", error=%e);
-                    } else {
-                        info!("succeeded sending broker signal to disconnect client")
-                    }
-                }
-                Err(e) => {
-                    error!(message = "failed parsing client id", error=%e);
-                }
+            info!("received disconnection request for client {}", client_id);
+
+            if let Err(e) = self
+                .broker_handle
+                .send(Message::System(SystemEvent::ForceClientDisconnect(
+                    client_id.into(),
+                )))
+                .await
+            {
+                // TODO REVIEW: I tried to embed this error inside the SignalError then only log potential errors once in the calling function.
+                //              This didn't work. If this behavior is desirable we can switch to doing it this way but I will need to fix the PartialEq derive error
+                warn!(message = "failed to signal client disconnection", error=%e);
+                return Err(DisconnectClientError::SignalError());
             }
+
+            info!("succeeded sending broker signal to disconnect client");
         }
+
         Ok(())
     }
 }
 
-fn parse_client_id(topic_name: String) -> Result<String, ParseClientIdError> {
+fn parse_client_id(topic_name: String) -> Result<String, DisconnectClientError> {
     lazy_static! {
         static ref REGEX: Regex =
             Regex::new(CLIENT_EXTRACTION_REGEX).expect("failed to create new Regex from pattern");
@@ -156,32 +150,36 @@ fn parse_client_id(topic_name: String) -> Result<String, ParseClientIdError> {
 
     let captures = REGEX
         .captures(topic_name.as_ref())
-        .ok_or_else(|| ParseClientIdError::RegexFailure())?;
+        .ok_or_else(|| DisconnectClientError::RegexFailure())?;
 
     let value = captures
         .get(1)
-        .ok_or_else(|| ParseClientIdError::RegexFailure())?;
+        .ok_or_else(|| DisconnectClientError::RegexFailure())?;
 
     let client_id = value.as_str();
     match client_id {
-        "" => Err(ParseClientIdError::NoClientId()),
+        "" => Err(DisconnectClientError::NoClientId()),
         id => Ok(id.to_string()),
     }
 }
 
+// TODO REVIEW: Are these local errors the correct approach?
 #[derive(Debug, PartialEq, thiserror::Error)]
-pub enum ParseClientIdError {
+pub enum DisconnectClientError {
     #[error("regex does not match disconnect topic")]
     RegexFailure(),
 
     #[error("client id not found for client disconnect topic")]
     NoClientId(),
+
+    #[error("failed sending broker signal to disconnect client")]
+    SignalError(),
 }
 
 #[cfg(test)]
 mod tests {
     use crate::command::parse_client_id;
-    use crate::command::ParseClientIdError;
+    use crate::command::DisconnectClientError;
 
     #[tokio::test]
     async fn it_parses_client_id() {
@@ -219,7 +217,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, Err(ParseClientIdError::NoClientId()));
+        assert_eq!(output, Err(DisconnectClientError::NoClientId()));
     }
 
     #[tokio::test]
@@ -228,7 +226,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, Err(ParseClientIdError::RegexFailure()));
+        assert_eq!(output, Err(DisconnectClientError::RegexFailure()));
     }
 
     #[tokio::test]
@@ -237,6 +235,6 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, Err(ParseClientIdError::RegexFailure()));
+        assert_eq!(output, Err(DisconnectClientError::RegexFailure()));
     }
 }
