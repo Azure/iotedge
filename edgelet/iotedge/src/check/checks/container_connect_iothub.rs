@@ -113,7 +113,8 @@ impl ContainerConnectIotHub {
         self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
         args.extend(&[
             &check.diagnostics_image_name,
-            "/iotedge-diagnostics",
+            "dotnet",
+            "IotedgeDiagnosticsDotnet.dll",
             "iothub",
             "--hostname",
             iothub_hostname,

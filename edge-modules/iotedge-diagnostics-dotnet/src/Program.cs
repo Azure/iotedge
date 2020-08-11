@@ -27,11 +27,7 @@ namespace Diagnostics
 
         static async Task MainAsync(string[] args)
         {
-            Console.WriteLine(JsonConvert.SerializeObject(args));
-
             var config = new ConfigurationBuilder().AddCommandLine(args).Build();
-            Console.WriteLine(config["arg1"]);
-
             switch (args[0])
             {
                 case "edge-agent":
@@ -47,7 +43,6 @@ namespace Diagnostics
                     throw new Exception("Invalid args");
             }
         }
-
         static async Task EdgeAgent(string managementUri)
         {
             string modules;
@@ -65,9 +60,9 @@ namespace Diagnostics
                 }
             }
 
-            if (modules.Length == 0)
+            if (!modules.StartsWith("HTTP/1.1 200 OK"))
             {
-                throw new Exception("no module response");
+                throw new Exception($"Got bad response: {modules}");
             }
         }
 
@@ -82,13 +77,14 @@ namespace Diagnostics
                 ProxyClientFactory factory = new ProxyClientFactory();
                 IProxyClient proxyClient = factory.CreateProxyClient(ProxyType.Http, proxyAddress, proxyPort);
 
-                // Setup timeouts
+                //Setup timeouts
                 proxyClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
                 proxyClient.SendTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
 
-                // Get TcpClient to futher work
+                //Get TcpClient to futher work
                 var client = proxyClient.CreateConnection(hostname, int.Parse(port));
                 client.GetStream();
+
             }
             else
             {
@@ -98,4 +94,5 @@ namespace Diagnostics
             }
         }
     }
+
 }

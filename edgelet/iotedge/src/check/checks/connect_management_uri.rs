@@ -96,8 +96,8 @@ impl ConnectManagementUri {
 
         args.extend(vec![
             Cow::Borrowed(OsStr::new(&check.diagnostics_image_name)),
-            Cow::Borrowed(OsStr::new("/iotedge-diagnostics")),
-            Cow::Borrowed(OsStr::new("edge-agent")),
+            Cow::Borrowed(OsStr::new("dotnet")),
+            Cow::Borrowed(OsStr::new("IotedgeDiagnosticsDotnet.dll")),
             Cow::Borrowed(OsStr::new("--management-uri")),
             Cow::Owned(OsString::from(connect_management_uri.to_string())),
         ]);
