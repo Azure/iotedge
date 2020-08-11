@@ -61,7 +61,7 @@ jobs:
         $daemon = @{
           dns = @( "1.1.1.1" )
         }
-        $daemon | ConvertTo-Json | Out-File -Encoding Ascii "$configDir/daemon.json"
+        $daemon | ConvertTo-Json | Out-File -Encoding Ascii "$configDir/config.yaml"
       displayName: Set up moby DNS
 
     - template: templates/e2e-run.yaml
