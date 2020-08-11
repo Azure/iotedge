@@ -59,7 +59,7 @@ jobs:
         parameters:
           name: Diagnostics
           imageName: azureiotedge-diagnostics
-          project: DotnetDiagnosticsModule
+          project: IotedgeDiagnosticsDotnet
 
       # Temperature Filter
       - template: templates/image-linux.yaml
@@ -237,7 +237,7 @@ jobs:
         parameters:
           name: azureiotedge-diagnostics
           imageName: azureiotedge-diagnostics
-          project: DotnetDiagnosticsModule
+          project: IotedgeDiagnosticsDotnet
 
       # Edge Agent
       - template: templates/image-windows.yaml

@@ -535,56 +535,56 @@ jobs:
         displayName: "dotnet-azureiotedge-diagnostics Code Sign"
         inputs:
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-          FolderPath: $(Build.BinariesDirectory)/publish/DotnetDiagnosticsModule
-          Pattern: "Microsoft.Azure.Devices.Edge.*.dll,DotnetDiagnosticsModule.dll"
+          FolderPath: $(Build.BinariesDirectory)/publish/IotedgeDiagnosticsDotnet
+          Pattern: "Microsoft.Azure.Devices.Edge.*.dll,IotedgeDiagnosticsDotnet.dll"
           SessionTimeout: 20
           inlineOperation: |
-              [
-                {
-                    "keyCode": "CP-230012",
-                    "operationSetCode": "SigntoolSign",
-                    "parameters": [
-                    {
-                        "parameterName": "OpusName",
-                        "parameterValue": "Microsoft"
-                    },
-                    {
-                        "parameterName": "OpusInfo",
-                        "parameterValue": "http://www.microsoft.com"
-                    },
-                    {
-                        "parameterName": "Append",
-                        "parameterValue": "/as"
-                    },
-                    {
-                        "parameterName": "FileDigest",
-                        "parameterValue": "/fd \"SHA256\""
-                    },
-                    {
-                        "parameterName": "PageHash",
-                        "parameterValue": "/NPH"
-                    },
-                    {
-                        "parameterName": "TimeStamp",
-                        "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                    }
-                    ],
-                    "toolName": "sign",
-                    "toolVersion": "1.0"
-                },
-                {
-                    "keyCode": "CP-230012",
-                    "operationSetCode": "SigntoolVerify",
-                    "parameters": [
-                    {
-                        "parameterName": "VerifyAll",
-                        "parameterValue": "/all"
-                    }
-                    ],
-                    "toolName": "sign",
-                    "toolVersion": "1.0"
-                }
-              ]
+            [
+              {
+                  "keyCode": "CP-230012",
+                  "operationSetCode": "SigntoolSign",
+                  "parameters": [
+                  {
+                      "parameterName": "OpusName",
+                      "parameterValue": "Microsoft"
+                  },
+                  {
+                      "parameterName": "OpusInfo",
+                      "parameterValue": "http://www.microsoft.com"
+                  },
+                  {
+                      "parameterName": "Append",
+                      "parameterValue": "/as"
+                  },
+                  {
+                      "parameterName": "FileDigest",
+                      "parameterValue": "/fd \"SHA256\""
+                  },
+                  {
+                      "parameterName": "PageHash",
+                      "parameterValue": "/NPH"
+                  },
+                  {
+                      "parameterName": "TimeStamp",
+                      "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                  }
+                  ],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              },
+              {
+                  "keyCode": "CP-230012",
+                  "operationSetCode": "SigntoolVerify",
+                  "parameters": [
+                  {
+                      "parameterName": "VerifyAll",
+                      "parameterValue": "/all"
+                  }
+                  ],
+                  "toolName": "sign",
+                  "toolVersion": "1.0"
+              }
+            ]
           signConfigType: inlineSignParams
       - task: PowerShell@2
         displayName: "Build Image - Edge Agent - amd64"
@@ -607,7 +607,7 @@ jobs:
       - task: PowerShell@2
         displayName: "Build Image - Diagnostics Module- amd64"
         inputs:
-          arguments: "-Name 'azureiotedge-diagnostics' -Project 'DotnetDiagnosticsModule' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+          arguments: "-Name 'azureiotedge-diagnostics' -Project 'IotedgeDiagnosticsDotnet' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
       # - task: PowerShell@2
