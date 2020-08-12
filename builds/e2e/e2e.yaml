@@ -19,6 +19,8 @@ resources:
       branches:
       - master
       - release/*
+      - iiot
+      - preview/iiot
 
 jobs:
 
