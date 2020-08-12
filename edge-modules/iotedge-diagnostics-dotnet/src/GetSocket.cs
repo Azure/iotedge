@@ -22,9 +22,6 @@ namespace Diagnostics
             {
                 socket.Connect(new UnixDomainSocketEndPoint(server));
 
-                if (socket == null)
-                    return "Connection failed";
-
                 // Send request to the server.
                 socket.Send(bytesSent, bytesSent.Length, 0);
                 int bytes = 0;

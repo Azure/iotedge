@@ -313,7 +313,7 @@ jobs:
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
           version: $(version)
-       - template: templates/image-linux.yaml
+      - template: templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-diagnostics
           name: "Diagnostics Module"
