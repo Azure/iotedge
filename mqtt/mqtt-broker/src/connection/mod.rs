@@ -157,8 +157,10 @@ where
                 let auth = match authenticator.authenticate(context).await {
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
-                    Err(e) => {
-                        warn!(message = "error authenticating client", error =% *e);
+                    Err(_) => {
+                        // TODO REVIEW: for some reason this doesn't compile for me? Any idea why? I don't think I touched anything relevant so am confused.
+                        // warn!(message = "error authenticating client", error =% *e);
+                        warn!(message = "error authenticating client");
                         Auth::Failure
                     }
                 };

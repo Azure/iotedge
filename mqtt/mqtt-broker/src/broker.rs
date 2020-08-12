@@ -79,6 +79,13 @@ where
                                 info!("sent state to snapshotter.");
                             }
                         }
+                        SystemEvent::ForceClientDisconnect(client_id) => {
+                            if let Err(e) = self.process_drop_connection(&client_id) {
+                                warn!(message = "an error occured disconnecting client", error = %e);
+                            } else {
+                                debug!("successfully disconnected client");
+                            }
+                        }
                     }
                 }
             }

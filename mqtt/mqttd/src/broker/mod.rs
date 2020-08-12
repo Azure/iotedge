@@ -12,10 +12,13 @@ use tokio::{
 };
 use tracing::{info, warn};
 
+use mqtt3::ShutdownError;
 use mqtt_broker::{
-    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
-    StateSnapshotHandle, SystemEvent, VersionedFileFormat,
+    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle as SnapshotShutdownHandle,
+    Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
+use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
+use mqtt_edgehub::settings::ListenerConfig;
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
@@ -31,8 +34,14 @@ where
 
     let broker = bootstrap::broker(config.broker(), state).await?;
 
+    #[cfg(feature = "edgehub")]
+    info!("starting command handler...");
+    let (mut command_handler_shutdown_handle, command_handler_join_handle) =
+        start_command_handler(broker.handle(), config.listener()).await?;
+
     info!("starting snapshotter...");
-    let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
+    let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
+        start_snapshotter(broker.handle(), persistor).await;
 
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
@@ -40,9 +49,14 @@ where
     info!("starting server...");
     let state = bootstrap::start_server(config, broker, shutdown).await?;
 
-    shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await?;
+    snapshotter_shutdown_handle.shutdown().await?;
+    let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
+
+    #[cfg(feature = "edgehub")]
+    command_handler_shutdown_handle.shutdown().await?;
+    command_handler_join_handle.await?;
+    info!("command handler shutdown.");
 
     info!("persisting state before exiting...");
     persistor.store(state).await?;
@@ -52,11 +66,25 @@ where
     Ok(())
 }
 
+async fn start_command_handler(
+    broker_handle: BrokerHandle,
+    listener_config: &ListenerConfig,
+) -> Result<(CommandShutdownHandle, JoinHandle<()>), ShutdownError> {
+    let address = listener_config.system().addr().to_string();
+
+    let command_handler = CommandHandler::new(broker_handle, address);
+    let shutdown_handle = command_handler.shutdown_handle()?;
+
+    let join_handle = tokio::spawn(command_handler.run());
+
+    Ok((shutdown_handle, join_handle))
+}
+
 async fn start_snapshotter(
     broker_handle: BrokerHandle,
     persistor: FilePersistor<VersionedFileFormat>,
 ) -> (
-    ShutdownHandle,
+    SnapshotShutdownHandle,
     JoinHandle<FilePersistor<VersionedFileFormat>>,
 ) {
     let snapshotter = Snapshotter::new(persistor);
