@@ -183,8 +183,8 @@ mod tests {
     use crate::command::parse_client_id;
     use crate::command::DisconnectClientError;
 
-    #[tokio::test]
-    async fn it_parses_client_id() {
+    #[test]
+    fn it_parses_client_id() {
         let client_id: String = "test-client".to_string();
         let topic: String = "$edgehub/test-client/disconnect".to_string();
 
@@ -193,8 +193,8 @@ mod tests {
         assert_eq!(output, client_id);
     }
 
-    #[tokio::test]
-    async fn it_parses_client_id_with_slash() {
+    #[test]
+    fn it_parses_client_id_with_slash() {
         let client_id: String = "test/client".to_string();
         let topic: String = "$edgehub/test/client/disconnect".to_string();
 
@@ -203,8 +203,8 @@ mod tests {
         assert_eq!(output, client_id);
     }
 
-    #[tokio::test]
-    async fn it_parses_client_id_with_slash_disconnect_suffix() {
+    #[test]
+    fn it_parses_client_id_with_slash_disconnect_suffix() {
         let client_id: String = "test/disconnect".to_string();
         let topic: String = "$edgehub/test/disconnect/disconnect".to_string();
 
@@ -213,8 +213,8 @@ mod tests {
         assert_eq!(output, client_id);
     }
 
-    #[tokio::test]
-    async fn it_parses_empty_client_id_returning_none() {
+    #[test]
+    fn it_parses_empty_client_id_returning_none() {
         let topic: String = "$edgehub//disconnect".to_string();
 
         let output = parse_client_id(topic);
@@ -222,8 +222,8 @@ mod tests {
         assert_eq!(output, Err(DisconnectClientError::NoClientId()));
     }
 
-    #[tokio::test]
-    async fn it_parses_bad_topic_returning_none() {
+    #[test]
+    fn it_parses_bad_topic_returning_none() {
         let topic: String = "$edgehub/disconnect/client-id".to_string();
 
         let output = parse_client_id(topic);
@@ -231,8 +231,8 @@ mod tests {
         assert_eq!(output, Err(DisconnectClientError::RegexFailure()));
     }
 
-    #[tokio::test]
-    async fn it_parses_empty_topic_returning_none() {
+    #[test]
+    fn it_parses_empty_topic_returning_none() {
         let topic: String = "".to_string();
 
         let output = parse_client_id(topic);
