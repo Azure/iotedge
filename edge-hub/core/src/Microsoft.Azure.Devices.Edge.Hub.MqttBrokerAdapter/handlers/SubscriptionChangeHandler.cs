@@ -77,7 +77,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             if (subscriptionList == null)
             {
-                Events.BadPayloadFormat();
+                // This case is valid and sent by the broker (as an empty string) when a client disconnects.
+                // The meaning of the message is to remove subscriptions, but as the client is disconnecting
+                // in a moment, we don't do anything. In fact, the disconnect message is supposed to arrive
+                // first, and then this change notification gets ignored as it does not have related client.
                 return true;
             }
 
