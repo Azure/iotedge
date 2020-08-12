@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             new ExponentialBackoff(2, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4));
 
         readonly ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>> pendingSubscriptions;
-        readonly ConcurrentDictionary<string, bool> subscriptionsBeingProcessed;
+        readonly ConcurrentDictionary<string, bool> subscriptionsBeingProcessed = new ConcurrentDictionary<string, bool>();
         readonly ActionBlock<string> processSubscriptionsBlock;
         readonly IInvokeMethodHandler invokeMethodHandler;
 
@@ -44,32 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
             this.pendingSubscriptions = new ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>>();
-            this.subscriptionsBeingProcessed = new ConcurrentDictionary<string, bool>();
             this.processSubscriptionsBlock = new ActionBlock<string>(this.ProcessPendingSubscriptions);
-            connectionManager.DeviceConnected += this.DeviceConnected;
+            connectionManager.DeviceConnected += this.ClientConnectionEstablished;
             deviceConnectivityManager.DeviceConnected += this.CloudConnectivityEstablished;
-            connectionManager.CloudConnectionEstablished += this.ClientCloudConnectionEstablished;
-        }
-
-        async void DeviceConnected(object sender, IIdentity identity)
-        {
-            // Set a flag for an identity that temporarily disables clientCloudConnectionEstablished
-            // while we process subscriptions, so we don't trigger processing subscriptions twice.
-            this.subscriptionsBeingProcessed.TryAdd(identity.Id, true);
-            try
-            {
-                Events.ProcessingSubscriptionsOnDeviceConnectedToEdgeHub(identity);
-                await this.ProcessExistingSubscriptions(identity.Id);
-            }
-            catch (Exception e)
-            {
-                Events.ErrorProcessingSubscriptions(e, identity);
-            }
-            finally
-            {
-                this.ConnectionManager.CloudConnectionEstablished += this.ClientCloudConnectionEstablished;
-                this.subscriptionsBeingProcessed.TryRemove(identity.Id, out bool removed);
-            }
+            connectionManager.CloudConnectionEstablished += this.ClientConnectionEstablished;
         }
 
         protected override void HandleSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptions) =>
@@ -152,18 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             try
             {
-                IEnumerable<Task> tasks = this.ConnectionManager.GetConnectedClients().Select(id =>
-                {
-                    if (!this.subscriptionsBeingProcessed.ContainsKey(id.Id))
-                    {
-                        Events.SkippingProcessingSubscription(id.Id);
-                        return ProcessSubscriptionByIdentity(id);
-                    }
-                    else
-                    {
-                        return Task.CompletedTask;
-                    }
-                });
+                IEnumerable<Task> tasks = this.ConnectionManager.GetConnectedClients().Select(id => ProcessSubscriptionByIdentity(id));
                 await Task.WhenAll(tasks);
             }
             catch (Exception e)
@@ -172,38 +139,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void ClientCloudConnectionEstablished(object sender, IIdentity identity)
+        async void ClientConnectionEstablished(object sender, IIdentity identity)
         {
-            if (this.subscriptionsBeingProcessed.ContainsKey(identity.Id))
+            try
             {
-                Events.SkippingProcessingSubscription(identity.Id);
+                Events.ClientConnectedProcessingSubscriptions(identity);
+                await this.ProcessExistingSubscriptions(identity.Id);
             }
-            else
+            catch (Exception e)
             {
-                try
-                {
-                    Events.ClientConnectedProcessingSubscriptions(identity);
-                    await this.ProcessExistingSubscriptions(identity.Id);
-                }
-                catch (Exception e)
-                {
-                    Events.ErrorProcessingSubscriptions(e, identity);
-                }
+                Events.ErrorProcessingSubscriptions(e, identity);
             }
         }
 
         async Task ProcessExistingSubscriptions(string id)
         {
-            Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
-            Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.ConnectionManager.GetSubscriptions(id);
-            await subscriptions.ForEachAsync(
-                async s =>
-                {
-                    foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
+            // Set a flag for an identity that temporarily disables subscription processing for other threads while we process
+            // the identity's subscriptions, so we don't trigger processing subscriptions multiple times for the same identity concurrently.
+            if (!this.subscriptionsBeingProcessed.TryAdd(id, true))
+            {
+                // Identity subscription already being processed. Skip it.
+                Events.SkippingProcessingSubscription(id);
+            }
+            else
+            {
+                Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
+                Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.ConnectionManager.GetSubscriptions(id);
+                await subscriptions.ForEachAsync(
+                    async s =>
                     {
-                        await this.ProcessSubscriptionWithRetry(id, cloudProxy, subscription.Key, subscription.Value);
-                    }
-                });
+                        foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
+                        {
+                            await this.ProcessSubscriptionWithRetry(id, cloudProxy, subscription.Key, subscription.Value);
+                        }
+                    });
+                this.subscriptionsBeingProcessed.TryRemove(id, out _);
+            }
         }
 
         async Task ProcessPendingSubscriptions(string id)
