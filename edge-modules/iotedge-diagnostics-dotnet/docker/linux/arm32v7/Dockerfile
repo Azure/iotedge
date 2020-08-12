@@ -3,13 +3,11 @@ FROM azureiotedge/azureiotedge-module-base:${base_tag}
 
 ARG EXE_DIR=.
 
-ENV MODULE_NAME "DiagnosticsModule.dll"
-
 WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
 USER moduleuser
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-    exec /usr/bin/dotnet DiagnosticsModule.dll
+CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Module is intended to be used with docker run command"
+

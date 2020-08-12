@@ -515,7 +515,7 @@ jobs:
               ]
           signConfigType: inlineSignParams
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-        displayName: "dotnet-azureiotedge-diagnostics Code Sign"
+        displayName: "azureiotedge-diagnostics Code Sign"
         inputs:
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
           FolderPath: $(Build.BinariesDirectory)/publish/IotedgeDiagnosticsDotnet

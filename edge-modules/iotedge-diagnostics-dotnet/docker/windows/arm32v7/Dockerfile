@@ -8,4 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "DiagnosticsModule.dll"]
+CMD ["echo", "Module is intended to be used with docker run command"]
