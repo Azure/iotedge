@@ -560,9 +560,6 @@ mod tests {
 
         let settings = Settings::new(Path::new(BAD_SETTINGS_DYNAMIC_REPROVISIONING));
         assert!(settings.is_err());
-
-        let settings = Settings::new(Path::new(BAD_SETTINGS_CONTENT_TRUST));
-        assert!(settings.is_err());
     }
 
     #[test]
@@ -1150,6 +1147,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn content_trust_env_are_set_properly() {
         let settings = Settings::new(Path::new(GOOD_SETTINGS_CONTENT_TRUST)).unwrap();
@@ -1179,5 +1177,12 @@ mod tests {
         } else {
             panic!();
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn content_trust_env_are_not_set_properly() {
+        let settings = Settings::new(Path::new(BAD_SETTINGS_CONTENT_TRUST));
+        assert!(settings.is_err());
     }
 }
