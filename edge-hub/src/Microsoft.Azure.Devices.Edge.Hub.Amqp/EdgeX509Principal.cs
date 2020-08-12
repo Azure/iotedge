@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             this.clientCredentialsProvider = Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
         }
 
-        public async Task<bool> AuthenticateAsync(string id)
+        public async Task<bool> AuthenticateAsync(string id, Option<string> modelId)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 return false;
             }
 
-            IClientCredentials clientCredentials = this.clientCredentialsProvider.GetWithX509Cert(identity.deviceId, identity.moduleId, string.Empty, this.CertificateIdentity.Certificate, this.chainCertificates);
+            IClientCredentials clientCredentials = this.clientCredentialsProvider.GetWithX509Cert(identity.deviceId, identity.moduleId, string.Empty, this.CertificateIdentity.Certificate, this.chainCertificates, modelId);
 
             bool result = await this.authenticator.AuthenticateAsync(clientCredentials);
             if (!result)
