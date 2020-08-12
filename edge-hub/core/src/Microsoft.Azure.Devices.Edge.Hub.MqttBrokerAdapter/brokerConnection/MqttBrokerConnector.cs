@@ -387,9 +387,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static async Task SubscribeAsync(MqttClient client, IReadOnlyCollection<IMessageConsumer> subscribers)
         {
-
             var subscribersWithSubscriptions = subscribers.Where(s => s.Subscriptions != null && s.Subscriptions.Count > 0).ToArray();
-            var expectedAckCount = new AtomicLong(subscribers.Count);
+            var expectedAckCount = new AtomicLong(subscribersWithSubscriptions.Count());
 
             if (expectedAckCount.Get() > 0)
             {
