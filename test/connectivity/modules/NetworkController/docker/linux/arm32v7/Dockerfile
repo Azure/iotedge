@@ -1,3 +1,4 @@
+# Network controller arm32 and arm64 require different base images. This is because arm32 needs iproute tooling and thus needs module-base-full.
 ARG base_tag=1.0.6.1-linux-arm32v7
 FROM azureiotedge/azureiotedge-module-base-full:${base_tag}
 
