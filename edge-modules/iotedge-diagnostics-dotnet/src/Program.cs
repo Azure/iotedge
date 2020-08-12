@@ -23,7 +23,20 @@ namespace Diagnostics
 
     class Program
     {
-        public static void Main(string[] args) => MainAsync(args).Wait();
+        public static int Main(string[] args)
+        {
+            try
+            {
+                MainAsync(args).Wait();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                return 1;
+            }
+
+            return 0;
+        }
 
         static async Task MainAsync(string[] args)
         {
