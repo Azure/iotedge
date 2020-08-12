@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 // "/c",
                 "sh",
                 "-c",
-                $"'(wget http://{Dns.GetHostName().ToLower()}/ || true)'"
+                $"\"wget http://{Dns.GetHostName().ToLower()}/ || true\""
                 // $"curl -v http://{Dns.GetHostName().ToLower()}/ || exit 0"
             }.Join(" ");
 
