@@ -22,17 +22,20 @@ parameters:
 
 steps:
   - bash: |
-      mkdir -p ${{ parameters['destination.folder.path'] }}/${{ parameters['target.amd64'] }}/release
-      cp  ${{ parameters['artifact.folder.path'] }}/${{ parameters['target.amd64'] }}/release/${{ parameters['artifact.name'] }} ${{ parameters['destination.folder.path'] }}/${{ parameters['target.amd64'] }}/release/${{ parameters['artifact.name'] }}
+      DESTINATION_DIR=${{ parameters['destination.folder.path'] }}/${{ parameters['target.amd64'] }}/release
+      mkdir -p $DESTINATION_DIR
+      cp  ${{ parameters['artifact.folder.path'] }}/${{ parameters['target.amd64'] }}/release/${{ parameters['artifact.name'] }} $DESTINATION_DIR/${{ parameters['artifact.name'] }}
     condition: and(eq('${{ parameters['should.publish.amd64'] }}', 'true'), succeeded())
     displayName: Move amd64 rust artifacts
   - bash: |
-      mkdir -p ${{ parameters['destination.folder.path'] }}/${{ parameters['target.arm32v7'] }}/release
-      cp  ${{ parameters['artifact.folder.path'] }}/${{ parameters['target.arm32v7'] }}/release/${{ parameters['artifact.name'] }} ${{ parameters['destination.folder.path'] }}/${{ parameters['target.arm32v7'] }}/release/${{ parameters['artifact.name'] }}
+      DESTINATION_DIR=${{ parameters['destination.folder.path'] }}/${{ parameters['target.arm32v7'] }}/release
+      mkdir -p $DESTINATION_DIR
+      cp  ${{ parameters['artifact.folder.path'] }}/${{ parameters['target.arm32v7'] }}/release/${{ parameters['artifact.name'] }} $DESTINATION_DIR/${{ parameters['artifact.name'] }}
     condition: and(eq('${{ parameters['should.publish.arm32v7'] }}', 'true'), succeeded())
     displayName: Move arm32v7 rust artifacts
   - bash: |
-      mkdir -p ${{ parameters['destination.folder.path'] }}/${{ parameters['target.arm64v8'] }}/release
-      cp  ${{ parameters['artifact.folder.path'] }}/${{ parameters['target.arm64v8'] }}/release/${{ parameters['artifact.name'] }} ${{ parameters['destination.folder.path'] }}/${{ parameters['target.arm64v8'] }}/release/${{ parameters['artifact.name'] }}
+      DESTINATION_DIR=${{ parameters['destination.folder.path'] }}/${{ parameters['target.arm64v8'] }}/release
+      mkdir -p $DESTINATION_DIR
+      cp  ${{ parameters['artifact.folder.path'] }}/${{ parameters['target.arm64v8'] }}/release/${{ parameters['artifact.name'] }} $DESTINATION_DIR/${{ parameters['artifact.name'] }}
     condition: and(eq('${{ parameters['should.publish.arm64v8'] }}', 'true'), succeeded())
     displayName: Move arm64v8 rust artifacts
