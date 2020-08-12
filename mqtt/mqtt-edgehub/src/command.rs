@@ -11,7 +11,6 @@ use mqtt3::{proto, Client, Event, IoSource, ShutdownError};
 use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
 // TODO REVIEW: What if client connects with same id as the command handler client? I assume that the same problem exists for the eh-bridge client id, so its fine
-// TODO REVIEW: do we want failures making the client to percolate all the way up and blow up broker?
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
 const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
@@ -68,7 +67,7 @@ impl CommandHandler {
 
         let broker_connection = BrokerConnection { address };
 
-        let client = Client::new(
+        let mut client = Client::new(
             Some(client_id),
             None,
             None,
@@ -76,6 +75,25 @@ impl CommandHandler {
             Duration::from_secs(1),
             Duration::from_secs(60),
         );
+
+        // TODO REVIEW: Do we want failures making the client to percolate all the way up and blow up broker?
+        // TODO REVIEW: I think we do. I tried to percolate this error up the whole stack but mqttd mod.rs cannot use mqtt_broker::Error
+        //              Any recommendations?
+        let qos = proto::QoS::AtLeastOnce;
+        if let Err(_e) = client.subscribe(proto::SubscribeTo {
+            topic_filter: TOPIC_FILTER.to_string(),
+            qos,
+        }) {
+            error!(
+                "could not subscribe command handler to command topic '{}'",
+                TOPIC_FILTER
+            )
+        } else {
+            info!(
+                "command handler subscribed to command topic '{}'",
+                TOPIC_FILTER
+            )
+        };
 
         CommandHandler {
             broker_handle,
@@ -92,22 +110,6 @@ impl CommandHandler {
     }
 
     pub async fn run(mut self) {
-        let qos = proto::QoS::AtLeastOnce;
-        if let Err(_e) = self.client.subscribe(proto::SubscribeTo {
-            topic_filter: TOPIC_FILTER.to_string(),
-            qos,
-        }) {
-            error!(
-                "could not subscribe command handler to command topic '{}'",
-                TOPIC_FILTER
-            )
-        } else {
-            info!(
-                "command handler subscribed to command topic '{}'",
-                TOPIC_FILTER
-            )
-        };
-
         while let Some(Ok(event)) = self.client.next().await {
             if let Err(e) = self.handle_event(event).await {
                 warn!(message = "failed to disconnect client", error = %e);
