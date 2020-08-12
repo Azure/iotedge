@@ -11,7 +11,6 @@ use std::process;
 
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
-use futures::Future;
 use url::Url;
 
 use edgelet_core::{parse_since, LogOptions, LogTail};
@@ -314,8 +313,8 @@ fn run() -> Result<(), Error> {
     let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
     match matches.subcommand() {
-        ("check", Some(args)) => tokio_runtime.block_on(
-            Check::new(
+        ("check", Some(args)) => {
+            let check = Check::new(
                 args.value_of_os("config-file")
                     .expect("arg has a default value")
                     .to_os_string()
@@ -351,9 +350,10 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value"),
                 args.is_present("verbose"),
                 args.is_present("warnings-as-errors"),
-            )
-            .and_then(Command::execute),
-        ),
+            );
+
+            tokio_runtime.block_on(check)?.execute(&mut tokio_runtime)
+        }
         ("check-list", _) => Check::print_list(),
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(

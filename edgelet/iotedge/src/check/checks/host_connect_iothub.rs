@@ -1,3 +1,5 @@
+use edgelet_core::RuntimeSettings;
+
 use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
@@ -26,6 +28,7 @@ pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
 pub(crate) struct HostConnectIotHub {
     port_number: u16,
     iothub_hostname: Option<String>,
+    proxy: Option<String>,
     #[serde(skip)]
     id: &'static str,
     #[serde(skip)]
@@ -39,8 +42,8 @@ impl Checker for HostConnectIotHub {
     fn description(&self) -> &'static str {
         self.description
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
-        self.inner_execute(check)
+    fn execute(&mut self, check: &mut Check, runtime: &mut tokio::runtime::Runtime) -> CheckResult {
+        self.inner_execute(check, runtime)
             .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
@@ -49,7 +52,11 @@ impl Checker for HostConnectIotHub {
 }
 
 impl HostConnectIotHub {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(
+        &mut self,
+        check: &mut Check,
+        runtime: &mut tokio::runtime::Runtime,
+    ) -> Result<CheckResult, failure::Error> {
         let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
         } else {
@@ -57,11 +64,26 @@ impl HostConnectIotHub {
         };
         self.iothub_hostname = Some(iothub_hostname.clone());
 
-        super::host_connect_dps_endpoint::resolve_and_tls_handshake(
-            &(&**iothub_hostname, self.port_number),
-            iothub_hostname,
-            &format!("{}:{}", iothub_hostname, self.port_number),
-        )?;
+        self.proxy = check
+            .settings
+            .as_ref()
+            .and_then(|settings| settings.agent().env().get("https_proxy").cloned());
+
+        if let Some(proxy) = &self.proxy {
+            runtime.block_on(
+                super::host_connect_dps_endpoint::resolve_and_tls_handshake_proxy(
+                    iothub_hostname.clone(),
+                    Some(self.port_number),
+                    proxy.clone(),
+                ),
+            )?;
+        } else {
+            super::host_connect_dps_endpoint::resolve_and_tls_handshake(
+                &(&**iothub_hostname, self.port_number),
+                iothub_hostname,
+                &format!("{}:{}", iothub_hostname, self.port_number),
+            )?;
+        }
 
         Ok(CheckResult::Ok)
     }
@@ -77,5 +99,6 @@ fn make_check(
         description,
         port_number: upstream_protocol_port.as_port(),
         iothub_hostname: None,
+        proxy: None,
     })
 }
