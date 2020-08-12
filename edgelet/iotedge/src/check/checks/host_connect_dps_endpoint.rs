@@ -5,9 +5,9 @@ use std::str::FromStr;
 use failure::{format_err, Context, Error, ResultExt};
 use futures::Future;
 use hyper::client::connect::{Connect, Destination};
-use hyper::client::HttpConnector;
 use hyper::Uri;
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
+use hyper_tls::HttpsConnector;
 use typed_headers::Credentials;
 
 use edgelet_core::{self, ProvisioningType, RuntimeSettings};
@@ -163,7 +163,8 @@ pub fn resolve_and_tls_handshake_proxy(
                     proxy_obj.set_authorization(credentials);
                 }
 
-                let http_connector = HttpConnector::new(1);
+                let http_connector = HttpsConnector::new(1)
+                    .with_context(|_| "Could not make https connector".to_owned())?;
                 let proxy_connector = ProxyConnector::from_proxy(http_connector, proxy_obj)
                     .with_context(|_| "Could not make proxy connector".to_owned())?;
 
