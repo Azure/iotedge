@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Amqp.X509;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -52,17 +53,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var cf = Mock.Of<IClientCredentialsFactory>();
 
             var principal = new EdgeX509Principal(identity, chain, auth, cf);
-            await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync(null));
-            await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync(string.Empty));
-            await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync("   "));
-            Assert.False(await principal.AuthenticateAsync("/   "));
-            Assert.False(await principal.AuthenticateAsync("   /"));
-            Assert.False(await principal.AuthenticateAsync("   /   "));
-            Assert.False(await principal.AuthenticateAsync("did/"));
-            Assert.False(await principal.AuthenticateAsync("did/   "));
-            Assert.False(await principal.AuthenticateAsync("/mid"));
-            Assert.False(await principal.AuthenticateAsync("   /mid"));
-            Assert.False(await principal.AuthenticateAsync("did/mid/blah"));
+            await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync(null, Option.None<string>()));
+            await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync(string.Empty, Option.None<string>()));
+            await Assert.ThrowsAsync<ArgumentException>(() => principal.AuthenticateAsync("   ", Option.None<string>()));
+            Assert.False(await principal.AuthenticateAsync("/   ", Option.None<string>()));
+            Assert.False(await principal.AuthenticateAsync("   /", Option.None<string>()));
+            Assert.False(await principal.AuthenticateAsync("   /   ", Option.None<string>()));
+            Assert.False(await principal.AuthenticateAsync("did/", Option.None<string>()));
+            Assert.False(await principal.AuthenticateAsync("did/   ", Option.None<string>()));
+            Assert.False(await principal.AuthenticateAsync("/mid", Option.None<string>()));
+            Assert.False(await principal.AuthenticateAsync("   /mid", Option.None<string>()));
+            Assert.False(await principal.AuthenticateAsync("did/mid/blah", Option.None<string>()));
         }
 
         [Fact]
@@ -84,11 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                         moduleId,
                         string.Empty,
                         certificate,
-                        chain))
+                        chain,
+                        Option.None<string>()))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials)).ReturnsAsync(false);
 
-            Assert.False(await principal.AuthenticateAsync($"{deviceId}/{moduleId}"));
+            Assert.False(await principal.AuthenticateAsync($"{deviceId}/{moduleId}", Option.None<string>()));
         }
 
         [Fact]
@@ -110,11 +112,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                         moduleId,
                         string.Empty,
                         certificate,
-                        chain))
+                        chain,
+                        Option.None<string>()))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials)).ReturnsAsync(true);
 
-            Assert.True(await principal.AuthenticateAsync($"{deviceId}"));
+            Assert.True(await principal.AuthenticateAsync($"{deviceId}", Option.None<string>()));
         }
 
         [Fact]
@@ -136,11 +139,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                         moduleId,
                         string.Empty,
                         certificate,
-                        chain))
+                        chain,
+                        Option.None<string>()))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials)).ReturnsAsync(true);
 
-            Assert.True(await principal.AuthenticateAsync($"{deviceId}/{moduleId}"));
+            Assert.True(await principal.AuthenticateAsync($"{deviceId}/{moduleId}", Option.None<string>()));
         }
     }
 }

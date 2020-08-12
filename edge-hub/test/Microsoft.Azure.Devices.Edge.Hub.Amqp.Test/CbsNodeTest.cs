@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -149,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var clientCredentials = Mock.Of<IClientCredentials>();
             var identityFactory = new Mock<IClientCredentialsFactory>();
-            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true))
+            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true, It.IsAny<Option<string>>()))
                 .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
@@ -180,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1/mod1");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var clientCredentialsFactory = new Mock<IClientCredentialsFactory>();
-            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true))
+            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true, It.IsAny<Option<string>>()))
                 .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
@@ -190,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             // Act
             (AmqpResponseStatusCode statusCode, string description) = await cbsNode.UpdateCbsToken(validAmqpMessage);
-            bool isAuthenticated = await cbsNode.AuthenticateAsync(identity.Id);
+            bool isAuthenticated = await cbsNode.AuthenticateAsync(identity.Id, Option.None<string>());
 
             // Assert
             Assert.True(isAuthenticated);

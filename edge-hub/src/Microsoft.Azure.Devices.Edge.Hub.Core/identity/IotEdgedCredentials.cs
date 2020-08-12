@@ -5,10 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public class IotEdgedCredentials : IClientCredentials
     {
-        public IotEdgedCredentials(IIdentity identity, string productInfo)
+        public IotEdgedCredentials(IIdentity identity, string productInfo, Option<string> modelId)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.ProductInfo = productInfo ?? string.Empty;
+            this.ModelId = modelId;
             this.AuthenticationType = AuthenticationType.IoTEdged;
         }
 
@@ -17,5 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         public AuthenticationType AuthenticationType { get; }
 
         public string ProductInfo { get; }
+
+        public Option<string> ModelId { get; set; }
     }
 }
