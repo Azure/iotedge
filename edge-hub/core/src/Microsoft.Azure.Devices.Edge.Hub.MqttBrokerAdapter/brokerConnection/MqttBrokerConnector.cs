@@ -352,7 +352,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static async Task SubscribeAsync(MqttClient client, IReadOnlyCollection<IMessageConsumer> subscribers)
         {
-            var expectedAckCount = subscribers.Count;
+            var subscribersWithSubscriptions = subscribers.Where(s => s.Subscriptions != null && s.Subscriptions.Count > 0).ToArray();
+            var expectedAckCount = subscribersWithSubscriptions.Count();
 
             if (expectedAckCount > 0)
             {
@@ -362,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                     client.MqttMsgSubscribed += ConfirmSubscribe;
 
-                    foreach (var subscriber in subscribers)
+                    foreach (var subscriber in subscribersWithSubscriptions)
                     {
                         client.Subscribe(
                             subscriber.Subscriptions.ToArray(),
