@@ -127,7 +127,7 @@ impl ContainerConnectIotHub {
             .env()
             .get("https_proxy")
             .map(std::string::String::as_str);
-        self.proxy = proxy.map(std::borrow::ToOwned::to_owned);
+        self.proxy = proxy.map(ToOwned::to_owned);
         if let Some(proxy) = proxy {
             args.extend(&["--proxy", proxy]);
         }
