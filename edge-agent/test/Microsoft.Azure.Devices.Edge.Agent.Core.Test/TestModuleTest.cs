@@ -21,16 +21,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         static readonly TestConfig Config2 = new TestConfig("image2");
         static readonly TestConfig Config3 = new TestConfig("image1");
 
-        static readonly IModule Module1 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module2 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module3 = new TestModule("mod3", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module4 = new TestModule("mod1", "version2", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module5 = new TestModule("mod1", "version1", "type2", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module6 = new TestModule("mod1", "version1", "type1", ModuleStatus.Unknown, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module7 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-        static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module1 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module2 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module3 = new TestModule("mod3", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module4 = new TestModule("mod1", "version2", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module5 = new TestModule("mod1", "version1", "type2", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module6 = new TestModule("mod1", "version1", "type1", ModuleStatus.Unknown, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module7 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule Module8 = new TestModule("mod1", "version1", "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
 
-        static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule ValidJsonModule = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
         static readonly IModule ValidJsonModuleWithPriority = new TestModule("<module_name>", "<semantic_version_number>", "docker", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars);
         static readonly string serializedModule = "{\"version\":\"version1\",\"type\":\"type1\",\"status\":\"running\",\"settings\":{\"image\":\"image1\"},\"restartPolicy\":\"on-unhealthy\",\"imagePullPolicy\":\"on-create\",\"configuration\":{\"id\":\"1\"}}";
 
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
       ""Status"": ""running"",
       ""RestartPolicy"": ""on-unhealthy"",
       ""ImagePullPolicy"": ""on-create"",
-      ""Priority"": 0,
+      ""StartupOrder"": 0,
       ""Settings"": {
         ""Image"": ""image1""
       },
@@ -235,9 +235,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", null, "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", null, ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
-            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", "type1", ModuleStatus.Running, null, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", null, "type1", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", null, ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentNullException>(() => new TestModule("mod1", "version1", "type1", ModuleStatus.Running, null, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars));
         }
 
         [Fact]
