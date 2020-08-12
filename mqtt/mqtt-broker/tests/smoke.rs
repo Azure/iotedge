@@ -13,7 +13,11 @@ use mqtt3::{
     Event, ReceivedPublication, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 use mqtt_broker::{auth::AllowAll, BrokerBuilder};
-use mqtt_broker_tests_util::{start_server, DummyAuthenticator, PacketStream, TestClientBuilder};
+use mqtt_broker_tests_util::{
+    client::TestClientBuilder,
+    packet::PacketStream,
+    server::{start_server, DummyAuthenticator},
+};
 
 #[tokio::test]
 async fn basic_connect_clean_session() {
