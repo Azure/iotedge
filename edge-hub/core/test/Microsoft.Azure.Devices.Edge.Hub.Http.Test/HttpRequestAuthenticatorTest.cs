@@ -35,9 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.True(result.Authenticated);
-            Assert.Equal(string.Empty, result.ErrorMsg);
+            Assert.Equal(string.Empty, result.ErrorMessage);
         }
 
         [Fact]
@@ -56,9 +56,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.False(result.Authenticated);
-            Assert.Equal("Invalid authorization header count", result.ErrorMsg);
+            Assert.Equal("Invalid authorization header count", result.ErrorMessage);
         }
 
         [Fact]
@@ -77,9 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.False(result.Authenticated);
-            Assert.Equal("Invalid Authorization header. Only SharedAccessSignature is supported.", result.ErrorMsg);
+            Assert.Equal("Invalid Authorization header. Only SharedAccessSignature is supported.", result.ErrorMessage);
         }
 
         [Fact]
@@ -99,9 +99,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.False(result.Authenticated);
-            Assert.Equal("Cannot parse SharedAccessSignature because of the following error - The specified SAS token is expired", result.ErrorMsg);
+            Assert.Equal("Cannot parse SharedAccessSignature because of the following error - The specified SAS token is expired", result.ErrorMessage);
         }
 
         [Fact]
@@ -120,9 +120,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.True(result.Authenticated);
-            Assert.Equal(string.Empty, result.ErrorMsg);
+            Assert.Equal(string.Empty, result.ErrorMessage);
         }
 
         [Fact]
@@ -142,9 +142,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.False(result.Authenticated);
-            Assert.Equal("Unable to authenticate device with Id device_2/module_1", result.ErrorMsg);
+            Assert.Equal("Unable to authenticate device with Id device_2/module_1", result.ErrorMessage);
         }
 
         [Fact]
@@ -163,9 +163,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.True(result.Authenticated);
-            Assert.Equal(string.Empty, result.ErrorMsg);
+            Assert.Equal(string.Empty, result.ErrorMessage);
         }
 
         [Fact]
@@ -185,9 +185,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.True(result.Authenticated);
-            Assert.Equal(string.Empty, result.ErrorMsg);
+            Assert.Equal(string.Empty, result.ErrorMessage);
         }
 
         [Fact]
@@ -206,9 +206,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.True(result.Authenticated);
-            Assert.Equal(string.Empty, result.ErrorMsg);
+            Assert.Equal(string.Empty, result.ErrorMessage);
         }
 
         [Fact]
@@ -227,9 +227,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
 
             var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
-            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequest(deviceId, Option.Some(moduleId), httpContext);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateRequestAsync(deviceId, Option.Some(moduleId), httpContext);
             Assert.False(result.Authenticated);
-            Assert.Equal("Unable to authenticate device with Id device_2/module_1", result.ErrorMsg);
+            Assert.Equal("Unable to authenticate device with Id device_2/module_1", result.ErrorMessage);
         }
 
         public class SomeException : Exception

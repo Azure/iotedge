@@ -6,21 +6,55 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Newtonsoft.Json;
 
-    public class EdgeHubScopeResult
+    public abstract class EdgeHubScopeResult
     {
-        [JsonIgnore]
-        public HttpStatusCode Status { get; set; }
+        protected EdgeHubScopeResult(HttpStatusCode status)
+        {
+            this.Status = status;
+        }
 
         [JsonIgnore]
-        public string ErrorMsg { get; set; }
+        public HttpStatusCode Status { get; }
+    }
+
+    public class EdgeHubScopeResultSuccess : EdgeHubScopeResult
+    {
+        public EdgeHubScopeResultSuccess()
+            : base(HttpStatusCode.OK)
+        {
+            this.Devices = new List<EdgeHubScopeDevice>();
+            this.Modules = new List<EdgeHubScopeModule>();
+        }
+
+        public EdgeHubScopeResultSuccess(IList<EdgeHubScopeDevice> devices, IList<EdgeHubScopeModule> modules)
+            : base(HttpStatusCode.OK)
+        {
+            this.Devices = devices;
+            this.Modules = modules;
+        }
+
+        [JsonIgnore]
+        public string ErrorMessage { get; set; }
 
         [JsonProperty(PropertyName = "devices", Required = Required.AllowNull)]
-        public IEnumerable<EdgeHubScopeDevice> Devices { get; set; }
+        public IList<EdgeHubScopeDevice> Devices { get; }
 
         [JsonProperty(PropertyName = "modules", Required = Required.AllowNull)]
-        public IEnumerable<EdgeHubScopeModule> Modules { get; set; }
+        public IList<EdgeHubScopeModule> Modules { get; }
 
         [JsonProperty(PropertyName = "continuationLink", Required = Required.AllowNull)]
         public string ContinuationLink { get; }
+    }
+
+    public class EdgeHubScopeResultError : EdgeHubScopeResult
+    {
+        public EdgeHubScopeResultError(HttpStatusCode status, string errorMessage)
+            : base(status)
+        {
+            this.ErrorMessage = errorMessage;
+        }
+
+        [JsonProperty("ErrorMessage")]
+        public string ErrorMessage { get; set; }
     }
 }

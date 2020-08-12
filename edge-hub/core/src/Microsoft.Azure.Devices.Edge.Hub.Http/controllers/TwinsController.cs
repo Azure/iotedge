@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 if (actorDeviceId == currentEdgeDeviceId)
                 {
                     IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-                    HttpAuthResult authResult = await authenticator.AuthenticateRequest(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
+                    HttpAuthResult authResult = await authenticator.AuthenticateRequestAsync(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
 
                     if (authResult.Authenticated)
                     {
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     }
                     else
                     {
-                        methodResult = new MethodErrorResult(HttpStatusCode.Unauthorized, authResult.ErrorMsg);
+                        methodResult = new MethodErrorResult(HttpStatusCode.Unauthorized, authResult.ErrorMessage);
                     }
                 }
                 else

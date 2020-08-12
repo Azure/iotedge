@@ -32,11 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
         }
 
-        public async Task<HttpAuthResult> AuthenticateRequest(string deviceId, Option<string> moduleId, HttpContext context)
+        public async Task<HttpAuthResult> AuthenticateRequestAsync(string deviceId, Option<string> moduleId, HttpContext context)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            Preconditions.CheckNotNull(moduleId);
-            Preconditions.CheckNotNull(context);
+            Preconditions.CheckNotNull(context, nameof(context));
 
             IClientCredentials clientCredentials;
             X509Certificate2 clientCertificate = await context.Connection.GetClientCertificateAsync();

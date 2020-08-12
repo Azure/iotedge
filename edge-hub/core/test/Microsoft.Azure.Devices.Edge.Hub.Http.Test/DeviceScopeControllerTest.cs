@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
             var expectedDeviceIdentities = new List<EdgeHubScopeDevice>() { new EdgeHubScopeDevice(deviceId, generationId, DeviceStatus.Enabled, expectedAuth, new DeviceCapabilities(), deviceScope, new List<string> { parentScope }) };
             var expectedModuleIdentities = new List<EdgeHubScopeModule>() { new EdgeHubScopeModule(moduleId, deviceId, generationId, expectedAuth) };
-            var responseExpected = new EdgeHubScopeResult() { Devices = expectedDeviceIdentities, Modules = expectedModuleIdentities };
+            var responseExpected = new EdgeHubScopeResultSuccess(expectedDeviceIdentities, expectedModuleIdentities);
             var responseExpectedJson = JsonConvert.SerializeObject(responseExpected);
 
             var responseActualBytes = GetResponseBodyBytes(controller);
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
             var expectedDeviceIdentities = new List<EdgeHubScopeDevice>() { new EdgeHubScopeDevice(childEdgeId, generationId, DeviceStatus.Enabled, expectedAuth, new DeviceCapabilities(), deviceScope, new List<string> { parentScope }) };
             var expectedModuleIdentities = new List<EdgeHubScopeModule>() { new EdgeHubScopeModule(moduleId, childEdgeId, generationId, expectedAuth) };
-            var responseExpected = new EdgeHubScopeResult() { Devices = expectedDeviceIdentities, Modules = expectedModuleIdentities };
+            var responseExpected = new EdgeHubScopeResultSuccess(expectedDeviceIdentities, expectedModuleIdentities);
             var responseExpectedJson = JsonConvert.SerializeObject(responseExpected);
 
             var responseActualBytes = GetResponseBodyBytes(controller);
@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             // Verify EdgeHub result types
             var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
             var expectedDeviceIdentities = new List<EdgeHubScopeDevice>() { new EdgeHubScopeDevice(deviceId, generationId, DeviceStatus.Enabled, expectedAuth, new DeviceCapabilities(), deviceScope, new List<string> { parentScope }) };
-            var responseExpected = new EdgeHubScopeResult() { Devices = expectedDeviceIdentities, Modules = new List<EdgeHubScopeModule>() };
+            var responseExpected = new EdgeHubScopeResultSuccess(expectedDeviceIdentities, new List<EdgeHubScopeModule>());
             var responseExpectedJson = JsonConvert.SerializeObject(responseExpected);
 
             var responseActualBytes = GetResponseBodyBytes(controller);
@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             }
 
             var authenticator = new Mock<IHttpRequestAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateRequest(It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))
+            authenticator.Setup(a => a.AuthenticateRequestAsync(It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))
                 .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
             var controller = new DeviceScopeController(Task.FromResult(edgeHub.Object), Task.FromResult(authenticator.Object));
