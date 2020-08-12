@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
@@ -157,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         }
 
         /// <summary>
-        /// Class that contains the message and is stored in the messa
+        /// Class that contains the message and is stored in the message store
         /// </summary>
         internal class MessageWrapper
         {
@@ -198,6 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             readonly Timer ensureCleanupTaskTimer;
             readonly CancellationTokenSource cancellationTokenSource;
             readonly bool checkEntireQueueOnCleanup;
+            readonly IMetricsCounter expiredCounter;
             Task cleanupTask;
 
             public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup)
@@ -206,6 +208,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
                 this.cancellationTokenSource = new CancellationTokenSource();
                 this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
+                this.expiredCounter = Metrics.Instance.CreateCounter(
+                   "messages_dropped",
+                   "Messages cleaned up because of TTL expired",
+                   new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
             }
 
             public void Dispose()
@@ -270,8 +276,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                             async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                             {
+                                var enqueuedTime = DateTime.UtcNow - messageRef.TimeStamp;
                                 if (checkpointData.Offset < offset &&
-                                    DateTime.UtcNow - messageRef.TimeStamp < messageRef.TimeToLive)
+                                     enqueuedTime < messageRef.TimeToLive)
                                 {
                                     return false;
                                 }
@@ -279,7 +286,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 bool deleteMessage = false;
 
                                 // Decrement ref count.
-                                await this.messageStore.messageEntityStore.Update(
+                                var message = await this.messageStore.messageEntityStore.Update(
                                     messageRef.EdgeMessageId,
                                     m =>
                                     {
@@ -298,6 +305,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                                 if (deleteMessage)
                                 {
+                                    if (enqueuedTime >= messageRef.TimeToLive)
+                                    {
+                                        this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString } );
+                                    }
+
                                     await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
                                     cleanupEntityStoreCount++;
                                 }

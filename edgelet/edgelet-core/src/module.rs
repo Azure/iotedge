@@ -286,6 +286,7 @@ pub struct LogOptions {
     follow: bool,
     tail: LogTail,
     since: i32,
+    until: Option<i32>,
 }
 
 impl LogOptions {
@@ -294,6 +295,7 @@ impl LogOptions {
             follow: false,
             tail: LogTail::All,
             since: 0,
+            until: None,
         }
     }
 
@@ -312,6 +314,11 @@ impl LogOptions {
         self
     }
 
+    pub fn with_until(mut self, until: i32) -> Self {
+        self.until = Some(until);
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
@@ -322,6 +329,10 @@ impl LogOptions {
 
     pub fn since(&self) -> i32 {
         self.since
+    }
+
+    pub fn until(&self) -> Option<i32> {
+        self.until
     }
 }
 
@@ -545,6 +556,7 @@ pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),
     GetModuleLogs(String),
+    GetSupportBundle,
     Init,
     ListModules,
     RemoveModule(String),
@@ -564,6 +576,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::GetModuleLogs(name) => {
                 write!(f, "Could not get logs for module {}", name)
             }
+            RuntimeOperation::GetSupportBundle => write!(f, "Could not get support bundle"),
             RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "Could not list modules"),
             RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),

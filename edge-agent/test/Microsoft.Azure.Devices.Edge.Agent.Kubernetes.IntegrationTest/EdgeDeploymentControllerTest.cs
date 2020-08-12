@@ -314,7 +314,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         {
             var createOptions = CreatePodParameters.Create();
             KubernetesConfig config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
-            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, null, null);
+            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, null, null);
             return new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
         }
 
@@ -335,7 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             };
             var createOptions = CreatePodParameters.Create(hostConfig: hostConfig);
             KubernetesConfig config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
-            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, null, null);
+            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, null, null);
             return new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
         }
 
@@ -347,7 +347,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             };
             var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts);
             KubernetesConfig config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
-            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, null, null);
+            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, null, null);
             return new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
         }
 
@@ -372,7 +372,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             };
             var createOptions = CreatePodParameters.Create(hostConfig: hostConfig, exposedPorts: exposedPorts);
             KubernetesConfig config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
-            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, null, null);
+            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, null, null);
             return new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
         }
 
@@ -380,7 +380,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         {
             var createOptions = CreatePodParameters.Create();
             KubernetesConfig config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
-            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig(newImage), ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, null, null);
+            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig(newImage), ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, null, null);
             return new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
         }
 

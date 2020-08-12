@@ -5,6 +5,7 @@
 //----------------------
 
 // Note: Code manually changed to replace System.Uri.EscapeDataString with System.Net.WebUtility.UrlEncode
+// Note: GetSupportBundleAsync manualy modified to correctly return stream
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.GeneratedCode
 {
@@ -834,9 +835,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <param name="since">Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp.</param>
         /// <returns>Logs returned as a string in response body</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, string since)
+        public System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, string since, string until)
         {
-            return ModuleLogsAsync(api_version, name, follow, tail, since, System.Threading.CancellationToken.None);
+            return ModuleLogsAsync(api_version, name, follow, tail, since, until, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -848,7 +849,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         /// <param name="since">Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp.</param>
         /// <returns>Logs returned as a string in response body</returns>
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, string since, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool? follow, string tail, string since, string until, System.Threading.CancellationToken cancellationToken)
         {
             if (name == null)
                 throw new System.ArgumentNullException("name");
@@ -871,6 +872,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
             if (since != null)
             {
                 urlBuilder_.Append(System.Net.WebUtility.UrlEncode("since") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(since, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (until != null)
+            {
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("until") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(until, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             }
             urlBuilder_.Length--;
 
@@ -1399,6 +1404,81 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
             }
         }
 
+        /// <summary>Return zip of support bundle.</summary>
+        /// <param name="api_version">The version of the API.</param>
+        /// <param name="since">Duration to get logs from. Can be relative (1d, 10m, 1h30m etc.) or absolute (unix timestamp or rfc 3339)</param>
+        /// <param name="host">Path to the management host</param>
+        /// <param name="iothub_hostname">Hub to use when calling iotedge check</param>
+        /// <param name="edge_runtime_only">Exclude customer module logs</param>
+        /// <returns>Ok</returns>
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public System.Threading.Tasks.Task<FileResponse> GetSupportBundleAsync(string api_version, string since, string until, string host, string iothub_hostname, bool? edge_runtime_only)
+        {
+            return GetSupportBundleAsync(api_version, since, until, host, iothub_hostname, edge_runtime_only, System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>Return zip of support bundle.</summary>
+        /// <param name="api_version">The version of the API.</param>
+        /// <param name="since">Duration to get logs from. Can be relative (1d, 10m, 1h30m etc.) or absolute (unix timestamp or rfc 3339)</param>
+        /// <param name="host">Path to the management host</param>
+        /// <param name="iothub_hostname">Hub to use when calling iotedge check</param>
+        /// <param name="edge_runtime_only">Exclude customer module logs</param>
+        /// <returns>Ok</returns>
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public async System.Threading.Tasks.Task<FileResponse> GetSupportBundleAsync(string api_version, string since, string until, string host, string iothub_hostname, bool? edge_runtime_only, System.Threading.CancellationToken cancellationToken)
+        {
+            if (api_version == null)
+                throw new System.ArgumentNullException("api_version");
+
+            var urlBuilder_ = new System.Text.StringBuilder();
+            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/systeminfo/supportbundle?");
+            urlBuilder_.Append(System.Net.WebUtility.UrlEncode("api-version") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(api_version, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            if (since != null)
+            {
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("since") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(since, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (until != null)
+            {
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("until") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(until, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (host != null)
+            {
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("host") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(host, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (iothub_hostname != null)
+            {
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("iothub_hostname") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(iothub_hostname, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (edge_runtime_only != null)
+            {
+                urlBuilder_.Append(System.Net.WebUtility.UrlEncode("edge_runtime_only") + "=").Append(System.Net.WebUtility.UrlEncode(ConvertToString(edge_runtime_only, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            urlBuilder_.Length--;
+
+            var client_ = _httpClient;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/zip"));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+
+                    return new FileResponse((int)response_.StatusCode, null, await response_.Content.ReadAsStreamAsync(), client_, response_);
+                }
+            }
+            finally
+            {
+            }
+        }
+
         /// <summary>Trigger a device reprovisioning flow.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <returns>Ok</returns>
@@ -1842,6 +1922,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         [System.Runtime.Serialization.EnumMember(Value = @"X509")]
         X509 = 2,
 
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.6.2.0 (NJsonSchema v10.1.23.0 (Newtonsoft.Json v11.0.0.0))")]
+    public partial class FileResponse : System.IDisposable
+    {
+        private System.IDisposable _client;
+        private System.IDisposable _response;
+
+        public int StatusCode { get; private set; }
+
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> Headers { get; private set; }
+
+        public System.IO.Stream Stream { get; private set; }
+
+        public bool IsPartial
+        {
+            get { return StatusCode == 206; }
+        }
+
+        public FileResponse(int statusCode, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.IO.Stream stream, System.IDisposable client, System.IDisposable response)
+        {
+            StatusCode = statusCode;
+            Headers = headers;
+            Stream = stream;
+            _client = client;
+            _response = response;
+        }
+
+        public void Dispose()
+        {
+            if (Stream != null)
+                Stream.Dispose();
+            if (_response != null)
+                _response.Dispose();
+            if (_client != null)
+                _client.Dispose();
+        }
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.6.2.0 (NJsonSchema v10.1.23.0 (Newtonsoft.Json v11.0.0.0))")]

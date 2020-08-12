@@ -1,5 +1,3 @@
-// Copyright (c) Microsoft. All rights reserved.
-
 use std::marker::PhantomData;
 use std::path::Path;
 use std::time::Duration;

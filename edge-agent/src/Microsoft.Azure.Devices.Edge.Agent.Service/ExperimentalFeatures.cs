@@ -7,21 +7,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class ExperimentalFeatures
     {
-        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool enableUploadLogs, bool enableGetLogs)
+        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions)
         {
             this.Enabled = enabled;
             this.DisableCloudSubscriptions = disableCloudSubscriptions;
-            this.EnableUploadLogs = enableUploadLogs;
-            this.EnableGetLogs = enableGetLogs;
         }
 
         public static ExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig, ILogger logger)
         {
             bool enabled = experimentalFeaturesConfig.GetValue("enabled", false);
             bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("disableCloudSubscriptions", false);
-            bool enableUploadLogs = enabled && experimentalFeaturesConfig.GetValue("enableUploadLogs", false);
-            bool enableGetLogs = enabled && experimentalFeaturesConfig.GetValue("enableGetLogs", false);
-            var experimentalFeatures = new ExperimentalFeatures(enabled, disableCloudSubscriptions, enableUploadLogs, enableGetLogs);
+            var experimentalFeatures = new ExperimentalFeatures(enabled, disableCloudSubscriptions);
             logger.LogInformation($"Experimental features configuration: {experimentalFeatures.ToJson()}");
             return experimentalFeatures;
         }
@@ -29,9 +25,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         public bool Enabled { get; }
 
         public bool DisableCloudSubscriptions { get; }
-
-        public bool EnableUploadLogs { get; }
-
-        public bool EnableGetLogs { get; }
     }
 }
