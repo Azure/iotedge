@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             actorModuleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorModuleId, nameof(actorModuleId)));
 
             IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-            HttpAuthResult authResult = await authenticator.AuthenticateRequestAsync(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
+            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
 
             if (authResult.Authenticated)
             {
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             actorModuleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorModuleId, nameof(actorModuleId)));
 
             IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-            HttpAuthResult authResult = await authenticator.AuthenticateRequestAsync(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
+            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
 
             if (authResult.Authenticated)
             {

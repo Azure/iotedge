@@ -307,7 +307,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         private static TwinsController SetupController(Task<IEdgeHub> edgeHubGetter)
         {
             var authenticator = new Mock<IHttpRequestAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateRequestAsync(It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<string>(), It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))
                 .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
             var controller = new TwinsController(edgeHubGetter, Task.FromResult(authenticator.Object), CreateLetThroughValidator());

@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
         }
 
-        public async Task<HttpAuthResult> AuthenticateRequestAsync(string deviceId, Option<string> moduleId, HttpContext context)
+        public async Task<HttpAuthResult> AuthenticateAsync(string deviceId, Option<string> moduleId, HttpContext context)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNotNull(context, nameof(context));

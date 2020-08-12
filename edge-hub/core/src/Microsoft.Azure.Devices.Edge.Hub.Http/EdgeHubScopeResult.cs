@@ -33,9 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.Modules = modules;
         }
 
-        [JsonIgnore]
-        public string ErrorMessage { get; set; }
-
         [JsonProperty(PropertyName = "devices", Required = Required.AllowNull)]
         public IList<EdgeHubScopeDevice> Devices { get; }
 

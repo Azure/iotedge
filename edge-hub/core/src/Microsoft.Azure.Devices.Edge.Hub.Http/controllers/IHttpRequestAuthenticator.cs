@@ -19,6 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
     public interface IHttpRequestAuthenticator
     {
-        Task<HttpAuthResult> AuthenticateRequestAsync(string deviceId, Option<string> moduleId, HttpContext context);
+        Task<HttpAuthResult> AuthenticateAsync(string deviceId, Option<string> moduleId, HttpContext context);
     }
 }
