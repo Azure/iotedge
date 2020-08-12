@@ -20,10 +20,7 @@ pub struct ShutdownHandle(mqtt3::ShutdownHandle);
 
 impl ShutdownHandle {
     pub async fn shutdown(&mut self) -> Result<(), Error> {
-        self.0
-            .shutdown()
-            .await
-            .map_err(|e| Error::ShutdownClient(e))?;
+        self.0.shutdown().await.map_err(Error::ShutdownClient)?;
         Ok(())
     }
 }
@@ -63,7 +60,7 @@ impl CommandHandler {
                 "generic-edge-device".to_string()
             }
         };
-        let client_id = format!("{}/$edgeHub/$broker/$control", device_id).to_string();
+        let client_id = format!("{}/$edgeHub/$broker/$control", device_id);
 
         let broker_connection = BrokerConnection { address };
 
@@ -119,7 +116,7 @@ impl CommandHandler {
 
     async fn handle_event(&mut self, event: Event) -> Result<(), DisconnectClientError> {
         if let Event::Publication(publication) = event {
-            let topic_name = publication.topic_name;
+            let topic_name = publication.topic_name.as_ref();
             let client_id = parse_client_id(topic_name)?;
 
             info!("received disconnection request for client {}", client_id);
@@ -144,7 +141,7 @@ impl CommandHandler {
     }
 }
 
-fn parse_client_id(topic_name: String) -> Result<String, DisconnectClientError> {
+fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
     lazy_static! {
         static ref REGEX: Regex =
             Regex::new(CLIENT_EXTRACTION_REGEX).expect("failed to create new Regex from pattern");
@@ -152,11 +149,11 @@ fn parse_client_id(topic_name: String) -> Result<String, DisconnectClientError> 
 
     let captures = REGEX
         .captures(topic_name.as_ref())
-        .ok_or_else(|| DisconnectClientError::RegexFailure())?;
+        .ok_or_else(DisconnectClientError::RegexFailure)?;
 
     let value = captures
         .get(1)
-        .ok_or_else(|| DisconnectClientError::RegexFailure())?;
+        .ok_or_else(DisconnectClientError::RegexFailure)?;
 
     let client_id = value.as_str();
     match client_id {
@@ -185,8 +182,8 @@ mod tests {
 
     #[test]
     fn it_parses_client_id() {
-        let client_id: String = "test-client".to_string();
-        let topic: String = "$edgehub/test-client/disconnect".to_string();
+        let client_id = "test-client";
+        let topic = "$edgehub/test-client/disconnect";
 
         let output = parse_client_id(topic).unwrap();
 
@@ -195,8 +192,8 @@ mod tests {
 
     #[test]
     fn it_parses_client_id_with_slash() {
-        let client_id: String = "test/client".to_string();
-        let topic: String = "$edgehub/test/client/disconnect".to_string();
+        let client_id = "test/client";
+        let topic = "$edgehub/test/client/disconnect";
 
         let output = parse_client_id(topic).unwrap();
 
@@ -205,8 +202,8 @@ mod tests {
 
     #[test]
     fn it_parses_client_id_with_slash_disconnect_suffix() {
-        let client_id: String = "test/disconnect".to_string();
-        let topic: String = "$edgehub/test/disconnect/disconnect".to_string();
+        let client_id = "test/disconnect";
+        let topic = "$edgehub/test/disconnect/disconnect";
 
         let output = parse_client_id(topic).unwrap();
 
@@ -215,7 +212,7 @@ mod tests {
 
     #[test]
     fn it_parses_empty_client_id_returning_none() {
-        let topic: String = "$edgehub//disconnect".to_string();
+        let topic = "$edgehub//disconnect";
 
         let output = parse_client_id(topic);
 
@@ -224,7 +221,7 @@ mod tests {
 
     #[test]
     fn it_parses_bad_topic_returning_none() {
-        let topic: String = "$edgehub/disconnect/client-id".to_string();
+        let topic = "$edgehub/disconnect/client-id";
 
         let output = parse_client_id(topic);
 
@@ -233,7 +230,7 @@ mod tests {
 
     #[test]
     fn it_parses_empty_topic_returning_none() {
-        let topic: String = "".to_string();
+        let topic = "";
 
         let output = parse_client_id(topic);
 
