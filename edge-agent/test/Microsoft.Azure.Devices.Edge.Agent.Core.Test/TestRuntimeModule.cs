@@ -22,10 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             DateTime lastRestartTimeUtc,
             ModuleStatus runtimeStatus,
             ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate,
-            uint priority = Constants.DefaultPriority,
+            uint startupOrder = Constants.DefaultStartupOrder,
             ConfigurationInfo deploymentInfo = null,
             IDictionary<string, EnvVal> env = null)
-            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, deploymentInfo, env)
+            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, startupOrder, deploymentInfo, env)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.LastRestartTimeUtc,
             newStatus,
             this.ImagePullPolicy,
-            this.Priority,
+            this.StartupOrder,
             this.ConfigurationInfo);
     }
 }

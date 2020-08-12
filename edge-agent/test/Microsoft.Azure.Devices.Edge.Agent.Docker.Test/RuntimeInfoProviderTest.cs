@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image);
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, null, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     string createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
                     var config = new DockerConfig(Image, createOptions, Option.None<string>());
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, null, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -285,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
 
             // Act
-            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), CancellationToken.None);
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), Option.None<string>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -301,7 +301,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<string>(), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<string>(), Option.None<string>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -317,7 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some("1552887267"), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some("1552887267"), Option.None<string>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
