@@ -686,7 +686,7 @@ mod tests {
             // Pretend it's Moby
             check.docker_server_version = Some("19.03.12+azure".to_owned());
 
-            match ContainerEngineIsMoby::default().execute(&mut check) {
+            match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking moby_runtime.uri in {} returned {:?}",
@@ -698,7 +698,7 @@ mod tests {
 
     #[test]
     fn config_file_checks_ok_old_moby() {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
         for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
             let config_file = format!(
@@ -724,12 +724,12 @@ mod tests {
                 ))
                 .unwrap();
 
-            match WellFormedConfig::default().execute(&mut check) {
+            match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
 
-            match WellFormedConnectionString::default().execute(&mut check) {
+            match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking connection string in {} returned {:?}",
@@ -737,7 +737,7 @@ mod tests {
                 ),
             }
 
-            match Hostname::default().execute(&mut check) {
+            match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
                     let message = err.to_string();
                     assert!(

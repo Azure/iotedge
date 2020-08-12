@@ -145,10 +145,10 @@ pub fn resolve_and_tls_handshake_proxy(
                     .authority_part()
                     .and_then(|authority| {
                         if let [userpass, _] =
-                            &authority.as_str().split("@").collect::<Vec<&str>>()[..]
+                            &authority.as_str().split('@').collect::<Vec<&str>>()[..]
                         {
                             if let [username, password] =
-                                &userpass.split(":").collect::<Vec<&str>>()[..]
+                                &userpass.split(':').collect::<Vec<&str>>()[..]
                             {
                                 return Some(Credentials::basic(username, password));
                             }
