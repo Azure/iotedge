@@ -15,7 +15,7 @@ use mqtt3::{
 use mqtt_broker::{auth::AllowAll, BrokerBuilder};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
-    packet::PacketStream,
+    packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
 

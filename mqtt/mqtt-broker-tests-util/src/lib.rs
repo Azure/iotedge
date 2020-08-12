@@ -13,5 +13,5 @@
 
 pub mod client;
 pub mod env;
-pub mod packet;
+pub mod packet_stream;
 pub mod server;
