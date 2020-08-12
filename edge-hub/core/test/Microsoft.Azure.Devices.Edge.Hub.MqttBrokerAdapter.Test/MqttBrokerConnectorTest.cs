@@ -87,6 +87,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             using var broker = new MiniMqttServer(4567);
 
             var milestone = new SemaphoreSlim(0, 2);
+            var consumers = new[] {
+                                    new ConsumerStub() { ShouldHandle = false, Handler = _ => milestone.Release()},
+                                    new ConsumerStub() { ShouldHandle = false, Handler = _ => milestone.Release()}
+                                  };
+
+            var sut = new ConnectorBuilder()
+                            .WithConsumers(consumers)
+                            .Build();
+
+            await sut.ConnectAsync("localhost", 4567);
+
+            await broker.PublishAsync("boo", Encoding.ASCII.GetBytes("hoo"));
+            await milestone.WaitAsync();
+            await milestone.WaitAsync();
+
+            Assert.All(consumers, c => Assert.Single(c.PacketsToHandle));
+            Assert.All(consumers, c => Assert.Equal("boo", c.PacketsToHandle.First().Topic));
+            Assert.All(consumers, c => Assert.Equal("hoo", Encoding.ASCII.GetString(c.PacketsToHandle.First().Payload)));
+        }
+
+        [Fact]
+        public async Task WhenMessageHandledThenForwardingLoopBreaks()
+        {
+            using var broker = new MiniMqttServer(4567);
+
+            var milestone = new SemaphoreSlim(0, 2);
             var callCounter = 0;
             var consumers = new[] {
                                     new ConsumerStub() { ShouldHandle = true, Handler = _ => milestone.Release()},
@@ -94,8 +120,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                   };
 
             var sut = new ConnectorBuilder()
-                .WithConsumers(consumers)
-                .Build();
+                            .WithConsumers(consumers)
+                            .Build();
 
             await sut.ConnectAsync("localhost", 4567);
 
