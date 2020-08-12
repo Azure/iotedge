@@ -12,11 +12,12 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use mqtt3::ShutdownError;
 use mqtt_broker::{
     BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle as SnapshotShutdownHandle,
     Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
+
+#[cfg(feature = "edgehub")]
 use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
 use mqtt_edgehub::settings::ListenerConfig;
 
@@ -69,10 +70,10 @@ where
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     listener_config: &ListenerConfig,
-) -> Result<(CommandShutdownHandle, JoinHandle<()>), ShutdownError> {
+) -> Result<(CommandShutdownHandle, JoinHandle<()>)> {
     let address = listener_config.system().addr().to_string();
 
-    let command_handler = CommandHandler::new(broker_handle, address);
+    let command_handler = CommandHandler::new(broker_handle, address)?;
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());

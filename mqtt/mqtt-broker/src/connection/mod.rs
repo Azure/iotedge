@@ -158,7 +158,7 @@ where
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
                     Err(_) => {
-                        // TODO REVIEW: for some reason this doesn't compile for me? Any idea why? I don't think I touched anything relevant so am confused.
+                        // TODO REVIEW: the below line won't compile because I updated Cargo.lock. Denis said he would fix it
                         // warn!(message = "error authenticating client", error =% *e);
                         warn!(message = "error authenticating client");
                         Auth::Failure

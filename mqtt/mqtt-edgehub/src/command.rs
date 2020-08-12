@@ -7,10 +7,9 @@ use regex::Regex;
 use tokio::net::TcpStream;
 use tracing::{error, info, warn};
 
-use mqtt3::{proto, Client, Event, IoSource, ShutdownError};
+use mqtt3::{proto, Client, Event, IoSource, ShutdownError, UpdateSubscriptionError};
 use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
-// TODO REVIEW: What if client connects with same id as the command handler client? I assume that the same problem exists for the eh-bridge client id, so its fine
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
 const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
@@ -49,17 +48,9 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub fn new(broker_handle: BrokerHandle, address: String) -> Self {
-        let device_id = match env::var(DEVICE_ID_ENV) {
-            Ok(id) => id,
-            Err(e) => {
-                error!(
-                    message = "couldn't find expected device id environment variable",
-                    error=%e
-                );
-                "generic-edge-device".to_string()
-            }
-        };
+    pub fn new(broker_handle: BrokerHandle, address: String) -> Result<Self, InitializationError> {
+        let device_id =
+            env::var(DEVICE_ID_ENV).map_err(|_| InitializationError::DeviceIdNotFound())?;
         let client_id = format!("{}/$edgeHub/$broker/$control", device_id);
 
         let broker_connection = BrokerConnection { address };
@@ -73,29 +64,20 @@ impl CommandHandler {
             Duration::from_secs(60),
         );
 
-        // TODO REVIEW: Do we want failures making the client to percolate all the way up and blow up broker?
-        // TODO REVIEW: I think we do. I tried to percolate this error up the whole stack but mqttd mod.rs cannot use mqtt_broker::Error
-        //              Any recommendations?
         let qos = proto::QoS::AtLeastOnce;
-        if let Err(_e) = client.subscribe(proto::SubscribeTo {
-            topic_filter: TOPIC_FILTER.to_string(),
-            qos,
-        }) {
-            error!(
-                "could not subscribe command handler to command topic '{}'",
-                TOPIC_FILTER
-            )
-        } else {
-            info!(
-                "command handler subscribed to command topic '{}'",
-                TOPIC_FILTER
-            )
-        };
+        client
+            .subscribe(proto::SubscribeTo {
+                topic_filter: TOPIC_FILTER.to_string(),
+                qos,
+            })
+            .map_err(InitializationError::SubscribeFailure)?;
 
-        CommandHandler {
+        println!("successfully subscribed");
+
+        Ok(CommandHandler {
             broker_handle,
             client,
-        }
+        })
     }
 
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
@@ -128,10 +110,7 @@ impl CommandHandler {
                 )))
                 .await
             {
-                // TODO REVIEW: I tried to embed this error inside the SignalError then only log potential errors once in the calling function.
-                //              This didn't work. If this behavior is desirable we can switch to doing it this way but I will need to fix the PartialEq derive error
-                warn!(message = "failed to signal client disconnection", error=%e);
-                return Err(DisconnectClientError::SignalError());
+                return Err(DisconnectClientError::SignalError(e));
             }
 
             info!("succeeded sending broker signal to disconnect client");
@@ -162,9 +141,17 @@ fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
     }
 }
 
-// TODO REVIEW: Are these local errors the correct approach?
-#[derive(Debug, PartialEq, thiserror::Error)]
-pub enum DisconnectClientError {
+#[derive(Debug, thiserror::Error)]
+pub enum InitializationError {
+    #[error("failed to find expected device id environment variable")]
+    DeviceIdNotFound(),
+
+    #[error("failed to subscribe command handler to command topic")]
+    SubscribeFailure(#[from] UpdateSubscriptionError),
+}
+
+#[derive(Debug, thiserror::Error)]
+enum DisconnectClientError {
     #[error("regex does not match disconnect topic")]
     RegexFailure(),
 
@@ -172,13 +159,14 @@ pub enum DisconnectClientError {
     NoClientId(),
 
     #[error("failed sending broker signal to disconnect client")]
-    SignalError(),
+    SignalError(#[from] Error),
 }
 
 #[cfg(test)]
 mod tests {
     use crate::command::parse_client_id;
     use crate::command::DisconnectClientError;
+    use assert_matches::assert_matches;
 
     #[test]
     fn it_parses_client_id() {
@@ -216,7 +204,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, Err(DisconnectClientError::NoClientId()));
+        assert_matches!(output, Err(DisconnectClientError::NoClientId()));
     }
 
     #[test]
@@ -225,7 +213,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, Err(DisconnectClientError::RegexFailure()));
+        assert_matches!(output, Err(DisconnectClientError::RegexFailure()));
     }
 
     #[test]
@@ -234,6 +222,6 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_eq!(output, Err(DisconnectClientError::RegexFailure()));
+        assert_matches!(output, Err(DisconnectClientError::RegexFailure()));
     }
 }
