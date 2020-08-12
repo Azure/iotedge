@@ -71,12 +71,8 @@ namespace Diagnostics
         {
             if (proxy != null)
             {
-                // Uses https://github.com/grinay/ProxyLib
-                var tempProxy = proxy.Split(':');
-                string proxyAddress = tempProxy[0];
-                int proxyPort = int.Parse(tempProxy[1]);
-                ProxyClientFactory factory = new ProxyClientFactory();
-                IProxyClient proxyClient = factory.CreateProxyClient(ProxyType.Http, proxyAddress, proxyPort);
+                Uri proxyUri = new Uri(proxy);
+                IProxyClient proxyClient = MakeProxy(proxyUri);
 
                 // Setup timeouts
                 proxyClient.ReceiveTimeout = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
@@ -91,6 +87,28 @@ namespace Diagnostics
                 TcpClient client = new TcpClient();
                 await client.ConnectAsync(hostname, int.Parse(port));
                 client.GetStream();
+            }
+        }
+
+        static IProxyClient MakeProxy(Uri proxyUri)
+        {
+            // Uses https://github.com/grinay/ProxyLib
+            ProxyClientFactory factory = new ProxyClientFactory();
+            if (proxyUri.UserInfo == string.Empty)
+            {
+                return factory.CreateProxyClient(ProxyType.Http, proxyUri.Host, proxyUri.Port);
+            }
+            else
+            {
+                if (proxyUri.UserInfo.Contains(':'))
+                {
+                    var userPass = proxyUri.UserInfo.Split(':');
+                    return factory.CreateProxyClient(ProxyType.Http, proxyUri.Host, proxyUri.Port, userPass[0], userPass[1]);
+                }
+                else
+                {
+                    throw new Exception($"Invalid user info: {proxyUri.UserInfo}");
+                }
             }
         }
     }

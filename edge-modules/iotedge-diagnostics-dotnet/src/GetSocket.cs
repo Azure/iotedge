@@ -15,6 +15,7 @@ namespace Diagnostics
             string request = $"GET {endpoint} HTTP/1.1\r\nHost: {server}\r\nConnection: Close\r\n\r\n";
             byte[] bytesSent = Encoding.ASCII.GetBytes(request);
             byte[] bytesReceived = new byte[256];
+            server = server.Replace("unix://", string.Empty);
 
             // Create a socket connection with the specified server and port.
             using (Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP))
