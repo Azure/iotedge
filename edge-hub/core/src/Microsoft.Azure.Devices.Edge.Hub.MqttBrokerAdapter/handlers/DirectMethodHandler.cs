@@ -52,10 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.FromResult(false);
         }
 
-        public void ProducerStopped()
-        {
-        }
-
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
         public async Task<DirectMethodResponse> CallDirectMethodAsync(DirectMethodRequest request, IIdentity identity)
@@ -90,16 +86,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeProxy = await this.connectionRegistry.GetDeviceListenerAsync(identity);
-            var proxy = default(IDeviceListener);
+            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var listener = default(IDeviceListener);
 
             try
             {
-                proxy = maybeProxy.Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {
-                Events.MissingProxy(identity.Id);
+                Events.MissingListener(identity.Id);
                 return false;
             }
 
@@ -107,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             message.Properties[SystemProperties.CorrelationId] = rid.Value;
             message.Properties[SystemProperties.StatusCode] = res.Value;
 
-            await proxy.ProcessMethodResponseAsync(message);
+            await listener.ProcessMethodResponseAsync(message);
 
             return true;
         }
@@ -135,13 +131,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             enum EventIds
             {
-                MissingProxy = IdStart,
+                MissingListener = IdStart,
                 BadPayloadFormat,
                 BadIdentityFormat,
                 FailedToSendDirectMethodMessage,
             }
 
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing device listener for {id}");
+            public static void MissingListener(string id) => Log.LogError((int)EventIds.MissingListener, $"Missing device listener for {id}");
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void FailedToSendDirectMethodMessage(Exception e) => Log.LogError((int)EventIds.FailedToSendDirectMethodMessage, e, "Failed to send direct method message");

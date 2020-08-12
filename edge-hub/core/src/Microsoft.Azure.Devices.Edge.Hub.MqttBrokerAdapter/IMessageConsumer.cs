@@ -8,6 +8,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         Task<bool> HandleAsync(MqttPublishInfo publishInfo);
         IReadOnlyCollection<string> Subscriptions { get; }
-        void ProducerStopped();
     }
 }

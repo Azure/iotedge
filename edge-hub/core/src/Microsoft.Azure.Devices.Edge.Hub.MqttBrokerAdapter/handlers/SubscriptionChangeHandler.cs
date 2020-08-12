@@ -75,6 +75,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return true;
             }
 
+            if (subscriptionList == null)
+            {
+                Events.BadPayloadFormat();
+                return true;
+            }
+
             var id1 = match.Groups["id1"];
             var id2 = match.Groups["id2"];
 
@@ -82,16 +88,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var proxy = default(IDeviceListener);
-            var proxyMaybe = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var listener = default(IDeviceListener);
+            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
 
-            if (!proxyMaybe.HasValue)
+            if (!maybeListener.HasValue)
             {
                 return true;
             }
             else
             {
-                proxy = proxyMaybe.Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
 
             foreach (var subscriptionPattern in this.subscriptionPatterns)
@@ -110,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 try
                 {
-                    await AddOrRemoveSubscription(proxy, subscribes, subscriptionPattern.Subscrition);
+                    await AddOrRemoveSubscription(listener, subscribes, subscriptionPattern.Subscrition);
                 }
                 catch (Exception e)
                 {
@@ -119,10 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             return true;
-        }
-
-        public void ProducerStopped()
-        {
         }
 
         static bool IsMatchWithIds(Match match, Group id1, Group id2)
@@ -141,15 +143,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return false;
         }
 
-        static Task AddOrRemoveSubscription(IDeviceListener proxy, bool add, DeviceSubscription subscription)
+        static Task AddOrRemoveSubscription(IDeviceListener listener, bool add, DeviceSubscription subscription)
         {
             if (add)
             {
-                return proxy.AddSubscription(subscription);
+                return listener.AddSubscription(subscription);
             }
             else
             {
-                return proxy.RemoveSubscription(subscription);
+                return listener.RemoveSubscription(subscription);
             }
         }
 
@@ -166,6 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
+            public static void BadPayloadFormat() => Log.LogError((int)EventIds.BadPayloadFormat, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToChangeSubscriptionState(Exception e, string subscription, string id) => Log.LogError((int)EventIds.FailedToChangeSubscriptionState, e, $"Failed to change subscrition status {subscription} for {id}");
             public static void HandlingSubscriptionChange(string content) => Log.LogDebug((int)EventIds.HandlingSubscriptionChange, $"Handling subscription change {content}");
         }
