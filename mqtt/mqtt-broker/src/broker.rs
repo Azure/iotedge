@@ -80,11 +80,10 @@ where
                             }
                         }
                         SystemEvent::ForceClientDisconnect(client_id) => {
-                            // TODO: log what client is disconnecting in all places
                             if let Err(e) = self.process_drop_connection(&client_id) {
-                                warn!(message = "could not disconnect client", error = %e);
+                                warn!(message = "an error occured disconnecting client", error = %e);
                             } else {
-                                info!("successfully disconnected client");
+                                debug!("successfully disconnected client");
                             }
                         }
                     }
