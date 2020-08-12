@@ -8,6 +8,7 @@ use hyper::client::connect::{Connect, Destination};
 use hyper::client::HttpConnector;
 use hyper::Uri;
 use hyper_proxy::{Intercept, Proxy, ProxyConnector};
+use typed_headers::Credentials;
 
 use edgelet_core::{self, ProvisioningType, RuntimeSettings};
 
@@ -139,7 +140,29 @@ pub fn resolve_and_tls_handshake_proxy(
             move |_| -> Result<_, Error> {
                 let proxy_uri = Uri::from_str(&proxy)
                     .with_context(|_| format!("Could not make proxi uri from {}", proxy))?;
-                let proxy_obj = Proxy::new(Intercept::All, proxy_uri);
+
+                let credentials = proxy_uri
+                    .authority_part()
+                    .and_then(|authority| {
+                        if let [userpass, _] =
+                            &authority.as_str().split("@").collect::<Vec<&str>>()[..]
+                        {
+                            if let [username, password] =
+                                &userpass.split(":").collect::<Vec<&str>>()[..]
+                            {
+                                return Some(Credentials::basic(username, password));
+                            }
+                        }
+                        None
+                    })
+                    .transpose()
+                    .with_context(|e| format!("Could not parse credentuals. Reason: {}", e))?;
+
+                let mut proxy_obj = Proxy::new(Intercept::All, proxy_uri);
+                if let Some(credentials) = credentials {
+                    proxy_obj.set_authorization(credentials);
+                }
+
                 let http_connector = HttpConnector::new(1);
                 let proxy_connector = ProxyConnector::from_proxy(http_connector, proxy_obj)
                     .with_context(|_| "Could not make proxy connector".to_owned())?;
