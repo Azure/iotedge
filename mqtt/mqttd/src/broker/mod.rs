@@ -21,6 +21,8 @@ use mqtt_broker::{
 use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
 use mqtt_edgehub::settings::ListenerConfig;
 
+const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
+
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
@@ -73,7 +75,8 @@ async fn start_command_handler(
 ) -> Result<(CommandShutdownHandle, JoinHandle<()>)> {
     let address = listener_config.system().addr().to_string();
 
-    let command_handler = CommandHandler::new(broker_handle, address)?;
+    let device_id = env::var(DEVICE_ID_ENV)?;
+    let command_handler = CommandHandler::new(broker_handle, address, device_id)?;
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());

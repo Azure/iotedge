@@ -1,5 +1,4 @@
 use futures_util::StreamExt;
-use std::env;
 
 use mqtt3::proto::ClientId;
 use mqtt_broker::{
@@ -22,8 +21,6 @@ use assert_matches::assert_matches;
 // verify client disconnected
 #[tokio::test]
 async fn disconnect_client() {
-    env::set_var("IOTEDGE_DEVICEID", "test-device");
-
     let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let (mut command_handler_shutdown_handle, join_handle) = start_command_handler(broker.handle())
@@ -62,19 +59,8 @@ async fn disconnect_client() {
     edgehub_client.shutdown().await;
 }
 
-// TODO REVIEW: Is there a way we can test the exact error?
-#[tokio::test]
-async fn fail_with_no_device_id() {
-    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
-
-    let start_output = start_command_handler(broker.handle()).await;
-
-    assert_matches!(start_output, Err(_));
-}
-
 #[tokio::test]
 async fn fail_when_cannot_subscribe() {
-    env::set_var("IOTEDGE_DEVICEID", "test-device");
     let broker = BrokerBuilder::default().with_authorizer(DenyAll).build();
 
     let start_output = start_command_handler(broker.handle()).await;
@@ -85,7 +71,11 @@ async fn fail_when_cannot_subscribe() {
 async fn start_command_handler(
     broker_handle: BrokerHandle,
 ) -> Result<(CommandShutdownHandle, JoinHandle<()>)> {
-    let command_handler = CommandHandler::new(broker_handle, "localhost:5555".to_string())?;
+    let command_handler = CommandHandler::new(
+        broker_handle,
+        "localhost:5555".to_string(),
+        "test-device".to_string(),
+    )?;
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());

@@ -1,4 +1,3 @@
-use std::env;
 use std::time::Duration;
 
 use futures_util::{future::BoxFuture, StreamExt};
@@ -12,7 +11,6 @@ use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
 const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
-const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -48,9 +46,11 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub fn new(broker_handle: BrokerHandle, address: String) -> Result<Self, InitializationError> {
-        let device_id =
-            env::var(DEVICE_ID_ENV).map_err(|_| InitializationError::DeviceIdNotFound())?;
+    pub fn new(
+        broker_handle: BrokerHandle,
+        address: String,
+        device_id: String,
+    ) -> Result<Self, InitializationError> {
         let client_id = format!("{}/$edgeHub/$broker/$control", device_id);
 
         let broker_connection = BrokerConnection { address };
@@ -71,8 +71,6 @@ impl CommandHandler {
                 qos,
             })
             .map_err(InitializationError::SubscribeFailure)?;
-
-        println!("successfully subscribed");
 
         Ok(CommandHandler {
             broker_handle,
@@ -143,9 +141,6 @@ fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitializationError {
-    #[error("failed to find expected device id environment variable")]
-    DeviceIdNotFound(),
-
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
 }
