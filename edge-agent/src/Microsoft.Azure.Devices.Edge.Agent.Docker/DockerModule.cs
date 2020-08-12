@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             PropertyName = "startupOrder",
             Required = Required.DisallowNull,
             DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [DefaultValue(Core.Constants.DefaultPriority)]
+        [DefaultValue(Core.Constants.DefaultStartupOrder)]
         public virtual uint StartupOrder { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "type")]

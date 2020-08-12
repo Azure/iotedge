@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
+                        var metadataStore = await c.Resolve<Task<IMetadataStore>>();
                         var settingsProvider = c.Resolve<ISettingsProvider>();
                         var websocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
                         var byteBufferAllocator = c.Resolve<IByteBufferAllocator>();
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             sessionStatePersistenceProvider,
                             websocketListenerRegistry,
                             byteBufferAllocator,
-                            productInfoStore,
+                            metadataStore,
                             this.clientCertAuthAllowed,
                             this.sslProtocols);
                     })

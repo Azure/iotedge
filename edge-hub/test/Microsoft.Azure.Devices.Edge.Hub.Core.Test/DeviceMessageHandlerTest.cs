@@ -34,12 +34,51 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IMessage expectedMessage = new EdgeMessage.Builder(new byte[0]).Build();
             edgeHub.Setup(e => e.GetTwinAsync(It.IsAny<string>())).Returns(Task.FromResult(expectedMessage));
             Mock.Get(connMgr).Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy)));
-            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout);
+            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout, Option.None<string>());
             listener.BindDeviceProxy(deviceProxy.Object);
             await listener.SendGetTwinRequest("cid");
 
             edgeHub.Verify(x => x.GetTwinAsync(identity.Id), Times.Once);
             Assert.Same(expectedMessage, actualMessage);
+        }
+
+        [Fact]
+        public async Task ProcessMessageBatchAsync_WithModelIdAsyncTest()
+        {
+            var cloudProxy = Mock.Of<ICloudProxy>();
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var identity = Mock.Of<IDeviceIdentity>();
+            var messages = new List<IMessage>();
+            var message1 = new EdgeMessage(new byte[] { }, new Dictionary<string, string>(), new Dictionary<string, string>());
+            var message2 = new EdgeMessage(new byte[] { }, new Dictionary<string, string>(), new Dictionary<string, string>());
+            messages.Add(message1);
+            messages.Add(message2);
+            Mock.Get(connectionManager).Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy)));
+            var deviceListener = new DeviceMessageHandler(identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.Some("testModelId"));
+            await deviceListener.ProcessDeviceMessageBatchAsync(messages);
+
+            Mock.Get(edgeHub).Verify(eh => eh.ProcessDeviceMessageBatch(identity, It.IsAny<IEnumerable<IMessage>>()), Times.Once());
+            foreach (IMessage message in messages)
+            {
+                Assert.Equal("testModelId", message.SystemProperties[SystemProperties.ModelId]);
+            }
+        }
+
+        [Fact]
+        public async Task ProcessMessageAsync_WithModelIdAsyncTest()
+        {
+            var cloudProxy = Mock.Of<ICloudProxy>();
+            var connectionManager = Mock.Of<IConnectionManager>();
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var identity = Mock.Of<IDeviceIdentity>();
+            var message = new EdgeMessage(new byte[] { }, new Dictionary<string, string>(), new Dictionary<string, string>());
+            Mock.Get(connectionManager).Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy)));
+            var deviceListener = new DeviceMessageHandler(identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.Some("testModelId"));
+            await deviceListener.ProcessDeviceMessageAsync(message);
+
+            Mock.Get(edgeHub).Verify(eh => eh.ProcessDeviceMessage(identity, It.IsAny<IMessage>()), Times.Once());
+            Assert.Equal("testModelId", message.SystemProperties[SystemProperties.ModelId]);
         }
 
         [Fact]
@@ -53,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             messages.Add(Mock.Of<IMessage>());
             messages.Add(Mock.Of<IMessage>());
             Mock.Get(connectionManager).Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy)));
-            var deviceListener = new DeviceMessageHandler(identity, edgeHub, connectionManager, DefaultMessageAckTimeout);
+            var deviceListener = new DeviceMessageHandler(identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
             await deviceListener.ProcessDeviceMessageBatchAsync(messages);
 
             Mock.Get(edgeHub).Verify(eh => eh.ProcessDeviceMessageBatch(identity, It.IsAny<IEnumerable<IMessage>>()), Times.Once());
@@ -72,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IIdentity, IMessage>((id, m) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
             Mock.Get(connMgr).Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy)));
-            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout);
+            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout, Option.None<string>());
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             bool updateSent = false;
             underlyingDeviceProxy.Setup(d => d.SendTwinUpdate(It.IsAny<IMessage>()))
@@ -157,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IMessage, string>((m, s) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
@@ -185,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IMessage, string>((m, s) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
@@ -216,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             TimeSpan messageAckTimeout = TimeSpan.FromSeconds(5);
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, messageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, messageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
@@ -247,7 +286,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
             TimeSpan messageAckTimeout = TimeSpan.FromSeconds(15);
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, messageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, messageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
@@ -275,7 +314,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             underlyingDeviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
@@ -303,7 +342,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IMessage, string>((m, s) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
@@ -343,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     })
                 .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
@@ -368,7 +407,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IMessage>(m => sentMessage = m)
                 .Returns(Task.CompletedTask);
 
-            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout);
+            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout, Option.None<string>());
             listener.BindDeviceProxy(deviceProxy.Object);
             string correlationId = Guid.NewGuid().ToString();
 
@@ -397,7 +436,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Callback<IMessage>(m => sentMessage = m)
                 .Returns(Task.CompletedTask);
 
-            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout);
+            var listener = new DeviceMessageHandler(identity, edgeHub.Object, connMgr, DefaultMessageAckTimeout, Option.None<string>());
             listener.BindDeviceProxy(deviceProxy.Object);
             string correlationId = Guid.NewGuid().ToString();
 
@@ -426,7 +465,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             string lockToken = Guid.NewGuid().ToString();
@@ -465,7 +504,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             string lockToken = Guid.NewGuid().ToString();
@@ -505,7 +544,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             string lockToken = Guid.NewGuid().ToString();
@@ -553,7 +592,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout, Option.None<string>());
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             return deviceMessageHandler;
         }

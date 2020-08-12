@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             PropertyName = "startupOrder",
             Required = Required.DisallowNull,
             DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [DefaultValue(Constants.DefaultPriority)]
+        [DefaultValue(Constants.DefaultStartupOrder)]
         public virtual uint StartupOrder { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "status")]

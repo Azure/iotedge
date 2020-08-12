@@ -35,5 +35,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             return string.Empty;
         }
+
+        public static string GetSenderId(this Devices.Routing.Core.IMessage routingMessage)
+        {
+            if (routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
+            {
+                return routingMessage.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
+                    ? $"{deviceId}/{moduleId}"
+                    : deviceId;
+            }
+
+            return string.Empty;
+        }
+
+        public static string GetOutput(this Devices.Routing.Core.IMessage routingMessage)
+        {
+            if (routingMessage.SystemProperties.TryGetValue(SystemProperties.OutputName, out string outputName))
+            {
+                return outputName;
+            }
+
+            return string.Empty;
+        }
     }
 }

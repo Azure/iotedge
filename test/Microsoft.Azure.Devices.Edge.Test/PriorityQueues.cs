@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             await this.ValidateResultsAsync();
         }
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await Task.Delay(testInfo.TtlThreshold * 1000);
 
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             await this.ValidateResultsAsync();
         }

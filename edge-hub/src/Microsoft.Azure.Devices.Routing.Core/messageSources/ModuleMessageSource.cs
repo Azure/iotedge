@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.MessageSources
         const string SourcePatternWithOutput = "/messages/modules/{0}/outputs/{1}";
         const string SourcePattern = "/messages/modules/{0}";
 
-        public ModuleMessageSource(string source)
+        ModuleMessageSource(string source)
             : base(source)
         {
         }

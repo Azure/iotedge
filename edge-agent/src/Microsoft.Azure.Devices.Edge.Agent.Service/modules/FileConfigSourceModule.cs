@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -65,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var deviceClientprovider = c.Resolve<IModuleClientProvider>();
                     var requestManager = c.Resolve<IRequestManager>();
                     var deviceManager = c.Resolve<IDeviceManager>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager);
+                    var deploymentMetrics = c.Resolve<IDeploymentMetrics>();
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager, deploymentMetrics);
                     return edgeAgentConnection;
                 })
                 .As<IEdgeAgentConnection>()
