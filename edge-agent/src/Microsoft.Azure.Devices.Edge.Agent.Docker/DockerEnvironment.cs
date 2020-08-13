@@ -94,7 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             dockerModule.ImagePullPolicy,
                             dockerModule.StartupOrder,
                             dockerModule.ConfigurationInfo,
-                            dockerModule.Env);
+                            dockerModule.Env,
+                            dockerModule.Version);
                         break;
 
                     case Core.Constants.EdgeAgentModuleName:
@@ -112,7 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             lastExitTime,
                             dockerModule.ImagePullPolicy,
                             dockerModule.ConfigurationInfo,
-                            env);
+                            env,
+                            dockerModule.Version);
                         break;
 
                     default:
