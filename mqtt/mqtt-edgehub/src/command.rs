@@ -122,6 +122,7 @@ impl CommandHandler {
     }
 }
 
+// TODO: return initialization error if client cannot connect to the broker
 async fn wait_for_suback(client: &mut Client<BrokerConnection>) -> Result<(), InitializationError> {
     while let Some(event_or_err) = client.next().await {
         if let Err(e) = event_or_err {
