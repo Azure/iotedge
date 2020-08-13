@@ -168,8 +168,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var added = default(bool);
             var tcs = new TaskCompletionSource<bool>();
 
-            // need the lock, otherwise it can happen the the ACK comes back sooner as the id is
-            // put into the dictionary next line, causeing the ACK being unknown.
+            // need the lock, otherwise it can happen the ACK comes back sooner as the id is
+            // put into the dictionary next line, causing the ACK being unknown.
             lock (this.guard)
             {
                 var messageId = client.Publish(topic, payload, 1, false);
