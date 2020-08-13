@@ -2,19 +2,21 @@ mod bootstrap;
 mod shutdown;
 mod snapshot;
 
-use std::{env, path::Path};
+use std::path::Path;
 
 use anyhow::{Context, Result};
 use futures_util::pin_mut;
+use std::fs;
 use tokio::{
     task::JoinHandle,
     time::{Duration, Instant},
 };
 use tracing::{info, warn};
 
+use mqtt_broker::settings::SessionPersistenceConfig;
 use mqtt_broker::{
-    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
-    StateSnapshotHandle, SystemEvent, VersionedFileFormat,
+    BrokerHandle, BrokerSnapshot, Error, FilePersistor, Message, Persist, ShutdownHandle,
+    Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
@@ -22,15 +24,12 @@ where
     P: AsRef<Path>,
 {
     // TODO: apply settings
-    // file path
     // time interval
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
-    let state_dir = env::current_dir().expect("can't get cwd").join("state");
-    let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
-    let state = persistor.load().await?;
-    info!("state loaded.");
+    let persistence_config = config.broker().persistence();
+    let (persistor, state) = init_broker_state(persistence_config).await?;
 
     let broker = bootstrap::broker(config.broker(), state).await?;
 
@@ -53,6 +52,21 @@ where
     info!("exiting... goodbye");
 
     Ok(())
+}
+
+async fn init_broker_state(
+    persistence_config: &SessionPersistenceConfig,
+) -> Result<(FilePersistor<VersionedFileFormat>, Option<BrokerSnapshot>), Error> {
+    let state_dir = persistence_config.file_path();
+    let err_message = format!("can't create mqttd state dir {}", state_dir);
+    fs::create_dir_all(state_dir).expect(err_message.as_str());
+
+    let state_dir = persistence_config.file_path();
+    let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
+    let state = persistor.load().await?;
+    info!("state loaded.");
+
+    Ok((persistor, state))
 }
 
 async fn start_snapshotter(

@@ -13,14 +13,14 @@ const DAYS: u64 = 24 * 60 * 60;
 pub struct BrokerConfig {
     retained_messages: RetainedMessagesConfig,
     session: SessionConfig,
-    persistence: Option<SessionPersistenceConfig>,
+    persistence: SessionPersistenceConfig,
 }
 
 impl BrokerConfig {
     pub fn new(
         retained_messages: RetainedMessagesConfig,
         session: SessionConfig,
-        persistence: Option<SessionPersistenceConfig>,
+        persistence: SessionPersistenceConfig,
     ) -> Self {
         Self {
             retained_messages,
@@ -37,8 +37,8 @@ impl BrokerConfig {
         &self.session
     }
 
-    pub fn persistence(&self) -> Option<&SessionPersistenceConfig> {
-        self.persistence.as_ref()
+    pub fn persistence(&self) -> &SessionPersistenceConfig {
+        &self.persistence
     }
 }
 
@@ -147,11 +147,36 @@ impl Default for RetainedMessagesConfig {
 
 // TODO: make sure unsaved message count eliminated everywhere
 // unsaved_message_count: u32,
+// TODO: make this not optional
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SessionPersistenceConfig {
     file_path: String,
     #[serde(with = "humantime_serde")]
     time_interval: Duration,
+}
+
+// TODO: &self?
+impl SessionPersistenceConfig {
+    pub fn new(file_path: String, time_interval: Duration) -> Self {
+        Self {
+            file_path,
+            time_interval,
+        }
+    }
+
+    pub fn file_path(&self) -> String {
+        self.file_path.clone()
+    }
+
+    pub fn time_interval(self) -> Duration {
+        self.time_interval
+    }
+}
+
+impl Default for SessionPersistenceConfig {
+    fn default() -> Self {
+        SessionPersistenceConfig::new("/tmp/mqttd/".to_string(), Duration::from_secs(300))
+    }
 }
 
 /// This type is a Option-like wrapper around any type T. The primary goal is
