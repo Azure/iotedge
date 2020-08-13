@@ -19,7 +19,6 @@ use mqtt_broker::{
 
 #[cfg(feature = "edgehub")]
 use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
-use mqtt_edgehub::settings::ListenerConfig;
 
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
@@ -38,9 +37,8 @@ where
     let broker = bootstrap::broker(config.broker(), state).await?;
 
     #[cfg(feature = "edgehub")]
-    info!("starting command handler...");
-    let (mut command_handler_shutdown_handle, command_handler_join_handle) =
-        start_command_handler(broker.handle(), config.listener()).await?;
+    let broker_handle = broker.handle();
+    let system_address = config.listener().system().addr().to_string();
 
     info!("starting snapshotter...");
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
@@ -51,6 +49,11 @@ where
 
     info!("starting server...");
     let state = bootstrap::start_server(config, broker, shutdown).await?;
+
+    #[cfg(feature = "edgehub")]
+    info!("starting command handler...");
+    let (mut command_handler_shutdown_handle, command_handler_join_handle) =
+        start_command_handler(broker_handle, system_address).await?;
 
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;
@@ -71,12 +74,10 @@ where
 
 async fn start_command_handler(
     broker_handle: BrokerHandle,
-    listener_config: &ListenerConfig,
+    system_address: String,
 ) -> Result<(CommandShutdownHandle, JoinHandle<()>)> {
-    let address = listener_config.system().addr().to_string();
-
     let device_id = env::var(DEVICE_ID_ENV)?;
-    let command_handler = CommandHandler::new(broker_handle, address, device_id)?;
+    let command_handler = CommandHandler::new(broker_handle, system_address, device_id).await?;
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());
