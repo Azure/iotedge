@@ -158,7 +158,7 @@ where
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
                     Err(e) => {
-                        warn!(message = "error authenticating client", error =% *e);
+                        warn!(message = "error authenticating client", error =% &*e);
                         Auth::Failure
                     }
                 };
