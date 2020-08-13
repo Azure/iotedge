@@ -157,10 +157,8 @@ where
                 let auth = match authenticator.authenticate(context).await {
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
-                    Err(_) => {
-                        // TODO REVIEW: the below line won't compile because I updated Cargo.lock. Denis said he would fix it
-                        // warn!(message = "error authenticating client", error =% *e);
-                        warn!(message = "error authenticating client");
+                    Err(e) => {
+                        warn!(message = "error authenticating client", error =% &*e);
                         Auth::Failure
                     }
                 };
