@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// </summary>
     public interface IEdgeHub : IDisposable
     {
+        string GetEdgeDeviceId();
+
         Task ProcessDeviceMessage(IIdentity identity, IMessage message);
 
         Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> message);
