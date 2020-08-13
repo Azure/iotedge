@@ -23,7 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public void WhenStartedThenHooksUpToProducers()
         {
             var producers = new[] { new ProducerStub(), new ProducerStub() };
-
             var sut = new ConnectorBuilder()
                             .WithProducers(producers)
                             .Build();
@@ -35,8 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task WhenStartedThenConnectsToServer()
         {
             using var broker = new MiniMqttServer(PORT);
+            using var sut = new ConnectorBuilder().Build();
 
-            var sut = new ConnectorBuilder().Build();
             await sut.ConnectAsync(HOST, PORT);
 
             Assert.Equal(1, broker.ConnectionCounter);
@@ -46,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task WhenStartedTwiceThenSecondFails()
         {
             using var broker = new MiniMqttServer(PORT);
+            using var sut = new ConnectorBuilder().Build();
 
-            var sut = new ConnectorBuilder().Build();
             await sut.ConnectAsync(HOST, PORT);
 
             Assert.Equal(1, broker.ConnectionCounter);
@@ -67,9 +66,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     new ConsumerStub() { Subscriptions = new[] { "moo", "shoo" } }
                                   };
 
-            var sut = new ConnectorBuilder()
-                            .WithConsumers(consumers)
-                            .Build();
+            using var sut = new ConnectorBuilder()
+                                    .WithConsumers(consumers)
+                                    .Build();
 
             await sut.ConnectAsync(HOST, PORT);
 
@@ -88,9 +87,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     new ConsumerStub() { ShouldHandle = false, Handler = _ => milestone.Release()}
                                   };
 
-            var sut = new ConnectorBuilder()
-                            .WithConsumers(consumers)
-                            .Build();
+            using var sut = new ConnectorBuilder()
+                                    .WithConsumers(consumers)
+                                    .Build();
 
             await sut.ConnectAsync(HOST, PORT);
 
@@ -116,9 +115,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     new ConsumerStub() { ShouldHandle = true, Handler = _ => Interlocked.Increment(ref callCounter)}
                                   };
 
-            var sut = new ConnectorBuilder()
-                            .WithConsumers(consumers)
-                            .Build();
+            using var sut = new ConnectorBuilder()
+                                    .WithConsumers(consumers)
+                                    .Build();
 
             await sut.ConnectAsync(HOST, PORT);
 
@@ -145,9 +144,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     new ConsumerStub() { ShouldHandle = true, Handler = _ => milestone.Release()}
                                   };
 
-            var sut = new ConnectorBuilder()
-                            .WithConsumers(consumers)
-                            .Build();
+            using var sut = new ConnectorBuilder()
+                                    .WithConsumers(consumers)
+                                    .Build();
 
             await sut.ConnectAsync(HOST, PORT);
 
@@ -170,9 +169,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var producer = new ProducerStub();
 
-            var sut = new ConnectorBuilder()
-                            .WithProducer(producer)
-                            .Build();
+            using var sut = new ConnectorBuilder()
+                                    .WithProducer(producer)
+                                    .Build();
 
             await sut.ConnectAsync(HOST, PORT);
             await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo"));
@@ -200,9 +199,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var producer = new ProducerStub();
 
-            var sut = new ConnectorBuilder()
-                            .WithProducer(producer)
-                            .Build();
+            using var sut = new ConnectorBuilder()
+                                    .WithProducer(producer)
+                                    .Build();
 
             await sut.ConnectAsync(HOST, PORT);
             var senderTask = producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo"));
@@ -248,8 +247,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task TriesReconnect()
         {
             using var broker = new MiniMqttServer(PORT);
+            using var sut = new ConnectorBuilder().Build();
 
-            var sut = new ConnectorBuilder().Build();
             await sut.ConnectAsync(HOST, PORT);
 
             Assert.Equal(1, broker.ConnectionCounter);
@@ -259,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             broker.DropActiveClient();
 
             Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(5)));
-            Assert.Equal(2, broker.ConnectionCounter);
+            Assert.Equal(2, broker.ConnectionCounter);            
         }
 
         [Fact]
@@ -272,9 +271,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     new ConsumerStub() { Subscriptions = new[] { "moo", "shoo" } }
                                   };
 
-            var sut = new ConnectorBuilder()
-                            .WithConsumers(consumers)
-                            .Build();
+            using var sut = new ConnectorBuilder()
+                                    .WithConsumers(consumers)
+                                    .Build();
 
             await sut.ConnectAsync(HOST, PORT);
 
@@ -293,44 +292,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
-        public async Task OfflineSendGetSentAferReconnect()
+        public async Task OfflineSendGetSentAfterReconnect()
         {
-            using var broker = new MiniMqttServer(PORT);
             var producer = new ProducerStub();
 
-            var sut = new ConnectorBuilder()
-                            .WithProducer(producer)
-                            .Build();
+            using var sut = new ConnectorBuilder()
+                                    .WithProducer(producer)
+                                    .Build();
 
-            await sut.ConnectAsync(HOST, PORT);
+            using (var broker = new MiniMqttServer(PORT))
+            {                
+                await sut.ConnectAsync(HOST, PORT);
 
-            Assert.Equal(1, broker.ConnectionCounter);
+                Assert.Equal(1, broker.ConnectionCounter);
 
-            var milestone = new SemaphoreSlim(0, 1);
-            broker.OnConnect = () => milestone.Wait();
-            broker.DropActiveClient();
+                broker.DropActiveClient();
+            }
 
             var sendTask = producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo"));
+            await Task.Delay(TimeSpan.FromSeconds(3)); // let the connector work a bit on reconnect
 
-            await Task.Delay(TimeSpan.FromSeconds(1)); // let the connector work a bit on reconnect
-            milestone.Release();
+            using (var broker = new MiniMqttServer(PORT))
+            {
+                await sendTask;
 
-            await sendTask;
-
-            Assert.Single(broker.Publications);
-            Assert.Equal("boo", broker.Publications.First().Item1);
-            Assert.Equal("hoo", Encoding.ASCII.GetString(broker.Publications.First().Item2));
+                Assert.Single(broker.Publications);
+                Assert.Equal("boo", broker.Publications.First().Item1);
+                Assert.Equal("hoo", Encoding.ASCII.GetString(broker.Publications.First().Item2));
+            }
         }
     }
 
     class ProducerStub : IMessageProducer
     {
         public IMqttBrokerConnector Connector { get; set; }
-
-        public void SetConnector(IMqttBrokerConnector connector)
-        {
-            this.Connector = connector;
-        }
+        public void SetConnector(IMqttBrokerConnector connector) => this.Connector = connector;
     }
 
     class ConsumerStub : IMessageConsumer
@@ -346,11 +342,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             this.Handler(publishInfo);
             return Task.FromResult(this.ShouldHandle);
         }
+    }
 
-        public void ProducerStopped()
+    class DisposableMqttBrokerConnector : MqttBrokerConnector, IDisposable
+    {
+        public DisposableMqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
+            : base(components, systemComponentIdProvider)
         {
-            return;
         }
+
+        public void Dispose() => this.DisconnectAsync().Wait();
     }
 
     class ConnectorBuilder
@@ -390,7 +391,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             return this;
         }
 
-        public MqttBrokerConnector Build()
+        public DisposableMqttBrokerConnector Build()
         {
             var componentDiscovery = Mock.Of<IComponentDiscovery>();
             Mock.Get(componentDiscovery).SetupGet(c => c.Producers).Returns(producers);
@@ -399,7 +400,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var systemComponentIdProvider = Mock.Of<ISystemComponentIdProvider>();
             Mock.Get(systemComponentIdProvider).SetupGet(s => s.EdgeHubBridgeId).Returns("some_id");
 
-            return new MqttBrokerConnector(componentDiscovery, systemComponentIdProvider);
+            return new DisposableMqttBrokerConnector(componentDiscovery, systemComponentIdProvider);
         }
     }
 
@@ -458,6 +459,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public void Dispose()
         {
             this.listener.Stop();
+            DropActiveClient();
             this.processingTask.Wait();
         }
 
