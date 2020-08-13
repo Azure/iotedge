@@ -109,6 +109,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
+        protected bool IsEnvDictionaryEqual(IModule other)
+        {
+            return EnvDictionaryComparer.Equals(this.Env, other.Env);
+        }
+
         public override int GetHashCode()
         {
             unchecked

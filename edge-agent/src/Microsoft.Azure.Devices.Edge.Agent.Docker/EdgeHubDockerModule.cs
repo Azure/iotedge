@@ -36,5 +36,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             DefaultValueHandling = DefaultValueHandling.Populate)]
         [DefaultValue(RestartPolicy.Always)]
         public override RestartPolicy RestartPolicy { get; }
+
+        public override bool Equals(IModule<DockerConfig> other)
+        {
+            if (ReferenceEquals(null, other))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
+            // EdgeHub Equal() is similar to base class except, we ignore the version since we don't ever use it.
+            return string.Equals(this.Name, other.Name) &&
+                string.Equals(this.Type, other.Type) &&
+                this.DesiredStatus == other.DesiredStatus &&
+                this.Config.Equals(other.Config) &&
+                this.RestartPolicy == other.RestartPolicy &&
+                this.ImagePullPolicy == other.ImagePullPolicy &&
+                this.StartupOrder == other.StartupOrder &&
+                this.IsEnvDictionaryEqual(other);
+        }
     }
 }
