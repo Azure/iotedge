@@ -1,5 +1,4 @@
 use std::time::Duration;
-use std::time::Instant;
 
 use futures_util::{future::BoxFuture, StreamExt};
 use lazy_static::lazy_static;
@@ -14,7 +13,6 @@ use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
 
 const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
 const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
-const SUBACK_TIMEOUT: Duration = Duration::from_secs(15);
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -125,13 +123,7 @@ impl CommandHandler {
 }
 
 async fn wait_for_suback(client: &mut Client<BrokerConnection>) -> Result<(), InitializationError> {
-    let start_time = Instant::now();
-
     while let Some(event_or_err) = client.next().await {
-        if Instant::now() - start_time > SUBACK_TIMEOUT {
-            return Err(InitializationError::SubAckTimeout());
-        }
-
         if let Err(e) = event_or_err {
             warn!(message = "error reading event from command handler client", error = %e);
         } else if let Ok(Event::SubscriptionUpdates(subscriptions)) = event_or_err {
@@ -175,9 +167,6 @@ fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
 pub enum InitializationError {
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
-
-    #[error("command handler timed out waiting for suback for command topic")]
-    SubAckTimeout(),
 
     #[error("command handler client disconnected")]
     ClientDisconnected(),
