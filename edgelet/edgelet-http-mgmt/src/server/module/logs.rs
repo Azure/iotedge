@@ -84,10 +84,26 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
         .find(|&(ref key, _)| key == "since")
         .map_or_else(|| Ok(0), |(_, val)| parse_since(val))
         .context(ErrorKind::MalformedRequestParameter("since"))?;
-    let options = LogOptions::new()
+    let mut options = LogOptions::new()
         .with_follow(follow)
         .with_tail(tail)
         .with_since(since);
+
+    if let Some(until) = parse
+        .iter()
+        .find_map(|&(ref key, ref val)| {
+            if key == "until" {
+                Some(parse_since(val))
+            } else {
+                None
+            }
+        })
+        .transpose()
+        .context(ErrorKind::MalformedRequestParameter("until"))?
+    {
+        options = options.with_until(until);
+    }
+
     Ok(options)
 }
 

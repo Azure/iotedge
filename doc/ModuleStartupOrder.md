@@ -2,7 +2,7 @@
 
 By default, IoT Edge does not impose an ordering in the sequence in which modules are started, updated or stopped. Edge Agent by default is the first module that gets started and based on the edge deployment specification, it figures out which modules need to be started, updated or stopped and executes those operations in a non-deterministic order.
 
-The processing order of modules can be controlled by specifying the value of a module-specific property called `priority` in the IoT Edge deployment. Modules that have been assigned a higher priority will be processed before modules that have been assigned a lower priority.
+The processing order of modules can be controlled by specifying the value of a module-specific property called `startupOrder` in the IoT Edge deployment. Modules that have been assigned a higher priority will be processed before modules that have been assigned a lower priority.
 
 ## __Use case__
 
@@ -14,15 +14,15 @@ As an example, some customers want the Edge Hub module to be started before any 
 
 ## __Configuration__
 
-Customers can optionally specify a `priority` value for each module in their IoT Edge deployment to achieve module boot ordering. Modules with a higher priority will be created and started first and only when an attempt has been made to start them, will other lower priority modules be created and started.
+Customers can optionally specify a `startupOrder` value for each module in their IoT Edge deployment to achieve module boot ordering. Modules with a higher priority will be created and started first and only when an attempt has been made to start them, will other lower priority modules be created and started.
 
-The value of `priority` will be positive and zero-based with 0 being the highest priority value.
-A higher numeric `priority` value would indicate a lower priority assigned to that module. The maximum value of this property will be 4294967295.
+The value of `startupOrder` will be positive and zero-based with 0 being the highest priority value.
+A higher numeric `startupOrder` value would indicate a lower priority assigned to that module. The maximum value of this property will be 4294967295.
 Modules that possess the same priority will be created at the same time and will have no deterministic startup order imposed amongst themselves. Modules with higher priority values will be created and started first and once Edge Agent has made an attempt to create and start them (only the modules with a desired state of `Running` will be started), it will proceed with the creation (and optionally startup) of other lower priority modules in order.
 
-**It must be noted that the Edge Agent module will not support the `priority` property and will by default have the highest priority. As is the behavior currently, Edge Agent will always be the first module to get started.**
+**It must be noted that the Edge Agent module will not support the `startupOrder` property and will by default have the highest priority. As is the behavior currently, Edge Agent will always be the first module to get started.**
 
-Modules that do not have a `priority` value specified will be started in a non-deterministic order and will be assigned a priority of 4294967295 which indicates the lowest possible priority. Edge Agent will trigger the creation of these modules after all modules with a higher priority have been created.
+Modules that do not have a `startupOrder` value specified will be started in a non-deterministic order and will be assigned a priority of 4294967295 which indicates the lowest possible priority. Edge Agent will trigger the creation of these modules after all modules with a higher priority have been created.
 
 **Please note that Kubernetes mode of IoT Edge does not support module startup order priorities.**
 
@@ -72,7 +72,7 @@ The following sample deployment manifest illustrates how priority values of modu
               "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
               "createOptions": ""
             },
-            "priority": 0
+            "startupOrder": 0
           }
         },
         "modules": {
@@ -85,7 +85,7 @@ The following sample deployment manifest illustrates how priority values of modu
               "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
               "createOptions": "{}"
             },
-            "priority": 1
+            "startupOrder": 1
           },
           "filtermodule": {
             "version": "1.0",
@@ -118,9 +118,9 @@ The following sample deployment manifest illustrates how priority values of modu
 
 In the sample deployment manifest shown above:
 
-* The `$edgeHub` module has been assigned a `priority` value of 0.
-* The `SimulatedTemperatureSensor` module has been assigned a `priority` value of 1.
-* The `filtermodule` module has not been assigned any `priority` value which means that it will by default assume the priority of 4294967295 which is the lowest priority value possible.
+* The `$edgeHub` module has been assigned a `startupOrder` value of 0.
+* The `SimulatedTemperatureSensor` module has been assigned a `startupOrder` value of 1.
+* The `filtermodule` module has not been assigned any `startupOrder` value which means that it will by default assume the priority of 4294967295 which is the lowest priority value possible.
 
 When this deployment manifest is deployed to a device that does not have any modules running, `$edgeHub` is the first module that will come up followed by the `SimulatedTemperatureSensor` module and then the `filtermodule`.
 

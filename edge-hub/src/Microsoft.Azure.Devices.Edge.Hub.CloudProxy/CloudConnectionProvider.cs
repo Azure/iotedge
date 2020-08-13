@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), clientCredentials.Identity.Id);
                 ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(clientCredentials.Identity.Id);
                 string productInfo = connectionMetadata.EdgeProductInfo;
-                Option<string> modelId = connectionMetadata.ModelId;
+                Option<string> modelId = clientCredentials.ModelId.HasValue ? clientCredentials.ModelId : connectionMetadata.ModelId;
                 if (this.edgeHubIdentity.Id.Equals(clientCredentials.Identity.Id))
                 {
                     ICloudConnection cc = await CloudConnection.Create(

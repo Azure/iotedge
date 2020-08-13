@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
             return Task.FromResult<SystemResources>(null);
         }
 
-        public override Task<System.IO.Stream> GetSupportBundle(Option<string> since, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token)
+        public override Task<System.IO.Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token)
         {
             return Task.FromResult(System.IO.Stream.Null);
         }

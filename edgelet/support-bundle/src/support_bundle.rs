@@ -157,14 +157,25 @@ where
                 Utc,
             );
             let since_local: DateTime<Local> = DateTime::from(since_time);
+            let until_local = self.log_options.until().map(|until| {
+                let until_time: DateTime<Utc> =
+                    DateTime::from_utc(NaiveDateTime::from_timestamp(until.into(), 0), Utc);
+                let until_local: DateTime<Local> = DateTime::from(until_time);
+                until_local
+            });
             let max_lines = if let LogTail::Num(tail) = self.log_options.tail() {
                 format!("(maximum {} lines) ", tail)
             } else {
                 "".to_owned()
             };
+            let until_string = if let Some(until) = until_local {
+                format!(" until {}", until)
+            } else {
+                "".to_owned()
+            };
             println!(
-                "Writing all logs {}since {} (local time {})",
-                max_lines, since_time, since_local
+                "Writing all logs {}since {} (local time {}){}",
+                max_lines, since_time, since_local, until_string
             );
         }
 
@@ -247,33 +258,49 @@ where
             NaiveDateTime::from_timestamp(self.log_options.since().into(), 0),
             Utc,
         );
+        let until_time: Option<DateTime<Utc>> = self
+            .log_options
+            .until()
+            .map(|until| DateTime::from_utc(NaiveDateTime::from_timestamp(until.into(), 0), Utc));
 
         #[cfg(unix)]
-        let inspect = ShellCommand::new("journalctl")
-            .arg("-a")
-            .args(&["-u", "iotedge"])
-            .args(&["-S", &since_time.format("%F %T").to_string()])
-            .arg("--no-pager")
-            .output();
+        let command = {
+            let mut command = ShellCommand::new("journalctl");
+            command
+                .arg("-a")
+                .args(&["-u", "iotedge"])
+                .args(&["-S", &since_time.format("%F %T").to_string()])
+                .arg("--no-pager");
+            if let Some(until) = until_time {
+                command.args(&["-U", &until.format("%F %T").to_string()]);
+            }
+
+            command.output()
+        };
 
         #[cfg(windows)]
-         let inspect = ShellCommand::new("powershell.exe")
-            .arg("-NoProfile")
-            .arg("-Command")
-            .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
-                            Select TimeCreated, Message |
-                            Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
-                            Format-List", since_time.to_rfc3339()))
-            .output();
+        let command = {
+            let until = until_time
+                .map(|until| format!(";EndTime='{}'", until))
+                .unwrap_or_else(String::new);
+            ShellCommand::new("powershell.exe")
+                .arg("-NoProfile")
+                .arg("-Command")
+                .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'{}}} |
+                                Select TimeCreated, Message |
+                                Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
+                                Format-List", since_time.to_rfc3339(), until))
+                .output()
+        };
 
-        let (file_name, output) = if let Ok(result) = inspect {
+        let (file_name, output) = if let Ok(result) = command {
             if result.status.success() {
                 ("iotedged.txt", result.stdout)
             } else {
                 ("iotedged_err.txt", result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().to_string();
+            let err_message = command.err().unwrap().to_string();
             println!(
             "Could not find system logs for iotedge. Including error in bundle.\nError message: {}",
             err_message
@@ -527,8 +554,7 @@ mod tests {
     };
 
     use super::{
-        make_bundle, make_state, pull_logs, Fail, File, Future, LogOptions, LogTail, OsString,
-        OutputLocation,
+        make_bundle, pull_logs, Fail, File, Future, LogOptions, LogTail, OsString, OutputLocation,
     };
 
     #[allow(dead_code)]
