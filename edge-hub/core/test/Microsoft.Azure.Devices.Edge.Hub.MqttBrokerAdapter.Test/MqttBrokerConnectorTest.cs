@@ -291,6 +291,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var expected = consumers.SelectMany(c => c.Subscriptions).OrderBy(s => s);
             Assert.Equal(expected, broker.Subscriptions.OrderBy(s => s));
         }
+
+        [Fact]
+        public async Task OfflineSendGetSentAferReconnect()
+        {
+            using var broker = new MiniMqttServer(PORT);
+            var producer = new ProducerStub();
+
+            var sut = new ConnectorBuilder()
+                            .WithProducer(producer)
+                            .Build();
+
+            await sut.ConnectAsync(HOST, PORT);
+
+            Assert.Equal(1, broker.ConnectionCounter);
+
+            var milestone = new SemaphoreSlim(0, 1);
+            broker.OnConnect = () => milestone.Wait();
+            broker.DropActiveClient();
+
+            var sendTask = producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo"));
+
+            await Task.Delay(TimeSpan.FromSeconds(1)); // let the connector work a bit on reconnect
+            milestone.Release();
+
+            await sendTask;
+
+            Assert.Single(broker.Publications);
+            Assert.Equal("boo", broker.Publications.First().Item1);
+            Assert.Equal("hoo", Encoding.ASCII.GetString(broker.Publications.First().Item2));
+        }
     }
 
     class ProducerStub : IMessageProducer
