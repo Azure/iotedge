@@ -13,7 +13,6 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use mqtt_broker::settings::SessionPersistenceConfig;
 use mqtt_broker::{
     BrokerHandle, BrokerSnapshot, Error, FilePersistor, Message, Persist, ShutdownHandle,
     Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
@@ -28,8 +27,8 @@ where
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
-    let persistence_config = config.broker().persistence();
-    let (persistor, state) = init_broker_state(persistence_config).await?;
+    let state_dir = config.broker().persistence().file_path();
+    let (persistor, state) = init_broker_state(state_dir).await?;
 
     let broker = bootstrap::broker(config.broker(), state).await?;
 
@@ -55,13 +54,11 @@ where
 }
 
 async fn init_broker_state(
-    persistence_config: &SessionPersistenceConfig,
+    state_dir: String,
 ) -> Result<(FilePersistor<VersionedFileFormat>, Option<BrokerSnapshot>), Error> {
-    let state_dir = persistence_config.file_path();
     let err_message = format!("can't create mqttd state dir {}", state_dir);
-    fs::create_dir_all(state_dir).expect(err_message.as_str());
+    fs::create_dir_all(state_dir.clone()).expect(err_message.as_str());
 
-    let state_dir = persistence_config.file_path();
     let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
     let state = persistor.load().await?;
     info!("state loaded.");
