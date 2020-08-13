@@ -145,13 +145,13 @@ impl Default for RetainedMessagesConfig {
     }
 }
 
-// TODO: apply settings
+// TODO: make sure unsaved message count eliminated everywhere
+// unsaved_message_count: u32,
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SessionPersistenceConfig {
     file_path: String,
     #[serde(with = "humantime_serde")]
     time_interval: Duration,
-    unsaved_message_count: u32,
 }
 
 /// This type is a Option-like wrapper around any type T. The primary goal is
