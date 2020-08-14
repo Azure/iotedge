@@ -1,19 +1,14 @@
 use futures_util::StreamExt;
 
 use mqtt3::proto::ClientId;
-use mqtt_broker::{
-    auth::{AllowAll, DenyAll},
-    BrokerBuilder, BrokerHandle,
-};
+use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
 use mqtt_broker_tests_util::{start_server, DummyAuthenticator, PacketStream, TestClientBuilder};
 
 use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
 use tokio::task::JoinHandle;
 
 use anyhow::Result;
-use assert_matches::assert_matches;
 
-// TODO REVIEW: is this correct?
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
 /// Scenario:
@@ -29,9 +24,10 @@ async fn disconnect_client() {
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
-    let (mut command_handler_shutdown_handle, join_handle) = start_command_handler(broker_handle)
-        .await
-        .expect("could not start command handler");
+    let (mut command_handler_shutdown_handle, join_handle) =
+        start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string())
+            .await
+            .expect("could not start command handler");
 
     let mut test_client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),
@@ -63,37 +59,12 @@ async fn disconnect_client() {
     edgehub_client.shutdown().await;
 }
 
-#[tokio::test]
-async fn fail_when_cannot_subscribe_and_server_up() {
-    let broker = BrokerBuilder::default().with_authorizer(DenyAll).build();
-    let broker_handle = broker.handle();
-
-    start_server(broker, DummyAuthenticator::anonymous());
-
-    let start_output = start_command_handler(broker_handle).await;
-
-    assert_matches!(start_output, Err(_));
-}
-
-#[tokio::test]
-async fn fail_when_server_down() {
-    let broker = BrokerBuilder::default().with_authorizer(DenyAll).build();
-    let broker_handle = broker.handle();
-
-    let start_output = start_command_handler(broker_handle).await;
-
-    assert_matches!(start_output, Err(_));
-}
-
 async fn start_command_handler(
     broker_handle: BrokerHandle,
+    system_address: String,
 ) -> Result<(CommandShutdownHandle, JoinHandle<()>)> {
-    let command_handler = CommandHandler::new(
-        broker_handle,
-        TEST_SERVER_ADDRESS.to_string(),
-        "test-device".to_string(),
-    )
-    .await?;
+    let device_id = "test-device";
+    let command_handler = CommandHandler::new(broker_handle, system_address, device_id)?;
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());

@@ -48,10 +48,10 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub async fn new(
+    pub fn new(
         broker_handle: BrokerHandle,
         address: String,
-        device_id: String,
+        device_id: &str,
     ) -> Result<Self, InitializationError> {
         let client_id = format!("{}/$edgeHub/$broker/$control", device_id);
 
@@ -74,8 +74,6 @@ impl CommandHandler {
             })
             .map_err(InitializationError::SubscribeFailure)?;
 
-        wait_for_suback(&mut client).await?;
-
         Ok(CommandHandler {
             broker_handle,
             client,
@@ -91,6 +89,30 @@ impl CommandHandler {
     }
 
     pub async fn run(mut self) {
+        self.wait_for_suback().await;
+
+        self.listen_for_disconnect().await;
+    }
+
+    async fn wait_for_suback(&mut self) {
+        while let Some(event_or_err) = self.client.next().await {
+            if let Err(e) = event_or_err {
+                warn!(message = "error reading event from command handler client", error = %e);
+            } else if let Ok(Event::SubscriptionUpdates(subscriptions)) = event_or_err {
+                for acked_subscription in subscriptions {
+                    if let SubscriptionUpdateEvent::Subscribe(sub) = acked_subscription {
+                        if sub.topic_filter == TOPIC_FILTER {
+                            return;
+                        }
+                    }
+                }
+            } else {
+                warn!("received unexpected event when waiting for command handler suback");
+            }
+        }
+    }
+
+    async fn listen_for_disconnect(&mut self) {
         while let Some(Ok(event)) = self.client.next().await {
             if let Err(e) = self.handle_event(event).await {
                 warn!(message = "failed to disconnect client", error = %e);
@@ -122,27 +144,6 @@ impl CommandHandler {
     }
 }
 
-// TODO: return initialization error if client cannot connect to the broker
-async fn wait_for_suback(client: &mut Client<BrokerConnection>) -> Result<(), InitializationError> {
-    while let Some(event_or_err) = client.next().await {
-        if let Err(e) = event_or_err {
-            warn!(message = "error reading event from command handler client", error = %e);
-        } else if let Ok(Event::SubscriptionUpdates(subscriptions)) = event_or_err {
-            for acked_subscription in subscriptions {
-                if let SubscriptionUpdateEvent::Subscribe(sub) = acked_subscription {
-                    if sub.topic_filter == TOPIC_FILTER {
-                        return Ok(());
-                    }
-                }
-            }
-        } else {
-            warn!("received unexpected event when waiting for command handler suback");
-        }
-    }
-
-    Err(InitializationError::ClientDisconnected())
-}
-
 fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
     lazy_static! {
         static ref REGEX: Regex =
@@ -168,9 +169,6 @@ fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
 pub enum InitializationError {
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
-
-    #[error("command handler client disconnected")]
-    ClientDisconnected(),
 }
 
 #[derive(Debug, thiserror::Error)]
