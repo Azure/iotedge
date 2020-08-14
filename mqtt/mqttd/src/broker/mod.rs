@@ -14,8 +14,8 @@ use tokio::{
 use tracing::{info, warn};
 
 use mqtt_broker::{
-    BrokerHandle, BrokerSnapshot, Error, FilePersistor, Message, Persist, ShutdownHandle,
-    Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
+    BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
+    StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
@@ -27,13 +27,16 @@ where
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
-    let state_dir = config.broker().persistence().file_path();
+    let persistence_config = config.broker().persistence();
+    let state_dir = persistence_config.file_path();
     let (persistor, state) = init_broker_state(state_dir).await?;
 
     let broker = bootstrap::broker(config.broker(), state).await?;
 
     info!("starting snapshotter...");
-    let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
+    let snapshot_interval = persistence_config.time_interval();
+    let (mut shutdown_handle, join_handle) =
+        start_snapshotter(broker.handle(), persistor, snapshot_interval).await;
 
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
@@ -55,9 +58,8 @@ where
 
 async fn init_broker_state(
     state_dir: String,
-) -> Result<(FilePersistor<VersionedFileFormat>, Option<BrokerSnapshot>), Error> {
-    let err_message = format!("can't create mqttd state dir {}", state_dir);
-    fs::create_dir_all(state_dir.clone()).expect(err_message.as_str());
+) -> Result<(FilePersistor<VersionedFileFormat>, Option<BrokerSnapshot>)> {
+    fs::create_dir_all(state_dir.clone())?;
 
     let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
     let state = persistor.load().await?;
@@ -69,6 +71,7 @@ async fn init_broker_state(
 async fn start_snapshotter(
     broker_handle: BrokerHandle,
     persistor: FilePersistor<VersionedFileFormat>,
+    snapshot_interval: Duration,
 ) -> (
     ShutdownHandle,
     JoinHandle<FilePersistor<VersionedFileFormat>>,
@@ -80,7 +83,7 @@ async fn start_snapshotter(
 
     // Tick the snapshotter
     let tick = tick_snapshot(
-        Duration::from_secs(5 * 60),
+        snapshot_interval,
         broker_handle.clone(),
         snapshot_handle.clone(),
     );

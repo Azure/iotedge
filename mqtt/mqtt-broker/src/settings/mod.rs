@@ -145,9 +145,6 @@ impl Default for RetainedMessagesConfig {
     }
 }
 
-// TODO: make sure unsaved message count eliminated everywhere
-// unsaved_message_count: u32,
-// TODO: make this not optional
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SessionPersistenceConfig {
     file_path: String,
@@ -168,7 +165,7 @@ impl SessionPersistenceConfig {
         self.file_path.clone()
     }
 
-    pub fn time_interval(self) -> Duration {
+    pub fn time_interval(&self) -> Duration {
         self.time_interval
     }
 }
