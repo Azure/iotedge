@@ -889,8 +889,6 @@ where
         auth.map(|auth| (auth, subscribe_to))
     });
 
-    println!("in authorization");
-
     for auth in auth_results {
         let ack_qos = match auth {
             Ok((Authorization::Allowed, subscribe_to)) => {

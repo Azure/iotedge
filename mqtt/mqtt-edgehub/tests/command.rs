@@ -1,13 +1,14 @@
+use anyhow::Result;
 use futures_util::StreamExt;
-
 use mqtt3::proto::ClientId;
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
-use mqtt_broker_tests_util::{start_server, DummyAuthenticator, PacketStream, TestClientBuilder};
-
+use mqtt_broker_tests_util::{
+    client::TestClientBuilder,
+    packet_stream::PacketStream,
+    server::{start_server, DummyAuthenticator},
+};
 use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
 use tokio::task::JoinHandle;
-
-use anyhow::Result;
 
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 

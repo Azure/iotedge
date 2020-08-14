@@ -50,12 +50,14 @@ where
     pin_mut!(shutdown);
 
     info!("starting server...");
-    let state = bootstrap::start_server(config, broker, shutdown).await?;
+    let start_server = bootstrap::start_server(config, broker, shutdown);
 
     #[cfg(feature = "edgehub")]
     info!("starting command handler...");
     let (mut command_handler_shutdown_handle, command_handler_join_handle) =
         start_command_handler(broker_handle, system_address).await?;
+
+    let state = start_server.await?;
 
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;
