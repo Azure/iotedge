@@ -11,7 +11,3 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         configuration-path: .github/ISSUE_TEMPLATE/issue-label-list.yml
-        stale-issue-label: 'no-issue-activity'
-        days-before-stale: 30
-        days-before-close: 99999
-        exempt-issue-label: 'enhancement'
