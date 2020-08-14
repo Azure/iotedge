@@ -39,14 +39,14 @@ where
     Ok(config)
 }
 
-// TODO: define run_sidecar() method that will start the command handler returning a shutdown and join handle
+// TODO SIDECAR: define run_sidecar() method that will start the command handler returning a shutdown and join handle
 //       we can have this be directly the command handler or a wrapper to make it better for future development
 
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
 ) -> Result<Broker<LocalAuthorizer<EdgeHubAuthorizer>>> {
-    // TODO: call broker with_sidecar() method and pass in created sidecar function
+    // TODO SIDECAR: call broker with_sidecar() method and pass in created sidecar function
     let broker = BrokerBuilder::default()
         .with_authorizer(LocalAuthorizer::new(EdgeHubAuthorizer::default()))
         .with_state(state.unwrap_or_default())

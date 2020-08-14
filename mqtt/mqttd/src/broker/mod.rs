@@ -17,7 +17,7 @@ use mqtt_broker::{
     Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
-// TODO: remove all cfg
+// TODO SIDECAR: remove all cfg
 #[cfg(feature = "edgehub")]
 use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
@@ -35,7 +35,7 @@ where
     info!("state loaded.");
 
     let broker = bootstrap::broker(config.broker(), state).await?;
-    // TODO: call broker sidecar method
+    // TODO SIDECAR: call broker sidecar method
     // shutdown_handle, join_handle = broker.start_sidecars()
 
     #[cfg(feature = "edgehub")]
@@ -61,7 +61,7 @@ where
     let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
 
-    // TODO: trigger and wait for broker shutdown
+    // TODO SIDECAR: trigger and wait for broker shutdown
 
     #[cfg(feature = "edgehub")]
     command_handler_shutdown_handle.shutdown().await?;
