@@ -88,10 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.M2Mqtt
             return Task.FromResult(true);
         }
 
-        public Task PublishAsync(string topic, byte[] payload, Qos qos, CancellationToken cancellationToken)
+        public async Task PublishAsync(string topic, byte[] payload, Qos qos, CancellationToken cancellationToken)
         {
             Preconditions.CheckNonWhiteSpace(topic, nameof(topic));
-            Preconditions.CheckNotNull(qos, nameof(qos));
             if (qos == Qos.ExactlyOnce)
             {
                 throw new MqttException(message: "QOS ExactlyOnce is not supported.");
@@ -100,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.M2Mqtt
             if (qos == Qos.AtMostOnce)
             {
                 _client.Publish(topic, payload, Convert.ToByte((int) qos), false);
-                return Task.FromResult(true);
+                return;
             }
 
             var source = new TaskCompletionSource<bool>();
@@ -124,7 +123,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.M2Mqtt
                 return Task.FromResult(true);
             }
 
-            return RunTaskWithCancellationTokenAsync(sendTaskSupplier, restoreTaskSupplier, cancellationToken);
+            var published = await RunTaskWithCancellationTokenAsync(sendTaskSupplier, restoreTaskSupplier, cancellationToken);
+            if (!published)
+            {
+                throw new MqttException(message: "Publish message failed.");
+            }
         }
 
         public Task<Dictionary<string, Qos>> SubscribeAsync(Dictionary<string, Qos> subscriptions, CancellationToken cancellationToken)
