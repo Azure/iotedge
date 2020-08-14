@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using System.Security.Principal;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -58,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false, Option.None<string>()))
                 .Throws(new ApplicationException("Bad donut"));
 
             await Assert.ThrowsAsync<EdgeHubConnectionException>(() => saslAuthenticator.AuthenticateAsync(UserId, Password));
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false, Option.None<string>()))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
                 .ReturnsAsync(false);
@@ -95,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", "mod1", string.Empty, Password, false, Option.None<string>()))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
                 .ReturnsAsync(true);
@@ -106,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var amqpAuthenticator = principal as IAmqpAuthenticator;
             Assert.NotNull(amqpAuthenticator);
 
-            bool isAuthenticated = await amqpAuthenticator.AuthenticateAsync("dev1/mod1");
+            bool isAuthenticated = await amqpAuthenticator.AuthenticateAsync("dev1/mod1", Option.None<string>());
             Assert.True(isAuthenticated);
         }
 
@@ -122,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             const string UserId = "dev1@sas.hub1";
             const string Password = "pwd";
 
-            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", string.Empty, string.Empty, Password, false))
+            Mock.Get(clientCredentialsFactory).Setup(f => f.GetWithSasToken("dev1", string.Empty, string.Empty, Password, false, Option.None<string>()))
                 .Returns(clientCredentials);
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(clientCredentials))
                 .ReturnsAsync(true);
@@ -133,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var amqpAuthenticator = principal as IAmqpAuthenticator;
             Assert.NotNull(amqpAuthenticator);
 
-            bool isAuthenticated = await amqpAuthenticator.AuthenticateAsync("dev1");
+            bool isAuthenticated = await amqpAuthenticator.AuthenticateAsync("dev1", Option.None<string>());
             Assert.True(isAuthenticated);
         }
     }

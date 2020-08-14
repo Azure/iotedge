@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         const string LogsUrlTemplate = "{0}/modules/{1}/logs?api-version={2}&follow={3}";
         const string LogsUrlTailParameter = "tail";
         const string LogsUrlSinceParameter = "since";
+        const string LogsUrlUntilParameter = "until";
 
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
 
@@ -81,7 +82,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task ReprovisionDeviceAsync();
 
-        public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
+        public abstract Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token);
+
+        public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
@@ -90,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
                 tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
                 since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
+                until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
                 var logsUri = new Uri(logsUrl.ToString());
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
                 Stream stream = await this.Execute(

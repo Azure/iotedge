@@ -24,15 +24,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             if (identity is IModuleIdentity)
             {
                 ModuleClient moduleClient = options.Match(
-                    o => ModuleClient.Create(identity.IotHubHostName, authenticationMethod, o),
-                    () => ModuleClient.Create(identity.IotHubHostName, authenticationMethod));
+                    o => ModuleClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings, o),
+                    () => ModuleClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings));
                 return new ModuleClientWrapper(moduleClient);
             }
             else if (identity is IDeviceIdentity)
             {
                 DeviceClient deviceClient = options.Match(
-                    o => DeviceClient.Create(identity.IotHubHostName, authenticationMethod, o),
-                    () => DeviceClient.Create(identity.IotHubHostName, authenticationMethod));
+                    o => DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings, o),
+                    () => DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings));
                 return new DeviceClientWrapper(deviceClient);
             }
 

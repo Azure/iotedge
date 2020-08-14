@@ -1,7 +1,6 @@
 use failure::Context;
 
 use crate::check::{checker::Checker, Check, CheckResult};
-
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerEngineInstalled {
     docker_host_arg: Option<String>,
@@ -15,7 +14,7 @@ impl Checker for ContainerEngineInstalled {
     fn description(&self) -> &'static str {
         "container engine is installed and functional"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }

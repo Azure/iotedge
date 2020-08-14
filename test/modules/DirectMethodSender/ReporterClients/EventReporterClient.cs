@@ -25,6 +25,7 @@ namespace DirectMethodSender
                     Preconditions.CheckNotNull(this.transportType, nameof(this.transportType));
                     this.moduleClient = ModuleUtil.CreateModuleClientAsync(
                         this.transportType,
+                        new ClientOptions(),
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         this.logger).Result;

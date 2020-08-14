@@ -1,3 +1,5 @@
+use edgelet_core::RuntimeSettings;
+
 use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
@@ -52,6 +54,7 @@ pub(crate) struct ContainerConnectIotHub {
     iothub_hostname: Option<String>,
     network_name: Option<String>,
     diagnostics_image_name: Option<String>,
+    proxy: Option<String>,
     #[serde(skip)]
     id: &'static str,
     #[serde(skip)]
@@ -67,7 +70,7 @@ impl Checker for ContainerConnectIotHub {
     fn description(&self) -> &'static str {
         self.description
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }
@@ -107,16 +110,27 @@ impl ContainerConnectIotHub {
             args.extend(&["--network", network_name]);
         }
 
+        self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
         args.extend(&[
             &check.diagnostics_image_name,
-            "/iotedge-diagnostics",
+            "dotnet",
+            "IotedgeDiagnosticsDotnet.dll",
             "iothub",
             "--hostname",
             iothub_hostname,
             "--port",
             &port,
         ]);
-        self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
+
+        let proxy = settings
+            .agent()
+            .env()
+            .get("https_proxy")
+            .map(std::string::String::as_str);
+        self.proxy = proxy.map(ToOwned::to_owned);
+        if let Some(proxy) = proxy {
+            args.extend(&["--proxy", proxy]);
+        }
 
         if let Err((_, err)) = super::docker(docker_host_arg, args) {
             return Err(err
@@ -151,5 +165,6 @@ fn make_check(
         iothub_hostname: None,
         network_name: None,
         diagnostics_image_name: None,
+        proxy: None,
     })
 }

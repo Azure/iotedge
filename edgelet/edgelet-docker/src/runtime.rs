@@ -199,14 +199,12 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         _: impl GetTrustBundle,
     ) -> Self::Future {
         info!("Initializing module runtime...");
-
-        // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
-        // with `.ok().map_or_else`. This is incorrect because `.ok()` will result in the error being dropped.
-        // So we suppress this lint. There's an open issue for this on the Clippy repo:
-        //      https://github.com/rust-lang/rust-clippy/issues/3730
-        #[allow(clippy::result_map_unwrap_or_else)]
-        let created = init_client(settings.moby_runtime().uri())
-            .map(|client| {
+        let created = init_client(settings.moby_runtime().uri()).map_or_else(
+            |err| {
+                log_failure(Level::Warn, &err);
+                future::Either::B(Err(err).into_future())
+            },
+            |client| {
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
@@ -253,11 +251,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     });
 
                 future::Either::A(fut)
-            })
-            .unwrap_or_else(|err| {
-                log_failure(Level::Warn, &err);
-                future::Either::B(Err(err).into_future())
-            });
+            },
+        );
 
         Box::new(created)
     }
@@ -320,6 +315,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type SystemResourcesFuture =
         Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
@@ -334,7 +330,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let result = module
             .config()
             .clone_create_options()
-            .and_then(|create_options| {
+            .map(|create_options| {
                 // merge environment variables
                 let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
@@ -357,9 +353,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
                 // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
                 // It contains the logic to add a container to the iot edge network only if a network is not already specified.
-
-                Ok(self
-                    .client
+                self.client
                     .container_api()
                     .container_create(create_options, module.name())
                     .then(|result| match result {
@@ -370,7 +364,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 module.name().to_string(),
                             )),
                         )),
-                    }))
+                    })
             })
             .into_future()
             .flatten()
@@ -478,9 +472,9 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let wait_timeout = wait_before_kill.and_then(|s| match s.as_secs() {
-            s if s > i32::max_value() as u64 => Some(i32::max_value()),
-            s => Some(s as i32),
+        let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
+            s if s > i32::max_value() as u64 => i32::max_value(),
+            s => s as i32,
         });
 
         Box::new(
@@ -579,16 +573,30 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .system_info()
                 .then(|result| match result {
                     Ok(system_info) => {
-                        let system_info = CoreSystemInfo::new(
-                            system_info
+                        let system_info = CoreSystemInfo {
+                            os_type: system_info
                                 .os_type()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                            system_info
+                            architecture: system_info
                                 .architecture()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                        );
+                            version: edgelet_core::version_with_source_version(),
+                            cpus: system_info.NCPU().unwrap_or_default(),
+                            kernel_version: system_info
+                                .kernel_version()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                            operating_system: system_info
+                                .operating_system()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                            server_version: system_info
+                                .server_version()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                        };
                         info!("Successfully queried system info");
                         Ok(system_info)
                     }
@@ -797,6 +805,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 true,
                 options.since(),
+                options.until(),
                 false,
                 tail,
             )
@@ -826,6 +835,26 @@ impl ModuleRuntime for DockerModuleRuntime {
         Box::new(self.list().and_then(move |list| {
             let n = list.into_iter().map(move |c| {
                 <DockerModuleRuntime as ModuleRuntime>::remove(&self_for_remove, c.name())
+            });
+            future::join_all(n).map(|_| ())
+        }))
+    }
+
+    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
+        let self_for_stop = self.clone();
+        Box::new(self.list().and_then(move |list| {
+            let n = list.into_iter().map(move |c| {
+                <DockerModuleRuntime as ModuleRuntime>::stop(
+                    &self_for_stop,
+                    c.name(),
+                    wait_before_kill,
+                )
+                .or_else(|err| {
+                    match Fail::find_root_cause(&err).downcast_ref::<ErrorKind>() {
+                        Some(ErrorKind::NotFound(_)) | Some(ErrorKind::NotModified) => Ok(()),
+                        _ => Err(err),
+                    }
+                })
             });
             future::join_all(n).map(|_| ())
         }))
@@ -1486,6 +1515,7 @@ mod tests {
         type SystemResourcesFuture =
             Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
+        type StopAllFuture = FutureResult<(), Self::Error>;
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             unimplemented!()
@@ -1536,6 +1566,10 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
+            unimplemented!()
+        }
+
+        fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
             unimplemented!()
         }
     }

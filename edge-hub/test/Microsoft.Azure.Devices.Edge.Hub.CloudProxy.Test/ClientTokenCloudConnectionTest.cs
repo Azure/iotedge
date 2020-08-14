@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
                 var identity = new DeviceIdentity(iothubHostName, deviceId);
-                return new TokenCredentials(identity, token, string.Empty, false);
+                return new TokenCredentials(identity, token, string.Empty, Option.None<string>(), false);
             }
 
             IClient client = GetMockDeviceClient();
@@ -145,14 +145,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(3));
                 var identity = new DeviceIdentity(iothubHostName, deviceId);
-                return new TokenCredentials(identity, token, string.Empty, false);
+                return new TokenCredentials(identity, token, string.Empty, Option.None<string>(), false);
             }
 
             ITokenCredentials GetClientCredentialsWithNonExpiringToken()
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
                 var identity = new DeviceIdentity(iothubHostName, deviceId);
-                return new TokenCredentials(identity, token, string.Empty, false);
+                return new TokenCredentials(identity, token, string.Empty, Option.None<string>(), false);
             }
 
             ITokenProvider tokenProvider = null;
@@ -214,14 +214,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(3));
                 var identity = new DeviceIdentity(iothubHostName, deviceId);
-                return new TokenCredentials(identity, token, string.Empty, false);
+                return new TokenCredentials(identity, token, string.Empty, Option.None<string>(), false);
             }
 
             ITokenCredentials GetClientCredentialsWithNonExpiringToken()
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
                 var identity = new DeviceIdentity(iothubHostName, deviceId);
-                return new TokenCredentials(identity, token, string.Empty, false);
+                return new TokenCredentials(identity, token, string.Empty, Option.None<string>(), false);
             }
 
             ITokenProvider tokenProvider = null;
@@ -382,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 string token = TokenHelper.CreateSasToken(hostname, DateTime.UtcNow.AddSeconds(tokenExpiryDuration.TotalSeconds));
                 var identity = new DeviceIdentity(hostname, deviceId);
-                return new TokenCredentials(identity, token, string.Empty, false);
+                return new TokenCredentials(identity, token, string.Empty, Option.None<string>(), false);
             }
 
             IDeviceProxy GetMockDeviceProxy()
@@ -425,8 +425,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback<IIdentity, ITokenProvider, ITransportSettings[], Option<string>>((s, a, t, m) => tokenProvider = a)
                 .Returns(GetMockedDeviceClient);
 
-            var productInfoStore = Mock.Of<IProductInfoStore>();
-            var modelIdStore = Mock.Of<IModelIdStore>();
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
 
             var credentialsCache = Mock.Of<ICredentialsCache>();
@@ -444,8 +444,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                productInfoStore,
-                modelIdStore);
+                metadataStore.Object);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(hostname), deviceConnectivityManager);
@@ -510,7 +509,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             string token = TokenHelper.CreateSasToken(hostname);
             var identity = new DeviceIdentity(hostname, deviceId);
-            return new TokenCredentials(identity, token, string.Empty, false);
+            return new TokenCredentials(identity, token, string.Empty, Option.None<string>(), false);
         }
     }
 }
