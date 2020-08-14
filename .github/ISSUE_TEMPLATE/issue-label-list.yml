@@ -1,0 +1,5 @@
+iotedge:
+    - '(?s).*'
+
+customer-reported:
+    - '(?s).*'
