@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.StartupOrder == other.StartupOrder &&
-                EnvDictionaryComparer.Equals(this.Env, other.Env);
+                this.IsEnvDictionaryEqual(other);
         }
 
         public virtual bool IsOnlyModuleStatusChanged(IModule other)
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.StartupOrder == other.StartupOrder &&
-                EnvDictionaryComparer.Equals(this.Env, other.Env);
+                this.IsEnvDictionaryEqual(other);
         }
 
         protected bool IsEnvDictionaryEqual(IModule other)
