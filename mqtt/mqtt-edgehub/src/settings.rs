@@ -202,6 +202,7 @@ mod tests {
 
     use mqtt_broker::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
+        SessionPersistenceConfig,
     };
 
     use super::{
@@ -235,7 +236,10 @@ mod tests {
                         Some(HumanSize::new_bytes(0)),
                         QueueFullAction::DropNew,
                     ),
-                    None
+                    SessionPersistenceConfig::new(
+                        "/tmp/mqttd/".to_string(),
+                        Duration::from_secs(300)
+                    )
                 )
             }
         );

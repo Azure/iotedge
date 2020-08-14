@@ -29,7 +29,7 @@
         },
         "persistence": {
             "file_path": "/tmp/mqttd/",
-            "time_interval": "00:05:00"
+            "time_interval": "5m"
         }
     }
 }
