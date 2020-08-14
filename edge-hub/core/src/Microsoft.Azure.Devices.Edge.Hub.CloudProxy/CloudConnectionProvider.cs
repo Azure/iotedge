@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -82,6 +83,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task<Try<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
             Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
+            string authChain = string.Empty;
+
+            try
+            {
+                if (this.nestedEdgeEnabled)
+                {
+                    Option<string> authChainMaybe = await this.deviceScopeIdentitiesCache.GetAuthChain(clientCredentials.Identity.Id);
+                    authChain = authChainMaybe.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {clientCredentials.Identity.Id}"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorCreatingCloudConnection(clientCredentials.Identity, ex);
+                return Try<ICloudConnection>.Failure(ex);
+            }
 
             try
             {
@@ -89,13 +105,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), clientCredentials.Identity.Id);
                 string productInfo = await this.productInfoStore.GetEdgeProductInfo(clientCredentials.Identity.Id);
                 Option<string> modelId = await this.modelIdStore.GetModelId(clientCredentials.Identity.Id);
-
-                string authChain = string.Empty;
-                if (this.nestedEdgeEnabled)
-                {
-                    Option<string> authChainMaybe = await this.deviceScopeIdentitiesCache.GetAuthChain(clientCredentials.Identity.Id);
-                    authChain = authChainMaybe.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {clientCredentials.Identity.Id}"));
-                }
 
                 // Get the transport settings
                 ITransportSettings[] transportSettings = GetTransportSettings(
@@ -148,6 +157,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorCreatingCloudConnection(clientCredentials.Identity, ex);
+
+                if (ex is UnauthorizedException && this.nestedEdgeEnabled)
+                {
+                    // Auth failure is possible if one or more parent was
+                    // changed (e.g. a parent was removed), but our cache
+                    // hasn't been updated yet.
+                    Events.RefreshingAuthChain(clientCredentials.Identity, authChain);
+                    await this.deviceScopeIdentitiesCache.RefreshAuthChain(authChain);
+                }
+
                 return Try<ICloudConnection>.Failure(ex);
             }
         }
@@ -155,6 +174,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
+            string authChain = string.Empty;
+
+            try
+            {
+                if (this.nestedEdgeEnabled)
+                {
+                    Option<string> authChainMaybe = await this.deviceScopeIdentitiesCache.GetAuthChain(identity.Id);
+                    authChain = authChainMaybe.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {identity.Id}"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorCreatingCloudConnection(identity, ex);
+                return Try<ICloudConnection>.Failure(ex);
+            }
 
             try
             {
@@ -162,7 +196,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Option<ServiceIdentity> serviceIdentity = (await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id))
                     .Filter(s => s.Status == ServiceIdentityStatus.Enabled);
 
-                string authChain = string.Empty;
                 if (this.nestedEdgeEnabled)
                 {
                     Option<string> authChainMaybe = await this.deviceScopeIdentitiesCache.GetAuthChain(identity.Id);
@@ -212,6 +245,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorCreatingCloudConnection(identity, ex);
+
+                if (ex is UnauthorizedException && this.nestedEdgeEnabled)
+                {
+                    // Auth failure is possible if one or more parent was
+                    // changed (e.g. a parent was removed), but our cache
+                    // hasn't been updated yet.
+                    Events.RefreshingAuthChain(identity, authChain);
+                    await this.deviceScopeIdentitiesCache.RefreshAuthChain(authChain);
+                }
+
                 return Try<ICloudConnection>.Failure(ex);
             }
         }
@@ -294,7 +337,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 CloudConnectSuccess,
                 CreatingCloudConnectionUsingClientCredentials,
                 CreatingCloudConnectionOnBehalfOf,
-                ServiceIdentityNotFound
+                ServiceIdentityNotFound,
+                RefreshingAuthChain
             }
 
             public static void SuccessCreatingCloudConnection(IIdentity identity)
@@ -320,6 +364,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void ServiceIdentityNotFound(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Creating cloud connection for client {identity.Id}. Client identity is not in device scope, attempting to use client credentials.");
+            }
+
+            public static void RefreshingAuthChain(IIdentity identity, string authChain)
+            {
+                Log.LogInformation((int)EventIds.CloudConnectSuccess, $"Upstream authentication failed, refreshing {identity.Id}'s auth-chain for any updates: {authChain}");
             }
         }
     }

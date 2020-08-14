@@ -2,12 +2,16 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
 
     public static class AuthChainHelpers
     {
+        public static string[] GetAuthChainIds(string authChain) => authChain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+
         public static bool ValidateAuthChain(string actorDeviceId, string targetId, string authChain)
         {
-            var authChainIds = authChain.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] authChainIds = GetAuthChainIds(authChain);
 
             // Should have at least 1 element in the chain
             if (authChainIds.Length < 1)
