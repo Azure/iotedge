@@ -152,7 +152,6 @@ pub struct SessionPersistenceConfig {
     time_interval: Duration,
 }
 
-// TODO: &self?
 impl SessionPersistenceConfig {
     pub fn new(file_path: String, time_interval: Duration) -> Self {
         Self {
