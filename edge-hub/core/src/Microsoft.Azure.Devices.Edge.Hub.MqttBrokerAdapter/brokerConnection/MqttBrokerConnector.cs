@@ -270,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 await client.ConnectAsync(id, id, string.Empty, new CancellationTokenSource(OperationTimeout).Token);
                 await SubscribeAsync(client, subscribers);
-                return false;
+                return true;
             }
             catch (Exception e)
             {
