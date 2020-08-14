@@ -945,6 +945,7 @@ dependencies = [
  "mqtt-broker-tests-util",
  "mqtt3",
  "openssl",
+ "pin-project",
  "proptest",
  "rand 0.7.3",
  "regex",

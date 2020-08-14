@@ -1,13 +1,7 @@
 use std::{collections::HashMap, convert::TryInto, panic};
 
-use futures_util::{
-    future::{self, Either},
-    pin_mut,
-};
-use tokio::{
-    sync::mpsc::{self, error::TryRecvError, UnboundedReceiver, UnboundedSender},
-    task,
-};
+use futures_util::StreamExt;
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, info_span, warn};
 
 use mqtt3::proto;
@@ -16,6 +10,7 @@ use crate::{
     auth::{Activity, AuthId, Authorization, Authorizer, DenyAll, Operation},
     session::{ConnectedSession, Session, SessionState},
     state_change::StateChange,
+    stream::{self, SelectOrdered},
     subscription::Subscription,
     Auth, BrokerConfig, BrokerSnapshot, ClientEvent, ClientId, ClientInfo, ConnReq, Error, Message,
     SystemEvent,
@@ -33,10 +28,8 @@ macro_rules! try_send {
 }
 
 pub struct Broker<Z> {
-    message_sender: UnboundedSender<Message>,
-    messages: UnboundedReceiver<Message>,
-    ack_sender: UnboundedSender<Message>,
-    acks: UnboundedReceiver<Message>,
+    messages: SelectOrdered<UnboundedReceiver<Message>, UnboundedReceiver<Message>>,
+    handle: BrokerHandle,
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
@@ -51,85 +44,48 @@ where
     Z: Authorizer,
 {
     pub fn handle(&self) -> BrokerHandle {
-        BrokerHandle(self.message_sender.clone(), self.ack_sender.clone())
+        self.handle.clone()
     }
 
     pub async fn run(mut self) -> Result<BrokerSnapshot, Error> {
-        loop {
-            let maybe_message = {
-                let acks = self.acks.recv();
-                pin_mut!(acks);
-
-                let messages = self.messages.recv();
-                pin_mut!(messages);
-
-                match future::select(acks, messages).await {
-                    Either::Left((message, _)) => message,
-                    Either::Right((message, _)) => message,
-                }
-            };
-
-            // process a messages from either acks or messages channel
-            if !maybe_message.map_or(false, |message| self.process_message(message)) {
-                break;
-            }
-
-            // process all acks accumulated
-            while let Ok(message) = self.acks.try_recv() {
-                self.process_message(message);
-            }
-
-            // process any other messages if any
-            match self.messages.try_recv() {
-                Ok(message) => {
-                    if !self.process_message(message) {
-                        break;
+        while let Some(message) = self.messages.next().await {
+            match message {
+                Message::Client(client_id, event) => {
+                    let span = info_span!("broker", client_id = %client_id, event="client");
+                    let _enter = span.enter();
+                    if let Err(e) = self.process_client_event(client_id, event) {
+                        warn!(message = "an error occurred processing a message", error = %e);
                     }
                 }
-                Err(TryRecvError::Empty) => task::yield_now().await,
-                Err(TryRecvError::Closed) => break,
+                Message::System(event) => {
+                    let span = info_span!("broker", event = "system");
+                    let _enter = span.enter();
+                    match event {
+                        SystemEvent::Shutdown => {
+                            info!("gracefully shutting down the broker...");
+                            debug!("closing sessions...");
+                            if let Err(e) = self.process_shutdown() {
+                                warn!(message = "an error occurred shutting down the broker", error = %e);
+                            }
+                            break;
+                        }
+                        SystemEvent::StateSnapshot(mut handle) => {
+                            let state = self.snapshot();
+                            let _guard = span.enter();
+                            info!("asking snapshotter to persist state...");
+                            if let Err(e) = handle.try_send(state) {
+                                warn!(message = "an error occurred communicating with the snapshotter", error = %e);
+                            } else {
+                                info!("sent state to snapshotter.");
+                            }
+                        }
+                    }
+                }
             }
         }
 
         info!("broker is shutdown.");
         Ok(self.snapshot())
-    }
-
-    fn process_message(&mut self, message: Message) -> bool {
-        match message {
-            Message::Client(client_id, event) => {
-                let span = info_span!("broker", client_id = %client_id, event="client");
-                let _enter = span.enter();
-                if let Err(e) = self.process_client_event(client_id, event) {
-                    warn!(message = "an error occurred processing a message", error = %e);
-                }
-            }
-            Message::System(event) => {
-                let span = info_span!("broker", event = "system");
-                let _enter = span.enter();
-                match event {
-                    SystemEvent::Shutdown => {
-                        info!("gracefully shutting down the broker...");
-                        debug!("closing sessions...");
-                        if let Err(e) = self.process_shutdown() {
-                            warn!(message = "an error occurred shutting down the broker", error = %e);
-                        }
-                        return false;
-                    }
-                    SystemEvent::StateSnapshot(mut handle) => {
-                        let state = self.snapshot();
-                        let _guard = span.enter();
-                        info!("asking snapshotter to persist state...");
-                        if let Err(e) = handle.try_send(state) {
-                            warn!(message = "an error occurred communicating with the snapshotter", error = %e);
-                        } else {
-                            info!("sent state to snapshotter.");
-                        }
-                    }
-                }
-            }
-        }
-        true
     }
 
     fn snapshot(&self) -> BrokerSnapshot {
@@ -1033,11 +989,12 @@ where
         let (message_sender, messages) = mpsc::unbounded_channel();
         let (ack_sender, acks) = mpsc::unbounded_channel();
 
+        let messages = stream::select_ordered(acks, messages);
+        let handle = BrokerHandle(message_sender, ack_sender);
+
         Broker {
-            message_sender,
             messages,
-            ack_sender,
-            acks,
+            handle,
             sessions,
             retained,
             authorizer: self.authorizer,
@@ -1055,8 +1012,7 @@ pub struct BrokerHandle(UnboundedSender<Message>, UnboundedSender<Message>);
 impl BrokerHandle {
     pub fn send(&mut self, message: Message) -> Result<(), Error> {
         let sender = match &message {
-            Message::Client(_, ClientEvent::PingReq(_))
-            | Message::Client(_, ClientEvent::PubAck0(_))
+            Message::Client(_, ClientEvent::PubAck0(_))
             | Message::Client(_, ClientEvent::PubAck(_))
             | Message::Client(_, ClientEvent::PubRec(_))
             | Message::Client(_, ClientEvent::PubComp(_)) => &self.1,

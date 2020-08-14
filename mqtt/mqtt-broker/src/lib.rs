@@ -21,6 +21,7 @@ mod session;
 pub mod settings;
 mod snapshot;
 mod state_change;
+mod stream;
 mod subscription;
 mod tls;
 mod transport;

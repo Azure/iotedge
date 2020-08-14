@@ -179,9 +179,7 @@ fn dispatch_messages(
                         publish_handle.id.as_client_id(),
                         ClientEvent::PublishFrom(publish, None),
                     );
-                    runtime
-                        .block_on(broker_handle.send(message))
-                        .expect("publish");
+                    broker_handle.send(message).expect("publish");
                 });
 
                 runtime.block_on(async {
@@ -197,7 +195,6 @@ fn dispatch_messages(
     runtime.block_on(async move {
         broker_handle
             .send(Message::System(SystemEvent::Shutdown))
-            .await
             .expect("broker shutdown event");
 
         futures_util::future::join_all(subscriber_tasks).await;
@@ -252,7 +249,7 @@ impl Client {
             connection_handle,
         );
         let message = Message::Client(client.id.as_client_id(), ClientEvent::ConnReq(connreq));
-        client.broker_handle.send(message).await.expect("connect");
+        client.broker_handle.send(message).expect("connect");
 
         client
     }
@@ -266,7 +263,7 @@ impl Client {
             }],
         };
         let message = Message::Client(self.id.as_client_id(), ClientEvent::Subscribe(subscribe));
-        self.broker_handle.send(message).await.expect("subscribe");
+        self.broker_handle.send(message).expect("subscribe");
     }
 
     fn publish_handle(&self) -> PublishHandle {
@@ -327,7 +324,7 @@ impl Client {
 
                     if let Some(event) = event_out {
                         let message = Message::Client(client_id.clone(), event);
-                        if let Err(e) = self.broker_handle.send(message).await {
+                        if let Err(e) = self.broker_handle.send(message) {
                             warn!("{}: Broker closed connection. {:?}", client_id, e);
                             stop = true;
                         }
