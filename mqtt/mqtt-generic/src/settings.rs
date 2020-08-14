@@ -209,13 +209,6 @@ mod tests {
     }
 
     #[test]
-    fn it_refuses_persistence_with_no_file_path() {
-        let settings = Settings::from_file(Path::new("test/config_no_file_path.json"));
-
-        assert_matches!(settings, Err(_));
-    }
-
-    #[test]
     fn it_type_mismatch_fails() {
         let settings = Settings::from_file(Path::new("test/config_bad_value_type.json"));
 
