@@ -22,8 +22,6 @@ pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
 {
-    // TODO: apply settings
-    // time interval
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
