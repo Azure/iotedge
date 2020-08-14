@@ -1,5 +1,5 @@
 ARG base_tag=1.0.6.1-linux-arm32v7
-FROM edgebuilds.azurecr.io/microsoft/azureiotedge-module-base-full:${base_tag}
+FROM azureiotedge/azureiotedge-module-base-full:${base_tag}
 
 ARG EXE_DIR=.
 
