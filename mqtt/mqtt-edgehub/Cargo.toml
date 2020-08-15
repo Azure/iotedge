@@ -28,6 +28,7 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker = { path = "../mqtt-broker" }
 
 [dev-dependencies]
+anyhow = "1.0"
 lazy_static = "1.4"
 matches = "0.1"
 mockito = "0.25"
@@ -35,7 +36,6 @@ proptest = "0.9"
 serial_test = "0.4"
 test-case = "1.0"
 tokio = { version = "0.2", features = ["macros"] }
-anyhow = "1.0"
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 
