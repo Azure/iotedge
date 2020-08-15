@@ -34,7 +34,6 @@ pub struct Broker<Z> {
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
     config: BrokerConfig,
-    // TODO SIDECAR: add sidecar
     #[cfg(feature = "__internal_broker_callbacks")]
     pub on_publish: Option<tokio::sync::mpsc::UnboundedSender<std::time::Duration>>,
 }
@@ -46,8 +45,6 @@ where
     pub fn handle(&self) -> BrokerHandle {
         BrokerHandle(self.sender.clone())
     }
-
-    // TODO SIDECAR: run sidecar method
 
     pub async fn run(mut self) -> Result<BrokerSnapshot, Error> {
         while let Some(message) = self.messages.recv().await {
@@ -979,8 +976,6 @@ where
         self.config = config;
         self
     }
-
-    // TODO SIDECAR: define with_sidecar() returning shutdown, join handle
 
     pub fn build(self) -> Broker<Z> {
         let config = self.config;

@@ -26,6 +26,13 @@ pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
 {
+    /*
+    initialize new bootstrap struct
+    bootstrap.start_server
+    bootstrap.start_sidecars
+    wait on bootstrap handle
+    */
+
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
@@ -35,8 +42,6 @@ where
     info!("state loaded.");
 
     let broker = bootstrap::broker(config.broker(), state).await?;
-    // TODO SIDECAR: call broker sidecar method
-    // shutdown_handle, join_handle = broker.start_sidecars()
 
     #[cfg(feature = "edgehub")]
     let broker_handle = broker.handle();
@@ -62,8 +67,6 @@ where
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
-
-    // TODO SIDECAR: trigger and wait for broker shutdown
 
     #[cfg(feature = "edgehub")]
     command_handler_shutdown_handle.shutdown().await?;

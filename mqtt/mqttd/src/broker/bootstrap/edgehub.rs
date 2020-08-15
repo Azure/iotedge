@@ -24,6 +24,47 @@ use mqtt_edgehub::{
     settings::Settings,
 };
 
+/*
+
+struct bootstrap {
+    broker
+    config
+    start_sidecars()
+    pub start_server()
+}
+
+struct bootstrap {
+    server
+    sidecars
+    pub fn new(broker, config)
+    pub fn run()
+    run_sidecars()
+}
+
+// hardcode sidecars in impl
+new(config, state) -> Bootstrap
+
+
+pub start_server() {
+    set up server struct
+    handles = start_sidecars()
+    server.await()
+
+    shutdown and wait for sidecars handle
+}
+
+// This function will be called in start_server
+start_sidecars() -> one join handle, one shutdown handle {
+    make shutdown handle
+    spawn new tokio task
+
+        run the sidecars
+        listen for bootstrap shutdown
+        trigger and wait for all sidecars to shut down (it shouldn't matter if this wait is sequential)
+}
+
+*/
+
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
 where
     P: AsRef<Path>,
@@ -39,14 +80,10 @@ where
     Ok(config)
 }
 
-// TODO SIDECAR: define run_sidecar() method that will start the command handler returning a shutdown and join handle
-//       we can have this be directly the command handler or a wrapper to make it better for future development
-
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
 ) -> Result<Broker<LocalAuthorizer<EdgeHubAuthorizer>>> {
-    // TODO SIDECAR: call broker with_sidecar() method and pass in created sidecar function
     let broker = BrokerBuilder::default()
         .with_authorizer(LocalAuthorizer::new(EdgeHubAuthorizer::default()))
         .with_state(state.unwrap_or_default())
