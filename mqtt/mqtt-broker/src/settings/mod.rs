@@ -2,7 +2,7 @@ mod size;
 
 pub use size::HumanSize;
 
-use std::{num::NonZeroUsize, time::Duration};
+use std::{num::NonZeroUsize, path::PathBuf, time::Duration};
 
 use serde::Deserialize;
 
@@ -147,21 +147,21 @@ impl Default for RetainedMessagesConfig {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SessionPersistenceConfig {
-    file_path: String,
+    path: PathBuf,
     #[serde(with = "humantime_serde")]
     time_interval: Duration,
 }
 
 impl SessionPersistenceConfig {
-    pub fn new(file_path: String, time_interval: Duration) -> Self {
+    pub fn new(path: PathBuf, time_interval: Duration) -> Self {
         Self {
-            file_path,
+            path: path,
             time_interval,
         }
     }
 
-    pub fn file_path(&self) -> String {
-        self.file_path.clone()
+    pub fn file_path(&self) -> PathBuf {
+        self.path.clone()
     }
 
     pub fn time_interval(&self) -> Duration {
@@ -171,7 +171,7 @@ impl SessionPersistenceConfig {
 
 impl Default for SessionPersistenceConfig {
     fn default() -> Self {
-        SessionPersistenceConfig::new("/tmp/mqttd/".to_string(), Duration::from_secs(300))
+        SessionPersistenceConfig::new(PathBuf::from("/tmp/mqttd/"), Duration::from_secs(300))
     }
 }
 

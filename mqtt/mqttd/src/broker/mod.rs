@@ -2,11 +2,10 @@ mod bootstrap;
 mod shutdown;
 mod snapshot;
 
-use std::path::Path;
+use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
 use futures_util::pin_mut;
-use std::fs;
 use tokio::{
     task::JoinHandle,
     time::{Duration, Instant},
@@ -14,7 +13,7 @@ use tokio::{
 use tracing::{info, warn};
 
 use mqtt_broker::{
-    BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
+    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
     StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
@@ -27,7 +26,11 @@ where
     info!("loading state...");
     let persistence_config = config.broker().persistence();
     let state_dir = persistence_config.file_path();
-    let (persistor, state) = init_broker_state(state_dir).await?;
+
+    fs::create_dir_all(state_dir.clone())?;
+    let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
+    let state = persistor.load().await?;
+    info!("state loaded.");
 
     let broker = bootstrap::broker(config.broker(), state).await?;
 
@@ -52,18 +55,6 @@ where
     info!("exiting... goodbye");
 
     Ok(())
-}
-
-async fn init_broker_state(
-    state_dir: String,
-) -> Result<(FilePersistor<VersionedFileFormat>, Option<BrokerSnapshot>)> {
-    fs::create_dir_all(state_dir.clone())?;
-
-    let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
-    let state = persistor.load().await?;
-    info!("state loaded.");
-
-    Ok((persistor, state))
 }
 
 async fn start_snapshotter(

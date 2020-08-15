@@ -198,7 +198,7 @@ impl AuthConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, time::Duration};
+    use std::{env, path::PathBuf, time::Duration};
 
     use mqtt_broker::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
@@ -237,7 +237,7 @@ mod tests {
                         QueueFullAction::DropNew,
                     ),
                     SessionPersistenceConfig::new(
-                        "/tmp/mqttd/".to_string(),
+                        PathBuf::from("/tmp/mqttd/"),
                         Duration::from_secs(300)
                     )
                 )

@@ -151,7 +151,7 @@ impl CertificateConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::{path::Path, time::Duration};
+    use std::{path::Path, path::PathBuf, time::Duration};
 
     use matches::assert_matches;
 
@@ -183,7 +183,7 @@ mod tests {
                         QueueFullAction::DropNew,
                     ),
                     SessionPersistenceConfig::new(
-                        "/tmp/mqttd/".to_string(),
+                        PathBuf::from("/tmp/mqttd/"),
                         Duration::from_secs(300)
                     )
                 )
