@@ -990,7 +990,10 @@ where
         let (ack_sender, acks) = mpsc::unbounded_channel();
 
         let messages = stream::select_ordered(acks, messages);
-        let handle = BrokerHandle(message_sender, ack_sender);
+        let handle = BrokerHandle {
+            messages: message_sender,
+            acks: ack_sender,
+        };
 
         Broker {
             messages,
@@ -1007,7 +1010,10 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct BrokerHandle(UnboundedSender<Message>, UnboundedSender<Message>);
+pub struct BrokerHandle {
+    messages: UnboundedSender<Message>,
+    acks: UnboundedSender<Message>,
+}
 
 impl BrokerHandle {
     pub fn send(&mut self, message: Message) -> Result<(), Error> {
@@ -1015,8 +1021,8 @@ impl BrokerHandle {
             Message::Client(_, ClientEvent::PubAck0(_))
             | Message::Client(_, ClientEvent::PubAck(_))
             | Message::Client(_, ClientEvent::PubRec(_))
-            | Message::Client(_, ClientEvent::PubComp(_)) => &self.1,
-            _ => &self.0,
+            | Message::Client(_, ClientEvent::PubComp(_)) => &self.acks,
+            _ => &self.messages,
         };
 
         sender.send(message).map_err(Error::SendBrokerMessage)
