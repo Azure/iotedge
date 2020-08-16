@@ -122,8 +122,7 @@ impl CommandHandler {
 
     async fn handle_event(&mut self, event: Event) -> Result<(), DisconnectClientError> {
         if let Event::Publication(publication) = event {
-            let topic_name = publication.topic_name.as_ref();
-            let client_id = parse_client_id(topic_name)?;
+            let client_id = parse_client_id(&publication.topic_name)?;
 
             info!("received disconnection request for client {}", client_id);
 
@@ -152,15 +151,15 @@ fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
 
     let captures = REGEX
         .captures(topic_name.as_ref())
-        .ok_or_else(DisconnectClientError::RegexFailure)?;
+        .ok_or_else(|| DisconnectClientError::RegexFailure)?;
 
     let value = captures
         .get(1)
-        .ok_or_else(DisconnectClientError::RegexFailure)?;
+        .ok_or_else(|| DisconnectClientError::RegexFailure)?;
 
     let client_id = value.as_str();
     match client_id {
-        "" => Err(DisconnectClientError::NoClientId()),
+        "" => Err(DisconnectClientError::NoClientId),
         id => Ok(id.to_string()),
     }
 }
@@ -174,10 +173,10 @@ pub enum InitializationError {
 #[derive(Debug, thiserror::Error)]
 enum DisconnectClientError {
     #[error("regex does not match disconnect topic")]
-    RegexFailure(),
+    RegexFailure,
 
     #[error("client id not found for client disconnect topic")]
-    NoClientId(),
+    NoClientId,
 
     #[error("failed sending broker signal to disconnect client")]
     SignalError(#[from] Error),
@@ -225,7 +224,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_matches!(output, Err(DisconnectClientError::NoClientId()));
+        assert_matches!(output, Err(DisconnectClientError::NoClientId));
     }
 
     #[test]
@@ -234,7 +233,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_matches!(output, Err(DisconnectClientError::RegexFailure()));
+        assert_matches!(output, Err(DisconnectClientError::RegexFailure));
     }
 
     #[test]
@@ -243,6 +242,6 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_matches!(output, Err(DisconnectClientError::RegexFailure()));
+        assert_matches!(output, Err(DisconnectClientError::RegexFailure));
     }
 }
