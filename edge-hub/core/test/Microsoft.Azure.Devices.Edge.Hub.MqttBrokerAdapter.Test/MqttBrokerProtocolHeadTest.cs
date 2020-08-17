@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using Xunit;
 
     [Unit]
-    public class MqttBrokerProtocolHeadTests
+    public class MqttBrokerProtocolHeadTest
     {
         [Fact]
         public async Task StartsConnector()

@@ -1,9 +1,12 @@
+use std::collections::HashSet;
+use std::iter::FromIterator;
 use std::time::Duration;
 
-use futures_util::{future::BoxFuture, StreamExt};
+use futures_util::future::BoxFuture;
 use lazy_static::lazy_static;
 use regex::Regex;
 use tokio::net::TcpStream;
+use tokio::stream::StreamExt;
 use tracing::{error, info, warn};
 
 use mqtt3::{
@@ -48,36 +51,22 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub fn new(
-        broker_handle: BrokerHandle,
-        address: String,
-        device_id: &str,
-    ) -> Result<Self, InitializationError> {
-        let client_id = format!("{}/$edgeHub/$broker/$control", device_id);
+    pub fn new(broker_handle: BrokerHandle, address: String, device_id: &str) -> Self {
+        let client_id = format!("{}/$edgeHub/$broker", device_id);
 
-        let broker_connection = BrokerConnection { address };
-
-        let mut client = Client::new(
+        let client = Client::new(
             Some(client_id),
             None,
             None,
-            broker_connection,
+            BrokerConnection { address },
             Duration::from_secs(1),
             Duration::from_secs(60),
         );
 
-        let qos = proto::QoS::AtLeastOnce;
-        client
-            .subscribe(proto::SubscribeTo {
-                topic_filter: TOPIC_FILTER.to_string(),
-                qos,
-            })
-            .map_err(InitializationError::SubscribeFailure)?;
-
-        Ok(CommandHandler {
+        CommandHandler {
             broker_handle,
             client,
-        })
+        }
     }
 
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
@@ -88,42 +77,68 @@ impl CommandHandler {
             })
     }
 
-    pub async fn run(mut self) {
-        self.wait_for_suback().await;
+    pub async fn run(mut self) -> Result<(), CommandHandlerError> {
+        let subscribe_topics = &[TOPIC_FILTER.to_string()];
 
-        self.listen_for_disconnect().await;
-    }
-
-    async fn wait_for_suback(&mut self) {
-        while let Some(event_or_err) = self.client.next().await {
-            if let Err(e) = event_or_err {
-                warn!(message = "error reading event from command handler client", error = %e);
-            } else if let Ok(Event::SubscriptionUpdates(subscriptions)) = event_or_err {
-                for acked_subscription in subscriptions {
-                    if let SubscriptionUpdateEvent::Subscribe(sub) = acked_subscription {
-                        if sub.topic_filter == TOPIC_FILTER {
-                            return;
-                        }
-                    }
-                }
-            } else {
-                warn!("received unexpected event when waiting for command handler suback");
-            }
+        if !self.subscribe(subscribe_topics).await? {
+            return Err(CommandHandlerError::MissingSubacks(
+                subscribe_topics.concat(),
+            ));
         }
-    }
 
-    async fn listen_for_disconnect(&mut self) {
-        while let Some(Ok(event)) = self.client.next().await {
+        while let Some(event) = self
+            .client
+            .try_next()
+            .await
+            .map_err(CommandHandlerError::PollClientFailure)?
+        {
             if let Err(e) = self.handle_event(event).await {
                 warn!(message = "failed to disconnect client", error = %e);
             }
         }
+
+        Ok(())
     }
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), DisconnectClientError> {
+    async fn subscribe(&mut self, topics: &[String]) -> Result<bool, CommandHandlerError> {
+        let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
+            topic_filter: topic.to_string(),
+            qos: proto::QoS::AtLeastOnce,
+        });
+
+        for subscription in subscriptions {
+            self.client
+                .subscribe(subscription)
+                .map_err(CommandHandlerError::SubscribeFailure)?;
+        }
+
+        let mut subacks: HashSet<String> = HashSet::from_iter(topics.to_vec());
+
+        while let Some(event_or_err) = self
+            .client
+            .try_next()
+            .await
+            .map_err(CommandHandlerError::PollClientFailure)?
+        {
+            if let Event::SubscriptionUpdates(subscriptions) = event_or_err {
+                for subscription in subscriptions {
+                    if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
+                        subacks.remove(&sub.topic_filter);
+                    }
+                }
+
+                if subacks.is_empty() {
+                    return Ok(true);
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
-            let topic_name = publication.topic_name.as_ref();
-            let client_id = parse_client_id(topic_name)?;
+            let client_id = parse_client_id(&publication.topic_name)?;
 
             info!("received disconnection request for client {}", client_id);
 
@@ -134,7 +149,7 @@ impl CommandHandler {
                 )))
                 .await
             {
-                return Err(DisconnectClientError::SignalError(e));
+                return Err(HandleDisconnectError::SignalError(e));
             }
 
             info!("succeeded sending broker signal to disconnect client");
@@ -144,7 +159,7 @@ impl CommandHandler {
     }
 }
 
-fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
+fn parse_client_id(topic_name: &str) -> Result<String, HandleDisconnectError> {
     lazy_static! {
         static ref REGEX: Regex =
             Regex::new(CLIENT_EXTRACTION_REGEX).expect("failed to create new Regex from pattern");
@@ -152,32 +167,38 @@ fn parse_client_id(topic_name: &str) -> Result<String, DisconnectClientError> {
 
     let captures = REGEX
         .captures(topic_name.as_ref())
-        .ok_or_else(DisconnectClientError::RegexFailure)?;
+        .ok_or_else(|| HandleDisconnectError::RegexFailure)?;
 
     let value = captures
         .get(1)
-        .ok_or_else(DisconnectClientError::RegexFailure)?;
+        .ok_or_else(|| HandleDisconnectError::RegexFailure)?;
 
     let client_id = value.as_str();
     match client_id {
-        "" => Err(DisconnectClientError::NoClientId()),
+        "" => Err(HandleDisconnectError::NoClientId),
         id => Ok(id.to_string()),
     }
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum InitializationError {
+pub enum CommandHandlerError {
+    #[error("failed to receive expected subacks for command topics: {0}")]
+    MissingSubacks(String),
+
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
+
+    #[error("failed to poll client when validating command handler subscriptions")]
+    PollClientFailure(#[from] mqtt3::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
-enum DisconnectClientError {
+enum HandleDisconnectError {
     #[error("regex does not match disconnect topic")]
-    RegexFailure(),
+    RegexFailure,
 
     #[error("client id not found for client disconnect topic")]
-    NoClientId(),
+    NoClientId,
 
     #[error("failed sending broker signal to disconnect client")]
     SignalError(#[from] Error),
@@ -186,7 +207,7 @@ enum DisconnectClientError {
 #[cfg(test)]
 mod tests {
     use crate::command::parse_client_id;
-    use crate::command::DisconnectClientError;
+    use crate::command::HandleDisconnectError;
     use assert_matches::assert_matches;
 
     #[test]
@@ -225,7 +246,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_matches!(output, Err(DisconnectClientError::NoClientId()));
+        assert_matches!(output, Err(HandleDisconnectError::NoClientId));
     }
 
     #[test]
@@ -234,7 +255,7 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_matches!(output, Err(DisconnectClientError::RegexFailure()));
+        assert_matches!(output, Err(HandleDisconnectError::RegexFailure));
     }
 
     #[test]
@@ -243,6 +264,6 @@ mod tests {
 
         let output = parse_client_id(topic);
 
-        assert_matches!(output, Err(DisconnectClientError::RegexFailure()));
+        assert_matches!(output, Err(HandleDisconnectError::RegexFailure));
     }
 }

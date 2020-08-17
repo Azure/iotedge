@@ -19,7 +19,10 @@ use mqtt_broker::{
 
 // TODO SIDECAR: remove all cfg
 #[cfg(feature = "edgehub")]
-use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
+use mqtt_edgehub::command::{
+    CommandHandler, CommandHandlerError, ShutdownHandle as CommandShutdownHandle,
+};
+
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
@@ -70,7 +73,7 @@ where
 
     #[cfg(feature = "edgehub")]
     command_handler_shutdown_handle.shutdown().await?;
-    command_handler_join_handle.await?;
+    command_handler_join_handle.await??;
     info!("command handler shutdown.");
 
     info!("persisting state before exiting...");
@@ -84,9 +87,12 @@ where
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> Result<(CommandShutdownHandle, JoinHandle<()>)> {
+) -> Result<(
+    CommandShutdownHandle,
+    JoinHandle<Result<(), CommandHandlerError>>,
+)> {
     let device_id = env::var(DEVICE_ID_ENV)?;
-    let command_handler = CommandHandler::new(broker_handle, system_address, device_id.as_str())?;
+    let command_handler = CommandHandler::new(broker_handle, system_address, device_id.as_str());
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());

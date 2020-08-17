@@ -35,7 +35,6 @@ proptest = "0.9"
 serial_test = "0.4"
 test-case = "1.0"
 tokio = { version = "0.2", features = ["macros"] }
-anyhow = "1.0"
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 

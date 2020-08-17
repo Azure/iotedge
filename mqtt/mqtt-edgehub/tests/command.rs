@@ -1,13 +1,17 @@
-use anyhow::Result;
+use assert_matches::assert_matches;
 use futures_util::StreamExt;
 use mqtt3::proto::ClientId;
+use mqtt3::ShutdownError;
+use mqtt_broker::auth::DenyAll;
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::{CommandHandler, ShutdownHandle as CommandShutdownHandle};
+use mqtt_edgehub::command::{
+    CommandHandler, CommandHandlerError, ShutdownHandle as CommandShutdownHandle,
+};
 use tokio::task::JoinHandle;
 
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
@@ -48,24 +52,52 @@ async fn disconnect_client() {
 
     assert_eq!(test_client.next().await, None);
 
-    // TODO REVIEW: shutdown broker? Ask Vadim
     command_handler_shutdown_handle
         .shutdown()
         .await
         .expect("failed to stop command handler client");
     join_handle
         .await
-        .expect("failed to shutdown command handler");
+        .expect("failed to shutdown command handler")
+        .expect("command handler failed");
 
     edgehub_client.shutdown().await;
+}
+
+/// Scenario:
+// create broker
+// create command handler
+// command handler will fail because it cannot subscribe to command topic
+#[tokio::test]
+async fn disconnect_client_bad_broker() {
+    let broker = BrokerBuilder::default().with_authorizer(DenyAll).build();
+    let broker_handle = broker.handle();
+
+    start_server(broker, DummyAuthenticator::anonymous());
+
+    let (_, join_handle) = start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string())
+        .await
+        .expect("could not start command handler");
+
+    let command_handler_status = join_handle
+        .await
+        .expect("failed to shutdown command handler");
+
+    assert_matches!(command_handler_status, Err(_));
 }
 
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> Result<(CommandShutdownHandle, JoinHandle<()>)> {
+) -> Result<
+    (
+        CommandShutdownHandle,
+        JoinHandle<Result<(), CommandHandlerError>>,
+    ),
+    ShutdownError,
+> {
     let device_id = "test-device";
-    let command_handler = CommandHandler::new(broker_handle, system_address, device_id)?;
+    let command_handler = CommandHandler::new(broker_handle, system_address, device_id);
     let shutdown_handle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());
