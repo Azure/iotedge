@@ -27,13 +27,6 @@ use mqtt_edgehub::{
 /*
 
 struct bootstrap {
-    broker
-    config
-    start_sidecars()
-    pub start_server()
-}
-
-struct bootstrap {
     server
     sidecars
     pub fn new(broker, config)

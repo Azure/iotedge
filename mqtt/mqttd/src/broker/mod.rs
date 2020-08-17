@@ -31,8 +31,7 @@ where
 {
     /*
     initialize new bootstrap struct
-    bootstrap.start_server
-    bootstrap.start_sidecars
+    bootstrap.start
     wait on bootstrap handle
     */
 
