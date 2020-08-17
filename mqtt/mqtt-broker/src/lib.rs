@@ -19,6 +19,7 @@ mod persist;
 mod server;
 mod session;
 pub mod settings;
+mod sidecar;
 mod snapshot;
 mod state_change;
 mod subscription;
