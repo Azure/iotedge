@@ -12,7 +12,8 @@ usage()
     echo "options"
     echo " --os                      Desired os for build"
     echo " --arch                    Desired arch for build"
-    echo " --build-path              Desired arch for build"
+    echo " --build-path              Desired path for build"
+    echo " --cargo-flags             Flags for compilation"
     echo " -h, --help                Print this help and exit."
     exit 1;
 }
@@ -34,11 +35,15 @@ process_args()
         elif [ $save_next_arg -eq 3 ]; then
             BUILD_PATH="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 4 ]; then
+            CARGOFLAGS="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "--os" ) save_next_arg=1;;
                 "--arch" ) save_next_arg=2;;
                 "--build-path" ) save_next_arg=3;;
+                "--cargo-flags" ) save_next_arg=4;;
                 "-h" | "--help" ) usage;;
                 * ) usage;;
             esac
@@ -215,17 +220,17 @@ case "$PACKAGE_OS" in
     *)
         case "$PACKAGE_ARCH" in
             amd64)
-                MAKE_FLAGS="'CARGOFLAGS=--target x86_64-unknown-linux-musl'"
+                MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target x86_64-unknown-linux-musl'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/x86_64-unknown-linux-musl/release'"
                 MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=strip'"
                 ;;
             arm32v7)
-                MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
+                MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target armv7-unknown-linux-gnueabihf'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/armv7-unknown-linux-gnueabihf/release'"
                 MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=/usr/arm-linux-gnueabihf/bin/strip'"
                 ;;
             aarch64)
-                MAKE_FLAGS="'CARGOFLAGS=--target aarch64-unknown-linux-gnu'"
+                MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target aarch64-unknown-linux-gnu'"
                 MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/aarch64-unknown-linux-gnu/release'"
                 MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=/usr/aarch64-linux-gnu/bin/strip'"
                 ;;
