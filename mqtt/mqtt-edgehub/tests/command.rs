@@ -1,6 +1,6 @@
-use anyhow::Result;
 use futures_util::StreamExt;
 use mqtt3::proto::ClientId;
+use mqtt3::ShutdownError;
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
@@ -66,10 +66,13 @@ async fn disconnect_client() {
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> Result<(
-    CommandShutdownHandle,
-    JoinHandle<Result<(), CommandHandlerError>>,
-)> {
+) -> Result<
+    (
+        CommandShutdownHandle,
+        JoinHandle<Result<(), CommandHandlerError>>,
+    ),
+    ShutdownError,
+> {
     let device_id = "test-device";
     let command_handler = CommandHandler::new(broker_handle, system_address, device_id);
     let shutdown_handle = command_handler.shutdown_handle()?;

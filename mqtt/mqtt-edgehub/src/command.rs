@@ -90,7 +90,7 @@ impl CommandHandler {
             .client
             .try_next()
             .await
-            .map_err(|e| CommandHandlerError::PollClientFailure(e))?
+            .map_err(CommandHandlerError::PollClientFailure)?
         {
             if let Err(e) = self.handle_event(event).await {
                 warn!(message = "failed to disconnect client", error = %e);
@@ -101,7 +101,7 @@ impl CommandHandler {
     }
 
     async fn subscribe(&mut self, topics: &[String]) -> Result<bool, CommandHandlerError> {
-        let subscriptions = topics.into_iter().map(|topic| proto::SubscribeTo {
+        let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: proto::QoS::AtLeastOnce,
         });
@@ -118,7 +118,7 @@ impl CommandHandler {
             .client
             .try_next()
             .await
-            .map_err(|e| CommandHandlerError::PollClientFailure(e))?
+            .map_err(CommandHandlerError::PollClientFailure)?
         {
             if let Event::SubscriptionUpdates(subscriptions) = event_or_err {
                 for subscription in subscriptions {
