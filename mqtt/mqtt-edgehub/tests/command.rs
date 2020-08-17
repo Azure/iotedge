@@ -1,6 +1,8 @@
+use assert_matches::assert_matches;
 use futures_util::StreamExt;
 use mqtt3::proto::ClientId;
 use mqtt3::ShutdownError;
+use mqtt_broker::auth::DenyAll;
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
@@ -50,17 +52,38 @@ async fn disconnect_client() {
 
     assert_eq!(test_client.next().await, None);
 
-    // TODO REVIEW: shutdown broker? Ask Vadim
     command_handler_shutdown_handle
         .shutdown()
         .await
         .expect("failed to stop command handler client");
     join_handle
         .await
-        .expect("failed when running command handler")
-        .expect("failed to shutdown command handler");
+        .expect("failed to shutdown command handler")
+        .expect("command handler failed");
 
     edgehub_client.shutdown().await;
+}
+
+/// Scenario:
+// create broker
+// create command handler
+// command handler will fail because it cannot subscribe to command topic
+#[tokio::test]
+async fn disconnect_client_bad_broker() {
+    let broker = BrokerBuilder::default().with_authorizer(DenyAll).build();
+    let broker_handle = broker.handle();
+
+    start_server(broker, DummyAuthenticator::anonymous());
+
+    let (_, join_handle) = start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string())
+        .await
+        .expect("could not start command handler");
+
+    let command_handler_status = join_handle
+        .await
+        .expect("failed to shutdown command handler");
+
+    assert_matches!(command_handler_status, Err(_));
 }
 
 async fn start_command_handler(
