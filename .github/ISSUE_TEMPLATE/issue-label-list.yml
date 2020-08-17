@@ -1,0 +1,5 @@
+iotedge:
+    - '[\s\S]+'
+
+customer-reported:
+    - '[\s\S]+'
