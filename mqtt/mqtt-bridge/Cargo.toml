@@ -1,0 +1,10 @@
+[package]
+name = "mqtt-bridge"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+
+[dependencies]
+tracing = "0.1"
+config = { version = "0.10", features = ["json"], default-features = false }
+serde = { version = "1.0", features = ["derive", "rc"] }

@@ -17,6 +17,8 @@ use mqtt_broker::{
     StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
+use mqtt_bridge::BridgeController;
+
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
@@ -33,6 +35,9 @@ where
 
     info!("starting snapshotter...");
     let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
+
+    info!("starting bridge...");
+    start_bridge();
 
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
@@ -98,6 +103,11 @@ async fn tick_snapshot(
             warn!(message = "failed to tick the snapshotter", error=%e);
         }
     }
+}
+
+fn start_bridge() {
+    let bridge_controller = BridgeController::new();
+    bridge_controller.start();
 }
 
 #[derive(Debug, thiserror::Error)]

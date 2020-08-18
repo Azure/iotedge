@@ -20,6 +20,7 @@ edgelet-client = { path = "../edgelet-client", optional = true }
 mqtt-broker = { path = "../mqtt-broker" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt-generic = { path = "../mqtt-generic", optional = true }
+mqtt-bridge = { path = "../mqtt-bridge" }
 
 [dev-dependencies]
 mockito = "0.25"

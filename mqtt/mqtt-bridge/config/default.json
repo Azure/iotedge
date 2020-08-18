@@ -1,0 +1,5 @@
+{
+    "nested-upstream": {
+        "address": "0.0.0.0:8883"
+    }
+}
