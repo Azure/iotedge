@@ -77,7 +77,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             if (subscriptionList == null)
             {
-                Events.BadPayloadFormat();
+                // This case is valid and sent by the broker (as an empty string) when a client disconnects.
+                // The meaning of the message is to remove subscriptions, but as the client is disconnecting
+                // in a moment, we don't do anything. In fact, the disconnect message is supposed to arrive
+                // first, and then this change notification gets ignored as it does not have related client.
                 return true;
             }
 
@@ -168,7 +171,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
-            public static void BadPayloadFormat() => Log.LogError((int)EventIds.BadPayloadFormat, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToChangeSubscriptionState(Exception e, string subscription, string id) => Log.LogError((int)EventIds.FailedToChangeSubscriptionState, e, $"Failed to change subscrition status {subscription} for {id}");
             public static void HandlingSubscriptionChange(string content) => Log.LogDebug((int)EventIds.HandlingSubscriptionChange, $"Handling subscription change {content}");
         }

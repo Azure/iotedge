@@ -168,8 +168,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var added = default(bool);
             var tcs = new TaskCompletionSource<bool>();
 
-            // need the lock, otherwise it can happen the the ACK comes back sooner as the id is
-            // put into the dictionary next line, causeing the ACK being unknown.
+            // need the lock, otherwise it can happen the ACK comes back sooner as the id is
+            // put into the dictionary next line, causing the ACK being unknown.
             lock (this.guard)
             {
                 var messageId = client.Publish(topic, payload, 1, false);
@@ -387,7 +387,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static async Task SubscribeAsync(MqttClient client, IReadOnlyCollection<IMessageConsumer> subscribers)
         {
-            var expectedAckCount = new AtomicLong(subscribers.Count);
+            var subscribersWithSubscriptions = subscribers.Where(s => s.Subscriptions != null && s.Subscriptions.Count > 0).ToArray();
+            var expectedAckCount = new AtomicLong(subscribersWithSubscriptions.Count());
 
             if (expectedAckCount.Get() > 0)
             {
@@ -397,7 +398,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                     client.MqttMsgSubscribed += ConfirmSubscribe;
 
-                    foreach (var subscriber in subscribers)
+                    foreach (var subscriber in subscribersWithSubscriptions)
                     {
                         client.Subscribe(
                             subscriber.Subscriptions.ToArray(),
