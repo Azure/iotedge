@@ -155,7 +155,7 @@ pub struct SessionPersistenceConfig {
 impl SessionPersistenceConfig {
     pub fn new(path: PathBuf, time_interval: Duration) -> Self {
         Self {
-            path: path,
+            path,
             time_interval,
         }
     }
