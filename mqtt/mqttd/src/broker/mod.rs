@@ -37,7 +37,7 @@ where
     let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
 
     info!("starting bridge...");
-    start_bridge();
+    start_bridge().await;
 
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
@@ -105,9 +105,9 @@ async fn tick_snapshot(
     }
 }
 
-fn start_bridge() {
+async fn start_bridge() {
     let bridge_controller = BridgeController::new();
-    bridge_controller.start();
+    bridge_controller.start().await;
 }
 
 #[derive(Debug, thiserror::Error)]
