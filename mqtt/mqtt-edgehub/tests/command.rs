@@ -62,28 +62,6 @@ async fn disconnect_client() {
     edgehub_client.shutdown().await;
 }
 
-/// Scenario:
-// create broker
-// create command handler
-// command handler will fail because it cannot subscribe to command topic
-#[tokio::test]
-async fn disconnect_client_bad_broker() {
-    let broker = BrokerBuilder::default().with_authorizer(DenyAll).build();
-    let broker_handle = broker.handle();
-
-    start_server(broker, DummyAuthenticator::anonymous());
-
-    let (_, join_handle) = start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string())
-        .await
-        .expect("could not start command handler");
-
-    let command_handler_status = join_handle
-        .await
-        .expect("failed to shutdown command handler");
-
-    assert_matches!(command_handler_status, Err(_));
-}
-
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     system_address: String,
