@@ -12,10 +12,11 @@ use futures_util::{
     future::{self, Either},
     pin_mut, FutureExt,
 };
-use tokio::sync::oneshot::channel;
-use tokio::sync::oneshot::Sender;
-use tokio::task::JoinHandle;
-use tokio::time;
+use tokio::{
+    sync::oneshot::{channel, Sender},
+    task::JoinHandle,
+    time,
+};
 use tracing::{info, warn};
 
 use mqtt_broker::BrokerHandle;

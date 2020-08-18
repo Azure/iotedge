@@ -1,12 +1,9 @@
-use std::collections::HashSet;
-use std::iter::FromIterator;
-use std::time::Duration;
+use std::{collections::HashSet, iter::FromIterator, time::Duration};
 
 use futures_util::future::BoxFuture;
 use lazy_static::lazy_static;
 use regex::Regex;
-use tokio::net::TcpStream;
-use tokio::stream::StreamExt;
+use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{error, info, warn};
 
 use mqtt3::{
