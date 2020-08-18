@@ -106,7 +106,7 @@ async fn tick_snapshot(
 }
 
 async fn start_bridge() {
-    let bridge_controller = BridgeController::new();
+    let mut bridge_controller = BridgeController::new();
     bridge_controller.start().await;
 }
 

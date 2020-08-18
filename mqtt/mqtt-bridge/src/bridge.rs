@@ -1,17 +1,19 @@
+use crate::settings::NestedBridgeSettings;
 use tracing::info;
 
 pub struct Bridge {
-    gateway_hostname: String,
+    nested_settings: NestedBridgeSettings,
 }
 
 impl Bridge {
-    pub fn new(gateway_hostname: &str) -> Self {
-        Bridge {
-            gateway_hostname: gateway_hostname.to_string(),
-        }
+    pub fn new(nested_settings: NestedBridgeSettings) -> Self {
+        Bridge { nested_settings }
     }
 
-    pub fn start(self) {
-        info!("Starting nested bridge...{:?}", self.gateway_hostname);
+    pub fn start(&self) {
+        info!(
+            "Starting nested bridge...{:?}",
+            self.nested_settings.gateway_hostname()
+        );
     }
 }
