@@ -163,7 +163,7 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
     }
 }
 
-pub async fn start_sidecars(
+async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
 ) -> (SidecarShutdownHandle, JoinHandle<Result<()>>) {

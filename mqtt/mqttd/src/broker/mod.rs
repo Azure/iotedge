@@ -13,8 +13,8 @@ use tokio::{
 use tracing::{info, warn};
 
 use mqtt_broker::{
-    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle as SnapshotShutdownHandle,
-    Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
+    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
+    StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
@@ -39,9 +39,7 @@ where
     pin_mut!(shutdown);
 
     info!("starting server...");
-    let start_server = bootstrap::start_server(config, broker, shutdown);
-
-    let state = start_server.await?;
+    let state = bootstrap::start_server(config, broker, shutdown).await?;
 
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;
@@ -59,7 +57,7 @@ async fn start_snapshotter(
     broker_handle: BrokerHandle,
     persistor: FilePersistor<VersionedFileFormat>,
 ) -> (
-    SnapshotShutdownHandle,
+    ShutdownHandle,
     JoinHandle<FilePersistor<VersionedFileFormat>>,
 ) {
     let snapshotter = Snapshotter::new(persistor);
