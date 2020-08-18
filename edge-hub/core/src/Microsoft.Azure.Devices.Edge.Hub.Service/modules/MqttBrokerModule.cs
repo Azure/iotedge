@@ -48,22 +48,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                    .SingleInstance();
 
             builder.Register(c => new SystemComponentIdProvider(c.ResolveNamed<IClientCredentials>("EdgeHubCredentials")))
-                    .As<ISystemComponentIdProvider>()
-                    .SingleInstance();
+                   .As<ISystemComponentIdProvider>()
+                   .SingleInstance();
 
-            builder.Register(
-                        c =>
-                        {
-                            var loggerFactory = c.Resolve<ILoggerFactory>();
-                            ILogger logger = loggerFactory.CreateLogger(typeof(MqttBridgeComponentDiscovery));
-
-                            var discovery = new MqttBridgeComponentDiscovery(logger);
-                            discovery.Discover(c);
-
-                            return discovery;
-                        })
-                .As<IComponentDiscovery>()
-                .SingleInstance();
+            builder.Register(c => MqttBridgeComponentDiscovery.Discover(c))
+                   .As<IComponentDiscovery>()
+                   .SingleInstance();
 
             builder.RegisterType<MqttBrokerConnector>()
                    .AsImplementedInterfaces()

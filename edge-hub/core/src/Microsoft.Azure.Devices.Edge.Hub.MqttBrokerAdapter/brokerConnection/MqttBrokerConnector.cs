@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading.Channels;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using uPLibrary.Networking.M2Mqtt;
     using uPLibrary.Networking.M2Mqtt.Messages;
@@ -15,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class MqttBrokerConnector : IMqttBrokerConnector
     {
         const int ReconnectDelayMs = 2000;
+        const int SubAckTimeoutSecs = 10;
 
         readonly IComponentDiscovery components;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
@@ -25,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Option<Channel<MqttPublishInfo>> publications;
         Option<Task> forwardingLoop;
         Option<MqttClient> mqttClient;
+
+        AtomicBoolean isRetrying = new AtomicBoolean(false);
 
         public MqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
         {
@@ -90,6 +94,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             client.ConnectionClosed += this.TriggerReconnect;
+
+            if (!client.IsConnected)
+            {
+                // at this point it is not known that 'TriggerReconnect' was subscribed in time,
+                // let's trigger it manually - if started twice, that is not a problem
+                this.TriggerReconnect(this, new EventArgs());
+            }
 
             Events.Started();
         }
@@ -210,30 +221,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             Task.Run(async () =>
             {
-                var client = default(MqttClient);
-
-                lock (this.guard)
+                if (this.isRetrying.GetAndSet(true))
                 {
-                    if (!this.mqttClient.HasValue)
-                    {
-                        return;
-                    }
-
-                    client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
+                    return;
                 }
 
-                // don't trigger it to ourselves while we are trying
-                client.ConnectionClosed -= this.TriggerReconnect;
+                var client = default(MqttClient);
 
-                var isConnected = false;
-
-                while (!isConnected)
+                try
                 {
-                    await Task.Delay(ReconnectDelayMs);
-
                     lock (this.guard)
                     {
-                        // seems Disconnect has been called since.
                         if (!this.mqttClient.HasValue)
                         {
                             return;
@@ -242,10 +240,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
                     }
 
-                    isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                    // don't trigger it to ourselves while we are trying
+                    client.ConnectionClosed -= this.TriggerReconnect;
+
+                    var isConnected = false;
+
+                    while (!isConnected)
+                    {
+                        await Task.Delay(ReconnectDelayMs);
+
+                        lock (this.guard)
+                        {
+                            // seems Disconnect has been called since.
+                            if (!this.mqttClient.HasValue)
+                            {
+                                return;
+                            }
+
+                            client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
+                        }
+
+                        isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                    }
+
+                    client.ConnectionClosed += this.TriggerReconnect;
+                }
+                finally
+                {
+                    this.isRetrying.Set(false);
                 }
 
-                client.ConnectionClosed += this.TriggerReconnect;
+                if (!client.IsConnected)
+                {
+                    // at this point it is not known that 'TriggerReconnect' was subscribed in time,
+                    // let's trigger it manually - if started twice, that is not a problem
+                    this.TriggerReconnect(this, new EventArgs());
+                }
             });
         }
 
@@ -269,12 +299,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                             continue;
                                         }
 
+                                        var accepted = false;
                                         foreach (var consumer in this.components.Consumers)
                                         {
                                             try
                                             {
-                                                var accepted = await consumer.HandleAsync(publishInfo);
-                                                Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
+                                                accepted = await consumer.HandleAsync(publishInfo);
+                                                if (accepted)
+                                                {
+                                                    Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
+                                                    break;
+                                                }
                                             }
                                             catch (Exception e)
                                             {
@@ -282,11 +317,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                                 // Keep going with other consumers...
                                             }
                                         }
-                                    }
 
-                                    foreach (var consumer in this.components.Consumers)
-                                    {
-                                        consumer.ProducerStopped();
+                                        if (!accepted)
+                                        {
+                                            Events.MessageNotForwarded(publishInfo.Topic, publishInfo.Payload.Length);
+                                        }
                                     }
 
                                     Events.ForwardingLoopStopped();
@@ -352,13 +387,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static async Task SubscribeAsync(MqttClient client, IReadOnlyCollection<IMessageConsumer> subscribers)
         {
-            var expectedAckCount = subscribers.Count;
+            var expectedAckCount = new AtomicLong(subscribers.Count);
 
-            if (expectedAckCount > 0)
+            if (expectedAckCount.Get() > 0)
             {
                 using (var acksArrived = new SemaphoreSlim(0, 1))
                 {
-                    var allQosGranted = default(bool);
+                    var allQosGranted = new AtomicBoolean(false);
 
                     client.MqttMsgSubscribed += ConfirmSubscribe;
 
@@ -369,11 +404,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                             Enumerable.Range(1, subscriber.Subscriptions.Count).Select(i => (byte)1).ToArray());
                     }
 
-                    await acksArrived.WaitAsync();
+                    try
+                    {
+                        await acksArrived.WaitAsync(TimeSpan.FromSeconds(SubAckTimeoutSecs));
+                    }
+                    catch (Exception ex)
+                    {
+                        Events.TimeoutReceivingSubAcks(ex);
+                        throw new TimeoutException("MQTT server did not acknowledge subscriptions", ex);
+                    }
+                    finally
+                    {
+                        client.MqttMsgSubscribed -= ConfirmSubscribe;
+                    }
 
-                    client.MqttMsgSubscribed -= ConfirmSubscribe;
-
-                    if (!Volatile.Read(ref allQosGranted))
+                    if (!allQosGranted.Get())
                     {
                         Events.QosMismatch();
                         throw new Exception("MQTT server did not grant QoS-1 for every requested subscription");
@@ -381,9 +426,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                     void ConfirmSubscribe(object sender, MqttMsgSubscribedEventArgs e)
                     {
-                        if (Interlocked.Decrement(ref expectedAckCount) == 0)
+                        if (expectedAckCount.Decrement() == 0)
                         {
-                            Volatile.Write(ref allQosGranted, e.GrantedQoSLevels.All(qos => qos == 1));
+                            allQosGranted.Set(e.GrantedQoSLevels.All(qos => qos == 1));
 
                             acksArrived.Release();
                         }
@@ -413,8 +458,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ForwardingLoopStarted,
                 ForwardingLoopStopped,
                 MessageForwarded,
+                MessageNotForwarded,
                 FailedToForward,
-                CouldNotConnect
+                CouldNotConnect,
+                TimeoutReceivingSubAcks
             }
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting mqtt-bridge connector");
@@ -431,8 +478,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void ForwardingLoopStarted() => Log.LogInformation((int)EventIds.ForwardingLoopStarted, "Forwarding loop started");
             public static void ForwardingLoopStopped() => Log.LogInformation((int)EventIds.ForwardingLoopStopped, "Forwarding loop stopped");
             public static void MessageForwarded(string consumer, bool accepted, string topic, int len) => Log.LogDebug((int)EventIds.MessageForwarded, "Message forwarded to {0} and it {1}. Topic {2}, Msg. len {3} bytes", consumer, accepted ? "accepted" : "ignored", topic, len);
+            public static void MessageNotForwarded(string topic, int len) => Log.LogDebug((int)EventIds.MessageForwarded, "Message has not been forwarded to any consumers. Topic {0}, Msg. len {1} bytes", topic, len);
             public static void FailedToForward(Exception e) => Log.LogError((int)EventIds.FailedToForward, e, "Failed to forward message.");
             public static void CouldNotConnect() => Log.LogInformation((int)EventIds.CouldNotConnect, "Could not connect to MQTT Broker, possibly it is not running. To disable MQTT Broker Connector, please set 'mqttBrokerSettings__enabled' environment variable to 'false'");
+            public static void TimeoutReceivingSubAcks(Exception e) => Log.LogError((int)EventIds.TimeoutReceivingSubAcks, e, "MQTT Broker has not acknowledged subscriptions in time");
         }
     }
 }

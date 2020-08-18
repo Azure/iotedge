@@ -19,14 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         protected async Task ConfirmMessageAsync(IMessage message, IIdentity identity)
         {
-            var proxy = default(IDeviceListener);
+            var listener = default(IDeviceListener);
             try
             {
-                proxy = (await this.connectionRegistry.GetDeviceListenerAsync(identity)).Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = (await this.connectionRegistry.GetDeviceListenerAsync(identity)).Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {
-                Events.MissingProxy(identity.Id);
+                Events.MissingListener(identity.Id);
                 return;
             }
 
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             try
             {
                 lockToken = message.SystemProperties[SystemProperties.LockToken];
-                await proxy.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
+                await listener.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
             }
             catch (Exception ex)
             {
@@ -64,11 +64,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             enum EventIds
             {
-                MissingProxy = IdStart,
+                MissingListener = IdStart,
                 FailedToConfirm
             }
 
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing device listener for {id}");
+            public static void MissingListener(string id) => Log.LogError((int)EventIds.MissingListener, $"Missing device listener for {id}");
             public static void FailedToConfirm(Exception ex, string lockToken, string id) => Log.LogError((int)EventIds.FailedToConfirm, ex, $"Cannot confirm back delivered message to {id} with token {lockToken}");
         }
     }
