@@ -47,8 +47,9 @@ use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
-static LABEL_KEY: &str = "net.azure-devices.edge.owner";
-static LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
+const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
+const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
+const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
 
 lazy_static! {
     static ref LABELS: Vec<&'static str> = {
@@ -63,7 +64,7 @@ pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
-    notary_lock: tokio::sync::lock::Lock<()>,
+    notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
 }
 
 impl DockerModuleRuntime {
@@ -162,7 +163,11 @@ impl ModuleRegistry for DockerModuleRuntime {
                                 )
                             }
                         })
-                        .map(move |digest| (format!("{}@{}", gun, digest), true)),
+                        .map(move |(digest, mut lock)| {
+                            let image_with_digest = format!("{}@{}", gun, digest);
+                            lock.insert(image_with_digest.clone(), digest);
+                            (image_with_digest, true)
+                        }),
                 )
             } else {
                 info!("{} is not enabled for notary content trust", hostname);
@@ -339,7 +344,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
-                        let notary_lock = tokio::sync::lock::Lock::new(());
+                        let notary_lock = tokio::sync::lock::Lock::new(BTreeMap::new());
                         DockerModuleRuntime {
                             client,
                             system_resources: Arc::new(Mutex::new(system_resources)),
@@ -426,48 +431,117 @@ impl ModuleRuntime for DockerModuleRuntime {
             ))));
         }
 
-        let result = module
-            .config()
-            .clone_create_options()
-            .and_then(|create_options| {
-                // merge environment variables
-                let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
+        let image_with_tag = module.config().image().to_string();
+        // check if the serveraddress exists & check if it exists in notary_registries
+        let registry_auth = module.config().auth();
+        let (registry_hostname, registry_username, registry_password) = match registry_auth {
+            Some(a) => (a.serveraddress(), a.username(), a.password()),
+            None => (None, None, None),
+        };
+        let hostname = registry_hostname.unwrap_or_default();
+        let username = registry_username.unwrap_or_default();
+        let password = registry_password.unwrap_or_default();
 
-                let mut labels = create_options
-                    .labels()
-                    .cloned()
-                    .unwrap_or_else(BTreeMap::new);
-                labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
+        let image_with_digest =
+            if !hostname.is_empty() && !username.is_empty() && !password.is_empty() {
+                let config_path = self.notary_registries.get(hostname);
+                if let Some(c) = config_path {
+                    info!("{} is enabled for notary content trust", hostname);
+                    let config_path_buf = c;
+                    let config_path_string_result =
+                        config_path_buf.clone().into_os_string().into_string();
+                    let config_path_str;
+                    match config_path_string_result {
+                        Ok(c) => config_path_str = c,
+                        Err(_) => config_path_str = "".to_string(),
+                    }
+                    let mut image_with_tag_parts = image_with_tag.split(':');
+                    let gun = image_with_tag_parts
+                        .next()
+                        .expect("split always returns atleast one element")
+                        .to_owned();
+                    let gun: Arc<str> = gun.into();
+                    let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
+                    let notary_auth = format!("{}:{}", username, password);
+                    let notary_auth = base64::encode(&notary_auth);
+                    let lock = self.notary_lock.clone();
+                    let mutex = MutexFuture(lock);
+                    future::Either::A(
+                        mutex
+                            .and_then({
+                                let gun = gun.clone();
+                                move |lock| {
+                                    notary::notary_lookup(
+                                        &notary_auth,
+                                        &gun,
+                                        &tag,
+                                        &config_path_str,
+                                        lock,
+                                    )
+                                }
+                            })
+                            .map(move |(digest, mut lock)| {
+                                let image_with_digest = format!("{}@{}", gun, digest);
+                                lock.insert(image_with_digest.clone(), digest);
+                                (image_with_digest, true)
+                            }),
+                    )
+                } else {
+                    info!("{} is not enabled for notary content trust", hostname);
+                    future::Either::B(futures::future::ok::<_, Error>((image_with_tag, false)))
+                }
+            } else {
+                future::Either::B(futures::future::ok((image_with_tag, false)))
+            };
 
-                debug!(
-                    "Creating container {} with image {}",
-                    module.name(),
-                    module.config().image()
-                );
+        let client = self.client.clone();
+        let result = image_with_digest
+            .and_then(|(image, is_content_trust_enabled)| {
+                if is_content_trust_enabled {
+                    info!("Creating image via digest {}...", image);
+                } else {
+                    info!("Creating image via tag {}...", image);
+                }
+                module
+                    .config()
+                    .clone_create_options()
+                    .map(move |create_options| {
+                        let merged_env =
+                            DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
-                let create_options = create_options
-                    .with_image(module.config().image().to_string())
-                    .with_env(merged_env)
-                    .with_labels(labels);
+                        let mut labels = create_options
+                            .labels()
+                            .cloned()
+                            .unwrap_or_else(BTreeMap::new);
+                        labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
+                        labels.insert(
+                            ORIGINAL_IMAGE_LABEL_KEY.to_string(),
+                            module.config().image().to_string(),
+                        );
 
-                // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
-                // It contains the logic to add a container to the iot edge network only if a network is not already specified.
+                        debug!("Creating container {} with image {}", module.name(), image);
 
-                Ok(self
-                    .client
-                    .container_api()
-                    .container_create(create_options, module.name())
-                    .then(|result| match result {
-                        Ok(_) => Ok(module),
-                        Err(err) => Err(Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                module.name().to_string(),
-                            )),
-                        )),
-                    }))
+                        let create_options = create_options
+                            .with_image(image)
+                            .with_env(merged_env)
+                            .with_labels(labels);
+
+                        // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
+                        // It contains the logic to add a container to the iot edge network only if a network is not already specified.
+                        client
+                            .container_api()
+                            .container_create(create_options, module.name())
+                            .then(|result| match result {
+                                Ok(_) => Ok(module),
+                                Err(err) => Err(Error::from_docker_error(
+                                    err,
+                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                        module.name().to_string(),
+                                    )),
+                                )),
+                            })
+                    })
             })
-            .into_future()
             .flatten()
             .then(|result| match result {
                 Ok(module) => {

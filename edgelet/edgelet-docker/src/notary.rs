@@ -3,6 +3,7 @@ use failure::ResultExt;
 use futures::Future;
 use log::{debug, info};
 use serde_json::json;
+use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -103,8 +104,14 @@ pub fn notary_lookup(
     image_gun: &str,
     tag: &str,
     config_path: &str,
-    lock: tokio::sync::lock::LockGuard<()>,
-) -> impl Future<Item = String, Error = Error> {
+    lock: tokio::sync::lock::LockGuard<BTreeMap<String, String>>,
+) -> impl Future<
+    Item = (
+        String,
+        tokio::sync::lock::LockGuard<BTreeMap<String, String>>,
+    ),
+    Error = Error,
+> {
     Command::new("notary")
         .env("NOTARY_AUTH", notary_auth)
         .arg("lookup")
@@ -112,7 +119,6 @@ pub fn notary_lookup(
         .args(&["-c", config_path])
         .output_async()
         .then(|notary_output| {
-            drop(lock);
             let notary_output = notary_output.with_context(|_| {
                 ErrorKind::LaunchNotary("could not spawn notary process".to_owned())
             })?;
@@ -127,7 +133,7 @@ pub fn notary_lookup(
                 )
                 .into());
             }
-            Ok(split_array[1].to_string())
+            Ok((split_array[1].to_string(), lock))
         })
 }
 
