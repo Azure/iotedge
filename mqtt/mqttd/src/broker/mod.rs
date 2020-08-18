@@ -17,13 +17,6 @@ use mqtt_broker::{
     Snapshotter, StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
-#[cfg(feature = "edgehub")]
-use mqtt_edgehub::command::{
-    CommandHandler, CommandHandlerError, ShutdownHandle as CommandShutdownHandle,
-};
-
-const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
-
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
@@ -38,10 +31,6 @@ where
 
     let broker = bootstrap::broker(config.broker(), state).await?;
 
-    #[cfg(feature = "edgehub")]
-    let broker_handle = broker.handle();
-    let system_address = config.listener().system().addr().to_string();
-
     info!("starting snapshotter...");
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
         start_snapshotter(broker.handle(), persistor).await;
@@ -52,21 +41,11 @@ where
     info!("starting server...");
     let start_server = bootstrap::start_server(config, broker, shutdown);
 
-    #[cfg(feature = "edgehub")]
-    info!("starting command handler...");
-    let (mut command_handler_shutdown_handle, command_handler_join_handle) =
-        start_command_handler(broker_handle, system_address).await?;
-
     let state = start_server.await?;
 
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
-
-    #[cfg(feature = "edgehub")]
-    command_handler_shutdown_handle.shutdown().await?;
-    command_handler_join_handle.await??;
-    info!("command handler shutdown.");
 
     info!("persisting state before exiting...");
     persistor.store(state).await?;
@@ -74,22 +53,6 @@ where
     info!("exiting... goodbye");
 
     Ok(())
-}
-
-async fn start_command_handler(
-    broker_handle: BrokerHandle,
-    system_address: String,
-) -> Result<(
-    CommandShutdownHandle,
-    JoinHandle<Result<(), CommandHandlerError>>,
-)> {
-    let device_id = env::var(DEVICE_ID_ENV)?;
-    let command_handler = CommandHandler::new(broker_handle, system_address, device_id.as_str());
-    let shutdown_handle = command_handler.shutdown_handle()?;
-
-    let join_handle = tokio::spawn(command_handler.run());
-
-    Ok((shutdown_handle, join_handle))
 }
 
 async fn start_snapshotter(
