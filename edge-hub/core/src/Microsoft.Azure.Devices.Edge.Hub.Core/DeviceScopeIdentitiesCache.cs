@@ -141,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNonWhiteSpace(authChain, nameof(authChain));
 
             // Refresh each element in the auth-chain
+            Events.RefreshingAuthChain(authChain);
             string[] ids = AuthChainHelpers.GetAuthChainIds(authChain);
             await this.RefreshServiceIdentities(ids);
         }
@@ -373,6 +374,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 AddInScope,
                 RefreshingServiceIdentity,
                 SkipRefreshServiceIdentity,
+                RefreshingAuthChain,
                 GettingServiceIdentity
             }
 
@@ -429,6 +431,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void RefreshingServiceIdentity(string id) =>
                 Log.LogDebug((int)EventIds.RefreshingServiceIdentity, $"Refreshing service identity for {id}");
+
+            public static void RefreshingAuthChain(string authChain) =>
+                Log.LogDebug((int)EventIds.RefreshingAuthChain, $"Refreshing authChain {authChain}");
 
             internal static void SkipRefreshServiceIdentity(string id, DateTime lastRefreshTime, TimeSpan refreshDelay)
             {

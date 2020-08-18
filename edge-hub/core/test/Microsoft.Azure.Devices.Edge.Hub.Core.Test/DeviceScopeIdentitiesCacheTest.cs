@@ -733,7 +733,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1))).ReturnsAsync(Option.Some(si1_initial));
 
             // Act
-            int refreshDelaySec = 5;
+            int refreshDelaySec = 10;
             var updatedIdentities = new List<ServiceIdentity>();
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(refreshDelaySec));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
@@ -817,7 +817,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(iterator.Object);
 
             // Act
-            int refreshDelaySec = 5;
+            int refreshDelaySec = 10;
             var updatedIdentities = new List<ServiceIdentity>();
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(refreshDelaySec));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);

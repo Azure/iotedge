@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object, deviceConnectivityManager);
+            var connectionManager = new ConnectionManager("edge1", connectionProvider, credentialsCache.Object, deviceScopeIdentitiesCache.Object, identityProvider.Object, deviceConnectivityManager);
             var messagesToSend = new List<IMessage>();
             for (int i = 0; i < 10; i++)
             {
@@ -198,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object, deviceConnectivityManager);
+            var connectionManager = new ConnectionManager("edge1", connectionProvider, credentialsCache.Object, deviceScopeIdentitiesCache.Object, identityProvider.Object, deviceConnectivityManager);
 
             // Act
             Option<ICloudProxy> cloudProxyOption = await connectionManager.GetCloudConnection(Id);
@@ -288,7 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object, deviceConnectivityManager);
+            var connectionManager = new ConnectionManager("edge1", connectionProvider, credentialsCache.Object, deviceScopeIdentitiesCache.Object, identityProvider.Object, deviceConnectivityManager);
 
             async Task<ICloudProxy> GetCloudProxy(IConnectionManager cm)
             {

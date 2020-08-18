@@ -451,7 +451,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 true);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(hostname), deviceConnectivityManager);
+            IConnectionManager connectionManager = new ConnectionManager("edge1", cloudConnectionProvider, Mock.Of<ICredentialsCache>(), deviceScopeIdentitiesCache.Object, new IdentityProvider(hostname), deviceConnectivityManager);
 
             ITokenCredentials clientCredentials1 = GetClientCredentials(TimeSpan.FromSeconds(10));
             Try<ICloudProxy> cloudProxyTry1 = await connectionManager.CreateCloudConnectionAsync(clientCredentials1);

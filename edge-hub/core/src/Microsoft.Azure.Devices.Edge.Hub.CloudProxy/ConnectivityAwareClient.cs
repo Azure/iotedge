@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -162,6 +163,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     {
                         await this.deviceConnectivityManager.CallTimedOut();
                     }
+                }
+                else if (ex is UnauthorizedException)
+                {
+                    // Translate this into a disconnect for the upper layers to handle
+                    Events.OperationFailed(this.identity, operation, mappedException);
+                    this.connectionStatusChangedHandler?.Invoke(ConnectionStatus.Disconnected_Retrying, ConnectionStatusChangeReason.Bad_Credential);
                 }
                 else
                 {

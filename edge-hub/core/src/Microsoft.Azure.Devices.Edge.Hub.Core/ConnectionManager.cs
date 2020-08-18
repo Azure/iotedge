@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Threading.Tasks;
     using App.Metrics;
     using App.Metrics.Gauge;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -26,22 +27,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
+        readonly string edgeHubId;
         readonly ICredentialsCache credentialsCache;
+        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly IIdentityProvider identityProvider;
         readonly IDeviceConnectivityManager connectivityManager;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
 
         public ConnectionManager(
+            string edgeDeviceId,
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             IIdentityProvider identityProvider,
             IDeviceConnectivityManager connectivityManager,
             int maxClients = DefaultMaxClients,
             bool closeCloudConnectionOnDeviceDisconnect = true)
         {
+            this.edgeHubId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId)) + "/" + Constants.EdgeHubModuleId;
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
+            this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.connectivityManager = Preconditions.CheckNotNull(connectivityManager, nameof(connectivityManager));
             this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
@@ -262,6 +269,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     })
                 .GetOrElse(() => this.ConnectToCloud(credentials, this.CloudConnectionStatusChangedHandler));
 
+        async Task RefreshAuthChain(string id)
+        {
+            // Only child connections have auth-chains
+            // that need to be refreshed
+            if (!id.Equals(this.edgeHubId))
+            {
+                Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(id);
+                await authChain.ForEachAsync(chain => this.deviceScopeIdentitiesCache.RefreshAuthChain(chain));
+            }
+        }
+
         async void CloudConnectionStatusChangedHandler(
             string deviceId,
             CloudConnectionStatus connectionStatus)
@@ -304,6 +322,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         this.CloudConnectionLost?.Invoke(this, device.Identity);
                     }
 
+                    break;
+
+                case CloudConnectionStatus.BadCredential:
+                    // Auth failure is possible if one or more parent was
+                    // changed (e.g. a parent was removed), but our cache
+                    // hasn't been updated yet. In this case pull down any
+                    // updates for each identity in the auth chain.
+                    await this.RefreshAuthChain(device.Identity.Id);
+                    Events.InvokingCloudConnectionLostEvent(device.Identity);
+                    this.CloudConnectionLost?.Invoke(this, device.Identity);
                     break;
 
                 case CloudConnectionStatus.DisconnectedTokenExpired:

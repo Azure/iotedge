@@ -115,16 +115,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 targetId += "/" + request.TargetModuleId;
             }
 
-            // Try updating our cache and get the target identity first
-            IEdgeHub edgeHub = await this.edgeHubGetter;
-            IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-            Option<ServiceIdentity> targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
-
             // We must always forward the call further upstream first,
             // as this is invoked for refreshing an identity on-demand,
             // and we don't know whether our cache is out-of-date.
+            IEdgeHub edgeHub = await this.edgeHubGetter;
+            IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
             await identitiesCache.RefreshServiceIdentity(targetId);
-            targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
+            Option<ServiceIdentity> targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
 
             if (!targetIdentity.HasValue)
             {

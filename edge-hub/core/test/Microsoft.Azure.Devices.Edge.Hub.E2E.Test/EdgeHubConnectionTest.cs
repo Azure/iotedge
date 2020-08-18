@@ -81,7 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 productInfoStore,
                 modelIdStore);
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider, deviceConnectivityManager);
+            var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
+            var connectionManager = new ConnectionManager("edge1", cloudConnectionProvider, Mock.Of<ICredentialsCache>(), deviceScopeIdentitiesCache, identityProvider, deviceConnectivityManager);
 
             try
             {

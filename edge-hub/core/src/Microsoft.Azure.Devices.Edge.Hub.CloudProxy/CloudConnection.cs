@@ -148,6 +148,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.DisconnectedTokenExpired);
                 }
+                else if (reason == ConnectionStatusChangeReason.Bad_Credential)
+                {
+                    this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.BadCredential);
+                }
                 else
                 {
                     this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.Disconnected);

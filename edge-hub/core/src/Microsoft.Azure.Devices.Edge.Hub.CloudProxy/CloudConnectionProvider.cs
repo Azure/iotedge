@@ -157,16 +157,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorCreatingCloudConnection(clientCredentials.Identity, ex);
-
-                if (ex is UnauthorizedException && this.nestedEdgeEnabled)
-                {
-                    // Auth failure is possible if one or more parent was
-                    // changed (e.g. a parent was removed), but our cache
-                    // hasn't been updated yet.
-                    Events.RefreshingAuthChain(clientCredentials.Identity, authChain);
-                    await this.deviceScopeIdentitiesCache.RefreshAuthChain(authChain);
-                }
-
                 return Try<ICloudConnection>.Failure(ex);
             }
         }
@@ -245,16 +235,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorCreatingCloudConnection(identity, ex);
-
-                if (ex is UnauthorizedException && this.nestedEdgeEnabled)
-                {
-                    // Auth failure is possible if one or more parent was
-                    // changed (e.g. a parent was removed), but our cache
-                    // hasn't been updated yet.
-                    Events.RefreshingAuthChain(identity, authChain);
-                    await this.deviceScopeIdentitiesCache.RefreshAuthChain(authChain);
-                }
-
                 return Try<ICloudConnection>.Failure(ex);
             }
         }

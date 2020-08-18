@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 {
     public enum CloudConnectionStatus
     {
+        BadCredential,
         ConnectionEstablished,
         DisconnectedTokenExpired,
         Disconnected,
