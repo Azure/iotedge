@@ -99,7 +99,19 @@ The Direct Method Connectivity Test is designed to test direct method resilience
 9. Test _Result Coordinator_ compiles a report from _Direct Method (Cloud) Sender_, _Direct Method Receiver_, _Network Controller_ and determine if the test case is passed or failed. 
 
 ##### Passing Criteria: 
-TBD
+We have 8 different cases that we account for in the Cloud to Module Direct Method (DM) tests. The tolerance period is defined as the amount of time we have deemed acceptable between when we begin toggling the network controller off and the network actually turning off. The tolerance period is set in the connectivity deployment, currently under e2e-deployment-files as connectivity_deployment.template.json.
+
+The 8 cases are as follows with descriptions of what they mean:
+| Name | Description |
+|------|-------------|
+| NetworkOnSuccess | Network was on at the time that the DM was sent, and the DM went through successfully. This is the network on happy case. |
+| NetworkOffSuccess | Network was off at the time that the DM was sent, and the DM failed. This is the expected case while the network is off. |
+| NetworkOnToleratedSuccess | Network was on at the time that the DM was sent, the DM was sent during the tolerance period, and the DM failed. This is considered a success because the DM failed during network on only within the tolerance period. |
+| NetworkOffToleratedSuccess | Network was off at the time that the DM was sent, the DM was sent during the tolerance period, and the DM succeeds. This is considered a success because the DM succeeds during network off only within the tolerance period. |
+| NetworkOnFailure | Network was on at the time that the DM was sent, the DM was sent after the tolerance period, and the DM failed. This is considered a failure because we expect the DM to succeed. The whole test will fail if this count is > 0. |
+| NetworkOffFailure | Network was off at the time that the DM was sent, the DM was sent after the tolerance period, and the DM succeeds. This is considered a failure because we expect the DM to fail. The whole test will fail if this count is > 0. |
+| MismatchSuccess | DM call succeeded, but there was no report received from the receiver. This can happen if we send a successful DM, but as soon as its sent through the network goes off and the receiver can't send a report to the TRC. |
+| MismatchFailure | There was a report from the receiver but not from the sender. This should never happen and is considered a failure if the count is > 0. |
 
 #### Cloud to EdgeAgent Direct Method Test (PING)
 
@@ -117,7 +129,17 @@ TBD
 6. _Test Result Coordinator_ compiles a report from _Direct Method Cloud Sender_, _Direct Method Receiver_, _Network Controller_ and determine if the test case is passed or failed. 
 
 ##### Passing Criteria: 
-TBD
+We have 6 different cases that we account for in the edgeAgent Direct Method (DM) ping tests. The tolerance period is defined as the amount of time we have deemed acceptable between when we begin toggling the network controller off and the network actually turning off. The tolerance period is set in the connectivity deployment, currently under e2e-deployment-files as connectivity_deployment.template.json.
+
+The 6 cases are as follows with descriptions of what they mean:
+| Name | Description |
+|------|-------------|
+| NetworkOnSuccess | Network was on at the time that the DM was sent, and the DM went through successfully. This is the network on happy case. |
+| NetworkOffSuccess | Network was off at the time that the DM was sent, and the DM failed. This is the expected case while the network is off. |
+| NetworkOnToleratedSuccess | Network was on at the time that the DM was sent, the DM was sent during the tolerance period, and the DM failed. This is considered a success because the DM failed during network on only within the tolerance period. |
+| NetworkOffToleratedSuccess | Network was off at the time that the DM was sent, the DM was sent during the tolerance period, and the DM succeeds. This is considered a success because the DM succeeds during network off only within the tolerance period. |
+| NetworkOnFailure | Network was on at the time that the DM was sent, the DM was sent after the tolerance period, and the DM failed. This is considered a failure because we expect the DM to succeed. The whole test will fail if this count is > 0. |
+| NetworkOffFailure | Network was off at the time that the DM was sent, the DM was sent after the tolerance period, and the DM succeeds. This is considered a failure because we expect the DM to fail. The whole test will fail if this count is > 0. |
 
 #### Cloud to Device Message Test
 
