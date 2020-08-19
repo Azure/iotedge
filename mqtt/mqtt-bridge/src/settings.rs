@@ -1,6 +1,6 @@
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
-use std::path::{Path};
+use std::path::Path;
 use std::vec::Vec;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
@@ -15,7 +15,7 @@ pub struct Settings {
     subscriptions: Subscriptions,
 
     #[serde(flatten)]
-    forwards: Forwards
+    forwards: Forwards,
 }
 
 impl Settings {
@@ -33,7 +33,7 @@ impl Settings {
         P: AsRef<Path>,
     {
         let mut config = Config::new();
-        
+
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(File::from(path.as_ref()))?;
         config.merge(Environment::with_prefix(ENVIRONMENT_PREFIX))?;
@@ -88,9 +88,8 @@ impl NestedBridgeSettings {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Subscriptions
-{
-    subscriptions: Vec<Subscription>
+pub struct Subscriptions {
+    subscriptions: Vec<Subscription>,
 }
 
 impl Subscriptions {
@@ -99,13 +98,11 @@ impl Subscriptions {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Subscription
-{
+pub struct Subscription {
     pattern: String,
 
-    remote: String
+    remote: String,
 }
 
 impl Subscription {
@@ -119,9 +116,8 @@ impl Subscription {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Forwards
-{
-    forwards: Vec<Forward>
+pub struct Forwards {
+    forwards: Vec<Forward>,
 }
 
 impl Forwards {
@@ -131,11 +127,10 @@ impl Forwards {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Forward
-{
+pub struct Forward {
     pattern: String,
 
-    remote: String
+    remote: String,
 }
 
 impl Forward {

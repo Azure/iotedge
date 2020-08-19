@@ -12,10 +12,7 @@ impl NestedBridge {
     }
 
     pub async fn start(&self) {
-        info!(
-            "Starting nested bridge...{:?}",
-            self.settings
-        );
+        info!("Starting nested bridge...{:?}", self.settings);
 
         self.connect_to_local().await;
         self.connect_upstream().await;
