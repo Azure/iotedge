@@ -432,6 +432,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         let image_with_tag = module.config().image().to_string();
+        let digest_from_manifest = module.config().digest().map(&str::to_owned);
+
         // check if the serveraddress exists & check if it exists in notary_registries
         let registry_auth = module.config().auth();
         let (registry_hostname, registry_username, registry_password) = match registry_auth {
@@ -442,31 +444,33 @@ impl ModuleRuntime for DockerModuleRuntime {
         let username = registry_username.unwrap_or_default();
         let password = registry_password.unwrap_or_default();
 
-        let image_with_digest =
-            if !hostname.is_empty() && !username.is_empty() && !password.is_empty() {
-                let config_path = self.notary_registries.get(hostname);
-                if let Some(c) = config_path {
-                    info!("{} is enabled for notary content trust", hostname);
-                    let config_path_buf = c;
-                    let config_path_string_result =
-                        config_path_buf.clone().into_os_string().into_string();
-                    let config_path_str;
-                    match config_path_string_result {
-                        Ok(c) => config_path_str = c,
-                        Err(_) => config_path_str = "".to_string(),
-                    }
-                    let mut image_with_tag_parts = image_with_tag.split(':');
-                    let gun = image_with_tag_parts
-                        .next()
-                        .expect("split always returns atleast one element")
-                        .to_owned();
-                    let gun: Arc<str> = gun.into();
-                    let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
-                    let notary_auth = format!("{}:{}", username, password);
-                    let notary_auth = base64::encode(&notary_auth);
-                    let lock = self.notary_lock.clone();
-                    let mutex = MutexFuture(lock);
-                    future::Either::A(
+        let image_by_notary = if !hostname.is_empty()
+            && !username.is_empty()
+            && !password.is_empty()
+        {
+            let config_path = self.notary_registries.get(hostname);
+            if let Some(c) = config_path {
+                info!("{} is enabled for notary content trust", hostname);
+                let config_path_buf = c;
+                let config_path_string_result =
+                    config_path_buf.clone().into_os_string().into_string();
+                let config_path_str;
+                match config_path_string_result {
+                    Ok(c) => config_path_str = c,
+                    Err(_) => config_path_str = "".to_string(),
+                }
+                let mut image_with_tag_parts = image_with_tag.split(':');
+                let gun = image_with_tag_parts
+                    .next()
+                    .expect("split always returns atleast one element")
+                    .to_owned();
+                let gun: Arc<str> = gun.into();
+                let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
+                let notary_auth = format!("{}:{}", username, password);
+                let notary_auth = base64::encode(&notary_auth);
+                let lock = self.notary_lock.clone();
+                let mutex = MutexFuture(lock);
+                future::Either::A(
                         mutex
                             .and_then({
                                 let gun = gun.clone();
@@ -480,22 +484,36 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     )
                                 }
                             })
-                            .map(move |(digest, mut lock)| {
-                                let image_with_digest = format!("{}@{}", gun, digest);
-                                lock.insert(image_with_digest.clone(), digest);
-                                (image_with_digest, true)
+                            .map(move |(digest_from_notary, mut lock)| {
+                                let image_with_digest = format!("{}@{}", gun, digest_from_notary);
+                                lock.insert(image_with_digest.clone(), digest_from_notary.clone());
+                                if let Some(digest_from_manifest_str) = digest_from_manifest {
+                                    if digest_from_manifest_str == digest_from_notary {
+                                        info!("Digest from notary and Digest from manifest does match");
+                                        debug!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
+                                        (image_with_digest, true)
+                                    }
+                                    else {
+                                        info!("Digest from notary and Digest from manifest does not match");
+                                        debug!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
+                                        (image_with_tag, false)
+                                    }
+                                }
+                                else {
+                                    (image_with_tag, false)
+                                }
                             }),
                     )
-                } else {
-                    info!("{} is not enabled for notary content trust", hostname);
-                    future::Either::B(futures::future::ok::<_, Error>((image_with_tag, false)))
-                }
             } else {
-                future::Either::B(futures::future::ok((image_with_tag, false)))
-            };
+                info!("{} is not enabled for notary content trust", hostname);
+                future::Either::B(futures::future::ok::<_, Error>((image_with_tag, false)))
+            }
+        } else {
+            future::Either::B(futures::future::ok((image_with_tag, false)))
+        };
 
         let client = self.client.clone();
-        let result = image_with_digest
+        let result = image_by_notary
             .and_then(|(image, is_content_trust_enabled)| {
                 if is_content_trust_enabled {
                     info!("Creating image via digest {}...", image);
@@ -580,7 +598,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
                             })?;
                         let config =
-                            DockerConfig::new(name.clone(), ContainerCreateBody::new(), None)
+                            DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
                                 .with_context(|_| {
                                     ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
                                         id.clone(),
@@ -905,6 +923,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                             .map(|(k, v)| (k.to_string(), v.to_string()))
                                             .collect(),
                                     ),
+                                    None,
                                     None,
                                 )
                                 .map(|config| {

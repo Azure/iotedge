@@ -2428,6 +2428,7 @@ mod tests {
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
             None,
+            None,
         )
         .unwrap();
         let state = ModuleRuntimeState::default();
@@ -2471,6 +2472,7 @@ mod tests {
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
             None,
+            None,
         )
         .unwrap();
         let state = ModuleRuntimeState::default();
@@ -2512,6 +2514,7 @@ mod tests {
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
+            None,
             None,
         )
         .unwrap();
@@ -2593,6 +2596,7 @@ mod tests {
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
             None,
+            None,
         )
         .unwrap();
         let state = ModuleRuntimeState::default();
@@ -2661,6 +2665,7 @@ mod tests {
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
+            None,
             None,
         )
         .unwrap();
