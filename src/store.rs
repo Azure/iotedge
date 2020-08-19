@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use aziot_key_client_async::Client as KeyClient;
 use aziot_key_common::{CreateKeyValue, EncryptMechanism};
-use futures::future::try_join_all;
 use hyper::client::HttpConnector;
 use iotedge_aad::{Auth, TokenSource};
 use lazy_static::lazy_static;
@@ -108,7 +107,7 @@ impl<T: StoreBackend> Store<T> {
         Ok(())
     }
 
-    pub async fn pull_secrets(&self, keys: Vec<&str>) -> BoxResult<'_, ()> {
+    pub async fn pull_secret(&self, id: String, key: String) -> BoxResult<'_, ()> {
         lazy_static! {
             static ref VAULT_REGEX: Regex = Regex::new(r"^https://[0-9a-zA-Z\-]+\.vault\.azure\.net").unwrap();
         }
@@ -124,28 +123,26 @@ impl<T: StoreBackend> Store<T> {
             .get()
             .to_string();
 
-        let key_values: Vec<hyper::Response<hyper::Body>> = try_join_all(
-                keys.into_iter()
-                    .filter(|key| VAULT_REGEX.is_match(key))
-                    .map(|key| format!("{}?api-version=7.0", key).parse::<hyper::Uri>())
-                    .collect::<Result<Vec<hyper::Uri>, _>>()?
-                    .into_iter()
-                    .map(|key| {
-                        let req = hyper::Request::builder()
-                            .uri(key)
-                            .header("Authorization", format!("Bearer {}", token.to_owned()))
-                            .body(hyper::Body::empty())
-                            .unwrap();
-                        client.request(req)
-                    })
-                    .collect::<Vec<hyper::client::ResponseFuture>>()
-            )
-            .await?;
-
-        for key_value in try_join_all(key_values.into_iter().map(|key_value| slurp_json::<serde_json::Value>(key_value))).await? {
-            println!("{}", key_value.get("value").unwrap().as_str().unwrap())
+        if VAULT_REGEX.is_match(&key) {
+            let key_url = format!("{}?api-version=7.0", key)
+                .parse::<hyper::Uri>()?;
+            let req = hyper::Request::builder()
+                .uri(key_url)
+                .header("Authorization", format!("Bearer {}", token))
+                .body(hyper::Body::empty())?;
+            let res = client.request(req)
+                .await?;
+            let key_res = slurp_json::<serde_json::Value>(res)
+                .await?;
+            let key_val = key_res.get("value")
+                .unwrap()
+                .as_str()
+                .unwrap();
+            self.set_secret(id, key_val.to_owned())
+                .await
         }
-
-        Ok(())
+        else {
+            Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "BAD KEY URI")))
+        }
     }
 }

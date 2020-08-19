@@ -35,11 +35,8 @@ pub(crate) async fn dispatch<'a, T: StoreBackend>(store: &'a Store<T>, req: Requ
         },
         &Method::PATCH => {
             let body = read_request(req).await?;
-            let lines = body.lines()
-                .into_iter()
-                .collect();
 
-            store.pull_secrets(lines).await?;
+            store.pull_secret(id, body).await?;
             Ok(Response::new(Body::empty()))
         }
         _ => Ok(Response::builder().status(404).body(Body::empty())?)
