@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     public class MetricTransformer
     {
         Option<List<KeyValuePair<string, string>>> allowedTags = Option.None<List<KeyValuePair<string, string>>>();
+        Option<List<KeyValuePair<string, string>>> disallowedTags = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<KeyValuePair<string, string>>> tagsToAdd = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<(string tag, Func<string, string> valueTransformer)>> tagsToModify = Option.None<List<(string, Func<string, string>)>>();
         Option<List<string>> tagsToRemove = Option.None<List<string>>();
@@ -27,6 +28,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 // Skip metric if it doesn't contain any allowed tags.
                 if (this.allowedTags.Exists(allowedTags => !allowedTags.Any(metric.Tags.Contains)))
+                {
+                    continue;
+                }
+
+                // Skip metric if it contains any disallowed tags.
+                if (this.disallowedTags.Exists(disallowedTags => disallowedTags.Any(metric.Tags.Contains)))
                 {
                     continue;
                 }
@@ -56,15 +63,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             }
         }
 
-        public MetricTransformer AddAllowedTags(params KeyValuePair<string, string>[] pairs)
+        public MetricTransformer AddAllowedTags(params (string key, string value)[] pairs)
         {
             if (this.allowedTags.HasValue)
             {
-                this.allowedTags.ForEach(wl => wl.AddRange(pairs));
+                this.allowedTags.ForEach(at => at.AddRange(pairs.Select(p => new KeyValuePair<string, string>(p.key, p.value))));
             }
             else
             {
-                this.allowedTags = Option.Some(new List<KeyValuePair<string, string>>(pairs));
+                this.allowedTags = Option.Some(pairs.Select(p => new KeyValuePair<string, string>(p.key, p.value)).ToList());
+            }
+
+            return this;
+        }
+
+        public MetricTransformer AddDisallowedTags(params (string key, string value)[] pairs)
+        {
+            if (this.disallowedTags.HasValue)
+            {
+                this.disallowedTags.ForEach(dt => dt.AddRange(pairs.Select(p => new KeyValuePair<string, string>(p.key, p.value))));
+            }
+            else
+            {
+                this.disallowedTags = Option.Some(pairs.Select(p => new KeyValuePair<string, string>(p.key, p.value)).ToList());
             }
 
             return this;
