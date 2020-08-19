@@ -4,7 +4,7 @@ use config::{Config, ConfigError, Environment, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-use mqtt_broker_core::settings::BrokerConfig;
+use mqtt_broker::{settings::Enable, BrokerConfig};
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -74,18 +74,30 @@ impl Default for Settings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ListenerConfig {
-    tcp: Option<TcpTransportConfig>,
-    tls: Option<TlsTransportConfig>,
+    tcp: Option<Enable<TcpTransportConfig>>,
+    tls: Option<Enable<TlsTransportConfig>>,
     system: TcpTransportConfig,
 }
 
 impl ListenerConfig {
+    pub fn new(
+        tcp: Option<TcpTransportConfig>,
+        tls: Option<TlsTransportConfig>,
+        system: TcpTransportConfig,
+    ) -> Self {
+        Self {
+            tcp: tcp.map(|tcp| Enable::from(Some(tcp))),
+            tls: tls.map(|tls| Enable::from(Some(tls))),
+            system,
+        }
+    }
+
     pub fn tcp(&self) -> Option<&TcpTransportConfig> {
-        self.tcp.as_ref()
+        self.tcp.as_ref().and_then(Enable::as_inner)
     }
 
     pub fn tls(&self) -> Option<&TlsTransportConfig> {
-        self.tls.as_ref()
+        self.tls.as_ref().and_then(Enable::as_inner)
     }
 
     pub fn system(&self) -> &TcpTransportConfig {
@@ -186,11 +198,14 @@ impl AuthConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, time::Duration};
+    use std::time::Duration;
 
-    use mqtt_broker_core::settings::{
+    use serial_test::serial;
+
+    use mqtt_broker::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
     };
+    use mqtt_broker_tests_util::env;
 
     use super::{
         AuthConfig, CertificateConfig, ListenerConfig, Settings, TcpTransportConfig,
@@ -207,11 +222,11 @@ mod tests {
         assert_eq!(
             settings,
             Settings {
-                listener: ListenerConfig {
-                    tcp: Some(TcpTransportConfig::new("0.0.0.0:1883")),
-                    tls: Some(TlsTransportConfig::new("0.0.0.0:8883", None)),
-                    system: TcpTransportConfig::new("0.0.0.0:1882"),
-                },
+                listener: ListenerConfig::new(
+                    Some(TcpTransportConfig::new("0.0.0.0:1883")),
+                    Some(TlsTransportConfig::new("0.0.0.0:8883", None)),
+                    TcpTransportConfig::new("0.0.0.0:1882"),
+                ),
                 auth: AuthConfig::new(7120, "/authenticate/"),
                 broker: BrokerConfig::new(
                     RetainedMessagesConfig::new(1000, Duration::from_secs(60 * DAYS)),
@@ -236,11 +251,13 @@ mod tests {
     }
 
     #[test]
+    #[serial(env_settings)]
     fn new_overrides_settings_from_env() {
         it_overrides_settings_from_env(Settings::new);
     }
 
     #[test]
+    #[serial(env_settings)]
     fn from_file_overrides_settings_from_env() {
         it_overrides_settings_from_env(|| Settings::from_file("config/default.json"));
     }
@@ -249,11 +266,11 @@ mod tests {
     where
         F: FnOnce() -> Result<Settings, ConfigError>,
     {
-        env::set_var("LISTENER__TCP__ADDRESS", "10.0.0.1:1883");
-        env::set_var("LISTENER__TLS__ADDRESS", "10.0.0.1:8883");
-        env::set_var("LISTENER__TLS__CERTIFICATE", "/tmp/edgehub/cert.pem");
-        env::set_var("LISTENER__TLS__PRIVATE_KEY", "/tmp/edgehub/pkey.pem");
-        env::set_var("AUTH__BASE_URL", "/auth/");
+        let _tcp_address = env::set_var("LISTENER__TCP__ADDRESS", "10.0.0.1:1883");
+        let _tls_address = env::set_var("LISTENER__TLS__ADDRESS", "10.0.0.1:8883");
+        let _tls_certificate = env::set_var("LISTENER__TLS__CERTIFICATE", "/tmp/edgehub/cert.pem");
+        let _tls_private_key = env::set_var("LISTENER__TLS__PRIVATE_KEY", "/tmp/edgehub/pkey.pem");
+        let _auth_base_url = env::set_var("AUTH__BASE_URL", "/auth/");
 
         let settings = make_settings().unwrap();
 
@@ -270,5 +287,20 @@ mod tests {
             ))
         );
         assert_eq!(settings.auth().url(), "http://localhost:7120/auth/");
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn it_can_disable_default_options() {
+        let settings = Settings::new().unwrap();
+        assert!(settings.listener().tcp().is_some());
+        assert!(settings.listener().tls().is_some());
+
+        let _tcp_enabled = env::set_var("LISTENER__TCP__ENABLED", "false");
+        let _tls_enabled = env::set_var("LISTENER__TLS__ENABLED", "false");
+
+        let settings = Settings::new().unwrap();
+        assert!(!settings.listener().tcp().is_some());
+        assert!(!settings.listener().tls().is_some());
     }
 }

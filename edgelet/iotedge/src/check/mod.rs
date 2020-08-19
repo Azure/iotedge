@@ -29,7 +29,7 @@ use checker::Checker;
 
 mod checks;
 use checks::{
-    get_host_connect_iothub_tests, get_host_container_iothub_tests, CertificatesQuickstart,
+    get_host_connect_upstream_tests, get_host_container_upstream_tests, CertificatesQuickstart,
     ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
     ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime, EdgeAgentStorageMounted,
     EdgeHubStorageMounted, HostConnectDpsEndpoint, HostLocalTime, Hostname,
@@ -249,8 +249,8 @@ impl Check {
             ("Connectivity checks", {
                 let mut tests: Vec<Box<dyn Checker>> = Vec::new();
                 tests.push(Box::new(HostConnectDpsEndpoint::default()));
-                tests.extend(get_host_connect_iothub_tests());
-                tests.extend(get_host_container_iothub_tests());
+                tests.extend(get_host_connect_upstream_tests());
+                tests.extend(get_host_container_upstream_tests());
                 tests
             }),
         ]

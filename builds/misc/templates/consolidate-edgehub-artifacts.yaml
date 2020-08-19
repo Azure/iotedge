@@ -2,8 +2,8 @@
 # EdgeHub's dotnet publish folder will serve as a minimal build context for the image
 parameters:
   dotnet.artifacts.path: 'publish/Microsoft.Azure.Devices.Edge.Hub.Service'
-  mqttd.artifacts.path: 'mqtt/target/'
-  mqttd.config.path: 'mqtt/contrib/edgehub/broker.json'
+  mqtt.artifacts.path: 'mqtt/target/'
+  mqtt.config.path: 'mqtt/contrib/edgehub/broker.json'
   watchdog.artifacts.path: 'edge-hub/watchdog/target'
   all.artifacts.path: 'publish/edge-hub'
 
@@ -11,15 +11,15 @@ steps:
   - bash: |
       # Setup build context
       mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}
-      mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
+      mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqtt
       mkdir -p $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/watchdog
 
       # Copy watchdog artifacts
       cp  -r ${{ parameters['watchdog.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/watchdog
 
       # Copy mqtt artifacts
-      cp  -r ${{ parameters['mqttd.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
-      cp ${{ parameters['mqttd.config.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqttd
+      cp  -r ${{ parameters['mqtt.artifacts.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqtt
+      cp ${{ parameters['mqtt.config.path'] }} $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}/mqtt
 
       # Copy edgehub artifacts
       mv  $(Build.BinariesDirectory)/${{ parameters['dotnet.artifacts.path'] }}/docker $(Build.BinariesDirectory)/${{ parameters['all.artifacts.path'] }}

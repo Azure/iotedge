@@ -12,8 +12,9 @@ chrono = "0.4"
 criterion = { version = "0.3", optional = true }
 fail = "0.3"
 flate2 = "1.0"
-futures = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
+humantime = "2.0"
+humantime-serde = "1.0"
 lazy_static = "1.4"
 openssl = "0.10"
 proptest = { version = "0.9", optional = true }
@@ -22,7 +23,7 @@ regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 thiserror = "1.0"
-tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp"] }
+tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp", "dns"] }
 tokio-io-timeout = "0.4"
 tokio-openssl = "0.4"
 tokio-util = { version = "0.2", features = ["codec"] }
@@ -31,8 +32,6 @@ tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
-mqtt-broker-core = { path = "../mqtt-broker-core" }
 
 [dev-dependencies]
 atty = "0.2"
@@ -43,8 +42,10 @@ matches = "0.1"
 proptest = "0.9"
 tempfile = "3"
 test-case = "1.0"
-tokio = { version = "0.2", features = ["dns", "macros"] }
+tokio = { version = "0.2", features = ["dns", "macros", "io-util"] }
 tracing-subscriber = "0.1"
+
+mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 
 [[test]]
 name = "persist_failpoints"
@@ -53,11 +54,6 @@ required-features = ["fail/failpoints"]
 [[test]]
 name = "broker_model"
 path = "tests/broker_model.rs"
-required-features = ["proptest"]
-
-[[test]]
-name = "translation"
-path = "tests/translation.rs"
 required-features = ["proptest"]
 
 [[bench]]
@@ -71,8 +67,6 @@ harness = false
 required-features = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 
 [features]
-default = ["edgehub"]
-edgehub = ["mqtt-edgehub"]
 benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 
 # Internal (PRIVATE!) features used to aid testing.

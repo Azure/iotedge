@@ -14,11 +14,13 @@ use futures_util::{
 use tokio::time;
 use tracing::{info, warn};
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Server, ServerCertificate};
-use mqtt_broker_core::{auth::Authorizer, settings::BrokerConfig};
+use mqtt_broker::{
+    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server,
+    ServerCertificate,
+};
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    edgelet,
+    connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
 
@@ -59,7 +61,8 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()> + Unpin,
 {
-    let mut server = Server::from_broker(broker);
+    let mut server =
+        Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor::default());
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();
@@ -146,7 +149,7 @@ async fn download_server_certificate() -> Result<ServerCertificate> {
     let generation_id = env::var(MODULE_GENERATION_ID).context(MODULE_GENERATION_ID)?;
     let expiration = Utc::now() + Duration::days(CERTIFICATE_VALIDITY_DAYS);
 
-    let client = edgelet::workload(&uri)?;
+    let client = edgelet_client::workload(&uri)?;
     let cert = client
         .create_server_cert(&module_id, &generation_id, &hostname, expiration)
         .await?;

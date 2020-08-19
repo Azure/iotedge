@@ -53,6 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
         }
 
+        public string GetEdgeDeviceId() => this.edgeDeviceId;
+
         public Task ProcessDeviceMessage(IIdentity identity, IMessage message)
         {
             Preconditions.CheckNotNull(message, nameof(message));

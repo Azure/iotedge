@@ -38,9 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                                                             new SubscriptionPattern(TwinSubscriptionForResultsPattern, DeviceSubscription.TwinResponse),
                                                                             new SubscriptionPattern(TwinSubscriptionForPatchPattern, DeviceSubscription.DesiredPropertyUpdates)
                                                                          };
-        readonly Channel<ProcessingInfo> notifications;
-        readonly Task processingLoop;
-
         readonly IConnectionRegistry connectionRegistry;
         readonly IIdentityProvider identityProvider;
 
@@ -52,49 +49,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             this.connectionRegistry = Preconditions.CheckNotNull(connectionRegistry);
             this.identityProvider = Preconditions.CheckNotNull(identityProvider);
-
-            this.notifications = Channel.CreateUnbounded<ProcessingInfo>(
-                                    new UnboundedChannelOptions
-                                    {
-                                        SingleReader = true,
-                                        SingleWriter = true
-                                    });
-
-            this.processingLoop = this.StartProcessingLoop();
         }
 
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
 
         public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {
-            var isEnqueued = default(bool);
             var match = Regex.Match(publishInfo.Topic, TwinGetPublishPattern);
             if (match.Success)
             {
-                isEnqueued = this.notifications.Writer.TryWrite(new ProcessingInfo(Direction.Get, match, publishInfo));
-                if (!isEnqueued)
-                {
-                    Events.ErrorEnqueueingNotification();
-                }
+                return this.HandleTwinGet(match, publishInfo);
             }
 
             match = Regex.Match(publishInfo.Topic, TwinUpdatePublishPattern);
             if (match.Success)
             {
-                isEnqueued = this.notifications.Writer.TryWrite(new ProcessingInfo(Direction.Set, match, publishInfo));
-                if (!isEnqueued)
-                {
-                    Events.ErrorEnqueueingNotification();
-                }
+                return this.HandleUpdateReported(match, publishInfo);
             }
 
-            return Task.FromResult(isEnqueued);
-        }
-
-        public void ProducerStopped()
-        {
-            this.notifications.Writer.Complete();
-            this.processingLoop.Wait();
+            return Task.FromResult(false);
         }
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
@@ -173,9 +146,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Task<bool> HandleTwinGet(Match match, MqttPublishInfo publishInfo)
         {
             return this.HandleUpstreamRequest(
-                        async (proxy, rid) =>
+                        async (listener, rid) =>
                         {
-                            await proxy.SendGetTwinRequest(rid);
+                            await listener.SendGetTwinRequest(rid);
                         },
                         match,
                         publishInfo);
@@ -184,10 +157,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Task<bool> HandleUpdateReported(Match match, MqttPublishInfo publishInfo)
         {
             return this.HandleUpstreamRequest(
-                        async (proxy, rid) =>
+                        async (listener, rid) =>
                         {
                             var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
-                            await proxy.UpdateReportedPropertiesAsync(message, rid);
+                            await listener.UpdateReportedPropertiesAsync(message, rid);
                         },
                         match,
                         publishInfo);
@@ -203,57 +176,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeProxy = await this.connectionRegistry.GetDeviceListenerAsync(identity);
-            var proxy = default(IDeviceListener);
+            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var listener = default(IDeviceListener);
 
             try
             {
-                proxy = maybeProxy.Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {
-                Events.MissingProxy(identity.Id);
+                Events.MissingListener(identity.Id);
                 return false;
             }
 
             var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
-            await action(proxy, rid.Value);
+            await action(listener, rid.Value);
 
             return true;
-        }
-
-        Task StartProcessingLoop()
-        {
-            var loopTask = Task.Run(
-                                async () =>
-                                {
-                                    Events.ProcessingLoopStarted();
-
-                                    while (await this.notifications.Reader.WaitToReadAsync())
-                                    {
-                                        var processingInfo = await this.notifications.Reader.ReadAsync();
-
-                                        try
-                                        {
-                                            if (processingInfo.Direction == Direction.Get)
-                                            {
-                                                await this.HandleTwinGet(processingInfo.Match, processingInfo.PublishInfo);
-                                            }
-                                            else
-                                            {
-                                                await this.HandleUpdateReported(processingInfo.Match, processingInfo.PublishInfo);
-                                            }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Events.ErrorProcessingNotification(e);
-                                        }
-                                    }
-
-                                    Events.ProcessingLoopStopped();
-                                });
-
-            return loopTask;
         }
 
         static string GetTwinResultTopic(IIdentity identity, string statusCode, string correlationId)
@@ -301,16 +240,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 DesiredPropertiesUpdate,
                 DesiredPropertiesUpdateFailed,
                 DesiredPropertiesUpdateIncompete,
-                MissingProxy,
+                MissingListener,
                 UnexpectedTwinTopic,
                 BadIdentityFormat,
                 FailedToSendTwinUpdateMessage,
                 FailedToSendDesiredPropertiesUpdateMessage,
-                BadPayloadFormat,
-                ProcessingLoopStarted,
-                ProcessingLoopStopped,
-                ErrorEnqueueingNotification,
-                ErrorProcessingNotification
+                BadPayloadFormat
             }
 
             public static void TwinUpdate(string id, string statusCode, string correlationId, int messageLen) => Log.LogDebug((int)EventIds.TwinUpdate, $"Twin Update sent to client: {id}, status: {statusCode}, rid: {correlationId}, msg len: {messageLen}");
@@ -319,36 +254,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void DesiredPropertiesUpdateFailed(string id, string version, int messageLen) => Log.LogError((int)EventIds.DesiredPropertiesUpdateFailed, $"Failed to send Desired Properties Update to client: {id}, status: {version}, msg len: {messageLen}");
             public static void TwinUpdateIncompete(string id) => Log.LogError((int)EventIds.TwinUpdateIncompete, $"Failed to send Twin Update to client {id} because the message is incomplete - not all system properties are present");
             public static void DesiredPropertiesUpdateIncompete(string id) => Log.LogError((int)EventIds.DesiredPropertiesUpdateIncompete, $"Failed to send Desired Properties Update to client {id} because the message is incomplete - not all system properties are present");
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing device listener for {id}");
+            public static void MissingListener(string id) => Log.LogError((int)EventIds.MissingListener, $"Missing device listener for {id}");
             public static void UnexpectedTwinTopic(string topic) => Log.LogWarning((int)EventIds.UnexpectedTwinTopic, $"Twin-like topic strucure with unexpected format {topic}");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void FailedToSendTwinUpdateMessage(Exception e) => Log.LogError((int)EventIds.FailedToSendTwinUpdateMessage, e, "Failed to send twin update message");
             public static void FailedToSendDesiredPropertiesUpdateMessage(Exception e) => Log.LogError((int)EventIds.FailedToSendDesiredPropertiesUpdateMessage, e, "Failed to send Desired Properties Update message");
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
-            public static void ProcessingLoopStarted() => Log.LogInformation((int)EventIds.ProcessingLoopStarted, "Processing loop started");
-            public static void ProcessingLoopStopped() => Log.LogInformation((int)EventIds.ProcessingLoopStopped, "Processing loop stopped");
-            public static void ErrorEnqueueingNotification() => Log.LogError((int)EventIds.ErrorEnqueueingNotification, "Error enqueueing notification");
-            public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing Twin notification");
-        }
-
-        public enum Direction
-        {
-            Get,
-            Set
-        }
-
-        class ProcessingInfo
-        {
-            public ProcessingInfo(Direction direction, Match match, MqttPublishInfo publishInfo)
-            {
-                this.Direction = direction;
-                this.Match = match;
-                this.PublishInfo = publishInfo;
-            }
-
-            public Direction Direction { get; }
-            public Match Match { get; }
-            public MqttPublishInfo PublishInfo { get; }
         }
     }
 }

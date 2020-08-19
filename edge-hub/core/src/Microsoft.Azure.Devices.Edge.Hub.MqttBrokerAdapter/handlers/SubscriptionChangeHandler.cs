@@ -75,6 +75,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return true;
             }
 
+            if (subscriptionList == null)
+            {
+                // This case is valid and sent by the broker (as an empty string) when a client disconnects.
+                // The meaning of the message is to remove subscriptions, but as the client is disconnecting
+                // in a moment, we don't do anything. In fact, the disconnect message is supposed to arrive
+                // first, and then this change notification gets ignored as it does not have related client.
+                return true;
+            }
+
             var id1 = match.Groups["id1"];
             var id2 = match.Groups["id2"];
 
@@ -82,16 +91,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var proxy = default(IDeviceListener);
-            var proxyMaybe = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var listener = default(IDeviceListener);
+            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
 
-            if (!proxyMaybe.HasValue)
+            if (!maybeListener.HasValue)
             {
                 return true;
             }
             else
             {
-                proxy = proxyMaybe.Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
 
             foreach (var subscriptionPattern in this.subscriptionPatterns)
@@ -110,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 try
                 {
-                    await AddOrRemoveSubscription(proxy, subscribes, subscriptionPattern.Subscrition);
+                    await AddOrRemoveSubscription(listener, subscribes, subscriptionPattern.Subscrition);
                 }
                 catch (Exception e)
                 {
@@ -119,10 +128,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             return true;
-        }
-
-        public void ProducerStopped()
-        {
         }
 
         static bool IsMatchWithIds(Match match, Group id1, Group id2)
@@ -141,15 +146,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return false;
         }
 
-        static Task AddOrRemoveSubscription(IDeviceListener proxy, bool add, DeviceSubscription subscription)
+        static Task AddOrRemoveSubscription(IDeviceListener listener, bool add, DeviceSubscription subscription)
         {
             if (add)
             {
-                return proxy.AddSubscription(subscription);
+                return listener.AddSubscription(subscription);
             }
             else
             {
-                return proxy.RemoveSubscription(subscription);
+                return listener.RemoveSubscription(subscription);
             }
         }
 

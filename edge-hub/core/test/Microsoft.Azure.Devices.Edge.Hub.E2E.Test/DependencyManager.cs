@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     true,
                     false));
 
-            builder.RegisterModule(new HttpModule());
+            builder.RegisterModule(new HttpModule("Edge1"));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));
             builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true, this.sslProtocols));
         }

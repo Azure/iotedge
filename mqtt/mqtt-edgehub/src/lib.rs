@@ -12,6 +12,6 @@
 )]
 
 pub mod auth;
-pub mod edgelet;
+pub mod connection;
 pub mod settings;
 pub mod topic;

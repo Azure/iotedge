@@ -45,10 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.FromResult(false);
         }
 
-        public void ProducerStopped()
-        {
-        }
-
         async Task<bool> HandleTelemetry(Match match, MqttPublishInfo publishInfo)
         {
             var id1 = match.Groups["id1"];
@@ -59,16 +55,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeProxy = await this.connectionRegistry.GetDeviceListenerAsync(identity);
-            var proxy = default(IDeviceListener);
+            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var listener = default(IDeviceListener);
 
             try
             {
-                proxy = maybeProxy.Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
             }
             catch (Exception)
             {
-                Events.MissingProxy(identity.Id);
+                Events.MissingListener(identity.Id);
                 return false;
             }
 
@@ -83,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return false;
             }
 
-            await proxy.ProcessDeviceMessageAsync(message);
+            await listener.ProcessDeviceMessageAsync(message);
 
             Events.TelemetryMessage(identity.Id, publishInfo.Payload.Length);
 
@@ -133,13 +129,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 TelemetryMessage = IdStart,
                 UnexpectedTelemetryTopic,
-                MissingProxy,
+                MissingListener,
                 UnexpectedMessageFormat,
             }
 
             public static void TelemetryMessage(string id, int messageLen) => Log.LogDebug((int)EventIds.TelemetryMessage, $"Telemetry message sent by client: {id}, msg len: {messageLen}");
             public static void UnexpectedTelemetryTopic(string topic) => Log.LogWarning((int)EventIds.UnexpectedTelemetryTopic, $"Telemetry-like topic strucure with unexpected format {topic}");
-            public static void MissingProxy(string id) => Log.LogError((int)EventIds.MissingProxy, $"Missing device listener for [{id}]");
+            public static void MissingListener(string id) => Log.LogError((int)EventIds.MissingListener, $"Missing device listener for [{id}]");
             public static void UnexpectedMessageFormat(Exception e, string topic) => Log.LogError((int)EventIds.UnexpectedMessageFormat, e, $"Cannot decode unexpected telemetry message format. Topic with property bag: {topic}");
         }
     }

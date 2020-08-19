@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
-            builder.RegisterModule(new HttpModule());
+            builder.RegisterModule(new HttpModule(this.iotHubHostname));
 
             var authConfig = this.configuration.GetSection("authAgentSettings");
             builder.RegisterModule(new AuthModule(authConfig));

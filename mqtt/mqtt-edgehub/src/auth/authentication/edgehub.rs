@@ -1,16 +1,22 @@
 use std::{
     convert::{TryFrom, TryInto},
     error::Error as StdError,
+    time::Duration,
 };
 
 use async_trait::async_trait;
+use backoff::{future::FutureOperation as _, Error, ExponentialBackoff};
 use bytes::buf::BufExt;
 use http::{header, StatusCode};
 use hyper::{body, client::HttpConnector, Body, Client, Request};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
+use tracing::info;
 
-use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
+use mqtt_broker::{
+    auth::{AuthenticationContext, Authenticator},
+    AuthId,
+};
 
 const API_VERSION: &str = "2020-04-20";
 
@@ -28,9 +34,9 @@ impl EdgeHubAuthenticator {
 
     async fn authenticate(
         &self,
-        context: AuthenticationContext,
+        context: &AuthenticationContext,
     ) -> Result<Option<AuthId>, AuthenticateError> {
-        let auth_req = EdgeHubAuthRequest::from_auth(&context);
+        let auth_req = EdgeHubAuthRequest::from_auth(context);
         let body = serde_json::to_string(&auth_req).map_err(AuthenticateError::SerializeRequest)?;
         let req = Request::post(&self.url)
             .header(header::CONTENT_TYPE, "application/json; charset=utf-8")
@@ -69,7 +75,25 @@ impl Authenticator for EdgeHubAuthenticator {
         &self,
         context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
-        let auth_id = self.authenticate(context).await?;
+        let authenticate = || async {
+            info!("authenticate client");
+            self.authenticate(&context).await.map_err(|e| match e {
+                error @ AuthenticateError::SendRequest(_) => Error::Transient(error),
+                error @ AuthenticateError::UnsuccessfullResponse(_) => Error::Transient(error),
+                error => Error::Permanent(error),
+            })
+        };
+
+        // try to authenticate a client and give up after 1min of trying.
+        // it starts with 500ms interval and exponentially increases timeout.
+        // it will make 10 attempts during 1min interval.
+        let auth_id = authenticate
+            .retry(ExponentialBackoff {
+                max_elapsed_time: Some(Duration::from_secs(60)),
+                ..ExponentialBackoff::default()
+            })
+            .await?;
+
         Ok(auth_id)
     }
 }
@@ -98,14 +122,14 @@ impl<'a> EdgeHubAuthRequest<'a> {
     }
 }
 
-#[derive(Deserialize_repr, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize_repr)]
 #[repr(i32)]
 pub enum EdgeHubResultCode {
     Authenticated = 200,
     Unauthenticated = 403,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct EdgeHubAuthResponse {
     version: String,
@@ -155,14 +179,15 @@ pub enum AuthenticateError {
 
 #[cfg(test)]
 mod tests {
-    use std::net::SocketAddr;
+    use std::{error::Error as StdError, net::SocketAddr, time::Duration};
 
+    use matches::assert_matches;
     use mockito::{mock, Matcher};
+    use tokio::{sync::oneshot, time};
 
-    use mqtt_broker_core::auth::{AuthenticationContext, Certificate};
+    use mqtt_broker::auth::{AuthenticationContext, Authenticator, Certificate};
 
     use super::EdgeHubAuthenticator;
-    use matches::assert_matches;
 
     const CERT: &str = "-----BEGIN CERTIFICATE-----
 MIIEbjCCAlagAwIBAgIEdLDcUTANBgkqhkiG9w0BAQsFADAfMR0wGwYDVQQDDBRp
@@ -205,7 +230,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await.unwrap().unwrap();
+        let result = authenticator.authenticate(&context).await.unwrap().unwrap();
 
         assert_eq!(result, "somehub/somedevice".into());
     }
@@ -222,7 +247,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_err());
     }
@@ -239,7 +264,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await.unwrap();
+        let result = authenticator.authenticate(&context).await.unwrap();
 
         assert!(result.is_none());
     }
@@ -258,7 +283,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_err());
     }
@@ -277,7 +302,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_err());
     }
@@ -294,7 +319,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_err());
     }
@@ -314,7 +339,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_ok());
     }
@@ -336,7 +361,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_certificate(Certificate::from(CERT.to_string()));
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert_matches!(result, Ok(_));
     }
@@ -359,9 +384,46 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_password("qwerty123");
 
         let authenticator = authenticator();
-        let result = authenticator.authenticate(context).await;
+        let result = authenticator.authenticate(&context).await;
 
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn it_retries_when_edgehub_unavailable_for_some_time() {
+        let (tx, rx) = oneshot::channel();
+
+        // create mock http server with unused endpoint just to prevent
+        // other tests to make endpoint which could override the current one
+        let _ = mock("POST", "/unused").create();
+
+        let handle = tokio::spawn(async {
+            // emulate edgehub startup delay 1s
+            // it will make authenticator make 1 or 2 attempts to get response
+            time::delay_for(Duration::from_secs(1)).await;
+
+            let _m = mock("POST", "/authenticate/")
+                .with_status(200)
+                .with_body(
+                    r#"{"result": 200, "identity":"somehub/somedevice","version": "2020-04-20"}"#,
+                )
+                .create();
+
+            // wait until test finishes
+            rx.await.unwrap();
+        });
+
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
+        let authenticator: &dyn Authenticator<Error = Box<dyn StdError>> = &authenticator();
+        let result = authenticator.authenticate(context).await.unwrap().unwrap();
+
+        tx.send(()).unwrap();
+        handle.await.unwrap();
+
+        assert_eq!(result, "somehub/somedevice".into());
     }
 
     fn authenticator() -> EdgeHubAuthenticator {

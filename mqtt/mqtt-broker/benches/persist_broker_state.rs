@@ -9,10 +9,9 @@ use tokio::runtime::Runtime;
 
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
-    BrokerState, FileFormat, FilePersistor, Persist, PersistError, SessionState,
+    BrokerSnapshot, ClientId, FileFormat, FilePersistor, Persist, PersistError, SessionSnapshot,
     VersionedFileFormat,
 };
-use mqtt_broker_core::ClientId;
 
 fn test_write<F>(
     group: &mut BenchmarkGroup<WallTime>,
@@ -120,7 +119,7 @@ fn make_fake_state(
                 .chain(shared_messages.clone())
                 .collect();
 
-            SessionState::from_parts(
+            SessionSnapshot::from_parts(
                 ClientId::from(format!("Session {}", i)),
                 HashMap::new(),
                 waiting_to_be_sent,

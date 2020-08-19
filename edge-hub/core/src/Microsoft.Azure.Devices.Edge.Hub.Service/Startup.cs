@@ -63,8 +63,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
             app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);
 
-            app.UseAuthenticationMiddleware(iotHubHostname, edgeDeviceId);
-
             app.Use(
                 async (context, next) =>
                 {

@@ -9,7 +9,7 @@ use std::{
 
 use bytes::{Buf, BufMut};
 use core::mem::MaybeUninit;
-use futures::stream::FuturesUnordered;
+use futures_util::stream::FuturesUnordered;
 use openssl::{
     ssl::{SslAcceptor, SslMethod, SslOptions, SslVerifyMode},
     x509::X509Ref,
@@ -22,9 +22,7 @@ use tokio::{
 use tokio_openssl::{accept, HandshakeError, SslStream};
 use tracing::{debug, error, warn};
 
-use mqtt_broker_core::auth::Certificate;
-
-use crate::{Error, InitializeBrokerError, ServerCertificate};
+use crate::{auth::Certificate, Error, InitializeBrokerError, ServerCertificate};
 
 pub enum Transport {
     Tcp(TcpListener),
