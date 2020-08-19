@@ -189,6 +189,10 @@ impl ProvisioningResult {
     pub fn credentials(&self) -> Option<&Credentials> {
         self.credentials.as_ref()
     }
+
+    pub fn hub_name(&self) -> &str {
+        self.hub_name.as_ref()
+    }
 }
 
 impl CoreProvisioningResult for ProvisioningResult {
@@ -745,62 +749,62 @@ impl<'a, P: 'a> BackupProvisioning<'a, P> {
             path,
         }
     }
+}
 
-    fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Error> {
-        // create a file if it doesn't exist, else open it for writing
-        let mut file = File::create(path).context(ErrorKind::CouldNotBackup)?;
-        let buffer = serde_json::to_string(&prov_result).context(ErrorKind::CouldNotBackup)?;
-        file.write_all(buffer.as_bytes())
-            .context(ErrorKind::CouldNotBackup)?;
-        Ok(())
-    }
+fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Error> {
+    // create a file if it doesn't exist, else open it for writing
+    let mut file = File::create(path).context(ErrorKind::CouldNotBackup)?;
+    let buffer = serde_json::to_string(&prov_result).context(ErrorKind::CouldNotBackup)?;
+    file.write_all(buffer.as_bytes())
+        .context(ErrorKind::CouldNotBackup)?;
+    Ok(())
+}
 
-    fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
-        let mut file = File::open(path).context(ErrorKind::CouldNotRestore)?;
-        let mut buffer = String::new();
-        let _ = file
-            .read_to_string(&mut buffer)
-            .context(ErrorKind::CouldNotRestore)?;
-        info!("Restoring device credentials from backup");
-        let mut prov_result: ProvisioningResult =
-            serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
-        prov_result.reconfigure = ReprovisioningStatus::DeviceDataNotUpdated;
-        Ok(prov_result)
-    }
+pub fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
+    let mut file = File::open(path).context(ErrorKind::CouldNotRestore)?;
+    let mut buffer = String::new();
+    let _ = file
+        .read_to_string(&mut buffer)
+        .context(ErrorKind::CouldNotRestore)?;
+    info!("Restoring device credentials from backup");
+    let mut prov_result: ProvisioningResult =
+        serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
+    prov_result.reconfigure = ReprovisioningStatus::DeviceDataNotUpdated;
+    Ok(prov_result)
+}
 
-    fn diff_with_backup_inner(
-        path: PathBuf,
-        prov_result: &ProvisioningResult,
-    ) -> Result<bool, serde_json::Error> {
-        match Self::restore(path) {
-            Ok(restored_prov_result) => {
-                let buffer = serde_json::to_string(&restored_prov_result)?;
-                let buffer = Sha256::digest_str(&buffer);
-                let buffer = base64::encode(&buffer);
+fn diff_with_backup_inner(
+    path: PathBuf,
+    prov_result: &ProvisioningResult,
+) -> Result<bool, serde_json::Error> {
+    match restore(path) {
+        Ok(restored_prov_result) => {
+            let buffer = serde_json::to_string(&restored_prov_result)?;
+            let buffer = Sha256::digest_str(&buffer);
+            let buffer = base64::encode(&buffer);
 
-                let s = serde_json::to_string(prov_result)?;
-                let s = Sha256::digest_str(&s);
-                let encoded = base64::encode(&s);
-                if encoded == buffer {
-                    Ok(false)
-                } else {
-                    Ok(true)
-                }
-            }
-            Err(err) => {
-                log_failure(Level::Debug, &err);
+            let s = serde_json::to_string(prov_result)?;
+            let s = Sha256::digest_str(&s);
+            let encoded = base64::encode(&s);
+            if encoded == buffer {
+                Ok(false)
+            } else {
                 Ok(true)
             }
         }
+        Err(err) => {
+            log_failure(Level::Debug, &err);
+            Ok(true)
+        }
     }
+}
 
-    fn diff_with_backup(path: PathBuf, prov_result: &ProvisioningResult) -> bool {
-        match Self::diff_with_backup_inner(path, prov_result) {
-            Ok(result) => result,
-            Err(err) => {
-                log_failure(Level::Debug, &err);
-                true
-            }
+fn diff_with_backup(path: PathBuf, prov_result: &ProvisioningResult) -> bool {
+    match diff_with_backup_inner(path, prov_result) {
+        Ok(result) => result,
+        Err(err) => {
+            log_failure(Level::Debug, &err);
+            true
         }
     }
 }
@@ -825,7 +829,7 @@ where
                     debug!("Provisioning result {:?}", prov_result);
                     let reconfigure = match prov_result.reconfigure {
                         ReprovisioningStatus::DeviceDataUpdated => {
-                            if Self::diff_with_backup(restore_path, &prov_result) {
+                            if diff_with_backup(restore_path, &prov_result) {
                                 info!("Provisioning credentials were changed.");
                                 ReprovisioningStatus::InitialAssignment
                             } else {
@@ -837,14 +841,14 @@ where
                     };
 
                     prov_result.reconfigure = reconfigure;
-                    match Self::backup(&prov_result, path) {
+                    match backup(&prov_result, path) {
                         Ok(_) => Either::A(future::ok(prov_result.clone())),
                         Err(err) => Either::B(future::err(err)),
                     }
                 })
                 .or_else(move |err| {
                     log_failure(Level::Warn, &err);
-                    match Self::restore(path_on_err) {
+                    match restore(path_on_err) {
                         Ok(prov_result) => Either::A(future::ok(prov_result)),
                         Err(err) => Either::B(future::err(err)),
                     }
