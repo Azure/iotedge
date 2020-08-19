@@ -105,12 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.StartupOrder == other.StartupOrder &&
-                this.AreEnvironmentVariablesEqual(other);
-        }
-
-        protected bool AreEnvironmentVariablesEqual(IModule other)
-        {
-            return EnvDictionaryComparer.Equals(this.Env, other.Env);
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
         public override int GetHashCode()
