@@ -30,6 +30,9 @@ pub struct NestedBridgeSettings {
 
     #[serde(rename = "modulegenerationid")]
     generation_id: Option<String>,
+
+    #[serde(rename = "workloaduri")]
+    workload_uri: Option<String>
 }
 
 impl NestedBridgeSettings {
@@ -43,5 +46,9 @@ impl NestedBridgeSettings {
 
     pub fn generation_id(&self) -> Option<&str> {
         self.generation_id.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn workload_uri(&self) -> Option<&str> {
+        self.workload_uri.as_ref().map(AsRef::as_ref)
     }
 }

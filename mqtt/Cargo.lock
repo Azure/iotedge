@@ -928,7 +928,9 @@ dependencies = [
 name = "mqtt-bridge"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "config",
+ "edgelet-client",
  "serde",
  "tracing",
 ]

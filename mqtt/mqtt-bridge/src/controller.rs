@@ -1,11 +1,10 @@
-use crate::bridge::Bridge;
+use crate::bridge::NestedBridge;
 use crate::settings::Settings;
-use std::collections::HashMap;
 use tracing::info;
 
 #[derive(Default)]
 pub struct BridgeController {
-    briges: HashMap<String, Bridge>,
+    nested_bridge: Option<NestedBridge>,
 }
 
 impl BridgeController {
@@ -17,10 +16,10 @@ impl BridgeController {
         let settings = Settings::new().unwrap_or_default();
         match settings.nested_bridge().gateway_hostname() {
             Some(_) => {
-                let nested_bridge = Bridge::new(settings.nested_bridge().clone());
-                nested_bridge.start();
+                let nested_bridge = NestedBridge::new(settings.nested_bridge().clone());
+                nested_bridge.start().await;
 
-                self.briges.insert("Upstream".to_string(), nested_bridge);
+                self.nested_bridge = Option::Some(nested_bridge);
             }
             None => info!("No nested bridge found."),
         };

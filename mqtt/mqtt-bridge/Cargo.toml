@@ -5,6 +5,9 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
-tracing = "0.1"
+anyhow = "1.0"
 config = { version = "0.10", features = ["json"], default-features = false }
 serde = { version = "1.0", features = ["derive", "rc"] }
+tracing = "0.1"
+
+edgelet-client = { path = "../edgelet-client"}
