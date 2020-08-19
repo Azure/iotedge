@@ -50,14 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             // EdgeHub Equal() is similar to base class except, we ignore the version since we don't ever use it.
-            return string.Equals(this.Name, other.Name) &&
-                string.Equals(this.Type, other.Type) &&
-                this.DesiredStatus == other.DesiredStatus &&
-                this.Config.Equals(other.Config) &&
-                this.RestartPolicy == other.RestartPolicy &&
-                this.ImagePullPolicy == other.ImagePullPolicy &&
-                this.StartupOrder == other.StartupOrder &&
-                this.IsEnvDictionaryEqual(other);
+            return this.BaseEquals(other) &&
+                this.Config.Equals(other.Config);
         }
     }
 }

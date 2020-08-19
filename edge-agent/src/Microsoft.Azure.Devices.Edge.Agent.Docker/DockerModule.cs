@@ -84,32 +84,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return true;
             }
 
-            return string.Equals(this.Name, other.Name) &&
+            return this.BaseEquals(other) &&
                 string.Equals(this.Version, other.Version) &&
-                string.Equals(this.Type, other.Type) &&
-                this.DesiredStatus == other.DesiredStatus &&
-                this.Config.Equals(other.Config) &&
-                this.RestartPolicy == other.RestartPolicy &&
-                this.ImagePullPolicy == other.ImagePullPolicy &&
-                this.StartupOrder == other.StartupOrder &&
-                this.IsEnvDictionaryEqual(other);
+                this.Config.Equals(other.Config);
         }
 
         public virtual bool IsOnlyModuleStatusChanged(IModule other)
         {
             return other is DockerModule dockerModule &&
-                string.Equals(this.Name, other.Name) &&
+                this.BaseEquals(other) &&
                 string.Equals(this.Version, other.Version) &&
+                this.Config.Equals(dockerModule.Config);
+        }
+
+        protected bool BaseEquals(IModule other)
+        {
+            return string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Type, other.Type) &&
                 this.DesiredStatus != other.DesiredStatus &&
-                this.Config.Equals(dockerModule.Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.StartupOrder == other.StartupOrder &&
-                this.IsEnvDictionaryEqual(other);
+                this.AreEnvironmentVariablesEqual(other);
         }
 
-        protected bool IsEnvDictionaryEqual(IModule other)
+        protected bool AreEnvironmentVariablesEqual(IModule other)
         {
             return EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
