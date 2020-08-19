@@ -820,7 +820,7 @@ mod tests {
     }
 
     #[test]
-    fn settings_connection_string_dps() {
+    fn settings_connection_string_dps_hostname() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
         let filename = "sample_settings.dps.sym.yaml";
@@ -859,7 +859,7 @@ mod tests {
     }
 
     #[test]
-    fn settings_connection_string_dps_err() {
+    fn settings_connection_string_dps_config_file() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
         let hub_name = "hub_1";
 
@@ -934,6 +934,48 @@ mod tests {
                 assert_eq!(check.iothub_hostname, Some(hub_name.to_owned()));
             }
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+    }
+
+    #[test]
+    fn settings_connection_string_dps_err() {
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+
+        let filename = "sample_settings.dps.sym.yaml";
+        let config_file = format!(
+            "{}/../edgelet-docker/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename,
+        );
+
+        let mut check = runtime
+            .block_on(Check::new(
+                config_file.into(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()), // unused for this test
+                "iotedged".into(),        // unused for this test
+                None,
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
+                false,
+                false,
+            ))
+            .unwrap();
+
+        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+            CheckResult::Ok => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+
+        match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+            CheckResult::Failed(err) => assert!(err.to_string().contains("Could not recover iothub_hostname from provisioning file.")),
+            check_result => panic!(
+                "checking connection string in {} returned {:?}",
+                filename, check_result
+            ),
         }
     }
 

@@ -864,10 +864,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        future, AuthType, BackupProvisioning, CoreProvisioningResult, CredentialSource, Error,
-        ExternalProvisioning, ExternalProvisioningErrorReason, ExternalProvisioningInterface,
-        Future, IntoFuture, ManualProvisioning, MemoryKeyStore, Provision, ProvisioningResult,
-        ReprovisioningStatus,
+        future, restore, AuthType, BackupProvisioning, CoreProvisioningResult, CredentialSource,
+        Error, ExternalProvisioning, ExternalProvisioningErrorReason,
+        ExternalProvisioningInterface, Future, IntoFuture, ManualProvisioning, MemoryKeyStore,
+        Provision, ProvisioningResult, ReprovisioningStatus,
     };
 
     use edgelet_core::{Error as CoreError, ManualDeviceConnectionString};
@@ -1040,8 +1040,7 @@ mod tests {
             .provision(MemoryKeyStore::new())
             .then(|result| {
                 let _ = result.expect("Unexpected");
-                let result =
-                    BackupProvisioning::<ManualProvisioning>::restore(file_path_clone).unwrap();
+                let result = restore(file_path_clone).unwrap();
                 assert_eq!(result.device_id(), "TestDevice");
                 assert_eq!(result.hub_name(), "TestHub");
                 Ok::<_, Error>(())

@@ -55,7 +55,10 @@ impl WellFormedConnectionString {
                 .join("provisioning_backup.json");
 
             let provision_result = provisioning::restore(provisioning_file_path).map_err(|e| {
-                let reason = format!("Couldn't restore provisioning file: {}", e);
+                let reason = format!("Could not recover iothub_hostname from provisioning file.\n\
+                Please specify the backing IoT Hub name using --iothub-hostname switch if you have that information.\n\
+                If no hostname is provided, all hub connectivity tests will be skipped.\n\
+                Provisioning file error: {}", e);
                 e.context(reason)
             })?;
 
