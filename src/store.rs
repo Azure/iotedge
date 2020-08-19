@@ -1,25 +1,31 @@
-use crate::config::Configuration;
+use crate::config::AADCredentials;
 use crate::constants::*;
+use crate::error::{Error, ErrorKind};
 use crate::util::*;
 
 use std::sync::Arc;
 
 use aziot_key_client_async::Client as KeyClient;
 use aziot_key_common::{CreateKeyValue, EncryptMechanism};
-use futures::future::try_join_all;
+use failure::{Fail, ResultExt};
+use hyper::{Body, Client as HyperClient, Request, Uri};
 use hyper::client::HttpConnector;
+use hyper_tls::HttpsConnector;
 use iotedge_aad::{Auth, TokenSource};
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Match, Regex};
+use reqwest::Client as ReqwestClient;
 use ring::rand::{generate, SystemRandom};
 use serde::{Deserialize, Serialize};
-use zeroize::Zeroize;
 
 lazy_static! {
+    static ref AUTH_CLIENT: Auth = Auth::new(Arc::new(ReqwestClient::new()), "https://vault.azure.net");
+    static ref HTTPS_CLIENT: HyperClient<HttpsConnector<HttpConnector>> = HyperClient::builder().build(HttpsConnector::new());
     static ref KEY_CLIENT: KeyClient<HttpConnector> = KeyClient::new(HttpConnector::new());
+    static ref VAULT_REGEX: Regex = Regex::new(r"(?P<vault_id>[0-9a-zA-Z-]+)/(?P<secret_id>[0-9a-zA-Z-]+)(?:/(?P<secret_version>[0-9a-zA-Z-]+))?").unwrap();
 }
 
-#[derive(Deserialize, Serialize, Zeroize)]
+#[derive(Deserialize, Serialize)]
 pub struct Record {
     pub ciphertext: Vec<u8>,
     pub iv: Vec<u8>,
@@ -29,10 +35,10 @@ pub struct Record {
 }
 
 // NOTE: open to changing implementation so that Sync is not required
-pub trait StoreBackend: Sized + Sync {
-    type Error: std::error::Error;
+pub trait StoreBackend: Send + Sync {
+    type Error: Fail + PartialEq + 'static;
 
-    fn new() -> Result<Self, Self::Error>;
+    fn init(&self) -> Result<(), Self::Error>;
 
     fn write_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
     fn update_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
@@ -44,24 +50,31 @@ pub trait StoreBackend: Sized + Sync {
 //       invariant over backend implementation
 pub(crate) struct Store<T: StoreBackend> {
     backend: T,
-    config: Configuration
+    credentials: AADCredentials
 }
 
 impl<T: StoreBackend> Store<T> {
-    pub fn new(backend: T, config: Configuration) -> Self {
+    pub fn new(backend: T, credentials: AADCredentials) -> Self {
+
+        backend.init()
+            .expect("Could not initialize storage backend");
+
         Self {
             backend: backend,
-            config: config
+            credentials: credentials
         }
     }
 
-    pub async fn get_secret(&self, id: String) -> BoxResult<'_, String> {
-        let record = self.backend.read_record(&id)?;
+    pub async fn get_secret(&self, id: String) -> Result<String, Error> {
+        let record = self.backend
+            .read_record(&id)
+            .context(ErrorKind::Backend("Read"))?;
         let key_handle = KEY_CLIENT.create_key_if_not_exists(
                 &id,
                 CreateKeyValue::Generate { length: AES_KEY_BYTES }
             )
-            .await?;
+            .await
+            .context(ErrorKind::KeyService("GetKey"))?;
         let pbytes = KEY_CLIENT.decrypt(
                 &key_handle,
                 EncryptMechanism::Aead {
@@ -70,82 +83,113 @@ impl<T: StoreBackend> Store<T> {
                 },
                 record.ciphertext.as_slice()
             )
-            .await?;
+            .await
+            .context(ErrorKind::KeyService("Decrypt"))?;
 
-        let ptext = String::from_utf8(pbytes)?;
+        let ptext = String::from_utf8(pbytes)
+            .context(ErrorKind::CorruptData)?;
 
         Ok(ptext)
     }
 
-    pub async fn set_secret(&self, id: String, value: String) -> BoxResult<'_, ()> {
-        let rng = SystemRandom::new();
+    pub async fn set_secret(&self, id: String, value: String) -> Result<String, Error> {
 
-        let key_handle = KEY_CLIENT.create_key_if_not_exists(
-                &id,
-                CreateKeyValue::Generate { length: AES_KEY_BYTES }
-            )
-            .await?;
-        let iv = generate::<[u8; IV_BYTES]>(&rng)?.expose().to_vec();
-        let aad = generate::<[u8; AAD_BYTES]>(&rng)?.expose().to_vec();
-
-        let ctext = KEY_CLIENT.encrypt(
-                &key_handle,
-                EncryptMechanism::Aead {
-                    iv: iv.to_vec(),
-                    aad: aad.to_vec()
-                },
-                value.as_bytes()
-            )
-            .await?;
-
-        self.backend.write_record(&id, Record {
-                ciphertext: ctext,
+        let (ciphertext, iv, aad) = encrypt(&id, value).await?;
+        self.backend
+            .write_record(&id, Record {
+                ciphertext: ciphertext,
                 iv: iv,
                 aad: aad,
                 upstream: None
-            })?;
-
-        Ok(())
+            })
+            .context(ErrorKind::Backend("Write"))?
     }
 
-    pub async fn pull_secrets(&self, keys: Vec<&str>) -> BoxResult<'_, ()> {
-        lazy_static! {
-            static ref VAULT_REGEX: Regex = Regex::new(r"^https://[0-9a-zA-Z\-]+\.vault\.azure\.net").unwrap();
-        }
-        let client = hyper::Client::builder()
-            .build(hyper_tls::HttpsConnector::new());
-        let token = Auth::new(Arc::new(reqwest::Client::new()), "https://vault.azure.net")
+    pub async fn pull_secret(&self, id: String, remote: String) -> Result<(), Error> {
+        let token = AUTH_CLIENT
             .authorize_with_secret(
-                &self.config.credentials.tenant_id,
-                &self.config.credentials.client_id,
-                &self.config.credentials.client_secret
+                &self.credentials.tenant_id,
+                &self.credentials.client_id,
+                &self.credentials.client_secret
             )
-            .await?
+            .await
+            .map_err(|_| ErrorKind::Azure("GetToken"))?
             .get()
             .to_string();
 
-        let key_values: Vec<hyper::Response<hyper::Body>> = try_join_all(
-                keys.into_iter()
-                    .filter(|key| VAULT_REGEX.is_match(key))
-                    .map(|key| format!("{}?api-version=7.0", key).parse::<hyper::Uri>())
-                    .collect::<Result<Vec<hyper::Uri>, _>>()?
-                    .into_iter()
-                    .map(|key| {
-                        let req = hyper::Request::builder()
-                            .uri(key)
-                            .header("Authorization", format!("Bearer {}", token.to_owned()))
-                            .body(hyper::Body::empty())
-                            .unwrap();
-                        client.request(req)
-                    })
-                    .collect::<Vec<hyper::client::ResponseFuture>>()
-            )
-            .await?;
+        if let Some(captures) = VAULT_REGEX.captures(&remote) {
+            let vault_id = captures.name("vault_id").map_or_else(|| "", |grp| grp.as_str());
+            let secret_id = captures.name("secret_id").map_or_else(|| "", |grp| grp.as_str());
+            let secret_version = captures.name("secret_version").map_or_else(|| "", |grp| grp.as_str());
 
-        for key_value in try_join_all(key_values.into_iter().map(|key_value| slurp_json::<serde_json::Value>(key_value))).await? {
-            println!("{}", key_value.get("value").unwrap().as_str().unwrap())
+            let key_uri = format!(
+                    "https://{}.vault.azure.net/secrets/{}/{}?api-version={}",
+                    vault_id,
+                    secret_id,
+                    secret_version,
+                    AKV_API_VERSION
+                );
+
+            let req = Request::builder()
+                .uri(key_uri.parse::<Uri>().context(ErrorKind::Azure("InvalidKeyUri"))?)
+                .header("Authorization", format!("Bearer {}", token))
+                .body(Body::empty())
+                .context(ErrorKind::Hyper)?;
+            let res = HTTPS_CLIENT.request(req)
+                .await
+                .context(ErrorKind::Hyper)?;
+            let value = slurp_json::<serde_json::Value>(res)
+                .await
+                .map_err(|_| ErrorKind::Hyper)?
+                .get("value")
+                .context(ErrorKind::Azure("UnexpectedAPIResult"))?
+                .as_str()
+                .context(ErrorKind::Azure("UnexpectedAPIResult"))?;
+            
+            let (ciphertext, iv, aad) = encrypt(&id, value).await?;
+            self.backend
+                .write_record(&id, Record {
+                    ciphertext: ciphertext,
+                    iv: iv,
+                    aad: aad,
+                    upstream: Some(key_uri)
+                })
+                .context(ErrorKind::Backend("Write"))?
         }
-
-        Ok(())
+        else {
+            unimplemented!()
+        }
     }
+}
+
+async fn encrypt(id: &str, value: String) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Error> {
+    let rng = SystemRandom::new();
+
+    let key_handle = KEY_CLIENT.create_key_if_not_exists(
+            &id,
+            CreateKeyValue::Generate { length: AES_KEY_BYTES }
+        )
+        .await
+        .context(ErrorKind::KeyService("GetKey"))?;
+    let iv = generate::<[u8; IV_BYTES]>(&rng)
+        .context(ErrorKind::RandomNumberGenerator)?
+        .expose()
+        .to_vec();
+    let aad = generate::<[u8; AAD_BYTES]>(&rng)
+        .context(ErrorKind::RandomNumberGenerator)?
+        .expose()
+        .to_vec();
+
+    let ctext = KEY_CLIENT.encrypt(
+            &key_handle,
+            EncryptMechanism::Aead {
+                iv: iv,
+                aad: aad
+            },
+            value.as_bytes()
+        )
+        .await
+        .context(ErrorKind::KeyService("Encrypt"))?;
+
+    Ok((ctext, iv, aad))
 }

@@ -3,14 +3,9 @@ use std::io::Read;
 use std::path::Path;
 
 use serde::Deserialize;
-use zeroize::Zeroize;
 
 fn default_storage_location() -> String {
-    "/etc/secretstore".to_string()
-}
-
-fn default_socket_directory() -> String {
-    "/var/tmp".to_string()
+    "/var/lib/secretstore".to_string()
 }
 
 fn default_encryption_source() -> EncryptionSource {
@@ -44,8 +39,7 @@ pub enum StorePermissions {
     ReadWrite
 }
 
-#[derive(Clone, Debug, Deserialize, Zeroize)]
-#[zeroize(drop)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct AADCredentials {
     pub tenant_id: String,
     pub client_id: String,
@@ -63,8 +57,6 @@ pub struct Principal {
 pub struct LocalSettings {
     #[serde(default = "default_storage_location")]
     pub storage_location: String,
-    #[serde(default = "default_socket_directory")]
-    pub socket_directory: String,
     #[serde(default = "default_encryption_source")]
     pub encryption_source: EncryptionSource
 }
@@ -82,7 +74,7 @@ pub struct Certificates {
 #[derive(Debug, Deserialize)]
 pub struct Configuration {
     pub credentials: AADCredentials,
-    pub principal: Vec<Principal>,
+    pub principals: Vec<Principal>,
     pub local: LocalSettings,
     pub certificates: Certificates
 }

@@ -1,7 +1,7 @@
 pub const AAD_BYTES: usize = 32;
 pub const AES_KEY_BYTES: usize = 32;
-// pub const CONFIG_PATH: &str = "/etc/iotedged/store.toml"
+pub const AKV_API_VERSION: &str = "7.0";
+pub const CONFIGURATION_FILE: &str = "/etc/azsecret/config.toml";
 pub const IV_BYTES: usize = 32;
-// pub const SERVER_DIR: &str = "./";
-pub const SOCKET_NAME: &str = "store.sock";
-
+pub const LISTEN_SOCKET: &str = "/var/run/azsecret.sock";
+pub const STATE_DIRECTORY: &str = "/var/lib/azsecret";
