@@ -84,31 +84,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return true;
             }
 
-            return this.BaseEquals(other) &&
-                string.Equals(this.Version, other.Version) &&
-                this.Config.Equals(other.Config);
+            return this.CommonEquals(other) &&
+                this.DesiredStatus == other.DesiredStatus &&
+                string.Equals(this.Version, other.Version);
         }
 
         public virtual bool IsOnlyModuleStatusChanged(IModule other)
         {
             return other is DockerModule dockerModule &&
-                this.BaseEquals(other) &&
-                string.Equals(this.Version, other.Version) &&
-                this.Config.Equals(dockerModule.Config);
+                this.CommonEquals(dockerModule) &&
+                this.DesiredStatus != other.DesiredStatus &&
+                string.Equals(this.Version, other.Version);
         }
 
-        protected bool BaseEquals(IModule other)
+        protected bool CommonEquals(IModule<DockerConfig> other)
         {
             return string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Type, other.Type) &&
-                this.DesiredStatus != other.DesiredStatus &&
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.StartupOrder == other.StartupOrder &&
+                this.Config.Equals(other.Config) &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
         public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.CommonGetHashCode();
+                // ReSharper restore NonReadonlyMemberInGetHashCode
+                hashCode = (hashCode * 397) ^ (this.Version != null ? this.Version.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
+
+        protected int CommonGetHashCode()
         {
             unchecked
             {
@@ -117,7 +128,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 // ReSharper disable NonReadonlyMemberInGetHashCode
                 int hashCode = this.Name != null ? this.Name.GetHashCode() : 0;
                 // ReSharper restore NonReadonlyMemberInGetHashCode
-                hashCode = (hashCode * 397) ^ (this.Version != null ? this.Version.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Type != null ? this.Type.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (int)this.DesiredStatus;
                 hashCode = (hashCode * 397) ^ (this.Config != null ? this.Config.GetHashCode() : 0);
