@@ -970,7 +970,9 @@ mod tests {
         }
 
         match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            CheckResult::Failed(err) => assert!(err.to_string().contains("Could not retrieve iothub_hostname from provisioning file.")),
+            CheckResult::Failed(err) => assert!(err
+                .to_string()
+                .contains("Could not retrieve iothub_hostname from provisioning file.")),
             check_result => panic!(
                 "checking connection string in {} returned {:?}",
                 filename, check_result
