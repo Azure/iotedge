@@ -269,6 +269,8 @@ mod tests {
     where
         F: FnOnce() -> Result<Settings, ConfigError>,
     {
+        env::set_var("LISTENER__TCP__ENABLED", "true");
+        env::set_var("LISTENER__TLS__ENABLED", "true");
         env::set_var("LISTENER__TCP__ADDRESS", "10.0.0.1:1883");
         env::set_var("LISTENER__TLS__ADDRESS", "10.0.0.1:8883");
         env::set_var("LISTENER__TLS__CERTIFICATE", "/tmp/edgehub/cert.pem");
