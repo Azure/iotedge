@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [EndToEnd]
     public class PriorityQueues : SasManualProvisioningFixture
     {
-        const string TrcModuleName = "testResultCoordinator";
+        const string TrcModuleName = "testresultcoordinator";
         const string LoadGenModuleName = "loadGenModule";
         const string RelayerModuleName = "relayerModule";
         const string NetworkControllerModuleName = "networkController";
