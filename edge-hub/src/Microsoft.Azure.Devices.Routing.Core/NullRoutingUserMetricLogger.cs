@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     public class NullRoutingUserMetricLogger : IRoutingUserMetricLogger
@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public static NullRoutingUserMetricLogger Instance { get; } = new NullRoutingUserMetricLogger();
 
-        public void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, string messageSource)
+        public void LogEgressMetric(long metricValue, string iotHubName, MessageRoutingStatus messageStatus, IMessage message)
         {
         }
 
@@ -46,6 +46,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
         }
 
         public void LogBuiltInEndpointLatencyMetric(long metricValue, string iotHubName)
+        {
+        }
+
+        public void LogIngressFailureMetric(long metricValue, string iothubName, IMessage message, string reason)
+        {
+        }
+
+        public void LogRetryOperation(long metricValue, string iothubName, string id, string type)
         {
         }
     }

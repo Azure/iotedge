@@ -168,6 +168,7 @@ impl ModuleRuntime for ModuleClient {
     type SystemResourcesFuture =
         Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         unimplemented!()
@@ -343,6 +344,16 @@ impl ModuleRuntime for ModuleClient {
             let n = list
                 .into_iter()
                 .map(move |c| <Self as ModuleRuntime>::remove(&self_for_remove, c.name()));
+            future::join_all(n).map(|_| ())
+        }))
+    }
+
+    fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
+        let self_for_stop = self.clone();
+        Box::new(self.list().and_then(move |list| {
+            let n = list
+                .into_iter()
+                .map(move |c| <Self as ModuleRuntime>::stop(&self_for_stop, c.name(), None));
             future::join_all(n).map(|_| ())
         }))
     }

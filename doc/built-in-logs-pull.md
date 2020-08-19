@@ -1,20 +1,15 @@
-# Built-in logs collation and upload capability
+# Built-in diagnostics collection and upload capability
 
 IoT Edge supports native retrieval of module logs and upload to Azure Blob Storage. Users can access this functionality via direct method calls to the Edge Agent module. The following methods are available in support of this:
 
-- UploadLogs
-- GetTaskStatus
+- [UploadLogs](#UploadLogs)
+- [GetTaskStatus](#GetTaskStatus)
+- [GetLogs](#GetLogs)
+- [UploadSupportBundle](#UploadSupportBundle)
 
 ## Feature enabling
-
-As of [1.0.8 release](https://github.com/Azure/azure-iotedge/releases/tag/1.0.8) of IoT Edge, this capability is available as an experimental feature. To enable it, the following environment variables need to be set for the edgeAgent (make note of the double underscores):
-
-| Environment Variable Name                | value  |
-|------------------------------------------|--------|
-| `ExperimentalFeatures__Enabled`          | `true` |
-| `ExperimentalFeatures__EnableUploadLogs` | `true` |
-
-> Due to certain design limitations, settings for the Edge Agent do not take affect unless its image is also changed (as of 1.0.8 release). If you are using the default Edge Agent settings, change the image to use a specific tag along with the environment variables above, e.g. `mcr.microsoft.com/azureiotedge-agent:1.0.8`.
+### Version 1.0.10+
+As of release 1.0.10, these direct methods are no longer experimental and are always available. 
 
 ## Recommended logging format
 
@@ -42,6 +37,7 @@ This method accepts a JSON payload with the following schema:
                 "filter": {
                     "tail": int, 
                     "since": int,
+                    "until": int
                     "loglevel": int, 
                     "regex": "regex string" 
                 }
@@ -60,6 +56,7 @@ This method accepts a JSON payload with the following schema:
 | filter        | JSON section | Log filters to apply to the modules matching the `id` regular expression in the tuple.                                                                                                                                                               |
 | tail          | integer      | Number of log lines in the past to retrieve starting from the latest. OPTIONAL.                                                                                                                                                                               |
 | since         | integer      | Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp.  If both `tail` and `since` are specified, first the logs using the `since` value are retrieved and then `tail` value of those are returned. OPTIONAL.|
+| until         | integer      | Only return logs before the specified time, as a rfc3339 timestamp, UNIX timestamp, or duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes). OPTIONAL.|
 | loglevel      | integer      | Filter log lines less than or equal to specified loglevel. Log lines should follow recommended logging format and use [Syslog severity level](https://en.wikipedia.org/wiki/Syslog#Severity_level) standard. OPTIONAL.                                                                                                                |
 | regex         | string       | Filter log lines which have content that match the specified regular expression using [.NET Regular Expressions](https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions) format. OPTIONAL.                                            |
 | encoding      | string       | Either `gzip` or `none`. Default is `none`.                                                                                                                                                                                                          |
@@ -154,13 +151,28 @@ The status of upload logs request can be queried using the `correlationId` retur
 The response is in the same format as `UploadLogs`.
 
 ## GetLogs
+Returns the requested logs in the response of the direct method.
 
->Available in release 1.0.9
+This method accepts a JSON payload very similar to **UploadLogs** except it doesn't have the "sasUrl" key. The logs content is truncated to the response size limit of direct methods which is currently 128KB.
 
-To enable this feature, an additional environment needs to be set for the edgeAgent:
+## UploadSupportBundle
+This runs the `iotedge support bundle` command and uploads the resulting zip file to the blob store specified by sasUrl. It uses the same response schema as [Upload Logs](#UploadLogs). 
 
-| Environment Variable Name                | value  |
-|------------------------------------------|--------|
-| `ExperimentalFeatures__EnableGetLogs`    | `true` |
+### Request Schema
+```
+{    
+    "schemaVersion": "1.0",
+    "sasUrl": "Full path to SAS url",
+    "since": "2d",
+    "until": "1d",
+    "edgeRuntimeOnly": false
+}
+```
 
-This method accepts a JSON payload very similar to **UploadLogs** except it doesn't have the "sasUrl" key since the matching logs are returned inline in the response of the direct method. The logs content is truncated to the response size limit of direct methods which is currently 128KB.
+| Name | Type | Description |
+|-|-|-|
+| schemaVersion | string | Set to `1.0` |
+| sasURL | string (URI) | [Shared Access Signature URL with write access to Azure Blob Storage container](https://blogs.msdn.microsoft.com/jpsanders/2017/10/12/easily-create-a-sas-to-download-a-file-from-azure-storage-using-azure-storage-explorer/)
+| since | integer | Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp. OPTIONAL. |
+| until | integer | Only return logs before the specified time, as a rfc3339 timestamp, UNIX timestamp, or duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes). OPTIONAL.|
+| edgeRuntimeOnly | boolean | If true, only return logs from Edge Agent, Edge Hub and the Edge Security Daemon. **Edge Hub logs may still contain PII**. Default: false.  OPTIONAL.|

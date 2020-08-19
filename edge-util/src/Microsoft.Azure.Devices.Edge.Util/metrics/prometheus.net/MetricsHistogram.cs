@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 {
+    using System;
     using System.Collections.Generic;
     using global::Prometheus;
 
@@ -25,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
                         new QuantileEpsilonPair(0.999, 0.01),
                         new QuantileEpsilonPair(0.9999, 0.01),
                     },
-                    LabelNames = labelNames.ToArray()
+                    LabelNames = labelNames.ToArray(),
+                    MaxAge = TimeSpan.FromHours(1)
                 });
         }
 

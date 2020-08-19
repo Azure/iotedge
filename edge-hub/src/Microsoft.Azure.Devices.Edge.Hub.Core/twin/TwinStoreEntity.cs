@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         public TwinStoreEntity(Twin twin, TwinCollection reportedPropertiesPatch)
         {
             this.Twin = Option.Maybe(twin);
-            this.ReportedPropertiesPatch = reportedPropertiesPatch?.Count != 0
+            this.ReportedPropertiesPatch = reportedPropertiesPatch != null && reportedPropertiesPatch.Count != 0
                 ? Option.Some(reportedPropertiesPatch)
                 : Option.None<TwinCollection>();
         }

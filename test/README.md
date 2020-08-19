@@ -57,7 +57,9 @@ The tests also expect to find several _secret_ parameters. While these can techn
 |------|----------|-------------|
 | `[E2E_]DPS_GROUP_KEY` | * | The symmetric key of the DPS [enrollment group](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-service#enrollment-group) to use. Required when running any DPS tests, ignored otherwise. |
 | `[E2E_]IOT_HUB_CONNECTION_STRING` | ✔ | Hub-scoped IoT Hub connection string that can be used to get/add/remove devices, deploy edge configurations, and get/update module twins. |
+| `[E2E_]PREVIEW_IOT_HUB_CONNECTION_STRING` | * | Alternate Hub-scoped IoT Hub connection string in a region that has preview bits deployed for preview testing - required only for PlugAndPlay tests. |
 | `[E2E_]EVENT_HUB_ENDPOINT` | ✔ | Connection string used to connect to the Event Hub-compatible endpoint of your IoT Hub, to listen for D2C events sent by devices or modules. |
+| `[E2E_]PREVIEW_EVENT_HUB_ENDPOINT` | * | Alternate Event Hub that is in a region that has preview bits deployed for preview testing - required only for PlugAndPlay tests. |
 | `[E2E_]REGISTRIES__{n}__PASSWORD` || Password associated with a container registry entry in the `registries` array of `context.json`. `{n}` is the number corresponding to the (zero-based) array entry. For example, if you specified a single container registry in the `registries` array, the corresponding parameter would be `[E2E_]REGISTRIES__0__PASSWORD`. |
 | `[E2E_]ROOT_CA_PASSWORD` || The password associated with the root certificate specified in `rootCaCertificatePath`. |
 

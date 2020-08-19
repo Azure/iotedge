@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class Device : SasManualProvisioningFixture
     {
         [Test]
+        [Category("CentOsSafe")]
         public async Task QuickstartCerts()
         {
             CancellationToken token = this.TestToken;
@@ -32,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 CertificateAuthority.GetQuickstart(),
                 this.iotHub,
-                token);
+                token,
+                Option.None<string>());
 
             await TryFinally.DoAsync(
                 async () =>

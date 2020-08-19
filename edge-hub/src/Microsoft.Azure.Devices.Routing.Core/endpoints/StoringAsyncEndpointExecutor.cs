@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Extensions.Logging;
     using Nito.AsyncEx;
@@ -76,6 +77,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
             catch (Exception ex)
             {
+                Routing.UserMetricLogger.LogIngressFailureMetric(1, this.Endpoint.IotHubName, message, "storage_failure");
                 Events.AddMessageFailure(this, ex);
                 throw;
             }
@@ -263,7 +265,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                             {
                                 // Tag the message with the priority that we're currently
                                 // processing, so it can be used by metrics later
-                                messages.Select(m => m.ProcessedPriority = priority);
+                                foreach (IMessage msg in messages)
+                                {
+                                    msg.ProcessedPriority = priority;
+                                }
 
                                 Events.ProcessingMessages(this, messages, priority);
                                 await this.ProcessMessages(messages, fsm);

@@ -268,8 +268,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IAvailabilityMetric
-            builder.Register(c => new AvailabilityMetrics(c.Resolve<IMetricsProvider>(), this.storagePath))
-                .As<IAvailabilityMetric>()
+            builder.Register(c => new DeploymentMetrics(c.Resolve<IMetricsProvider>(), this.storagePath))
+                .As<IDeploymentMetrics>()
                 .SingleInstance();
 
             // Task<Agent>
@@ -285,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                         var deploymentConfigInfoStore = await c.Resolve<Task<IEntityStore<string, string>>>();
                         var encryptionProvider = c.Resolve<Task<IEncryptionProvider>>();
-                        var availabilityMetric = c.Resolve<IAvailabilityMetric>();
+                        var availabilityMetric = c.Resolve<IDeploymentMetrics>();
                         return await Agent.Create(
                             await configSource,
                             await planner,

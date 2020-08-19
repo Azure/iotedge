@@ -64,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                                 return (deviceSubscription, addSubscription);
                             });
+                    Events.ProcessingSessionSubscriptions(id, subscriptions);
 
                     await this.edgeHub.ProcessSubscriptions(id, subscriptions);
                 }
@@ -114,7 +115,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             enum EventIds
             {
                 UnknownSubscription = IdStart,
-                ErrorHandlingSubscription
+                ErrorHandlingSubscription,
+                ProcessingSessionSubscriptions
             }
 
             public static void UnknownTopicSubscription(string topicName, string id)
@@ -125,6 +127,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void ErrorProcessingSubscriptions(string id, Exception exception)
             {
                 Log.LogWarning((int)EventIds.ErrorHandlingSubscription, exception, Invariant($"Error processing subscriptions for client {id}."));
+            }
+
+            internal static void ProcessingSessionSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
+            {
+                string subscriptionString = string.Join(", ", subscriptions.Select(s => $"{s.Item1}"));
+                Log.LogDebug((int)EventIds.ProcessingSessionSubscriptions, $"Processing session subscriptions {subscriptionString} for client {id}: ");
             }
         }
     }

@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token);
 
-        IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath, Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry);
+        Task<IEdgeDaemon> CreateEdgeDaemonAsync(Option<string> installerPath, Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry, CancellationToken token);
 
         // After calling this function, the following files will be available under {scriptPath}:
         //  certs/iot-device-{deviceId}-full-chain.cert.pem

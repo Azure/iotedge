@@ -71,8 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         IMessageConverter<AmqpMessage> twinMessageConverter = new AmqpTwinMessageConverter();
                         IMessageConverter<AmqpMessage> directMethodMessageConverter = new AmqpDirectMethodMessageConverter();
                         var identityProvider = c.Resolve<IIdentityProvider>();
-                        var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
-                        ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, directMethodMessageConverter, identityProvider, productInfoStore);
+                        var metadataStore = await c.Resolve<Task<IMetadataStore>>();
+                        ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, directMethodMessageConverter, identityProvider, metadataStore);
                         return linkHandlerProvider;
                     })
                 .As<Task<ILinkHandlerProvider>>()

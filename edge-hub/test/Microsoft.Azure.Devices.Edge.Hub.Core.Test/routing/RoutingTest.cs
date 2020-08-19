@@ -486,10 +486,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         static IClientCredentials SetupDeviceIdentity(string deviceId) =>
-            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, false);
+            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, Option.None<string>(), false);
 
         static IClientCredentials SetupModuleCredentials(string moduleId, string deviceId) =>
-            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, false);
+            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, Option.None<string>(), false);
 
         class IoTHub
         {
@@ -523,7 +523,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
                 Assert.True(cloudProxy.Success);
                 var deviceProxy = Mock.Of<IDeviceProxy>();
-                var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout);
+                var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
 
                 deviceListener.BindDeviceProxy(deviceProxy);
                 return new TestDevice(deviceCredentials.Identity as IDeviceIdentity, deviceListener);
@@ -564,7 +564,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IClientCredentials moduleCredentials = SetupModuleCredentials(moduleId, deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(moduleCredentials);
                 Assert.True(cloudProxy.Success);
-                var deviceListener = new DeviceMessageHandler(moduleCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout);
+                var deviceListener = new DeviceMessageHandler(moduleCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
 
                 var receivedMessages = new List<IMessage>();
                 var deviceProxy = new Mock<IDeviceProxy>();

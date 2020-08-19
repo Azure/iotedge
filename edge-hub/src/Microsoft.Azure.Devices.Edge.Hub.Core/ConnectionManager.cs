@@ -480,7 +480,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 InvokingCloudConnectionEstablishedEvent,
                 HandlingConnectionStatusChangedHandler,
                 CloudConnectionLostClosingClient,
-                CloudConnectionLostClosingAllClients
+                CloudConnectionLostClosingAllClients,
+                GettingCloudConnectionForDeviceSubscriptions
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -550,6 +551,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void CloudConnectionLostClosingAllClients()
             {
                 Log.LogDebug((int)EventIds.CloudConnectionLostClosingAllClients, Invariant($"Cloud connection lost, closing all clients."));
+            }
+
+            public static void GettingCloudConnectionForDeviceSubscriptions()
+            {
+                Log.LogDebug((int)EventIds.GettingCloudConnectionForDeviceSubscriptions, $"Device has subscriptions. Trying to get cloud connection.");
             }
         }
 

@@ -1,3 +1,4 @@
+name: $(version)
 jobs: 
 ################################################################################
   - job: linux_dotnet_projects
@@ -299,28 +300,25 @@ jobs:
           imageName: azureiotedge-agent
           name: "Edge Agent"
           project: Microsoft.Azure.Devices.Edge.Agent.Service
+          version: $(version)
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-hub
           name: "Edge Hub"
           project: Microsoft.Azure.Devices.Edge.Hub.Service
+          version: $(version)
       - template: templates/image-linux.yaml
         parameters: 
           imageName: azureiotedge-simulated-temperature-sensor
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
-      - bash: |
-            scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) &&
-            scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics
-        displayName: 'Build Image - azureiotedge-diagnostics - amd64'
-      - bash: |
-            scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) --target-arch armv7l &&
-            scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics --target-arch armv7l
-        displayName: 'Build Image - azureiotedge-diagnostics - ARM32'
-      - bash: |
-            scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) --target-arch aarch64 &&
-            scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics --target-arch aarch64
-        displayName: 'Build Image - azureiotedge-diagnostics - ARM64'
+          version: $(version)
+      - template: templates/image-linux.yaml
+        parameters:
+          imageName: azureiotedge-diagnostics
+          name: "Diagnostics Module"
+          project: IotedgeDiagnosticsDotnet
+          version: $(version)
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts to VSTS'
         inputs:
@@ -351,11 +349,6 @@ jobs:
       - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
         displayName: "Build ($(configuration))"
         name: build
-      - task: PowerShell@2
-        displayName: "Build iotedge-diagnostics"
-        inputs:
-          filePath: ./edgelet/build/windows/build-diagnostics.ps1
-          targetType: filePath
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Edge Agent Code Sign"
         inputs: 
@@ -523,10 +516,10 @@ jobs:
           signConfigType: inlineSignParams
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "azureiotedge-diagnostics Code Sign"
-        inputs: 
+        inputs:
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-          FolderPath: $(Build.BinariesDirectory)\publish\azureiotedge-diagnostics
-          Pattern: iotedge-diagnostics.exe
+          FolderPath: $(Build.BinariesDirectory)/publish/IotedgeDiagnosticsDotnet
+          Pattern: "Microsoft.Azure.Devices.Edge.*.dll,IotedgeDiagnosticsDotnet.dll"
           SessionTimeout: 20
           inlineOperation: |
               [
@@ -595,9 +588,9 @@ jobs:
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
       - task: PowerShell@2
-        displayName: "Build Image - azureiotedge-diagnostics - amd64"
-        inputs: 
-          arguments: "-Name 'azureiotedge-diagnostics' -Project 'azureiotedge-diagnostics' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
+        displayName: "Build Image - Diagnostics Module- amd64"
+        inputs:
+          arguments: "-Name 'azureiotedge-diagnostics' -Project 'IotedgeDiagnosticsDotnet' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
       - task: PublishBuildArtifacts@1
@@ -605,3 +598,21 @@ jobs:
         inputs: 
           ArtifactName: publish-win
           PathtoPublish: $(Build.BinariesDirectory)\publish
+################################################################################
+  - job: manifest
+################################################################################
+    displayName: Publish Manifest Images
+    pool:
+      vmImage: 'ubuntu-16.04'
+    dependsOn:
+      - linux_dotnet_projects
+      - windows
+    steps:
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish azureiotedge-diagnostics Manifest'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish Edge Agent Manifest'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish Edge Hub Manifest'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+      displayName: 'Publish Temperature Sensor Manifest'
