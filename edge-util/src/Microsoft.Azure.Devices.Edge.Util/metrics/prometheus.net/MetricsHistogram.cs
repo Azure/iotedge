@@ -19,12 +19,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
                 {
                     Objectives = new[]
                     {
-                        new QuantileEpsilonPair(0.5, 0.05),
-                        new QuantileEpsilonPair(0.9, 0.05),
-                        new QuantileEpsilonPair(0.95, 0.01),
-                        new QuantileEpsilonPair(0.99, 0.01),
-                        new QuantileEpsilonPair(0.999, 0.01),
-                        new QuantileEpsilonPair(0.9999, 0.01),
+                        new QuantileEpsilonPair(0.1, 0.05),
+                        new QuantileEpsilonPair(0.25, 0.05),
+                        new QuantileEpsilonPair(0.5, 0.01),
+                        new QuantileEpsilonPair(0.75, 0.01),
+                        new QuantileEpsilonPair(0.9, 0.01),
                     },
                     LabelNames = labelNames.ToArray(),
                     MaxAge = maxAge,
