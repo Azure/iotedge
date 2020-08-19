@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string LoadGenModuleName = "loadGenModule";
         const string RelayerModuleName = "relayerModule";
         const string NetworkControllerModuleName = "networkController";
-        const string TrcUrl = "http://" + TrcModuleName + ":5001";
+        const string TrcUrl = "http://" + TrcModuleName + ":7027";
         const string LoadGenTestDuration = "00:00:20";
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true, "00:00:40");
 
-            var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:5001" };
+            var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:7027" };
 
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, "hubtest", trcImage, loadGenImage, testInfo, true);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private async Task ValidateResultsAsync()
         {
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
+            HttpResponseMessage response = await client.GetAsync("http://localhost:7027/api/report");
             var jsonstring = await response.Content.ReadAsStringAsync();
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
             if (!isPassed)
@@ -233,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                            ("NetworkControllerRunProfile", "Online"),
                            ("TEST_INFO", "key=unnecessary")
                        })
-                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
+                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"7027/tcp\": [{\"HostPort\": \"7027\"}]}}}") })
 
                        .WithDesiredProperties(new Dictionary<string, object>
                        {
