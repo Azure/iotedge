@@ -16,6 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class AuthAgentController : Controller
     {
+        const string PemHeader = "-----BEGIN CERTIFICATE-----";
+        const string PemFooter = "-----END CERTIFICATE-----";
+
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
@@ -170,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             try
             {
-                var certificateContent = Encoding.UTF8.GetBytes(encodedCertificate);
+                var certificateContent = Convert.FromBase64String(TrimPemFrame(encodedCertificate));
                 var certificate = new X509Certificate2(certificateContent);
 
                 return certificate;
@@ -192,6 +195,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 return new List<X509Certificate2>();
             }
+        }
+
+        static string TrimPemFrame(string pemEncoded)
+        {
+            var result = pemEncoded.Trim();
+            if (result.StartsWith(PemHeader))
+            {
+                result = result.Substring(PemHeader.Length);
+            }
+
+            if (result.EndsWith(PemFooter))
+            {
+                result = result.Substring(0, result.Length - PemFooter.Length);
+            }
+
+            return result;
         }
 
         static class Events

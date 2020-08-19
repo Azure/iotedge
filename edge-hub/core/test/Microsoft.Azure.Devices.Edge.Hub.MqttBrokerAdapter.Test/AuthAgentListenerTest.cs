@@ -561,56 +561,68 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             return result;
         }
 
-        private static readonly string ThumbprintTestCert = "MIIBLjCB1AIJAOTg4Zxl8B7jMAoGCCqGSM49BAMCMB8xHTAbBgNVBAMMFFRodW1i" +
+        private static readonly string ThumbprintTestCert = "\n\t\n -----BEGIN CERTIFICATE-----\n" +
+                                                            "MIIBLjCB1AIJAOTg4Zxl8B7jMAoGCCqGSM49BAMCMB8xHTAbBgNVBAMMFFRodW1i" +
                                                             "cHJpbnQgVGVzdCBDZXJ0MB4XDTIwMDQyMzE3NTgwN1oXDTMzMTIzMTE3NTgwN1ow" +
                                                             "HzEdMBsGA1UEAwwUVGh1bWJwcmludCBUZXN0IENlcnQwWTATBgcqhkjOPQIBBggq" +
                                                             "hkjOPQMBBwNCAARDJJBtVlgM0mBWMhAYagF7Wuc2aQYefhj0cG4wAmn3M4XcxJ39" +
                                                             "XkEup2RRAj7SSdOYhTmRpg5chhpZX/4/eF8gMAoGCCqGSM49BAMCA0kAMEYCIQD/" +
                                                             "wNzMjU1B8De5/+jEif8rkLDtqnohmVRXuAE5dCfbvAIhAJTJ+Fyg19uLSKVyOK8R" +
-                                                            "5q87sIqhJXhTfNYvIt77Dq4J";
+                                                            "5q87sIqhJXhTfNYvIt77Dq4J" +
+                                                            "-----END CERTIFICATE-----\n\n";
 
         private static readonly string ThumbprintTestCertThumbprint2 = "c69f30b8feb9329506fa3f4167636915f494d19b";
-        private static readonly string ThumbprintTestCert2 = "MIIBMTCB2AIJAM6QHTdXFpL6MAoGCCqGSM49BAMCMCExHzAdBgNVBAMMFlRodW1i" +
+        private static readonly string ThumbprintTestCert2 = "\n\t\n -----BEGIN CERTIFICATE-----\n" +
+                                                             "MIIBMTCB2AIJAM6QHTdXFpL6MAoGCCqGSM49BAMCMCExHzAdBgNVBAMMFlRodW1i" +
                                                              "cHJpbnQgVGVzdCBDZXJ0IDIwHhcNMjAwNDIzMTgwNTMzWhcNMzMxMjMxMTgwNTMz" +
                                                              "WjAhMR8wHQYDVQQDDBZUaHVtYnByaW50IFRlc3QgQ2VydCAyMFkwEwYHKoZIzj0C" +
                                                              "AQYIKoZIzj0DAQcDQgAEKqZnpWfqQa/wS9BAeLMnhynlmHApP0/96R4q+q+HXO4m" +
                                                              "9vXQEszj2KHk9u3t/TKFfFCqbCb4uRNhQbsWDBwFqTAKBggqhkjOPQQDAgNIADBF" +
                                                              "AiBuh6l2aW4yxyhcPxOyRd0qbNJMMpx04a7waO8XvK5GNwIhALPq5K8sNzkMZhnZ" +
-                                                             "tp8R7qnaCWxYLkGuaXwuZw4LST1U";
+                                                             "tp8R7qnaCWxYLkGuaXwuZw4LST1U" +
+                                                             "-----END CERTIFICATE-----\n\n";
 
-        private static readonly string CaTestRoot = "MIIBfDCCASKgAwIBAgIJAIIuyXPWOrrvMAoGCCqGSM49BAMCMBQxEjAQBgNVBAMM" +
+        private static readonly string CaTestRoot = "-----BEGIN CERTIFICATE-----" +
+                                                    "MIIBfDCCASKgAwIBAgIJAIIuyXPWOrrvMAoGCCqGSM49BAMCMBQxEjAQBgNVBAMM" +
                                                     "CVRlc3QgUm9vdDAeFw0yMDA0MjQyMDUwMTRaFw0zNDAxMDEyMDUwMTRaMBQxEjAQ" +
                                                     "BgNVBAMMCVRlc3QgUm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABM58STQE" +
                                                     "OhfUumBphMzVpa4dQSS6lv+qJP/Q1XV1xTW6MQBAbpxabqk4jNbCe2XLTdETbzrn" +
                                                     "Wnskm40CzxAVkBmjXTBbMAwGA1UdEwQFMAMBAf8wCwYDVR0PBAQDAgHGMB0GA1Ud" +
                                                     "DgQWBBSrZLo1F8FcV6c4eYH1IPIlQdU9lzAfBgNVHSMEGDAWgBSrZLo1F8FcV6c4" +
                                                     "eYH1IPIlQdU9lzAKBggqhkjOPQQDAgNIADBFAiEApVcPpM3I0lsJjc1OmOOO8SGy" +
-                                                    "rbv22nbkceeenoGRkyQCIHy5Na2OY49AJc1mzRpKCH10mQYkTUkSX1DaqIo//tYF";
+                                                    "rbv22nbkceeenoGRkyQCIHy5Na2OY49AJc1mzRpKCH10mQYkTUkSX1DaqIo//tYF" +
+                                                    "-----END CERTIFICATE-----";
 
-        private static readonly string CaTestDevice = "MIIBRjCB7KADAgECAgkA+igvZ6louWcwCgYIKoZIzj0EAwIwFDESMBAGA1UEAwwJ" +
+        private static readonly string CaTestDevice = "-----BEGIN CERTIFICATE-----" +
+                                                      "MIIBRjCB7KADAgECAgkA+igvZ6louWcwCgYIKoZIzj0EAwIwFDESMBAGA1UEAwwJ" +
                                                       "VGVzdCBSb290MB4XDTIwMDQyNDIwNTAxNVoXDTM0MDEwMTIwNTAxNVowETEPMA0G" +
                                                       "A1UEAwwGZGV2aWNlMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE0p3AZbTbMkJb" +
                                                       "VXQdLjoZ3wosQ5vU5NX22w7coUtz9RECDgZ6YKa6r28s1/z18Q2MRd534NOu+OUB" +
                                                       "x0UFD0qI26MqMCgwEwYDVR0lBAwwCgYIKwYBBQUHAwEwEQYDVR0RBAowCIIGZGV2" +
                                                       "aWNlMAoGCCqGSM49BAMCA0kAMEYCIQC/VEzxzPpJeD8//ltr7mUIhb/owzgbLrmi" +
-                                                      "kAFHRd1UDgIhALUZ081U9Tm/bLw9rlRb5iMzrj4tUmMcwujlz+Sl73KX";
+                                                      "kAFHRd1UDgIhALUZ081U9Tm/bLw9rlRb5iMzrj4tUmMcwujlz+Sl73KX" +
+                                                      "-----END CERTIFICATE-----";
 
-        private static readonly string CaTestRoot2 = "MIIBfDCCASKgAwIBAgIJAOhzRYU913Y6MAoGCCqGSM49BAMCMBQxEjAQBgNVBAMM" +
+        private static readonly string CaTestRoot2 = "-----BEGIN CERTIFICATE-----" +
+                                                     "MIIBfDCCASKgAwIBAgIJAOhzRYU913Y6MAoGCCqGSM49BAMCMBQxEjAQBgNVBAMM" +
                                                      "CVRlc3QgUm9vdDAeFw0yMDA0MjQyMDU0MzJaFw0zNDAxMDEyMDU0MzJaMBQxEjAQ" +
                                                      "BgNVBAMMCVRlc3QgUm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGkdpWjE" +
                                                      "uIBtieocAB0n7/uRA0lRmwToOqNRZgb05C2Aq66QjuYXpewUzIMoaweRPFYRZQ+l" +
                                                      "8TxanEkYNKS7KAijXTBbMAwGA1UdEwQFMAMBAf8wCwYDVR0PBAQDAgHGMB0GA1Ud" +
                                                      "DgQWBBSCNXZZQGZh6o7IIOkPPhqb11pYaDAfBgNVHSMEGDAWgBSCNXZZQGZh6o7I" +
                                                      "IOkPPhqb11pYaDAKBggqhkjOPQQDAgNIADBFAiEA/s0g4uAhcXb4i6oqJDmR0alY" +
-                                                     "O+RyzRgCy22Ap3CTlC4CIHjA2CF7sMxOb5oADQRKxEDw40QDvlyXys/akxD03K49";
+                                                     "O+RyzRgCy22Ap3CTlC4CIHjA2CF7sMxOb5oADQRKxEDw40QDvlyXys/akxD03K49" +
+                                                     "-----END CERTIFICATE-----";
 
-        private static readonly string CaTestDevice2 = "MIIBRDCB7KADAgECAgkAlwSWPRWfIsYwCgYIKoZIzj0EAwIwFDESMBAGA1UEAwwJ" +
+        private static readonly string CaTestDevice2 = "-----BEGIN CERTIFICATE-----" +
+                                                       "MIIBRDCB7KADAgECAgkAlwSWPRWfIsYwCgYIKoZIzj0EAwIwFDESMBAGA1UEAwwJ" +
                                                        "VGVzdCBSb290MB4XDTIwMDQyNDIwNTQzMloXDTM0MDEwMTIwNTQzMlowETEPMA0G" +
                                                        "A1UEAwwGZGV2aWNlMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExFs+1Rdwnr9k" +
                                                        "QAMu6vdKiDRKPgeIq0GljTzMDh5NsJhlE252CLqtI6oMdZ0Zz/3Ym5WONgcxgyyY" +
                                                        "dFFPOU5l/KMqMCgwEwYDVR0lBAwwCgYIKwYBBQUHAwEwEQYDVR0RBAowCIIGZGV2" +
                                                        "aWNlMAoGCCqGSM49BAMCA0cAMEQCIDq8t07xw0wP2qS7ynjOfWxGZcNvJhcLZNPT" +
-                                                       "kIBHATXPAiAxv00Sv6MsM+a8aKhns2/yfGRKOVEhpqeSUqoqn9fhSg==";
+                                                       "kIBHATXPAiAxv00Sv6MsM+a8aKhns2/yfGRKOVEhpqeSUqoqn9fhSg==" +
+                                                       "-----END CERTIFICATE-----";
 
         private static readonly string RequestWithContentLenTemplate = "POST /authenticate/ HTTP/1.1\r\n" +
                                                                        "Content-Type: application/json\r\n" +
