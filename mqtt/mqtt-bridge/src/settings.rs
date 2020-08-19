@@ -32,7 +32,7 @@ pub struct NestedBridgeSettings {
     generation_id: Option<String>,
 
     #[serde(rename = "workloaduri")]
-    workload_uri: Option<String>
+    workload_uri: Option<String>,
 }
 
 impl NestedBridgeSettings {
