@@ -231,7 +231,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                            ("testDuration", "00:20:00"),
                            ("verificationDelay", "00:00:00"),
                            ("NetworkControllerRunProfile", "Online"),
-                           ("TEST_INFO", "key=unnecessary")
+                           ("TEST_INFO", "key=unnecessary"),
+                           ("webhostPort", "7027")
                        })
                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"7027/tcp\": [{\"HostPort\": \"7027\"}]}}}") })
 
