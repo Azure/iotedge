@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                         this.metricsConfig.Enabled
-                            ? new MetricsProvider(MetricsConstants.EdgeHubMetricPrefix, this.iothubHostName, this.edgeDeviceId)
+                            ? new MetricsProvider(MetricsConstants.EdgeHubMetricPrefix, this.iothubHostName, this.edgeDeviceId, this.metricsConfig.HistogramMaxAge)
                             : new NullMetricsProvider() as IMetricsProvider)
                 .As<IMetricsProvider>()
                 .SingleInstance();
@@ -232,9 +232,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // Task<IStoreProvider>
             builder.Register(async c =>
                 {
-                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
-                IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                return storeProvider;
+                    var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                    IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                    return storeProvider;
                 })
                 .As<Task<IStoreProvider>>()
                 .SingleInstance();
