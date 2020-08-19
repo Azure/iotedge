@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
 
         const int DefaultMaxOpenFiles = 5000;
-        
+
         const ulong DefaultKeepLogFileNum = 1;
         // Log NOTHING to the log file.
         const StorageLogLevel DefaultLogLevel = StorageLogLevel.NONE;
