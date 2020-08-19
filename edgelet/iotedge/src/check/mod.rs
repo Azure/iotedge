@@ -620,6 +620,11 @@ struct CheckOutputSerializable {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+    use std::io::{BufRead, BufReader, Write};
+
+    use tempfile::tempdir;
+
     use super::{
         Check, CheckResult, Checker, ContainerEngineIsMoby, Hostname, WellFormedConfig,
         WellFormedConnectionString,
@@ -856,18 +861,56 @@ mod tests {
     #[test]
     fn settings_connection_string_dps_err() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
+        let hub_name = "hub_1";
 
         let filename = "sample_settings.dps.sym.yaml";
-        let config_file = format!(
+        let config_file_source = format!(
             "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
         );
 
+        let tmp_dir = tempdir().unwrap();
+        let config_file = tmp_dir.path().join(filename);
+        let provision_file = tmp_dir
+            .path()
+            .join("cache")
+            .join("provisioning_backup.json");
+        std::fs::create_dir(tmp_dir.path().join("cache")).unwrap();
+
+        // replace homedir with temp directory
+        {
+            let mut new_config = File::create(&config_file).unwrap();
+            for line in BufReader::new(File::open(config_file_source).unwrap()).lines() {
+                if let Ok(line) = line {
+                    println!("{}", line);
+                    if line.contains("homedir") {
+                        let new_line = format!(
+                            "homedir: \"{}\"",
+                            tmp_dir.path().to_str().unwrap().replace(r"\", r"\\")
+                        );
+                        new_config.write_all(new_line.as_bytes()).unwrap();
+                    } else {
+                        new_config.write_all(line.as_bytes()).unwrap();
+                    }
+                    new_config.write_all(b"\n").unwrap();
+                }
+            }
+        }
+
+        let fake_result = provisioning::ProvisioningResult::new(
+            "a",
+            hub_name,
+            None,
+            provisioning::ReprovisioningStatus::default(),
+            None,
+        );
+        provisioning::backup(&fake_result, provision_file).unwrap();
+
         let mut check = runtime
             .block_on(Check::new(
-                config_file.into(),
+                config_file,
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
@@ -887,11 +930,10 @@ mod tests {
         }
 
         match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            CheckResult::Warning(err) => assert!(err.to_string().contains("Device not configured with manual provisioning, in this configuration 'iotedge check' is not able to discover the device's backing IoT Hub.")),
-            check_result => panic!(
-                "checking connection string in {} returned {:?}",
-                filename, check_result
-            ),
+            CheckResult::Ok => {
+                assert_eq!(check.iothub_hostname, Some(hub_name.to_owned()));
+            }
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
     }
 

@@ -15,7 +15,7 @@ pub mod provisioning;
 
 pub use crate::error::Error;
 pub use crate::provisioning::{
-    restore, AuthType, BackupProvisioning, Credentials, DpsSymmetricKeyProvisioning,
+    backup, restore, AuthType, BackupProvisioning, Credentials, DpsSymmetricKeyProvisioning,
     DpsTpmProvisioning, DpsX509Provisioning, Provision, ProvisioningResult, ProvisioningStatus,
     ReprovisioningStatus, SymmetricKeyCredential, X509Credential,
 };

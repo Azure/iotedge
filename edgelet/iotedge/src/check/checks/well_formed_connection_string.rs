@@ -55,7 +55,7 @@ impl WellFormedConnectionString {
                 .join("provisioning_backup.json");
 
             let provision_result = provisioning::restore(provisioning_file_path).map_err(|e| {
-                let reason = format!("Could restore provisioning file: {}", e);
+                let reason = format!("Couldn't restore provisioning file: {}", e);
                 e.context(reason)
             })?;
 

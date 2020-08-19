@@ -751,7 +751,7 @@ impl<'a, P: 'a> BackupProvisioning<'a, P> {
     }
 }
 
-fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Error> {
+pub fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Error> {
     // create a file if it doesn't exist, else open it for writing
     let mut file = File::create(path).context(ErrorKind::CouldNotBackup)?;
     let buffer = serde_json::to_string(&prov_result).context(ErrorKind::CouldNotBackup)?;
