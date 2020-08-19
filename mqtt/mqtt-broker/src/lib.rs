@@ -237,6 +237,7 @@ pub enum ClientEvent {
 pub enum SystemEvent {
     Shutdown,
     StateSnapshot(StateSnapshotHandle),
+    ForceClientDisconnect(ClientId),
     // ConfigUpdate,
 }
 
