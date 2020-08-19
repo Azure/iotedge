@@ -1,20 +1,20 @@
-use crate::settings::NestedBridgeSettings;
+use crate::settings::Settings;
 use anyhow::Result;
 use tracing::info;
 
 pub struct NestedBridge {
-    nested_settings: NestedBridgeSettings,
+    settings: Settings,
 }
 
 impl NestedBridge {
-    pub fn new(nested_settings: NestedBridgeSettings) -> Self {
-        NestedBridge { nested_settings }
+    pub fn new(settings: Settings) -> Self {
+        NestedBridge { settings }
     }
 
     pub async fn start(&self) {
         info!(
             "Starting nested bridge...{:?}",
-            self.nested_settings.gateway_hostname()
+            self.settings
         );
 
         self.connect_to_local().await;
@@ -28,7 +28,7 @@ impl NestedBridge {
     }
 
     async fn get_sas_token(&self) -> Result<String> {
-        let uri = self.nested_settings.workload_uri();
+        let uri = self.settings.nested_bridge().workload_uri();
 
         let client = edgelet_client::workload(uri.unwrap())?;
 

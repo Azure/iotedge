@@ -13,10 +13,11 @@ impl BridgeController {
     }
 
     pub async fn start(&mut self) {
+        // TODO: log if settings deserialize fails
         let settings = Settings::new().unwrap_or_default();
         match settings.nested_bridge().gateway_hostname() {
             Some(_) => {
-                let nested_bridge = NestedBridge::new(settings.nested_bridge().clone());
+                let nested_bridge = NestedBridge::new(settings.clone());
                 nested_bridge.start().await;
 
                 self.nested_bridge = Option::Some(nested_bridge);
