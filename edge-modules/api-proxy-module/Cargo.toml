@@ -14,18 +14,18 @@ futures-util = "0.3"
 hmac = "0.7"
 http = "0.2"
 hyper = { version = "0.13", features = ["stream"] }
-hyper-uds = { path = "./hyper-uds" }
+hyper-uds = { path = "./rust-sdk/hyper-uds" }
 lazy_static = "1.2"
 log = "0.4"
-mqtt3 = { path = "./mqtt3" }
+mqtt3 = { path = "../../mqtt/mqtt3" }
 native-tls = "0.2"
 percent-encoding = "2"
-regex = "1.1"
+regex = "1.3.9"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_derive = "1"
 serde_json = "1"
 sha2 = "0.8"
-tokio = { version = "0.2", features = ["tcp", "time", "process"] }
+tokio = { version = "0.2.22", features = ["tcp", "time", "process"] }
 tokio-io-timeout = "0.4"
 tokio-tls = "0.3"
 tungstenite = "0.10"
@@ -33,8 +33,18 @@ url = "2"
 anyhow = "1.0.32"
 reqwest = { version = "0.10.7", features = ["blocking", "json"] }
 chrono = "0.4.13"
-fasthash = "0.4.0"
-azure-iot-mqtt = { path = "./azure-iot-mqtt" }
+md5 = "0.7.0"
+azure-iot-mqtt = { path = "./rust-sdk/azure-iot-mqtt" }
 structopt = "0.3"
 env_logger = "0.7"
+futures = "0.3.5"
+envsubst = "0.2.0"
+edgelet-client = { path = "../../mqtt/edgelet-client" }
+ctrlc ={ version = "3.1.6" , features = ["termination"] }
 
+[dev-dependencies]
+lazy_static = "1.4"
+matches = "0.1"
+mockito = "0.25"
+test-case = "1.0"
+tokio = { version = "0.2", features = ["macros"] }
