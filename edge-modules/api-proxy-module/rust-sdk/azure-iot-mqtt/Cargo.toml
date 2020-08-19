@@ -17,7 +17,7 @@ hyper = { version = "0.13", features = ["stream"] }
 hyper-uds = { path = "../hyper-uds" }
 lazy_static = "1.2"
 log = "0.4"
-mqtt3 = { path = "../mqtt3" }
+mqtt3 = { path = "../../../../mqtt/mqtt3" }
 native-tls = "0.2"
 percent-encoding = "2"
 regex = "1.1"
