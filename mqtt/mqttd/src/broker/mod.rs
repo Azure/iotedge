@@ -36,7 +36,7 @@ where
 
     info!("starting snapshotter...");
     let snapshot_interval = persistence_config.time_interval();
-    let (mut shutdown_handle, join_handle) =
+    let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
         start_snapshotter(broker.handle(), persistor, snapshot_interval).await;
 
     let shutdown = shutdown::shutdown();
@@ -45,8 +45,8 @@ where
     info!("starting server...");
     let state = bootstrap::start_server(config, broker, shutdown).await?;
 
-    shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await?;
+    snapshotter_shutdown_handle.shutdown().await?;
+    let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
