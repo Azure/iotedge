@@ -884,7 +884,6 @@ mod tests {
             let mut new_config = File::create(&config_file).unwrap();
             for line in BufReader::new(File::open(config_file_source).unwrap()).lines() {
                 if let Ok(line) = line {
-                    println!("{}", line);
                     if line.contains("homedir") {
                         let new_line = format!(
                             "homedir: \"{}\"",
@@ -971,7 +970,7 @@ mod tests {
         }
 
         match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            CheckResult::Failed(err) => assert!(err.to_string().contains("Could not recover iothub_hostname from provisioning file.")),
+            CheckResult::Failed(err) => assert!(err.to_string().contains("Could not retrieve iothub_hostname from provisioning file.")),
             check_result => panic!(
                 "checking connection string in {} returned {:?}",
                 filename, check_result
