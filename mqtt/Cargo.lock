@@ -938,6 +938,7 @@ dependencies = [
  "config",
  "edgelet-client",
  "serde",
+ "serial_test",
  "tracing",
 ]
 

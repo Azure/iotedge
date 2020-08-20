@@ -1,5 +1,4 @@
-use std::path::Path;
-use std::vec::Vec;
+use std::{path::Path, vec::Vec};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
@@ -148,13 +147,10 @@ impl Forward {
 mod tests {
     use serial_test::serial;
 
-    use super::{
-        Settings
-    };
+    use super::Settings;
 
     use config::ConfigError;
 
-    
     #[test]
     #[serial(env_settings)]
     fn new_overrides_settings_from_env() {
@@ -166,7 +162,10 @@ mod tests {
     fn from_file_reads_nested_bridge_settings() {
         let settings = Settings::from_file("tests/config.json").unwrap();
 
-        assert_eq!(settings.nested_bridge().gateway_hostname().unwrap(), "edge1");
+        assert_eq!(
+            settings.nested_bridge().gateway_hostname().unwrap(),
+            "edge1"
+        );
         assert_eq!(settings.nested_bridge().module_id().unwrap(), "mymodule");
         assert_eq!(settings.nested_bridge().generation_id().unwrap(), "321");
         assert_eq!(settings.nested_bridge().workload_uri().unwrap(), "uri");
@@ -189,7 +188,10 @@ mod tests {
 
         let settings = make_settings().unwrap();
 
-        assert_eq!(settings.nested_bridge().gateway_hostname().unwrap(), "upstream");
+        assert_eq!(
+            settings.nested_bridge().gateway_hostname().unwrap(),
+            "upstream"
+        );
         assert_eq!(settings.nested_bridge().module_id().unwrap(), "m1");
         assert_eq!(settings.nested_bridge().generation_id().unwrap(), "123");
         assert_eq!(settings.nested_bridge().workload_uri().unwrap(), "workload");
