@@ -21,6 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             remove { }
         }
 
+        public event EventHandler<IList<string>> ServiceIdentitiesUpdated
+        {
+            add { }
+            remove { }
+        }
+
         public Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
             => Task.FromResult(Option.None<ServiceIdentity>());
 
