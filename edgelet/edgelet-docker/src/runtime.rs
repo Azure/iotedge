@@ -496,7 +496,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     }
                                 }
                                 else {
-                                    (image_with_tag, false)
+                                    (image_with_digest, true)
                                 }
                             }),
                     )
