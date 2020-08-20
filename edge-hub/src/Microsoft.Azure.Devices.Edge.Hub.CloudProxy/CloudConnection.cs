@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan operationTimeout;
         readonly string productInfo;
+        readonly Option<string> modelId;
         Option<ICloudProxy> cloudProxy;
 
         protected CloudConnection(
@@ -36,7 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
-            string productInfo)
+            string productInfo,
+            Option<string> modelId)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.ConnectionStatusChangedHandler = connectionStatusChangedHandler;
@@ -49,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.cloudProxy = Option.None<ICloudProxy>();
             this.operationTimeout = operationTimeout;
             this.productInfo = productInfo;
+            this.modelId = modelId;
         }
 
         public Option<ICloudProxy> CloudProxy => this.GetCloudProxy().Filter(cp => cp.IsActive);
@@ -74,7 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
-            string productInfo)
+            string productInfo,
+            Option<string> modelId)
         {
             Preconditions.CheckNotNull(tokenProvider, nameof(tokenProvider));
             var cloudConnection = new CloudConnection(
@@ -87,7 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 idleTimeout,
                 closeOnIdleTimeout,
                 operationTimeout,
-                productInfo);
+                productInfo,
+                modelId);
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);
             return cloudConnection;
@@ -113,8 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
-            Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity);
-            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList);
+            Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity, this.modelId);
+            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
 
             client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
@@ -161,12 +166,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 TransportConnected
             }
 
-            public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity)
+            public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity, Option<string> modelId)
             {
                 string transportType = transportSettings.Length == 1
                     ? TransportName(transportSettings[0].GetTransportType())
                     : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
-                Log.LogInformation((int)EventIds.AttemptingTransport, $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType}...");
+                string message = $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType}";
+                string withModelIdMessage = modelId.Match(m => $" with modelId {m}", () => string.Empty);
+                Log.LogInformation((int)EventIds.AttemptingTransport, $"{message}{withModelIdMessage}...");
             }
 
             public static void CreateDeviceClientSuccess(ITransportSettings[] transportSettings, TimeSpan timeout, IIdentity identity)

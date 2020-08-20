@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         static KubernetesModule CreateKubernetesModule(CreatePodParameters podParameters)
         {
             var config = new KubernetesConfig("image", podParameters, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
             var owner = new KubernetesModuleOwner("v1", "Owner", "an-owner", "a-uid");
             return new KubernetesModule(docker, config, owner);
         }
@@ -77,6 +77,66 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             Assert.True(result.HasValue);
             var service = result.OrDefault();
             Assert.Equal(PortMapServiceType.ClusterIP.ToString(), service.Spec.Type);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptions()
+        {
+            var serviceOptions = new KubernetesServiceOptions("loadBalancerIP", "nodeport");
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
+
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.NodePort.ToString(), service.Spec.Type);
+            Assert.Equal("loadBalancerIP", service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptionsOverridesSetDefault()
+        {
+            var serviceOptions = new KubernetesServiceOptions("loadBalancerIP", "clusterIP");
+            var module = CreateKubernetesModule(CreatePodParameters.Create(hostConfig: HostPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.ClusterIP.ToString(), service.Spec.Type);
+            Assert.Equal("loadBalancerIP", service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptionsNoIPOnNullLoadBalancerIP()
+        {
+            var serviceOptions = new KubernetesServiceOptions(null, "loadBalancer");
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
+
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.LoadBalancer.ToString(), service.Spec.Type);
+            Assert.Null(service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptionsSetDefaultOnNullType()
+        {
+            var serviceOptions = new KubernetesServiceOptions("loadBalancerIP", null);
+            var module = CreateKubernetesModule(CreatePodParameters.Create(hostConfig: HostPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.LoadBalancer.ToString(), service.Spec.Type);
+            Assert.Equal("loadBalancerIP", service.Spec.LoadBalancerIP);
         }
 
         [Fact]

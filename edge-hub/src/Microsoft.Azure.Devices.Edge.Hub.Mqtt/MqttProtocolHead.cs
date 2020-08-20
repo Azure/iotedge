@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
         readonly IByteBufferAllocator byteBufferAllocator;
-        readonly IProductInfoStore productInfoStore;
+        readonly IMetadataStore metadataStore;
         readonly bool clientCertAuthAllowed;
         readonly SslProtocols sslProtocols;
 
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             ISessionStatePersistenceProvider sessionProvider,
             IWebSocketListenerRegistry webSocketListenerRegistry,
             IByteBufferAllocator byteBufferAllocator,
-            IProductInfoStore productInfoStore,
+            IMetadataStore metadataStore,
             bool clientCertAuthAllowed,
             SslProtocols sslProtocols)
         {
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
             this.byteBufferAllocator = Preconditions.CheckNotNull(byteBufferAllocator);
             this.clientCertAuthAllowed = clientCertAuthAllowed;
-            this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
+            this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
             this.sslProtocols = sslProtocols;
         }
 
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     new ActionChannelInitializer<ISocketChannel>(
                         channel =>
                         {
-                            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.productInfoStore, this.clientCertAuthAllowed);
+                            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.metadataStore, this.clientCertAuthAllowed);
                             // configure the channel pipeline of the new Channel by adding handlers
                             TlsSettings serverSettings = new ServerTlsSettings(
                                 certificate: this.tlsCertificate,
@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 AutoRead,
                 maxInboundMessageSize,
                 this.clientCertAuthAllowed,
-                this.productInfoStore);
+                this.metadataStore);
 
             this.webSocketListenerRegistry.TryRegister(mqttWebSocketListener);
 

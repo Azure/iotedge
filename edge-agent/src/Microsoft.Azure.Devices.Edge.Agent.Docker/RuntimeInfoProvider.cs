@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return modules;
         }
 
-        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
         {
             var containerLogsParameters = new ContainerLogsParameters
             {
@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             };
             tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
             since.ForEach(t => containerLogsParameters.Since = t.ToString());
+
             return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }
 
@@ -193,8 +194,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         static Option<ContainerInspectResponse> EdgeAgentNotFoundAlternative(Exception ex)
         {
-                Events.EdgeAgentContainerNotFound(ex);
-                return Option.None<ContainerInspectResponse>();
+            Events.EdgeAgentContainerNotFound(ex);
+            return Option.None<ContainerInspectResponse>();
         }
 
         static class Events

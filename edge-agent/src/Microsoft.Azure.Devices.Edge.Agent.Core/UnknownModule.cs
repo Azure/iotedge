@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public virtual ImagePullPolicy ImagePullPolicy => ImagePullPolicy.OnCreate;
 
-        public virtual uint Priority => Constants.DefaultPriority;
+        public virtual uint StartupOrder => Constants.DefaultStartupOrder;
 
         public virtual ConfigurationInfo ConfigurationInfo => new ConfigurationInfo();
 

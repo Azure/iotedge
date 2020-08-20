@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // device test
             string deviceId = "device1";
             string deviceClientType = "customDeviceClient1";
-            IClientCredentials identityTry1 = identityFactory.GetWithSasToken(deviceId, null, deviceClientType, sasToken, false);
+            IClientCredentials identityTry1 = identityFactory.GetWithSasToken(deviceId, null, deviceClientType, sasToken, false, Option.None<string>());
             Assert.IsType<DeviceIdentity>(identityTry1.Identity);
             Assert.IsType<TokenCredentials>(identityTry1);
             Assert.Equal(sasToken, (identityTry1 as ITokenCredentials)?.Token);
@@ -76,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceId = "device1";
             string moduleId = "module1";
             deviceClientType = "customDeviceClient2";
-            IClientCredentials identityTry2 = identityFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, sasToken, false);
+            IClientCredentials identityTry2 = identityFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, sasToken, false, Option.None<string>());
             Assert.IsType<ModuleIdentity>(identityTry2.Identity);
             Assert.IsType<TokenCredentials>(identityTry2);
             Assert.Equal(sasToken, (identityTry2 as ITokenCredentials)?.Token);
@@ -99,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName), callerProductInfo);
 
             // device test
-            IClientCredentials identityTry1 = identityFactory.GetWithX509Cert(deviceId, null, deviceClientType, clientCertificate, clientCertChain);
+            IClientCredentials identityTry1 = identityFactory.GetWithX509Cert(deviceId, null, deviceClientType, clientCertificate, clientCertChain, Option.None<string>());
             Assert.IsType<DeviceIdentity>(identityTry1.Identity);
             Assert.IsType<X509CertCredentials>(identityTry1);
             Assert.Equal(clientCertificate, (identityTry1 as ICertificateCredentials)?.ClientCertificate);
@@ -109,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(AuthenticationType.X509Cert, identityTry1.AuthenticationType);
 
             // module test
-            IClientCredentials identityTry2 = identityFactory.GetWithX509Cert(deviceId, moduleId, deviceClientType, clientCertificate, clientCertChain);
+            IClientCredentials identityTry2 = identityFactory.GetWithX509Cert(deviceId, moduleId, deviceClientType, clientCertificate, clientCertChain, Option.None<string>());
             Assert.IsType<ModuleIdentity>(identityTry2.Identity);
             Assert.IsType<X509CertCredentials>(identityTry2);
             Assert.Equal(clientCertificate, (identityTry2 as ICertificateCredentials)?.ClientCertificate);

@@ -57,7 +57,7 @@ jobs:
   steps:
   - checkout: none
   - script: |
-      $(benchmarkToolPath)/mqtt-benchmark -sub -broker $(brokerEndpoint) -runId $(runId) -caseId ${{ parameters['id'] }} -clients ${{ parameters['subscribers'] }} -duration $(test.duration) -qos ${{ parameters['qos'] }} -dop $(clientDop) -quiet -panic
+      $(benchmarkToolPath)/mqtt-benchmark -sub -broker $(brokerEndpoint) -runId $(runId) -caseId ${{ parameters['id'] }} -clients ${{ parameters['subscribers'] }} -duration $(test.duration) -topics ${{ parameters['topics'] }} -qos ${{ parameters['qos'] }} -dop $(clientDop) -quiet -panic
     displayName: 'Running test case'
     env:
       LOGANALYTICS_CUSTOMER_ID: $(logs.workspaceid)

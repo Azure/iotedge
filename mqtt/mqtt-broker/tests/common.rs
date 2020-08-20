@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{
     sync::atomic::{AtomicU32, Ordering},
     task::{Context, Poll},
@@ -303,7 +304,7 @@ impl PacketStream {
         // so we'll try to connect for some time.
         let mut result = TcpStream::connect(&server_addr).await;
         let start_time = Instant::now();
-        while let Err(_) = result {
+        while result.is_err() {
             tokio::time::delay_for(Duration::from_millis(100)).await;
             if start_time.elapsed() > *DEFAULT_TIMEOUT {
                 break;
