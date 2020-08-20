@@ -49,14 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task RefreshServiceIdentities(IEnumerable<string> deviceIds) => Task.CompletedTask;
 
-        public Task RefreshServiceIdentity(string deviceId, bool invokeServiceIdentitiesUpdated = true) => Task.CompletedTask;
+        public Task RefreshServiceIdentity(string deviceId) => Task.CompletedTask;
 
         public Task RefreshServiceIdentity(string deviceId, string moduleId) => Task.CompletedTask;
-
-        public Task<IList<string>> GetAllIds()
-        {
-            IList<string> list = new List<string>();
-            return Task.FromResult(list);
-        }
     }
 }

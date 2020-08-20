@@ -77,7 +77,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task WaitForCacheRefresh(TimeSpan timeout) => this.refreshCacheCompleteSignal.WaitAsync(timeout);
 
-        public async Task RefreshServiceIdentity(string id, bool invokeServiceIdentitiesUpdated = true)
+        public async Task RefreshServiceIdentity(string id)
+        {
+            await this.RefreshServiceIdentityInternal(id, true);
+        }
+
+        public async Task RefreshServiceIdentities(IEnumerable<string> ids)
+        {
+            List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
+            foreach (string id in idList)
+            {
+                await this.RefreshServiceIdentityInternal(id, false);
+            }
+
+            this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
+        }
+
+        async Task RefreshServiceIdentityInternal(string id, bool invokeServiceIdentitiesUpdated)
         {
             try
             {
@@ -96,17 +112,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
             }
-        }
-
-        public async Task RefreshServiceIdentities(IEnumerable<string> ids)
-        {
-            List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
-            foreach (string id in idList)
-            {
-                await this.RefreshServiceIdentity(id, false);
-            }
-
-            this.ServiceIdentitiesUpdated?.Invoke(this, ids.ToList());
         }
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
