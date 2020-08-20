@@ -51,6 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
+        public event EventHandler<IList<string>> ServiceIdentitiesUpdated;
+
         public static async Task<DeviceScopeIdentitiesCache> Create(
             IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
@@ -77,6 +79,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task RefreshServiceIdentity(string id)
         {
+            await this.RefreshServiceIdentityInternal(id, true);
+        }
+
+        public async Task RefreshServiceIdentities(IEnumerable<string> ids)
+        {
+            List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
+            foreach (string id in idList)
+            {
+                await this.RefreshServiceIdentityInternal(id, false);
+            }
+
+            this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
+        }
+
+        async Task RefreshServiceIdentityInternal(string id, bool invokeServiceIdentitiesUpdated)
+        {
             try
             {
                 Events.RefreshingServiceIdentity(id);
@@ -89,14 +107,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 Events.ErrorRefreshingCache(e, id);
             }
-        }
 
-        public async Task RefreshServiceIdentities(IEnumerable<string> ids)
-        {
-            List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
-            foreach (string id in idList)
+            if (invokeServiceIdentitiesUpdated)
             {
-                await this.RefreshServiceIdentity(id);
+                this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
             }
         }
 
@@ -161,11 +175,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             while (true)
             {
+                var currentCacheIds = new List<string>();
+
                 try
                 {
                     Events.StartingRefreshCycle();
-                    var currentCacheIds = new List<string>();
-
                     IServiceIdentitiesIterator iterator = this.serviceProxy.GetServiceIdentitiesIterator();
                     while (iterator.HasNext)
                     {
@@ -195,6 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 Events.DoneRefreshCycle(this.refreshRate);
+                this.ServiceIdentitiesUpdated?.Invoke(this, currentCacheIds);
                 this.refreshCacheCompleteSignal.Set();
                 await this.IsReady();
             }
