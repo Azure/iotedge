@@ -32,7 +32,8 @@ where
     let broker = bootstrap::broker(config.broker(), state).await?;
 
     info!("starting snapshotter...");
-    let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
+    let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
+        start_snapshotter(broker.handle(), persistor).await;
 
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
@@ -40,8 +41,8 @@ where
     info!("starting server...");
     let state = bootstrap::start_server(config, broker, shutdown).await?;
 
-    shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await?;
+    snapshotter_shutdown_handle.shutdown().await?;
+    let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
