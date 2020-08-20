@@ -318,8 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 NotInScope,
                 AddInScope,
                 RefreshingServiceIdentity,
-                GettingServiceIdentity,
-                GettingAllIds
+                GettingServiceIdentity
             }
 
             public static void Created() =>
@@ -371,11 +370,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             internal static void InitializingRefreshTask(TimeSpan refreshRate) =>
                 Log.LogDebug((int)EventIds.InitializingRefreshTask, $"Initializing device scope identities cache refresh task to run every {refreshRate.TotalMinutes} minutes.");
-
-            internal static void GettingAllIds()
-            {
-                Log.LogDebug((int)EventIds.GettingAllIds, "Getting all IDs within hierarchy.");
-            }
         }
     }
 }
