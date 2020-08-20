@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using Akka.Event;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
@@ -80,6 +81,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             public Metric ToMetric(double value)
             {
                 return new Metric(this.TimeGeneratedUtc, this.Name, value, this.Tags);
+            }
+
+            public override bool Equals(object other)
+            {
+                return this.GetHashCode() == other.GetHashCode();
             }
 
             public override int GetHashCode()
