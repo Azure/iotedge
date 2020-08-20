@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity2 = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
                 .ReturnsAsync(Option.Some(serviceIdentity1));
-            deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentity(deviceId))
+            deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentity(deviceId, true))
                 .Callback<string>(id => deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId)).ReturnsAsync(Option.Some(serviceIdentity2)))
                 .Returns(Task.CompletedTask);
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId)))
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(isAuthenticated);
             Mock.Get(underlyingAuthenticator).VerifyAll();
             deviceScopeIdentitiesCache.Verify(d => d.GetServiceIdentity(deviceId), Times.Exactly(2));
-            deviceScopeIdentitiesCache.Verify(d => d.RefreshServiceIdentity(deviceId), Times.Once);
+            deviceScopeIdentitiesCache.Verify(d => d.RefreshServiceIdentity(deviceId, true), Times.Once);
         }
 
         [Fact]
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity2 = new ServiceIdentity(deviceId, "1234", new string[0], new ServiceAuthentication(new SymmetricKeyAuthentication(key, GetKey())), ServiceIdentityStatus.Enabled);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId))
                 .ReturnsAsync(Option.Some(serviceIdentity1));
-            deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentity(deviceId))
+            deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentity(deviceId, true))
                 .Callback<string>(id => deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId)).ReturnsAsync(Option.Some(serviceIdentity2)))
                 .Returns(Task.CompletedTask);
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId)))
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.False(isAuthenticated);
             Mock.Get(underlyingAuthenticator).VerifyAll();
             deviceScopeIdentitiesCache.Verify(d => d.GetServiceIdentity(deviceId), Times.Once);
-            deviceScopeIdentitiesCache.Verify(d => d.RefreshServiceIdentity(deviceId), Times.Never);
+            deviceScopeIdentitiesCache.Verify(d => d.RefreshServiceIdentity(deviceId, true), Times.Never);
         }
 
         [Fact]
