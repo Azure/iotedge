@@ -1,6 +1,8 @@
+use anyhow::{Result};
+use tracing::info;
+
 use crate::bridge::NestedBridge;
 use crate::settings::Settings;
-use tracing::info;
 
 #[derive(Default)]
 pub struct BridgeController {
@@ -12,9 +14,8 @@ impl BridgeController {
         Self::default()
     }
 
-    pub async fn start(&mut self) {
-        // TODO: log if settings deserialize fails
-        let settings = Settings::new().unwrap_or_default();
+    pub async fn start(&mut self) -> Result<()> {
+        let settings = Settings::new()?;
         match settings.nested_bridge().gateway_hostname() {
             Some(_) => {
                 let nested_bridge = NestedBridge::new(settings.clone());
@@ -24,5 +25,7 @@ impl BridgeController {
             }
             None => info!("No nested bridge found."),
         };
+
+        Ok(())
     }
 }

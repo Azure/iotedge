@@ -1,6 +1,6 @@
-use crate::settings::Settings;
-use anyhow::Result;
 use tracing::info;
+
+use crate::settings::Settings;
 
 pub struct NestedBridge {
     settings: Settings,
@@ -19,23 +19,10 @@ impl NestedBridge {
     }
 
     async fn connect_upstream(&self) {
-        info!("getting sas token from edgelet");
-        let token = self.get_sas_token().await;
-        // connect to upstream broker
+        info!("connecting to upstream broker");
     }
 
-    async fn get_sas_token(&self) -> Result<String> {
-        let uri = self.settings.nested_bridge().workload_uri();
-
-        let client = edgelet_client::workload(uri.unwrap())?;
-
-        let signature = String::from("ok");
-        // client
-        //     .sign(&module_id, &generation_id)
-        //     .await?;
-
-        Ok(signature)
+    async fn connect_to_local(&self) {
+        info!("connecting to local broker");
     }
-
-    async fn connect_to_local(&self) {}
 }

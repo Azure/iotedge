@@ -38,7 +38,7 @@ where
         start_snapshotter(broker.handle(), persistor).await;
 
     info!("starting bridge...");
-    start_bridge().await;
+    start_bridge().await?;
 
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
@@ -106,11 +106,17 @@ async fn tick_snapshot(
     }
 }
 
-async fn start_bridge() {
+async fn start_bridge() -> Result<()> {
     let mut bridge_controller = BridgeController::new();
-    bridge_controller.start().await;
+    bridge_controller.start().await.context(LoadBridgeConfigurationError)?;
+
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error)]
 #[error("An error occurred loading configuration.")]
 pub struct LoadConfigurationError;
+
+#[derive(Debug, thiserror::Error)]
+#[error("An error occurred loading bridge configuration.")]
+pub struct LoadBridgeConfigurationError;

@@ -1,14 +1,4 @@
 {
-    "subscriptions": [
-        { 
-            "pattern": "temp/#",
-            "remote": "floor/kitchen/"
-        }
-    ],
-    "forwards": [
-        {
-            "pattern": "",
-            "remote": ""
-        }
-    ]
+    "subscriptions": [],
+    "forwards": []
 }
