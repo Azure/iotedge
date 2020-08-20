@@ -96,7 +96,6 @@ pub fn notary_init(homedir: &Path, hostname: &str, path: &PathBuf) -> Result<Pat
     })?;
     debug!("Config JSON file created successfully");
     Ok(config_file_path)
-    // config_file_path;
 }
 
 pub fn notary_lookup(
@@ -139,11 +138,16 @@ pub fn notary_lookup(
 
 #[cfg(test)]
 mod test {
+    #[cfg(target_os = "linux")]
     use crate::notary;
+    #[cfg(target_os = "linux")]
     use crate::ErrorKind;
+    #[cfg(target_os = "linux")]
     use std::path::PathBuf;
+    #[cfg(target_os = "linux")]
     use tempfile::NamedTempFile;
 
+    #[cfg(unix)]
     #[test]
     fn check_for_empty_hostname() {
         let hostname = String::new();
@@ -158,6 +162,7 @@ mod test {
         assert!(matches!(err.kind(), ErrorKind::InitializeNotary(s) if s == "hostname is empty"));
     }
 
+    #[cfg(unix)]
     #[test]
     fn check_for_root_ca_file_does_not_exist() {
         let hostname = r"myregistry.azurecr.io";

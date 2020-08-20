@@ -1272,7 +1272,9 @@ mod tests {
     };
     use edgelet_test_utils::crypto::TestHsm;
     use provisioning::ReprovisioningStatus;
+    #[cfg(target_os = "linux")]
     use std::fs;
+    #[cfg(target_os = "linux")]
     use tempfile::{NamedTempFile, TempDir};
 
     fn provisioning_result() -> ProvisioningResult {
@@ -1363,16 +1365,12 @@ mod tests {
             .any(|err| err.to_string().contains("Socket file could not be found")));
     }
 
+    #[cfg(unix)]
     #[test]
     fn notary_initialization() {
         // Docker Daemon is not installed in arm32v7 and arm64v8 of the CI build VMs.
         // This test returns if the docker.sock file does not exist in such scenarios
-        let docker_path;
-        if cfg!(unix) {
-            docker_path = Path::new("unix:///var/run/docker.sock");
-        } else {
-            docker_path = Path::new("npipe://./pipe/iotedge_moby_engine");
-        }
+        let docker_path = Path::new("unix:///var/run/docker.sock");
         if !cfg!(target_arch = "x86_64") && !docker_path.exists() {
             return;
         }
@@ -1411,9 +1409,9 @@ mod tests {
         let trust_dir = config_path1.clone();
         config_path1.push("config.json");
         let actual_config1 = fs::read(&config_path1).unwrap();
-        let actual_json_content: serde_json::Value =
+        let actual_json_content1: serde_json::Value =
             serde_json::from_slice(&actual_config1).unwrap();
-        let expected_json_content = json!({
+        let expected_json_content1 = json!({
             "trust_dir" : trust_dir,
             "remote_server": {
               "url": "https://myreg1.azurecr.io"
@@ -1463,7 +1461,7 @@ mod tests {
             runtime.notary_registries.get(hostname2),
             Some(&config_path2)
         );
-        assert_eq!(actual_json_content, expected_json_content);
+        assert_eq!(actual_json_content1, expected_json_content1);
         assert_eq!(actual_json_content2, expected_json_content2);
     }
 
