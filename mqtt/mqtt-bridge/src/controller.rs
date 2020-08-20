@@ -4,6 +4,7 @@ use tracing::info;
 use crate::bridge::NestedBridge;
 use crate::settings::Settings;
 
+/// Controller that handles the settings and monitors changes, spawns new Bridges and monitors shutdown signal.
 #[derive(Default)]
 pub struct BridgeController {
     nested_bridge: Option<NestedBridge>,

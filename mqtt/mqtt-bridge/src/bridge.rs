@@ -2,6 +2,8 @@ use tracing::info;
 
 use crate::settings::Settings;
 
+/// Bridge implementation for nested scenario.
+/// It is used when IOTEDGE_GATEWAYHOSTNAME env variable is set.
 pub struct NestedBridge {
     settings: Settings,
 }
