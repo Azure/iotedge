@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId)))
                 .ReturnsAsync(Option.Some(serviceIdentity1));
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentity(deviceId, true))
-                .Callback<string>(id => deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId)).ReturnsAsync(Option.Some(serviceIdentity2)))
+                .Callback<string, bool>((id, _)  => deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId)).ReturnsAsync(Option.Some(serviceIdentity2)))
                 .Returns(Task.CompletedTask);
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId)))
                 .ReturnsAsync(Option.Some(deviceId));
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId))
                 .ReturnsAsync(Option.Some(serviceIdentity1));
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentity(deviceId, true))
-                .Callback<string>(id => deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId)).ReturnsAsync(Option.Some(serviceIdentity2)))
+                .Callback<string, bool>((id, _) => deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(deviceId)).ReturnsAsync(Option.Some(serviceIdentity2)))
                 .Returns(Task.CompletedTask);
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId)))
                 .ReturnsAsync(Option.Some(deviceId));
