@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use futures_util::StreamExt;
 use mqtt3::{proto::ClientId, ShutdownError};
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
@@ -30,6 +32,8 @@ async fn disconnect_client() {
         start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string())
             .await
             .expect("could not start command handler");
+
+    tokio::time::delay_for(Duration::from_secs(1)).await;
 
     let mut test_client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),
