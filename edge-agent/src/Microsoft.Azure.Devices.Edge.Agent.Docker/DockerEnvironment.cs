@@ -74,7 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 ModuleStatus moduleRuntimeStatus = dockerModule.DesiredStatus == ModuleStatus.Running
                     ? this.restartManager.ComputeModuleStatusFromRestartPolicy(moduleRuntimeInfo.ModuleStatus, dockerModule.RestartPolicy, moduleState.RestartCount, lastExitTime)
                     : moduleRuntimeInfo.ModuleStatus;
-
                 // Check to see if the originalImage label is set. This label is set for content trust feature where the image is pulled by digest.
                 // OrignalImageStr contains the image with tag and it is used to handle the mismatch of image with digest during reconcilation.
                 var labels = dockerRuntimeInfo.Config.CreateOptions?.Labels ?? new Dictionary<string, string>();
