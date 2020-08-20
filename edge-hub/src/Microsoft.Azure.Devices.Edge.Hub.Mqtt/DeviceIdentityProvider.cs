@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 if (!string.IsNullOrEmpty(password))
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false);
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false, modelId);
                 }
                 else if (this.remoteCertificate.HasValue)
                 {
@@ -70,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                 moduleId,
                                 deviceClientType,
                                 cert,
-                                this.remoteCertificateChain);
+                                this.remoteCertificateChain,
+                                modelId);
                         });
                 }
                 else

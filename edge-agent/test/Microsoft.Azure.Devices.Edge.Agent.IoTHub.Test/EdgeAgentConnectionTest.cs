@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -1615,27 +1616,53 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Theory]
-        [Unit]
-        [InlineData("1.0", null)]
-        [InlineData("1.1", null)]
-        [InlineData("1.2", null)]
-        [InlineData("1.3", null)]
-        [InlineData("1", typeof(InvalidSchemaVersionException))]
-        [InlineData("", typeof(InvalidSchemaVersionException))]
-        [InlineData(null, typeof(InvalidSchemaVersionException))]
-        [InlineData("0.1", typeof(InvalidSchemaVersionException))]
-        [InlineData("2.0", typeof(InvalidSchemaVersionException))]
-        [InlineData("2.1", typeof(InvalidSchemaVersionException))]
-        public void SchemaVersionCheckTest(string schemaVersion, Type expectedException)
+        [MemberData(nameof(GetDeploymentForSchemas))]
+        public void SchemaVersionCheckTest(DeploymentConfig deployment, Type expectedException)
         {
             if (expectedException != null)
             {
-                Assert.Throws(expectedException, () => EdgeAgentConnection.ValidateSchemaVersion(schemaVersion));
+                Assert.Throws(expectedException, () => EdgeAgentConnection.ValidateSchemaVersion(deployment));
             }
             else
             {
-                EdgeAgentConnection.ValidateSchemaVersion(schemaVersion);
+                EdgeAgentConnection.ValidateSchemaVersion(deployment);
             }
+        }
+
+        public static IEnumerable<object[]> GetDeploymentForSchemas()
+        {
+            var modulesWithDefaultStartupOrder =
+                new Dictionary<string, IModule>
+                {
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, null, null) },
+                    { "mod2", new TestModule("mod2", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, null, null) }
+                };
+
+            var modulesWithCustomStartupOrder =
+                new Dictionary<string, IModule>
+                {
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 0, null, null) },
+                    { "mod2", new TestModule("mod2", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 10, null, null) }
+                };
+            var version_0_1 = new DeploymentConfig("0.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
+            var version_1 = new DeploymentConfig("1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
+            var version_1_0 = new DeploymentConfig("1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
+            var version_1_1 = new DeploymentConfig("1.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary());
+            var version_1_1_0 = new DeploymentConfig("1.1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary());
+            var version_1_2 = new DeploymentConfig("1.2", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
+            var version_2_0 = new DeploymentConfig("2.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
+            var version_2_0_1 = new DeploymentConfig("2.0.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
+            var version_schema_mismatch = new DeploymentConfig("1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary());
+
+            yield return new object[] { version_0_1, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_1, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_1_0, null };
+            yield return new object[] { version_1_1, null };
+            yield return new object[] { version_1_1_0, null };
+            yield return new object[] { version_1_2, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_2_0, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_2_0_1, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_schema_mismatch, typeof(InvalidSchemaVersionException) };
         }
 
         static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)

@@ -48,12 +48,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 new List<string> { "module_name", MetricsConstants.MsTelemetry });
 
             this.unsuccessfulSyncs = metricsProvider.CreateCounter(
-                "total_unsuccessful_iothub_syncs",
+                "unsuccessful_iothub_syncs",
                 "The amount of times edgeAgent failed to sync with iotHub",
                 new List<string> { MetricsConstants.MsTelemetry });
 
             this.totalSyncs = metricsProvider.CreateCounter(
-                "total_iothub_syncs",
+                "iothub_syncs",
                 "The amount of times edgeAgent attempted to sync with iotHub, both successful and unsuccessful",
                 new List<string> { MetricsConstants.MsTelemetry });
 
