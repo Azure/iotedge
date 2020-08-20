@@ -207,6 +207,7 @@ async fn start_command_handler(
 
 // TODO: allow for bridge shutdown
 async fn start_bridge() -> Result<()> {
+    info!("starting bridge...");
     let mut bridge_controller = BridgeController::new();
     bridge_controller.start().await?;
 

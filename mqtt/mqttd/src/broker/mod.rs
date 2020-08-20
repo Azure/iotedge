@@ -35,8 +35,6 @@ where
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
         start_snapshotter(broker.handle(), persistor).await;
 
-    info!("starting bridge...");
-
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
 
