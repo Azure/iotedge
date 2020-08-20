@@ -125,6 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId) => await this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
 
+        public async Task<IList<string>> GetAllIds() => await this.serviceIdentityHierarchy.GetAllIds();
+
         public void Dispose()
         {
             this.encryptedStore?.Dispose();

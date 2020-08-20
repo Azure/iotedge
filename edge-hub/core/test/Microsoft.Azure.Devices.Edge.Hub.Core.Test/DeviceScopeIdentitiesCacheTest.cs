@@ -671,6 +671,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(authChainActual.Contains(authChain));
         }
 
+        [Fact]
+        public async Task GetAllIdsTest()
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+            var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
+            serviceIdentityHierarchy.Setup(s => s.GetAllIds()).ReturnsAsync(new List<string> { "d1", "d2", "d3" });
+            var serviceProxy = new Mock<IServiceProxy>();
+
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1));
+
+            // Act
+            var ids = await deviceScopeIdentitiesCache.GetAllIds();
+
+            // Assert
+            Assert.Equal(3, ids.Count);
+            Assert.Contains("d1", ids);
+            Assert.Contains("d2", ids);
+            Assert.Contains("d3", ids);
+        }
+
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
 
         static IEntityStore<string, string> GetEntityStore(string entityName)
