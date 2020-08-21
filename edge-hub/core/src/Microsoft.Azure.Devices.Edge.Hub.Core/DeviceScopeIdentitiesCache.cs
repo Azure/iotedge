@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Antlr4.Runtime.Sharpen;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -22,8 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly Timer refreshCacheTimer;
         readonly TimeSpan periodicRefreshRate;
         readonly TimeSpan refreshDelay;
-        readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
-        readonly AsyncManualResetEvent refreshCacheCompleteSignal = new AsyncManualResetEvent();
+        readonly AsyncManualResetEvent refreshCacheSignal = new AsyncManualResetEvent(false);
+        readonly AsyncManualResetEvent refreshCacheCompleteSignal = new AsyncManualResetEvent(false);
         readonly object refreshCacheLock = new object();
 
         Task refreshCacheTask;
@@ -43,7 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.encryptedStore = encryptedStorage;
             this.periodicRefreshRate = periodicRefreshRate;
             this.refreshDelay = refreshDelay;
-            this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, this.periodicRefreshRate);
             this.identitiesLastRefreshTime = new Dictionary<string, DateTime>();
             this.cacheLastRefreshTime = DateTime.MinValue;
 
@@ -52,6 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityHierarchy.InsertOrUpdate(serviceIdentity).Wait());
             }
+
+            // Kick off the initial refresh after we processed all the stored identities
+            this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, this.periodicRefreshRate);
         }
 
         public event EventHandler<string> ServiceIdentityRemoved;
@@ -94,7 +97,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             else
             {
                 Events.SkipRefreshCache(this.cacheLastRefreshTime, this.refreshDelay);
-                this.refreshCacheCompleteSignal.Set();
+
+                if (!this.refreshCacheSignal.IsSet)
+                {
+                    // The background thread for refresh the cache is idle,
+                    // in this case we need to signal completion right away
+                    // or anyone calling WaitForCacheRefresh() will be stuck
+                    this.refreshCacheCompleteSignal.Set();
+                }
             }
         }
 
@@ -273,7 +283,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 Events.DoneRefreshCycle(this.periodicRefreshRate);
                 this.ServiceIdentitiesUpdated?.Invoke(this, currentCacheIds);
+
+                // Send the completion signal first, then reset the
+                // refresh signal to signify that we're no longer
+                // doing any work on this thread
                 this.refreshCacheCompleteSignal.Set();
+                this.refreshCacheSignal.Reset();
                 await this.IsReady();
             }
         }
