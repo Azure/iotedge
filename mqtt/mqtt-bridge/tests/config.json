@@ -4,16 +4,44 @@
     "moduleid": "mymodule",
     "modulegenerationid": "321",
     "workloaduri": "uri",
-    "subscriptions": [
+    "upstream": {
+        "subscriptions": [
+            {
+                "pattern": "temp/#",
+                "remote": "floor/kitchen/"
+            }
+        ],
+        "forwards": [
+            {
+                "pattern": "some",
+                "remote": "remote"
+            }
+        ]
+    },
+    "remotes": [
         {
-            "pattern": "temp/#",
-            "remote": "floor/kitchen/"
+            "name": "r1",
+            "address": "remote",
+            "client_id": "client",
+            "username": "mymodule",
+            "password": "pass",
+            "keep_alive": "1m",
+            "clean_session": false,
+            "subscriptions": [
+                {
+                    "pattern": "temp/#",
+                    "remote": "floor/kitchen/"
+                }
+            ],
+            "forwards": [
+                {
+                    "pattern": "some",
+                    "remote": "remote"
+                }
+            ]
         }
     ],
-    "forwards": [
-        {
-            "pattern": "some",
-            "remote": "remote"
-        }
-    ]
+    "messages": {
+        "max_count": 10
+    }
 }
