@@ -59,7 +59,7 @@ pub struct NestedBridgeSettings {
     #[serde(rename = "gatewayhostname")]
     gateway_hostname: Option<String>,
 
-    #[serde(rename= "deviceid")]
+    #[serde(rename = "deviceid")]
     device_id: Option<String>,
 
     #[serde(rename = "moduleid")]
