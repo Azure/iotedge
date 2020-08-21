@@ -1275,7 +1275,8 @@ mod tests {
     #[cfg(target_os = "linux")]
     use std::fs;
     #[cfg(target_os = "linux")]
-    use tempfile::{NamedTempFile, TempDir};
+    use tempfile::NamedTempFile;
+    use tempfile::TempDir;
 
     fn provisioning_result() -> ProvisioningResult {
         ProvisioningResult::new(
