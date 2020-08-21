@@ -1,0 +1,18 @@
+{
+    "gatewayhostname": "edge1",
+    "moduleid": "mymodule",
+    "modulegenerationid": "321",
+    "workloaduri": "uri",
+    "subscriptions": [
+        {
+            "pattern": "temp/#",
+            "remote": "floor/kitchen/"
+        }
+    ],
+    "forwards": [
+        {
+            "pattern": "some",
+            "remote": "remote"
+        }
+    ]
+}
