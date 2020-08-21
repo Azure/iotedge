@@ -11,7 +11,7 @@ use mqtt_broker_tests_util::{
 use mqtt_edgehub::command::{
     CommandHandler, CommandHandlerError, ShutdownHandle as CommandShutdownHandle,
 };
-use tokio::task::JoinHandle;
+use tokio::{task::JoinHandle, time::delay_for};
 
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
@@ -33,7 +33,7 @@ async fn disconnect_client() {
             .await
             .expect("could not start command handler");
 
-    tokio::time::delay_for(Duration::from_secs(1)).await;
+    delay_for(Duration::from_secs(1)).await;
 
     let mut test_client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),
