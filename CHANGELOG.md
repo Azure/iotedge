@@ -3,7 +3,8 @@
 ### Features
 * Update SDK version {Microsoft.Azure.Devices.Client.1.28.0}. [cdf36b0](https://github.com/Azure/iotedge/commit/cdf36b01a7a18b0a4f9a1e3d5943fb9aa44029ea)
 * Rename reboot order from `priority` to be `startupOrder` [eed9c06](https://github.com/Azure/iotedge/commit/eed9c064ae0ad5342a2196bd42feff2d8b7e9cdc)
-* Update metrics and support bundle [b0a872a](https://github.com/Azure/iotedge/commit/b0a872aeca22865d2f1d558122aa62057d97669a) [186ff12](https://github.com/Azure/iotedge/commit/186ff12105bc360f21de6858fe750579475fe5f6)
+* Ability to remotely get support-bundle via edge agent direct method [b0a872a](https://github.com/Azure/iotedge/commit/b0a872aeca22865d2f1d558122aa62057d97669a) [186ff12](https://github.com/Azure/iotedge/commit/186ff12105bc360f21de6858fe750579475fe5f6)
+* Edge agent periodically sends product quality telemetry. You can opt-out by setting the environment variable `SendRuntimeQualityTelemetry` to `false` for the edge agent. [f379462](https://github.com/Azure/iotedge/commit/f379462c1bb10caea0b17c15befcab0f410f1480)
 
 ### Bug Fixes
 * Fix edge agent connectivity issue after receiving an exception [23ffb26](https://github.com/Azure/iotedge/commit/23ffb26484fd73f35e614c401a114a695b5339bf)
@@ -15,12 +16,12 @@
 * Support Plug-and-Play [f8da2f6](https://github.com/Azure/iotedge/commit/f8da2f65a98568c463a3083a81018a6a05ef7da7)
 * Enable twin encrypt by default [12b7306](https://github.com/Azure/iotedge/commit/12b7306fe9b750a9014e064e2cbdbd777d36edd1)
 * Update SDK version {Microsoft.Azure.Devices.Client.1.28.0}. [cdf36b0](https://github.com/Azure/iotedge/commit/cdf36b01a7a18b0a4f9a1e3d5943fb9aa44029ea)
-* Update ECC certificates parsing [7411daf](https://github.com/Azure/iotedge/commit/7411dafd658d251f9f0565af5b7089bdfbe44a4b)
 
 ### Bug Fixes
 * Automatically get cloud connection if adding device with subscriptions [063744d](https://github.com/Azure/iotedge/commit/063744d5920088f7c96eb4fde231979294fafb70)
 * Fix processed message priority tagging for metrics [14aaee0](https://github.com/Azure/iotedge/commit/14aaee06c3140474e9607bbc59f1f45a23814dba)
 * Fix Subscription Processing Workaround  [331aaf9](https://github.com/Azure/iotedge/commit/331aaf9965542852f33af05c9449b018c73094d4)
+* Fix ECC certificates parsing [7411daf](https://github.com/Azure/iotedge/commit/7411dafd658d251f9f0565af5b7089bdfbe44a4b)
 
 ## iotedged
 ### Features
