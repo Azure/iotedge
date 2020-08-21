@@ -151,12 +151,13 @@ impl CertificateConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::{path::Path, time::Duration};
+    use std::{path::Path, path::PathBuf, time::Duration};
 
     use matches::assert_matches;
 
     use mqtt_broker::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
+        SessionPersistenceConfig,
     };
 
     use super::{ListenerConfig, Settings, TcpTransportConfig};
@@ -181,7 +182,10 @@ mod tests {
                         Some(HumanSize::new_bytes(0)),
                         QueueFullAction::DropNew,
                     ),
-                    None
+                    SessionPersistenceConfig::new(
+                        PathBuf::from("/tmp/mqttd/"),
+                        Duration::from_secs(300)
+                    )
                 )
             }
         );
@@ -202,13 +206,6 @@ mod tests {
             settings.broker().retained_messages().expiration(),
             Duration::from_secs(90 * DAYS)
         );
-    }
-
-    #[test]
-    fn it_refuses_persistence_with_no_file_path() {
-        let settings = Settings::from_file(Path::new("test/config_no_file_path.json"));
-
-        assert_matches!(settings, Err(_));
     }
 
     #[test]

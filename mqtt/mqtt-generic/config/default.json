@@ -16,6 +16,10 @@
             "max_queued_messages": 1000,
             "max_queued_size": 0,
             "when_full": "drop_new"
+        },
+        "persistence": {
+            "path": "/tmp/mqttd/",
+            "time_interval": "5m"
         }
     }
 }
