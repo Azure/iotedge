@@ -10,8 +10,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using System.Threading.Tasks;
     using Xunit;
 
-    public class AuthorizedScopesHandlerTest
+    public class ScopeIdentitiesHandlerTest
     {
+        const string Topic = "$internal/identities";
+
         [Fact]
         public void PublishIdentitiesTest()
         {
@@ -19,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var capture = new SendCapture();
             var connector = GetConnector(capture);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            var sut = new AuthorizedScopesHandler(deviceScopeIdentitiesCache.Object);
+            var sut = new ScopeIdentitiesHandler(deviceScopeIdentitiesCache.Object);
             sut.SetConnector(connector.Object);
             IList<string> identities = new List<string>() { "d1", "d2", "d3" };
 
@@ -27,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, identities);
 
             // Assert
-            Assert.Equal("$edgehub/authorization", capture.Topic);
+            Assert.Equal(Topic, capture.Topic);
             Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identities)), capture.Content);
         }
 
@@ -40,14 +42,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             IList<string> identities = new List<string>() { "d1", "d2", "d3" };
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.GetAllIds()).ReturnsAsync(identities);
-            var sut = new AuthorizedScopesHandler(deviceScopeIdentitiesCache.Object);
+            var sut = new ScopeIdentitiesHandler(deviceScopeIdentitiesCache.Object);
             sut.SetConnector(connector.Object);
 
             // Act
             connector.Raise(c => c.OnConnected += null, null, null);
 
             // Assert
-            Assert.Equal("$edgehub/authorization", capture.Topic);
+            Assert.Equal(Topic, capture.Topic);
             Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identities)), capture.Content);
         }
 
