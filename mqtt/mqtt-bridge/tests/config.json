@@ -1,5 +1,6 @@
 {
     "gatewayhostname": "edge1",
+    "deviceid": "d1",
     "moduleid": "mymodule",
     "modulegenerationid": "321",
     "workloaduri": "uri",
