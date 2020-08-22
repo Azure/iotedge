@@ -333,7 +333,7 @@ mod tests {
     #[serial(env_settings)]
     fn from_file_reads_messages_settings() {
         let settings = Settings::from_file("tests/config.json").unwrap();
-        
+
         assert_eq!(settings.messages.max_count(), 10);
     }
 
@@ -341,7 +341,7 @@ mod tests {
     #[serial(env_settings)]
     fn from_default_sets_messages_settings() {
         let settings = Settings::new().unwrap();
-        
+
         assert_eq!(settings.messages.max_count(), 100);
     }
 

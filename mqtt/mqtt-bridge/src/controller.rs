@@ -9,7 +9,7 @@ use crate::settings::Settings;
 /// Controller that handles the settings and monitors changes, spawns new Bridges and monitors shutdown signal.
 #[derive(Default)]
 pub struct BridgeController {
-    bridges: HashMap<String, Bridge>
+    bridges: HashMap<String, Bridge>,
 }
 
 impl BridgeController {
