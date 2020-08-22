@@ -19,6 +19,7 @@ use tokio::{
 };
 use tracing::{info, warn};
 
+use mqtt_bridge::BridgeController;
 use mqtt_broker::BrokerHandle;
 use mqtt_broker::{
     auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server,
@@ -175,6 +176,8 @@ async fn start_sidecars(
         let (mut command_handler_shutdown_handle, command_handler_join_handle) =
             start_command_handler(broker_handle, system_address).await?;
 
+        start_bridge().await?;
+
         tx.await?;
 
         command_handler_shutdown_handle.shutdown().await?;
@@ -200,6 +203,15 @@ async fn start_command_handler(
     let join_handle = tokio::spawn(command_handler.run());
 
     Ok((shutdown_handle, join_handle))
+}
+
+// TODO: allow for bridge shutdown
+async fn start_bridge() -> Result<()> {
+    info!("starting bridge...");
+    let mut bridge_controller = BridgeController::new();
+    bridge_controller.start().await?;
+
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error)]

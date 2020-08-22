@@ -931,6 +931,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "mqtt-bridge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "edgelet-client",
+ "serde",
+ "serial_test",
+ "tracing",
+]
+
+[[package]]
 name = "mqtt-broker"
 version = "0.1.0"
 dependencies = [
@@ -1056,6 +1068,7 @@ dependencies = [
  "edgelet-client",
  "futures-util",
  "mockito",
+ "mqtt-bridge",
  "mqtt-broker",
  "mqtt-edgehub",
  "mqtt-generic",
