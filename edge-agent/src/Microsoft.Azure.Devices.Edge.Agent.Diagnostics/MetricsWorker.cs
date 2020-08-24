@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;

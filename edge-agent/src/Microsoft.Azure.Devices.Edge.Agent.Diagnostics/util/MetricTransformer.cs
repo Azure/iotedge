@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
 {
     using System;
     using System.Collections.Generic;
