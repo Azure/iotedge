@@ -45,10 +45,10 @@ where
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
                 let body = SystemInfo::new(
-                    system_info.os_type().to_string(),
-                    system_info.architecture().to_string(),
-                    system_info.version().to_string(),
-                );
+                        system_info.os_type().to_string(),
+                        system_info.architecture().to_string(),
+                    )
+                    .with_version(system_info.version().to_string());
 
                 let b = serde_json::to_string(&body)
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
