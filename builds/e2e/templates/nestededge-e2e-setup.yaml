@@ -129,11 +129,15 @@ steps:
   displayName: Create test arguments file (context.json)
 
 - pwsh: |
-    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(nestedDeviceTestFolder)
+    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 rm -rf $(nestedDeviceTestFolder)
     
+    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(nestedDeviceTestFolder)/testbin
     scp -i ~/sshkeys/nested1key.pem -r $(binDir)/* nesteddevice1:$(nestedDeviceTestFolder)/testbin
+    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(nestedDeviceTestFolder)/certs
     scp -i ~/sshkeys/nested1key.pem -r $(certsDir)/* nesteddevice1:$(nestedDeviceTestFolder)/certs
+    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(nestedDeviceTestFolder)/artifacts
     scp -i ~/sshkeys/nested1key.pem -r $(System.ArtifactsDirectory)/* nesteddevice1:$(nestedDeviceTestFolder)/artifacts
+    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(nestedDeviceTestFolder)/tools
     scp -i ~/sshkeys/nested1key.pem -r $(Build.SourcesDirectory)/tools/* nesteddevice1:$(nestedDeviceTestFolder)/tools
 
   displayName: Copy test files
