@@ -18,84 +18,29 @@ use futures::{Future, Stream};
 
 use super::{Error, configuration};
 
-pub struct IdentityApiClient<C: hyper::client::connect::Connect> {
+pub struct SecretApiClient<C: hyper::client::connect::Connect> {
     configuration: Arc<configuration::Configuration<C>>,
 }
 
-impl<C: hyper::client::connect::Connect> IdentityApiClient<C> {
-    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> IdentityApiClient<C> {
-        IdentityApiClient {
+impl<C: hyper::client::connect::Connect> SecretApiClient<C> {
+    pub fn new(configuration: Arc<configuration::Configuration<C>>) -> SecretApiClient<C> {
+        SecretApiClient {
             configuration: configuration,
         }
     }
 }
 
-pub trait IdentityApi: Send + Sync {
-    fn create_identity(&self, api_version: &str, identity: ::models::IdentitySpec) -> Box<dyn Future<Item = ::models::Identity, Error = Error<serde_json::Value>> + Send>;
-    fn delete_identity(&self, api_version: &str, name: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
-    fn list_identities(&self, api_version: &str) -> Box<dyn Future<Item = ::models::IdentityList, Error = Error<serde_json::Value>> + Send>;
-    fn update_identity(&self, api_version: &str, name: &str, updateinfo: ::models::UpdateIdentity) -> Box<dyn Future<Item = ::models::Identity, Error = Error<serde_json::Value>> + Send>;
+pub trait SecretApi: Send + Sync {
+    fn delete_secret(&self, api_version: &str, name: &str, secret_id: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    fn get_secret(&self, api_version: &str, name: &str, secret_id: &str) -> Box<dyn Future<Item = String, Error = Error<serde_json::Value>> + Send>;
+    fn pull_secret(&self, api_version: &str, name: &str, secret_id: &str, akv_id: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    fn refresh_secret(&self, api_version: &str, name: &str, secret_id: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    fn set_secret(&self, api_version: &str, name: &str, secret_id: &str, value: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
 }
 
 
-impl<C: hyper::client::connect::Connect + 'static> IdentityApi for IdentityApiClient<C> {
-    fn create_identity(&self, api_version: &str, identity: ::models::IdentitySpec) -> Box<dyn Future<Item = ::models::Identity, Error = Error<serde_json::Value>> + Send> {
-        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
-
-        let method = hyper::Method::POST;
-
-        let query = ::url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("api-version", &api_version.to_string())
-            .finish();
-        let uri_str = format!("{}/identities/{}", configuration.base_path, query);
-
-        let uri: hyper::Uri = uri_str.parse().unwrap();
-        // TODO(farcaller): handle error
-        // if let Err(e) = uri {
-        //     return Box::new(futures::future::err(e));
-        // }
-        let mut builder = hyper::Request::builder();
-
-        builder.method(method);
-        builder.uri(uri);
-
-        if let Some(ref user_agent) = configuration.user_agent {
-            builder.header(hyper::header::USER_AGENT, hyper::header::HeaderValue::from_str(user_agent).unwrap());
-        }
-
-
-        let serialized = serde_json::to_string(&identity).unwrap();
-        builder.header(hyper::header::CONTENT_TYPE, hyper::header::HeaderValue::from_str("application/json").unwrap());
-        builder.header(hyper::header::CONTENT_LENGTH, serialized.len());
-        let req = builder
-            .body(hyper::Body::from(serialized))
-            .expect("could not build hyper::Request");
-
-        // send request
-        Box::new(
-        configuration.client.request(req)
-            .map_err(|e| Error::from(e))
-            .and_then(|resp| {
-                let status = resp.status();
-                resp.into_body().concat2()
-                    .and_then(move |body| Ok((status, body)))
-                    .map_err(|e| Error::from(e))
-            })
-            .and_then(|(status, body)| {
-                if status.is_success() {
-                    Ok(body)
-                } else {
-                    Err(Error::from((status, &*body)))
-                }
-            })
-            .and_then(|body| {
-                let parsed: Result<::models::Identity, _> = serde_json::from_slice(&body);
-                parsed.map_err(|e| Error::from(e))
-            })
-        )
-    }
-
-    fn delete_identity(&self, api_version: &str, name: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+impl<C: hyper::client::connect::Connect + 'static> SecretApi for SecretApiClient<C> {
+    fn delete_secret(&self, api_version: &str, name: &str, secret_id: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::DELETE;
@@ -103,7 +48,7 @@ impl<C: hyper::client::connect::Connect + 'static> IdentityApi for IdentityApiCl
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("{}/identities/{name}{}", configuration.base_path, query, name=name);
+        let uri_str = format!("{}/modules/{name}/secrets/{secretId}{}", configuration.base_path, query, name=name, secretId=secret_id);
 
         let uri: hyper::Uri = uri_str.parse().unwrap();
         // TODO(farcaller): handle error
@@ -145,7 +90,7 @@ impl<C: hyper::client::connect::Connect + 'static> IdentityApi for IdentityApiCl
         )
     }
 
-    fn list_identities(&self, api_version: &str) -> Box<dyn Future<Item = ::models::IdentityList, Error = Error<serde_json::Value>> + Send> {
+    fn get_secret(&self, api_version: &str, name: &str, secret_id: &str) -> Box<dyn Future<Item = String, Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -153,7 +98,7 @@ impl<C: hyper::client::connect::Connect + 'static> IdentityApi for IdentityApiCl
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("{}/identities/{}", configuration.base_path, query);
+        let uri_str = format!("{}/modules/{name}/secrets/{secretId}{}", configuration.base_path, query, name=name, secretId=secret_id);
 
         let uri: hyper::Uri = uri_str.parse().unwrap();
         // TODO(farcaller): handle error
@@ -192,21 +137,21 @@ impl<C: hyper::client::connect::Connect + 'static> IdentityApi for IdentityApiCl
                 }
             })
             .and_then(|body| {
-                let parsed: Result<::models::IdentityList, _> = serde_json::from_slice(&body);
+                let parsed: Result<String, _> = serde_json::from_slice(&body);
                 parsed.map_err(|e| Error::from(e))
             })
         )
     }
 
-    fn update_identity(&self, api_version: &str, name: &str, updateinfo: ::models::UpdateIdentity) -> Box<dyn Future<Item = ::models::Identity, Error = Error<serde_json::Value>> + Send> {
+    fn pull_secret(&self, api_version: &str, name: &str, secret_id: &str, akv_id: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
-        let method = hyper::Method::PUT;
+        let method = hyper::Method::POST;
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("{}/identities/{name}{}", configuration.base_path, query, name=name);
+        let uri_str = format!("{}/modules/{name}/secrets/{secretId}{}", configuration.base_path, query, name=name, secretId=secret_id);
 
         let uri: hyper::Uri = uri_str.parse().unwrap();
         // TODO(farcaller): handle error
@@ -223,7 +168,7 @@ impl<C: hyper::client::connect::Connect + 'static> IdentityApi for IdentityApiCl
         }
 
 
-        let serialized = serde_json::to_string(&updateinfo).unwrap();
+        let serialized = serde_json::to_string(&akv_id).unwrap();
         builder.header(hyper::header::CONTENT_TYPE, hyper::header::HeaderValue::from_str("application/json").unwrap());
         builder.header(hyper::header::CONTENT_LENGTH, serialized.len());
         let req = builder
@@ -247,10 +192,110 @@ impl<C: hyper::client::connect::Connect + 'static> IdentityApi for IdentityApiCl
                     Err(Error::from((status, &*body)))
                 }
             })
-            .and_then(|body| {
-                let parsed: Result<::models::Identity, _> = serde_json::from_slice(&body);
-                parsed.map_err(|e| Error::from(e))
+            .and_then(|_| futures::future::ok(()))
+        )
+    }
+
+    fn refresh_secret(&self, api_version: &str, name: &str, secret_id: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
+
+        let method = hyper::Method::PATCH;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("api-version", &api_version.to_string())
+            .finish();
+        let uri_str = format!("{}/modules/{name}/secrets/{secretId}{}", configuration.base_path, query, name=name, secretId=secret_id);
+
+        let uri: hyper::Uri = uri_str.parse().unwrap();
+        // TODO(farcaller): handle error
+        // if let Err(e) = uri {
+        //     return Box::new(futures::future::err(e));
+        // }
+        let mut builder = hyper::Request::builder();
+
+        builder.method(method);
+        builder.uri(uri);
+
+        if let Some(ref user_agent) = configuration.user_agent {
+            builder.header(hyper::header::USER_AGENT, hyper::header::HeaderValue::from_str(user_agent).unwrap());
+        }
+
+
+        let req = builder
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
+
+        // send request
+        Box::new(
+        configuration.client.request(req)
+            .map_err(|e| Error::from(e))
+            .and_then(|resp| {
+                let status = resp.status();
+                resp.into_body().concat2()
+                    .and_then(move |body| Ok((status, body)))
+                    .map_err(|e| Error::from(e))
             })
+            .and_then(|(status, body)| {
+                if status.is_success() {
+                    Ok(body)
+                } else {
+                    Err(Error::from((status, &*body)))
+                }
+            })
+            .and_then(|_| futures::future::ok(()))
+        )
+    }
+
+    fn set_secret(&self, api_version: &str, name: &str, secret_id: &str, value: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
+
+        let method = hyper::Method::PUT;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("api-version", &api_version.to_string())
+            .finish();
+        let uri_str = format!("{}/modules/{name}/secrets/{secretId}{}", configuration.base_path, query, name=name, secretId=secret_id);
+
+        let uri: hyper::Uri = uri_str.parse().unwrap();
+        // TODO(farcaller): handle error
+        // if let Err(e) = uri {
+        //     return Box::new(futures::future::err(e));
+        // }
+        let mut builder = hyper::Request::builder();
+
+        builder.method(method);
+        builder.uri(uri);
+
+        if let Some(ref user_agent) = configuration.user_agent {
+            builder.header(hyper::header::USER_AGENT, hyper::header::HeaderValue::from_str(user_agent).unwrap());
+        }
+
+
+        let serialized = serde_json::to_string(&value).unwrap();
+        builder.header(hyper::header::CONTENT_TYPE, hyper::header::HeaderValue::from_str("application/json").unwrap());
+        builder.header(hyper::header::CONTENT_LENGTH, serialized.len());
+        let req = builder
+            .body(hyper::Body::from(serialized))
+            .expect("could not build hyper::Request");
+
+        // send request
+        Box::new(
+        configuration.client.request(req)
+            .map_err(|e| Error::from(e))
+            .and_then(|resp| {
+                let status = resp.status();
+                resp.into_body().concat2()
+                    .and_then(move |body| Ok((status, body)))
+                    .map_err(|e| Error::from(e))
+            })
+            .and_then(|(status, body)| {
+                if status.is_success() {
+                    Ok(body)
+                } else {
+                    Err(Error::from((status, &*body)))
+                }
+            })
+            .and_then(|_| futures::future::ok(()))
         )
     }
 
