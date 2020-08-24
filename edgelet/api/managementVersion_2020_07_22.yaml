@@ -481,7 +481,7 @@ paths:
       summary: Get the value of a secret.
       operationId: GetSecret
       produces:
-        - application/json
+        - text/plain
       parameters:
         - $ref: '#/parameters/api-version'
         - in: path
@@ -517,7 +517,7 @@ paths:
       summary: Set the value of a secret.
       operationId: SetSecret
       consumes:
-        - application/json
+        - text/plain
       parameters:
         - $ref: '#/parameters/api-version'
         - in: path
@@ -553,7 +553,7 @@ paths:
       summary: Pull secret value from Azure Key Vault.
       operationId: PullSecret
       consumes:
-        - application/json
+        - text/plain
       parameters:
         - $ref: '#/parameters/api-version'
         - in: path
