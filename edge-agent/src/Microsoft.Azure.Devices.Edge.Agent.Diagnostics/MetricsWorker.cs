@@ -42,7 +42,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.metricFilter = new MetricTransformer()
                 .AddAllowedTags(new KeyValuePair<string, string>(MetricsConstants.MsTelemetry, true.ToString()))
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
-                .AddTagsToModify(("id", this.ReplaceDeviceId), ("module_name", name => name.CreateSha256()));
+                .AddTagsToModify(
+                    ("id", this.ReplaceDeviceId),
+                    ("module_name", this.ReplaceModuleId),
+                    ("to", name => name.CreateSha256()),
+                    ("from", name => name.CreateSha256()),
+                    ("to_route_input", name => name.CreateSha256()),
+                    ("from_route_output", name => name.CreateSha256()));
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
@@ -143,18 +149,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             string[] parts = id.Split('/');
             if (parts.Length == 2)
             {
-                parts[0] = deviceIdReplacement;
-
-                if (!parts[1].StartsWith("$")) // Don't hash system modules
-                {
-                    parts[1] = parts[1].CreateSha256(); // Hash moduleId
-                }
-
-                return $"{parts[0]}/{parts[1]}";
+                return $"{deviceIdReplacement}/{this.ReplaceModuleId(parts[1])}";
             }
 
             // Id is just 'deviceId'
             return deviceIdReplacement;
+        }
+
+        string ReplaceModuleId(string id)
+        {
+            // Don't hash system modules
+            if (id.StartsWith("$"))
+            {
+                return id;
+            }
+
+            return id.CreateSha256();
         }
 
         public void Dispose()
