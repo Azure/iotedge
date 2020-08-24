@@ -85,25 +85,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             TimeSpan timeSinceLastRefresh = DateTime.UtcNow - this.cacheLastRefreshTime;
 
-            // Only refresh the cache if we haven't done so recently
-            if (timeSinceLastRefresh > this.refreshDelay)
+            lock (this.refreshCacheLock)
             {
-                this.refreshCacheCompleteSignal.Reset();
-                this.refreshCacheSignal.Set();
-
-                // Update the cache refresh timestamp
-                this.cacheLastRefreshTime = DateTime.UtcNow;
-            }
-            else
-            {
-                Events.SkipRefreshCache(this.cacheLastRefreshTime, this.refreshDelay);
-
-                if (!this.refreshCacheSignal.IsSet)
+                // Only refresh the cache if we haven't done so recently
+                if (timeSinceLastRefresh > this.refreshDelay)
                 {
-                    // The background thread for refresh the cache is idle,
-                    // in this case we need to signal completion right away
-                    // or anyone calling WaitForCacheRefresh() will be stuck
-                    this.refreshCacheCompleteSignal.Set();
+                    this.refreshCacheCompleteSignal.Reset();
+                    this.refreshCacheSignal.Set();
+
+                    // Update the cache refresh timestamp
+                    this.cacheLastRefreshTime = DateTime.UtcNow;
+                }
+                else
+                {
+                    Events.SkipRefreshCache(this.cacheLastRefreshTime, this.refreshDelay);
+
+                    if (!this.refreshCacheSignal.IsSet)
+                    {
+                        // The background thread for refresh the cache is idle,
+                        // in this case we need to signal completion right away
+                        // or anyone calling WaitForCacheRefresh() will be stuck
+                        this.refreshCacheCompleteSignal.Set();
+                    }
                 }
             }
         }
@@ -284,11 +287,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.DoneRefreshCycle(this.periodicRefreshRate);
                 this.ServiceIdentitiesUpdated?.Invoke(this, currentCacheIds);
 
-                // Send the completion signal first, then reset the
-                // refresh signal to signify that we're no longer
-                // doing any work on this thread
-                this.refreshCacheCompleteSignal.Set();
-                this.refreshCacheSignal.Reset();
+                lock (this.refreshCacheLock)
+                {
+                    // Send the completion signal first, then reset the
+                    // refresh signal to signify that we're no longer
+                    // doing any work on this thread
+                    this.refreshCacheCompleteSignal.Set();
+                    this.refreshCacheSignal.Reset();
+                }
+
                 await this.IsReady();
             }
         }

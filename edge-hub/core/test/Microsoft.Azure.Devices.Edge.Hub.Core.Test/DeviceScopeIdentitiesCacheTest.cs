@@ -543,7 +543,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            deviceScopeIdentitiesCache.InitiateCacheRefresh();
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2");
@@ -596,7 +597,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            deviceScopeIdentitiesCache.InitiateCacheRefresh();
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1/m1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m2");
