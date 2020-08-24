@@ -42,7 +42,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.metricFilter = new MetricTransformer()
                 .AddAllowedTags(new KeyValuePair<string, string>(MetricsConstants.MsTelemetry, true.ToString()))
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
-                .AddTagsToModify(("id", this.ReplaceDeviceId), ("module_name", name => name.CreateSha256()));
+                .AddTagsToModify(
+                    ("id", this.ReplaceDeviceId),
+                    ("module_name", name => name.CreateSha256()), 
+                    ("to", name => name.CreateSha256()),
+                    ("from", name => name.CreateSha256()),
+                    ("to_route_input", name => name.CreateSha256()),
+                    ("from_route_input", name => name.CreateSha256()));
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
