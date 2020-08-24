@@ -69,7 +69,7 @@ steps:
     $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
     $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
     Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
-  displayName: Install CA keys
+  displayName: Create CA Root Cert and Key files
   env:
     ROOT_CERT: $(TestRootCaCertificate)
     ROOT_KEY: $(TestRootCaKey)
@@ -110,11 +110,11 @@ steps:
           username = '$(cr.username)';
         }
       );
-      packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
-      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
-      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
-      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
-      logFile = Join-Path '$(binDir)' 'testoutput.log';
+      packagePath = Convert-Path '$(nestedDeviceTestFolder)/artifacts/$(artifactName)';
+      caCertScriptPath = Convert-Path '$(nestedDeviceTestFolder)/tools/CACertificates';
+      rootCaCertificatePath = '$(nestedDeviceTestFolder)/certs/rsa_root_ca.cert.pem';
+      rootCaPrivateKeyPath = Convert-Path '$(nestedDeviceTestFolder)/certs/rsa_root_ca.key.pem';
+      logFile = '$(nestedDeviceTestFolder)/testbin/testoutput.log';
     }
 
     if ('$(arch)' -eq 'arm32v7')
@@ -129,11 +129,11 @@ steps:
   displayName: Create test arguments file (context.json)
 
 - pwsh: |
-    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(binDir)
-    scp -i ~/sshkeys/nested1key.pem -r $(binDir) nesteddevice1:$(binDir)/../
-    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(certsDir)
-    scp -i ~/sshkeys/nested1key.pem -r $(binDir) nesteddevice1:$(certsDir)/../
-    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(System.ArtifactsDirectory)
-    scp -i ~/sshkeys/nested1key.pem -r $(System.ArtifactsDirectory) nesteddevice1:$(System.ArtifactsDirectory)/../
+    ssh -i ~/sshkeys/nested1key.pem nesteddevice1 mkdir -p $(nestedDeviceTestFolder)
+    
+    scp -i ~/sshkeys/nested1key.pem -r $(binDir)/* nesteddevice1:$(nestedDeviceTestFolder)/testbin
+    scp -i ~/sshkeys/nested1key.pem -r $(certsDir)/* nesteddevice1:$(nestedDeviceTestFolder)/certs
+    scp -i ~/sshkeys/nested1key.pem -r $(System.ArtifactsDirectory)/* nesteddevice1:$(nestedDeviceTestFolder)/artifacts
+    scp -i ~/sshkeys/nested1key.pem -r $(Build.SourcesDirectory)/tools/* nesteddevice1:$(nestedDeviceTestFolder)/tools
 
   displayName: Copy test files
