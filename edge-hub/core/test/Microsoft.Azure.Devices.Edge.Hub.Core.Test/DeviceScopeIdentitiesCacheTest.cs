@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, identities) => allIdentitiesFromBatchEvent = identities;
 
             // Wait for refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
             Option<ServiceIdentity> receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Wait for another refresh cycle to complete
             deviceScopeIdentitiesCache.InitiateCacheRefresh();
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, identities) => allIdentitiesFromBatchEvent = identities;
 
             // Wait for refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
@@ -339,7 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, identities) => allIdentitiesFromBatchEvent.AddRange(identities);
 
             // Wait for refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2");
 
@@ -407,7 +407,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, identities) => allIdentitiesFromBatchEvent = identities;
 
             // Wait for refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2");
             Option<ServiceIdentity> receivedServiceIdentity3 = await deviceScopeIdentitiesCache.GetServiceIdentity("d3");
@@ -467,23 +467,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
-            var allIdentitiesFromBatchEvent = new List<string>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
-            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, identities) => allIdentitiesFromBatchEvent.AddRange(identities);
 
             // Wait for refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1/m1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m2");
 
             // Assert
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
-            Assert.Equal(2, allIdentitiesFromBatchEvent.Count);
 
             // Update the identities
             await deviceScopeIdentitiesCache.RefreshServiceIdentity("d1/m1");
@@ -493,7 +490,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m2");
 
             // Assert
-            Assert.Equal(5, allIdentitiesFromBatchEvent.Count);
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
             Assert.Single(removedIdentities);
@@ -543,7 +539,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for refresh to complete
-            deviceScopeIdentitiesCache.InitiateCacheRefresh();
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
@@ -597,7 +592,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for refresh to complete
-            deviceScopeIdentitiesCache.InitiateCacheRefresh();
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1/m1");
@@ -714,7 +708,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
             // Wait for initial refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             // Setup updated response
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1))).ReturnsAsync(Option.Some(si1_updated));
@@ -738,7 +732,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(authchain3.HasValue);
         }
 
-        [Fact(Skip = "Sporadic failures in CI pipeline, but not locally")]
+        [Fact]
         public async Task RefreshIdentityNegativeCachingTest()
         {
             // Arrange
@@ -773,7 +767,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
 
             // Wait for initial refresh to complete
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             // Refresh the identity to trigger the delay
             await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
@@ -805,7 +799,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity.OrDefault()));
         }
 
-        [Fact(Skip = "Sporadic failures in CI pipeline, but not locally")]
+        [Fact]
         public async Task RefreshCacheNegativeCachingTest()
         {
             // Arrange
@@ -828,11 +822,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     new List<ServiceIdentity>
                     {
                         si1_initial,
-                    })
-                .ReturnsAsync(
-                    new List<ServiceIdentity>
-                    {
-                        si1_initial,
                     });
 
             var iterator_updated = new Mock<IServiceIdentitiesIterator>();
@@ -840,6 +829,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(true)
                 .Returns(false);
             iterator_updated.SetupSequence(i => i.GetNext())
+                .ReturnsAsync(
+                    new List<ServiceIdentity>
+                    {
+                        si1_updated,
+                    })
                 .ReturnsAsync(
                     new List<ServiceIdentity>
                     {
