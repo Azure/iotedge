@@ -38,20 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
 
         IEnumerable<Metric> AggregateTag(string tag, IAggrigator aggrigator, IEnumerable<Metric> metrics)
         {
-            var aggrigateValues = new Dictionary<AggrigateMetric, IAggrigator>();
+            var aggrigateValues = new DefaultDictionary<AggrigateMetric, IAggrigator>(_ => aggrigator.New());
             foreach (Metric metric in metrics)
             {
+                // if metric is in list to be aggrigated and it has a tag that should be aggrigated
                 if (this.metrics_to_aggregate.Contains(metric.Name) && metric.Tags.ContainsKey(tag))
                 {
                     var aggrigateMetric = new AggrigateMetric(metric, tag);
-                    IAggrigator agg;
-                    if (!aggrigateValues.TryGetValue(aggrigateMetric, out agg))
-                    {
-                        agg = aggrigator.New();
-                        aggrigateValues.Add(aggrigateMetric, agg);
-                    }
-
-                    agg.PutValue(metric.Value);
+                    aggrigateValues[aggrigateMetric].PutValue(metric.Value);
                 }
                 else
                 {
@@ -59,9 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
                 }
             }
 
-            foreach (var aggrigate in aggrigateValues)
+            // aggregate all and construct new metrics from result
+            foreach (var aggrigatePair in aggrigateValues)
             {
-                yield return aggrigate.Key.ToMetric(aggrigate.Value.GetAggrigate());
+                double aggrigatedValue = aggrigatePair.Value.GetAggrigate();
+                yield return aggrigatePair.Key.ToMetric(aggrigatedValue);
             }
         }
 
