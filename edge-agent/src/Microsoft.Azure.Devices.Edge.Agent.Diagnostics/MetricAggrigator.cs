@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
@@ -36,11 +37,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         IEnumerable<Metric> AggregateTag(string tag, Func<double, double, double> aggrigationFunc, IEnumerable<Metric> metrics)
         {
             var aggrigateValues = new Dictionary<AggrigateMetric, double>();
+            var hashes = new List<int>();
             foreach (Metric metric in metrics)
             {
                 if (metric.Tags.ContainsKey(tag))
                 {
                     var aggrigateMetric = new AggrigateMetric(metric, tag);
+                    hashes.Add(aggrigateMetric.GetHashCode());
 
                     if (aggrigateValues.TryGetValue(aggrigateMetric, out double value))
                     {
@@ -75,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 this.Name = metric.Name;
                 this.TimeGeneratedUtc = metric.TimeGeneratedUtc;
-                this.Tags = metric.Tags.Where(t => t.Key != aggrigateTag).ToDictionary(t => t.Key, t => t.Value);
+                this.Tags = new Dictionary<string, string>(metric.Tags.Where(t => t.Key != aggrigateTag));
             }
 
             public Metric ToMetric(double value)
@@ -95,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
             int Hash()
             {
-                this.hash = HashCode.Combine(this.Name.GetHashCode(), this.TimeGeneratedUtc.GetHashCode(), HashCode.Combine(this.Tags.Select(o => HashCode.Combine(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).ToArray()));
+                this.hash = HashCode.Combine(this.Name.GetHashCode(), this.TimeGeneratedUtc.GetHashCode(), this.Tags.Select(o => HashCode.Combine(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).Aggregate(0, HashCode.Combine));
 
                 return (int)this.hash;
             }

@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
         static int GetOrderIndependentHash<T1, T2>(IEnumerable<KeyValuePair<T1, T2>> dictionary)
         {
-            return HashCode.Combine(dictionary.Select(o => HashCode.Combine(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).ToArray());
+            return dictionary.Select(o => HashCode.Combine(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).Aggregate(0, HashCode.Combine);
         }
     }
 }
