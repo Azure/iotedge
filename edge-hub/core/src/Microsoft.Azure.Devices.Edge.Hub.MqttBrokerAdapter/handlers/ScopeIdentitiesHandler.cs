@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -13,7 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class ScopeIdentitiesHandler : IMessageProducer
     {
-        const string Topic = "$internal/identities";
+        const string AddOrUpdateTopic = "$internal/identities/addOrUpdate";
+        const string RemoveTopic = "$internal/identities/removeTopic";
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly AtomicBoolean connected = new AtomicBoolean(false);
         IMqttBrokerConnector connector;
@@ -25,28 +27,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector)
         {
-            this.deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += async (sender, identities) =>
-            {
-                if (connected.Get())
-                {
-                    await this.PublishIdentities(identities);
-                }
-            };
-            connector.OnConnected += async (sender, args) =>
-            {
-                connected.Set(true);
-                await this.GetAndPublishIdentities();
-            };
             this.connector = connector;
         }
 
-        async Task PublishIdentities(IList<string> identities)
+        async Task PublishAddOrUpdateIdentitiesAndAuthChains(IList<IdentityAndAuthChain> identitiesAndAuthChains)
         {
-            Events.PublishingIdentities(identities);
+            Events.PublishingAddOrUpdateIdentitiesAndAuthChains(identitiesAndAuthChains);
+            try
+            {
+                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identitiesAndAuthChains));
+                await this.connector.SendAsync(AddOrUpdateTopic, payload);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorPublishingIdentities(ex);
+            }
+        }
+
+        async Task PublishRemoveIdentitiesAndAuthChains(IList<string> identities)
+        {
+            Events.PublishingRemoveIdentities(identities);
             try
             {
                 var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identities));
-                await this.connector.SendAsync(Topic, payload);
+                await this.connector.SendAsync(RemoveTopic, payload);
             }
             catch (Exception ex)
             {
@@ -71,9 +75,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ErrorPublishingIdentities
             }
 
-            public static void PublishingIdentities(IList<string> identities)
+            public static void PublishingAddOrUpdateIdentitiesAndAuthChains(IList<IdentityAndAuthChain> identitiesAndAuthChains)
             {
-                Log.LogDebug((int)EventIds.PublishingIdentities, $"Publishing identities {identities.Join(", ")} to mqtt broker.");
+                var message = identitiesAndAuthChains.Select(i => $"id: {i.Identity} with auth chain: {i.AuthChain}")
+                    .Join(", ");
+                Log.LogDebug((int)EventIds.PublishingIdentities, $"Publishing identities: {message} to mqtt broker.");
             }
 
             public static void ErrorPublishingIdentities(Exception ex)
