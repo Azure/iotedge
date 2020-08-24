@@ -198,7 +198,7 @@ impl AuthConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, path::PathBuf, time::Duration};
+    use std::{path::PathBuf, time::Duration};
 
     use serial_test::serial;
 
@@ -206,6 +206,7 @@ mod tests {
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
         SessionPersistenceConfig,
     };
+    use mqtt_broker_tests_util::env;
 
     use super::{
         AuthConfig, CertificateConfig, ListenerConfig, Settings, TcpTransportConfig,
@@ -269,13 +270,11 @@ mod tests {
     where
         F: FnOnce() -> Result<Settings, ConfigError>,
     {
-        env::set_var("LISTENER__TCP__ENABLED", "true");
-        env::set_var("LISTENER__TLS__ENABLED", "true");
-        env::set_var("LISTENER__TCP__ADDRESS", "10.0.0.1:1883");
-        env::set_var("LISTENER__TLS__ADDRESS", "10.0.0.1:8883");
-        env::set_var("LISTENER__TLS__CERTIFICATE", "/tmp/edgehub/cert.pem");
-        env::set_var("LISTENER__TLS__PRIVATE_KEY", "/tmp/edgehub/pkey.pem");
-        env::set_var("AUTH__BASE_URL", "/auth/");
+        let _tcp_address = env::set_var("LISTENER__TCP__ADDRESS", "10.0.0.1:1883");
+        let _tls_address = env::set_var("LISTENER__TLS__ADDRESS", "10.0.0.1:8883");
+        let _tls_certificate = env::set_var("LISTENER__TLS__CERTIFICATE", "/tmp/edgehub/cert.pem");
+        let _tls_private_key = env::set_var("LISTENER__TLS__PRIVATE_KEY", "/tmp/edgehub/pkey.pem");
+        let _auth_base_url = env::set_var("AUTH__BASE_URL", "/auth/");
 
         let settings = make_settings().unwrap();
 
@@ -301,8 +300,8 @@ mod tests {
         assert!(settings.listener().tcp().is_some());
         assert!(settings.listener().tls().is_some());
 
-        env::set_var("LISTENER__TCP__ENABLED", "false");
-        env::set_var("LISTENER__TLS__ENABLED", "false");
+        let _tcp_enabled = env::set_var("LISTENER__TCP__ENABLED", "false");
+        let _tls_enabled = env::set_var("LISTENER__TLS__ENABLED", "false");
 
         let settings = Settings::new().unwrap();
         assert!(!settings.listener().tcp().is_some());
