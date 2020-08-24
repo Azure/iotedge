@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
         readonly MetricTransformer metricFilter;
+        readonly MetricAggrigator metricAggrigator;
 
         PeriodicTask scrape;
         PeriodicTask upload;
@@ -44,6 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 .AddDisallowedTags(("quantile", "0.1"), ("quantile", "0.25"), ("quantile", "0.5"), ("quantile", "0.75"))
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
                 .AddTagsToModify(("id", this.ReplaceDeviceId), ("module_name", name => name.CreateSha256()));
+
+            this.metricAggrigator = new MetricAggrigator();
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
@@ -59,7 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 Log.LogInformation("Scraping Metrics");
                 IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+
                 scrapedMetrics = this.metricFilter.TransformMetrics(scrapedMetrics);
+                scrapedMetrics = this.metricAggrigator.AggrigateMetrics(scrapedMetrics);
+
                 Log.LogInformation("Storing Metrics");
                 await this.storage.StoreMetricsAsync(scrapedMetrics);
                 Log.LogInformation("Scraped and Stored Metrics");

@@ -17,11 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     /// </summary>
     public class MetricAggrigator
     {
-        List<(string tag, Func<double, double, double> aggrigationFunc)> tagsToAggrigate;
+        (string tag, Func<double, double, double> aggrigationFunc)[] tagsToAggrigate;
 
         public MetricAggrigator(params (string tag, Func<double, double, double> aggrigationFunc)[] modifications)
         {
-            this.tagsToAggrigate = modifications.ToList();
+            this.tagsToAggrigate = modifications;
         }
 
         public IEnumerable<Metric> AggrigateMetrics(IEnumerable<Metric> metrics)
