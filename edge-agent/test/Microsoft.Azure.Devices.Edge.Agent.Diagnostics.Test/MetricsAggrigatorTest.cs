@@ -24,19 +24,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         [Fact]
         public void TestBasicFunctionality()
         {
-            MetricAggrigator aggrigator = new MetricAggrigator(("key1", (double x, double y) => x + y));
+            MetricAggrigator aggrigator = new MetricAggrigator(new string[] { "test_metric" }, ("key1", new Summer()));
 
             // metrics with 1 tag, key1, that has key values of val[1-10]. The key values don't matter for this test and are ignored by the aggregator. Only the metric value (1-10) is summed.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, "test_metric", i, new Dictionary<string, string> { { "key1", $"val{i}" } }));
 
-            Metric result = aggrigator.AggrigateMetrics(metrics).Single();
-            Assert.Equal(55, result.Value); // should be sum of 1-10
+            Metric[] result = aggrigator.AggrigateMetrics(metrics).ToArray();
+            Assert.Equal(55, result.Single().Value); // should be sum of 1-10
         }
 
         [Fact]
         public void TestKeepsNonAggrigateTagsSeperate()
         {
-            MetricAggrigator aggrigator = new MetricAggrigator(("key1", (double x, double y) => x + y));
+            MetricAggrigator aggrigator = new MetricAggrigator(new string[] { "test_metric" }, ("key1", new Summer()));
 
             // metrics with 2 tags, key1, that has key values of val[1-10], and key2, which has key values val[0-1]. The values are summed by shared key2, and key1's value is ignored.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, "test_metric", i, new Dictionary<string, string>
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         [Fact]
         public void TestKeepsMultipleNonAggrigateTagsSeperate()
         {
-            MetricAggrigator aggrigator = new MetricAggrigator(("key1", (double x, double y) => x + y));
+            MetricAggrigator aggrigator = new MetricAggrigator(new string[] { "test_metric" }, ("key1", new Summer()));
 
             // metrics with 3 tags, key1, that has key values of val[1-12], key2, which has key values val[0-1], and key3, which has values val[0-2]. The values are summed by shared key2 and key3, and key1's value is ignored.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 12).Select(i => new Metric(this.now, "test_metric", i, new Dictionary<string, string>
@@ -109,8 +109,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 
             // values are summed by ignoring key1 first (so shared key2), then multiplied together (since only key 2 is left)
             MetricAggrigator aggrigator = new MetricAggrigator(
-               ("key1", (double x, double y) => x + y),
-               ("key2", (double x, double y) => x * y));
+               new string[] { "test_metric" },
+               ("key1", new Summer()),
+               ("key2", new Multiplier()));
 
             Metric result = aggrigator.AggrigateMetrics(metrics).Single();
 
@@ -120,8 +121,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 
             // values are multiplied by ignoring key2 first (so shared key1), then summed together (since only key1 is left)
             aggrigator = new MetricAggrigator(
-                ("key2", (double x, double y) => x * y),
-                ("key1", (double x, double y) => x + y));
+                new string[] { "test_metric" },
+                ("key2", new Multiplier()),
+                ("key1", new Summer()));
 
             result = aggrigator.AggrigateMetrics(metrics).Single();
 
@@ -134,8 +136,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         public void TestMultipleTagsKeepsNonAggrigateTagsSeperate()
         {
             MetricAggrigator aggrigator = new MetricAggrigator(
-                          ("key1", (double x, double y) => x + y),
-                          ("key2", (double x, double y) => x * y));
+                new string[] { "test_metric" },
+                ("key1", new Summer()),
+                ("key2", new Multiplier()));
 
             // metrics with 3 tags, key1, that has key values of val[0-1], key2, which has key values of val[0-3], and key3, which has values [True/False].
             IEnumerable<Metric> metrics = Enumerable.Range(1, 16).Select(i => new Metric(this.now, "test_metric", i, new Dictionary<string, string>

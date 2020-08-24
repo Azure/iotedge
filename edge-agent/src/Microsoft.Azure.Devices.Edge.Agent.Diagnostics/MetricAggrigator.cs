@@ -17,42 +17,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     /// </summary>
     public class MetricAggrigator
     {
-        (string tag, Func<double, double, double> aggrigationFunc)[] tagsToAggrigate;
+        HashSet<string> metrics_to_aggregate;
+        (string tag, IAggrigator aggrigator)[] tagsToAggrigate;
 
-        public MetricAggrigator(params (string tag, Func<double, double, double> aggrigationFunc)[] modifications)
+        public MetricAggrigator(IEnumerable<string> metrics_to_aggregate, params (string tag, IAggrigator aggrigator)[] tagsToAggrigate)
         {
-            this.tagsToAggrigate = modifications;
+            this.metrics_to_aggregate = new HashSet<string>(metrics_to_aggregate);
+            this.tagsToAggrigate = tagsToAggrigate;
         }
 
         public IEnumerable<Metric> AggrigateMetrics(IEnumerable<Metric> metrics)
         {
-            foreach (var (tag, func) in this.tagsToAggrigate)
+            foreach (var (tag, agg) in this.tagsToAggrigate)
             {
-                metrics = this.AggregateTag(tag, func, metrics);
+                metrics = this.AggregateTag(tag, agg, metrics);
             }
 
             return metrics;
         }
 
-        IEnumerable<Metric> AggregateTag(string tag, Func<double, double, double> aggrigationFunc, IEnumerable<Metric> metrics)
+        IEnumerable<Metric> AggregateTag(string tag, IAggrigator aggrigator, IEnumerable<Metric> metrics)
         {
-            var aggrigateValues = new Dictionary<AggrigateMetric, double>();
-            var hashes = new List<int>();
+            var aggrigateValues = new Dictionary<AggrigateMetric, IAggrigator>();
             foreach (Metric metric in metrics)
             {
-                if (metric.Tags.ContainsKey(tag))
+                if (this.metrics_to_aggregate.Contains(metric.Name) && metric.Tags.ContainsKey(tag))
                 {
                     var aggrigateMetric = new AggrigateMetric(metric, tag);
-                    hashes.Add(aggrigateMetric.GetHashCode());
+                    IAggrigator agg;
+                    if (!aggrigateValues.TryGetValue(aggrigateMetric, out agg))
+                    {
+                        agg = aggrigator.New();
+                        aggrigateValues.Add(aggrigateMetric, agg);
+                    }
 
-                    if (aggrigateValues.TryGetValue(aggrigateMetric, out double value))
-                    {
-                        aggrigateValues[aggrigateMetric] = aggrigationFunc(value, metric.Value);
-                    }
-                    else
-                    {
-                        aggrigateValues.Add(aggrigateMetric, metric.Value);
-                    }
+                    agg.PutValue(metric.Value);
                 }
                 else
                 {
@@ -62,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
             foreach (var aggrigate in aggrigateValues)
             {
-                yield return aggrigate.Key.ToMetric(aggrigate.Value);
+                yield return aggrigate.Key.ToMetric(aggrigate.Value.GetAggrigate());
             }
         }
 
@@ -102,6 +101,77 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
                 return (int)this.hash;
             }
+        }
+    }
+
+    public interface IAggrigator
+    {
+        public void PutValue(double value);
+
+        public double GetAggrigate();
+
+        public IAggrigator New();
+    }
+
+    public class Summer : IAggrigator
+    {
+        double sum = 0;
+
+        public IAggrigator New()
+        {
+            return new Summer();
+        }
+
+        public void PutValue(double value)
+        {
+            this.sum += value;
+        }
+
+        public double GetAggrigate()
+        {
+            return this.sum;
+        }
+    }
+
+    public class Multiplier : IAggrigator
+    {
+        double product = 1;
+
+        public IAggrigator New()
+        {
+            return new Multiplier();
+        }
+
+        public void PutValue(double value)
+        {
+            this.product *= value;
+        }
+
+        public double GetAggrigate()
+        {
+            return this.product;
+        }
+    }
+
+    public class Averager : IAggrigator
+    {
+        double sum = 0;
+        double count = 0;
+
+        public IAggrigator New()
+        {
+            return new Averager();
+        }
+
+        public void PutValue(double value)
+        {
+            this.sum *= value;
+            this.count++;
+        }
+
+        public double GetAggrigate()
+        {
+            return this.sum / this.count;
         }
     }
 }

@@ -42,11 +42,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
             this.metricFilter = new MetricTransformer()
                 .AddAllowedTags((MetricsConstants.MsTelemetry, true.ToString()))
-                .AddDisallowedTags(("quantile", "0.1"), ("quantile", "0.25"), ("quantile", "0.5"), ("quantile", "0.75"))
+                .AddDisallowedTags(
+                    ("quantile", "0.1"),
+                    ("quantile", "0.25"),
+                    ("quantile", "0.5"),
+                    ("quantile", "0.75"))
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
                 .AddTagsToModify(("id", this.ReplaceDeviceId), ("module_name", name => name.CreateSha256()));
 
-            this.metricAggrigator = new MetricAggrigator();
+            this.metricAggrigator = new MetricAggrigator(new string[] { "key1" });
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
