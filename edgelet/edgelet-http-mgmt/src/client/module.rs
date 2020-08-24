@@ -44,10 +44,10 @@ impl ModuleClient {
             .ok_or(ErrorKind::InitializeModuleClient)?
             .to_string();
 
-        let scheme = url.scheme().to_string();
-        configuration.uri_composer = Box::new(move |base_path, path| {
-            Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)?)
-        });
+        // let scheme = url.scheme().to_string();
+        // configuration.uri_composer = Box::new(move |base_path, path| {
+        //     Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)?)
+        // });
 
         let module_client = ModuleClient {
             client: Arc::new(APIClient::new(configuration)),

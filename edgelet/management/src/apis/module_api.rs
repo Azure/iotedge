@@ -35,7 +35,7 @@ pub trait ModuleApi: Send + Sync {
     fn delete_module(&self, api_version: &str, name: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn get_module(&self, api_version: &str, name: &str) -> Box<dyn Future<Item = ::models::ModuleDetails, Error = Error<serde_json::Value>> + Send>;
     fn list_modules(&self, api_version: &str) -> Box<dyn Future<Item = ::models::ModuleList, Error = Error<serde_json::Value>> + Send>;
-    fn module_logs(&self, api_version: &str, name: &str, follow: bool, tail: &str, since: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
+    fn module_logs(&self, api_version: &str, name: &str, follow: bool, tail: &str, since: i32) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send>;
     fn prepare_update_module(&self, api_version: &str, name: &str, module: ::models::ModuleSpec) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn restart_module(&self, api_version: &str, name: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn start_module(&self, api_version: &str, name: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
@@ -257,7 +257,7 @@ impl<C: hyper::client::connect::Connect + 'static> ModuleApi for ModuleApiClient
         )
     }
 
-    fn module_logs(&self, api_version: &str, name: &str, follow: bool, tail: &str, since: &str) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+    fn module_logs(&self, api_version: &str, name: &str, follow: bool, tail: &str, since: i32) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -295,18 +295,16 @@ impl<C: hyper::client::connect::Connect + 'static> ModuleApi for ModuleApiClient
             .map_err(|e| Error::from(e))
             .and_then(|resp| {
                 let status = resp.status();
-                resp.into_body().concat2()
-                    .and_then(move |body| Ok((status, body)))
-                    .map_err(|e| Error::from(e))
+                Ok((status, resp.into_body()))
             })
             .and_then(|(status, body)| {
                 if status.is_success() {
                     Ok(body)
                 } else {
-                    Err(Error::from((status, &*body)))
+                    let b: &[u8] = &[];
+                    Err(Error::from((status, b)))
                 }
             })
-            .and_then(|_| futures::future::ok(()))
         )
     }
 

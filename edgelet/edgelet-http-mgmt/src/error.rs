@@ -97,10 +97,10 @@ impl Error {
         match error {
             MgmtError::Hyper(h) => Error::from(h.context(context)),
             MgmtError::Serde(s) => Error::from(s.context(context)),
-            MgmtError::Api(ref e) if e.code == StatusCode::NOT_MODIFIED => {
+            MgmtError::ApiError(ref e) if e.code == StatusCode::NOT_MODIFIED => {
                 Error::from(ErrorKind::NotModified)
             }
-            MgmtError::Api(_) => Error::from(ErrorKind::Client(error).context(context)),
+            MgmtError::ApiError(_) => Error::from(ErrorKind::Client(error).context(context)),
         }
     }
 }

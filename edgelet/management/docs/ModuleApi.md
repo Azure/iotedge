@@ -122,7 +122,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **module_logs**
-> module_logs(api_version, name, optional)
+> Vec<u8> module_logs(api_version, name, optional)
 Get module logs.
 
 ### Required Parameters
@@ -142,11 +142,11 @@ Name | Type | Description  | Notes
  **name** | **String**| The name of the module to obtain logs for. (urlencoded) | 
  **follow** | **bool**| Return the logs as a stream. | [default to false]
  **tail** | **String**| Only return this number of lines from the end of the logs. | [default to all]
- **since** | **String**| Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp. | [default to 0]
+ **since** | **i32**| Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp. | [default to 0]
 
 ### Return type
 
- (empty response body)
+**Vec<u8>**
 
 ### Authorization
 
@@ -155,7 +155,7 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: Not defined
- - **Accept**: Not defined
+ - **Accept**: text/plain;charset=utf-8
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
