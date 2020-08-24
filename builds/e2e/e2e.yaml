@@ -28,7 +28,7 @@ jobs:
   - job: linux_arm32v7
 ################################################################################	
     displayName: Linux arm32v7
-    condition: ne(variables['Build.SourceBranch'], 'refs/heads/iiot')
+    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/pull'))
 
     pool:
       name: $(pool.name)
@@ -51,7 +51,7 @@ jobs:
   - job: linux_amd64
 ################################################################################	
     displayName: Linux amd64
-    condition: ne(variables['Build.SourceBranch'], 'refs/heads/iiot')
+    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/pull'))
 
     pool:
       vmImage: ubuntu-16.04
@@ -69,7 +69,7 @@ jobs:
   - job: nested_edge_linux_amd64
 ################################################################################
     displayName: Nested Edge Linux amd64
-    condition: eq(variables['Build.SourceBranch'], 'refs/heads/iiot')
+    condition: startsWith(variables['Build.SourceBranch'], 'refs/pull')
 
     pool:
       name: $(pool.name)
