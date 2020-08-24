@@ -4,7 +4,7 @@ IoT Edge supports native retrieval of module logs and upload to Azure Blob Stora
 
 - [UploadModuleLogs](#UploadModuleLogs)
 - [GetTaskStatus](#GetTaskStatus)
-- [GetLogs](#GetLogs)
+- [GetModuleLogs](#GetModuleLogs)
 - [UploadSupportBundle](#UploadSupportBundle)
 
 ## Feature enabling
@@ -150,7 +150,7 @@ The status of upload logs request can be queried using the `correlationId` retur
 
 The response is in the same format as `UploadModuleLogs`.
 
-## GetLogs
+## GetModuleLogs
 Returns the requested logs in the response of the direct method.
 
 This method accepts a JSON payload very similar to **UploadModuleLogs** except it doesn't have the "sasUrl" key. The logs content is truncated to the response size limit of direct methods which is currently 128KB.
