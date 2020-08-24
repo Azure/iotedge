@@ -4,7 +4,7 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**reprovision_device**](DeviceActionsApi.md#reprovision_device) | **Post** /device/reprovision | Trigger a device reprovisioning flow.
+[**reprovision_device**](DeviceActionsApi.md#reprovision_device) | **POST** /device/reprovision | Trigger a device reprovisioning flow.
 
 
 # **reprovision_device**
