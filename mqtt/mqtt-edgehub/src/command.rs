@@ -95,10 +95,14 @@ impl CommandHandler {
             }
         }
 
+        debug!("command handler disconnected");
+
         Ok(())
     }
 
     async fn subscribe(&mut self, topics: &[String]) -> Result<bool, CommandHandlerError> {
+        debug!("command handler subscribing to disconnect topic");
+
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: proto::QoS::AtLeastOnce,
@@ -126,7 +130,7 @@ impl CommandHandler {
                 }
 
                 if subacks.is_empty() {
-                    info!("command handler successfully subscribed to disconnect topic");
+                    debug!("command handler successfully subscribed to disconnect topic");
                     return Ok(true);
                 }
             }
