@@ -20,7 +20,7 @@ impl Checker for ConnectManagementUri {
     fn description(&self) -> &'static str {
         "config.yaml has correct URIs for daemon mgmt endpoint"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }
@@ -96,7 +96,8 @@ impl ConnectManagementUri {
 
         args.extend(vec![
             Cow::Borrowed(OsStr::new(&check.diagnostics_image_name)),
-            Cow::Borrowed(OsStr::new("/iotedge-diagnostics")),
+            Cow::Borrowed(OsStr::new("dotnet")),
+            Cow::Borrowed(OsStr::new("IotedgeDiagnosticsDotnet.dll")),
             Cow::Borrowed(OsStr::new("edge-agent")),
             Cow::Borrowed(OsStr::new("--management-uri")),
             Cow::Owned(OsString::from(connect_management_uri.to_string())),

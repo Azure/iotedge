@@ -1,6 +1,5 @@
-ARG base_tag=1.0.2-windows-arm32v7
-ARG base_registry
-FROM ${base_registry}/azureiotedge/azureiotedge-module-base:${base_tag}
+ARG base_tag=1.0.5-windows-arm32v7
+FROM azureiotedge/azureiotedge-module-base:${base_tag}
 
 ARG EXE_DIR=.
 

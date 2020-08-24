@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         {
             var logOptions1 = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Json, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
             var logOptions2 = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
-            var logOptions3 = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(100), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
+            var logOptions3 = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(100), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             yield return new object[]
             {

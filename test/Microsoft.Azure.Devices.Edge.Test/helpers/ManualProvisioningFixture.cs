@@ -19,12 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected readonly IotHub iotHub;
         protected IEdgeDaemon daemon;
 
-        public ManualProvisioningFixture()
+        public ManualProvisioningFixture(string connectionString, string eventHubEndpoint)
         {
-            this.iotHub = new IotHub(
-                Context.Current.ConnectionString,
-                Context.Current.EventHubEndpoint,
-                Context.Current.Proxy);
+            this.iotHub = new IotHub(connectionString, eventHubEndpoint, Context.Current.Proxy);
+        }
+
+        public ManualProvisioningFixture()
+            : this(Context.Current.ConnectionString, Context.Current.EventHubEndpoint)
+        {
         }
 
         [OneTimeSetUp]

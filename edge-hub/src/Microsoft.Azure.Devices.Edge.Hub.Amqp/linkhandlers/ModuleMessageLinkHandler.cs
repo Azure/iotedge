@@ -24,9 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
-            IProductInfoStore productInfoStore,
-            IModelIdStore modelIdStore)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore)
+            IMetadataStore metadataStore)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore)
         {
         }
 
@@ -47,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             static readonly IMetricsCounter MessagesMeter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent to module",
-                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority", MetricsConstants.MsTelemetry });
 
             public static void AddMessage(IIdentity identity, IMessage message)
             {
@@ -57,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 string fromRouteOutput = message.GetOutput();
                 string toRouteInput = message.GetInput();
                 uint priority = message.ProcessedPriority;
-                MessagesMeter.Increment(1, new[] { from, to, fromRouteOutput, toRouteInput, priority.ToString() });
+                MessagesMeter.Increment(1, new[] { from, to, fromRouteOutput, toRouteInput, priority.ToString(), bool.TrueString });
             }
         }
     }

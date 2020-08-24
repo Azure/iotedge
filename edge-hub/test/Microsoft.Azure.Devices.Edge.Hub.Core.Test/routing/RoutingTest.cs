@@ -486,10 +486,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         static IClientCredentials SetupDeviceIdentity(string deviceId) =>
-            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, false);
+            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, Option.None<string>(), false);
 
         static IClientCredentials SetupModuleCredentials(string moduleId, string deviceId) =>
-            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, false);
+            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, Option.None<string>(), false);
 
         class IoTHub
         {

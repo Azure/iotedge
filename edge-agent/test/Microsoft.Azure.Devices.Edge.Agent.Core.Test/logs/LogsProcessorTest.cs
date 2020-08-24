@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(TestLogBytes);
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<int>(), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.Some(regex));
 
             // Act
             IEnumerable<string> textLines = await logsProcessor.GetText(moduleId, stream, filter);
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(TestLogBytes);
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<int>(), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.Some(regex));
 
             // Act
             IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(moduleId, stream, filter);
@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.None<string>());
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.None<string>());
 
             // Act
             List<string> textLines = (await logsProcessor.GetText(moduleId, stream, filter)).ToList();
@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.None<string>());
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.None<string>());
 
             // Act
             IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(moduleId, stream, filter);
@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
 
             // Act
             List<string> textLines = (await logsProcessor.GetText(moduleId, stream, filter)).ToList();
@@ -264,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
 
             // Act
             IEnumerable<ModuleLogMessage> logMessages = await logsProcessor.GetMessages(moduleId, stream, filter);
@@ -293,7 +293,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
             var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
@@ -328,7 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
             var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
@@ -365,7 +365,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
             var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
@@ -400,7 +400,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
             var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter, LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
@@ -435,7 +435,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
             var stream = new MemoryStream(DockerFraming.Frame(TestLogTexts));
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.Some(logLevel), Option.Some(regex));
             var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, filter, LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false);
 
             var receivedBytes = new List<byte>();
@@ -473,7 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId = "mod1";
             var logMessageParser = new LogMessageParser(iotHub, deviceId);
             var logsProcessor = new LogsProcessor(logMessageParser);
-            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<int>(), Option.None<string>());
+            var filter = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>());
 
             var stream1 = new MemoryStream(DockerFraming.Frame(TestLogTexts));
             var logOptions1 = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);

@@ -209,7 +209,7 @@ Defaults:
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
 
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
                         }
 
                         break;
