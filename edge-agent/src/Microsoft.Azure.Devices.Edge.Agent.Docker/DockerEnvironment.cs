@@ -87,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 {
                     image = !string.IsNullOrWhiteSpace(dockerRuntimeInfo.Config.Image) ? dockerRuntimeInfo.Config.Image : dockerModule.Config.Image;
                 }
+                
                 var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash, dockerModule.Config.Digest);
                 IModule module;
                 switch (moduleRuntimeInfo.Name)
