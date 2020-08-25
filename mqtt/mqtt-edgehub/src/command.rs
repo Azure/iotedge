@@ -1,4 +1,4 @@
-use std::{collections::HashSet, iter::FromIterator, str, time::Duration};
+use std::{str, time::Duration};
 
 use futures_util::future::BoxFuture;
 use tokio::{net::TcpStream, stream::StreamExt};
@@ -82,7 +82,7 @@ impl CommandHandler {
             .await
             .map_err(CommandHandlerError::PollClientFailure)?
         {
-            if let Err(e) = self.handle_event(event).await {
+            if let Err(e) = self.handle_disconnect(event).await {
                 warn!(message = "failed to disconnect client", error = %e);
             }
         }
@@ -102,18 +102,18 @@ impl CommandHandler {
                 .map_err(CommandHandlerError::SubscribeFailure)?;
         }
 
-        let mut subacks: HashSet<String> = HashSet::from_iter(topics.to_vec());
+        let mut subacks: Vec<String> = topics.to_vec();
 
-        while let Some(event_or_err) = self
+        while let Some(event) = self
             .client
             .try_next()
             .await
             .map_err(CommandHandlerError::PollClientFailure)?
         {
-            if let Event::SubscriptionUpdates(subscriptions) = event_or_err {
+            if let Event::SubscriptionUpdates(subscriptions) = event {
                 for subscription in subscriptions {
                     if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
-                        subacks.remove(&sub.topic_filter);
+                        subacks.retain(|topic| *topic != sub.topic_filter);
                     }
                 }
 
@@ -123,10 +123,10 @@ impl CommandHandler {
             }
         }
 
-        Err(CommandHandlerError::MissingSubacks(topics.join(", ")))
+        Err(CommandHandlerError::MissingSubacks(subacks.join(", ")))
     }
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
+    async fn handle_disconnect(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
             let client_id = str::from_utf8(&publication.payload)
                 .map_err(HandleDisconnectError::ParseClientId)?;
