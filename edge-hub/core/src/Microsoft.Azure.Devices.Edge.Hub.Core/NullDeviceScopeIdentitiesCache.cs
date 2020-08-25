@@ -41,12 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return Task.FromResult(list);
         }
 
-        public Task<IList<string>> GetAllIds()
-        {
-            IList<string> list = new List<string>();
-            return Task.FromResult(list);
-        }
-
         public void InitiateCacheRefresh()
         {
         }

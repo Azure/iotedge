@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
-    class IdentityAndAuthChain
+    public class IdentityAndAuthChain
     {
         public IdentityAndAuthChain(string identity, Option<string> authChain)
         {

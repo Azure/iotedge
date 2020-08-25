@@ -32,8 +32,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public void SetConnector(IMqttBrokerConnector connector)
         {
             this.connector = connector;
-            Task.WhenAll(this.PublishAddOrUpdateBrokerServiceIdentities(this.brokerServiceIdentities));
+            this.connector.OnConnected += (sender, args) => Task.WhenAll(this.OnConnect());
+        }
+
+        async Task OnConnect()
+        {
             this.connected.Set(true);
+            await this.PublishAddOrUpdateBrokerServiceIdentities(this.brokerServiceIdentities);
         }
 
         async Task ServiceIdentityRemoved(string identity)
