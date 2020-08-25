@@ -1,19 +1,22 @@
 parameters:
-- name: deviceAlias
+- name: deviceId
   type: string
   
 steps:
 - pwsh: |
     Write-Output "Nested device test foler=$(nestedDeviceTestFolder)"
-    ssh -i ~/sshkeys/nested1key.pem ${{ parameters.deviceAlias }} rm -rf $(nestedDeviceTestFolder)
+    ssh -i ~/sshkeys/nested1key.pem ${{ parameters.deviceId }} rm -rf $(nestedDeviceTestFolder)
     
-    ssh -i ~/sshkeys/nested1key.pem ${{ parameters.deviceAlias }} mkdir -p $(nestedDeviceTestFolder)/testbin
-    scp -i ~/sshkeys/nested1key.pem -r $(binDir)/* ${{ parameters.deviceAlias }}:$(nestedDeviceTestFolder)/testbin
-    ssh -i ~/sshkeys/nested1key.pem ${{ parameters.deviceAlias }} mkdir -p $(nestedDeviceTestFolder)/certs
-    scp -i ~/sshkeys/nested1key.pem -r $(certsDir)/* ${{ parameters.deviceAlias }}:$(nestedDeviceTestFolder)/certs
-    ssh -i ~/sshkeys/nested1key.pem ${{ parameters.deviceAlias }} mkdir -p $(nestedDeviceTestFolder)/artifacts
-    scp -i ~/sshkeys/nested1key.pem -r $(System.ArtifactsDirectory)/* ${{ parameters.deviceAlias }}:$(nestedDeviceTestFolder)/artifacts
-    ssh -i ~/sshkeys/nested1key.pem ${{ parameters.deviceAlias }} mkdir -p $(nestedDeviceTestFolder)/tools
-    scp -i ~/sshkeys/nested1key.pem -r $(Build.SourcesDirectory)/tools/* ${{ parameters.deviceAlias }}:$(nestedDeviceTestFolder)/tools
+    $keyFile = "~/sshkeys/nested${{ parameters.deviceId }}key.pem"
+    $deviceAlias = "nesteddevice${{ parameters.deviceId }}"
+    
+    ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/testbin
+    scp -i $keyFile -r $(binDir)/* $deviceAlias:$(nestedDeviceTestFolder)/testbin
+    ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/certs
+    scp -i $keyFile -r $(certsDir)/* $deviceAlias:$(nestedDeviceTestFolder)/certs
+    ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/artifacts
+    scp -i $keyFile -r $(System.ArtifactsDirectory)/* $deviceAlias:$(nestedDeviceTestFolder)/artifacts
+    ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/tools
+    scp -i $keyFile -r $(Build.SourcesDirectory)/tools/* $deviceAlias:$(nestedDeviceTestFolder)/tools
 
-  displayName: Copy test files to ${{ parameters.deviceAlias }}
+  displayName: Copy test files to nesteddevice${{ parameters.deviceId }}
