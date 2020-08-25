@@ -74,11 +74,7 @@ impl CommandHandler {
     pub async fn run(mut self) -> Result<(), CommandHandlerError> {
         let subscribe_topic = &[DISCONNECT_TOPIC.to_string()];
 
-        if !self.subscribe(subscribe_topic).await? {
-            return Err(CommandHandlerError::MissingSubacks(
-                subscribe_topic.concat(),
-            ));
-        }
+        self.subscribe(subscribe_topic).await?;
 
         while let Some(event) = self
             .client
@@ -94,7 +90,7 @@ impl CommandHandler {
         Ok(())
     }
 
-    async fn subscribe(&mut self, topics: &[String]) -> Result<bool, CommandHandlerError> {
+    async fn subscribe(&mut self, topics: &[String]) -> Result<(), CommandHandlerError> {
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: proto::QoS::AtLeastOnce,
@@ -122,12 +118,12 @@ impl CommandHandler {
                 }
 
                 if subacks.is_empty() {
-                    return Ok(true);
+                    return Ok(());
                 }
             }
         }
 
-        Ok(false)
+        Err(CommandHandlerError::MissingSubacks(topics.join(", ")))
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
