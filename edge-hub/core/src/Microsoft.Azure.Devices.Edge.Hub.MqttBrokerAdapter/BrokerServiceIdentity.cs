@@ -4,8 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
+    using System;
 
-    public class BrokerServiceIdentity
+    public class BrokerServiceIdentity : IComparable
     {
         public BrokerServiceIdentity(string identity, Option<string> authChain)
         {
@@ -26,5 +27,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         [JsonProperty("AuthChain")]
         [JsonConverter(typeof(OptionConverter<string>))]
         public Option<string> AuthChain { get; }
+
+        public int CompareTo(object obj)
+        {
+            BrokerServiceIdentity brokerServiceIdentity = (BrokerServiceIdentity)obj;
+            if (this.Identity.Equals(brokerServiceIdentity.Identity))
+            {
+                if (this.AuthChain.HasValue && brokerServiceIdentity.AuthChain.HasValue)
+                {
+                    if (this.AuthChain.OrDefault().Equals(brokerServiceIdentity.AuthChain.OrDefault()))
+                    {
+                        return 0;
+                    }
+                }
+                else if (!this.AuthChain.HasValue && !brokerServiceIdentity.AuthChain.HasValue)
+                {
+                    return 0;
+                }
+            }
+
+            return -1;
+        }
     }
 }

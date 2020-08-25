@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
@@ -16,11 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class ScopeIdentitiesHandler : IMessageProducer
     {
         const string AddOrUpdateTopic = "$internal/identities/addOrUpdate";
-        const string RemoveTopic = "$internal/identities/removeTopic";
+        const string RemoveTopic = "$internal/identities/remove";
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly AtomicBoolean connected = new AtomicBoolean(false);
         IMqttBrokerConnector connector;
-        Dictionary<string, BrokerServiceIdentity> brokerServiceIdentities = new Dictionary<string, BrokerServiceIdentity>();
+        ConcurrentDictionary<string, BrokerServiceIdentity> brokerServiceIdentities = new ConcurrentDictionary<string, BrokerServiceIdentity>();
 
         public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
@@ -38,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         async Task OnConnect()
         {
             this.connected.Set(true);
-            await this.PublishAddOrUpdateBrokerServiceIdentities(this.brokerServiceIdentities);
+            await this.PublishBrokerServiceIdentities(this.brokerServiceIdentities.Values.ToList());
         }
 
         async Task ServiceIdentityRemoved(string identity)
@@ -49,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
             else
             {
-                this.brokerServiceIdentities.Remove(identity);
+                this.brokerServiceIdentities.TryRemove(identity, out _);
             }
         }
 
@@ -58,28 +59,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             BrokerServiceIdentity brokerServiceIdentity = new BrokerServiceIdentity(serviceIdentity.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentity.Id));
             if (this.connected.Get())
             {
-                await this.PublishAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
+                await this.PublishBrokerServiceIdentities(new List<BrokerServiceIdentity>() { brokerServiceIdentity });
             }
             else
             {
-                this.brokerServiceIdentities.Add(brokerServiceIdentity.Identity, brokerServiceIdentity);
+                this.brokerServiceIdentities[brokerServiceIdentity.Identity] = brokerServiceIdentity;
             }
         }
 
-        async Task PublishAddOrUpdateBrokerServiceIdentities(Dictionary<string, BrokerServiceIdentity> brokerServiceIdentities)
+        async Task PublishBrokerServiceIdentities(IList<BrokerServiceIdentity> brokerServiceIdentities)
         {
-            foreach (BrokerServiceIdentity brokerServiceIdentity in brokerServiceIdentities.Values)
-            {
-                await this.PublishAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
-            }
-        }
-
-        async Task PublishAddOrUpdateBrokerServiceIdentity(BrokerServiceIdentity brokerServiceIdentity)
-        {
-            Events.PublishingAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
+            Events.PublishingAddOrUpdateBrokerServiceIdentities(brokerServiceIdentities);
             try
             {
-                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(brokerServiceIdentity));
+                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(brokerServiceIdentities));
                 await this.connector.SendAsync(AddOrUpdateTopic, payload);
             }
             catch (Exception ex)
@@ -114,10 +107,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ErrorPublishingIdentity
             }
 
-            internal static void PublishingAddOrUpdateBrokerServiceIdentity(BrokerServiceIdentity brokerServiceIdentity)
+            internal static void PublishingAddOrUpdateBrokerServiceIdentities(IList<BrokerServiceIdentity> brokerServiceIdentities)
             {
-                Log.LogDebug((int)EventIds.PublishingAddOrUpdateBrokerServiceIdentity, $"Publishing identity:" +
-                    $" {brokerServiceIdentity.Identity} with authChain: {brokerServiceIdentity.AuthChain} to mqtt broker.");
+
+                Log.LogDebug((int)EventIds.PublishingAddOrUpdateBrokerServiceIdentity, $"Publishing:" +
+                    $" {brokerServiceIdentities.Select(b => $"identity: {b.Identity} with AuthChain: {b.AuthChain}").Join(", ")} to mqtt broker");
             }
 
             internal static void PublishingRemoveBrokerServiceIdentity(string identity)

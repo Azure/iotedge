@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     public class ScopeIdentitiesHandlerTest
     {
         const string AddOrUpdateTopic = "$internal/identities/addOrUpdate";
-        const string RemoveTopic = "$internal/identities/removeTopic";
+        const string RemoveTopic = "$internal/identities/remove";
         [Fact]
         public void PublishAddIdentitiesTest()
         {
@@ -35,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityUpdated += null, null, serviceIdentity);
 
             // Assert
-            Assert.Equal(AddOrUpdateTopic, capture.Topic.First());
-            Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identity)), capture.Content.First());
+            Assert.Equal(AddOrUpdateTopic, capture.Topic);
+            Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new List<BrokerServiceIdentity>() { identity })), capture.Content);
         }
 
         [Fact]
@@ -66,19 +66,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, "d3");
 
             // Assert
-            Assert.Empty(capture.Topic);
-            Assert.Empty(capture.Content);
+            Assert.Null(capture.Topic);
+            Assert.Null(capture.Content);
 
             // Act
             connector.Raise(c => c.OnConnected += null, null, null);
 
             // Assert
-            Assert.Equal(2, capture.Topic.Count);
-            Assert.Equal(2, capture.Content.Count);
-            Assert.Equal(AddOrUpdateTopic, capture.Topic.First());
-            Assert.Equal(AddOrUpdateTopic, capture.Topic.Last());
-            Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identity)), capture.Content.First());
-            Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identity2)), capture.Content.Last());
+            Assert.Equal(AddOrUpdateTopic, capture.Topic);
+            IList<BrokerServiceIdentity> brokerServiceIdentities = JsonConvert.DeserializeObject<IList<BrokerServiceIdentity>>(Encoding.UTF8.GetString(capture.Content));
+            Assert.Equal(2, brokerServiceIdentities.Count);
+            Assert.Contains(identity, brokerServiceIdentities);
+            Assert.Contains(identity2, brokerServiceIdentities);
         }
 
         [Fact]
@@ -98,8 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentityRemoved += null, null, deviceId);
 
             // Assert
-            Assert.Equal(RemoveTopic, capture.Topic.First());
-            Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(deviceId)), capture.Content.First());
+            Assert.Equal(RemoveTopic, capture.Topic);
+            Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(deviceId)), capture.Content);
         }
 
         protected static Mock<IMqttBrokerConnector> GetConnector(SendCapture sendCapture = null)
@@ -118,19 +117,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         protected class SendCapture
         {
-            public SendCapture()
-            {
-                this.Topic = new List<string>();
-                this.Content = new List<byte[]>();
-            }
-
-            public List<string> Topic { get; private set; }
-            public List<byte[]> Content { get; private set; }
+            public string Topic { get; private set; }
+            public byte[] Content { get; private set; }
 
             public void Capture(string topic, byte[] content)
             {
-                this.Topic.Add(topic);
-                this.Content.Add(content);
+                this.Topic = topic;
+                this.Content = content;
             }
         }
     }
