@@ -133,7 +133,7 @@ impl CommandHandler {
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
             let client_id = str::from_utf8(&publication.payload)
-                .map_err(|e| HandleDisconnectError::ParseClientId(e))?;
+                .map_err(HandleDisconnectError::ParseClientId)?;
 
             info!("received disconnection request for client {}", client_id);
 
