@@ -3,9 +3,7 @@ use anyhow::Result;
 use chrono::Utc;
 use futures_util::future::{self, Either};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::Notify;
-use tokio::time::delay_for;
 
 const PROXY_SERVER_TRUSTED_CA_PATH: &str = "/app/trustedCA.crt";
 const PROXY_SERVER_CERT_PATH: &str = "/app/server.crt";
@@ -17,7 +15,7 @@ const EXPIRY_TIME_START_DATE: &str = "1996-12-19T00:00:00+00:00";
 
 //Check for expiry of certificates. If certificates are expired: rotate.
 pub async fn start(notify_certs_rotated: Arc<Notify>, shutdown_signal: Arc<Notify>) {
-    const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: Duration = Duration::from_secs(1);
+    const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: std::time::Duration = std::time::Duration::from_secs(1);
 
     let module_id = std::env::var("IOTEDGE_MODULEID")
         .expect(&format!("Missing env var {:?}", "IOTEDGE_MODULEID"));
@@ -41,7 +39,7 @@ pub async fn start(notify_certs_rotated: Arc<Notify>, shutdown_signal: Arc<Notif
         let wait_shutdown = shutdown_signal.notified();
         futures::pin_mut!(wait_shutdown);
         match future::select(
-            delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS),
+            tokio::time::delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS),
             wait_shutdown,
         )
         .await
@@ -75,7 +73,7 @@ pub async fn start(notify_certs_rotated: Arc<Notify>, shutdown_signal: Arc<Notif
         };
 
         //Same thing as above but for private key and server cert
-        match cert_monitor.need_to_rotate_server_cert(Utc::now()).await {
+        match cert_monitor.need_to_rotate_server_cert(chrono::Utc::now()).await {
             Ok((need_to_rotate_cert, server_cert, private_key)) => {
                 if need_to_rotate_cert == true {
                     //If we have a new cert, we need to write it in file system
@@ -158,7 +156,7 @@ impl CertificateMonitor {
         let private_key;
 
         if current_date >= self.cert_expiration_date {
-            let new_expiration_date = Utc::now()
+            let new_expiration_date = chrono::Utc::now()
                 .checked_add_signed(self.validity_days)
                 .expect("Could not compute new expiration date for certificate");
             let resp = self
@@ -218,7 +216,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_server_cert_and_private_key() {
-        let expiration = Utc::now() + Duration::days(90);
+        let expiration = chrono::Utc::now() + Duration::days(90);
         let res = json!(
             {
                 "privateKey": { "type": "key", "bytes": "PRIVATE KEY" },

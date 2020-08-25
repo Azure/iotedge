@@ -10,16 +10,15 @@
     clippy::must_use_candidate,
     clippy::missing_errors_doc
 )]
-
-use anyhow::Context;
-use std::process::Stdio;
-use std::{pin::Pin, sync::Arc};
-use tokio::process::Command;
-use tokio::sync::Notify;
 mod monitors;
-use futures::executor::block_on;
+
+use monitors::certs_monitor;
+use monitors::config_monitor;
+use anyhow::Context;
+use std::{pin::Pin, sync::Arc};
 use futures::Future;
 use futures_util::future::{self, Either};
+use tokio::sync::Notify;
 
 #[tokio::main]
 async fn main() {
@@ -28,16 +27,16 @@ async fn main() {
     )
     .init();
 
-    let notify_need_reload_api_proxy = Arc::new(Notify::new());
+    let notify_need_reload_api_proxy = Arc::new(tokio::sync::Notify::new());
     let notify_received_config = notify_need_reload_api_proxy.clone();
     let notify_certs_rotated = notify_need_reload_api_proxy.clone();
 
-    let shutdown_signal_twin_state = Arc::new(Notify::new());
-    let shutdown_signal_config_monitor = Arc::new(Notify::new());
-    let shutdown_signal_cert_monitor = Arc::new(Notify::new());
-    let shutdown_signal_loop_stask = Arc::new(Notify::new());
+    let shutdown_signal_twin_state = Arc::new(tokio::sync::Notify::new());
+    let shutdown_signal_config_monitor = Arc::new(tokio::sync::Notify::new());
+    let shutdown_signal_cert_monitor = Arc::new(tokio::sync::Notify::new());
+    let shutdown_signal_loop_stask = Arc::new(tokio::sync::Notify::new());
 
-    let client = monitors::config_monitor::get_sdk_client();
+    let client = config_monitor::get_sdk_client();
     let mut shutdown_handle = client
         .inner()
         .shutdown_handle()
@@ -45,17 +44,17 @@ async fn main() {
 
     let report_twin_state_handle = client.report_twin_state_handle();
 
-    let twin_state_poll_task = monitors::config_monitor::poll_twin_state(
+    let twin_state_poll_task = config_monitor::poll_twin_state(
         report_twin_state_handle,
         shutdown_signal_twin_state.clone(),
     );
-    let config_monitor_task = monitors::config_monitor::start(
+    let config_monitor_task = config_monitor::start(
         client,
         notify_received_config,
         shutdown_signal_config_monitor.clone(),
     );
     let cert_monitor_task =
-        monitors::certs_monitor::start(notify_certs_rotated, shutdown_signal_cert_monitor.clone());
+        certs_monitor::start(notify_certs_rotated, shutdown_signal_cert_monitor.clone());
     let loop_task = nginx_controller_loop(
         notify_need_reload_api_proxy,
         shutdown_signal_loop_stask.clone(),
@@ -63,9 +62,9 @@ async fn main() {
 
     //Switch atomic var to true to tell all task to shutdown.
     ctrlc::set_handler(move || {
-        block_on(shutdown_handle.shutdown()).expect("Could not shutdown gracefully");
+        futures::executor::block_on(shutdown_handle.shutdown()).expect("Could not shutdown gracefully");
         shutdown_signal_twin_state.notify();
-        shutdown_signal_config_monitor.notify();
+        shutdown_signal_config_monitor.notify();//
         shutdown_signal_cert_monitor.notify();
         shutdown_signal_loop_stask.notify();
     })
@@ -107,7 +106,7 @@ pub async fn nginx_controller_loop(
 
     loop {
         //Make sure proxy is stopped by sending stop command. Otherwise port will be blocked
-        let command = Command::new(stop_proxy_program_path)
+        let command = tokio::process::Command::new(stop_proxy_program_path)
             .args(&stop_proxy_args)
             .spawn()
             .with_context(|| format!("Failed to start {:?} process.", stop_proxy_name))
@@ -117,9 +116,9 @@ pub async fn nginx_controller_loop(
             .expect("Error while trying to wait on stop proxy future");
 
         //Start nginx
-        let child_nginx = Command::new(program_path)
+        let child_nginx = tokio::process::Command::new(program_path)
             .args(&args)
-            .stdout(Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
             .spawn()
             .with_context(|| format!("Failed to start {:?} process.", name))
             .expect("Cannot start proxy!");

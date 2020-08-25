@@ -1,8 +1,6 @@
 use super::utils;
 use anyhow::{Context, Result};
 use futures_util::future::{self, Either};
-use regex::Regex;
-use std::str;
 use std::sync::Arc;
 use tokio::sync::Notify;
 
@@ -198,11 +196,11 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let str: String = envsubst::substitute(str, &context).unwrap();
 
     //Replace is 0
-    let re = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0").unwrap();
+    let re = regex::Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0").unwrap();
     let str = re.replace_all(&str, "").to_string();
 
     //Or not 1. This allows usage of if ... else ....
-    let re = Regex::new(r"#if_tag !1((.|\n)*?)#endif_tag !1").unwrap();
+    let re = regex::Regex::new(r"#if_tag !1((.|\n)*?)#endif_tag !1").unwrap();
     let str = re.replace_all(&str, "").to_string();
 
     Ok(str)
@@ -285,7 +283,7 @@ mod tests {
         std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "registry:5000");
 
         let byte_str = get_raw_config(RAW_CONFIG_BASE64).unwrap();
-        let config = str::from_utf8(&byte_str).unwrap();
+        let config = std::str::from_utf8(&byte_str).unwrap();
         assert_eq!(config, RAW_CONFIG_TEXT);
 
         let config = get_parsed_config(RAW_CONFIG_TEXT).unwrap();
