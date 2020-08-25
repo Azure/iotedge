@@ -2,9 +2,9 @@
 
 IoT Edge supports native retrieval of module logs and upload to Azure Blob Storage. Users can access this functionality via direct method calls to the Edge Agent module. The following methods are available in support of this:
 
-- [UploadLogs](#UploadLogs)
+- [UploadModuleLogs](#UploadModuleLogs)
 - [GetTaskStatus](#GetTaskStatus)
-- [GetLogs](#GetLogs)
+- [GetModuleLogs](#GetModuleLogs)
 - [UploadSupportBundle](#UploadSupportBundle)
 
 ## Feature enabling
@@ -24,7 +24,7 @@ For best compatibility with this feature, the recommended logging format is:
 The [Logger class in IoT Edge](https://github.com/Azure/iotedge/blob/master/edge-util/src/Microsoft.Azure.Devices.Edge.Util/Logger.cs) serves as a canonical implementation.
 
 
-## UploadLogs
+## UploadModuleLogs
 
 This method accepts a JSON payload with the following schema:
 
@@ -86,7 +86,7 @@ The response is returned with the following schema:
 **Upload last 100 log lines from all modules, in compressed JSON format:**
 
 ```shell
-az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id> -m \$edgeAgent --mn UploadLogs --mp \
+az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id> -m \$edgeAgent --mn UploadModuleLogs --mp \
 '
     {
         "schemaVersion": "1.0",
@@ -107,7 +107,7 @@ az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id
 
 **Upload last 100 log lines from edgeAgent and edgeHub with last 1000 log lines from tempSensor module in uncompressed text format**
 ```
-az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id> -m \$edgeAgent --mn UploadLogs --mp \
+az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id> -m \$edgeAgent --mn UploadModuleLogs --mp \
 '
     {
         "schemaVersion": "1.0",
@@ -134,7 +134,7 @@ az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id
 
 ## GetTaskStatus
 
-The status of upload logs request can be queried using the `correlationId` returned in response the `UploadLogs` direct method call. The `correlationId` is specified in the request to `GetTaskStatus` direct method on the edgeAgent using the following schema:
+The status of upload logs request can be queried using the `correlationId` returned in response the `UploadModuleLogs` direct method call. The `correlationId` is specified in the request to `GetTaskStatus` direct method on the edgeAgent using the following schema:
 
 ```
 { 
@@ -146,17 +146,17 @@ The status of upload logs request can be queried using the `correlationId` retur
 | Name          | Type   | Description                                                        |
 |---------------|--------|--------------------------------------------------------------------|
 | SchemaVersion | string | Set to `1.0`                                                       |
-| correlationId | string   | `correlationId` GUID from the `UploadLogs` direct method response. |
+| correlationId | string   | `correlationId` GUID from the `UploadModuleLogs` direct method response. |
 
-The response is in the same format as `UploadLogs`.
+The response is in the same format as `UploadModuleLogs`.
 
-## GetLogs
+## GetModuleLogs
 Returns the requested logs in the response of the direct method.
 
-This method accepts a JSON payload very similar to **UploadLogs** except it doesn't have the "sasUrl" key. The logs content is truncated to the response size limit of direct methods which is currently 128KB.
+This method accepts a JSON payload very similar to **UploadModuleLogs** except it doesn't have the "sasUrl" key. The logs content is truncated to the response size limit of direct methods which is currently 128KB.
 
 ## UploadSupportBundle
-This runs the `iotedge support bundle` command and uploads the resulting zip file to the blob store specified by sasUrl. It uses the same response schema as [Upload Logs](#UploadLogs). 
+This runs the `iotedge support bundle` command and uploads the resulting zip file to the blob store specified by sasUrl. It uses the same response schema as [Upload Logs](#UploadModuleLogs). 
 
 ### Request Schema
 ```
