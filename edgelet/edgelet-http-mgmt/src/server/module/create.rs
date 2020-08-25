@@ -6,6 +6,7 @@ use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
+// use log::{debug, info};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -48,6 +49,7 @@ where
                 let b = b.context(ErrorKind::MalformedRequestBody)?;
                 let spec = serde_json::from_slice::<ModuleSpec>(&b)
                     .context(ErrorKind::MalformedRequestBody)?;
+                println!("module spec is {:?}", spec);
                 let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
                 Ok((spec, core_spec))
             })

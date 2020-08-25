@@ -151,6 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
+                Console.WriteLine("DockerConfig Serialization");
                 writer.WriteStartObject();
 
                 var dockerconfig = (DockerConfig)value;
@@ -173,6 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                 dockerconfig.Digest.ForEach(ct =>
                 {
+                    Console.WriteLine("Digest DockerConfig Serialization");
                     writer.WritePropertyName("digest");
                     serializer.Serialize(writer, ct);
                 });
@@ -182,6 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {
                 JObject obj = JObject.Load(reader);
+                Console.WriteLine("DockerConfig Deserialization");
 
                 // Pull out JToken values from json
                 obj.TryGetValue("image", StringComparison.OrdinalIgnoreCase, out JToken jTokenImage);
@@ -193,10 +196,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                 if (obj.TryGetValue("digest", StringComparison.OrdinalIgnoreCase, out JToken jTokenDigest))
                 {
+                    Console.WriteLine("Digest DockerConfig Deserialization");
                     return new DockerConfig(jTokenImage?.ToString(), options, Option.Maybe(jTokenDigest.ToObject<string>()));
                 }
                 else
                 {
+                    Console.WriteLine("Digest DockerConfig Deserialization");
                     return new DockerConfig(jTokenImage?.ToString(), options, Option.None<string>());
                 }
             }
