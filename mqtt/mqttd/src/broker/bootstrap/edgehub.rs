@@ -36,17 +36,14 @@ pub struct SidecarShutdownHandle(Sender<()>);
 
 impl SidecarShutdownHandle {
     pub fn shutdown(self) -> Result<(), SidecarError> {
-        match self.0.send(()) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(SidecarError::SidecarShutdown()),
-        }
+        self.0.send(()).map_err(|_| SidecarError::SidecarShutdown)
     }
 }
 
 #[derive(Debug, Error)]
 pub enum SidecarError {
     #[error("An error occurred shutting down sidecars")]
-    SidecarShutdown(),
+    SidecarShutdown,
 }
 
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
