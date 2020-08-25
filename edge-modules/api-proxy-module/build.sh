@@ -82,7 +82,7 @@ check_arch
 
 echo ${PROJECT_ROOT}
 ../../scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch $ARCH --build-path edge-modules/api-proxy-module
-
+strip ${PROJECT_ROOT}/edge-modules/api-proxy-module/target/x86_64-unknown-linux-musl/release/api-proxy-module
 #if [ $ARCH == "amd64" ]; then
 #	docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/api-proxy-module/Cargo.toml
 #	strip ${PROJECT_ROOT}/edge-modules/api-proxy-module/target/x86_64-unknown-linux-musl/release/api-proxy-module
