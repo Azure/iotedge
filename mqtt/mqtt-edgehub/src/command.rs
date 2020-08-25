@@ -83,8 +83,8 @@ impl CommandHandler {
             .await
             .map_err(CommandHandlerError::PollClientFailure)?
         {
-            if let Err(e) = self.handle_disconnect(event).await {
-                warn!(message = "failed to disconnect client", error = %e);
+            if let Err(e) = self.handle_event(event).await {
+                warn!(message = "error processing command handler event", error = %e);
             }
         }
 
@@ -127,7 +127,7 @@ impl CommandHandler {
         Err(CommandHandlerError::MissingSubacks(subacks.join(", ")))
     }
 
-    async fn handle_disconnect(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
+    async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
             let payload = publication.payload.to_vec();
             let payload: String = String::from_utf8(payload)
