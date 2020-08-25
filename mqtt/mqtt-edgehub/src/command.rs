@@ -1,6 +1,7 @@
-use std::{str, time::Duration};
+use std::{str, string, time::Duration};
 
 use futures_util::future::BoxFuture;
+use serde_json::error::Error as SerdeError;
 use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{error, info, warn};
 
@@ -128,8 +129,11 @@ impl CommandHandler {
 
     async fn handle_disconnect(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
-            let client_id = str::from_utf8(&publication.payload)
-                .map_err(HandleDisconnectError::ParseClientId)?;
+            let payload = publication.payload.to_vec();
+            let payload: String = String::from_utf8(payload)
+                .map_err(HandleDisconnectError::ConvertPayloadToString)?;
+            let client_id: &str =
+                serde_json::from_str(&payload).map_err(HandleDisconnectError::ParseClientId)?;
 
             info!("received disconnection request for client {}", client_id);
 
@@ -143,7 +147,10 @@ impl CommandHandler {
                 return Err(HandleDisconnectError::SignalError(e));
             }
 
-            info!("succeeded sending broker signal to disconnect client");
+            info!(
+                "succeeded sending broker signal to disconnect client{}",
+                client_id
+            );
         }
 
         Ok(())
@@ -165,8 +172,11 @@ pub enum CommandHandlerError {
 #[derive(Debug, thiserror::Error)]
 enum HandleDisconnectError {
     #[error("failed to parse client id from message payload")]
-    ParseClientId(#[from] str::Utf8Error),
+    ParseClientId(#[from] SerdeError),
 
     #[error("failed sending broker signal to disconnect client")]
     SignalError(#[from] Error),
+
+    #[error("failed to convert payload to string")]
+    ConvertPayloadToString(#[from] string::FromUtf8Error),
 }
