@@ -10,7 +10,7 @@ use edgelet_core::{SecretManager, UrlExt};
 use failure::ResultExt;
 use futures::Future;
 use hyper::Client;
-use log::info;
+use log::{info, error};
 use url::Url;
 
 #[derive(Clone)]
@@ -55,6 +55,7 @@ impl SecretManager for SecretClient {
             .default_api()
             .set_secret(&API_VERSION.to_string(), &id, &value)
             .map_err(|e| {
+                error!("failed to set secret: {:?}", e);
                 if let SecretError::ApiError(ApiError { code, .. }) = e {
                     Error::from(ErrorKind::SecretStore(code.as_u16()))
                 }
@@ -71,6 +72,7 @@ impl SecretManager for SecretClient {
             .default_api()
             .delete_secret(&API_VERSION.to_string(), id)
             .map_err(|e| {
+                error!("failed to delete secret: {:?}", e);
                 if let SecretError::ApiError(ApiError { code, .. }) = e {
                     Error::from(ErrorKind::SecretStore(code.as_u16()))
                 }
@@ -87,6 +89,7 @@ impl SecretManager for SecretClient {
             .default_api()
             .get_secret(&API_VERSION.to_string(), id)
             .map_err(|e| {
+                error!("failed to get secret: {:?}", e);
                 if let SecretError::ApiError(ApiError { code, .. }) = e {
                     Error::from(ErrorKind::SecretStore(code.as_u16()))
                 }
@@ -103,6 +106,7 @@ impl SecretManager for SecretClient {
             .default_api()
             .pull_secret(&API_VERSION.to_string(), id, akv_id)
             .map_err(|e| {
+                error!("failed to pull secret: {:?}", e);
                 if let SecretError::ApiError(ApiError { code, .. }) = e {
                     Error::from(ErrorKind::SecretStore(code.as_u16()))
                 }
@@ -119,6 +123,7 @@ impl SecretManager for SecretClient {
             .default_api()
             .refresh_secret(&API_VERSION.to_string(), id)
             .map_err(|e| {
+                error!("failed to refresh secret: {:?}", e);
                 if let SecretError::ApiError(ApiError { code, .. }) = e {
                     Error::from(ErrorKind::SecretStore(code.as_u16()))
                 }
