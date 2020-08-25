@@ -134,8 +134,8 @@ steps:
 
 - template: nestededge-e2e-setup-copyFiles.yaml
   parameters:
-    deviceAlias: 2
+    deviceId: 2
 
 - template: nestededge-e2e-setup-copyFiles.yaml
   parameters:
-    deviceAlias: 3   
+    deviceId: 3   
