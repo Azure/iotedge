@@ -83,7 +83,10 @@ jobs:
       arch: amd64
       artifactName: iotedged-ubuntu18.04-amd64
       nestedDeviceTestFolder: "~/e2etest"
-      nestedDevices: ['nesteddevice1', 'nesteddevice2', 'nesteddevice3']
+      nestedDevices: 
+      - 'nesteddevice1'
+      - 'nesteddevice2'
+      - 'nesteddevice3'
       
     steps:
     - template: templates/e2e-clean-directory.yaml
