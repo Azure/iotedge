@@ -1421,7 +1421,6 @@ where
     let hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
     let hostname = format!("https://{}", hub_name);
-    let secret_uri = format!("unix://{}", settings.secret().secret_host());
     let token_source = SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key);
     let http_client = HttpClient::new(
             hyper_client,
@@ -1432,7 +1431,7 @@ where
         .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
     let device_client = DeviceClient::new(http_client, device_id.clone())
         .context(ErrorKind::Initialize(InitializeErrorReason::DeviceClient))?;
-    let secret_man = SecretClient::new(&Url::parse(&secret_uri).unwrap())
+    let secret_man = SecretClient::new(&Url::parse(settings.secret().secret_host()).unwrap())
         .context(ErrorKind::Initialize(InitializeErrorReason::SecretClient))?;
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
 

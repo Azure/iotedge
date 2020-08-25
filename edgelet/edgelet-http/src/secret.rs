@@ -23,13 +23,20 @@ impl SecretClient {
         let client = Client::builder()
             .build(UrlConnector::new(url).context(ErrorKind::Initialization)?);
 
+        let scheme = url.scheme();
         let base_path = url
             .to_base_path()
-            .context(ErrorKind::Initialization)?;
-        let mut configuration = Configuration::new(client);
-        configuration.base_path = base_path
+            .context(ErrorKind::Initialization)?
             .to_str()
             .ok_or(ErrorKind::Initialization)?
+            .to_owned();
+        let mut configuration = Configuration::new(client);
+        configuration.base_path = UrlConnector::build_hyper_uri(
+                scheme,
+                &base_path,
+                "/"
+            )
+            .context(ErrorKind::Initialization)?
             .to_string();
 
         let secret_client = Self {
@@ -50,7 +57,6 @@ impl SecretManager for SecretClient {
     type RefreshFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn set(&self, id: &str, value: &str) -> Self::SetFuture {
-        info!("VALUE IS {}", value);
         let response = self.client
             .default_api()
             .set_secret(&API_VERSION.to_string(), &id, &value)

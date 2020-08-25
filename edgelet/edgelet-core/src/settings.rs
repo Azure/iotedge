@@ -12,7 +12,7 @@ use url::Url;
 use crate::crypto::MemoryKey;
 use crate::error::{Error, ErrorKind};
 use crate::module::ModuleSpec;
-use crate::{DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS, DEFAULT_SECRET_STORE_SOCKET};
+use crate::DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS;
 
 const DEVICEID_KEY: &str = "DeviceId";
 const HOSTNAME_KEY: &str = "HostName";
@@ -677,13 +677,8 @@ impl WatchdogSettings {
     }
 }
 
-fn default_secret_host() -> String {
-    DEFAULT_SECRET_STORE_SOCKET.to_string()
-}
-
 #[derive(Clone, Debug, Default, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct SecretSettings {
-    #[serde(default = "default_secret_host")]
     secret_host: String
 }
 
