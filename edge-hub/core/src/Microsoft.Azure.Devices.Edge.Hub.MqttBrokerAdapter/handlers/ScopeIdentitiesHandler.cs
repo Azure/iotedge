@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -19,49 +20,81 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly AtomicBoolean connected = new AtomicBoolean(false);
         IMqttBrokerConnector connector;
+        Dictionary<string, IdentityAndAuthChain> brokerServiceIdentities = new Dictionary<string, IdentityAndAuthChain>();
 
         public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
             this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
+            this.deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, serviceIdentity) => Task.WhenAll(this.ServiceIdentityUpdated(serviceIdentity));
+            this.deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, identity) => Task.WhenAll(this.ServiceIdentityRemoved(identity));
         }
 
         public void SetConnector(IMqttBrokerConnector connector)
         {
             this.connector = connector;
+            Task.WhenAll(this.PublishAddOrUpdateBrokerServiceIdentities(this.brokerServiceIdentities));
+            this.connected.Set(true);
         }
 
-        async Task PublishAddOrUpdateIdentitiesAndAuthChains(IList<IdentityAndAuthChain> identitiesAndAuthChains)
+        async Task ServiceIdentityRemoved(string identity)
         {
-            Events.PublishingAddOrUpdateIdentitiesAndAuthChains(identitiesAndAuthChains);
+            if (this.connected.Get())
+            {
+                await this.PublishRemoveBrokerIdentityService(identity);
+            }
+            else
+            {
+                this.brokerServiceIdentities.Remove(identity);
+            }
+        }
+
+        async Task ServiceIdentityUpdated(ServiceIdentity serviceIdentity)
+        {
+            IdentityAndAuthChain brokerServiceIdentity = new IdentityAndAuthChain(serviceIdentity.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentity.Id));
+            if (this.connected.Get())
+            {
+                await this.PublishAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
+            }
+            else
+            {
+                this.brokerServiceIdentities.Add(brokerServiceIdentity.Identity, brokerServiceIdentity);
+            }
+        }
+
+        async Task PublishAddOrUpdateBrokerServiceIdentities(Dictionary<string, IdentityAndAuthChain> brokerServiceIdentities)
+        {
+            foreach (IdentityAndAuthChain brokerServiceIdentity in brokerServiceIdentities.Values)
+            {
+                await this.PublishAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
+            }
+        }
+
+        async Task PublishAddOrUpdateBrokerServiceIdentity(IdentityAndAuthChain brokerServiceIdentity)
+        {
+            Events.PublishingAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
             try
             {
-                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identitiesAndAuthChains));
+                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(brokerServiceIdentity));
                 await this.connector.SendAsync(AddOrUpdateTopic, payload);
             }
             catch (Exception ex)
             {
-                Events.ErrorPublishingIdentities(ex);
+                Events.ErrorPublishingIdentity(ex);
             }
         }
 
-        async Task PublishRemoveIdentitiesAndAuthChains(IList<string> identities)
+        async Task PublishRemoveBrokerIdentityService(string identity)
         {
-            Events.PublishingRemoveIdentities(identities);
+            Events.PublishingRemoveBrokerServiceIdentity(identity);
             try
             {
-                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identities));
+                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identity));
                 await this.connector.SendAsync(RemoveTopic, payload);
             }
             catch (Exception ex)
             {
-                Events.ErrorPublishingIdentities(ex);
+                Events.ErrorPublishingIdentity(ex);
             }
-        }
-
-        async Task GetAndPublishIdentities()
-        {
-            IList<string> ids = await this.deviceScopeIdentitiesCache.GetAllIds();
-            await this.PublishIdentities(ids);
         }
 
         static class Events
@@ -71,20 +104,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             enum EventIds
             {
-                PublishingIdentities = IdStart,
-                ErrorPublishingIdentities
+                PublishingAddOrUpdateBrokerServiceIdentity = IdStart,
+                PublishingRemoveBrokerServiceIdentity,
+                ErrorPublishingIdentity
             }
 
-            public static void PublishingAddOrUpdateIdentitiesAndAuthChains(IList<IdentityAndAuthChain> identitiesAndAuthChains)
+            internal static void PublishingAddOrUpdateBrokerServiceIdentity(IdentityAndAuthChain brokerServiceIdentity)
             {
-                var message = identitiesAndAuthChains.Select(i => $"id: {i.Identity} with auth chain: {i.AuthChain}")
-                    .Join(", ");
-                Log.LogDebug((int)EventIds.PublishingIdentities, $"Publishing identities: {message} to mqtt broker.");
+                Log.LogDebug((int)EventIds.PublishingAddOrUpdateBrokerServiceIdentity, $"Publishing identity:" +
+                    $" {brokerServiceIdentity.Identity} with authChain: {brokerServiceIdentity.AuthChain} to mqtt broker.");
             }
 
-            public static void ErrorPublishingIdentities(Exception ex)
+            internal static void PublishingRemoveBrokerServiceIdentity(string identity)
             {
-                Log.LogError((int)EventIds.ErrorPublishingIdentities, ex, $"A problem occurred while publishing identities to mqtt broker.");
+                Log.LogDebug((int)EventIds.PublishingRemoveBrokerServiceIdentity, $"Publishing Remove identity: {identity}");
+            }
+
+            internal static void ErrorPublishingIdentity(Exception ex)
+            {
+                Log.LogError((int)EventIds.ErrorPublishingIdentity, ex, $"A problem occurred while publishing identity to mqtt broker.");
             }
         }
     }
