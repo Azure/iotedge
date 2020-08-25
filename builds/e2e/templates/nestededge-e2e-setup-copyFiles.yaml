@@ -4,12 +4,12 @@ parameters:
   
 steps:
 - pwsh: |
-    Write-Output "Nested device test foler=$(nestedDeviceTestFolder)"
-    ssh -i ~/sshkeys/nested1key.pem ${{ parameters.deviceId }} rm -rf $(nestedDeviceTestFolder)
-    
     $keyFile = "~/sshkeys/nested${{ parameters.deviceId }}key.pem"
     $deviceAlias = "nesteddevice${{ parameters.deviceId }}"
-    
+
+    Write-Output "Nested device test foler=$(nestedDeviceTestFolder) on $deviceAlias"
+    ssh -i $keyFile $deviceAlias rm -rf $(nestedDeviceTestFolder)
+
     ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/testbin
     scp -i $keyFile -r $(binDir)/* ${deviceAlias}:$(nestedDeviceTestFolder)/testbin
     ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/certs

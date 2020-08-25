@@ -88,4 +88,6 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/nestededge-e2e-setup.yaml
     #- template: templates/e2e-clear-docker-cached-images.yaml
-    #- template: templates/nestededge-e2e-run.yaml
+    - template: templates/nestededge-e2e-run.yaml
+      parameters:
+        deviceId: 1
