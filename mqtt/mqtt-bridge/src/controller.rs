@@ -17,16 +17,14 @@ impl BridgeController {
 
     pub async fn start(&mut self) -> Result<()> {
         let settings = Settings::new()?;
-        match settings.nested_bridge().gateway_hostname() {
-            Some(_) => {
-                let nested_bridge = NestedBridge::new(settings.clone());
-                nested_bridge.start().await;
+        if let Some(_hostname) = settings.nested_bridge().gateway_hostname() {
+            let nested_bridge = NestedBridge::new(settings.clone());
+            nested_bridge.start().await;
 
-                self.nested_bridge = Option::Some(nested_bridge);
-            }
-            None => info!("No nested bridge found."),
+            self.nested_bridge = Some(nested_bridge);
+        } else {
+            info!("No nested bridge found.")
         };
-
         Ok(())
     }
 }
