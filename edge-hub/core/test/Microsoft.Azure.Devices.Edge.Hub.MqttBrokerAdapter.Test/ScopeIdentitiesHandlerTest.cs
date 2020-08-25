@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             sut.SetConnector(connector.Object);
             var serviceIdentity = new ServiceIdentity("d1", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain("d1")).ReturnsAsync(Option.Some("testAuthChain"));
-            IdentityAndAuthChain identity = new IdentityAndAuthChain("d1", Option.Some("testAuthChain"));
+            BrokerServiceIdentity identity = new BrokerServiceIdentity("d1", Option.Some("testAuthChain"));
             connector.Raise(c => c.OnConnected += null, null, null);
 
             // Act
@@ -50,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var serviceIdentity2 = new ServiceIdentity("d2", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
             var serviceIdentity3 = new ServiceIdentity("d3", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
 
-            IdentityAndAuthChain identity = new IdentityAndAuthChain("d1", Option.Some("testAuthChain"));
-            IdentityAndAuthChain identity2 = new IdentityAndAuthChain("d2", Option.Some("testAuthChain2"));
+            BrokerServiceIdentity identity = new BrokerServiceIdentity("d1", Option.Some("testAuthChain"));
+            BrokerServiceIdentity identity2 = new BrokerServiceIdentity("d2", Option.Some("testAuthChain2"));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain("d1")).ReturnsAsync(Option.Some("testAuthChain"));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain("d2")).ReturnsAsync(Option.Some("testAuthChain2"));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain("d3")).ReturnsAsync(Option.Some("testAuthChain3"));
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             var sut = new ScopeIdentitiesHandler(deviceScopeIdentitiesCache.Object);
             sut.SetConnector(connector.Object);
-            IdentityAndAuthChain identity = new IdentityAndAuthChain("d1", Option.Some("testAuthChain"));
+            BrokerServiceIdentity identity = new BrokerServiceIdentity("d1", Option.Some("testAuthChain"));
             connector.Raise(c => c.OnConnected += null, null, null);
 
             // Act

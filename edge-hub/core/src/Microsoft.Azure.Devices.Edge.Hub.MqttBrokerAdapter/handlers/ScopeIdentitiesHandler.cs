@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly AtomicBoolean connected = new AtomicBoolean(false);
         IMqttBrokerConnector connector;
-        Dictionary<string, IdentityAndAuthChain> brokerServiceIdentities = new Dictionary<string, IdentityAndAuthChain>();
+        Dictionary<string, BrokerServiceIdentity> brokerServiceIdentities = new Dictionary<string, BrokerServiceIdentity>();
 
         public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task ServiceIdentityUpdated(ServiceIdentity serviceIdentity)
         {
-            IdentityAndAuthChain brokerServiceIdentity = new IdentityAndAuthChain(serviceIdentity.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentity.Id));
+            BrokerServiceIdentity brokerServiceIdentity = new BrokerServiceIdentity(serviceIdentity.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentity.Id));
             if (this.connected.Get())
             {
                 await this.PublishAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
@@ -66,15 +66,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        async Task PublishAddOrUpdateBrokerServiceIdentities(Dictionary<string, IdentityAndAuthChain> brokerServiceIdentities)
+        async Task PublishAddOrUpdateBrokerServiceIdentities(Dictionary<string, BrokerServiceIdentity> brokerServiceIdentities)
         {
-            foreach (IdentityAndAuthChain brokerServiceIdentity in brokerServiceIdentities.Values)
+            foreach (BrokerServiceIdentity brokerServiceIdentity in brokerServiceIdentities.Values)
             {
                 await this.PublishAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
             }
         }
 
-        async Task PublishAddOrUpdateBrokerServiceIdentity(IdentityAndAuthChain brokerServiceIdentity)
+        async Task PublishAddOrUpdateBrokerServiceIdentity(BrokerServiceIdentity brokerServiceIdentity)
         {
             Events.PublishingAddOrUpdateBrokerServiceIdentity(brokerServiceIdentity);
             try
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ErrorPublishingIdentity
             }
 
-            internal static void PublishingAddOrUpdateBrokerServiceIdentity(IdentityAndAuthChain brokerServiceIdentity)
+            internal static void PublishingAddOrUpdateBrokerServiceIdentity(BrokerServiceIdentity brokerServiceIdentity)
             {
                 Log.LogDebug((int)EventIds.PublishingAddOrUpdateBrokerServiceIdentity, $"Publishing identity:" +
                     $" {brokerServiceIdentity.Identity} with authChain: {brokerServiceIdentity.AuthChain} to mqtt broker.");
