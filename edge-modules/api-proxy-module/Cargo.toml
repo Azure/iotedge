@@ -6,22 +6,23 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0.32"
 base64 = "0.11"
+chrono = "0.4.13"
+ctrlc ={ version = "3.1.6" , features = ["termination"] }
+env_logger = "0.7"
+envsubst = "0.2.0"
+futures = "0.3.5"
 futures-util = "0.3"
 log = "0.4"
+md5 = "0.7.0"
 mqtt3 = { path = "../../mqtt/mqtt3" }
 regex = "1.3.9"
-tokio = { version = "0.2.22", features = ["tcp", "time", "process"] }
-anyhow = "1.0.32"
-chrono = "0.4.13"
-md5 = "0.7.0"
-azure-iot-mqtt = { path = "./rust-sdk/azure-iot-mqtt" }
 structopt = "0.3"
-env_logger = "0.7"
-futures = "0.3.5"
-envsubst = "0.2.0"
+tokio = { version = "0.2.22", features = ["tcp", "time", "process"] }
+
+azure-iot-mqtt = { path = "./rust-sdk/azure-iot-mqtt" }
 edgelet-client = { path = "../../mqtt/edgelet-client" }
-ctrlc ={ version = "3.1.6" , features = ["termination"] }
 
 [dev-dependencies]
 lazy_static = "1.4"
