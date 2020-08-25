@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool usePersistentStorage;
         readonly string storagePath;
         readonly TimeSpan scopeCacheRefreshRate;
+        readonly TimeSpan scopeCacheRefreshDelay;
         readonly Option<string> workloadUri;
         readonly Option<string> workloadApiVersion;
         readonly bool persistTokens;
@@ -65,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<string> workloadUri,
             Option<string> workloadApiVersion,
             TimeSpan scopeCacheRefreshRate,
+            TimeSpan scopeCacheRefreshDelay,
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
             string proxy,
@@ -88,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.usePersistentStorage = usePersistentStorage;
             this.storagePath = storagePath;
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
+            this.scopeCacheRefreshDelay = scopeCacheRefreshDelay;
             this.workloadUri = workloadUri;
             this.workloadApiVersion = workloadApiVersion;
             this.persistTokens = persistTokens;
@@ -309,7 +312,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             IDeviceScopeApiClientProvider securityScopesApiClientProvider = new DeviceScopeApiClientProvider(hostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, serviceIdentityTree, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClientProvider, this.nestedEdgeEnabled);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
-                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityTree, serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
+                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityTree, serviceProxy, encryptedStore, this.scopeCacheRefreshRate, this.scopeCacheRefreshDelay);
                         }
                         else
                         {
