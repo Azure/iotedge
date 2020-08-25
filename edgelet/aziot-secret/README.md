@@ -21,11 +21,11 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*DefaultApi* | [**delete_secret**](docs/DefaultApi.md#delete_secret) | **Delete** /{id} | 
-*DefaultApi* | [**get_secret**](docs/DefaultApi.md#get_secret) | **Get** /{id} | 
-*DefaultApi* | [**pull_secret**](docs/DefaultApi.md#pull_secret) | **Post** /{id} | 
-*DefaultApi* | [**refresh_secret**](docs/DefaultApi.md#refresh_secret) | **Patch** /{id} | 
-*DefaultApi* | [**set_secret**](docs/DefaultApi.md#set_secret) | **Put** /{id} | 
+*DefaultApi* | [**delete_secret**](docs/DefaultApi.md#delete_secret) | **DELETE** /{id} | 
+*DefaultApi* | [**get_secret**](docs/DefaultApi.md#get_secret) | **GET** /{id} | 
+*DefaultApi* | [**pull_secret**](docs/DefaultApi.md#pull_secret) | **POST** /{id} | 
+*DefaultApi* | [**refresh_secret**](docs/DefaultApi.md#refresh_secret) | **PATCH** /{id} | 
+*DefaultApi* | [**set_secret**](docs/DefaultApi.md#set_secret) | **PUT** /{id} | 
 
 
 ## Documentation For Models

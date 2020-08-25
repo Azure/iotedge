@@ -4,11 +4,11 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**delete_secret**](DefaultApi.md#delete_secret) | **Delete** /{id} | 
-[**get_secret**](DefaultApi.md#get_secret) | **Get** /{id} | 
-[**pull_secret**](DefaultApi.md#pull_secret) | **Post** /{id} | 
-[**refresh_secret**](DefaultApi.md#refresh_secret) | **Patch** /{id} | 
-[**set_secret**](DefaultApi.md#set_secret) | **Put** /{id} | 
+[**delete_secret**](DefaultApi.md#delete_secret) | **DELETE** /{id} | 
+[**get_secret**](DefaultApi.md#get_secret) | **GET** /{id} | 
+[**pull_secret**](DefaultApi.md#pull_secret) | **POST** /{id} | 
+[**refresh_secret**](DefaultApi.md#refresh_secret) | **PATCH** /{id} | 
+[**set_secret**](DefaultApi.md#set_secret) | **PUT** /{id} | 
 
 
 # **delete_secret**

@@ -280,7 +280,7 @@ paths:
       summary: Get module logs.
       operationId: ModuleLogs
       produces:
-        - text/plain;charset=utf-8
+        - text/plain
       parameters:
         - $ref: '#/parameters/api-version'
         - in: path
@@ -309,12 +309,10 @@ paths:
           description: Logs returned as a stream
           schema:
             type: string
-            format: binary
         '200':
           description: Logs returned as a string in response body
           schema:
             type: string
-            format: binary
         '404':
           description: Not Found
           schema:
@@ -490,7 +488,7 @@ paths:
       summary: Get the value of a secret.
       operationId: GetSecret
       produces:
-        - text/plain;charset=utf-8
+        - text/plain
       parameters:
         - $ref: '#/parameters/api-version'
         - in: path
@@ -526,7 +524,7 @@ paths:
       summary: Set the value of a secret.
       operationId: SetSecret
       consumes:
-        - text/plain;charset=utf-8
+        - application/json
       parameters:
         - $ref: '#/parameters/api-version'
         - in: path
@@ -562,7 +560,7 @@ paths:
       summary: Pull secret value from Azure Key Vault.
       operationId: PullSecret
       consumes:
-        - text/plain;charset=utf-8
+        - application/json
       parameters:
         - $ref: '#/parameters/api-version'
         - in: path
