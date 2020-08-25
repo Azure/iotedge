@@ -4,7 +4,7 @@ use hyper;
 use super::configuration::Configuration;
 
 pub struct APIClient {
-  default_api: Box<::apis::DefaultApi>,
+  default_api: Box<dyn crate::apis::DefaultApi>,
 }
 
 impl APIClient {
@@ -12,11 +12,11 @@ impl APIClient {
     let arc = Arc::new(configuration);
 
     APIClient {
-      default_api: Box::new(::apis::DefaultApiClient::new(arc.clone())),
+      default_api: Box::new(crate::apis::DefaultApiClient::new(arc.clone())),
     }
   }
 
-  pub fn default_api(&self) -> &::apis::DefaultApi{
+  pub fn default_api(&self) -> &dyn crate::apis::DefaultApi {
     self.default_api.as_ref()
   }
 

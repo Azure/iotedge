@@ -3,13 +3,14 @@ use crate::error::{Error, ErrorKind};
 
 use std::sync::Arc;
 
+use aziot_secret::apis::client::APIClient;
+use aziot_secret::apis::configuration::Configuration;
+use aziot_secret::apis::{ApiError, Error as SecretError};
 use edgelet_core::{SecretManager, UrlExt};
 use failure::ResultExt;
 use futures::Future;
 use hyper::Client;
-use secret_store::apis::client::APIClient;
-use secret_store::apis::configuration::Configuration;
-use secret_store::apis::{ApiError, Error as SecretError};
+use log::info;
 use url::Url;
 
 #[derive(Clone)]
@@ -49,6 +50,7 @@ impl SecretManager for SecretClient {
     type RefreshFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn set(&self, id: &str, value: &str) -> Self::SetFuture {
+        info!("VALUE IS {}", value);
         let response = self.client
             .default_api()
             .set_secret(&API_VERSION.to_string(), &id, &value)

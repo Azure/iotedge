@@ -26,9 +26,9 @@ url = "1.7"
 native-tls = "0.2"
 tokio-tls = "0.2"
 
+aziot-secret = { path = "../aziot-secret" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-utils = { path = "../edgelet-utils" }
-secret-store = { path = "../secret-store" }
 systemd = { path = "../systemd" }
 
 [target.'cfg(unix)'.dependencies]

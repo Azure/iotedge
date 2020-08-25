@@ -1,5 +1,3 @@
-#![allow(bare_trait_objects, dead_code, unused_imports, unused_mut)]
-
 #[macro_use]
 extern crate serde_derive;
 
