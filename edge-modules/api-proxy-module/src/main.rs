@@ -62,7 +62,7 @@ async fn main()  {
 		Box::pin(loop_task) as Pin<Box<dyn Future<Output = ()>>>,
 	]).await;
 
-	log::warn!("Gracefully exiting");
+	log::info!("Gracefully exiting");
 }
 
 pub async fn nginx_controller_loop(notify_need_reload_api_proxy: Arc<Notify>, shutdown_signal: Arc<Notify>){
