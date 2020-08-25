@@ -48,8 +48,10 @@ async fn disconnect_client() {
         .with_client_id(ClientId::IdWithCleanSession("$edgehub".into()))
         .build();
 
-    let topic = "$edgehub/test-client/disconnect";
-    edgehub_client.publish_qos1(topic, "qos 1", false).await;
+    let topic = "$edgehub/disconnect";
+    edgehub_client
+        .publish_qos1(topic, "test-client", false)
+        .await;
 
     assert_eq!(test_client.next().await, None);
 
