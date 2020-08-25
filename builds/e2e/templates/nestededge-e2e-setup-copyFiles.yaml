@@ -16,4 +16,4 @@ steps:
     ssh -i ~/sshkeys/nested1key.pem ${{ deviceAlias }} mkdir -p $(nestedDeviceTestFolder)/tools
     scp -i ~/sshkeys/nested1key.pem -r $(Build.SourcesDirectory)/tools/* ${{ deviceAlias }}:$(nestedDeviceTestFolder)/tools
 
-  displayName: Copy test files to ${{ deviceAlias }}
+  displayName: Copy test files
