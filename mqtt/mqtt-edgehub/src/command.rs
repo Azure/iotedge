@@ -80,7 +80,7 @@ impl CommandHandler {
         let subscribe_topics = &[TOPIC_FILTER.to_string()];
         if !self.subscribe(subscribe_topics).await? {
             return Err(CommandHandlerError::MissingSubacks(
-                subscribe_topics.to_vec().join(", "),
+                subscribe_topics.join(", "),
             ));
         }
 
