@@ -73,9 +73,9 @@ impl CommandHandler {
     }
 
     pub async fn run(mut self) -> Result<(), CommandHandlerError> {
-        let subscribe_topic = &[DISCONNECT_TOPIC.to_string()];
+        let subscribe_topics = &[DISCONNECT_TOPIC.to_string()];
 
-        self.subscribe(subscribe_topic).await?;
+        self.subscribe(subscribe_topics).await?;
 
         while let Some(event) = self
             .client
@@ -130,7 +130,7 @@ impl CommandHandler {
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
             let payload = publication.payload.to_vec();
-            let payload: String = String::from_utf8(payload)
+            let payload = String::from_utf8(payload)
                 .map_err(HandleDisconnectError::ConvertPayloadToString)?;
             let client_id: &str =
                 serde_json::from_str(&payload).map_err(HandleDisconnectError::ParseClientId)?;
