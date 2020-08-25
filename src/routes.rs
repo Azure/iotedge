@@ -25,7 +25,9 @@ pub(crate) async fn dispatch<'a, T: StoreBackend>(store: &'a Store<T>, req: Requ
     match req.method() {
         // TODO: add logic to 404 instead of 500 if resource not found
         &Method::GET => {
-            Ok(Response::new(store.get_secret(id).await?.into()))
+            let value = store.get_secret(id)
+                .await?;
+            Ok(Response::new(serde_json::to_string(&value)?.into()))
         },
         &Method::PUT => {
             let body = read_request(req).await?;
