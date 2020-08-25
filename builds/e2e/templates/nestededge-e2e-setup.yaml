@@ -128,7 +128,7 @@ steps:
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
 
-${{ each device in "nesteddevice1,nesteddevice2,nesteddevice3".Split(",") }}:
+${{ each device in $(nestedDevices).Split(",") }}:
   - pwsh: |
       Write-Output "Nested device test foler=$(nestedDeviceTestFolder)"
       ssh -i ~/sshkeys/nested1key.pem ${{device}} rm -rf $(nestedDeviceTestFolder)
