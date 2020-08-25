@@ -128,19 +128,5 @@ steps:
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
 
-${{ each device in $(nestedDevices).Split(",") }}:
-  - pwsh: |
-      Write-Output "Nested device test foler=$(nestedDeviceTestFolder)"
-      ssh -i ~/sshkeys/nested1key.pem ${{device}} rm -rf $(nestedDeviceTestFolder)
-      
-      ssh -i ~/sshkeys/nested1key.pem ${{device}} mkdir -p $(nestedDeviceTestFolder)/testbin
-      scp -i ~/sshkeys/nested1key.pem -r $(binDir)/* ${{device}}:$(nestedDeviceTestFolder)/testbin
-      ssh -i ~/sshkeys/nested1key.pem ${{device}} mkdir -p $(nestedDeviceTestFolder)/certs
-      scp -i ~/sshkeys/nested1key.pem -r $(certsDir)/* ${{device}}:$(nestedDeviceTestFolder)/certs
-      ssh -i ~/sshkeys/nested1key.pem ${{device}} mkdir -p $(nestedDeviceTestFolder)/artifacts
-      scp -i ~/sshkeys/nested1key.pem -r $(System.ArtifactsDirectory)/* ${{device}}:$(nestedDeviceTestFolder)/artifacts
-      ssh -i ~/sshkeys/nested1key.pem ${{device}} mkdir -p $(nestedDeviceTestFolder)/tools
-      scp -i ~/sshkeys/nested1key.pem -r $(Build.SourcesDirectory)/tools/* ${{device}}:$(nestedDeviceTestFolder)/tools
-  
-    displayName: Copy test files to ${{device}}
+-template: nestededge-e2e-setup-copyFiles.yaml
     
