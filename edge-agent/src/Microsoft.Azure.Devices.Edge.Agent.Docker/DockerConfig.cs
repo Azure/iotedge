@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Newtonsoft.Json.Linq;
     using static System.FormattableString;
 
-
     [JsonConverter(typeof(DockerConfigJsonConverter))]
     public class DockerConfig : IEquatable<DockerConfig>
     {
