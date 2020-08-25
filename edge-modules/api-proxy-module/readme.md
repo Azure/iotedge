@@ -1,5 +1,5 @@
 # API proxy module for nested IoT Edge in layered network (ISA-95)
-When inside a layered network, IoT Edge doesn't have direct internet access to internet access. 
+When inside a layered network, IoT Edge doesn't have direct internet access. 
 The API proxy module provides a way to maintain all the services an IoT Edge provide - inside a layered network - without tunneling and by terminating the connection at each layer
 
 ## Architecture
