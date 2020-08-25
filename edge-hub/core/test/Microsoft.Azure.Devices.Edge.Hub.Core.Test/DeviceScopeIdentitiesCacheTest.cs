@@ -330,13 +330,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
-            var allIdentitiesFromBatchEvent = new List<string>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
-            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, identities) => allIdentitiesFromBatchEvent.AddRange(identities);
 
             // Wait for refresh to complete
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
@@ -346,7 +344,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(si1_initial.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
-            Assert.Equal(2, allIdentitiesFromBatchEvent.Count);
 
             // Update the identities
             await deviceScopeIdentitiesCache.RefreshServiceIdentity("d1");
@@ -356,7 +353,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2");
 
             // Assert
-            Assert.Equal(5, allIdentitiesFromBatchEvent.Count);
             Assert.True(si1_updated.Equals(receivedServiceIdentity1.OrDefault()));
             Assert.False(receivedServiceIdentity2.HasValue);
             Assert.Single(removedIdentities);
@@ -732,7 +728,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(authchain3.HasValue);
         }
 
-        [Fact]
+        [Fact(Skip = "Flakey in pipeline but passes locally")]
         public async Task RefreshIdentityNegativeCachingTest()
         {
             // Arrange

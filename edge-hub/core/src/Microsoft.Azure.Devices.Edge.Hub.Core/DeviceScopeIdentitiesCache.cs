@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Antlr4.Runtime.Sharpen;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -83,12 +82,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Events.ReceivedRequestToRefreshCache();
 
-            TimeSpan timeSinceLastRefresh = DateTime.UtcNow - this.cacheLastRefreshTime;
+            TimeSpan durationSinceLastRefresh = DateTime.UtcNow - this.cacheLastRefreshTime;
 
             lock (this.refreshCacheLock)
             {
                 // Only refresh the cache if we haven't done so recently
-                if (timeSinceLastRefresh > this.refreshDelay)
+                if (durationSinceLastRefresh > this.refreshDelay)
                 {
                     this.refreshCacheCompleteSignal.Reset();
                     this.refreshCacheSignal.Set();
@@ -427,7 +426,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogInformation((int)EventIds.StartingCycle, "Starting refresh of device scope identities cache");
 
             public static void DoneRefreshCycle(TimeSpan refreshRate) =>
-                Log.LogDebug((int)EventIds.DoneCycle, $"Done refreshing device scope identities cache. Waiting for {refreshRate.TotalMinutes} minutes.");
+                Log.LogInformation((int)EventIds.DoneCycle, $"Done refreshing device scope identities cache. Waiting for {refreshRate.TotalMinutes} minutes.");
 
             public static void ErrorRefreshingCache(Exception exception, string deviceId)
             {
@@ -447,11 +446,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 TimeSpan timeSinceLastRefresh = DateTime.UtcNow - lastRefreshTime;
                 int secondsUntilNextRefresh = (int)(refreshDelay.TotalSeconds - timeSinceLastRefresh.TotalSeconds);
-                Log.LogDebug((int)EventIds.SkipRefreshCache, $"Skipping cache refresh, waiting {secondsUntilNextRefresh} until refreshing again.");
+                Log.LogInformation((int)EventIds.SkipRefreshCache, $"Skipping cache refresh, waiting {secondsUntilNextRefresh} seconds until refreshing again.");
             }
 
             public static void RefreshSignalled() =>
-                Log.LogDebug((int)EventIds.RefreshSignalled, "Device scope identities refresh is ready because a refresh was signalled.");
+                Log.LogInformation((int)EventIds.RefreshSignalled, "Device scope identities refresh is ready because a refresh was signalled.");
 
             public static void RefreshSleepCompleted() =>
                 Log.LogDebug((int)EventIds.RefreshSleepCompleted, "Device scope identities refresh is ready because the wait period is over.");
@@ -466,7 +465,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.GettingServiceIdentity, $"Getting service identity for {id}");
 
             public static void RefreshingServiceIdentity(string id) =>
-                Log.LogDebug((int)EventIds.RefreshingServiceIdentity, $"Refreshing service identity for {id}");
+                Log.LogInformation((int)EventIds.RefreshingServiceIdentity, $"Refreshing service identity for {id}");
 
             public static void RefreshingAuthChain(string authChain) =>
                 Log.LogDebug((int)EventIds.RefreshingAuthChain, $"Refreshing authChain {authChain}");
@@ -475,7 +474,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 TimeSpan timeSinceLastRefresh = DateTime.UtcNow - lastRefreshTime;
                 int secondsUntilNextRefresh = (int)(refreshDelay.TotalSeconds - timeSinceLastRefresh.TotalSeconds);
-                Log.LogDebug((int)EventIds.SkipRefreshServiceIdentity, $"Skipping refresh for identity: {id}, waiting {secondsUntilNextRefresh} until refreshing again.");
+                Log.LogInformation((int)EventIds.SkipRefreshServiceIdentity, $"Skipping refresh for identity: {id}, waiting {secondsUntilNextRefresh} seconds until refreshing again.");
             }
 
             public static void InitializingRefreshTask(TimeSpan refreshRate) =>
