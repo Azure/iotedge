@@ -2,7 +2,7 @@ mod size;
 
 pub use size::HumanSize;
 
-use std::{num::NonZeroUsize, time::Duration};
+use std::{num::NonZeroUsize, path::PathBuf, time::Duration};
 
 use serde::Deserialize;
 
@@ -13,14 +13,14 @@ const DAYS: u64 = 24 * 60 * 60;
 pub struct BrokerConfig {
     retained_messages: RetainedMessagesConfig,
     session: SessionConfig,
-    persistence: Option<SessionPersistenceConfig>,
+    persistence: SessionPersistenceConfig,
 }
 
 impl BrokerConfig {
     pub fn new(
         retained_messages: RetainedMessagesConfig,
         session: SessionConfig,
-        persistence: Option<SessionPersistenceConfig>,
+        persistence: SessionPersistenceConfig,
     ) -> Self {
         Self {
             retained_messages,
@@ -37,8 +37,8 @@ impl BrokerConfig {
         &self.session
     }
 
-    pub fn persistence(&self) -> Option<&SessionPersistenceConfig> {
-        self.persistence.as_ref()
+    pub fn persistence(&self) -> &SessionPersistenceConfig {
+        &self.persistence
     }
 }
 
@@ -145,13 +145,34 @@ impl Default for RetainedMessagesConfig {
     }
 }
 
-// TODO: apply settings
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SessionPersistenceConfig {
-    file_path: String,
+    path: PathBuf,
     #[serde(with = "humantime_serde")]
     time_interval: Duration,
-    unsaved_message_count: u32,
+}
+
+impl SessionPersistenceConfig {
+    pub fn new(path: PathBuf, time_interval: Duration) -> Self {
+        Self {
+            path,
+            time_interval,
+        }
+    }
+
+    pub fn file_path(&self) -> PathBuf {
+        self.path.clone()
+    }
+
+    pub fn time_interval(&self) -> Duration {
+        self.time_interval
+    }
+}
+
+impl Default for SessionPersistenceConfig {
+    fn default() -> Self {
+        SessionPersistenceConfig::new(PathBuf::from("/tmp/mqttd/"), Duration::from_secs(300))
+    }
 }
 
 /// This type is a Option-like wrapper around any type T. The primary goal is

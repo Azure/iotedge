@@ -2,7 +2,7 @@ mod bootstrap;
 mod shutdown;
 mod snapshot;
 
-use std::{env, path::Path};
+use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
 use futures_util::pin_mut;
@@ -24,7 +24,10 @@ where
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
-    let state_dir = env::current_dir().expect("can't get cwd").join("state");
+    let persistence_config = config.broker().persistence();
+    let state_dir = persistence_config.file_path();
+
+    fs::create_dir_all(state_dir.clone())?;
     let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
     let state = persistor.load().await?;
     info!("state loaded.");
@@ -32,7 +35,9 @@ where
     let broker = bootstrap::broker(config.broker(), state).await?;
 
     info!("starting snapshotter...");
-    let (mut shutdown_handle, join_handle) = start_snapshotter(broker.handle(), persistor).await;
+    let snapshot_interval = persistence_config.time_interval();
+    let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
+        start_snapshotter(broker.handle(), persistor, snapshot_interval).await;
 
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
@@ -40,8 +45,8 @@ where
     info!("starting server...");
     let state = bootstrap::start_server(config, broker, shutdown).await?;
 
-    shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await?;
+    snapshotter_shutdown_handle.shutdown().await?;
+    let mut persistor = snapshotter_join_handle.await?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
@@ -55,6 +60,7 @@ where
 async fn start_snapshotter(
     broker_handle: BrokerHandle,
     persistor: FilePersistor<VersionedFileFormat>,
+    snapshot_interval: Duration,
 ) -> (
     ShutdownHandle,
     JoinHandle<FilePersistor<VersionedFileFormat>>,
@@ -66,7 +72,7 @@ async fn start_snapshotter(
 
     // Tick the snapshotter
     let tick = tick_snapshot(
-        Duration::from_secs(5 * 60),
+        snapshot_interval,
         broker_handle.clone(),
         snapshot_handle.clone(),
     );
