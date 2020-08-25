@@ -5,7 +5,7 @@ parameters:
 steps:
 - pwsh: |
     Write-Output "Nested device test foler=$(nestedDeviceTestFolder)"
-    ssh -i ~/sshkeys/nested1key.pem deviceAlias rm -rf $(nestedDeviceTestFolder)
+    ssh -i ~/sshkeys/nested1key.pem ${{ deviceAlias }} rm -rf $(nestedDeviceTestFolder)
     
     ssh -i ~/sshkeys/nested1key.pem ${{ deviceAlias }} mkdir -p $(nestedDeviceTestFolder)/testbin
     scp -i ~/sshkeys/nested1key.pem -r $(binDir)/* ${{ deviceAlias }}:$(nestedDeviceTestFolder)/testbin
