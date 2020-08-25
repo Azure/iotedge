@@ -128,5 +128,14 @@ steps:
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
 
--template: nestededge-e2e-setup-copyFiles.yaml
-    
+- template: nestededge-e2e-setup-copyFiles.yaml
+  parameters:
+    deviceAlias: 'nesteddevice1'
+
+- template: nestededge-e2e-setup-copyFiles.yaml
+  parameters:
+    deviceAlias: 'nesteddevice2'
+
+- template: nestededge-e2e-setup-copyFiles.yaml
+  parameters:
+    deviceAlias: 'nesteddevice3'    
