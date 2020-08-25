@@ -115,29 +115,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 targetId += "/" + request.TargetModuleId;
             }
 
-            // Try updating our cache and get the target identity first
+            // We must always forward the call further upstream first,
+            // as this is invoked for refreshing an identity on-demand,
+            // and we don't know whether our cache is out-of-date.
             IEdgeHub edgeHub = await this.edgeHubGetter;
             IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+            await identitiesCache.RefreshServiceIdentity(targetId);
             Option<ServiceIdentity> targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
 
-            if (this.IsRefreshIdentityNeeded(targetIdentity))
+            if (!targetIdentity.HasValue)
             {
-                // Identity doesn't exist, this can happen if the target identity
-                // is newly created in IoT Hub. In this case, we try to refresh
-                // the target from upstream, which will cause any parent Edge
-                // devices to refresh their respective identity cache.
-                await identitiesCache.RefreshServiceIdentity(targetId);
+                // Identity still doesn't exist, this can happen if the identity
+                // is newly added and we couldn't refresh the individual identity
+                // because we don't know where it resides in the nested hierarchy.
+                // In this case our only recourse is to refresh the whole cache
+                // and hope the identity shows up.
+                identitiesCache.InitiateCacheRefresh();
+                await identitiesCache.WaitForCacheRefresh(TimeSpan.FromSeconds(100));
                 targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
-
-                if (this.IsRefreshIdentityNeeded(targetIdentity))
-                {
-                    // Identity still doesn't exist. It's possible that we're nested,
-                    // so we need to refresh our identity cache to satisfy the prior
-                    // logic, in case this call came from a child Edge device.
-                    identitiesCache.InitiateCacheRefresh();
-                    await identitiesCache.WaitForCacheRefresh(TimeSpan.FromSeconds(100));
-                    targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
-                }
             }
 
             // Now that our cache is up-to-date, check that the actor device is
