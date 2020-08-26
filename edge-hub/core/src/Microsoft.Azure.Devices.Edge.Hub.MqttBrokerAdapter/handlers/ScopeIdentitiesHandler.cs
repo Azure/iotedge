@@ -14,6 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
+    /// <summary>
+    /// ScopeIdentitiesHandler is responsible for syncing authorized identities from edgeHub core to the Mqtt Broker.
+    /// </summary>
     public class ScopeIdentitiesHandler : IMessageProducer
     {
         const string Topic = "$internal/identities";
@@ -43,10 +46,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task ServiceIdentitiesUpdated(IList<ServiceIdentity> serviceIdentities)
         {
-            IList<BrokerServiceIdentity> brokerServiceIdentities =
-                    await Task.WhenAll(
-                        serviceIdentities.Select(
-                            async s => new BrokerServiceIdentity(s.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(s.Id))));
+            IList<BrokerServiceIdentity> brokerServiceIdentities = new List<BrokerServiceIdentity>();
+            foreach (ServiceIdentity serviceIdentity in serviceIdentities)
+            {
+                brokerServiceIdentities.Add(
+                    new BrokerServiceIdentity(serviceIdentity.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentity.Id)));
+            }
+
             if (this.connected.Get())
             {
                 await this.PublishBrokerServiceIdentities(brokerServiceIdentities);

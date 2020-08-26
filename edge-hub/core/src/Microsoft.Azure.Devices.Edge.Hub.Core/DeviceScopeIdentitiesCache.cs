@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllServiceIdentities());
         }
 
-        public async Task RefreshServiceIdentityInternal(string id, bool invokeServiceIdentitiesUpdated)
+        async Task RefreshServiceIdentityInternal(string id, bool invokeServiceIdentitiesUpdated)
         {
             try
             {

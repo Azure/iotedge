@@ -6,6 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
+    /// <summary>
+    /// BrokerServiceIdentity is a Data Transfer Object used for sending authorized identities with
+    /// their AuthChains from EdgeHub core to Mqtt Broker.
+    /// </summary>
     public class BrokerServiceIdentity : IComparable
     {
         public BrokerServiceIdentity(string identity, Option<string> authChain)
