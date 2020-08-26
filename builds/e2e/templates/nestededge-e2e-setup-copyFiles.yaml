@@ -10,8 +10,8 @@ steps:
     Write-Output "Nested device test foler=$(nestedDeviceTestFolder) on $deviceAlias"
     ssh -i $keyFile $deviceAlias sudo rm -rf $(nestedDeviceTestFolder)
 
-    ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/testbin
-    scp -i $keyFile -r $(binDir)/* ${deviceAlias}:$(nestedDeviceTestFolder)/testbin
+    ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/testproject
+    scp -i $keyFile -r $(testProjectDir)/* ${deviceAlias}:$(nestedDeviceTestFolder)/testproject
     ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/certs
     scp -i $keyFile -r $(certsDir)/* ${deviceAlias}:$(nestedDeviceTestFolder)/certs
     ssh -i $keyFile $deviceAlias mkdir -p $(nestedDeviceTestFolder)/artifacts

@@ -7,7 +7,7 @@ steps:
     $keyFile = "~/sshkeys/nested${{ parameters.deviceId }}key.pem"
     $deviceAlias = "nesteddevice${{ parameters.deviceId }}"
     
-    ssh -i $keyFile $deviceAlias pwsh -Command "$(nestedDeviceTestFolder)/testbin/runtest.ps1"
+    ssh -i $keyFile $deviceAlias pwsh -Command "$(nestedDeviceTestFolder)/testproject/bin/Debug/netcoreapp3.1/runtest.ps1"
     
     #mkdir $(nestedDeviceTestFolder)/logs
     #find $(nestedDeviceTestFolder)/testbin -name *.log | xargs cp -t $(nestedDeviceTestFolder)/logs
