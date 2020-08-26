@@ -53,7 +53,7 @@ async fn disconnect_client() {
 
     let topic = "$edgehub/disconnect";
     edgehub_client
-        .publish_qos1(topic, r#"test-client"#, false)
+        .publish_qos1(topic, r#""test-client""#, false)
         .await;
 
     assert_eq!(test_client.next().await, None);
