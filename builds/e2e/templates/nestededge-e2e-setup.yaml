@@ -133,15 +133,16 @@ steps:
 - pwsh:
     $testFile = '$(nestedDeviceTestFolder)/testbin/Microsoft.Azure.Devices.Edge.Test.dll'
     
-    New-Item -Path $(binDir) -Name "runtest.ps1" -ItemType "file"
-    Add-Content $(binDir)/runtest.ps1 '$env:E2E_DPS_GROUP_KEY="$(TestDpsGroupKeySymmetric)"'
-    Add-Content $(binDir)/runtest.ps1 '`n$env:E2E_EVENT_HUB_ENDPOINT="$(TestEventHubCompatibleEndpoint)"'
-    Add-Content $(binDir)/runtest.ps1 '`n$env:E2E_PREVIEW_EVENT_HUB_ENDPOINT="$(TestPreviewEventHubCompatibleEndpoint)"'
-    Add-Content $(binDir)/runtest.ps1 '`n$env:E2E_IOT_HUB_CONNECTION_STRING="$(TestIotHubConnectionString)"'
-    Add-Content $(binDir)/runtest.ps1 '`n$env:E2E_PREVIEW_IOT_HUB_CONNECTION_STRING="$(TestPreviewIotHubConnectionString)"'
-    Add-Content $(binDir)/runtest.ps1 '`n$env:E2E_REGISTRIES__0__PASSWORD="$(TestContainerRegistryPassword)"'
-    Add-Content $(binDir)/runtest.ps1 '`n$env:E2E_ROOT_CA_PASSWORD="$(TestRootCaPassword)"'
-    Add-Content $(binDir)/runtest.ps1 '`nsudo --preserve-env dotnet vstest $testFile --logger:trx --results-directory:$(nestedDeviceTestFolder)/testresults --filter Microsoft.Azure.Devices.Edge.Test.Module.TempSensor'
+    Write-Host $(binDir)
+    New-Item -Path "$(binDir)" -Name "runtest.ps1" -ItemType "file"
+    Add-Content "$(binDir)/runtest.ps1" '$env:E2E_DPS_GROUP_KEY="$(TestDpsGroupKeySymmetric)"'
+    Add-Content "$(binDir)/runtest.ps1" '`n$env:E2E_EVENT_HUB_ENDPOINT="$(TestEventHubCompatibleEndpoint)"'
+    Add-Content "$(binDir)/runtest.ps1" '`n$env:E2E_PREVIEW_EVENT_HUB_ENDPOINT="$(TestPreviewEventHubCompatibleEndpoint)"'
+    Add-Content "$(binDir)/runtest.ps1" '`n$env:E2E_IOT_HUB_CONNECTION_STRING="$(TestIotHubConnectionString)"'
+    Add-Content "$(binDir)/runtest.ps1" '`n$env:E2E_PREVIEW_IOT_HUB_CONNECTION_STRING="$(TestPreviewIotHubConnectionString)"'
+    Add-Content "$(binDir)/runtest.ps1" '`n$env:E2E_REGISTRIES__0__PASSWORD="$(TestContainerRegistryPassword)"'
+    Add-Content "$(binDir)/runtest.ps1" '`n$env:E2E_ROOT_CA_PASSWORD="$(TestRootCaPassword)"'
+    Add-Content "$(binDir)/runtest.ps1" '`nsudo --preserve-env dotnet vstest $testFile --logger:trx --results-directory:$(nestedDeviceTestFolder)/testresults --filter Microsoft.Azure.Devices.Edge.Test.Module.TempSensor'
     
   displayName: Create test run script (runtest.ps1)
   
