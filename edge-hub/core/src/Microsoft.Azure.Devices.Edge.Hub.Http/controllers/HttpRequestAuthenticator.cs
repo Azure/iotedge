@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             if (clientCertificate != null)
             {
                 IList<X509Certificate2> certChain = context.GetClientCertificateChain();
-                clientCredentials = this.identityFactory.GetWithX509Cert(deviceId, moduleId.OrDefault(), string.Empty, clientCertificate, certChain);
+                clientCredentials = this.identityFactory.GetWithX509Cert(deviceId, moduleId.OrDefault(), string.Empty, clientCertificate, certChain, Option.None<string>());
             }
             else
             {
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     return new HttpAuthResult(false, Events.AuthenticationFailed($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}"));
                 }
 
-                clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId.OrDefault(), string.Empty, authHeader, false);
+                clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId.OrDefault(), string.Empty, authHeader, false, Option.None<string>());
             }
 
             IIdentity identity = clientCredentials.Identity;

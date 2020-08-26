@@ -232,17 +232,29 @@ where
                             })
                             .collect::<Vec<Architecture>>();
 
-                        SystemInfo::new(
-                            "Kubernetes".to_string(),
-                            serde_json::to_string(&architectures).unwrap(),
-                        )
+                        let not_supported = "Not supported on k8s".to_string();
+                        SystemInfo {
+                            os_type: "Kubernetes".to_string(),
+                            architecture: serde_json::to_string(&architectures).unwrap(),
+                            version: edgelet_core::version_with_source_version(),
+                            cpus: 0,
+                            kernel_version: not_supported.clone(),
+                            operating_system: not_supported.clone(),
+                            server_version: not_supported,
+                        }
                     }),
             )
         } else {
-            future::Either::B(future::ok(SystemInfo::new(
-                "Kubernetes".to_string(),
-                "Kubernetes".to_string(),
-            )))
+            let not_supported = "Not supported on k8s".to_string();
+            future::Either::B(future::ok(SystemInfo {
+                os_type: "Kubernetes".to_string(),
+                architecture: "Kubernetes".to_string(),
+                version: edgelet_core::version_with_source_version(),
+                cpus: 0,
+                kernel_version: not_supported.clone(),
+                operating_system: not_supported.clone(),
+                server_version: not_supported,
+            }))
         };
         Box::new(fut)
     }
@@ -414,7 +426,7 @@ mod tests {
         let info = runtime.block_on(task).unwrap();
 
         assert_eq!(
-            info.architecture(),
+            info.architecture,
             "[{\"name\":\"amd64\",\"nodes_count\":2}]"
         );
     }
@@ -437,7 +449,7 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let info = runtime.block_on(task).unwrap();
 
-        assert_eq!(info.architecture(), "Kubernetes");
+        assert_eq!(info.architecture, "Kubernetes");
     }
 
     #[test]
@@ -459,7 +471,7 @@ mod tests {
         let info = runtime.block_on(task).unwrap();
 
         assert_eq!(
-            info.architecture(),
+            info.architecture,
             "[{\"name\":\"amd64\",\"nodes_count\":2}]"
         );
     }

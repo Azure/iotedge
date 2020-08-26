@@ -35,6 +35,7 @@ namespace Relayer
             {
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
+                    new ClientOptions(),
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);

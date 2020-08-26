@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use futures_util::StreamExt;
 use mqtt3::{proto::ClientId, ShutdownError};
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
@@ -9,7 +11,7 @@ use mqtt_broker_tests_util::{
 use mqtt_edgehub::command::{
     CommandHandler, CommandHandlerError, ShutdownHandle as CommandShutdownHandle,
 };
-use tokio::task::JoinHandle;
+use tokio::{task::JoinHandle, time};
 
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
@@ -30,6 +32,11 @@ async fn disconnect_client() {
         start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string())
             .await
             .expect("could not start command handler");
+
+    // TODO: This wait is necessary because edgehub can send disconnect before command handler subscribes to disconnect topic
+    //       We can remove once we have a proper approach for starting command handler before edgehub sends disconnects
+    //       The risk of this causing issues in a containerized scenario is very small because edgehub startup time > broker startup time
+    time::delay_for(Duration::from_secs(1)).await;
 
     let mut test_client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),

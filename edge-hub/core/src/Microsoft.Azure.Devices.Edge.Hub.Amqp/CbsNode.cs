@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             Events.LinkRegistered(link);
         }
 
-        public async Task<bool> AuthenticateAsync(string id)
+        public async Task<bool> AuthenticateAsync(string id, Option<string> modelId)
         {
             try
             {
@@ -88,6 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         {
                             if (!credentialsInfo.IsAuthenticated)
                             {
+                                credentialsInfo.ClientCredentials.ModelId = modelId;
                                 credentialsInfo.IsAuthenticated = await this.authenticator.AuthenticateAsync(credentialsInfo.ClientCredentials);
                             }
                         }
@@ -224,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         {
             (string token, string audience) = ValidateAndParseMessage(this.iotHubHostName, message);
             (string deviceId, string moduleId) = ParseIds(audience);
-            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, token, true);
+            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, token, true, Option.None<string>());
             return clientCredentials;
         }
 

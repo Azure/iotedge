@@ -198,12 +198,13 @@ impl AuthConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{path::PathBuf, time::Duration};
 
     use serial_test::serial;
 
     use mqtt_broker::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
+        SessionPersistenceConfig,
     };
     use mqtt_broker_tests_util::env;
 
@@ -238,7 +239,10 @@ mod tests {
                         Some(HumanSize::new_bytes(0)),
                         QueueFullAction::DropNew,
                     ),
-                    None
+                    SessionPersistenceConfig::new(
+                        PathBuf::from("/tmp/mqttd/"),
+                        Duration::from_secs(300)
+                    )
                 )
             }
         );

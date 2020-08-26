@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Text;
     using System.Threading.Tasks;
     using System.Timers;
@@ -10,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -38,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly Timer disconnectedTimer;
         readonly IIdentity testClientIdentity;
         readonly AsyncLock machineLock = new AsyncLock();
+        readonly Stopwatch stopWatch = new Stopwatch();
 
         State state;
         ConnectivityChecker connectivityChecker;
@@ -73,6 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .OnExit(this.OnDisconnectedExit);
 
             this.state = State.Disconnected;
+
+            this.stopWatch.Start();
 
             Events.Created(minConnectivityCheckFrequency, disconnectedCheckFrequency);
         }
@@ -152,6 +158,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         void OnDisconnected()
         {
             Events.OnDisconnected();
+            Metrics.Instance.LogOfflineCounter(1, this.testClientIdentity.Id);
+            this.stopWatch.Restart();
             this.DeviceDisconnected?.Invoke(this, EventArgs.Empty);
             this.disconnectedTimer.Start();
         }
@@ -159,6 +167,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         void OnDisconnectedExit()
         {
             Events.OnDisconnectedExit();
+            this.stopWatch.Stop();
+            Metrics.Instance.LogOfflineDuration(TimeSpan.FromMilliseconds(this.stopWatch.ElapsedMilliseconds).TotalSeconds, this.testClientIdentity.Id);
             this.DeviceConnected?.Invoke(this, EventArgs.Empty);
             this.disconnectedTimer.Stop();
         }
@@ -283,6 +293,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             internal static void Created(TimeSpan connectedCheckFrequency, TimeSpan disconnectedCheckFrequency)
             {
                 Log.LogInformation((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager with connected check frequency {connectedCheckFrequency} and disconnected check frequency {disconnectedCheckFrequency}"));
+            }
+        }
+
+        class Metrics
+        {
+            readonly IMetricsCounter offlineCounter;
+            readonly IMetricsDuration offlineDuration;
+
+            Metrics()
+            {
+                this.offlineCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                    "offline_count",
+                    "EdgeHub offline count",
+                    new List<string> { "id", MetricsConstants.MsTelemetry });
+
+                this.offlineDuration = Util.Metrics.Metrics.Instance.CreateDuration(
+                    "offline_duration",
+                    "EdgeHub offline time",
+                    new List<string> { "id", MetricsConstants.MsTelemetry });
+            }
+
+            public static Metrics Instance { get; } = new Metrics();
+
+            public void LogOfflineDuration(double duration, string id)
+            {
+                this.offlineDuration.Set(duration, new[] { id, bool.TrueString });
+            }
+
+            public void LogOfflineCounter(long metricValue, string id)
+            {
+                this.offlineCounter.Increment(metricValue, new[] { id, bool.TrueString });
             }
         }
     }
