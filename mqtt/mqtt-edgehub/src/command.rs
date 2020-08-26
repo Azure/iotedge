@@ -1,4 +1,4 @@
-use std::{str, string, time::Duration};
+use std::{collections::HashSet, string, time::Duration};
 
 use futures_util::future::BoxFuture;
 use serde_json::error::Error as SerdeError;
@@ -103,7 +103,7 @@ impl CommandHandler {
                 .map_err(CommandHandlerError::SubscribeFailure)?;
         }
 
-        let mut subacks: Vec<String> = topics.to_vec();
+        let mut subacks: HashSet<_> = topics.iter().map(Clone::clone).collect();
 
         while let Some(event) = self
             .client
@@ -114,7 +114,7 @@ impl CommandHandler {
             if let Event::SubscriptionUpdates(subscriptions) = event {
                 for subscription in subscriptions {
                     if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
-                        subacks.retain(|topic| *topic != sub.topic_filter);
+                        subacks.remove(&sub.topic_filter);
                     }
                 }
 
@@ -124,7 +124,9 @@ impl CommandHandler {
             }
         }
 
-        Err(CommandHandlerError::MissingSubacks(subacks.join(", ")))
+        Err(CommandHandlerError::MissingSubacks(
+            subacks.into_iter().collect::<Vec<_>>(),
+        ))
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
@@ -156,8 +158,8 @@ impl CommandHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CommandHandlerError {
-    #[error("failed to receive expected subacks for command topics: {0}")]
-    MissingSubacks(String),
+    #[error("failed to receive expected subacks for command topics: {0:?}")]
+    MissingSubacks(Vec<String>),
 
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
