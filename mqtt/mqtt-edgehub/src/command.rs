@@ -1,4 +1,4 @@
-use std::{collections::HashSet, string, time::Duration};
+use std::{collections::HashSet, time::Duration};
 
 use futures_util::future::BoxFuture;
 use serde_json::error::Error as SerdeError;
@@ -175,7 +175,4 @@ enum HandleDisconnectError {
 
     #[error("failed sending broker signal to disconnect client")]
     SignalError(#[from] Error),
-
-    #[error("failed to convert payload to string")]
-    ConvertPayloadToString(#[from] string::FromUtf8Error),
 }
