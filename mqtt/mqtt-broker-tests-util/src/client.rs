@@ -239,15 +239,15 @@ where
         let (sub_sender, sub_receiver) = mpsc::unbounded_channel();
         let (conn_sender, conn_receiver) = mpsc::unbounded_channel();
 
-        let (termination_handle, tx) = mpsc::channel::<()>(1);
+        let (termination_handle, termination_receiver) = mpsc::channel::<()>(1);
 
         let event_loop_handle = tokio::spawn(async move {
-            let mut tx = tx.fuse();
+            let mut termination_receiver = termination_receiver.fuse();
             let mut client = client.fuse();
 
             loop {
                 select! {
-                    signal = tx.next() => {
+                    _ = termination_receiver.next() => {
                         return;
                     }
                     event = client.next() => {
