@@ -1,13 +1,11 @@
+#![allow(clippy::mut_mut)]
 use std::time::Duration;
 
 use bytes::Bytes;
-use futures_util::{future::select, pin_mut, StreamExt};
+use futures::{select, stream::StreamExt};
 use tokio::{
     net::ToSocketAddrs,
-    sync::{
-        mpsc::{self, UnboundedReceiver},
-        oneshot::{self, Sender},
-    },
+    sync::mpsc::{self, Sender, UnboundedReceiver},
     task::JoinHandle,
 };
 
@@ -110,9 +108,10 @@ impl TestClient {
     }
 
     /// Terminates client w/o sending Disconnect packet.
-    pub async fn terminate(self) {
+    pub async fn terminate(mut self) {
         self.termination_handle
             .send(())
+            .await
             .expect("unable to send termination signal");
         self.event_loop_handle
             .await
@@ -197,7 +196,7 @@ where
             })
         };
 
-        let mut client = match self.client_id {
+        let client = match self.client_id {
             ClientId::IdWithCleanSession(client_id) => Client::new(
                 Some(client_id),
                 self.username,
@@ -240,27 +239,40 @@ where
         let (sub_sender, sub_receiver) = mpsc::unbounded_channel();
         let (conn_sender, conn_receiver) = mpsc::unbounded_channel();
 
-        let (termination_handle, tx) = oneshot::channel::<()>();
+        let (termination_handle, tx) = mpsc::channel::<()>(1);
 
         let event_loop_handle = tokio::spawn(async move {
-            let event_loop = async {
-                while let Some(event) = client.next().await {
-                    let event = event.expect("event expected");
-                    match event {
-                        Event::NewConnection { .. } => conn_sender
-                            .send(event)
-                            .expect("can't send an event to a conn channel"),
-                        Event::Publication(publication) => pub_sender
-                            .send(publication)
-                            .expect("can't send an event to a pub channel"),
-                        Event::SubscriptionUpdates(_) => sub_sender
-                            .send(event)
-                            .expect("can't send an event to a sub channel"),
-                    };
-                }
-            };
-            pin_mut!(event_loop);
-            select(event_loop, tx).await;
+            let mut tx = tx.fuse();
+            let mut client = client.fuse();
+
+            loop {
+                select! {
+                    signal = tx.next() => {
+                        return;
+                    }
+                    event = client.next() => {
+                        match event {
+                            Some(event) => {
+                                let event = event.expect("got error instead of event");
+                                match event {
+                                    Event::NewConnection { .. } => conn_sender
+                                        .send(event)
+                                        .expect("can't send an event to a conn channel"),
+                                    Event::Publication(publication) => pub_sender
+                                        .send(publication)
+                                        .expect("can't send an event to a pub channel"),
+                                    Event::SubscriptionUpdates(_) => sub_sender
+                                        .send(event)
+                                        .expect("can't send an event to a sub channel"),
+                                }
+                            }
+                            None => {
+                                return;
+                            }
+                        }
+                    }
+                };
+            }
         });
 
         TestClient {
