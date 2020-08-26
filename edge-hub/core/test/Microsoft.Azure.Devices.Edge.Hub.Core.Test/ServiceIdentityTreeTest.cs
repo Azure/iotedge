@@ -313,14 +313,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             // Arrage
             ServiceIdentityTree tree = this.SetupTree();
-            IList<ServiceIdentity> serviceIdentitiesExpected = new List<ServiceIdentity>() { root, e1_L1, e1_L2, e2_L1, e2_L2, e3_L2, e4_L2, leaf1, leaf2, mod1, mod2 };
+            IList<ServiceIdentity> serviceIdentitiesExpected = new List<ServiceIdentity>() { this.root, this.e1_L1, this.e1_L2, this.e2_L1, this.e2_L2, this.e3_L2, this.e4_L2, this.leaf1, this.leaf2, this.mod1, this.mod2 };
 
             // Act
             IList<ServiceIdentity> serviceIdentities = await tree.GetAllServiceIdentities();
 
             // Assert
             Assert.Equal(11, serviceIdentities.Count);
-            foreach(ServiceIdentity serviceIdentity in serviceIdentitiesExpected)
+            foreach (ServiceIdentity serviceIdentity in serviceIdentitiesExpected)
             {
                 Assert.Contains(serviceIdentity, serviceIdentities);
             }
