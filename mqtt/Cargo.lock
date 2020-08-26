@@ -937,6 +937,7 @@ dependencies = [
  "anyhow",
  "config",
  "edgelet-client",
+ "mqtt-broker-tests-util",
  "serde",
  "serial_test",
  "tracing",

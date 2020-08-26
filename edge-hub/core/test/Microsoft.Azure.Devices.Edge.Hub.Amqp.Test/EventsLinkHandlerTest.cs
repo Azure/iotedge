@@ -35,11 +35,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var identity = Mock.Of<IIdentity>(d => d.Id == "d1");
-            var productInfoStore = Mock.Of<IProductInfoStore>();
-            var modelIdStore = Mock.Of<IModelIdStore>();
+            var metadataStore = Mock.Of<IMetadataStore>();
 
             // Act
-            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler.Object, messageConverter, productInfoStore, modelIdStore);
+            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler.Object, messageConverter, metadataStore);
 
             // Assert
             Assert.NotNull(linkHandler);
@@ -60,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener));
             var amqpAuthenticator = new Mock<IAmqpAuthenticator>();
-            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1")).ReturnsAsync(true);
+            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1", Option.None<string>())).ReturnsAsync(true);
             Mock<ICbsNode> cbsNodeMock = amqpAuthenticator.As<ICbsNode>();
             ICbsNode cbsNode = cbsNodeMock.Object;
             var amqpConnection = Mock.Of<IAmqpConnection>(
@@ -74,8 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Mock.Get(amqpLink).Setup(l => l.RegisterMessageListener(It.IsAny<Action<AmqpMessage>>())).Callback<Action<AmqpMessage>>(a => onMessageCallback = a);
             Mock.Get(amqpLink).SetupGet(l => l.Settings).Returns(new AmqpLinkSettings());
             Mock.Get(amqpLink).Setup(l => l.SafeAddClosed(It.IsAny<EventHandler>()));
-            var productInfoStore = Mock.Of<IProductInfoStore>();
-            var modelIdStore = Mock.Of<IModelIdStore>();
+            var metadataStore = Mock.Of<IMetadataStore>();
             var requestUri = new Uri("amqps://foo.bar/devices/d1/messages/events");
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
@@ -87,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 amqpMessage.Properties.ContentType = "application/json";
                 amqpMessage.Properties.ContentEncoding = "utf-8";
 
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -135,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener));
             var amqpAuthenticator = new Mock<IAmqpAuthenticator>();
-            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1")).ReturnsAsync(true);
+            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1", Option.None<string>())).ReturnsAsync(true);
             Mock<ICbsNode> cbsNodeMock = amqpAuthenticator.As<ICbsNode>();
             ICbsNode cbsNode = cbsNodeMock.Object;
             var amqpConnection = Mock.Of<IAmqpConnection>(
@@ -144,8 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                     c.FindExtension<ICbsNode>() == cbsNode);
             var amqpSession = Mock.Of<IAmqpSession>(s => s.Connection == amqpConnection);
             var amqpLink = Mock.Of<IReceivingAmqpLink>(l => l.Session == amqpSession && l.IsReceiver && l.Settings == new AmqpLinkSettings() && l.State == AmqpObjectState.Opened);
-            var productInfoStore = Mock.Of<IProductInfoStore>();
-            var modelIdStore = Mock.Of<IModelIdStore>();
+            var metadataStore = Mock.Of<IMetadataStore>();
             Action<AmqpMessage> onMessageCallback = null;
             Mock.Get(amqpLink).Setup(l => l.RegisterMessageListener(It.IsAny<Action<AmqpMessage>>())).Callback<Action<AmqpMessage>>(a => onMessageCallback = a);
             Mock.Get(amqpLink).SetupGet(l => l.Settings).Returns(new AmqpLinkSettings());
@@ -170,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             using (AmqpMessage amqpMessage = GetBatchedMessage(contents))
             {
                 amqpMessage.MessageFormat = AmqpConstants.AmqpBatchedMessageFormat;
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -223,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener));
             var amqpAuthenticator = new Mock<IAmqpAuthenticator>();
-            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1")).ReturnsAsync(true);
+            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1", Option.None<string>())).ReturnsAsync(true);
             Mock<ICbsNode> cbsNodeMock = amqpAuthenticator.As<ICbsNode>();
             ICbsNode cbsNode = cbsNodeMock.Object;
             var amqpConnection = Mock.Of<IAmqpConnection>(
@@ -240,8 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             Mock.Get(amqpLink).Setup(l => l.DisposeMessage(It.IsAny<AmqpMessage>(), It.IsAny<Outcome>(), It.IsAny<bool>(), It.IsAny<bool>()))
                 .Callback(() => disposeMessageCalled = true);
 
-            var productInfoStore = Mock.Of<IProductInfoStore>();
-            var modelIdStore = Mock.Of<IModelIdStore>();
+            var metadataStore = Mock.Of<IMetadataStore>();
             var requestUri = new Uri("amqps://foo.bar/devices/d1/messages/events");
             var boundVariables = new Dictionary<string, string> { { "deviceid", "d1" } };
             var messageConverter = new AmqpMessageConverter();
@@ -249,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             using (AmqpMessage amqpMessage = AmqpMessage.Create(new MemoryStream(new byte[800000]), false))
             {
                 amqpMessage.ApplicationProperties.Map["LargeProp"] = new int[600000];
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -313,7 +309,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener));
             var amqpAuthenticator = new Mock<IAmqpAuthenticator>();
-            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1")).ReturnsAsync(true);
+            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1", Option.None<string>())).ReturnsAsync(true);
             Mock<ICbsNode> cbsNodeMock = amqpAuthenticator.As<ICbsNode>();
             ICbsNode cbsNode = cbsNodeMock.Object;
             var amqpConnection = Mock.Of<IAmqpConnection>(
@@ -338,17 +334,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("productInfo");
-            var productInfoStore = new ProductInfoStore(store, edgeProductInfo);
-            var modelIdStore = Mock.Of<IModelIdStore>();
+            var metadataStore = new MetadataStore(store, edgeProductInfo);
 
-            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
+            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
 
             // Act
             await linkHandler.OpenAsync(TimeSpan.FromSeconds(1));
 
             // Assert
-            string productInfo = await productInfoStore.GetProductInfo(identity.Id);
-            string deviceEdgeProductInfo = await productInfoStore.GetEdgeProductInfo(identity.Id);
+            ConnectionMetadata connectionMetadata = await metadataStore.GetMetadata(identity.Id);
+            string productInfo = connectionMetadata.ProductInfo;
+            string deviceEdgeProductInfo = connectionMetadata.EdgeProductInfo;
             Assert.Equal(clientVersion, productInfo);
             Assert.Equal($"{clientVersion} {edgeProductInfo}", deviceEdgeProductInfo);
         }
@@ -357,7 +353,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public async Task SetModelIdTest()
         {
             // Arrange
-            string modelId = "com:microsoft:model-id:testModelId";
+            string modelId = "dtmi:test:modelId;1";
             string clientVersion = $"TestClientVersion{Guid.NewGuid().ToString()}";
             var identity = Mock.Of<IDeviceIdentity>(i => i.Id == "d1" && i.DeviceId == "d1");
 
@@ -365,7 +361,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener));
             var amqpAuthenticator = new Mock<IAmqpAuthenticator>();
-            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1")).ReturnsAsync(true);
+            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1", Option.Some(modelId))).ReturnsAsync(true);
             Mock<ICbsNode> cbsNodeMock = amqpAuthenticator.As<ICbsNode>();
             ICbsNode cbsNode = cbsNodeMock.Object;
             var amqpConnection = Mock.Of<IAmqpConnection>(
@@ -391,17 +387,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("modelId");
-            var productInfoStore = Mock.Of<IProductInfoStore>();
-            var modelIdStore = new ModelIdStore(store);
+            var metadataStore = new MetadataStore(store, "testProductInfo");
 
-            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
+            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
 
             // Act
             await linkHandler.OpenAsync(TimeSpan.FromSeconds(1));
 
             // Assert
-            Option<string> modelIdFromStore = await modelIdStore.GetModelId(identity.Id);
-            string deviceEdgeProductInfo = await productInfoStore.GetEdgeProductInfo(identity.Id);
+            ConnectionMetadata connectionMetadata = await metadataStore.GetMetadata(identity.Id);
+            Option<string> modelIdFromStore = connectionMetadata.ModelId;
             Assert.True(modelIdFromStore.HasValue);
             modelIdFromStore.ForEach(m => Assert.Equal(modelId, m));
         }

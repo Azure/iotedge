@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO remove when ready
+
 use std::{path::Path, vec::Vec};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
@@ -50,7 +52,7 @@ impl Settings {
     }
 
     pub fn forwards(&self) -> &Forwards {
-        &self.forwards()
+        &self.forwards
     }
 }
 
@@ -152,11 +154,11 @@ impl Forward {
 
 #[cfg(test)]
 mod tests {
+    use config::ConfigError;
     use serial_test::serial;
 
     use super::Settings;
-
-    use config::ConfigError;
+    use mqtt_broker_tests_util::env;
 
     #[test]
     #[serial(env_settings)]
@@ -189,11 +191,11 @@ mod tests {
     where
         F: FnOnce() -> Result<Settings, ConfigError>,
     {
-        let _gateway_hostname = std::env::set_var("IOTEDGE_GATEWAYHOSTNAME", "upstream");
-        let _device_id = std::env::set_var("IOTEDGE_DEVICEID", "device1");
-        let _module_id = std::env::set_var("IOTEDGE_MODULEID", "m1");
-        let _generation_id = std::env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
-        let _workload_uri = std::env::set_var("IOTEDGE_WORKLOADURI", "workload");
+        let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "upstream");
+        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
+        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
+        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
+        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
 
         let settings = make_settings().unwrap();
 
@@ -205,11 +207,5 @@ mod tests {
         assert_eq!(settings.nested_bridge().module_id().unwrap(), "m1");
         assert_eq!(settings.nested_bridge().generation_id().unwrap(), "123");
         assert_eq!(settings.nested_bridge().workload_uri().unwrap(), "workload");
-
-        std::env::remove_var("IOTEDGE_GATEWAYHOSTNAME");
-        std::env::remove_var("IOTEDGE_DEVICEID");
-        std::env::remove_var("IOTEDGE_MODULEID");
-        std::env::remove_var("IOTEDGE_MODULEGENERATIONID");
-        std::env::remove_var("IOTEDGE_WORKLOADURI");
     }
 }

@@ -67,6 +67,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not update module {:?}", _0)]
     UpdateModule(String),
+
+    #[fail(display = "Could not collect support bundle")]
+    SupportBundle,
 }
 
 impl Fail for Error {

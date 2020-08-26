@@ -201,9 +201,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             static readonly IMetricsGauge QueueLength = EdgeMetrics.Instance.CreateGauge(
                 "queue_length",
                 "Number of messages pending to be processed for the endpoint",
-                new List<string> { "endpoint", "priority" });
+                new List<string> { "endpoint", "priority", MetricsConstants.MsTelemetry });
 
-            public static void SetQueueLength(Checkpointer checkpointer) => QueueLength.Set(checkpointer.Proposed - checkpointer.Offset, new[] { checkpointer.EndpointId, checkpointer.Priority });
+            public static void SetQueueLength(Checkpointer checkpointer) => QueueLength.Set(checkpointer.Proposed - checkpointer.Offset, new[] { checkpointer.EndpointId, checkpointer.Priority, bool.TrueString });
         }
     }
 }

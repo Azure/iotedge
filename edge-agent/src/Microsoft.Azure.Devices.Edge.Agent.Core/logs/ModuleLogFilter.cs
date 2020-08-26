@@ -10,20 +10,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
     public class ModuleLogFilter : IEquatable<ModuleLogFilter>
     {
-        public static ModuleLogFilter Empty = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<int>(), Option.None<string>());
+        public static ModuleLogFilter Empty = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>());
 
-        public ModuleLogFilter(Option<int> tail, Option<string> since, Option<int> logLevel, Option<string> regex)
+        public ModuleLogFilter(Option<int> tail, Option<string> since, Option<string> until, Option<int> logLevel, Option<string> regex)
         {
             this.Tail = tail;
             this.Since = since;
+            this.Until = until;
             this.LogLevel = logLevel;
             this.RegexString = regex;
             this.Regex = regex.Map(r => new Regex(r));
         }
 
         [JsonConstructor]
-        ModuleLogFilter(int? tail, string since, int? loglevel, string regex)
-            : this(Option.Maybe(tail), Option.Maybe(since), Option.Maybe(loglevel), Option.Maybe(regex))
+        ModuleLogFilter(int? tail, string since, string until, int? loglevel, string regex)
+            : this(Option.Maybe(tail), Option.Maybe(since), Option.Maybe(until), Option.Maybe(loglevel), Option.Maybe(regex))
         {
         }
 
@@ -34,6 +35,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         [JsonProperty("since")]
         [JsonConverter(typeof(OptionConverter<string>), true)]
         public Option<string> Since { get; }
+
+        [JsonProperty("until")]
+        [JsonConverter(typeof(OptionConverter<string>), true)]
+        public Option<string> Until { get; }
 
         [JsonProperty("loglevel")]
         [JsonConverter(typeof(OptionConverter<int>), true)]

@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public bool IsInRole(string role) => throw new NotImplementedException();
 
-        public Task<bool> AuthenticateAsync(string id) =>
+        public Task<bool> AuthenticateAsync(string id, Option<string> modelId) =>
             Task.FromResult(
                 this.isAuthenticated &&
                 this.clientCredentials.Identity.Id.Equals(id));

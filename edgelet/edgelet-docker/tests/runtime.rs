@@ -1212,7 +1212,8 @@ fn container_logs_succeeds() {
             let options = LogOptions::new()
                 .with_follow(true)
                 .with_tail(LogTail::All)
-                .with_since(100_000);
+                .with_since(100_000)
+                .with_until(200_000);
 
             runtime.logs("mod1", &options)
         });
@@ -1871,8 +1872,8 @@ fn runtime_system_info_succeeds() {
 
     //assert
     assert_eq!(true, *system_info_got_called_lock_cloned.read().unwrap());
-    assert_eq!("linux", system_info.os_type());
-    assert_eq!("x86_64", system_info.architecture());
+    assert_eq!("linux", system_info.os_type);
+    assert_eq!("x86_64", system_info.architecture);
 }
 
 #[test]
@@ -1928,6 +1929,6 @@ fn runtime_system_info_none_returns_unkown() {
 
     //assert
     assert_eq!(true, *system_info_got_called_lock_cloned.read().unwrap());
-    assert_eq!("Unknown", system_info.os_type());
-    assert_eq!("Unknown", system_info.architecture());
+    assert_eq!("Unknown", system_info.os_type);
+    assert_eq!("Unknown", system_info.architecture);
 }

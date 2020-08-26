@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string NetworkIdKey = "NetworkId";
 
-        public const string EdgeletClientApiVersion = "2019-11-05";
+        public const string EdgeletClientApiVersion = "2020-07-07";
 
         public const string EdgeletInitializationVectorFileName = "IOTEDGE_BACKUP_IV";
 
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const uint HighestPriority = 0;
 
-        public const uint DefaultPriority = uint.MaxValue;
+        public const uint DefaultStartupOrder = uint.MaxValue;
 
         public static class Labels
         {

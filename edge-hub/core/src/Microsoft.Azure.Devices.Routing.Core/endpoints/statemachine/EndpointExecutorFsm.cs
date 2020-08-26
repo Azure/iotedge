@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
@@ -544,6 +545,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         {
             try
             {
+                Routing.UserMetricLogger.LogRetryOperation(1, this.Endpoint.IotHubName, this.Endpoint.Name, this.Endpoint.Type);
                 this.retryTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                 await this.RunAsync(Commands.Retry);
             }
@@ -919,7 +921,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
                 {
                     int count = group.Count();
-                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Success, count > 0 ? group.First().ToString() : group.Key.Name);
+                    if (count > 0)
+                    {
+                        Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Success, group.First());
+                    }
                 }
 
                 // calculate average latency
@@ -934,7 +939,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
                 {
                     int count = group.Count();
-                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Invalid, count > 0 ? group.First().ToString() : group.Key.Name);
+                    if (count > 0)
+                    {
+                        Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Invalid, group.First());
+                    }
                 }
             }
 
@@ -943,7 +951,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 foreach (IGrouping<Type, IMessage> group in messages.GroupBy(m => m.MessageSource.GetType()).Where(g => g.Any()))
                 {
                     int count = group.Count();
-                    Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Dropped, count > 0 ? group.First().ToString() : group.Key.Name);
+                    if (count > 0)
+                    {
+                        Routing.UserMetricLogger.LogEgressMetric(count, fsm.Endpoint.IotHubName, MessageRoutingStatus.Dropped, group.First());
+                    }
                 }
             }
         }
