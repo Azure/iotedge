@@ -1,7 +1,7 @@
 use super::utils;
 use anyhow::Result;
 use chrono::Utc;
-use futures_util::future::{self, Either};
+use futures_util::future::Either;
 use std::sync::Arc;
 use tokio::sync::Notify;
 
@@ -14,8 +14,14 @@ const PROXY_SERVER_CERT_VALIDITY_DAYS: i64 = 90;
 const EXPIRY_TIME_START_DATE: &str = "1996-12-19T00:00:00+00:00";
 
 //Check for expiry of certificates. If certificates are expired: rotate.
-pub async fn start(notify_certs_rotated: Arc<Notify>, shutdown_signal: Arc<Notify>) {
-    const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: std::time::Duration = std::time::Duration::from_secs(1);
+pub fn start(
+    notify_certs_rotated: Arc<Notify>,
+) -> (tokio::task::JoinHandle<()>, utils::ShutdownHandle) {
+    const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: std::time::Duration =
+        std::time::Duration::from_secs(1);
+
+    let shutdown_signal = Arc::new(tokio::sync::Notify::new());
+    let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
 
     let module_id = std::env::var("IOTEDGE_MODULEID")
         .expect(&format!("Missing env var {:?}", "IOTEDGE_MODULEID"));
@@ -35,77 +41,86 @@ pub async fn start(notify_certs_rotated: Arc<Notify>, shutdown_signal: Arc<Notif
         chrono::Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
     );
 
-    loop {
-        let wait_shutdown = shutdown_signal.notified();
-        futures::pin_mut!(wait_shutdown);
-        match future::select(
-            tokio::time::delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS),
-            wait_shutdown,
-        )
-        .await
-        {
-            Either::Right(_) => {
-                log::warn!("Shutting down certs monitor!");
-                return;
-            }
-            Either::Left(_) => {}
-        };
-
-        //If root cert has rotated, we need to notify the watchdog to restart nginx.
-        let mut need_notify = false;
-        //Check for rotation. If rotated then we notify.
-        match cert_monitor.has_bundle_of_trust_rotated().await {
-            Ok((has_bundle_of_trust_rotated, trust_bundle)) => {
-                if has_bundle_of_trust_rotated == true {
-                    //If we have a new cert, we need to write it in file system
-                    let result = utils::write_binary_to_file(
-                        trust_bundle.as_bytes(),
-                        PROXY_SERVER_TRUSTED_CA_PATH,
-                    );
-                    match result {
-                        Err(err) => panic!("{:?}", err),
-                        Ok(_) => (),
-                    }
-                    need_notify = true;
+    let monitor_loop = tokio::spawn(async move {
+        loop {
+            let wait_shutdown = shutdown_signal.notified();
+            futures::pin_mut!(wait_shutdown);
+            match futures::future::select(
+                tokio::time::delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS),
+                wait_shutdown,
+            )
+            .await
+            {
+                Either::Right(_) => {
+                    log::warn!("Shutting down certs monitor!");
+                    return;
                 }
-            }
-            Err(err) => log::error!("Error while trying to get trust bundle {:?}", err),
-        };
+                Either::Left(_) => {}
+            };
 
-        //Same thing as above but for private key and server cert
-        match cert_monitor.need_to_rotate_server_cert(chrono::Utc::now()).await {
-            Ok((need_to_rotate_cert, server_cert, private_key)) => {
-                if need_to_rotate_cert == true {
-                    //If we have a new cert, we need to write it in file system
-                    let result =
-                        utils::write_binary_to_file(server_cert.as_bytes(), PROXY_SERVER_CERT_PATH);
-                    match result {
-                        Err(err) => panic!("{:?}", err),
-                        Ok(_) => (),
+            //If root cert has rotated, we need to notify the watchdog to restart nginx.
+            let mut need_notify = false;
+            //Check for rotation. If rotated then we notify.
+            match cert_monitor.has_bundle_of_trust_rotated().await {
+                Ok((has_bundle_of_trust_rotated, trust_bundle)) => {
+                    if has_bundle_of_trust_rotated == true {
+                        //If we have a new cert, we need to write it in file system
+                        let result = utils::write_binary_to_file(
+                            trust_bundle.as_bytes(),
+                            PROXY_SERVER_TRUSTED_CA_PATH,
+                        );
+                        match result {
+                            Err(err) => panic!("{:?}", err),
+                            Ok(_) => (),
+                        }
+                        need_notify = true;
                     }
-
-                    //If we have a new cert, we need to write it in file system
-                    let result = utils::write_binary_to_file(
-                        private_key.as_bytes(),
-                        PROXY_SERVER_PRIVATE_KEY_PATH,
-                    );
-                    match result {
-                        Err(err) => panic!("{:?}", err),
-                        Ok(_) => (),
-                    }
-                    need_notify = true;
                 }
-            }
-            Err(err) => {
-                need_notify = false;
-                log::error!("Error while trying to get server cert {:?}", err);
-            }
-        };
+                Err(err) => log::error!("Error while trying to get trust bundle {:?}", err),
+            };
 
-        if need_notify == true {
-            notify_certs_rotated.notify();
+            //Same thing as above but for private key and server cert
+            match cert_monitor
+                .need_to_rotate_server_cert(chrono::Utc::now())
+                .await
+            {
+                Ok((need_to_rotate_cert, server_cert, private_key)) => {
+                    if need_to_rotate_cert == true {
+                        //If we have a new cert, we need to write it in file system
+                        let result = utils::write_binary_to_file(
+                            server_cert.as_bytes(),
+                            PROXY_SERVER_CERT_PATH,
+                        );
+                        match result {
+                            Err(err) => panic!("{:?}", err),
+                            Ok(_) => (),
+                        }
+
+                        //If we have a new cert, we need to write it in file system
+                        let result = utils::write_binary_to_file(
+                            private_key.as_bytes(),
+                            PROXY_SERVER_PRIVATE_KEY_PATH,
+                        );
+                        match result {
+                            Err(err) => panic!("{:?}", err),
+                            Ok(_) => (),
+                        }
+                        need_notify = true;
+                    }
+                }
+                Err(err) => {
+                    need_notify = false;
+                    log::error!("Error while trying to get server cert {:?}", err);
+                }
+            };
+
+            if need_notify == true {
+                notify_certs_rotated.notify();
+            }
         }
-    }
+    });
+
+    (monitor_loop, shutdown_handle)
 }
 
 struct CertificateMonitor {

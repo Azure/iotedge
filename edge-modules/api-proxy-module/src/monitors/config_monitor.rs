@@ -1,6 +1,6 @@
 use super::utils;
 use anyhow::{Context, Result};
-use futures_util::future::{self, Either};
+use futures_util::future::Either;
 use std::sync::Arc;
 use tokio::sync::Notify;
 
@@ -10,7 +10,7 @@ const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
 const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,GATEWAY_HOSTNAME";
 const TWIN_PROXY_CONFIG_KEY: &str = "nginx_config";
 
-const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+const PROXY_CONFIG_DEFAULT_VALUES: &'static[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
 const TWIN_STATE_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
 
 fn duration_from_secs_str(s: &str) -> Result<std::time::Duration, <u64 as std::str::FromStr>::Err> {
@@ -68,14 +68,16 @@ pub fn get_sdk_client() -> azure_iot_mqtt::module::Client {
     )
     .expect("could not create client");
 
-    return client;
+    client
 }
 
-pub async fn start(
+pub fn start(
     mut client: azure_iot_mqtt::module::Client,
     notify_received_config: Arc<Notify>,
-    shutdown_signal: Arc<Notify>,
-) {
+) -> (tokio::task::JoinHandle<()>, utils::ShutdownHandle) {
+    let shutdown_signal = Arc::new(tokio::sync::Notify::new());
+    let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
+
     use futures_util::StreamExt;
 
     //Set default value for some environment variables here
@@ -90,42 +92,49 @@ pub async fn start(
         Err(error) => panic!("Error while parsing default config: {:?}", error),
     };
 
-    loop {
-        let wait_shutdown = shutdown_signal.notified();
-        futures::pin_mut!(wait_shutdown);
-        let message = match future::select(wait_shutdown, client.next()).await {
-            Either::Left(_) => {
-                log::warn!("Shutting down config monitor!");
-                return;
-            }
-            Either::Right((message, _)) => {
-                if let Some(message) = message {
-                    message
-                } else {
-                    log::error!("Received empty message!");
-                    continue;
+    let monitor_loop = tokio::spawn(async move {
+        log::info!("shut!");
+        loop {
+            let wait_shutdown = shutdown_signal.notified();
+            futures::pin_mut!(wait_shutdown);
+            let message = match futures::future::select(wait_shutdown, client.next()).await {
+                Either::Left(_) => {
+                    log::warn!("Shutting down config monitor!");
+                    return;
+                }
+                Either::Right((message, _)) => {
+                    if let Some(message) = message {
+                        message
+                    } else {
+                        log::warn!("Shutting down config monitor!");
+                        return;
+                    }
                 }
             }
-        }
-        .unwrap();
+            .unwrap();
 
-        if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
-            if let Err(err) = save_raw_config(&twin) {
-                log::error!("received message {:?}", err);
-            } else {
-                log::info!("received config {:?}", twin);
-                //Here we don't need to panic if config is wrong. There is already a good config running.
-                match parse_config() {
-                    //Notify watchdog config is there
-                    Ok(()) => notify_received_config.notify(),
-                    Err(error) => log::error!("Error while parsing default config: {:?}", error),
-                };
-            }
-        };
-    }
+            if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
+                if let Err(err) = save_raw_config(&twin) {
+                    log::error!("received message {:?}", err);
+                } else {
+                    log::info!("received config {:?}", twin);
+                    //Here we don't need to panic if config is wrong. There is already a good config running.
+                    match parse_config() {
+                        //Notify watchdog config is there
+                        Ok(()) => notify_received_config.notify(),
+                        Err(error) => {
+                            log::error!("Error while parsing default config: {:?}", error)
+                        }
+                    };
+                }
+            };
+        }
+    });
+
+    (monitor_loop, shutdown_handle)
 }
 
-fn set_default_env_vars() -> () {
+fn set_default_env_vars() {
     for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
         match std::env::var(key) {
             //If env variable is already declared, do nothing
@@ -206,56 +215,60 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     Ok(str)
 }
 
-pub async fn poll_twin_state(
+pub fn poll_twin_state(
     mut report_twin_state_handle: azure_iot_mqtt::ReportTwinStateHandle,
-    shutdown_signal: Arc<Notify>,
-) {
+) -> (tokio::task::JoinHandle<()>, utils::ShutdownHandle) {
     use futures_util::StreamExt;
 
-    let result = report_twin_state_handle
-        .report_twin_state(azure_iot_mqtt::ReportTwinStateRequest::Replace(
-            vec![(
-                "start-time".to_string(),
-                chrono::Utc::now().to_string().into(),
-            )]
-            .into_iter()
-            .collect(),
-        ))
-        .await;
-    let () = result.expect("couldn't report initial twin state");
+    let shutdown_signal = Arc::new(tokio::sync::Notify::new());
+    let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
 
     let mut interval = tokio::time::interval(TWIN_STATE_POLL_INTERVAL);
+    let monitor_loop = tokio::spawn(async move {
+        let result = report_twin_state_handle
+            .report_twin_state(azure_iot_mqtt::ReportTwinStateRequest::Replace(
+                vec![(
+                    "start-time".to_string(),
+                    chrono::Utc::now().to_string().into(),
+                )]
+                .into_iter()
+                .collect(),
+            ))
+            .await;
+        let () = result.expect("couldn't report initial twin state");
 
-    loop {
-        let wait_shutdown = shutdown_signal.notified();
-        futures::pin_mut!(wait_shutdown);
-        match future::select(wait_shutdown, interval.next()).await {
-            Either::Left(_) => {
-                log::warn!("Shutting down twin state polling!");
-                return;
-            }
-            Either::Right((result, _)) => {
-                if result.is_some() {
-                    let result = report_twin_state_handle
-                        .report_twin_state(azure_iot_mqtt::ReportTwinStateRequest::Patch(
-                            vec![(
-                                "current-time".to_string(),
-                                chrono::Utc::now().to_string().into(),
-                            )]
-                            .into_iter()
-                            .collect(),
-                        ))
-                        .await;
-
-                    let () = result.expect("couldn't report twin state patch");
-                } else {
+        loop {
+            let wait_shutdown = shutdown_signal.notified();
+            futures::pin_mut!(wait_shutdown);
+            match futures::future::select(wait_shutdown, interval.next()).await {
+                Either::Left(_) => {
                     log::warn!("Shutting down twin state polling!");
-                    //Should send a ctrl c event here?
                     return;
                 }
-            }
-        };
-    }
+                Either::Right((result, _)) => {
+                    if result.is_some() {
+                        let result = report_twin_state_handle
+                            .report_twin_state(azure_iot_mqtt::ReportTwinStateRequest::Patch(
+                                vec![(
+                                    "current-time".to_string(),
+                                    chrono::Utc::now().to_string().into(),
+                                )]
+                                .into_iter()
+                                .collect(),
+                            ))
+                            .await;
+
+                        let () = result.expect("couldn't report twin state patch");
+                    } else {
+                        log::warn!("Shutting down twin state polling!");
+                        //Should send a ctrl c event here?
+                        return;
+                    }
+                }
+            };
+        }
+    });
+    (monitor_loop, shutdown_handle)
 }
 
 #[cfg(test)]

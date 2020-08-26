@@ -11,13 +11,13 @@
     clippy::missing_errors_doc
 )]
 mod monitors;
+mod signals;
 
+use anyhow::Context;
+use futures_util::future::{self, Either};
 use monitors::certs_monitor;
 use monitors::config_monitor;
-use anyhow::Context;
-use std::{pin::Pin, sync::Arc};
-use futures::Future;
-use futures_util::future::{self, Either};
+use std::sync::Arc;
 use tokio::sync::Notify;
 
 #[tokio::main]
@@ -27,65 +27,54 @@ async fn main() {
     )
     .init();
 
+    log::info!("PID is {}", std::process::id());
     let notify_need_reload_api_proxy = Arc::new(tokio::sync::Notify::new());
     let notify_received_config = notify_need_reload_api_proxy.clone();
     let notify_certs_rotated = notify_need_reload_api_proxy.clone();
 
-    let shutdown_signal_twin_state = Arc::new(tokio::sync::Notify::new());
-    let shutdown_signal_config_monitor = Arc::new(tokio::sync::Notify::new());
-    let shutdown_signal_cert_monitor = Arc::new(tokio::sync::Notify::new());
-    let shutdown_signal_loop_stask = Arc::new(tokio::sync::Notify::new());
-
     let client = config_monitor::get_sdk_client();
-    let mut shutdown_handle = client
+    let mut shutdown_sdk = client
         .inner()
         .shutdown_handle()
         .expect("couldn't get shutdown handle");
 
     let report_twin_state_handle = client.report_twin_state_handle();
 
-    let twin_state_poll_task = config_monitor::poll_twin_state(
-        report_twin_state_handle,
-        shutdown_signal_twin_state.clone(),
-    );
-    let config_monitor_task = config_monitor::start(
-        client,
-        notify_received_config,
-        shutdown_signal_config_monitor.clone(),
-    );
-    let cert_monitor_task =
-        certs_monitor::start(notify_certs_rotated, shutdown_signal_cert_monitor.clone());
-    let loop_task = nginx_controller_loop(
-        notify_need_reload_api_proxy,
-        shutdown_signal_loop_stask.clone(),
-    );
+    let (twin_state_poll_handle, twin_state_poll_shutdown_handle) =
+        config_monitor::poll_twin_state(report_twin_state_handle);
+    let (config_monitor_handle, config_monitor_shutdown_handle) =
+        config_monitor::start(client, notify_received_config);
+    let (cert_monitor_handle, cert_monitor_shutdown_handle) =
+        certs_monitor::start(notify_certs_rotated);
+    let loop_task = nginx_controller_loop(notify_need_reload_api_proxy);
 
-    //Switch atomic var to true to tell all task to shutdown.
-    ctrlc::set_handler(move || {
-        futures::executor::block_on(shutdown_handle.shutdown()).expect("Could not shutdown gracefully");
-        shutdown_signal_twin_state.notify();
-        shutdown_signal_config_monitor.notify();//
-        shutdown_signal_cert_monitor.notify();
-        shutdown_signal_loop_stask.notify();
-    })
-    .expect("Error setting Ctrl-C handler");
+    //Main task closes on ctrl+c.
+    loop_task.await;
 
-    //kill all client first
+    //Send shutdown signal to all task
+    shutdown_sdk
+        .shutdown()
+        .await
+        .expect("Fatal, could not shut down SDK");
     futures::future::join_all(vec![
-        Box::pin(twin_state_poll_task) as Pin<Box<dyn Future<Output = ()>>>,
-        Box::pin(config_monitor_task) as Pin<Box<dyn Future<Output = ()>>>,
-        Box::pin(cert_monitor_task) as Pin<Box<dyn Future<Output = ()>>>,
-        Box::pin(loop_task) as Pin<Box<dyn Future<Output = ()>>>,
+        cert_monitor_shutdown_handle.shutdown(),
+        twin_state_poll_shutdown_handle.shutdown(),
+        config_monitor_shutdown_handle.shutdown(),
+    ])
+    .await;
+
+    //Join all task.
+    futures::future::join_all(vec![
+        cert_monitor_handle,
+        config_monitor_handle,
+        twin_state_poll_handle,
     ])
     .await;
 
     log::info!("Gracefully exiting");
 }
 
-pub async fn nginx_controller_loop(
-    notify_need_reload_api_proxy: Arc<Notify>,
-    shutdown_signal: Arc<Notify>,
-) {
+pub async fn nginx_controller_loop(notify_need_reload_api_proxy: Arc<Notify>) {
     let program_path = "/usr/sbin/nginx";
     let args = vec![
         "-c".to_string(),
@@ -98,10 +87,9 @@ pub async fn nginx_controller_loop(
     let stop_proxy_program_path = "nginx";
     let stop_proxy_args = vec!["-s".to_string(), "stop".to_string()];
 
-    //Wait for certificate rotation and for parse configuration.
+    //Wait for certificate rotation
     //This is just to avoid error at the beginning when nginx tries to start
     //but configuration is not ready
-    notify_need_reload_api_proxy.notified().await;
     notify_need_reload_api_proxy.notified().await;
 
     loop {
@@ -128,10 +116,10 @@ pub async fn nginx_controller_loop(
 
         //Wait for: either a signal to restart(cert rotation, new config) or the child to crash.
         let restart_proxy = future::select(child_nginx, signal_restart_nginx);
-        let wait_shutdown = shutdown_signal.notified();
+        let wait_shutdown = signals::shutdown::shutdown();
         futures::pin_mut!(wait_shutdown);
 
-        match future::select(wait_shutdown, restart_proxy).await {
+        match futures::future::select(wait_shutdown, restart_proxy).await {
             Either::Left(_) => {
                 log::warn!("Shutting down ngxing controller!");
                 return;
