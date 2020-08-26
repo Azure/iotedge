@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::panic;
+use std::{collections::HashMap, convert::TryInto, panic};
 
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use futures_util::StreamExt;
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, info_span, warn};
 
 use mqtt3::proto;
@@ -11,6 +10,7 @@ use crate::{
     auth::{Activity, AuthId, Authorization, Authorizer, DenyAll, Operation},
     session::{ConnectedSession, Session, SessionState},
     state_change::StateChange,
+    stream::{self, SelectOrdered},
     subscription::Subscription,
     Auth, BrokerConfig, BrokerSnapshot, ClientEvent, ClientId, ClientInfo, ConnReq, Error, Message,
     SystemEvent,
@@ -28,8 +28,8 @@ macro_rules! try_send {
 }
 
 pub struct Broker<Z> {
-    sender: Sender<Message>,
-    messages: Receiver<Message>,
+    messages: SelectOrdered<UnboundedReceiver<Message>, UnboundedReceiver<Message>>,
+    handle: BrokerHandle,
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
@@ -44,16 +44,16 @@ where
     Z: Authorizer,
 {
     pub fn handle(&self) -> BrokerHandle {
-        BrokerHandle(self.sender.clone())
+        self.handle.clone()
     }
 
     pub async fn run(mut self) -> Result<BrokerSnapshot, Error> {
-        while let Some(message) = self.messages.recv().await {
+        while let Some(message) = self.messages.next().await {
             match message {
                 Message::Client(client_id, event) => {
                     let span = info_span!("broker", client_id = %client_id, event="client");
                     let _enter = span.enter();
-                    if let Err(e) = self.process_message(client_id, event) {
+                    if let Err(e) = self.process_client_event(client_id, event) {
                         warn!(message = "an error occurred processing a message", error = %e);
                     }
                 }
@@ -120,7 +120,7 @@ where
         BrokerSnapshot::new(retained, sessions)
     }
 
-    pub fn process_message(
+    pub fn process_client_event(
         &mut self,
         client_id: ClientId,
         event: ClientEvent,
@@ -986,11 +986,18 @@ where
             None => (HashMap::default(), HashMap::default()),
         };
 
-        let (sender, messages) = mpsc::channel(1024);
+        let (message_sender, messages) = mpsc::unbounded_channel();
+        let (ack_sender, acks) = mpsc::unbounded_channel();
+
+        let messages = stream::select_ordered(acks, messages);
+        let handle = BrokerHandle {
+            messages: message_sender,
+            acks: ack_sender,
+        };
 
         Broker {
-            sender,
             messages,
+            handle,
             sessions,
             retained,
             authorizer: self.authorizer,
@@ -1003,11 +1010,22 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct BrokerHandle(Sender<Message>);
+pub struct BrokerHandle {
+    messages: UnboundedSender<Message>,
+    acks: UnboundedSender<Message>,
+}
 
 impl BrokerHandle {
-    pub async fn send(&mut self, message: Message) -> Result<(), Error> {
-        self.0.send(message).await.map_err(Error::SendBrokerMessage)
+    pub fn send(&mut self, message: Message) -> Result<(), Error> {
+        let sender = match &message {
+            Message::Client(_, ClientEvent::PubAck0(_))
+            | Message::Client(_, ClientEvent::PubAck(_))
+            | Message::Client(_, ClientEvent::PubRec(_))
+            | Message::Client(_, ClientEvent::PubComp(_)) => &self.acks,
+            _ => &self.messages,
+        };
+
+        sender.send(message).map_err(Error::SendBrokerMessage)
     }
 }
 
@@ -1126,14 +1144,12 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
         broker_handle
             .send(Message::Client(
                 client_id.clone(),
                 ClientEvent::ConnReq(req2),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1198,14 +1214,12 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
         broker_handle
             .send(Message::Client(
                 client_id.clone(),
                 ClientEvent::ConnReq(req2),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1256,7 +1270,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1298,7 +1311,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1351,7 +1363,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1397,7 +1408,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1450,7 +1460,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1507,7 +1516,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1562,7 +1570,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1972,7 +1979,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish, None));
-        broker_handle.send(message).await.unwrap();
+        broker_handle.send(message).unwrap();
 
         assert_matches!(
             rx.recv().await,
@@ -2018,7 +2025,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id.clone(), ClientEvent::Subscribe(subscribe));
-        broker_handle.send(message).await.unwrap();
+        broker_handle.send(message).unwrap();
 
         let expected_qos = vec![
             proto::SubAckQos::Success(proto::QoS::AtLeastOnce),
@@ -2254,12 +2261,10 @@ pub(crate) mod tests {
             Auth::Identity(AuthId::Anonymous),
             conn,
         );
-        broker_handle
-            .send(Message::Client(
-                client_id.clone(),
-                ClientEvent::ConnReq(req),
-            ))
-            .await?;
+        broker_handle.send(Message::Client(
+            client_id.clone(),
+            ClientEvent::ConnReq(req),
+        ))?;
 
         assert_matches!(
             rx.recv().await,
@@ -2278,7 +2283,6 @@ pub(crate) mod tests {
 
         broker_handle
             .send(Message::Client(client_id.into(), event))
-            .await
             .unwrap();
     }
 
@@ -2300,7 +2304,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id, ClientEvent::Subscribe(subscribe));
-        handle.send(message).await.unwrap();
+        handle.send(message).unwrap();
 
         assert_matches!(
             rx.recv().await,
@@ -2320,7 +2324,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id, ClientEvent::Unsubscribe(unsubscribe));
-        handle.send(message).await.unwrap();
+        handle.send(message).unwrap();
 
         assert_matches!(
             rx.recv().await,

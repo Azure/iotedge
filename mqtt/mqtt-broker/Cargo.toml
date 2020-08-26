@@ -17,6 +17,7 @@ humantime = "2.0"
 humantime-serde = "1.0"
 lazy_static = "1.4"
 openssl = "0.10"
+pin-project = "0.4"
 proptest = { version = "0.9", optional = true }
 rand = { version = "0.7", optional = true }
 regex = "1"

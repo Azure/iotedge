@@ -166,7 +166,7 @@ where
                 let req = ConnReq::new(client_id.clone(), peer_addr, connect, auth, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
-                broker_handle.send(message).await?;
+                broker_handle.send(message)?;
 
                 let (outgoing, incoming) = codec.split();
 
@@ -200,7 +200,7 @@ where
                         // task to drain
                         debug!(message = "incoming_task finished with an error. sending drop connection request to broker", error=%e);
                         let msg = Message::Client(client_id.clone(), ClientEvent::DropConnection);
-                        broker_handle.send(msg).await?;
+                        broker_handle.send(msg)?;
 
                         debug!("waiting for outgoing_task to complete...");
                         if let Err((mut recv, e)) = out.await {
@@ -226,7 +226,7 @@ where
 
                         debug!(message = "outgoing_task finished with an error. notifying the broker to remove the connection", %e);
                         let msg = Message::Client(client_id.clone(), ClientEvent::CloseSession);
-                        broker_handle.send(msg).await?;
+                        broker_handle.send(msg)?;
 
                         debug!("draining message receiver for connection...");
                         while let Some(message) = recv.recv().await {
@@ -263,10 +263,10 @@ where
         match maybe_packet {
             Ok(packet) => match processor.process(packet).await? {
                 PacketAction::Continue(message) => {
-                    broker.send(message).await?;
+                    broker.send(message)?;
                 }
                 PacketAction::Stop(message) => {
-                    broker.send(message).await?;
+                    broker.send(message)?;
                     return Ok(());
                 }
             },
@@ -279,7 +279,7 @@ where
 
     debug!("no more packets. sending DropConnection to broker.");
     let message = Message::Client(client_id.clone(), ClientEvent::DropConnection);
-    broker.send(message).await?;
+    broker.send(message)?;
     debug!("incoming_task completing...");
     Ok(())
 }
@@ -307,7 +307,7 @@ where
 
                 // send a message back to broker
                 if let Some(message) = message {
-                    if let Err(e) = broker.send(message).await {
+                    if let Err(e) = broker.send(message) {
                         warn!(message = "error occurred while sending QoS ack to broker", error=%e);
                         return Err((messages, e));
                     }
