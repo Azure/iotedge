@@ -82,7 +82,7 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-ubuntu18.04-amd64
-      nestedDeviceTestFolder: "~/e2etest"
+      nestedDeviceTestFolder: "/home/iotedgeuser/e2etest"
       
     steps:
     - template: templates/e2e-clean-directory.yaml

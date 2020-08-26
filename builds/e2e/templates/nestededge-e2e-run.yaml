@@ -6,31 +6,23 @@ steps:
 - pwsh: |
     $keyFile = "~/sshkeys/nested${{ parameters.deviceId }}key.pem"
     $deviceAlias = "nesteddevice${{ parameters.deviceId }}"
-
-    $testFile = '$(nestedDeviceTestFolder)/testbin/Microsoft.Azure.Devices.Edge.Test.dll'
     
-    $Command = @'
-    pwsh -Command "env E2E_DPS_GROUP_KEY=\"$(TestDpsGroupKeySymmetric)\" `
-    E2E_EVENT_HUB_ENDPOINT=\"$(TestEventHubCompatibleEndpoint)\" `
-    E2E_PREVIEW_EVENT_HUB_ENDPOINT=\"$(TestPreviewEventHubCompatibleEndpoint)\" `
-    E2E_IOT_HUB_CONNECTION_STRING=\"$(TestIotHubConnectionString)\" `
-    E2E_PREVIEW_IOT_HUB_CONNECTION_STRING=\"$(TestPreviewIotHubConnectionString)\" `
-    E2E_REGISTRIES__0__PASSWORD=\"$(TestContainerRegistryPassword)\" `
-    E2E_ROOT_CA_PASSWORD=\"$(TestRootCaPassword)\"; `
-    sudo --preserve-env dotnet vstest $testFile --logger:trx --filter FullyQualifiedName==Microsoft.Azure.Devices.Edge.Test.Module.TempSensor"
-    '@
+    ssh -i $keyFile $deviceAlias pwsh -Command "$(nestedDeviceTestFolder)/testbin/runtest.ps1"
+    
+    #mkdir $(nestedDeviceTestFolder)/logs
+    #find $(nestedDeviceTestFolder)/testbin -name *.log | xargs cp -t $(nestedDeviceTestFolder)/logs
+    #scp -i $keyFile -r ${deviceAlias}:$(nestedDeviceTestFolder)/testresults $(Build.SourcesDirectory)/testresults
+    #scp -i $keyFile -r ${deviceAlias}:$(nestedDeviceTestFolder)/logs $(Build.SourcesDirectory)/logs
 
-    ssh -i $keyFile $deviceAlias $Command
   displayName: Run tests on nesteddevice${{ parameters.deviceId }}
 
-#copy result from remote before publish
 #- task: PublishTestResults@2
 #  displayName: Publish test results
 #  inputs:
 #    testResultsFormat: vstest
 #    testResultsFiles: '**/*.trx'
 #    searchFolder: $(Build.SourcesDirectory)/TestResults
-#    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
+#    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch)) on nesteddevice${{ parameters.deviceId }}
 #    buildPlatform: $(arch)
 #  condition: succeededOrFailed()
 

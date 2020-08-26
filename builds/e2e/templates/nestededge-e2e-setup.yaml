@@ -88,6 +88,8 @@ steps:
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
+    # Need to use absolute path for testing
+    $testFolder = readlink -f $(nestedDeviceTestFolder)
 
     $context = @{
       dpsIdScope = '$(dps.idScope)'
@@ -110,11 +112,11 @@ steps:
           username = '$(cr.username)';
         }
       );
-      packagePath = '$(nestedDeviceTestFolder)/artifacts/$(artifactName)';
-      caCertScriptPath = '$(nestedDeviceTestFolder)/tools/CACertificates';
-      rootCaCertificatePath = '$(nestedDeviceTestFolder)/certs/rsa_root_ca.cert.pem';
-      rootCaPrivateKeyPath = '$(nestedDeviceTestFolder)/certs/rsa_root_ca.key.pem';
-      logFile = '$(nestedDeviceTestFolder)/testbin/testoutput.log';
+      packagePath = '$testFolder/artifacts/$(artifactName)';
+      caCertScriptPath = '$testFolder/tools/CACertificates';
+      rootCaCertificatePath = '$testFolder/certs/rsa_root_ca.cert.pem';
+      rootCaPrivateKeyPath = '$testFolder/certs/rsa_root_ca.key.pem';
+      logFile = '$testFolder/testbin/testoutput.log';
     }
 
     if ('$(arch)' -eq 'arm32v7')
@@ -128,6 +130,23 @@ steps:
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
 
+-pwsh:
+    $testFile = '$(nestedDeviceTestFolder)/testbin/Microsoft.Azure.Devices.Edge.Test.dll'
+    
+    $Command = @'
+    $env:E2E_DPS_GROUP_KEY="$(TestDpsGroupKeySymmetric)";
+    $env:E2E_EVENT_HUB_ENDPOINT="$(TestEventHubCompatibleEndpoint)";
+    $env:E2E_PREVIEW_EVENT_HUB_ENDPOINT="$(TestPreviewEventHubCompatibleEndpoint)";
+    $env:E2E_IOT_HUB_CONNECTION_STRING="$(TestIotHubConnectionString)";
+    $env:E2E_PREVIEW_IOT_HUB_CONNECTION_STRING="$(TestPreviewIotHubConnectionString)";
+    $env:E2E_REGISTRIES__0__PASSWORD="$(TestContainerRegistryPassword)";
+    $env:E2E_ROOT_CA_PASSWORD="$(TestRootCaPassword)";
+    sudo --preserve-env dotnet vstest $testFile --logger:trx --results-directory:$(nestedDeviceTestFolder)/testresults --filter Microsoft.Azure.Devices.Edge.Test.Module.TempSensor"
+    '@
+    
+    Set-Content -Path '$(binDir)/runtest.ps1' -Value $Command
+  displayName: Create test run script (runtest.ps1)
+  
 - template: nestededge-e2e-setup-copyFiles.yaml
   parameters:
     deviceId: 1
