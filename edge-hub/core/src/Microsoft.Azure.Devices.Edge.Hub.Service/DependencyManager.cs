@@ -218,6 +218,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
+            int scopeCacheRefreshDelaySecs = this.configuration.GetValue("DeviceScopeCacheRefreshDelaySecs", 120);
+            TimeSpan scopeCacheRefreshDelay = TimeSpan.FromSeconds(scopeCacheRefreshDelaySecs);
+
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
 
@@ -239,6 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     workloadUri,
                     workloadApiVersion,
                     scopeCacheRefreshRate,
+                    scopeCacheRefreshDelay,
                     cacheTokens,
                     this.trustBundle,
                     proxy,
