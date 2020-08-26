@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using Moq;
     using Newtonsoft.Json;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using Xunit;

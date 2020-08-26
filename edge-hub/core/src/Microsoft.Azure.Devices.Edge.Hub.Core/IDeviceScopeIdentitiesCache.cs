@@ -13,6 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
+        event EventHandler<IList<ServiceIdentity>> ServiceIdentitiesUpdated;
+
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
 
         Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId);

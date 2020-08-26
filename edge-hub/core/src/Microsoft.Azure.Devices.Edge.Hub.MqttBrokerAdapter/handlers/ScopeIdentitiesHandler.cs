@@ -16,54 +16,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class ScopeIdentitiesHandler : IMessageProducer
     {
-        const string AddOrUpdateTopic = "$internal/identities/addOrUpdate";
-        const string RemoveTopic = "$internal/identities/remove";
+        const string Topic = "$internal/identities";
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly AtomicBoolean connected = new AtomicBoolean(false);
         IMqttBrokerConnector connector;
-        ConcurrentDictionary<string, BrokerServiceIdentity> brokerServiceIdentities = new ConcurrentDictionary<string, BrokerServiceIdentity>();
+        IList<BrokerServiceIdentity> lastBrokerServiceIdentityUpdate = new List<BrokerServiceIdentity>();
 
         public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
             this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
-            this.deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, serviceIdentity) => Task.WhenAll(this.ServiceIdentityUpdated(serviceIdentity));
-            this.deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, identity) => Task.WhenAll(this.ServiceIdentityRemoved(identity));
+            this.deviceScopeIdentitiesCache.ServiceIdentitiesUpdated +=
+                async (sender, serviceIdentities) => await this.ServiceIdentitiesUpdated(serviceIdentities);
         }
 
         public void SetConnector(IMqttBrokerConnector connector)
         {
             this.connector = connector;
-            this.connector.OnConnected += (sender, args) => Task.WhenAll(this.OnConnect());
+            this.connector.OnConnected += async (sender, args) => await this.OnConnect();
         }
 
         async Task OnConnect()
         {
             this.connected.Set(true);
-            await this.PublishBrokerServiceIdentities(this.brokerServiceIdentities.Values.ToList());
+            await this.PublishBrokerServiceIdentities(this.lastBrokerServiceIdentityUpdate);
         }
 
-        async Task ServiceIdentityRemoved(string identity)
+        async Task ServiceIdentitiesUpdated(IList<ServiceIdentity> serviceIdentities)
         {
+            IList<BrokerServiceIdentity> brokerServiceIdentities =
+                    await Task.WhenAll(
+                        serviceIdentities.Select(
+                            async s => new BrokerServiceIdentity(s.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(s.Id))));
             if (this.connected.Get())
             {
-                await this.PublishRemoveBrokerIdentityService(identity);
+                await this.PublishBrokerServiceIdentities(brokerServiceIdentities);
             }
             else
             {
-                this.brokerServiceIdentities.TryRemove(identity, out _);
-            }
-        }
-
-        async Task ServiceIdentityUpdated(ServiceIdentity serviceIdentity)
-        {
-            BrokerServiceIdentity brokerServiceIdentity = new BrokerServiceIdentity(serviceIdentity.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentity.Id));
-            if (this.connected.Get())
-            {
-                await this.PublishBrokerServiceIdentities(new List<BrokerServiceIdentity>() { brokerServiceIdentity });
-            }
-            else
-            {
-                this.brokerServiceIdentities[brokerServiceIdentity.Identity] = brokerServiceIdentity;
+                this.lastBrokerServiceIdentityUpdate = brokerServiceIdentities;
             }
         }
 
@@ -73,25 +63,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             try
             {
                 var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(brokerServiceIdentities));
-                await this.connector.SendAsync(AddOrUpdateTopic, payload);
+                await this.connector.SendAsync(Topic, payload);
             }
             catch (Exception ex)
             {
-                Events.ErrorPublishingIdentity(ex);
-            }
-        }
-
-        async Task PublishRemoveBrokerIdentityService(string identity)
-        {
-            Events.PublishingRemoveBrokerServiceIdentity(identity);
-            try
-            {
-                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(identity));
-                await this.connector.SendAsync(RemoveTopic, payload);
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorPublishingIdentity(ex);
+                Events.ErrorPublishingIdentities(ex);
             }
         }
 
@@ -109,19 +85,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             internal static void PublishingAddOrUpdateBrokerServiceIdentities(IList<BrokerServiceIdentity> brokerServiceIdentities)
             {
-
-                Log.LogDebug((int)EventIds.PublishingAddOrUpdateBrokerServiceIdentity, $"Publishing:" +
-                    $" {brokerServiceIdentities.Select(b => $"identity: {b.Identity} with AuthChain: {b.AuthChain}").Join(", ")} to mqtt broker");
+                if (brokerServiceIdentities.Count > 0)
+                {
+                    Log.LogDebug((int)EventIds.PublishingAddOrUpdateBrokerServiceIdentity, $"Publishing:" +
+                        $" {brokerServiceIdentities.Select(b => $"identity: {b.Identity} with AuthChain: {b.AuthChain}").Join(", ")} to mqtt broker on topic: {Topic}");
+                }
             }
 
-            internal static void PublishingRemoveBrokerServiceIdentity(string identity)
+            internal static void ErrorPublishingIdentities(Exception ex)
             {
-                Log.LogDebug((int)EventIds.PublishingRemoveBrokerServiceIdentity, $"Publishing Remove identity: {identity}");
-            }
-
-            internal static void ErrorPublishingIdentity(Exception ex)
-            {
-                Log.LogError((int)EventIds.ErrorPublishingIdentity, ex, $"A problem occurred while publishing identity to mqtt broker.");
+                Log.LogError((int)EventIds.ErrorPublishingIdentity, ex, $"A problem occurred while publishing identities to mqtt broker.");
             }
         }
     }

@@ -91,6 +91,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        public async Task<IList<ServiceIdentity>> GetAllServiceIdentities()
+        {
+            using (await this.nodesLock.LockAsync())
+            {
+                return this.nodes.Values.Select(v => v.Identity).ToList();
+            }
+        }
+
         public async Task<Option<string>> GetAuthChain(string targetId)
         {
             Preconditions.CheckNonWhiteSpace(targetId, nameof(targetId));

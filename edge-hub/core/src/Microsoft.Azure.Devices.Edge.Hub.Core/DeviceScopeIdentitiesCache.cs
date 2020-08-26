@@ -51,6 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
+        public event EventHandler<IList<ServiceIdentity>> ServiceIdentitiesUpdated;
+
         public static async Task<DeviceScopeIdentitiesCache> Create(
             IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
@@ -84,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await serviceIdentity
                     .Map(s => this.HandleNewServiceIdentity(s))
                     .GetOrElse(() => this.HandleNoServiceIdentity(id));
+                this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllServiceIdentities());
             }
             catch (Exception e)
             {
@@ -195,10 +198,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 Events.DoneRefreshCycle(this.refreshRate);
+                this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllServiceIdentities());
                 this.refreshCacheCompleteSignal.Set();
                 await this.IsReady();
             }
         }
+
+        async Task<IList<ServiceIdentity>> GetAllServiceIdentities() => await this.serviceIdentityHierarchy.GetAllServiceIdentities();
 
         async Task IsReady()
         {

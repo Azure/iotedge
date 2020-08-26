@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
+    using System;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
-    using System;
 
     public class BrokerServiceIdentity : IComparable
     {
