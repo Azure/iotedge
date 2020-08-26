@@ -141,7 +141,7 @@ steps:
     Add-Content "$(binDir)/runtest.ps1" '$env:E2E_REGISTRIES__0__PASSWORD="$(TestContainerRegistryPassword)"'
     Add-Content "$(binDir)/runtest.ps1" '$env:E2E_ROOT_CA_PASSWORD="$(TestRootCaPassword)"'
     Add-Content "$(binDir)/runtest.ps1" 'sudo --preserve-env dotnet vstest $testFile --logger:trx --results-directory:$(nestedDeviceTestFolder)/testresults --filter Microsoft.Azure.Devices.Edge.Test.Module.TempSensor'
-    Remove-Item -Path "$(binDir)/runtest.ps1" -Force
+
   displayName: Create test run script (runtest.ps1)
   
 - template: nestededge-e2e-setup-copyFiles.yaml
@@ -155,3 +155,8 @@ steps:
 - template: nestededge-e2e-setup-copyFiles.yaml
   parameters:
     deviceId: 3   
+
+- pwsh: |
+    Remove-Item -Path "$(binDir)/runtest.ps1" -Force
+
+  displayName: Clean test run script from controller
