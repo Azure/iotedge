@@ -8,7 +8,7 @@ use tracing::{error, info, warn};
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
-use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
+use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 
@@ -129,18 +129,15 @@ impl CommandHandler {
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
-            let payload = publication.payload.to_vec();
-            let payload = String::from_utf8(payload)
-                .map_err(HandleDisconnectError::ConvertPayloadToString)?;
-            let client_id: &str =
-                serde_json::from_str(&payload).map_err(HandleDisconnectError::ParseClientId)?;
+            let client_id: ClientId = serde_json::from_slice(&publication.payload)
+                .map_err(HandleDisconnectError::ParseClientId)?;
 
             info!("received disconnection request for client {}", client_id);
 
             if let Err(e) = self
                 .broker_handle
                 .send(Message::System(SystemEvent::ForceClientDisconnect(
-                    client_id.into(),
+                    client_id.clone(),
                 )))
                 .await
             {
