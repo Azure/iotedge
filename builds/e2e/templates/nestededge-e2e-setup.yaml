@@ -130,7 +130,7 @@ steps:
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
 
--pwsh:
+- pwsh:
     $testFile = '$(nestedDeviceTestFolder)/testbin/Microsoft.Azure.Devices.Edge.Test.dll'
     
     $Command = @'
