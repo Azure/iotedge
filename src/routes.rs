@@ -33,13 +33,13 @@ pub(crate) async fn dispatch<'a, T: StoreBackend>(store: &'a Store<T>, req: Requ
             let body = read_request(req).await?;
 
             store.set_secret(id, body).await?;
-            Ok(Response::new(Body::empty()))
+            Ok(Response::builder().status(204).body(Body::empty()).unwrap())
         },
-        &Method::PATCH => {
+        &Method::POST => {
             let body = read_request(req).await?;
 
             store.pull_secret(id, body).await?;
-            Ok(Response::new(Body::empty()))
+            Ok(Response::builder().status(204).body(Body::empty()).unwrap())
         }
         _ => Ok(Response::builder().status(404).body(Body::empty())?)
     }
