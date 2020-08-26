@@ -932,7 +932,10 @@ mod tests {
             CheckResult::Ok => {
                 assert_eq!(check.iothub_hostname, Some(hub_name.to_owned()));
             }
-            check_result => panic!("parsing connection string {} returned {:?}", filename, check_result),
+            check_result => panic!(
+                "parsing connection string {} returned {:?}",
+                filename, check_result
+            ),
         }
     }
 
