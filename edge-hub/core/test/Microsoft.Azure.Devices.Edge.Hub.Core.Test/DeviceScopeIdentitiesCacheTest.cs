@@ -94,11 +94,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(iterator2.Object);
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
+            IList<ServiceIdentity> entireCache = new List<ServiceIdentity>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromSeconds(8), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
+            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) => entireCache = serviceIdentities;
 
             // Wait for refresh to complete
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
@@ -115,6 +117,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             Assert.Empty(updatedIdentities);
             Assert.Empty(removedIdentities);
+            Assert.Equal(4, entireCache.Count);
+            Assert.Contains(si1(), entireCache);
+            Assert.Contains(si2(), entireCache);
+            Assert.Contains(si3(), entireCache);
+            Assert.Contains(si4(), entireCache);
 
             // Wait for another refresh cycle to complete
             deviceScopeIdentitiesCache.InitiateCacheRefresh();
@@ -134,9 +141,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Empty(updatedIdentities);
             Assert.Single(removedIdentities);
             Assert.Contains("d2/m4", removedIdentities);
+            Assert.Equal(3, entireCache.Count);
+
+            Assert.Contains(si1(), entireCache);
+            Assert.Contains(si2(), entireCache);
+            Assert.Contains(si3(), entireCache);
         }
 
-        [Fact(Skip ="Consistently flakey test - bug logged")]
+        [Fact(Skip = "Consistently flakey test - bug logged")]
         public async Task RefreshCacheWithRefreshRequestTest()
         {
             // Arrange
@@ -211,11 +223,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(iterator4.Object);
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
+            IList<ServiceIdentity> entireCache = new List<ServiceIdentity>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromSeconds(7), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
+            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) => entireCache = serviceIdentities;
 
             // Wait for refresh to complete
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
@@ -233,6 +247,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             Assert.Empty(updatedIdentities);
             Assert.Empty(removedIdentities);
+
+            Assert.Equal(4, entireCache.Count);
+            Assert.Contains(si1(), entireCache);
+            Assert.Contains(si2(), entireCache);
+            Assert.Contains(si3(), entireCache);
+            Assert.Contains(si4(), entireCache);
 
             // Act - Signal refresh cache multiple times. It should get picked up twice.
             deviceScopeIdentitiesCache.InitiateCacheRefresh();
@@ -273,6 +293,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(receivedServiceIdentity1.HasValue);
             Assert.False(receivedServiceIdentity2.HasValue);
 
+            Assert.Equal(2, entireCache.Count);
+            Assert.Contains(si3(), entireCache);
+            Assert.Contains(si4(), entireCache);
+
             Assert.Empty(updatedIdentities);
             Assert.Equal(4, removedIdentities.Count);
             Assert.Contains("d2/m1", removedIdentities);
@@ -311,11 +335,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
+            IList<ServiceIdentity> entireCache = new List<ServiceIdentity>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
+            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) => entireCache = serviceIdentities;
 
             // Wait for refresh to complete
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
@@ -340,6 +366,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal("d2", removedIdentities[0]);
             Assert.Single(updatedIdentities);
             Assert.Equal("d1", updatedIdentities[0].Id);
+            Assert.Equal(1, entireCache.Count);
+            Assert.Contains(si1_updated, entireCache);
         }
 
         [Fact]
@@ -375,11 +403,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
+            IList<ServiceIdentity> entireCache = new List<ServiceIdentity>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
+            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) => entireCache = serviceIdentities;
 
             // Wait for refresh to complete
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
@@ -407,6 +437,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal("d2", removedIdentities[0]);
             Assert.Single(updatedIdentities);
             Assert.Equal("d1", updatedIdentities[0].Id);
+            Assert.Equal(1, entireCache.Count);
+            Assert.Contains(si1_updated, entireCache);
         }
 
         [Fact]
@@ -441,11 +473,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
+            IList<ServiceIdentity> entireCache = new List<ServiceIdentity>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
+            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) => entireCache = serviceIdentities;
 
             // Wait for refresh to complete
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
@@ -470,6 +504,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal("d2/m2", removedIdentities[0]);
             Assert.Single(updatedIdentities);
             Assert.Equal("d1/m1", updatedIdentities[0].Id);
+            Assert.Equal(1, entireCache.Count);
+            Assert.Contains(si1_updated, entireCache);
         }
 
         [Fact]
@@ -675,11 +711,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
+            IList<ServiceIdentity> entireCache = new List<ServiceIdentity>();
 
             // Act
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
+            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) => entireCache = serviceIdentities;
+
 
             // Wait for initial refresh to complete
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
@@ -704,6 +743,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(receivedServiceIdentity3.HasValue);
             Assert.False(authchain2.HasValue);
             Assert.False(authchain3.HasValue);
+            Assert.Equal(1, entireCache.Count);
+            Assert.Contains(si1_updated, entireCache);
         }
 
         [Fact(Skip = "Flakey in pipeline but passes locally")]
