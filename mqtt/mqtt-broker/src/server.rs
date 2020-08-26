@@ -142,7 +142,7 @@ where
                         }
 
                         debug!("sending Shutdown message to broker");
-                        handle.send(Message::System(SystemEvent::Shutdown)).await?;
+                        handle.send(Message::System(SystemEvent::Shutdown))?;
                         broker_task.await?
                     }
                     Either::Left((broker_state, incoming_tasks)) => {
@@ -180,7 +180,7 @@ where
 
                     let results = future::join_all(unfinished_incoming_tasks).await;
 
-                    handle.send(Message::System(SystemEvent::Shutdown)).await?;
+                    handle.send(Message::System(SystemEvent::Shutdown))?;
 
                     let broker_state = broker_task.await;
 

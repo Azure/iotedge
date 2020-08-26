@@ -146,12 +146,11 @@ impl CommandHandler {
 
             info!("received disconnection request for client {}", client_id);
 
-            if let Err(e) = self
-                .broker_handle
-                .send(Message::System(SystemEvent::ForceClientDisconnect(
-                    client_id.into(),
-                )))
-                .await
+            if let Err(e) =
+                self.broker_handle
+                    .send(Message::System(SystemEvent::ForceClientDisconnect(
+                        client_id.into(),
+                    )))
             {
                 return Err(HandleDisconnectError::SignalError(e));
             }
