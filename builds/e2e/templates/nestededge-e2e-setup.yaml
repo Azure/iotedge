@@ -75,11 +75,10 @@ steps:
     ROOT_KEY: $(TestRootCaKey)
 
 - pwsh: |
-    $testProjectDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    dotnet build $testProjectDir
+    $testDir = "$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test"
+    dotnet build $testDir
 
-    $binDir = Convert-Path "$testProjectDir/bin/Debug/netcoreapp3.1"
-    Write-Output "##vso[task.setvariable variable=testProjectDir]$testProjectDir"
+    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
 
@@ -141,7 +140,7 @@ steps:
     Add-Content "$(binDir)/runtest.ps1" '$env:E2E_PREVIEW_IOT_HUB_CONNECTION_STRING="$(TestPreviewIotHubConnectionString)"'
     Add-Content "$(binDir)/runtest.ps1" '$env:E2E_REGISTRIES__0__PASSWORD="$(TestContainerRegistryPassword)"'
     Add-Content "$(binDir)/runtest.ps1" '$env:E2E_ROOT_CA_PASSWORD="$(TestRootCaPassword)"'
-    Add-Content "$(binDir)/runtest.ps1" 'sudo --preserve-env dotnet test $testFile --logger:trx --filter Microsoft.Azure.Devices.Edge.Test.Module.TempSensor'
+    Add-Content "$(binDir)/runtest.ps1" 'sudo --preserve-env dotnet test "$testFile" --logger:trx --results-directory:"$(nestedDeviceTestFolder)/testresults" --filter Microsoft.Azure.Devices.Edge.Test.Module.TempSensor'
 
   displayName: Create test run script (runtest.ps1)
   
