@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly AsyncLock reconcileLock = new AsyncLock();
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
         readonly IEncryptionProvider encryptionProvider;
-        readonly IAvailabilityMetric availabilityMetric;
+        readonly IDeploymentMetrics deploymentMetrics;
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
         DeploymentStatus status;
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             DeploymentConfigInfo initialDeployedConfigInfo,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IAvailabilityMetric availabilityMetric)
+            IDeploymentMetrics deploymentMetrics)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.deploymentConfigInfoSerde = Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
-            this.availabilityMetric = Preconditions.CheckNotNull(availabilityMetric, nameof(availabilityMetric));
+            this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
             this.status = DeploymentStatus.Unknown;
             Events.AgentCreated();
         }
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEntityStore<string, string> configStore,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IAvailabilityMetric availabilityMetric)
+            IDeploymentMetrics deploymentMetrics)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty),
                 deploymentConfigInfoSerde,
                 encryptionProvider,
-                availabilityMetric);
+                deploymentMetrics);
             return agent;
         }
 
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                        _ = Task.Run(() => this.availabilityMetric.ComputeAvailability(desiredModuleSet, current))
+                        _ = Task.Run(() => this.deploymentMetrics.ComputeAvailability(desiredModuleSet, current))
                             .ContinueWith(t => Events.UnknownFailure(t.Exception), TaskContinuationOptions.OnlyOnFaulted)
                             .ConfigureAwait(false);
 
@@ -152,11 +152,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         {
                             try
                             {
-                                bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
-                                await this.UpdateCurrentConfig(deploymentConfigInfo);
-                                if (result)
+                                using (this.deploymentMetrics.ReportDeploymentTime())
                                 {
-                                    this.status = DeploymentStatus.Success;
+                                    bool result = await this.planRunner.ExecuteAsync(deploymentConfigInfo.Version, plan, token);
+                                    await this.UpdateCurrentConfig(deploymentConfigInfo);
+                                    if (result)
+                                    {
+                                        this.status = DeploymentStatus.Success;
+                                    }
                                 }
                             }
                             catch (Exception ex) when (!ex.IsFatal())

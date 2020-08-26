@@ -33,10 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var moduleIdentityLifecycleManager = new KubernetesModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var envVar = new Dictionary<string, EnvVal>();
 
-            var module1 = new TestModule("mod1", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module2 = new TestModule("mod2", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module3 = new TestModule("mod3", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module4 = new TestModule("$edgeHub", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
+            var module1 = new TestModule("mod1", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module2 = new TestModule("mod2", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module3 = new TestModule("mod3", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module4 = new TestModule("$edgeHub", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
             ModuleSet desired = ModuleSet.Create(module1, module4);
             ModuleSet current = ModuleSet.Create(module2, module3, module4);
 
@@ -68,9 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var moduleIdentityLifecycleManager = new KubernetesModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var envVar = new Dictionary<string, EnvVal>();
-            var desiredModule1 = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var desiredModule2 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var desiredModule3 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
+            var desiredModule1 = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var desiredModule2 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var desiredModule3 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
             ModuleSet desired = ModuleSet.Create(desiredModule1, desiredModule2, desiredModule3);
             ModuleSet current = ModuleSet.Create(desiredModule1, desiredModule2, desiredModule3);
 

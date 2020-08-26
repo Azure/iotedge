@@ -280,18 +280,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             static readonly IMetricsCounter DirectMethodsCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "direct_methods",
                 "Direct methods routed through EdgeHub",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsCounter ReceivedMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_received",
                 "Number of messages received from client",
-                new List<string> { "id", "route_output" });
+                new List<string> { "id", "route_output", MetricsConstants.MsTelemetry });
 
             public static void AddMessageSize(long size, string id) => MessagesHistogram.Update(size, new[] { id });
 
-            public static void AddDirectMethod(string fromId, string toId) => DirectMethodsCounter.Increment(1, new[] { fromId, toId });
+            public static void AddDirectMethod(string fromId, string toId) => DirectMethodsCounter.Increment(1, new[] { fromId, toId, bool.TrueString });
 
-            public static void AddReceivedMessage(string id, string output) => ReceivedMessagesCounter.Increment(1, new[] { id, output });
+            public static void AddReceivedMessage(string id, string output) => ReceivedMessagesCounter.Increment(1, new[] { id, output, bool.TrueString });
         }
 
         static class MetricsV0

@@ -62,6 +62,13 @@ jobs:
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
 
+      # Dotnet Diagnostics Module
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Diagnostics
+          imageName: azureiotedge-diagnostics
+          project: IotedgeDiagnosticsDotnet
+
       # Temperature Filter
       - template: templates/image-linux.yaml
         parameters:
@@ -220,7 +227,7 @@ jobs:
       displayName: 'Publish Temperature Sensor Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedged/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-iotedged Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-diagnostics/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-diagnostics Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-proxy Manifest'

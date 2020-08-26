@@ -573,16 +573,30 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .system_info()
                 .then(|result| match result {
                     Ok(system_info) => {
-                        let system_info = CoreSystemInfo::new(
-                            system_info
+                        let system_info = CoreSystemInfo {
+                            os_type: system_info
                                 .os_type()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                            system_info
+                            architecture: system_info
                                 .architecture()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                        );
+                            version: edgelet_core::version_with_source_version(),
+                            cpus: system_info.NCPU().unwrap_or_default(),
+                            kernel_version: system_info
+                                .kernel_version()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                            operating_system: system_info
+                                .operating_system()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                            server_version: system_info
+                                .server_version()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                        };
                         info!("Successfully queried system info");
                         Ok(system_info)
                     }
@@ -791,6 +805,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 true,
                 options.since(),
+                options.until(),
                 false,
                 tail,
             )
