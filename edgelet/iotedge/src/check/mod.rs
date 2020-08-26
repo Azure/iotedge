@@ -886,7 +886,7 @@ mod tests {
                 if let Ok(line) = line {
                     if line.contains("homedir") {
                         let new_line = format!(
-                            "homedir: \"{}\"",
+                            r#"homedir: "{}""#,
                             tmp_dir.path().to_str().unwrap().replace(r"\", r"\\")
                         );
                         new_config.write_all(new_line.as_bytes()).unwrap();
@@ -925,14 +925,14 @@ mod tests {
 
         match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+            check_result => panic!("parsing config {} returned {:?}", filename, check_result),
         }
 
         match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => {
                 assert_eq!(check.iothub_hostname, Some(hub_name.to_owned()));
             }
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+            check_result => panic!("parsing connection string {} returned {:?}", filename, check_result),
         }
     }
 
