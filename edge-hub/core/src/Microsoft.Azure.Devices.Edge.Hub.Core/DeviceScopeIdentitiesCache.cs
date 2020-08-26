@@ -293,6 +293,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     this.refreshCacheCompleteSignal.Set();
                     this.refreshCacheSignal.Reset();
                 }
+
                 await this.IsReady();
             }
         }

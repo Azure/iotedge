@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             remove { }
         }
 
-        public event EventHandler<IList<string>> ServiceIdentitiesUpdated
+        public event EventHandler<IList<ServiceIdentity>> ServiceIdentitiesUpdated
         {
             add { }
             remove { }
