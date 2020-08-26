@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         const string ApiVersionKey = "api-version";
         const string DeviceClientTypeKey = "DeviceClientType";
         const string ModelIdKey = "model-id";
-                                modelId);
 
         public ClientInfo Parse(string username)
         {

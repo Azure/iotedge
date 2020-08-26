@@ -19,8 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
-        readonly IProductInfoStore productInfoStore;
-        readonly IModelIdStore modelIdStore;
+        readonly IMetadataStore metadataStore;
         Option<X509Certificate2> remoteCertificate;
         IList<X509Certificate2> remoteCertificateChain;
 
@@ -28,15 +27,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IAuthenticator authenticator,
             IUsernameParser usernameParser,
             IClientCredentialsFactory clientCredentialsFactory,
-            IProductInfoStore productInfoStore,
-            IModelIdStore modelIdStore,
+            IMetadataStore metadataStore,
             bool clientCertAuthAllowed)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
-            this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
-            this.modelIdStore = Preconditions.CheckNotNull(modelIdStore, nameof(modelIdStore));
+            this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.remoteCertificate = Option.None<X509Certificate2>();
             this.remoteCertificateChain = new List<X509Certificate2>();
@@ -50,12 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
                 ClientInfo clientInfo = this.usernameParser.Parse(username);
-                clientInfo.ModelId.ForEach(async m => await this.modelIdStore.SetModelId(clientInfo.DeviceId, m));
+                clientInfo.ModelId.ForEach(async m => await this.metadataStore.SetModelId(clientInfo.DeviceId, m));
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(clientInfo.DeviceId, clientInfo.ModuleId, clientInfo.DeviceClientType, password, false);
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(clientInfo.DeviceId, clientInfo.ModuleId, clientInfo.DeviceClientType, password, false, clientInfo.ModelId);
                 }
                 else if (this.remoteCertificate.HasValue)
                 {
@@ -73,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                 clientInfo.ModuleId,
                                 clientInfo.DeviceClientType,
                                 cert,
-                                this.remoteCertificateChain);
+                                this.remoteCertificateChain,
+                                clientInfo.ModelId);
                         });
                 }
                 else
@@ -90,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
 
-                await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, clientInfo.DeviceClientType);
+                await this.metadataStore.SetMetadata(deviceCredentials.Identity.Id, clientInfo.DeviceClientType, clientInfo.ModelId);
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials, clientInfo.ModelId);
             }
