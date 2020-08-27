@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
-        public event EventHandler<IList<ServiceIdentity>> ServiceIdentitiesUpdated;
+        public event EventHandler<IList<string>> ServiceIdentitiesUpdated;
 
         public static async Task<DeviceScopeIdentitiesCache> Create(
             IServiceIdentityHierarchy serviceIdentityHierarchy,
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await this.RefreshServiceIdentityInternal(id, false);
             }
 
-            this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllServiceIdentities());
+            this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
         }
 
         async Task RefreshServiceIdentityInternal(string id, bool invokeServiceIdentitiesUpdated)
@@ -144,9 +144,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     // don't repeatedly refresh the same identity
                     // in rapid succession.
                     this.identitiesLastRefreshTime[id] = DateTime.UtcNow;
+
                     if (invokeServiceIdentitiesUpdated)
                     {
-                        this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllServiceIdentities());
+                        this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
                     }
                 }
                 else
@@ -180,6 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task<Option<string>> GetAuthChain(string targetId) => this.serviceIdentityHierarchy.GetAuthChain(targetId);
 
         public async Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId) => await this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
+
+        public async Task<IList<string>> GetAllIds() => await this.serviceIdentityHierarchy.GetAllIds();
 
         public void Dispose()
         {
@@ -283,7 +286,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 Events.DoneRefreshCycle(this.periodicRefreshRate);
-                this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllServiceIdentities());
+                this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
 
                 lock (this.refreshCacheLock)
                 {
@@ -297,8 +300,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await this.IsReady();
             }
         }
-
-        async Task<IList<ServiceIdentity>> GetAllServiceIdentities() => await this.serviceIdentityHierarchy.GetAllServiceIdentities();
 
         async Task IsReady()
         {

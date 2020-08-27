@@ -309,20 +309,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async Task GetAllServiceIdentitiesTest()
+        public async Task GetAllIdsTest()
         {
             // Arrage
             ServiceIdentityTree tree = this.SetupTree();
-            IList<ServiceIdentity> serviceIdentitiesExpected = new List<ServiceIdentity>() { this.root, this.e1_L1, this.e1_L2, this.e2_L1, this.e2_L2, this.e3_L2, this.e4_L2, this.leaf1, this.leaf2, this.mod1, this.mod2 };
+            IList<string> identitiesExpected = new List<string>() { this.root.Id, this.e1_L1.Id, this.e1_L2.Id, this.e2_L1.Id, this.e2_L2.Id, this.e3_L2.Id, this.e4_L2.Id, this.leaf1.Id, this.leaf2.Id, this.mod1.Id, this.mod2.Id };
 
             // Act
-            IList<ServiceIdentity> serviceIdentities = await tree.GetAllServiceIdentities();
+            IList<string> identities = await tree.GetAllIds();
 
             // Assert
-            Assert.Equal(11, serviceIdentities.Count);
-            foreach (ServiceIdentity serviceIdentity in serviceIdentitiesExpected)
+            Assert.Equal(11, identities.Count);
+            foreach (string id in identitiesExpected)
             {
-                Assert.Contains(serviceIdentity, serviceIdentities);
+                Assert.Contains(id, identities);
             }
         }
     }

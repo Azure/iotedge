@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -41,18 +40,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         async Task OnConnect()
         {
             this.connected.Set(true);
-            await this.PublishBrokerServiceIdentities(this.lastBrokerServiceIdentityUpdate);
-        }
-
-        async Task ServiceIdentitiesUpdated(IList<ServiceIdentity> serviceIdentities)
-        {
-            IList<BrokerServiceIdentity> brokerServiceIdentities = new List<BrokerServiceIdentity>();
-            foreach (ServiceIdentity serviceIdentity in serviceIdentities)
+            if (this.lastBrokerServiceIdentityUpdate.Count == 0)
             {
-                brokerServiceIdentities.Add(
-                    new BrokerServiceIdentity(serviceIdentity.Id, await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentity.Id)));
+                this.lastBrokerServiceIdentityUpdate =
+                    await this.ConvertIdsToBrokerServiceIdentities(await this.deviceScopeIdentitiesCache.GetAllIds());
             }
 
+            await this.PublishBrokerServiceIdentities(this.lastBrokerServiceIdentityUpdate);
+            this.lastBrokerServiceIdentityUpdate.Clear();
+        }
+
+        async Task ServiceIdentitiesUpdated(IList<string> serviceIdentities)
+        {
+            IList<BrokerServiceIdentity> brokerServiceIdentities = await this.ConvertIdsToBrokerServiceIdentities(serviceIdentities);
             if (this.connected.Get())
             {
                 await this.PublishBrokerServiceIdentities(brokerServiceIdentities);
@@ -61,6 +61,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 this.lastBrokerServiceIdentityUpdate = brokerServiceIdentities;
             }
+        }
+
+        async Task<IList<BrokerServiceIdentity>> ConvertIdsToBrokerServiceIdentities(IList<string> ids)
+        {
+            IList<BrokerServiceIdentity> brokerServiceIdentities = new List<BrokerServiceIdentity>();
+            foreach (string id in ids)
+            {
+                brokerServiceIdentities.Add(
+                    new BrokerServiceIdentity(id, await this.deviceScopeIdentitiesCache.GetAuthChain(id)));
+            }
+
+            return brokerServiceIdentities;
         }
 
         async Task PublishBrokerServiceIdentities(IList<BrokerServiceIdentity> brokerServiceIdentities)

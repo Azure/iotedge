@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             remove { }
         }
 
-        public event EventHandler<IList<ServiceIdentity>> ServiceIdentitiesUpdated
+        public event EventHandler<IList<string>> ServiceIdentitiesUpdated
         {
             add { }
             remove { }
@@ -34,6 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             => Task.FromResult(Option.None<ServiceIdentity>());
 
         public Task<Option<string>> GetAuthChain(string _) => Task.FromResult(Option.None<string>());
+
+        public Task<IList<string>> GetAllIds()
+        {
+            IList<string> list = new List<string>();
+            return Task.FromResult(list);
+        }
 
         public Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string _)
         {

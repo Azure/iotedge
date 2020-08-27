@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task<bool> Contains(string id);
         Task<Option<ServiceIdentity>> Get(string id);
         Task<IList<string>> GetAllIds();
-        Task<IList<ServiceIdentity>> GetAllServiceIdentities();
         Task<Option<string>> GetAuthChain(string id);
         Task<Option<string>> GetEdgeAuthChain(string id);
         Task<IList<ServiceIdentity>> GetImmediateChildren(string id);

@@ -29,13 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var serviceIdentity2 = new ServiceIdentity("d2", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
             var serviceIdentity3 = new ServiceIdentity("d3", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.IsAny<string>())).ReturnsAsync(Option.Some("testAuthChain"));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAllIds()).ReturnsAsync(new List<string>() { serviceIdentity.Id, serviceIdentity2.Id, serviceIdentity3.Id });
             BrokerServiceIdentity identity = new BrokerServiceIdentity("d1", Option.Some("testAuthChain"));
             BrokerServiceIdentity identity2 = new BrokerServiceIdentity("d2", Option.Some("testAuthChain"));
             BrokerServiceIdentity identity3 = new BrokerServiceIdentity("d3", Option.Some("testAuthChain"));
             connector.Raise(c => c.OnConnected += null, null, null);
 
             // Act
-            deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<ServiceIdentity> { serviceIdentity, serviceIdentity2, serviceIdentity3 });
+            deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string> { serviceIdentity.Id, serviceIdentity2.Id, serviceIdentity3.Id });
 
             // Assert
             Assert.Equal(Topic, capture.Topic);
@@ -64,8 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             sut.SetConnector(connector.Object);
 
             // Act
-            deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<ServiceIdentity>() { serviceIdentity, serviceIdentity2, serviceIdentity3 });
-            deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<ServiceIdentity>() { serviceIdentity, serviceIdentity2 });
+            deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string>() { serviceIdentity.Id, serviceIdentity2.Id, serviceIdentity3.Id });
+            deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string>() { serviceIdentity.Id, serviceIdentity2.Id });
 
 
             // Assert
