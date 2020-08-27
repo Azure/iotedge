@@ -3,7 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.Design.Serialization;
     using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -304,6 +306,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 this.e1_L1.Id + ";" +
                 this.root.Id;
             Assert.True(authChainActual.Contains(leaf_authchain_expected));
+        }
+
+        [Fact]
+        public async Task GetAllIdsTest()
+        {
+            // Arrage
+            ServiceIdentityTree tree = this.SetupTree();
+            IList<string> identitiesExpected = new List<string>() { this.root.Id, this.e1_L1.Id, this.e1_L2.Id, this.e2_L1.Id, this.e2_L2.Id, this.e3_L2.Id, this.e4_L2.Id, this.leaf1.Id, this.leaf2.Id, this.mod1.Id, this.mod2.Id };
+
+            // Act
+            IList<string> identities = await tree.GetAllIds();
+
+            // Assert
+            Assert.Equal(11, identities.Count);
+            foreach (string id in identitiesExpected)
+            {
+                Assert.Contains(id, identities);
+            }
         }
     }
 }

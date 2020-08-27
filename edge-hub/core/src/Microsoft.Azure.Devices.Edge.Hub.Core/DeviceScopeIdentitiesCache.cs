@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await this.RefreshServiceIdentityInternal(id, false);
             }
 
-            this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
+            this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
         }
 
         async Task RefreshServiceIdentityInternal(string id, bool invokeServiceIdentitiesUpdated)
@@ -144,6 +144,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     // don't repeatedly refresh the same identity
                     // in rapid succession.
                     this.identitiesLastRefreshTime[id] = DateTime.UtcNow;
+
+                    if (invokeServiceIdentitiesUpdated)
+                    {
+                        this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
+                    }
                 }
                 else
                 {
@@ -153,11 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             catch (Exception e)
             {
                 Events.ErrorRefreshingCache(e, id);
-            }
-
-            if (invokeServiceIdentitiesUpdated)
-            {
-                this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
             }
         }
 
@@ -181,6 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task<Option<string>> GetAuthChain(string targetId) => this.serviceIdentityHierarchy.GetAuthChain(targetId);
 
         public async Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId) => await this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
+
+        public async Task<IList<string>> GetAllIds() => await this.serviceIdentityHierarchy.GetAllIds();
 
         public void Dispose()
         {
@@ -284,7 +286,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 Events.DoneRefreshCycle(this.periodicRefreshRate);
-                this.ServiceIdentitiesUpdated?.Invoke(this, currentCacheIds);
+                this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
 
                 lock (this.refreshCacheLock)
                 {

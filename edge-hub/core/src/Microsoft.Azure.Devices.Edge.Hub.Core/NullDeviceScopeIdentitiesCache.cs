@@ -35,6 +35,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task<Option<string>> GetAuthChain(string _) => Task.FromResult(Option.None<string>());
 
+        public Task<IList<string>> GetAllIds()
+        {
+            IList<string> list = new List<string>();
+            return Task.FromResult(list);
+        }
+
         public Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string _)
         {
             IList<ServiceIdentity> list = new List<ServiceIdentity>();

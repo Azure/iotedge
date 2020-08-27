@@ -30,6 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         AtomicBoolean isRetrying = new AtomicBoolean(false);
 
+        public event EventHandler OnConnected;
+
         public MqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
         {
             this.components = Preconditions.CheckNotNull(components);
@@ -102,6 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 this.TriggerReconnect(this, new EventArgs());
             }
 
+            this.OnConnected?.Invoke(this, EventArgs.Empty);
             Events.Started();
         }
 
