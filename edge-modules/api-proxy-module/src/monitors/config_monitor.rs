@@ -11,10 +11,10 @@ use utils::ShutdownHandle;
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
-const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,GATEWAY_HOSTNAME";
+const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,PARENT_HOSTNAME";
 const TWIN_PROXY_CONFIG_KEY: &str = "nginx_config";
 
-const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443"),("DOCKER_REQUEST_ROUTE_ADDRESS", "${PARENT_HOSTNAME}")];
 const TWIN_STATE_POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 fn duration_from_secs_str(s: &str) -> Result<Duration, <u64 as std::str::FromStr>::Err> {
@@ -195,6 +195,10 @@ fn get_raw_config(encoded_file: &str) -> Result<Vec<u8>, anyhow::Error> {
 }
 
 //Check readme for details of how parsing is done.
+//First all the environment variables are replaced by their value.
+//Only environment variables in the list NGINX_CONFIG_ENV_VAR_LIST are replaced.
+//A second pass of replacing happens. This is to allow one level of indirection.
+//Then everything that is between #if_tag 0 and #endif_tag 0 or between  #if_tag !1 and #endif_tag !1 is replaced.
 fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let mut context = std::collections::HashMap::new();
 
@@ -214,14 +218,16 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
         context.insert(key.to_string(), val);
     }
 
-    let str: String = envsubst::substitute(str, &context).unwrap();
+    //Do 2 passes of subst to allow one level of indirection
+    let str: String = envsubst::substitute(str, &context).context("Failed to subst the text")?;
+    let str: String = envsubst::substitute(str, &context).context("Failed to subst the text")?;
 
     //Replace is 0
-    let re = regex::Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0").unwrap();
+    let re = regex::Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0").context("Failed to remove text between #if_tag 0 tags ")?;
     let str = re.replace_all(&str, "").to_string();
 
     //Or not 1. This allows usage of if ... else ....
-    let re = regex::Regex::new(r"#if_tag !1((.|\n)*?)#endif_tag !1").unwrap();
+    let re = regex::Regex::new(r"#if_tag !1((.|\n)*?)#endif_tag !1").context("Failed to remove text between #if_tag 0 tags ")?;
     let str = re.replace_all(&str, "").to_string();
 
     Ok(str)
