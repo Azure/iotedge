@@ -245,7 +245,7 @@ pub fn report_twin_state(
                 .collect(),
             ))
             .await;
-        let () = result.expect("couldn't report initial twin state");
+        let () = result.context("couldn't report initial twin state")?;
 
         loop {
             let wait_shutdown = shutdown_signal.notified();
@@ -268,7 +268,7 @@ pub fn report_twin_state(
                             ))
                             .await;
 
-                        let () = result.expect("couldn't report twin state patch");
+                        let () = result.context("couldn't report twin state patch")?;
                     } else {
                         log::warn!("Shutting down twin state polling!");
                         //Should send a ctrl c event here?
