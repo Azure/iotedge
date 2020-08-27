@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         // column families whose memtables are backed by the oldest live WAL file
         const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
 
-        // Set a large default is to allow RocksDb to keep open, 
+        // Set a large default is to allow RocksDb to keep open,
         // but not the default unlimited setting (unlimted = -1)
         const int DefaultMaxOpenFiles = 5000;
 
