@@ -1,18 +1,16 @@
-use std::{collections::HashSet, iter::FromIterator, time::Duration};
+use std::{collections::HashSet, time::Duration};
 
 use futures_util::future::BoxFuture;
-use lazy_static::lazy_static;
-use regex::Regex;
+use serde_json::error::Error as SerdeError;
 use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{debug, error, info, warn};
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
-use mqtt_broker::{BrokerHandle, Error, Message, SystemEvent};
+use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
 
-const TOPIC_FILTER: &str = "$edgehub/+/disconnect";
-const CLIENT_EXTRACTION_REGEX: &str = r"\$edgehub/(.*)/disconnect";
+const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -76,13 +74,9 @@ impl CommandHandler {
 
     pub async fn run(mut self) -> Result<(), CommandHandlerError> {
         debug!("starting command handler");
+        let subscribe_topics = &[DISCONNECT_TOPIC.to_string()];
 
-        let subscribe_topics = &[TOPIC_FILTER.to_string()];
-        if !self.subscribe(subscribe_topics).await? {
-            return Err(CommandHandlerError::MissingSubacks(
-                subscribe_topics.join(", "),
-            ));
-        }
+        self.subscribe(subscribe_topics).await?;
 
         while let Some(event) = self
             .client
@@ -91,7 +85,7 @@ impl CommandHandler {
             .map_err(CommandHandlerError::PollClientFailure)?
         {
             if let Err(e) = self.handle_event(event).await {
-                warn!(message = "failed to disconnect client", error = %e);
+                warn!(message = "error processing command handler event", error = %e);
             }
         }
 
@@ -100,9 +94,8 @@ impl CommandHandler {
         Ok(())
     }
 
-    async fn subscribe(&mut self, topics: &[String]) -> Result<bool, CommandHandlerError> {
+    async fn subscribe(&mut self, topics: &[String]) -> Result<(), CommandHandlerError> {
         debug!("command handler subscribing to disconnect topic");
-
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: proto::QoS::AtLeastOnce,
@@ -114,7 +107,7 @@ impl CommandHandler {
                 .map_err(CommandHandlerError::SubscribeFailure)?;
         }
 
-        let mut subacks: HashSet<String> = HashSet::from_iter(topics.to_vec());
+        let mut subacks: HashSet<_> = topics.iter().map(Clone::clone).collect();
 
         while let Some(event) = self
             .client
@@ -131,62 +124,47 @@ impl CommandHandler {
 
                 if subacks.is_empty() {
                     debug!("command handler successfully subscribed to disconnect topic");
-                    return Ok(true);
+                    return Ok(());
                 }
             }
         }
 
         error!("command handler failed to subscribe to disconnect topic");
-        Ok(false)
+        Err(CommandHandlerError::MissingSubacks(
+            subacks.into_iter().collect::<Vec<_>>(),
+        ))
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
-            let client_id = parse_client_id(&publication.topic_name)?;
+            let client_id: ClientId = serde_json::from_slice(&publication.payload)
+                .map_err(HandleDisconnectError::ParseClientId)?;
 
             info!("received disconnection request for client {}", client_id);
 
             if let Err(e) =
                 self.broker_handle
                     .send(Message::System(SystemEvent::ForceClientDisconnect(
-                        client_id.into(),
+                        client_id.clone(),
                     )))
             {
                 return Err(HandleDisconnectError::SignalError(e));
             }
 
-            info!("succeeded sending broker signal to disconnect client");
+            info!(
+                "succeeded sending broker signal to disconnect client{}",
+                client_id
+            );
         }
 
         Ok(())
     }
 }
 
-fn parse_client_id(topic_name: &str) -> Result<String, HandleDisconnectError> {
-    lazy_static! {
-        static ref REGEX: Regex =
-            Regex::new(CLIENT_EXTRACTION_REGEX).expect("failed to create new Regex from pattern");
-    }
-
-    let captures = REGEX
-        .captures(topic_name.as_ref())
-        .ok_or_else(|| HandleDisconnectError::RegexFailure)?;
-
-    let value = captures
-        .get(1)
-        .ok_or_else(|| HandleDisconnectError::RegexFailure)?;
-
-    let client_id = value.as_str();
-    match client_id {
-        "" => Err(HandleDisconnectError::NoClientId),
-        id => Ok(id.to_string()),
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum CommandHandlerError {
-    #[error("failed to receive expected subacks for command topics: {0}")]
-    MissingSubacks(String),
+    #[error("failed to receive expected subacks for command topics: {0:?}")]
+    MissingSubacks(Vec<String>),
 
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
@@ -197,76 +175,9 @@ pub enum CommandHandlerError {
 
 #[derive(Debug, thiserror::Error)]
 enum HandleDisconnectError {
-    #[error("regex does not match disconnect topic")]
-    RegexFailure,
-
-    #[error("client id not found for client disconnect topic")]
-    NoClientId,
+    #[error("failed to parse client id from message payload")]
+    ParseClientId(#[from] SerdeError),
 
     #[error("failed sending broker signal to disconnect client")]
     SignalError(#[from] Error),
-}
-
-#[cfg(test)]
-mod tests {
-    use assert_matches::assert_matches;
-
-    use crate::command::{parse_client_id, HandleDisconnectError};
-
-    #[test]
-    fn it_parses_client_id() {
-        let client_id = "test-client";
-        let topic = "$edgehub/test-client/disconnect";
-
-        let output = parse_client_id(topic).unwrap();
-
-        assert_eq!(output, client_id);
-    }
-
-    #[test]
-    fn it_parses_client_id_with_slash() {
-        let client_id = "test/client";
-        let topic = "$edgehub/test/client/disconnect";
-
-        let output = parse_client_id(topic).unwrap();
-
-        assert_eq!(output, client_id);
-    }
-
-    #[test]
-    fn it_parses_client_id_with_slash_disconnect_suffix() {
-        let client_id = "test/disconnect";
-        let topic = "$edgehub/test/disconnect/disconnect";
-
-        let output = parse_client_id(topic).unwrap();
-
-        assert_eq!(output, client_id);
-    }
-
-    #[test]
-    fn it_parses_empty_client_id_returning_none() {
-        let topic = "$edgehub//disconnect";
-
-        let output = parse_client_id(topic);
-
-        assert_matches!(output, Err(HandleDisconnectError::NoClientId));
-    }
-
-    #[test]
-    fn it_parses_bad_topic_returning_none() {
-        let topic = "$edgehub/disconnect/client-id";
-
-        let output = parse_client_id(topic);
-
-        assert_matches!(output, Err(HandleDisconnectError::RegexFailure));
-    }
-
-    #[test]
-    fn it_parses_empty_topic_returning_none() {
-        let topic = "";
-
-        let output = parse_client_id(topic);
-
-        assert_matches!(output, Err(HandleDisconnectError::RegexFailure));
-    }
 }
