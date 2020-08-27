@@ -25,19 +25,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [EndToEnd]
     public class PriorityQueues : SasManualProvisioningFixture
     {
-        const string TrcModuleName = "testResultCoordinator";
+        const string TrcModuleName = "testresultcoordinator";
         const string LoadGenModuleName = "loadGenModule";
         const string RelayerModuleName = "relayerModule";
         const string NetworkControllerModuleName = "networkController";
-        const string TrcUrl = "http://" + TrcModuleName + ":5001";
+        const string TrcUrl = "http://" + TrcModuleName + ":7027";
         const string LoadGenTestDuration = "00:00:20";
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
         {
-            // TODO: Fix PriorityQueue E2E tests for Windows and ARM32
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit() )
+            // TODO: Fix PriorityQueue E2E tests for Windows
+            if (OsPlatform.IsWindows())
             {
                 Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
             }
@@ -61,8 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task PriorityQueueModuleToHubMessages()
         {
-            // TODO: Add Windows and ARM32. Windows won't be able to work for this test until we add NetworkController Windows implementation
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
+            // TODO: Windows won't be able to work for this test until we add NetworkController Windows implementation
+            if (OsPlatform.IsWindows())
             {
                 Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
             }
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true, "00:00:40");
 
-            var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:5001" };
+            var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:7027" };
 
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, "hubtest", trcImage, loadGenImage, testInfo, true);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
@@ -98,8 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task PriorityQueueTimeToLive()
         {
-            // TODO: Fix PriorityQueue TTL E2E tests for Windows and ARM32
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
+            // TODO: Fix PriorityQueue TTL E2E tests for Windows
+            if (OsPlatform.IsWindows())
             {
                 Assert.Ignore("Priority Queue time to live test has been disabled for Windows and Arm32 until we can fix it.");
             }
@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private async Task ValidateResultsAsync()
         {
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
+            HttpResponseMessage response = await client.GetAsync("http://localhost:7027/api/report");
             var jsonstring = await response.Content.ReadAsStringAsync();
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
             if (!isPassed)
@@ -231,9 +231,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                            ("testDuration", "00:20:00"),
                            ("verificationDelay", "00:00:00"),
                            ("NetworkControllerRunProfile", "Online"),
-                           ("TEST_INFO", "key=unnecessary")
+                           ("TEST_INFO", "key=unnecessary"),
+                           ("webhostPort", "7027")
                        })
-                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
+                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"7027/tcp\": [{\"HostPort\": \"7027\"}]}}}") })
 
                        .WithDesiredProperties(new Dictionary<string, object>
                        {
