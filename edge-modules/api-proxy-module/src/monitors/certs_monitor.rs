@@ -1,10 +1,14 @@
 use super::utils;
-use anyhow::Result;
-use chrono::DateTime;
-use chrono::Utc;
+use chrono::{DateTime, Utc, Duration};
 use futures_util::future::Either;
 use std::sync::Arc;
 use tokio::sync::Notify;
+use anyhow::{Context, Result, Error};
+use std::env;
+use tokio::task::JoinHandle;
+use utils::ShutdownHandle;
+use tokio::time;
+
 
 const PROXY_SERVER_TRUSTED_CA_PATH: &str = "/app/trustedCA.crt";
 const PROXY_SERVER_CERT_PATH: &str = "/app/server.crt";
@@ -16,45 +20,47 @@ const EXPIRY_TIME_START_DATE: &str = "1996-12-19T00:00:00+00:00";
 
 //Check for expiry of certificates. If certificates are expired: rotate.
 pub fn start(
-    notify_certs_rotated: Arc<Notify>,
-) -> (tokio::task::JoinHandle<()>, utils::ShutdownHandle) {
-    const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: std::time::Duration =
-        std::time::Duration::from_secs(1);
+    notify_certs_rotated: Arc<Notify>, 
+) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
+    const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: tokio::time::Duration =
+    tokio::time::Duration::from_secs(1);
 
     let shutdown_signal = Arc::new(tokio::sync::Notify::new());
     let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
 
-    let module_id = std::env::var("IOTEDGE_MODULEID")
-        .expect(&format!("Missing env var {:?}", "IOTEDGE_MODULEID"));
-    let generation_id = std::env::var("IOTEDGE_MODULEGENERATIONID").expect(&format!(
+    let module_id = env::var("IOTEDGE_MODULEID")
+        .context(format!("Missing env var {:?}", "IOTEDGE_MODULEID"))?;
+    let generation_id = env::var("IOTEDGE_MODULEGENERATIONID").context(format!(
         "Missing env var {:?}",
         "IOTEDGE_MODULEGENERATIONID"
-    ));
-    let gateway_hostname = std::env::var("IOTEDGE_GATEWAYHOSTNAME")
-        .expect(&format!("Missing env var {:?}", "IOTEDGE_GATEWAYHOSTNAME"));
-    let workload_url = std::env::var("IOTEDGE_WORKLOADURI")
-        .expect(&format!("Missing env var {:?}", "IOTEDGE_WORKLOADURI"));
+    ))?;
+    let gateway_hostname = env::var("IOTEDGE_GATEWAYHOSTNAME")
+        .context(format!("Missing env var {:?}", "IOTEDGE_GATEWAYHOSTNAME"))?;
+    let workload_url = env::var("IOTEDGE_WORKLOADURI")
+        .context(format!("Missing env var {:?}", "IOTEDGE_WORKLOADURI"))?;
     let mut cert_monitor = CertificateMonitor::new(
         module_id,
         generation_id,
         gateway_hostname,
         workload_url,
-        chrono::Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
-    );
+        Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
+    ).context("Could not create cert monitor client")?;
 
-    let monitor_loop = tokio::spawn(async move {
+    let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async  move {
+
         loop {
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
+
             match futures::future::select(
-                tokio::time::delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS),
+                time::delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS),
                 wait_shutdown,
             )
             .await
             {
                 Either::Right(_) => {
                     log::warn!("Shutting down certs monitor!");
-                    return;
+                    return Ok(());
                 }
                 Either::Left(_) => {}
             };
@@ -82,7 +88,7 @@ pub fn start(
 
             //Same thing as above but for private key and server cert
             match cert_monitor
-                .need_to_rotate_server_cert(chrono::Utc::now())
+                .need_to_rotate_server_cert(Utc::now())
                 .await
             {
                 Ok((need_to_rotate_cert, server_cert, private_key)) => {
@@ -121,7 +127,7 @@ pub fn start(
         }
     });
 
-    (monitor_loop, shutdown_handle)
+    Ok((monitor_loop, shutdown_handle))
 }
 
 struct CertificateMonitor {
@@ -130,8 +136,8 @@ struct CertificateMonitor {
     hostname: String,
     bundle_of_trust_hash: String,
     work_load_api_client: edgelet_client::WorkloadClient,
-    cert_expiration_date: chrono::DateTime<Utc>,
-    validity_days: chrono::Duration,
+    cert_expiration_date: DateTime<Utc>,
+    validity_days: Duration,
 }
 
 impl CertificateMonitor {
@@ -140,19 +146,19 @@ impl CertificateMonitor {
         generation_id: String,
         hostname: String,
         workload_url: String,
-        validity_days: chrono::Duration,
-    ) -> Self {
+        validity_days: Duration,
+    ) -> Result<Self, Error> {
         //Create expiry date in the past so cert has to be rotated now.
         let cert_expiration_date = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
-            .unwrap()
+            .context("Error reading Start date")?
             .with_timezone(&Utc);
 
         let work_load_api_client = match edgelet_client::workload(&workload_url) {
             Ok(work_load_api_client) => (work_load_api_client),
-            Err(err) => panic!(err),
+            Err(err) => return Err(anyhow::anyhow!(format!("Could not get workload client {:?}", err))),
         };
 
-        CertificateMonitor {
+        Ok(CertificateMonitor {
             module_id,
             generation_id,
             hostname,
@@ -160,21 +166,21 @@ impl CertificateMonitor {
             work_load_api_client,
             cert_expiration_date,
             validity_days,
-        }
+        })
     }
 
     async fn need_to_rotate_server_cert(
         &mut self,
-        current_date: chrono::DateTime<Utc>,
+        current_date: DateTime<Utc>,
     ) -> Result<(bool, String, String), anyhow::Error> {
         let mut need_to_rotate = false;
         let server_crt;
         let private_key;
 
         if current_date >= self.cert_expiration_date {
-            let new_expiration_date = chrono::Utc::now()
+            let new_expiration_date = Utc::now()
                 .checked_add_signed(self.validity_days)
-                .expect("Could not compute new expiration date for certificate");
+                .context("Could not compute new expiration date for certificate")?;
             let resp = self
                 .work_load_api_client
                 .create_server_cert(
@@ -193,7 +199,7 @@ impl CertificateMonitor {
             };
             need_to_rotate = true;
 
-            let datetime = DateTime::parse_from_rfc3339(&resp.expiration()).unwrap();
+            let datetime = DateTime::parse_from_rfc3339(&resp.expiration()).context("Error parsing certificate expiration date")?;
             // convert the string into DateTime<Utc> or other timezone
             self.cert_expiration_date = datetime.with_timezone(&Utc);
         } else {
@@ -223,7 +229,6 @@ impl CertificateMonitor {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Duration, Utc};
     /*use http::StatusCode;
     use matches::assert_matches;*/
     use super::*;
@@ -232,7 +237,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_server_cert_and_private_key() {
-        let expiration = chrono::Utc::now() + Duration::days(90);
+        let expiration = Utc::now() + Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS);
         let res = json!(
             {
                 "privateKey": { "type": "key", "bytes": "PRIVATE KEY" },
@@ -259,8 +264,8 @@ mod tests {
             generation_id,
             gateway_hostname,
             workload_url,
-            chrono::Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
-        );
+            Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
+        ).unwrap();
 
         let start_time = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
             .unwrap()
@@ -296,8 +301,8 @@ mod tests {
             generation_id,
             gateway_hostname,
             workload_url,
-            chrono::Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
-        );
+            Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
+        ).unwrap();
 
         let (need_rotation, bundle_of_trust) = client.has_bundle_of_trust_rotated().await.unwrap();
 
