@@ -40,7 +40,13 @@ pub(crate) async fn dispatch<'a, T: StoreBackend>(store: &'a Store<T>, req: Requ
 
             store.pull_secret(id, body).await?;
             Ok(Response::builder().status(204).body(Body::empty()).unwrap())
-        }
+        },
+        &Method::PATCH => {
+            Ok(Response::builder().status(204).body(Body::empty()).unwrap())
+        },
+        &Method::DELETE => {
+            Ok(Response::builder().status(204).body(Body::empty()).unwrap())
+        },
         _ => Ok(Response::builder().status(404).body(Body::empty())?)
     }
 }
