@@ -144,27 +144,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        void ClientConnectionToCloudEstablished(object sender, IIdentity identity)
+        async void ClientConnectionToCloudEstablished(object sender, IIdentity identity)
         {
-            this.ClientConnectionEstablished(identity, true);
+            Events.ClientConnectedToCloudProcessingSubscriptions(identity);
+            try
+            {
+                await this.ProcessExistingSubscriptions(identity.Id);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorProcessingSubscriptions(e, identity);
+            }
         }
 
-        void ClientConnectionToEdgeHubEstablished(object sender, IIdentity identity)
+        async void ClientConnectionToEdgeHubEstablished(object sender, IIdentity identity)
         {
-            this.ClientConnectionEstablished(identity, false);
-        }
-
-        async void ClientConnectionEstablished(IIdentity identity, bool connectedToCloud)
-        {
-            if (connectedToCloud)
-            {
-                Events.ClientConnectedToCloudProcessingSubscriptions(identity);
-            }
-            else
-            {
-                Events.ClientConnectedToEdgeHubProcessingSubscriptions(identity);
-            }
-
+            Events.ClientConnectedToEdgeHubProcessingSubscriptions(identity);
             try
             {
                 await this.ProcessExistingSubscriptions(identity.Id);
@@ -186,17 +181,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
             else
             {
-                Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
-                Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.ConnectionManager.GetSubscriptions(id);
-                await subscriptions.ForEachAsync(
-                    async s =>
-                    {
-                        foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
+                try
+                {
+                    Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
+                    Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.ConnectionManager.GetSubscriptions(id);
+                    await subscriptions.ForEachAsync(
+                        async s =>
                         {
-                            await this.ProcessSubscriptionWithRetry(id, cloudProxy, subscription.Key, subscription.Value);
-                        }
-                    });
-                this.subscriptionsBeingProcessed.TryRemove(id, out _);
+                            foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
+                            {
+                                await this.ProcessSubscriptionWithRetry(id, cloudProxy, subscription.Key, subscription.Value);
+                            }
+                        });
+                }
+                finally
+                {
+                    this.subscriptionsBeingProcessed.TryRemove(id, out _);
+                }
             }
         }
 
