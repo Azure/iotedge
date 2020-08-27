@@ -41,7 +41,7 @@ async fn main() {
     let report_twin_state_handle = client.report_twin_state_handle();
 
     let (twin_state_poll_handle, twin_state_poll_shutdown_handle) =
-        config_monitor::poll_twin_state(report_twin_state_handle);
+        config_monitor::report_twin_state(report_twin_state_handle);
     let (config_monitor_handle, config_monitor_shutdown_handle) =
         config_monitor::start(client, notify_received_config);
     let (cert_monitor_handle, cert_monitor_shutdown_handle) =

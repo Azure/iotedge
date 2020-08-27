@@ -1,5 +1,6 @@
 use super::utils;
 use anyhow::Result;
+use chrono::DateTime;
 use chrono::Utc;
 use futures_util::future::Either;
 use std::sync::Arc;
@@ -142,7 +143,7 @@ impl CertificateMonitor {
         validity_days: chrono::Duration,
     ) -> Self {
         //Create expiry date in the past so cert has to be rotated now.
-        let cert_expiration_date = chrono::DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
+        let cert_expiration_date = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
             .unwrap()
             .with_timezone(&Utc);
 
@@ -192,7 +193,7 @@ impl CertificateMonitor {
             };
             need_to_rotate = true;
 
-            let datetime = chrono::DateTime::parse_from_rfc3339(&resp.expiration()).unwrap();
+            let datetime = DateTime::parse_from_rfc3339(&resp.expiration()).unwrap();
             // convert the string into DateTime<Utc> or other timezone
             self.cert_expiration_date = datetime.with_timezone(&Utc);
         } else {
@@ -261,7 +262,7 @@ mod tests {
             chrono::Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
         );
 
-        let start_time = chrono::DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
+        let start_time = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
             .unwrap()
             .with_timezone(&Utc);
         let current_date = start_time.checked_add_signed(Duration::days(1)).unwrap();

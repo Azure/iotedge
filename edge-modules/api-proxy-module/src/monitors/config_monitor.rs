@@ -10,7 +10,7 @@ const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
 const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,GATEWAY_HOSTNAME";
 const TWIN_PROXY_CONFIG_KEY: &str = "nginx_config";
 
-const PROXY_CONFIG_DEFAULT_VALUES: &'static[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
 const TWIN_STATE_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
 
 fn duration_from_secs_str(s: &str) -> Result<std::time::Duration, <u64 as std::str::FromStr>::Err> {
@@ -102,16 +102,16 @@ pub fn start(
                     log::warn!("Shutting down config monitor!");
                     return;
                 }
-                Either::Right((message, _)) => {
-                    if let Some(message) = message {
-                        message
-                    } else {
-                        log::warn!("Shutting down config monitor!");
-                        return;
-                    }
+                Either::Right((Some(Ok(message)), _)) => message,
+                Either::Right((Some(Err(err)), _)) => {
+                    log::error!("Error receiving a message! {:?}", err);
+                    continue;
                 }
-            }
-            .unwrap();
+                Either::Right((None, _)) => {
+                    log::warn!("Shutting down config monitor!");
+                    return;
+                }
+            };
 
             if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
                 if let Err(err) = save_raw_config(&twin) {
@@ -183,6 +183,7 @@ fn get_raw_config(encoded_file: &str) -> Result<Vec<u8>, anyhow::Error> {
     Ok(bytes)
 }
 
+//Check readme for details of how parsing is done.
 fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let mut context = std::collections::HashMap::new();
 
@@ -215,7 +216,7 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     Ok(str)
 }
 
-pub fn poll_twin_state(
+pub fn report_twin_state(
     mut report_twin_state_handle: azure_iot_mqtt::ReportTwinStateHandle,
 ) -> (tokio::task::JoinHandle<()>, utils::ShutdownHandle) {
     use futures_util::StreamExt;
