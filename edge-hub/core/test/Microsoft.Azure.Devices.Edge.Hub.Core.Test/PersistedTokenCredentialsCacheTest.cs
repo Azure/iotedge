@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, true);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, Option.None<string>(), true);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, false);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, Option.None<string>(), false);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var clientCertificate = new X509Certificate2();
             var clientCertChain = new List<X509Certificate2>();
-            var credentials = new X509CertCredentials(identity, callerProductInfo, clientCertificate, clientCertChain);
+            var credentials = new X509CertCredentials(identity, callerProductInfo, Option.None<string>(), clientCertificate, clientCertChain);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, true);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, Option.None<string>(), true);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);

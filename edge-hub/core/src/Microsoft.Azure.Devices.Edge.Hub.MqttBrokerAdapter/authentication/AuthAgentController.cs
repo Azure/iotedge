@@ -100,7 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                                                     clientInfo.ModuleId,
                                                                     clientInfo.DeviceClientType,
                                                                     request.Password,
-                                                                    false));
+                                                                    false,
+                                                                    clientInfo.ModelId));
                 }
                 else if (isCertificatePresent)
                 {
@@ -113,7 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                                                     clientInfo.ModuleId,
                                                                     clientInfo.DeviceClientType,
                                                                     certificate,
-                                                                    chain));
+                                                                    chain,
+                                                                    clientInfo.ModelId));
                 }
                 else
                 {

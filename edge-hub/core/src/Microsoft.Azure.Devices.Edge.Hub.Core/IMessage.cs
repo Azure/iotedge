@@ -17,5 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         // at routing and enqueue time, and is strictly
         // meant to be used for metrics.
         uint ProcessedPriority { get; }
+
+        long EnqueuedTimestamp { get; }
     }
 }

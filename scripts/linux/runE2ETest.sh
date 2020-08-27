@@ -277,6 +277,7 @@ function print_logs() {
 function process_args() {
     print_highlighted_message 'Process arguments'
     saveNextArg=0
+    BYPASS_EDGE_INSTALLATION=""
     for arg in "$@"
     do
         if [ $saveNextArg -eq 1 ]; then
@@ -461,6 +462,7 @@ function process_args() {
                 '-testInfo' ) saveNextArg=42;;
                 '-testStartDelay' ) saveNextArg=43;;
                 '-runtimeLogLevel' ) saveNextArg=44;;
+                '-bypassEdgeInstallation' ) BYPASS_EDGE_INSTALLATION="--bypass-edge-installation";;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -562,6 +564,7 @@ function run_directmethod_test()
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --verify-data-from-module "DirectMethodSender" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -691,6 +694,7 @@ function run_dps_provisioning_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
+        $BYPASS_EDGE_INSTALLATION \
         $dps_command_flags \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
@@ -727,6 +731,7 @@ function run_longhaul_test() {
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+        $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -759,6 +764,7 @@ function run_quickstartcerts_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=Core \
         --optimize_for_performance="$optimize_for_performance" \
+        $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
     declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
@@ -805,6 +811,7 @@ function run_stress_test() {
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+        $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -836,6 +843,7 @@ function run_tempfilter_test() {
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -867,6 +875,7 @@ function run_tempfilterfunctions_test() {
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -897,6 +906,7 @@ function run_tempsensor_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
+        $BYPASS_EDGE_INSTALLATION \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
@@ -943,7 +953,10 @@ function run_test()
 
 function test_setup() {
     validate_test_parameters
-    clean_up
+
+    if [ $BYPASS_EDGE_INSTALLATION -ne "--bypass-edge-installation" ]; then
+        clean_up
+    fi
     prepare_test_from_artifacts
     create_iotedge_service_config
 }
@@ -1084,6 +1097,7 @@ function usage() {
     echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
     echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
+    echo ' -bypassEdgeInstallation                        Skip installing iotedge (if already preinstalled)'
     exit 1;
 }
 

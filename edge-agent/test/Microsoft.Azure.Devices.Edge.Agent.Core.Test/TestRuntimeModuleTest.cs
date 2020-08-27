@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     public class TestRuntimeModuleTest
     {
         static readonly TestConfig Config1 = new TestConfig("image1");
-        public static TestModule TestModule1 = new TestModule("name", "version", "type", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
+        public static TestModule TestModule1 = new TestModule("name", "version", "type", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
 
         static readonly DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
         static readonly DateTime lastExitTime = lastStartTime.AddDays(1);
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(reportedModule.RestartCount, updatedModule.RestartCount);
             Assert.Equal(reportedModule.RestartPolicy, updatedModule.RestartPolicy);
             Assert.Equal(reportedModule.ImagePullPolicy, updatedModule.ImagePullPolicy);
-            Assert.Equal(reportedModule.Priority, updatedModule.Priority);
+            Assert.Equal(reportedModule.StartupOrder, updatedModule.StartupOrder);
             Assert.Equal(reportedModule.StatusDescription, updatedModule.StatusDescription);
             Assert.Equal(reportedModule.Type, updatedModule.Type);
             Assert.Equal(reportedModule.Version, updatedModule.Version);

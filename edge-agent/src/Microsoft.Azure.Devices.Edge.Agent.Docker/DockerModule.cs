@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             RestartPolicy restartPolicy,
             DockerConfig config,
             ImagePullPolicy imagePullPolicy,
-            uint priority,
+            uint startupOrder,
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env)
         {
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
             this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
             this.ImagePullPolicy = Preconditions.CheckIsDefined(imagePullPolicy);
-            this.Priority = priority;
+            this.StartupOrder = startupOrder;
             this.ConfigurationInfo = configurationInfo ?? new ConfigurationInfo(string.Empty);
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
         }
@@ -50,11 +50,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public virtual ImagePullPolicy ImagePullPolicy { get; }
 
         [JsonProperty(
-            PropertyName = "priority",
+            PropertyName = "startupOrder",
             Required = Required.DisallowNull,
             DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [DefaultValue(Core.Constants.DefaultPriority)]
-        public virtual uint Priority { get; }
+        [DefaultValue(Core.Constants.DefaultStartupOrder)]
+        public virtual uint StartupOrder { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "type")]
         public virtual string Type => "docker";
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.Config.Equals(other.Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
-                this.Priority == other.Priority &&
+                this.StartupOrder == other.StartupOrder &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.Config.Equals(dockerModule.Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
-                this.Priority == other.Priority &&
+                this.StartupOrder == other.StartupOrder &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 hashCode = (hashCode * 397) ^ (this.Config != null ? this.Config.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.RestartPolicy.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.ImagePullPolicy.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.Priority.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.StartupOrder.GetHashCode();
                 hashCode = (hashCode * 397) ^ EnvDictionaryComparer.GetHashCode(this.Env);
                 return hashCode;
             }

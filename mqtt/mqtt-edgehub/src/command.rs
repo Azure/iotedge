@@ -140,14 +140,16 @@ impl CommandHandler {
             let client_id: ClientId = serde_json::from_slice(&publication.payload)
                 .map_err(HandleDisconnectError::ParseClientId)?;
 
-            info!("received disconnection request for client {}", client_id);
+            info!(
+                "received disconnection request for client {}",
+                client_id.clone()
+            );
 
-            if let Err(e) = self
-                .broker_handle
-                .send(Message::System(SystemEvent::ForceClientDisconnect(
-                    client_id.clone(),
-                )))
-                .await
+            if let Err(e) =
+                self.broker_handle
+                    .send(Message::System(SystemEvent::ForceClientDisconnect(
+                        client_id.clone(),
+                    )))
             {
                 return Err(HandleDisconnectError::SignalError(e));
             }

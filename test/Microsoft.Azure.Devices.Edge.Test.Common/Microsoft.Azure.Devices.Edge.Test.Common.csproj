@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.22.3-NestedEdge" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.27.3-NestedEdge" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.1-NestedEdge" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="RunProcessAsTask" Version="1.2.4" />
