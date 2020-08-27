@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -15,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Primitives;
     using Newtonsoft.Json;
 
     public class DeviceScopeController : Controller
@@ -115,12 +115,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 targetId += "/" + request.TargetModuleId;
             }
 
+            IEdgeHub edgeHub = await this.edgeHubGetter;
+
+            // Check if the actor has provided the originating EdgeHub ID,
+            // if not, then we must by definition by the origin.
+            string originatingEdge = edgeHub.GetEdgeDeviceId();
+            if (this.Request.Headers.TryGetValue(Constants.OriginEdgeHeaderKey, out StringValues originHeader) && originHeader.Count > 0)
+            {
+                originatingEdge = originHeader.First();
+            }
+
             // We must always forward the call further upstream first,
             // as this is invoked for refreshing an identity on-demand,
             // and we don't know whether our cache is out-of-date.
-            IEdgeHub edgeHub = await this.edgeHubGetter;
             IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-            await identitiesCache.RefreshServiceIdentity(targetId);
+            await identitiesCache.RefreshServiceIdentityOnBehalfOf(targetId, originatingEdge);
             Option<ServiceIdentity> targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
 
             if (!targetIdentity.HasValue)
