@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.27.3-NestedEdge" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.1-NestedEdge" />
     <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.4" />
   </ItemGroup>
 
