@@ -10,7 +10,6 @@ use edgelet_http::route::{Handler, Parameters};
 use failure::ResultExt;
 use futures::{Future, IntoFuture};
 use hyper::{Body, Request, Response};
-use serde_json::to_string;
 
 pub struct DeleteSecret<S> {
     secret_manager: Arc<Mutex<S>>
@@ -29,20 +28,22 @@ where
     S: 'static + SecretManager + Send
 {
     fn handle(&self, _req: Request<Body>, params: Parameters) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let secret_manager = self.secret_manager.clone();
+
         let response = params.name("id")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("id")))
-            .map(|id| {
+            .map(move |id| {
                 let id = id.to_string();
-                let secret_manager = self.secret_manager.lock().unwrap();
-                secret_manager.get(&id)
+                let secret_manager = secret_manager.lock().unwrap();
+                secret_manager.delete(&id)
                     .then(|result| {
-                        let val = result.context(ErrorKind::SecretOperation(SecretOperation::Delete(id)))?;
-                        Ok(val)
+                        result.context(ErrorKind::SecretOperation(SecretOperation::Delete(id)))?;
+                        Ok(())
                     })
             })
             .into_future()
             .flatten()
-            .and_then(|val| Ok(Response::new(Body::from(to_string(&val).unwrap()))))
+            .and_then(|_| Ok(Response::builder().status(204).body(Body::empty()).unwrap()))
             .or_else(|e: Error| Ok(e.into_response()));
 
         Box::new(response)
