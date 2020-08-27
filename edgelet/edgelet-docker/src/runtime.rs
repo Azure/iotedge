@@ -486,16 +486,17 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 if let Some(digest_from_manifest_str) = digest_from_manifest {
                                     if digest_from_manifest_str == digest_from_notary {
                                         info!("Digest from notary and Digest from manifest does match");
-                                        debug!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
+                                        info!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
                                         (image_with_digest, true)
                                     }
                                     else {
                                         info!("Digest from notary and Digest from manifest does not match");
-                                        debug!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
+                                        info!("Digest from notary : {} and Digest from manifest : {} does not match", digest_from_notary, digest_from_manifest_str);
                                         (image_with_tag, false)
                                     }
                                 }
                                 else {
+                                    info!("No Digest from the manifest");
                                     (image_with_digest, true)
                                 }
                             }),

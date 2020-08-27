@@ -114,9 +114,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                         var env = labels.TryGetValue(Core.Constants.Labels.Env, out string envStr)
                             ? JsonConvert.DeserializeObject<Dictionary<string, EnvVal>>(envStr)
                             : new Dictionary<string, EnvVal>();
+                        dockerReportedConfig = new DockerReportedConfig(image, dockerRuntimeInfo.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash, dockerRuntimeInfo.Config.Digest);
 
                         module = new EdgeAgentDockerRuntimeModule(
-                            dockerRuntimeInfo.Config,
+                            dockerReportedConfig,
                             moduleRuntimeStatus,
                             (int)dockerRuntimeInfo.ExitCode,
                             dockerRuntimeInfo.Description,
