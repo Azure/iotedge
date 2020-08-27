@@ -63,6 +63,7 @@ where
     Ok(config)
 }
 
+// TODO: inject device id
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
