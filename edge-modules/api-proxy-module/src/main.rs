@@ -12,17 +12,17 @@
 )]
 mod monitors;
 mod signals;
-use tokio::process::Command;
-use anyhow::{Context, Result, Error};
+use anyhow::{Context, Error, Result};
 use futures_util::future::{self, Either};
 use monitors::certs_monitor;
 use monitors::config_monitor;
 use monitors::utils;
+use std::process::Stdio;
 use std::sync::Arc;
+use tokio::process::Command;
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;
 use utils::ShutdownHandle;
-use std::process::Stdio;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -46,15 +46,19 @@ async fn main() -> Result<()> {
     let (twin_state_poll_handle, twin_state_poll_shutdown_handle) =
         config_monitor::report_twin_state(report_twin_state_handle);
     let (config_monitor_handle, config_monitor_shutdown_handle) =
-        config_monitor::start(client, notify_received_config).context("Failed running config monitor")?;
+        config_monitor::start(client, notify_received_config)
+            .context("Failed running config monitor")?;
     let (cert_monitor_handle, cert_monitor_shutdown_handle) =
-        certs_monitor::start(notify_certs_rotated).context("Failed running certificates monitor")?;
-    let (nginx_controller_handle, nginx_controller_shutdown_handle) = nginx_controller_start(notify_need_reload_api_proxy).context("Failed running nginx controller")?;
+        certs_monitor::start(notify_certs_rotated)
+            .context("Failed running certificates monitor")?;
+    let (nginx_controller_handle, nginx_controller_shutdown_handle) =
+        nginx_controller_start(notify_need_reload_api_proxy)
+            .context("Failed running nginx controller")?;
 
     //If one task closes, clean up everything
     match nginx_controller_handle.await {
         Ok(_) => (),
-        Err(err)=> log::error!("Tasks encountered and error {:?}", err),
+        Err(err) => log::error!("Tasks encountered and error {:?}", err),
     };
 
     //Send shutdown signal to all task
@@ -77,14 +81,15 @@ async fn main() -> Result<()> {
         config_monitor_handle,
         twin_state_poll_handle,
     ];
-    futures::future::join_all(all_task)
-    .await;
+    futures::future::join_all(all_task).await;
 
     log::info!("Gracefully exiting");
     Ok(())
 }
 
-pub fn nginx_controller_start(notify_need_reload_api_proxy: Arc<Notify>) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
+pub fn nginx_controller_start(
+    notify_need_reload_api_proxy: Arc<Notify>,
+) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
     let program_path = "/usr/sbin/nginx";
     let args = vec![
         "-c".to_string(),
@@ -100,17 +105,14 @@ pub fn nginx_controller_start(notify_need_reload_api_proxy: Arc<Notify>) -> Resu
     let shutdown_signal = Arc::new(Notify::new());
     let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
 
-
     //Wait for certificate rotation
     //This is just to avoid error at the beginning when nginx tries to start
     //but configuration is not ready
-    
 
-    let monitor_loop: JoinHandle<Result<()>> = tokio::spawn( async move {
+    let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
         notify_need_reload_api_proxy.notified().await;
 
         loop {
-            
             //Make sure proxy is stopped by sending stop command. Otherwise port will be blocked
             let command = Command::new(stop_proxy_program_path)
                 .args(&stop_proxy_args)
@@ -136,8 +138,8 @@ pub fn nginx_controller_start(notify_need_reload_api_proxy: Arc<Notify>) -> Resu
             let restart_proxy = future::select(child_nginx, signal_restart_nginx);
             //Shutdown on ctrl+c or on signal
 
-            let wait_shutdown_ctrl_c =  signals::shutdown::shutdown();
-            futures::pin_mut!(wait_shutdown_ctrl_c); 
+            let wait_shutdown_ctrl_c = signals::shutdown::shutdown();
+            futures::pin_mut!(wait_shutdown_ctrl_c);
             let wait_shutdown_signal = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown_signal);
 

@@ -1,14 +1,13 @@
 use super::utils;
-use chrono::{DateTime, Utc, Duration};
+use anyhow::{Context, Error, Result};
+use chrono::{DateTime, Duration, Utc};
 use futures_util::future::Either;
+use std::env;
 use std::sync::Arc;
 use tokio::sync::Notify;
-use anyhow::{Context, Result, Error};
-use std::env;
 use tokio::task::JoinHandle;
-use utils::ShutdownHandle;
 use tokio::time;
-
+use utils::ShutdownHandle;
 
 const PROXY_SERVER_TRUSTED_CA_PATH: &str = "/app/trustedCA.crt";
 const PROXY_SERVER_CERT_PATH: &str = "/app/server.crt";
@@ -20,10 +19,10 @@ const EXPIRY_TIME_START_DATE: &str = "1996-12-19T00:00:00+00:00";
 
 //Check for expiry of certificates. If certificates are expired: rotate.
 pub fn start(
-    notify_certs_rotated: Arc<Notify>, 
+    notify_certs_rotated: Arc<Notify>,
 ) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
     const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: tokio::time::Duration =
-    tokio::time::Duration::from_secs(1);
+        tokio::time::Duration::from_secs(1);
 
     let shutdown_signal = Arc::new(tokio::sync::Notify::new());
     let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
@@ -44,10 +43,10 @@ pub fn start(
         gateway_hostname,
         workload_url,
         Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
-    ).context("Could not create cert monitor client")?;
+    )
+    .context("Could not create cert monitor client")?;
 
-    let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async  move {
-
+    let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
         loop {
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
@@ -87,10 +86,7 @@ pub fn start(
             };
 
             //Same thing as above but for private key and server cert
-            match cert_monitor
-                .need_to_rotate_server_cert(Utc::now())
-                .await
-            {
+            match cert_monitor.need_to_rotate_server_cert(Utc::now()).await {
                 Ok((need_to_rotate_cert, server_cert, private_key)) => {
                     if need_to_rotate_cert == true {
                         //If we have a new cert, we need to write it in file system
@@ -155,7 +151,12 @@ impl CertificateMonitor {
 
         let work_load_api_client = match edgelet_client::workload(&workload_url) {
             Ok(work_load_api_client) => (work_load_api_client),
-            Err(err) => return Err(anyhow::anyhow!(format!("Could not get workload client {:?}", err))),
+            Err(err) => {
+                return Err(anyhow::anyhow!(format!(
+                    "Could not get workload client {:?}",
+                    err
+                )))
+            }
         };
 
         Ok(CertificateMonitor {
@@ -199,7 +200,8 @@ impl CertificateMonitor {
             };
             need_to_rotate = true;
 
-            let datetime = DateTime::parse_from_rfc3339(&resp.expiration()).context("Error parsing certificate expiration date")?;
+            let datetime = DateTime::parse_from_rfc3339(&resp.expiration())
+                .context("Error parsing certificate expiration date")?;
             // convert the string into DateTime<Utc> or other timezone
             self.cert_expiration_date = datetime.with_timezone(&Utc);
         } else {
@@ -265,7 +267,8 @@ mod tests {
             gateway_hostname,
             workload_url,
             Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
-        ).unwrap();
+        )
+        .unwrap();
 
         let start_time = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
             .unwrap()
@@ -302,7 +305,8 @@ mod tests {
             gateway_hostname,
             workload_url,
             Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
-        ).unwrap();
+        )
+        .unwrap();
 
         let (need_rotation, bundle_of_trust) = client.has_bundle_of_trust_rotated().await.unwrap();
 

@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
+use std::fs::{self, File};
 use std::io::prelude::*;
 use std::sync::Arc;
 use tokio::sync::Notify;
-use std::fs::{self, File};
 
 pub fn write_binary_to_file(file: &[u8], path: &str) -> Result<()> {
     let mut f = File::create(path).context(format!("Cannot create file, {}", path))?;

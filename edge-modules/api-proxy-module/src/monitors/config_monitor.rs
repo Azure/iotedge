@@ -1,12 +1,12 @@
 use super::utils;
+use anyhow::{Context, Error, Result};
+use chrono::Utc;
 use futures_util::future::Either;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Notify;
-use anyhow::{Context, Result, Error};
 use tokio::task::JoinHandle;
 use utils::ShutdownHandle;
-use std::time::Duration;
-use chrono::Utc;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
@@ -69,7 +69,7 @@ pub fn get_sdk_client() -> Result<azure_iot_mqtt::module::Client, Error> {
         will.map(Into::into),
         max_back_off,
         keep_alive,
-    ){
+    ) {
         Ok(client) => client,
         Err(err) => return Err(anyhow::anyhow!("Could not create client: {:?}", err)),
     };
@@ -84,7 +84,6 @@ pub fn start(
     let shutdown_signal = Arc::new(Notify::new());
     let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
 
-
     use futures_util::StreamExt;
 
     //Set default value for some environment variables here
@@ -96,12 +95,16 @@ pub fn start(
     match parse_config() {
         //Notify watchdog config is there
         Ok(()) => notify_received_config.notify(),
-        Err(err) => return Err(anyhow::anyhow!("Error while parsing default config: {:?}", err)),
+        Err(err) => {
+            return Err(anyhow::anyhow!(
+                "Error while parsing default config: {:?}",
+                err
+            ))
+        }
     };
 
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
-
-        loop {       
+        loop {
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
 
@@ -234,15 +237,11 @@ pub fn report_twin_state(
 
     let mut interval = tokio::time::interval(TWIN_STATE_POLL_INTERVAL);
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
-
         let result = report_twin_state_handle
             .report_twin_state(azure_iot_mqtt::ReportTwinStateRequest::Replace(
-                vec![(
-                    "start-time".to_string(),
-                    Utc::now().to_string().into(),
-                )]
-                .into_iter()
-                .collect(),
+                vec![("start-time".to_string(), Utc::now().to_string().into())]
+                    .into_iter()
+                    .collect(),
             ))
             .await;
         let () = result.context("couldn't report initial twin state")?;
@@ -259,12 +258,9 @@ pub fn report_twin_state(
                     if result.is_some() {
                         let result = report_twin_state_handle
                             .report_twin_state(azure_iot_mqtt::ReportTwinStateRequest::Patch(
-                                vec![(
-                                    "current-time".to_string(),
-                                    Utc::now().to_string().into(),
-                                )]
-                                .into_iter()
-                                .collect(),
+                                vec![("current-time".to_string(), Utc::now().to_string().into())]
+                                    .into_iter()
+                                    .collect(),
                             ))
                             .await;
 
