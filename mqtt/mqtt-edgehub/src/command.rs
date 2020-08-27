@@ -46,6 +46,7 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
+    // TODO: do subscribe here and fail if can't
     pub fn new(broker_handle: BrokerHandle, address: String, device_id: &str) -> Self {
         let client_id = format!("{}/$edgeHub/$broker", device_id);
 
@@ -78,6 +79,7 @@ impl CommandHandler {
 
         self.subscribe(subscribe_topics).await?;
 
+        // TODO: don't blow up here, instead match and log error
         while let Some(event) = self
             .client
             .try_next()

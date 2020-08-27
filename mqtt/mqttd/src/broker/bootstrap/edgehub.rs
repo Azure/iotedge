@@ -63,7 +63,6 @@ where
     Ok(config)
 }
 
-// TODO: inject device id
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
@@ -135,6 +134,8 @@ where
     // Start serving new connections
     let serve = server.serve(shutdown);
 
+    // TODO: init sidecars
+
     let system_address = config.listener().system().addr().to_string();
     let (sidecar_shutdown_handle, sidecar_join_handle) =
         start_sidecars(broker_handle, system_address).await;
@@ -163,12 +164,17 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
     }
 }
 
+// TODO: return result
 async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
 ) -> (SidecarShutdownHandle, JoinHandle<Result<()>>) {
     let (termination_handle, tx) = channel::<()>();
 
+    // TODO: init command handler
+    // TODO: init bridge
+
+    // TODO: move init components into this event loop. at this point all errors are recoverable
     let event_loop = tokio::spawn(async move {
         info!("starting command handler...");
         let (mut command_handler_shutdown_handle, command_handler_join_handle) =
