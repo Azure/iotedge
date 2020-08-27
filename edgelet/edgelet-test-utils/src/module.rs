@@ -1,5 +1,3 @@
-// Copyright (c) Microsoft. All rights reserved.
-
 use std::marker::PhantomData;
 use std::path::Path;
 use std::time::Duration;
@@ -394,10 +392,15 @@ where
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(SystemInfo::new(
-                "os_type_sample".to_string(),
-                "architecture_sample".to_string(),
-            )),
+            Ok(_) => future::ok(SystemInfo {
+                os_type: "os_type_sample".to_string(),
+                architecture: "architecture_sample".to_string(),
+                version: edgelet_core::version_with_source_version(),
+                cpus: 0,
+                kernel_version: "test".to_string(),
+                operating_system: "test".to_string(),
+                server_version: "test".to_string(),
+            }),
             Err(ref e) => future::err(e.clone()),
         }
     }

@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var dockerConfig = new DockerConfig("test-image:1");
 
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, dockerConfig, ImagePullPolicy.OnCreate, Constants.DefaultPriority, configurationInfo, envVarsDict);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, dockerConfig, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, configurationInfo, envVarsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
 
             var serviceAccount = mapper.CreateServiceAccount(module, identity, labels);

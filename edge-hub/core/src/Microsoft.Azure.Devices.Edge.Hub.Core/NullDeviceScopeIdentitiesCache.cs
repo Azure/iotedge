@@ -21,6 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             remove { }
         }
 
+        public event EventHandler<IList<string>> ServiceIdentitiesUpdated
+        {
+            add { }
+            remove { }
+        }
+
         public Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
             => Task.FromResult(Option.None<ServiceIdentity>());
 
@@ -28,6 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             => Task.FromResult(Option.None<ServiceIdentity>());
 
         public Task<Option<string>> GetAuthChain(string _) => Task.FromResult(Option.None<string>());
+
+        public Task<IList<string>> GetAllIds()
+        {
+            IList<string> list = new List<string>();
+            return Task.FromResult(list);
+        }
 
         public Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string _)
         {
@@ -46,5 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RefreshServiceIdentity(string deviceId) => Task.CompletedTask;
 
         public Task RefreshServiceIdentity(string deviceId, string moduleId) => Task.CompletedTask;
+
+        public Task RefreshAuthChain(string authChain) => Task.CompletedTask;
     }
 }

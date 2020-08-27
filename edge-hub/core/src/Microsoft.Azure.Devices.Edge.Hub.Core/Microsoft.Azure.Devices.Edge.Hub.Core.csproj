@@ -18,7 +18,7 @@
   <ItemGroup>
     <PackageReference Include="App.Metrics" Version="3.0.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2018.3.0" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.27.3-NestedEdge" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.1-NestedEdge" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
 

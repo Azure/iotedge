@@ -27,7 +27,7 @@ mod system_info;
 use self::device_actions::ReprovisionDevice;
 use self::identity::{CreateIdentity, DeleteIdentity, ListIdentities, UpdateIdentity};
 pub use self::module::*;
-use self::system_info::{GetSystemInfo, GetSystemResources};
+use self::system_info::{GetSupportBundle, GetSystemInfo, GetSystemResources};
 use crate::error::{Error, ErrorKind};
 
 lazy_static! {
@@ -73,6 +73,7 @@ impl ManagementService {
 
             get     Version2018_06_28 runtime Policy::Anonymous             => "/systeminfo"                        => GetSystemInfo::new(runtime.clone()),
             get     Version2019_11_05 runtime Policy::Anonymous             => "/systeminfo/resources"              => GetSystemResources::new(runtime.clone()),
+            get     Version2020_07_07 runtime Policy::Anonymous             => "/systeminfo/supportbundle"          => GetSupportBundle::new(runtime.clone()),
 
             post    Version2019_10_22 runtime Policy::Module(&*AGENT_NAME)  => "/device/reprovision"                => ReprovisionDevice::new(initiate_shutdown_and_reprovision),
         );
