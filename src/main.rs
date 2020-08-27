@@ -52,15 +52,17 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     };
     
     Server::bind_unix(skt)?
-        .serve(make_service_fn(|conn: &UnixStream| {
+        .serve(make_service_fn(|_conn: &UnixStream| {
             let store = store.to_owned();
-            println!("{:?}", conn.peer_cred().unwrap());
             async {
                 <Result<_, HyperError>>::Ok(service_fn(move |req| {
                     let store = store.to_owned();
                     async move {
                         routes::dispatch(&store, req).await
-                            .or_else(|e| Response::builder().status(500).body(format!("{:?}", e).into()))
+                            .or_else(|e| {
+                                println!("ERROR: {:?}", e);
+                                Response::builder().status(500).body(format!("{:?}", e).into())
+                            })
                     }
                 }))
             }
