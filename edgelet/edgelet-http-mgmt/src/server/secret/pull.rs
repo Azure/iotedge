@@ -53,7 +53,7 @@ where
                         Ok(())
                     })
             })
-            .and_then(|_| Ok(Response::new(Body::empty())))
+            .and_then(|_| Ok(Response::builder().status(204).body(Body::empty()).unwrap()))
             .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)
