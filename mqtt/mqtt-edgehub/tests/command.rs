@@ -8,9 +8,7 @@ use mqtt_broker_tests_util::{
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::{
-    CommandHandler, CommandHandlerError, ShutdownHandle as CommandShutdownHandle,
-};
+use mqtt_edgehub::command::{CommandHandler, ShutdownHandle};
 use tokio::{task::JoinHandle, time};
 
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
@@ -62,10 +60,7 @@ async fn disconnect_client() {
         .shutdown()
         .await
         .expect("failed to stop command handler client");
-    join_handle
-        .await
-        .expect("failed to shutdown command handler")
-        .expect("command handler failed");
+    join_handle.await.expect("command handler failed");
 
     edgehub_client.shutdown().await;
 }
@@ -73,16 +68,12 @@ async fn disconnect_client() {
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> Result<
-    (
-        CommandShutdownHandle,
-        JoinHandle<Result<(), CommandHandlerError>>,
-    ),
-    ShutdownError,
-> {
+) -> Result<(ShutdownHandle, JoinHandle<()>), ShutdownError> {
     let device_id = "test-device";
-    let command_handler = CommandHandler::new(broker_handle, system_address, device_id);
-    let shutdown_handle = command_handler.shutdown_handle()?;
+    let command_handler = CommandHandler::new(broker_handle, system_address, device_id)
+        .await
+        .unwrap();
+    let shutdown_handle: ShutdownHandle = command_handler.shutdown_handle()?;
 
     let join_handle = tokio::spawn(command_handler.run());
 

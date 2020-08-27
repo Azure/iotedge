@@ -17,6 +17,8 @@ pub struct ShutdownHandle(mqtt3::ShutdownHandle);
 
 impl ShutdownHandle {
     pub async fn shutdown(&mut self) -> Result<(), Error> {
+        info!("shutting down command handler");
+
         self.0.shutdown().await.map_err(Error::ShutdownClient)?;
         Ok(())
     }
@@ -47,10 +49,14 @@ pub struct CommandHandler {
 
 impl CommandHandler {
     // TODO: do subscribe here and fail if can't
-    pub fn new(broker_handle: BrokerHandle, address: String, device_id: &str) -> Self {
+    pub async fn new(
+        broker_handle: BrokerHandle,
+        address: String,
+        device_id: &str,
+    ) -> Result<Self, CommandHandlerError> {
         let client_id = format!("{}/$edgeHub/$broker", device_id);
 
-        let client = Client::new(
+        let mut client = Client::new(
             Some(client_id),
             None,
             None,
@@ -59,10 +65,13 @@ impl CommandHandler {
             Duration::from_secs(60),
         );
 
-        CommandHandler {
+        let subscribe_topics = &[DISCONNECT_TOPIC.to_string()];
+        subscribe(&mut client, subscribe_topics).await?;
+
+        Ok(CommandHandler {
             broker_handle,
             client,
-        }
+        })
     }
 
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
@@ -73,68 +82,22 @@ impl CommandHandler {
             })
     }
 
-    pub async fn run(mut self) -> Result<(), CommandHandlerError> {
+    pub async fn run(mut self) {
         debug!("starting command handler");
-        let subscribe_topics = &[DISCONNECT_TOPIC.to_string()];
 
-        self.subscribe(subscribe_topics).await?;
-
-        // TODO: don't blow up here, instead match and log error
-        while let Some(event) = self
-            .client
-            .try_next()
-            .await
-            .map_err(CommandHandlerError::PollClientFailure)?
-        {
-            if let Err(e) = self.handle_event(event).await {
-                warn!(message = "error processing command handler event", error = %e);
-            }
-        }
-
-        debug!("command handler disconnected");
-
-        Ok(())
-    }
-
-    async fn subscribe(&mut self, topics: &[String]) -> Result<(), CommandHandlerError> {
-        debug!("command handler subscribing to disconnect topic");
-        let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
-            topic_filter: topic.to_string(),
-            qos: proto::QoS::AtLeastOnce,
-        });
-
-        for subscription in subscriptions {
-            self.client
-                .subscribe(subscription)
-                .map_err(CommandHandlerError::SubscribeFailure)?;
-        }
-
-        let mut subacks: HashSet<_> = topics.iter().map(Clone::clone).collect();
-
-        while let Some(event) = self
-            .client
-            .try_next()
-            .await
-            .map_err(CommandHandlerError::PollClientFailure)?
-        {
-            if let Event::SubscriptionUpdates(subscriptions) = event {
-                for subscription in subscriptions {
-                    if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
-                        subacks.remove(&sub.topic_filter);
+        loop {
+            match self.client.try_next().await {
+                Ok(Some(event)) => {
+                    if let Err(e) = self.handle_event(event).await {
+                        error!(message = "error processing command handler event", error = %e);
                     }
                 }
-
-                if subacks.is_empty() {
-                    debug!("command handler successfully subscribed to disconnect topic");
-                    return Ok(());
+                Ok(None) => {
+                    error!("command handler client disconnected, but will attempt reconnection")
                 }
+                Err(e) => error!("failure polling command handler client {}", error = e),
             }
         }
-
-        error!("command handler failed to subscribe to disconnect topic");
-        Err(CommandHandlerError::MissingSubacks(
-            subacks.into_iter().collect::<Vec<_>>(),
-        ))
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
@@ -161,6 +124,49 @@ impl CommandHandler {
 
         Ok(())
     }
+}
+
+async fn subscribe(
+    client: &mut mqtt3::Client<BrokerConnection>,
+    topics: &[String],
+) -> Result<(), CommandHandlerError> {
+    debug!("command handler subscribing to disconnect topic");
+    let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
+        topic_filter: topic.to_string(),
+        qos: proto::QoS::AtLeastOnce,
+    });
+
+    for subscription in subscriptions {
+        client
+            .subscribe(subscription)
+            .map_err(CommandHandlerError::SubscribeFailure)?;
+    }
+
+    let mut subacks: HashSet<_> = topics.iter().map(Clone::clone).collect();
+
+    while let Some(event) = client
+        .try_next()
+        .await
+        .map_err(CommandHandlerError::PollClientFailure)?
+    {
+        if let Event::SubscriptionUpdates(subscriptions) = event {
+            for subscription in subscriptions {
+                if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
+                    subacks.remove(&sub.topic_filter);
+                }
+            }
+
+            if subacks.is_empty() {
+                debug!("command handler successfully subscribed to disconnect topic");
+                return Ok(());
+            }
+        }
+    }
+
+    error!("command handler failed to subscribe to disconnect topic");
+    Err(CommandHandlerError::MissingSubacks(
+        subacks.into_iter().collect::<Vec<_>>(),
+    ))
 }
 
 #[derive(Debug, thiserror::Error)]

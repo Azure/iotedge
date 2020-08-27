@@ -27,7 +27,7 @@ use mqtt_broker::{
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::{CommandHandler, CommandHandlerError, ShutdownHandle as CommandShutdownHandle},
+    command::CommandHandler,
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
@@ -138,7 +138,7 @@ where
 
     let system_address = config.listener().system().addr().to_string();
     let (sidecar_shutdown_handle, sidecar_join_handle) =
-        start_sidecars(broker_handle, system_address).await;
+        start_sidecars(broker_handle, system_address).await?;
 
     let state = serve.await?;
 
@@ -164,58 +164,34 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
     }
 }
 
-// TODO: return result
 async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> (SidecarShutdownHandle, JoinHandle<Result<()>>) {
+) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
     let (termination_handle, tx) = channel::<()>();
 
-    // TODO: init command handler
-    // TODO: init bridge
+    let device_id = env::var(DEVICE_ID_ENV)?;
+    let command_handler =
+        CommandHandler::new(broker_handle, system_address, device_id.as_str()).await?;
+    let mut bridge_controller = BridgeController::new();
 
-    // TODO: move init components into this event loop. at this point all errors are recoverable
     let event_loop = tokio::spawn(async move {
-        info!("starting command handler...");
-        let (mut command_handler_shutdown_handle, command_handler_join_handle) =
-            start_command_handler(broker_handle, system_address).await?;
+        let mut command_handler_shutdown_handle = command_handler.shutdown_handle()?;
+        let command_handler_join_handle = tokio::spawn(command_handler.run());
 
-        start_bridge().await?;
+        let bridge = bridge_controller.start();
 
         tx.await?;
 
         command_handler_shutdown_handle.shutdown().await?;
-        command_handler_join_handle.await??;
-        info!("command handler shutdown.");
+        command_handler_join_handle.await?;
+
+        bridge.await?;
+
         Ok::<(), anyhow::Error>(())
     });
 
-    (SidecarShutdownHandle(termination_handle), event_loop)
-}
-
-async fn start_command_handler(
-    broker_handle: BrokerHandle,
-    system_address: String,
-) -> Result<(
-    CommandShutdownHandle,
-    JoinHandle<Result<(), CommandHandlerError>>,
-)> {
-    let device_id = env::var(DEVICE_ID_ENV)?;
-    let command_handler = CommandHandler::new(broker_handle, system_address, device_id.as_str());
-    let shutdown_handle = command_handler.shutdown_handle()?;
-
-    let join_handle = tokio::spawn(command_handler.run());
-
-    Ok((shutdown_handle, join_handle))
-}
-
-// TODO: allow for bridge shutdown
-async fn start_bridge() -> Result<()> {
-    info!("starting bridge...");
-    let mut bridge_controller = BridgeController::new();
-    bridge_controller.start().await?;
-
-    Ok(())
+    Ok((SidecarShutdownHandle(termination_handle), event_loop))
 }
 
 #[derive(Debug, thiserror::Error)]
