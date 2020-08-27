@@ -89,6 +89,9 @@ pub fn start(
     //Set default value for some environment variables here
     set_default_env_vars();
 
+    //Allow on level of indirection, when one env var references another env var.
+    dereference_env_variable();
+
     //Parse default config and notify to reboot nginx if it has already started
     //If the config is incorrect, return error because otherwise nginx doesn't have any config.
 
@@ -156,6 +159,33 @@ fn set_default_env_vars() {
     }
 }
 
+//This function dereferences enviromnent variable pointing to another environment variable
+//For example:
+// Then the environment variable DOCKER_REQUEST_ROUTE_ADDRESS = "${PARENT_HOSTNAME}"
+// With PARENT_HOSTNAME="127.0.0.1"
+//After calling we want DOCKER_REQUEST_ROUTE_ADDRESS="127.0.0.1"
+fn dereference_env_variable() {
+    let vars = get_var_list();
+    let vars_list = vars.split(',');
+
+    for key in vars_list {
+        match std::env::var(key) {
+            //If env variable is already declared, do nothing
+            Ok(env_var_candidate) => {
+                //try to dereference again
+                match std::env::var(env_var_candidate)
+                {
+                    //If the candidate exist, replace the existing variable value
+                    Ok(value) => std::env::set_var(key, value),
+                    Err(_) => continue,
+                } 
+            },
+            //Else add the default value
+            Err(_) => continue,
+        };
+    }
+}
+
 fn save_raw_config(twin: &azure_iot_mqtt::TwinProperties) -> Result<()> {
     let json = twin.properties.get_key_value(TWIN_PROXY_CONFIG_KEY);
 
@@ -194,6 +224,16 @@ fn get_raw_config(encoded_file: &str) -> Result<Vec<u8>, anyhow::Error> {
     Ok(bytes)
 }
 
+fn get_var_list() -> String {
+    //Check if user passed their own env variable list.
+    let vars = match std::env::var("NGINX_CONFIG_ENV_VAR_LIST") {
+        Ok(vars) => vars,
+        //@TO CHECK It copies the string, is that ok?
+        Err(_) => PROXY_CONFIG_DEFAULT_VARS_LIST.to_string(),
+    };
+    vars
+}
+
 //Check readme for details of how parsing is done.
 //First all the environment variables are replaced by their value.
 //Only environment variables in the list NGINX_CONFIG_ENV_VAR_LIST are replaced.
@@ -202,12 +242,7 @@ fn get_raw_config(encoded_file: &str) -> Result<Vec<u8>, anyhow::Error> {
 fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let mut context = std::collections::HashMap::new();
 
-    //Check if user passed their own env variable list.
-    let vars = match std::env::var("NGINX_CONFIG_ENV_VAR_LIST") {
-        Ok(vars) => vars,
-        //@TO CHECK It copies the string, is that ok?
-        Err(_) => PROXY_CONFIG_DEFAULT_VARS_LIST.to_string(),
-    };
+    let vars = get_var_list();
     let vars = vars.split(',');
 
     for key in vars {
@@ -219,7 +254,6 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     }
 
     //Do 2 passes of subst to allow one level of indirection
-    let str: String = envsubst::substitute(str, &context).context("Failed to subst the text")?;
     let str: String = envsubst::substitute(str, &context).context("Failed to subst the text")?;
 
     //Replace is 0
@@ -294,8 +328,8 @@ mod tests {
     fn env_var_tests() {
         //unset all variables
         std::env::set_var("NGINX_CONFIG_ENV_VAR_LIST", PROXY_CONFIG_DEFAULT_VARS_LIST);
-        let vars = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars {
+        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
+        for key in vars_list {
             std::env::remove_var(key);
         }
 
@@ -303,7 +337,7 @@ mod tests {
         //The reason is concurrency. Rust test are multi threaded by default
         //And environment variable are globals, so race condition happens.
 
-        //Check config
+        //**************************Check config***************************************
         std::env::set_var("NGINX_DEFAULT_PORT", "443");
         std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "registry:5000");
 
@@ -315,8 +349,7 @@ mod tests {
 
         assert_eq!(&config, PARSED_CONFIG);
 
-        //Check defaults variables set
-        //unset all default variables
+        //**************************Check defaults variables set***************************************
         for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
             std::env::remove_var(*key);
         }
@@ -326,14 +359,32 @@ mod tests {
             assert_eq!(*value, &var);
         }
 
-        //Check the the default function doesn't override user variable
+        //******************Check the the default function doesn't override user variable***************
+        //put dummy value for each env variable that has a default;
         for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
             std::env::set_var(*key, "Dummy value");
         }
         set_default_env_vars();
-        for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
+        for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
             let var = std::env::var(key).unwrap();
-            assert_ne!(*value, &var);
+            //Check the value is still equal to dummy value
+            assert_eq!("Dummy value", &var);
         }
+
+        //************************* Check 1 level of indirection works *********************************
+        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
+        for key in vars_list {
+            std::env::remove_var(key);
+        }       
+        std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "PARENT_HOSTNAME");
+        std::env::set_var("PARENT_HOSTNAME", "127.0.0.1");
+
+        dereference_env_variable();
+
+        let dummy_config = "${DOCKER_REQUEST_ROUTE_ADDRESS}";
+
+        let config = get_parsed_config(dummy_config).unwrap();
+
+        assert_eq!("127.0.0.1", config);
     }
 }
