@@ -54,8 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // We want to process all the modules in the deployment (desired modules) and also include the modules
             // that are not specified in the deployment but are currently running on the device. This is so that
             // their processing is done in the right priority order.
-            ILookup<uint, KeyValuePair<string, IModule>> desiredPriorityGroups = desired.Modules.ToLookup(x => x.Value.Priority);
-            ILookup<uint, KeyValuePair<string, IModule>> currentPriorityGroups = current.Modules.ToLookup(x => x.Value.Priority);
+            ILookup<uint, KeyValuePair<string, IModule>> desiredPriorityGroups = desired.Modules.ToLookup(x => x.Value.StartupOrder);
+            ILookup<uint, KeyValuePair<string, IModule>> currentPriorityGroups = current.Modules.ToLookup(x => x.Value.StartupOrder);
             ImmutableSortedSet<uint> orderedPriorities = desiredPriorityGroups.Select(x => x.Key).Union(currentPriorityGroups.Select(x => x.Key)).ToImmutableSortedSet();
             var processedDesiredMatchingCurrentModules = new HashSet<string>();
 

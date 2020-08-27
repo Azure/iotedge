@@ -343,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 metricsConfig = new MetricsConfig(configuration);
                 builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
 
-                bool diagnosticsEnabled = configuration.GetValue("SendProductQualityTelemetry", false);
+                bool diagnosticsEnabled = configuration.GetValue("SendRuntimeQualityTelemetry", true);
                 diagnosticConfig = new DiagnosticConfig(diagnosticsEnabled, storagePath, configuration);
                 builder.RegisterModule(new DiagnosticsModule(diagnosticConfig));
 
@@ -380,6 +380,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 container.Resolve<IMetricsListener>().Start(logger);
                 container.Resolve<ISystemResourcesMetrics>().Start(logger);
+                await container.Resolve<MetadataMetrics>().Start(logger, versionInfo.ToString(true), Newtonsoft.Json.JsonConvert.SerializeObject(experimentalFeatures));
             }
 
             // Initialize metric uploading
@@ -444,7 +445,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 if (metricsConfig.Enabled && returnCode == 0)
                 {
-                    container.Resolve<IAvailabilityMetric>().IndicateCleanShutdown();
+                    container.Resolve<IDeploymentMetrics>().IndicateCleanShutdown();
                 }
 
                 completed.Set();

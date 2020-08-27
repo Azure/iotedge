@@ -91,7 +91,7 @@ pub fn start(
 
     //Parse default config and notify to reboot nginx if it has already started
     //If the config is incorrect, return error because otherwise nginx doesn't have any config.
-    parse_config().context("Unable to read default configuration")?;
+
     match parse_config() {
         //Notify watchdog config is there
         Ok(()) => notify_received_config.notify(),

@@ -229,13 +229,23 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         }
 
         [Fact]
-        public void ParseCertificateAndKeyShouldReturnCertAndKey()
+        public void ParseRSACertificateAndKeyShouldReturnCertAndKey()
         {
             TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(TestCertificateHelper.CertificatePem, TestCertificateHelper.PrivateKeyPem);
 
             var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);
+            Assert.True(cert.HasPrivateKey);
+            Assert.Empty(chain);
+        }
+
+        [Fact]
+        public void ParseECCCertificateAndKeyShouldReturnCertAndKey()
+        {
+            (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(TestCertificateHelper.ECCCertificatePem, TestCertificateHelper.ECCPrivateKeyPem);
+
+            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.True(cert.HasPrivateKey);
             Assert.Empty(chain);
         }

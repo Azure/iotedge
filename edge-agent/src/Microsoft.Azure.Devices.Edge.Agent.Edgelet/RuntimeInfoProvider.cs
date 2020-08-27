@@ -20,9 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken token) =>
             this.moduleManager.GetModules<T>(token);
 
-        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) =>
-            this.moduleManager.GetModuleLogs(module, follow, tail, since, cancellationToken);
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken) =>
+             this.moduleManager.GetModuleLogs(module, follow, tail, since, until, cancellationToken);
 
         public Task<SystemInfo> GetSystemInfo(CancellationToken token) => this.moduleManager.GetSystemInfoAsync(token);
+
+        public Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
+            this.moduleManager.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token);
     }
 }

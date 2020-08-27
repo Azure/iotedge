@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -30,13 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string body = result.GetPayloadAsJson();
             Report report = JsonConvert.DeserializeObject<Report>(body, new JsonSerializerSettings() { DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate });
-            Assert.Zero(report.Failed, body);
-        }
-
-        class Report
-        {
-            public int Succeeded { get; set; }
-            public int Failed { get; set; }
+            Assert.Zero(report.Failed, report.ToString());
         }
 
         async Task DeployAsync(CancellationToken token)
@@ -54,6 +49,59 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.runtime.DeployConfigurationAsync(
                 builder => { builder.AddMetricsValidatorConfig(metricsValidatorImage); },
                 token);
+        }
+
+        // Presents a more focused view by serializing only failures
+        public class Report
+        {
+            [JsonProperty]
+            public string Category;
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+            public TimeSpan Duration = TimeSpan.Zero;
+
+            [JsonProperty]
+            public List<string> Successes = new List<string>();
+
+            [JsonProperty]
+            public Dictionary<string, string> Failures = new Dictionary<string, string>();
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+            public List<Report> Subcategories = null;
+
+            [JsonProperty(Order = -2)]
+            public int Succeeded;
+
+            [JsonProperty(Order = -2)]
+            public int Failed;
+
+            public bool ShouldSerializeSuccesses() => false;
+            public bool ShouldSerializeFailures() => this.Failures.Any();
+            public bool ShouldSerializeSubcategories() => this.Failed != 0;
+
+            public override string ToString()
+            {
+                var settings = new JsonSerializerSettings()
+                {
+                    Converters = new List<JsonConverter>() { new Converter() },
+                    Formatting = Formatting.Indented
+                };
+
+                return JsonConvert.SerializeObject(this, settings);
+            }
+
+            // Skips subcategories that don't have failures
+            class Converter : JsonConverter
+            {
+                public override bool CanConvert(Type objectType) => objectType == typeof(List<Report>);
+                public override bool CanRead => false;
+
+                public override object ReadJson(JsonReader r, Type t, object o, JsonSerializer s) =>
+                    throw new NotImplementedException();
+
+                public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) =>
+                    serializer.Serialize(writer, ((List<Report>)value).Where(c => c.Failed != 0).ToArray());
+            }
         }
     }
 

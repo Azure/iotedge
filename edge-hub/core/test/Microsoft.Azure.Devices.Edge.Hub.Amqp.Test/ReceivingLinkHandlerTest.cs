@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -25,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var deviceListener = new Mock<IDeviceListener>();
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object));
             var amqpAuthenticator = new Mock<IAmqpAuthenticator>();
-            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1")).ReturnsAsync(true);
+            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1", Option.None<string>())).ReturnsAsync(true);
             Mock<ICbsNode> cbsNodeMock = amqpAuthenticator.As<ICbsNode>();
             ICbsNode cbsNode = cbsNodeMock.Object;
             var amqpConnection = Mock.Of<IAmqpConnection>(
@@ -41,11 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var body = new byte[] { 0, 1, 2, 3 };
             AmqpMessage message = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(body) });
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var productInfoStore = Mock.Of<IProductInfoStore>();
-            var modelIdStore = Mock.Of<IModelIdStore>();
+            var metadataStore = Mock.Of<IMetadataStore>();
 
             // Act
-            var receivingLinkHandler = new TestReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore);
+            var receivingLinkHandler = new TestReceivingLinkHandler(identity, receivingLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
             await receivingLinkHandler.OpenAsync(Constants.DefaultTimeout);
             await receivingLinkHandler.ProcessMessageAsync(message);
 
@@ -65,9 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
-            IProductInfoStore productInfoStore,
-            IModelIdStore modelIdStore)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore, modelIdStore)
+            IMetadataStore metadataStore)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore)
         {
         }
 

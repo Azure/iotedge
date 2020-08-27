@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // We recognize three property names:
             //   "api-version" [mandatory]
             //   "DeviceClientType" [optional]
-            //   "digital-twin-model-id" [optional]
+            //   "model-id" [optional]
             // We ignore any properties we don't recognize.
             // Note - this logic does not check the query parameters for special characters, and '?' is treated as a valid value
             // and not used as a separator, unless it is the first character of the last segment
