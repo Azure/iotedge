@@ -2,10 +2,13 @@
 use std::time::Duration;
 
 use bytes::Bytes;
-use futures::{select, stream::StreamExt};
+use futures::{future::FutureExt, select, stream::StreamExt};
 use tokio::{
     net::ToSocketAddrs,
-    sync::mpsc::{self, Sender, UnboundedReceiver},
+    sync::{
+        mpsc::{self, UnboundedReceiver},
+        oneshot::{self, Sender},
+    },
     task::JoinHandle,
 };
 
@@ -108,10 +111,9 @@ impl TestClient {
     }
 
     /// Terminates client w/o sending Disconnect packet.
-    pub async fn terminate(mut self) {
+    pub async fn terminate(self) {
         self.termination_handle
             .send(())
-            .await
             .expect("unable to send termination signal");
         self.event_loop_handle
             .await
@@ -239,15 +241,15 @@ where
         let (sub_sender, sub_receiver) = mpsc::unbounded_channel();
         let (conn_sender, conn_receiver) = mpsc::unbounded_channel();
 
-        let (termination_handle, termination_receiver) = mpsc::channel::<()>(1);
+        let (termination_handle, shutdown_rx) = oneshot::channel::<()>();
 
         let event_loop_handle = tokio::spawn(async move {
-            let mut termination_receiver = termination_receiver.fuse();
+            let mut shutdown_rx = shutdown_rx.fuse();
             let mut client = client.fuse();
 
             loop {
                 select! {
-                    _ = termination_receiver.next() => {
+                    _ = shutdown_rx => {
                         return;
                     }
                     event = client.next() => {
