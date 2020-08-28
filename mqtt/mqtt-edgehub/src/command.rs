@@ -20,13 +20,13 @@ pub struct ShutdownHandle(Sender<()>, mqtt3::ShutdownHandle);
 
 impl ShutdownHandle {
     pub async fn shutdown(mut self) -> Result<(), CommandHandlerError> {
-        info!("signalling command handler shutdown");
+        debug!("signaling command handler shutdown");
         self.0
             .send(())
             .await
             .map_err(|_| CommandHandlerError::ShutdownError())?;
 
-        info!("shutting down command handler mqtt client");
+        debug!("shutting down command handler mqtt client");
         self.1
             .shutdown()
             .await
