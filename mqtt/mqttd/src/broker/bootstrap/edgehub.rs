@@ -183,7 +183,7 @@ async fn start_sidecars(
         sidecar_termination_receiver.await?;
 
         command_handler_shutdown_handle.shutdown().await?;
-        command_handler_join_handle.await??;
+        command_handler_join_handle.await?;
 
         bridge.await?;
 

@@ -98,7 +98,7 @@ impl CommandHandler {
         ))
     }
 
-    pub async fn run(mut self) -> Result<(), Error> {
+    pub async fn run(mut self) {
         debug!("starting command handler");
 
         loop {
@@ -120,7 +120,6 @@ impl CommandHandler {
         }
 
         info!("command handler stopped");
-        Ok(())
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {

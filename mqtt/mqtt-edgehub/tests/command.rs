@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use mqtt3::{proto::ClientId, ShutdownError};
 use tokio::{task::JoinHandle, time};
 
-use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle, Error};
+use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,
@@ -62,7 +62,7 @@ async fn disconnect_client() {
         .await
         .expect("failed to stop command handler client");
 
-    join_handle.await.unwrap().unwrap();
+    join_handle.await.unwrap();
 
     edgehub_client.shutdown().await;
 }
@@ -70,7 +70,7 @@ async fn disconnect_client() {
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> Result<(ShutdownHandle, JoinHandle<Result<(), Error>>), ShutdownError> {
+) -> Result<(ShutdownHandle, JoinHandle<()>), ShutdownError> {
     let device_id = "test-device";
     let command_handler = CommandHandler::new(broker_handle, system_address, device_id)
         .await
