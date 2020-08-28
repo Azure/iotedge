@@ -61,7 +61,7 @@ pub fn get_sdk_client() -> Result<Client, Error> {
         keep_alive,
     } = StructOpt::from_args();
 
-    let client = match azure_iot_mqtt::module::Client::new_for_edge_module(
+    let client = match Client::new_for_edge_module(
         if use_websocket {
             azure_iot_mqtt::Transport::WebSocket
         } else {
