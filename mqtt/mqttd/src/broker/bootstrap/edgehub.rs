@@ -134,8 +134,6 @@ where
     // Start serving new connections
     let serve = server.serve(shutdown);
 
-    // TODO: init sidecars
-
     let system_address = config.listener().system().addr().to_string();
     let (sidecar_shutdown_handle, sidecar_join_handle) =
         start_sidecars(broker_handle, system_address).await?;
@@ -168,30 +166,34 @@ async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
 ) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
-    let (termination_handle, tx) = channel::<()>();
+    let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
 
     let device_id = env::var(DEVICE_ID_ENV)?;
     let command_handler =
         CommandHandler::new(broker_handle, system_address, device_id.as_str()).await?;
+    let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
+
     let mut bridge_controller = BridgeController::new();
 
     let event_loop = tokio::spawn(async move {
-        let mut command_handler_shutdown_handle = command_handler.shutdown_handle()?;
         let command_handler_join_handle = tokio::spawn(command_handler.run());
 
         let bridge = bridge_controller.start();
 
-        tx.await?;
+        sidecar_termination_receiver.await?;
 
         command_handler_shutdown_handle.shutdown().await?;
-        command_handler_join_handle.await?;
+        command_handler_join_handle.await??;
 
         bridge.await?;
 
         Ok::<(), anyhow::Error>(())
     });
 
-    Ok((SidecarShutdownHandle(termination_handle), event_loop))
+    Ok((
+        SidecarShutdownHandle(sidecar_termination_handle),
+        event_loop,
+    ))
 }
 
 #[derive(Debug, thiserror::Error)]

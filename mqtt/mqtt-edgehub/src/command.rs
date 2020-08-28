@@ -2,8 +2,12 @@ use std::{collections::HashSet, time::Duration};
 
 use futures_util::future::BoxFuture;
 use serde_json::error::Error as SerdeError;
-use tokio::{net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, info, warn};
+use tokio::{
+    net::TcpStream,
+    stream::StreamExt,
+    sync::mpsc::{self, Receiver, Sender},
+};
+use tracing::{debug, error, info};
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
@@ -12,14 +16,22 @@ use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 
-#[derive(Debug)]
-pub struct ShutdownHandle(mqtt3::ShutdownHandle);
+pub struct ShutdownHandle(Sender<()>, mqtt3::ShutdownHandle);
 
 impl ShutdownHandle {
-    pub async fn shutdown(&mut self) -> Result<(), Error> {
-        info!("shutting down command handler");
+    pub async fn shutdown(mut self) -> Result<(), CommandHandlerError> {
+        info!("signalling command handler shutdown");
+        self.0
+            .send(())
+            .await
+            .map_err(|_| CommandHandlerError::ShutdownError())?;
 
-        self.0.shutdown().await.map_err(Error::ShutdownClient)?;
+        info!("shutting down command handler mqtt client");
+        self.1
+            .shutdown()
+            .await
+            .map_err(CommandHandlerError::ShutdownClient)?;
+
         Ok(())
     }
 }
@@ -45,10 +57,11 @@ impl IoSource for BrokerConnection {
 pub struct CommandHandler {
     broker_handle: BrokerHandle,
     client: Client<BrokerConnection>,
+    termination_handle: Sender<()>,
+    termination_receiver: Receiver<()>,
 }
 
 impl CommandHandler {
-    // TODO: do subscribe here and fail if can't
     pub async fn new(
         broker_handle: BrokerHandle,
         address: String,
@@ -68,21 +81,24 @@ impl CommandHandler {
         let subscribe_topics = &[DISCONNECT_TOPIC.to_string()];
         subscribe(&mut client, subscribe_topics).await?;
 
+        let (termination_handle, termination_receiver) = mpsc::channel(5);
+
         Ok(CommandHandler {
             broker_handle,
             client,
+            termination_handle,
+            termination_receiver,
         })
     }
 
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
-        self.client
-            .shutdown_handle()
-            .map_or(Err(ShutdownError::ClientDoesNotExist), |shutdown_handle| {
-                Ok(ShutdownHandle(shutdown_handle))
-            })
+        Ok(ShutdownHandle(
+            self.termination_handle.clone(),
+            self.client.shutdown_handle()?,
+        ))
     }
 
-    pub async fn run(mut self) {
+    pub async fn run(mut self) -> Result<(), Error> {
         debug!("starting command handler");
 
         loop {
@@ -93,11 +109,18 @@ impl CommandHandler {
                     }
                 }
                 Ok(None) => {
-                    error!("command handler client disconnected, but will attempt reconnection")
+                    error!("command handler client disconnected, but will attempt reconnection");
+
+                    if let Ok(()) = self.termination_receiver.try_recv() {
+                        break;
+                    }
                 }
                 Err(e) => error!("failure polling command handler client {}", error = e),
             }
         }
+
+        info!("command handler stopped");
+        Ok(())
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
@@ -179,6 +202,12 @@ pub enum CommandHandlerError {
 
     #[error("failed to poll client when validating command handler subscriptions")]
     PollClientFailure(#[from] mqtt3::Error),
+
+    #[error("failed to signal shutdown for command handler")]
+    ShutdownClient(#[from] mqtt3::ShutdownError),
+
+    #[error("failed to signal shutdown for command handler")]
+    ShutdownError(),
 }
 
 #[derive(Debug, thiserror::Error)]
