@@ -11,10 +11,11 @@ use utils::ShutdownHandle;
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
+const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
 const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,PARENT_HOSTNAME";
 const TWIN_PROXY_CONFIG_KEY: &str = "nginx_config";
 
-const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443"),("DOCKER_REQUEST_ROUTE_ADDRESS", "${PARENT_HOSTNAME}")];
+const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443"),("DOCKER_REQUEST_ROUTE_ADDRESS", "PARENT_HOSTNAME")];
 const TWIN_STATE_POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 fn duration_from_secs_str(s: &str) -> Result<Duration, <u64 as std::str::FromStr>::Err> {
@@ -161,7 +162,7 @@ fn set_default_env_vars() {
 
 //This function dereferences enviromnent variable pointing to another environment variable
 //For example:
-// Then the environment variable DOCKER_REQUEST_ROUTE_ADDRESS = "${PARENT_HOSTNAME}"
+// The environment variable DOCKER_REQUEST_ROUTE_ADDRESS = "${PARENT_HOSTNAME}"
 // With PARENT_HOSTNAME="127.0.0.1"
 //After calling we want DOCKER_REQUEST_ROUTE_ADDRESS="127.0.0.1"
 fn dereference_env_variable() {
@@ -226,7 +227,7 @@ fn get_raw_config(encoded_file: &str) -> Result<Vec<u8>, anyhow::Error> {
 
 fn get_var_list() -> String {
     //Check if user passed their own env variable list.
-    let vars = match std::env::var("NGINX_CONFIG_ENV_VAR_LIST") {
+    let vars = match std::env::var(PROXY_CONFIG_ENV_VAR_LIST) {
         Ok(vars) => vars,
         //@TO CHECK It copies the string, is that ok?
         Err(_) => PROXY_CONFIG_DEFAULT_VARS_LIST.to_string(),
@@ -238,7 +239,7 @@ fn get_var_list() -> String {
 //First all the environment variables are replaced by their value.
 //Only environment variables in the list NGINX_CONFIG_ENV_VAR_LIST are replaced.
 //A second pass of replacing happens. This is to allow one level of indirection.
-//Then everything that is between #if_tag 0 and #endif_tag 0 or between  #if_tag !1 and #endif_tag !1 is replaced.
+//Then everything that is between #if_tag 0 and #endif_tag 0 or between  #if_tag !1 and #endif_tag !1 is removed.
 fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let mut context = std::collections::HashMap::new();
 
@@ -261,7 +262,7 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let str = re.replace_all(&str, "").to_string();
 
     //Or not 1. This allows usage of if ... else ....
-    let re = regex::Regex::new(r"#if_tag !1((.|\n)*?)#endif_tag !1").context("Failed to remove text between #if_tag 0 tags ")?;
+    let re = regex::Regex::new(r"#if_tag !1((.|\n)*?)#endif_tag 1").context("Failed to remove text between #if_tag 0 tags ")?;
     let str = re.replace_all(&str, "").to_string();
 
     Ok(str)
@@ -327,7 +328,7 @@ mod tests {
     #[test]
     fn env_var_tests() {
         //unset all variables
-        std::env::set_var("NGINX_CONFIG_ENV_VAR_LIST", PROXY_CONFIG_DEFAULT_VARS_LIST);
+        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, PROXY_CONFIG_DEFAULT_VARS_LIST);
         let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
         for key in vars_list {
             std::env::remove_var(key);
