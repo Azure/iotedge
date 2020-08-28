@@ -17,7 +17,7 @@ In blue: The configuration path. It is possible to customize the API proxy confi
 - 5a: nginx reloads with new config
 
 In red: The certificate path
-- 1b: check if current certificate are expired. If yes, get certificate from workload API
+- 1b: check if current certificate is expired. If yes, get the certificate from the workload API.
 - 2b: save certs on disk
 - 3b: request a reload of nginx
 - 4b: nginx reloads with new certs
