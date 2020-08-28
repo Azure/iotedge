@@ -1,12 +1,11 @@
+
+use std::{env, sync::Arc};
+
 use super::utils;
 use anyhow::{Context, Error, Result};
 use chrono::{DateTime, Duration, Utc};
 use futures_util::future::Either;
-use std::env;
-use std::sync::Arc;
-use tokio::sync::Notify;
-use tokio::task::JoinHandle;
-use tokio::time;
+use tokio::{time, sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
 
 const PROXY_SERVER_TRUSTED_CA_PATH: &str = "/app/trustedCA.crt";
@@ -25,7 +24,7 @@ pub fn start(
         tokio::time::Duration::from_secs(1);
 
     let shutdown_signal = Arc::new(tokio::sync::Notify::new());
-    let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
+    let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
 
     let module_id = env::var("IOTEDGE_MODULEID")
         .context(format!("Missing env var {:?}", "IOTEDGE_MODULEID"))?;
@@ -231,8 +230,6 @@ impl CertificateMonitor {
 
 #[cfg(test)]
 mod tests {
-    /*use http::StatusCode;
-    use matches::assert_matches;*/
     use super::*;
     use mockito::mock;
     use serde_json::json;
