@@ -53,7 +53,7 @@ struct Options {
     keep_alive: Duration,
 }
 
-pub fn get_sdk_client() -> Result<azure_iot_mqtt::module::Client, Error> {
+pub fn get_sdk_client() -> Result<Client, Error> {
     let Options {
         use_websocket,
         will,
