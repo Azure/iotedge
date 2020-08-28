@@ -50,7 +50,7 @@ That configuration is controlled through the environment variables of the contai
 ### How it works
 When the application boot it does 2 things
 * It sets a value to all the env var that have default value (see above)
-* It dereferences all the environment variable that points to another environment variable. It is possible to set 1 level of indirection. 
+* It dereferences all every environment variable that point to another environment variable. It is possible to set 1 level of indirection. 
 ```
 For example:
 The environment variable DOCKER_REQUEST_ROUTE_ADDRESS = "${PARENT_HOSTNAME}"
