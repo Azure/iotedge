@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
         }
 
-        public override string RequestName => "GetLogs";
+        public override string RequestName => "GetModuleLogs";
 
         protected override async Task<Option<IEnumerable<ModuleLogsResponse>>> HandleRequestInternal(Option<ModuleLogsRequest> payloadOption, CancellationToken cancellationToken)
         {

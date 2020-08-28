@@ -45,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool useBackupAndRestore;
         readonly Option<string> storageBackupPath;
         readonly Option<ulong> storageMaxTotalWalSize;
+        readonly Option<int> storageMaxOpenFiles;
         readonly Option<StorageLogLevel> storageLogLevel;
 
         public CommonModule(
@@ -69,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool useBackupAndRestore,
             Option<string> storageBackupPath,
             Option<ulong> storageMaxTotalWalSize,
+            Option<int> storageMaxOpenFiles,
             Option<StorageLogLevel> storageLogLevel)
         {
             this.productInfo = productInfo;
@@ -92,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.useBackupAndRestore = useBackupAndRestore;
             this.storageBackupPath = storageBackupPath;
             this.storageMaxTotalWalSize = storageMaxTotalWalSize;
+            this.storageMaxOpenFiles = storageMaxOpenFiles;
             this.storageLogLevel = storageLogLevel;
         }
 
@@ -144,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // DataBase options
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize, this.storageLogLevel))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize, this.storageMaxOpenFiles, this.storageLogLevel))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
@@ -232,9 +235,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // Task<IStoreProvider>
             builder.Register(async c =>
                 {
-                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
-                IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                return storeProvider;
+                    var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                    IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                    return storeProvider;
                 })
                 .As<Task<IStoreProvider>>()
                 .SingleInstance();
