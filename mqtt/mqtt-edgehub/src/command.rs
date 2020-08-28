@@ -109,7 +109,7 @@ impl CommandHandler {
                     }
                 }
                 Ok(None) => {
-                    error!("command handler client disconnected, but will attempt reconnection");
+                    error!("command handler client disconnected");
 
                     if let Ok(()) = self.termination_receiver.try_recv() {
                         break;
