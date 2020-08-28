@@ -119,7 +119,7 @@ impl CommandHandler {
             }
         }
 
-        info!("command handler stopped");
+        debug!("command handler stopped");
     }
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
