@@ -59,7 +59,7 @@ pub fn get_sdk_client() -> Result<Client, Error> {
         will,
         max_back_off,
         keep_alive,
-    } = structopt::StructOpt::from_args();
+    } = StructOpt::from_args();
 
     let client = match azure_iot_mqtt::module::Client::new_for_edge_module(
         if use_websocket {
