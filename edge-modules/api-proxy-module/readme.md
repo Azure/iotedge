@@ -48,7 +48,7 @@ That configuration is controlled through the environment variables of the contai
 | PROXY_CONFIG_ENV_VAR_LIST | List all the variable to be replace. By default it contains: NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,PARENT_HOSTNAME  |
 
 ### How it works
-When the application boot it does 2 things
+When the application boots up, it does two things:
 * It sets a value to all the env var that have default value (see above)
 * It dereferences all every environment variable that point to another environment variable. It is possible to set 1 level of indirection. 
 ```
