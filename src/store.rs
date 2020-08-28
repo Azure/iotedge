@@ -145,4 +145,10 @@ impl<T: StoreBackend> Store<T> {
             Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "BAD KEY URI")))
         }
     }
+
+    pub async fn delete_secret(&self, id: String) -> BoxResult<'_, ()> {
+        self.backend.delete_record(&id)?;
+
+        Ok(())
+    }
 }

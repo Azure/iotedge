@@ -45,6 +45,8 @@ pub(crate) async fn dispatch<'a, T: StoreBackend>(store: &'a Store<T>, req: Requ
             Ok(Response::builder().status(204).body(Body::empty()).unwrap())
         },
         &Method::DELETE => {
+            store.delete_secret(id).await?;
+
             Ok(Response::builder().status(204).body(Body::empty()).unwrap())
         },
         _ => Ok(Response::builder().status(404).body(Body::empty())?)
