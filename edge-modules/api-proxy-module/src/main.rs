@@ -143,7 +143,7 @@ pub fn nginx_controller_start(
             let wait_shutdown_signal = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown_signal);
 
-            let wait_shutdown = futures::future::select(wait_shutdown_ctrl_c, wait_shutdown_signal);
+            let wait_shutdown = future::select(wait_shutdown_ctrl_c, wait_shutdown_signal);
 
             match futures::future::select(wait_shutdown, restart_proxy).await {
                 Either::Left(_) => {
