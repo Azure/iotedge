@@ -32,11 +32,6 @@ async fn disconnect_client() {
             .await
             .expect("could not start command handler");
 
-    // TODO: This wait is necessary because edgehub can send disconnect before command handler subscribes to disconnect topic
-    //       We will soon have a proper approach for starting command handler before edgehub sends disconnects
-    //       The risk of this causing issues in a containerized scenario is very small because edgehub startup time > broker startup time
-    time::delay_for(Duration::from_secs(1)).await;
-
     let mut test_client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),
         server_handle.address(),

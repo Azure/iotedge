@@ -16,18 +16,21 @@ use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 
-pub struct ShutdownHandle(Sender<()>, mqtt3::ShutdownHandle);
+pub struct ShutdownHandle {
+    command_handler_shutdown: Sender<()>,
+    client_shutdown: mqtt3::ShutdownHandle,
+}
 
 impl ShutdownHandle {
     pub async fn shutdown(mut self) -> Result<(), CommandHandlerError> {
         debug!("signaling command handler shutdown");
-        self.0
+        self.command_handler_shutdown
             .send(())
             .await
             .map_err(|_| CommandHandlerError::ShutdownError())?;
 
         debug!("shutting down command handler mqtt client");
-        self.1
+        self.client_shutdown
             .shutdown()
             .await
             .map_err(CommandHandlerError::ShutdownClient)?;
@@ -92,10 +95,10 @@ impl CommandHandler {
     }
 
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
-        Ok(ShutdownHandle(
-            self.termination_handle.clone(),
-            self.client.shutdown_handle()?,
-        ))
+        Ok(ShutdownHandle {
+            command_handler_shutdown: self.termination_handle.clone(),
+            client_shutdown: self.client.shutdown_handle()?,
+        })
     }
 
     pub async fn run(mut self) {
