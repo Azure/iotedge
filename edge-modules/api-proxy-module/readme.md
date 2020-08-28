@@ -107,7 +107,7 @@ Result after parsing
 
 
 ### Setup for pulling container images
-There are several different kind of configurations:
+There are several different kinds of configurations:
 - With local registry at the root: 
     - Config for root device:
 ![](images/set_env_var_local_registry.png)
@@ -115,4 +115,3 @@ There are several different kind of configurations:
 ![](images/set_env_var_no_local_registry.png)
 
 Make sure to remove port 443 that is opened by edgehub or use another port that is available on the image.
-
