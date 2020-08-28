@@ -1,21 +1,23 @@
+
+use std::{sync::Arc, time::Duration};
+
 use super::utils;
 use anyhow::{Context, Error, Result};
 use chrono::Utc;
 use futures_util::future::Either;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::Notify;
-use tokio::task::JoinHandle;
+use tokio::{sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
+use azure_iot_mqtt::module::Client;
+use structopt::StructOpt;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
 const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
-const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,PARENT_HOSTNAME";
+const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,IOTEDGE_PARENTHOSTNAME";
 const TWIN_PROXY_CONFIG_KEY: &str = "nginx_config";
 
-const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443"),("DOCKER_REQUEST_ROUTE_ADDRESS", "PARENT_HOSTNAME")];
+const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
 const TWIN_STATE_POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 fn duration_from_secs_str(s: &str) -> Result<Duration, <u64 as std::str::FromStr>::Err> {
@@ -262,7 +264,7 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let str = re.replace_all(&str, "").to_string();
 
     //Or not 1. This allows usage of if ... else ....
-    let re = regex::Regex::new(r"#if_tag !1((.|\n)*?)#endif_tag 1").context("Failed to remove text between #if_tag 0 tags ")?;
+    let re = regex::Regex::new(r"#if_tag ![^0]((.|\n)*?)#endif_tag [^0].*\n").context("Failed to remove text between #if_tag 0 tags ")?;
     let str = re.replace_all(&str, "").to_string();
 
     Ok(str)
@@ -377,8 +379,8 @@ mod tests {
         for key in vars_list {
             std::env::remove_var(key);
         }       
-        std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "PARENT_HOSTNAME");
-        std::env::set_var("PARENT_HOSTNAME", "127.0.0.1");
+        std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
+        std::env::set_var("IOTEDGE_PARENTHOSTNAME", "127.0.0.1");
 
         dereference_env_variable();
 
@@ -387,5 +389,17 @@ mod tests {
         let config = get_parsed_config(dummy_config).unwrap();
 
         assert_eq!("127.0.0.1", config);
+
+       //************************* Check config between ![^1] get deleted *********************************
+       let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
+       for key in vars_list {
+           std::env::remove_var(key);
+       }
+
+       std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
+       let dummy_config = "#if_tag !${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n\r\n#if_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould not be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}";
+       let config = get_parsed_config(dummy_config).unwrap();
+
+       assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);      
     }
 }

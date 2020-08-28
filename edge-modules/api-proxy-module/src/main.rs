@@ -10,19 +10,16 @@
     clippy::must_use_candidate,
     clippy::missing_errors_doc
 )]
-mod monitors;
-mod signals;
+use std::{process::Stdio, sync::Arc};
+
 use anyhow::{Context, Error, Result};
 use futures_util::future::{self, Either};
-use monitors::certs_monitor;
-use monitors::config_monitor;
-use monitors::utils;
-use std::process::Stdio;
-use std::sync::Arc;
-use tokio::process::Command;
-use tokio::sync::Notify;
-use tokio::task::JoinHandle;
+use monitors::{certs_monitor, config_monitor, utils};
+use tokio::{process::Command, sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
+
+mod monitors;
+mod signals;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -103,7 +100,7 @@ pub fn nginx_controller_start(
     let stop_proxy_args = vec!["-s".to_string(), "stop".to_string()];
 
     let shutdown_signal = Arc::new(Notify::new());
-    let shutdown_handle = utils::ShutdownHandle(shutdown_signal.clone());
+    let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
 
     //Wait for certificate rotation
     //This is just to avoid error at the beginning when nginx tries to start

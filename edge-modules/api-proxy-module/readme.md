@@ -115,3 +115,7 @@ There are several different kinds of configurations:
 ![](images/set_env_var_no_local_registry.png)
 
 Make sure to remove port 443 that is opened by edgehub or use another port that is available on the image.
+To open port 443 for the API proxy the options should be set as the following:
+![](api-proxy-create-options.png)
+
+The edgedevices inside the layers will

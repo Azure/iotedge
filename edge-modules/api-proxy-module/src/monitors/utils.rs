@@ -1,7 +1,5 @@
+use std::{fs::{self, File}, io::prelude::*, sync::Arc};
 use anyhow::{Context, Result};
-use std::fs::{self, File};
-use std::io::prelude::*;
-use std::sync::Arc;
 use tokio::sync::Notify;
 
 pub fn write_binary_to_file(file: &[u8], path: &str) -> Result<()> {

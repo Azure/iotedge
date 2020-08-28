@@ -28,7 +28,7 @@ function usage()
     echo "options"
     echo " -h,  --help                   Print this help and exit."
     echo " -i,  --image                  Image name"
-    echo " -t,  --target-arch            Target architecture: x86_64|armv7l"
+    echo " -t,  --target-arch            Target architecture: amd64|arm32v7|aarch64"
     exit 1;
 }
 
@@ -37,10 +37,12 @@ function usage()
 ###############################################################################
 check_arch()
 {
-    if [[ "$ARCH" == "x86_64" ]]; then
+    if [[ "$ARCH" == "amd64" ]]; then
         ARCH="amd64"
-    elif [[ "$ARCH" == "armv7l" ]]; then
+    elif [[ "$ARCH" == "arm32v7" ]]; then
         ARCH="arm32v7"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+        ARCH="aarch64"
     else
         echo "Unsupported architecture"
         exit 1
@@ -81,8 +83,20 @@ check_arch
 ###############################################################################
 
 echo ${PROJECT_ROOT}
+
+if [ $ARCH == "amd64" ]; then
+set +e
 ../../scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch $ARCH --build-path edge-modules/api-proxy-module
+set -e
 strip ${PROJECT_ROOT}/edge-modules/api-proxy-module/target/x86_64-unknown-linux-musl/release/api-proxy-module
+elif [ $ARCH == "arm32v7" ]; then
+strip ${PROJECT_ROOT}/edge-modules/api-proxy-module/target/armv7-unknown-linux-gnueabihf/release/api-proxy-module
+elif [ $ARCH == "aarch64" ]; then
+docker build -t api-proxy-module-builder ${PROJECT_ROOT}/edge-modules/api-proxy-module/docker/linux/builder
+docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src api-proxy-module-builder cargo build --release --target=aarch64-unknown-linux-musl --manifest-path /home/rust/src/edge-modules/api-proxy-module/Cargo.toml
+
+strip ${PROJECT_ROOT}/edge-modules/api-proxy-module/target/aarch64-unknown-linux-musl/release/api-proxy-module
+fi
 #if [ $ARCH == "amd64" ]; then
 #	docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/api-proxy-module/Cargo.toml
 #	strip ${PROJECT_ROOT}/edge-modules/api-proxy-module/target/x86_64-unknown-linux-musl/release/api-proxy-module
@@ -92,4 +106,4 @@ strip ${PROJECT_ROOT}/edge-modules/api-proxy-module/target/x86_64-unknown-linux-
 #	docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src api-proxy-module-builder arm-linux-gnueabihf-strip /home/rust/src/edge-modules/api-proxy-module/target/armv7-unknown-linux-gnueabihf/release/api-proxy-module
 #fi
 
-#docker build -t ${IMAGE} -f ${PROJECT_ROOT}/edge-modules/api-proxy-module/docker/linux/$ARCH/Dockerfile ${PROJECT_ROOT}/edge-modules/api-proxy-module/
+docker build -t ${IMAGE} -f ${PROJECT_ROOT}/edge-modules/api-proxy-module/docker/linux/$ARCH/Dockerfile ${PROJECT_ROOT}/edge-modules/api-proxy-module/

@@ -5,9 +5,9 @@
 
 ARG DIR=.
 
-FROM arm32v7/alpine:3.12.0
+FROM arm64v8/alpine:3.12.0
 WORKDIR /app
-COPY target/armv7-unknown-linux-gnueabihf/release/api-proxy-module .
+COPY target/aarch64-unknown-linux-gnu/release/api-proxy-module .
 COPY templates .
 RUN ls
 RUN	apk update && \
