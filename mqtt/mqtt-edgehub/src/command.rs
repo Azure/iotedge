@@ -2,11 +2,7 @@ use std::{collections::HashSet, time::Duration};
 
 use futures_util::future::BoxFuture;
 use serde_json::error::Error as SerdeError;
-use tokio::{
-    net::TcpStream,
-    stream::StreamExt,
-    sync::mpsc::{self, Receiver, Sender},
-};
+use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{debug, error, info};
 
 use mqtt3::{
@@ -17,19 +13,12 @@ use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 
 pub struct ShutdownHandle {
-    command_handler_shutdown: Sender<()>,
     client_shutdown: mqtt3::ShutdownHandle,
 }
 
 impl ShutdownHandle {
     pub async fn shutdown(mut self) -> Result<(), CommandHandlerError> {
         debug!("signaling command handler shutdown");
-        self.command_handler_shutdown
-            .send(())
-            .await
-            .map_err(|_| CommandHandlerError::ShutdownError())?;
-
-        debug!("shutting down command handler mqtt client");
         self.client_shutdown
             .shutdown()
             .await
@@ -60,8 +49,6 @@ impl IoSource for BrokerConnection {
 pub struct CommandHandler {
     broker_handle: BrokerHandle,
     client: Client<BrokerConnection>,
-    termination_handle: Sender<()>,
-    termination_receiver: Receiver<()>,
 }
 
 impl CommandHandler {
@@ -84,19 +71,15 @@ impl CommandHandler {
         let subscribe_topics = &[DISCONNECT_TOPIC.to_string()];
         subscribe(&mut client, subscribe_topics).await?;
 
-        let (termination_handle, termination_receiver) = mpsc::channel(5);
-
         Ok(CommandHandler {
             broker_handle,
+
             client,
-            termination_handle,
-            termination_receiver,
         })
     }
 
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
         Ok(ShutdownHandle {
-            command_handler_shutdown: self.termination_handle.clone(),
             client_shutdown: self.client.shutdown_handle()?,
         })
     }
@@ -104,22 +87,16 @@ impl CommandHandler {
     pub async fn run(mut self) {
         debug!("starting command handler");
 
-        loop {
-            match self.client.try_next().await {
-                Ok(Some(event)) => {
-                    if let Err(e) = self.handle_event(event).await {
-                        error!(message = "error processing command handler event", error = %e);
-                    }
+        match self.client.try_next().await {
+            Ok(Some(event)) => {
+                if let Err(e) = self.handle_event(event).await {
+                    error!(message = "error processing command handler event", error = %e);
                 }
-                Ok(None) => {
-                    error!("command handler client disconnected");
-
-                    if let Ok(()) = self.termination_receiver.try_recv() {
-                        break;
-                    }
-                }
-                Err(e) => error!("failure polling command handler client {}", error = e),
             }
+            Ok(None) => {
+                debug!("command handler mqtt client disconnected");
+            }
+            Err(e) => error!("failure polling command handler client {}", error = e),
         }
 
         debug!("command handler stopped");
