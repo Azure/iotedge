@@ -7,7 +7,7 @@ PartOf=iotedge.service
 ListenStream=/var/run/iotedge/mgmt.sock
 SocketMode=0660
 DirectoryMode=0755
-SocketUser=iotedge
+SocketUser=1000
 SocketGroup=iotedge
 Service=iotedge.service
 
