@@ -73,7 +73,6 @@ impl CommandHandler {
 
         Ok(CommandHandler {
             broker_handle,
-
             client,
         })
     }
@@ -87,16 +86,21 @@ impl CommandHandler {
     pub async fn run(mut self) {
         debug!("starting command handler");
 
-        match self.client.try_next().await {
-            Ok(Some(event)) => {
-                if let Err(e) = self.handle_event(event).await {
-                    error!(message = "error processing command handler event", error = %e);
+        loop {
+            match self.client.try_next().await {
+                Ok(Some(event)) => {
+                    if let Err(e) = self.handle_event(event).await {
+                        error!(message = "error processing command handler event", error = %e);
+                    }
+                }
+                Ok(None) => {
+                    debug!("command handler mqtt client disconnected");
+                    break;
+                }
+                Err(e) => {
+                    error!("failure polling command handler client {}", error = e);
                 }
             }
-            Ok(None) => {
-                debug!("command handler mqtt client disconnected");
-            }
-            Err(e) => error!("failure polling command handler client {}", error = e),
         }
 
         debug!("command handler stopped");
@@ -184,9 +188,6 @@ pub enum CommandHandlerError {
 
     #[error("failed to signal shutdown for command handler")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
-
-    #[error("failed to signal shutdown for command handler")]
-    ShutdownError(),
 }
 
 #[derive(Debug, thiserror::Error)]
