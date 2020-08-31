@@ -11,5 +11,5 @@
     clippy::missing_errors_doc
 )]
 
-pub mod signals;
 pub mod monitors;
+pub mod signals;

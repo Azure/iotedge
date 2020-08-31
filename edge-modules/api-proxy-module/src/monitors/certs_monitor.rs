@@ -1,13 +1,12 @@
-
 use std::{env, sync::Arc};
 
 use super::utils;
 use anyhow::{Context, Error, Result};
 use chrono::{DateTime, Duration, Utc};
-use futures_util::future::Either;
-use tokio::{time, sync::Notify, task::JoinHandle};
-use utils::ShutdownHandle;
 use edgelet_client::CertificateResponse;
+use futures_util::future::Either;
+use tokio::{sync::Notify, task::JoinHandle, time};
+use utils::ShutdownHandle;
 
 const PROXY_SERVER_TRUSTED_CA_PATH: &str = "/app/trustedCA.crt";
 const PROXY_SERVER_CERT_PATH: &str = "/app/server.crt";
@@ -113,7 +112,7 @@ pub fn start(
                         need_notify = true;
                     }
                 }
-                
+
                 Err(err) => {
                     need_notify = false;
                     log::error!("Error while trying to get server cert {:?}", err);
@@ -146,7 +145,7 @@ pub fn start(
                         need_notify = true;
                     }
                 }
-                
+
                 Err(err) => {
                     need_notify = false;
                     log::error!("Error while trying to get server cert {:?}", err);
@@ -233,10 +232,12 @@ impl CertificateMonitor {
             )
             .await?;
 
-        let (certificates, expiration_date) = self.unwrap_certificate_response(resp).context("could not extract server certificates")?;
+        let (certificates, expiration_date) = self
+            .unwrap_certificate_response(resp)
+            .context("could not extract server certificates")?;
         self.server_cert_expiration_date = expiration_date;
-        
-        return Ok(Some(certificates));
+
+        Ok(Some(certificates))
     }
 
     async fn need_to_rotate_identity_cert(
@@ -250,18 +251,21 @@ impl CertificateMonitor {
 
         let resp = self
             .work_load_api_client
-            .create_identity_cert(
-                &self.module_id,
-            )
+            .create_identity_cert(&self.module_id)
             .await?;
 
-        let (certificates, expiration_date) = self.unwrap_certificate_response(resp).context("could not extract server certificates")?;
+        let (certificates, expiration_date) = self
+            .unwrap_certificate_response(resp)
+            .context("could not extract server certificates")?;
         self.identity_cert_expiration_date = expiration_date;
-    
-        return Ok(Some(certificates));
+
+        Ok(Some(certificates))
     }
 
-    fn unwrap_certificate_response(&mut self, resp: CertificateResponse) -> Result<((String, String), DateTime<Utc>), anyhow::Error> {
+    fn unwrap_certificate_response(
+        &mut self,
+        resp: CertificateResponse,
+    ) -> Result<((String, String), DateTime<Utc>), anyhow::Error> {
         let server_crt = resp.certificate().to_string();
         let private_key_raw = resp.private_key();
         let private_key = match private_key_raw.bytes() {
@@ -272,11 +276,11 @@ impl CertificateMonitor {
         let datetime = DateTime::parse_from_rfc3339(&resp.expiration())
             .context("Error parsing certificate expiration date")?;
         // convert the string into DateTime<Utc> or other timezone
-        let expiration_date = datetime.with_timezone(&Utc); 
+        let expiration_date = datetime.with_timezone(&Utc);
 
         Ok(((server_crt, private_key), expiration_date))
     }
-
+ 
     async fn has_bundle_of_trust_rotated(&mut self) -> Result<(bool, String), anyhow::Error> {
         let mut has_bundle_of_trust_rotated = false;
         let resp = self.work_load_api_client.trust_bundle().await?;
@@ -344,14 +348,14 @@ mod tests {
             .unwrap();
 
         assert_eq!(server_cert, "CERTIFICATE");
-        assert_eq!(private_key, "PRIVATE KEY");    
+        assert_eq!(private_key, "PRIVATE KEY");
 
         //Try again, certificate should be rotated in memory.
         let result = client
-        .need_to_rotate_server_cert(current_date)
-        .await
-        .unwrap();
-        
+            .need_to_rotate_server_cert(current_date)
+            .await
+            .unwrap();
+
         assert!(result.is_none());
     }
 
@@ -393,19 +397,19 @@ mod tests {
         .with_body(serde_json::to_string(&res).unwrap())
         .create();
         let (identity_cert, private_key) = client
-        .need_to_rotate_identity_cert(current_date)
-        .await
-        .unwrap()
-        .unwrap();
+            .need_to_rotate_identity_cert(current_date)
+            .await
+            .unwrap()
+            .unwrap();
 
         assert_eq!(identity_cert, "CERTIFICATE");
-        assert_eq!(private_key, "PRIVATE KEY");  
+        assert_eq!(private_key, "PRIVATE KEY");
 
         //Try again, certificate should be rotated in memory.
         let result = client
-        .need_to_rotate_identity_cert(current_date)
-        .await
-        .unwrap();
+            .need_to_rotate_identity_cert(current_date)
+            .await
+            .unwrap();
 
         assert!(result.is_none());
     }

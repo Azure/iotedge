@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(
+#![allow( 
     clippy::cognitive_complexity,
     clippy::large_enum_variant,
     clippy::similar_names,
@@ -13,11 +13,14 @@
 use std::{process::Stdio, sync::Arc};
 
 use anyhow::{Context, Error, Result};
+use api_proxy_module::{
+    monitors::{certs_monitor, config_monitor, utils},
+    signals::shutdown,
+};
 use futures_util::future::{self, Either};
-use api_proxy_module::{signals::shutdown, monitors::{certs_monitor, config_monitor, utils}};
+use log::LevelFilter;
 use tokio::{process::Command, sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
-use log::LevelFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {

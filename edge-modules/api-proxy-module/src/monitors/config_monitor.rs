@@ -1,14 +1,15 @@
-
 use std::{sync::Arc, time::Duration};
-
+ 
 use super::utils;
 use anyhow::{Context, Error, Result};
+use azure_iot_mqtt::{
+    module::Client, ReportTwinStateHandle, ReportTwinStateRequest, Transport::Tcp, TwinProperties,
+};
 use chrono::Utc;
 use futures_util::future::Either;
+use regex::Regex;
 use tokio::{sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
-use azure_iot_mqtt::{ReportTwinStateHandle, module::Client, ReportTwinStateRequest, Transport::Tcp, TwinProperties};
-use regex::Regex;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
@@ -133,13 +134,12 @@ fn dereference_env_variable() {
             //If env variable is already declared, do nothing
             Ok(env_var_candidate) => {
                 //try to dereference again
-                match std::env::var(env_var_candidate)
-                {
+                match std::env::var(env_var_candidate) {
                     //If the candidate exist, replace the existing variable value
                     Ok(value) => std::env::set_var(key, value),
                     Err(_) => continue,
-                } 
-            },
+                }
+            }
             //Else add the default value
             Err(_) => continue,
         };
@@ -186,12 +186,11 @@ fn get_raw_config(encoded_file: &str) -> Result<Vec<u8>, anyhow::Error> {
 
 fn get_var_list() -> String {
     //Check if user passed their own env variable list.
-    let vars = match std::env::var(PROXY_CONFIG_ENV_VAR_LIST) {
+    match std::env::var(PROXY_CONFIG_ENV_VAR_LIST) {
         Ok(vars) => vars,
         //@TO CHECK It copies the string, is that ok?
         Err(_) => PROXY_CONFIG_DEFAULT_VARS_LIST.to_string(),
-    };
-    vars
+    }
 }
 
 //Check readme for details of how parsing is done.
@@ -217,11 +216,13 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let str: String = envsubst::substitute(str, &context).context("Failed to subst the text")?;
 
     //Replace is 0
-    let re = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0").context("Failed to remove text between #if_tag 0 tags ")?;
+    let re = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0")
+        .context("Failed to remove text between #if_tag 0 tags ")?;
     let str = re.replace_all(&str, "").to_string();
 
     //Or not 1. This allows usage of if ... else ....
-    let re = Regex::new(r"#if_tag ![^0]((.|\n)*?)#endif_tag [^0].*\n").context("Failed to remove text between #if_tag 0 tags ")?;
+    let re = Regex::new(r"#if_tag ![^0]((.|\n)*?)#endif_tag [^0].*\n")
+        .context("Failed to remove text between #if_tag 0 tags ")?;
     let str = re.replace_all(&str, "").to_string();
 
     Ok(str)
@@ -335,7 +336,7 @@ mod tests {
         let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
         for key in vars_list {
             std::env::remove_var(key);
-        }       
+        }
         std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
         std::env::set_var("IOTEDGE_PARENTHOSTNAME", "127.0.0.1");
 
@@ -347,16 +348,16 @@ mod tests {
 
         assert_eq!("127.0.0.1", config);
 
-       //************************* Check config between ![^1] get deleted *********************************
-       let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-       for key in vars_list {
-           std::env::remove_var(key);
-       }
+        //************************* Check config between ![^1] get deleted *********************************
+        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
+        for key in vars_list {
+            std::env::remove_var(key);
+        }
 
-       std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
-       let dummy_config = "#if_tag !${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n\r\n#if_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould not be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}";
-       let config = get_parsed_config(dummy_config).unwrap();
+        std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
+        let dummy_config = "#if_tag !${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n\r\n#if_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould not be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}";
+        let config = get_parsed_config(dummy_config).unwrap();
 
-       assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);      
+        assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);
     }
 }
