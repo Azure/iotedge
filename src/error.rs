@@ -1,5 +1,3 @@
-use crate::store::StoreBackend;
-
 use std::fmt;
 
 use failure::{Backtrace, Context, Fail};
@@ -21,8 +19,14 @@ pub enum ErrorKind {
     Hyper,
     #[fail(display = "KeyService: {}", _0)]
     KeyService(&'static str),
+    #[fail(display = "NotFound")]
+    NotFound,
     #[fail(display = "RandomNumberGenerator")]
-    RandomNumberGenerator
+    RandomNumberGenerator,
+    #[fail(display = "Reqwest")]
+    Reqwest,
+    #[fail(display = "Unauthorized")]
+    Unauthorized
 }
 
 impl Fail for Error {

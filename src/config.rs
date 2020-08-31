@@ -1,3 +1,5 @@
+use crate::constants::STATE_DIRECTORY;
+
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -5,7 +7,7 @@ use std::path::Path;
 use serde::Deserialize;
 
 fn default_storage_location() -> String {
-    "/var/lib/secretstore".to_string()
+    STATE_DIRECTORY.to_string()
 }
 
 fn default_encryption_source() -> EncryptionSource {
@@ -24,7 +26,7 @@ fn default_trusted_certs() -> Vec<String> {
     Vec::new()
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EncryptionSource {
     Automatic,
@@ -32,7 +34,7 @@ pub enum EncryptionSource {
     RemoteKey(String)
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StorePermissions {
     Read,
@@ -46,14 +48,14 @@ pub struct AADCredentials {
     pub client_secret: String
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Principal {
     pub name: String,
     pub uid: u32,
     pub permissions: StorePermissions
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct LocalSettings {
     #[serde(default = "default_storage_location")]
     pub storage_location: String,
@@ -61,7 +63,7 @@ pub struct LocalSettings {
     pub encryption_source: EncryptionSource
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Certificates {
     #[serde(default = "default_device_cert")]
     pub device_cert: String,
@@ -71,7 +73,7 @@ pub struct Certificates {
     pub trusted_certs: Vec<String>
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Configuration {
     pub credentials: AADCredentials,
     pub principals: Vec<Principal>,

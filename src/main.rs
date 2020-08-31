@@ -2,17 +2,16 @@ mod backends;
 mod config;
 mod constants;
 mod error;
-mod server;
+mod routes;
 mod store;
-mod util;
 
-use crate::backends::rocksdb::RocksDBBackend;
-use crate::constants::{CONFIGURATION_FILE, LISTEN_SOCKET};
+use crate::error::ErrorKind;
+use crate::backends::rocksdb;
 use crate::store::{Store, StoreBackend as _};
 
 use std::error::Error as StdError;
+use std::io;
 use std::fs::remove_file;
-use std::io::ErrorKind;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -29,7 +28,7 @@ fn init(path: &Path) {
     }
 
     match remove_file(path) {
-        Err(e) if e.kind() != ErrorKind::NotFound =>
+        Err(e) if e.kind() != io::ErrorKind::NotFound =>
             panic!("COULD NOT REMOVE EXISTING SOCKET"),
         _ => ()
     }
@@ -43,26 +42,35 @@ fn init(path: &Path) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
-    let conf = config::load(Path::new(CONFIGURATION_FILE));
-    let skt = Path::new(LISTEN_SOCKET);
+    let conf = config::load(Path::new(constants::CONFIGURATION_FILE));
+    let skt = Path::new(constants::LISTEN_SOCKET);
 
     init(skt);
 
     let store = {
-        let backend = RocksDBBackend::new().unwrap();
+        let backend = rocksdb::RocksDBBackend::new().unwrap();
         Arc::new(Store::new(backend, conf.credentials))
     };
     
     Server::bind_unix(skt)?
         .serve(make_service_fn(|conn: &UnixStream| {
             let store = store.to_owned();
-            let peer_cred = conn.peer_cred().unwrap();
-            async {
-                <Result<_, HyperError>>::Ok(service_fn(move |req| {
+            let creds = conn.peer_cred().unwrap().clone();
+            async move {
+                <Result<_, HyperError>>::Ok(service_fn(move |mut req| {
                     let store = store.to_owned();
+                    req.extensions_mut().insert(creds.clone());
                     async move {
-                        server::dispatch(&store, req).await
-                            .or_else(|e| Response::builder().status(500).body(Body::from(format!("{:?}", e))))
+                        routes::dispatch(&store, req).await
+                            .or_else(|e| {
+                                println!("ERROR: {:?}", e);
+                                match e.kind() {
+                                    ErrorKind::CorruptData => Response::builder().status(400).body(Body::empty()),
+                                    ErrorKind::Unauthorized => Response::builder().status(403).body(Body::empty()),
+                                    ErrorKind::NotFound => Response::builder().status(404).body(Body::empty()),
+                                    _ => Response::builder().status(500).body(format!("{:?}", e).into())
+                                }
+                            })
                     }
                 }))
             }

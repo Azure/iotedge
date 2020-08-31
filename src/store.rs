@@ -1,26 +1,23 @@
 use crate::config::AADCredentials;
 use crate::constants::*;
 use crate::error::{Error, ErrorKind};
-use crate::util::*;
 
 use std::sync::Arc;
 
 use aziot_key_client_async::Client as KeyClient;
 use aziot_key_common::{CreateKeyValue, EncryptMechanism};
 use failure::{Fail, ResultExt};
-use hyper::{Body, Client as HyperClient, Request, Uri};
 use hyper::client::HttpConnector;
-use hyper_tls::HttpsConnector;
 use iotedge_aad::{Auth, TokenSource};
 use lazy_static::lazy_static;
-use regex::{Match, Regex};
+use regex::Regex;
 use reqwest::Client as ReqwestClient;
 use ring::rand::{generate, SystemRandom};
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
-    static ref AUTH_CLIENT: Auth = Auth::new(Arc::new(ReqwestClient::new()), "https://vault.azure.net");
-    static ref HTTPS_CLIENT: HyperClient<HttpsConnector<HttpConnector>> = HyperClient::builder().build(HttpsConnector::new());
+    static ref REQWEST: Arc<ReqwestClient> = Arc::new(ReqwestClient::new());
+    static ref AAD_CLIENT: Auth = Auth::new(REQWEST.clone(), "https://vault.azure.net");
     static ref KEY_CLIENT: KeyClient<HttpConnector> = KeyClient::new(HttpConnector::new());
     static ref VAULT_REGEX: Regex = Regex::new(r"(?P<vault_id>[0-9a-zA-Z-]+)/(?P<secret_id>[0-9a-zA-Z-]+)(?:/(?P<secret_version>[0-9a-zA-Z-]+))?").unwrap();
 }
@@ -42,7 +39,7 @@ pub trait StoreBackend: Send + Sync {
 
     fn write_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
     fn update_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
-    fn read_record(&self, id: &str) -> Result<Record, Self::Error>;
+    fn try_read_record(&self, id: &str) -> Result<Option<Record>, Self::Error>;
     fn delete_record(&self, id: &str) -> Result<(), Self::Error>;
 }
 
@@ -55,7 +52,6 @@ pub(crate) struct Store<T: StoreBackend> {
 
 impl<T: StoreBackend> Store<T> {
     pub fn new(backend: T, credentials: AADCredentials) -> Self {
-
         backend.init()
             .expect("Could not initialize storage backend");
 
@@ -67,33 +63,37 @@ impl<T: StoreBackend> Store<T> {
 
     pub async fn get_secret(&self, id: String) -> Result<String, Error> {
         let record = self.backend
-            .read_record(&id)
+            .try_read_record(&id)
             .context(ErrorKind::Backend("Read"))?;
-        let key_handle = KEY_CLIENT.create_key_if_not_exists(
-                &id,
-                CreateKeyValue::Generate { length: AES_KEY_BYTES }
-            )
-            .await
-            .context(ErrorKind::KeyService("GetKey"))?;
-        let pbytes = KEY_CLIENT.decrypt(
-                &key_handle,
-                EncryptMechanism::Aead {
-                    iv: record.iv,
-                    aad: record.aad
-                },
-                record.ciphertext.as_slice()
-            )
-            .await
-            .context(ErrorKind::KeyService("Decrypt"))?;
+        if let Some(record) = record {
+            let key_handle = KEY_CLIENT.create_key_if_not_exists(
+                    &id,
+                    CreateKeyValue::Generate { length: AES_KEY_BYTES }
+                )
+                .await
+                .context(ErrorKind::KeyService("GetKey"))?;
+            let pbytes = KEY_CLIENT.decrypt(
+                    &key_handle,
+                    EncryptMechanism::Aead {
+                        iv: record.iv,
+                        aad: record.aad
+                    },
+                    record.ciphertext.as_slice()
+                )
+                .await
+                .context(ErrorKind::KeyService("Decrypt"))?;
 
-        let ptext = String::from_utf8(pbytes)
-            .context(ErrorKind::CorruptData)?;
+            let ptext = String::from_utf8(pbytes)
+                .context(ErrorKind::CorruptData)?;
 
-        Ok(ptext)
+            Ok(ptext)
+        }
+        else {
+            Err(Error::from(ErrorKind::NotFound))
+        }
     }
 
-    pub async fn set_secret(&self, id: String, value: String) -> Result<String, Error> {
-
+    pub async fn set_secret(&self, id: String, value: String) -> Result<(), Error> {
         let (ciphertext, iv, aad) = encrypt(&id, value).await?;
         self.backend
             .write_record(&id, Record {
@@ -102,11 +102,20 @@ impl<T: StoreBackend> Store<T> {
                 aad: aad,
                 upstream: None
             })
-            .context(ErrorKind::Backend("Write"))?
+            .context(ErrorKind::Backend("Write"))?;
+        Ok(())
+    }
+
+    pub async fn delete_secret(&self, id: String) -> Result<(), Error> {
+        self.backend
+            .delete_record(&id)
+            .context(ErrorKind::Backend("Delete"))?;
+
+        Ok(())
     }
 
     pub async fn pull_secret(&self, id: String, remote: String) -> Result<(), Error> {
-        let token = AUTH_CLIENT
+        let token = AAD_CLIENT
             .authorize_with_secret(
                 &self.credentials.tenant_id,
                 &self.credentials.client_id,
@@ -130,21 +139,18 @@ impl<T: StoreBackend> Store<T> {
                     AKV_API_VERSION
                 );
 
-            let req = Request::builder()
-                .uri(key_uri.parse::<Uri>().context(ErrorKind::Azure("InvalidKeyUri"))?)
-                .header("Authorization", format!("Bearer {}", token))
-                .body(Body::empty())
-                .context(ErrorKind::Hyper)?;
-            let res = HTTPS_CLIENT.request(req)
+            let res = REQWEST.get(&key_uri)
+                .bearer_auth(token)
+                .send()
                 .await
-                .context(ErrorKind::Hyper)?;
-            let value = slurp_json::<serde_json::Value>(res)
-                .await
-                .map_err(|_| ErrorKind::Hyper)?
+                .map_err(|_| ErrorKind::Azure("Fetch"))?;
+            let value = res.json::<serde_json::Value>().await
+                .map_err(|_| ErrorKind::Reqwest)?
                 .get("value")
-                .context(ErrorKind::Azure("UnexpectedAPIResult"))?
+                .ok_or(ErrorKind::Azure("UnexpectedAPIResult"))?
                 .as_str()
-                .context(ErrorKind::Azure("UnexpectedAPIResult"))?;
+                .ok_or(ErrorKind::Azure("UnexpectedAPIResult"))?
+                .to_string();
             
             let (ciphertext, iv, aad) = encrypt(&id, value).await?;
             self.backend
@@ -154,10 +160,11 @@ impl<T: StoreBackend> Store<T> {
                     aad: aad,
                     upstream: Some(key_uri)
                 })
-                .context(ErrorKind::Backend("Write"))?
+                .context(ErrorKind::Backend("Write"))?;
+            Ok(())
         }
         else {
-            unimplemented!()
+            Err(Error::from(ErrorKind::Azure("BadAKVSpecifier")))
         }
     }
 }
@@ -183,8 +190,8 @@ async fn encrypt(id: &str, value: String) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>),
     let ctext = KEY_CLIENT.encrypt(
             &key_handle,
             EncryptMechanism::Aead {
-                iv: iv,
-                aad: aad
+                iv: iv.clone(),
+                aad: aad.clone()
             },
             value.as_bytes()
         )
