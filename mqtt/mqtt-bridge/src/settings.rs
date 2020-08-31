@@ -271,8 +271,6 @@ struct UpstreamSettings {
 
 #[cfg(test)]
 mod tests {
-    use ::std::time::Duration;
-
     use config::ConfigError;
     use serial_test::serial;
 
@@ -376,11 +374,5 @@ mod tests {
             }
             _ => panic!("Expected provider settings"),
         };
-
-        env::remove_var("IOTEDGE_GATEWAYHOSTNAME");
-        env::remove_var("IOTEDGE_DEVICEID");
-        env::remove_var("IOTEDGE_MODULEID");
-        env::remove_var("IOTEDGE_MODULEGENERATIONID");
-        env::remove_var("IOTEDGE_WORKLOADURI");
     }
 }
