@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         [Fact]
         public void TestBasicFunctionality()
         {
-            MetricAggrigator aggrigator = new MetricAggrigator(new AggrigationTemplate("test_metric", ("key1", new Averager())));
+            MetricAggrigator aggrigator = new MetricAggrigator(new AggrigationTemplate("test_metric", "key1", new Averager()));
 
             // metrics with 1 tag, key1, that has key values of val[1-10]. The key values don't matter for this test and are ignored by the aggregator. Only the metric value is averaged.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, "test_metric", i, new Dictionary<string, string> { { "key1", $"val{i}" } }));
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         [Fact]
         public void TestKeepsNonAggrigateTagsSeperate()
         {
-            MetricAggrigator aggrigator = new MetricAggrigator(new AggrigationTemplate("test_metric", ("key1", new Summer())));
+            MetricAggrigator aggrigator = new MetricAggrigator(new AggrigationTemplate("test_metric", "key1", new Summer()));
 
             // metrics with 2 tags, key1, that has key values of val[1-10], and key2, which has key values val[0-1]. The values are summed by shared key2, and key1's value is ignored.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, "test_metric", i, new Dictionary<string, string>
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         [Fact]
         public void TestKeepsMultipleNonAggrigateTagsSeperate()
         {
-            MetricAggrigator aggrigator = new MetricAggrigator(new AggrigationTemplate("test_metric", ("key1", new Summer())));
+            MetricAggrigator aggrigator = new MetricAggrigator(new AggrigationTemplate("test_metric", "key1", new Summer()));
 
             // metrics with 3 tags, key1, that has key values of val[1-12], key2, which has key values val[0-1], and key3, which has values val[0-2]. The values are summed by shared key2 and key3, and key1's value is ignored.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 12).Select(i => new Metric(this.now, "test_metric", i, new Dictionary<string, string>
@@ -160,8 +160,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         public void TestMultipleMetrics()
         {
             MetricAggrigator aggrigator = new MetricAggrigator(
-                new AggrigationTemplate("test_metric0", ("key1", new Summer())),
-                new AggrigationTemplate("test_metric1", ("key1", new Multiplier())));
+                new AggrigationTemplate("test_metric0", "key1", new Summer()),
+                new AggrigationTemplate("test_metric1", "key1", new Multiplier()));
 
             // 2 metrics with 1 tag, key1, that has key values of val[1-10]. The key values don't matter for this test and are ignored by the aggregator. Only the metric values are used. Even values are test_metric0 and will be summed, odd values are test_metric1 and will be multiplied.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, $"test_metric{i % 2}", i, new Dictionary<string, string> { { "key1", $"val{i}" } }));

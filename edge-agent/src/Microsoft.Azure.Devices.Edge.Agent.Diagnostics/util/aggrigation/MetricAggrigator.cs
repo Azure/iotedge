@@ -34,19 +34,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
         // Will aggregate metrics for a single aggregation template
         IEnumerable<Metric> AggregateMetric(IEnumerable<Metric> metrics, AggrigationTemplate aggrigation)
         {
-            return aggrigation.TagsToAggrigate.Aggregate(metrics, (m, agg) => this.AggregateTag(m, aggrigation.Name, agg.tag, agg.aggrigator));
+            return aggrigation.TagsToAggrigate.Aggregate(metrics, (m, tagAggrigation) => this.AggregateTag(m, aggrigation.TargetMetricNames, tagAggrigation.targetTag, tagAggrigation.aggrigator));
         }
 
         // Will aggregate metrics for a single tag of a single template
-        IEnumerable<Metric> AggregateTag(IEnumerable<Metric> metrics, string metricName, string tag, IAggrigator aggrigator)
+        IEnumerable<Metric> AggregateTag(IEnumerable<Metric> metrics, IEnumerable<string> targetMetricNames, string targetTag, IAggrigator aggrigator)
         {
             var aggrigateValues = new DefaultDictionary<AggrigateMetric, IAggrigator>(_ => aggrigator.New());
             foreach (Metric metric in metrics)
             {
                 // if metric is the aggrigation target and it has a tag that should be aggrigated
-                if (metric.Name == metricName && metric.Tags.ContainsKey(tag))
+                if (targetMetricNames.Contains(metric.Name) && metric.Tags.ContainsKey(targetTag))
                 {
-                    var aggrigateMetric = new AggrigateMetric(metric, tag);
+                    var aggrigateMetric = new AggrigateMetric(metric, targetTag);
                     aggrigateValues[aggrigateMetric].PutValue(metric.Value);
                 }
                 else

@@ -8,13 +8,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
 
     public class AggrigationTemplate
     {
-        public string Name { get; }
+        public IEnumerable<string> TargetMetricNames { get; }
 
-        public (string tag, IAggrigator aggrigator)[] TagsToAggrigate { get; }
+        public (string targetTag, IAggrigator aggrigator)[] TagsToAggrigate { get; }
 
-        public AggrigationTemplate(string name, params (string tag, IAggrigator aggrigator)[] tagsToAggrigate)
+        public AggrigationTemplate(string targetName, string targetTag, IAggrigator aggrigator)
+            : this(new string[] { targetName }, (targetTag, aggrigator))
         {
-            this.Name = name;
+        }
+
+        public AggrigationTemplate(string targetName, params (string targetTag, IAggrigator aggrigator)[] tagsToAggrigate)
+            : this(new string[] { targetName }, tagsToAggrigate)
+        {
+        }
+
+        public AggrigationTemplate(IEnumerable<string> targeMetricNames, params (string targetTag, IAggrigator aggrigator)[] tagsToAggrigate)
+        {
+            this.TargetMetricNames = targeMetricNames;
             this.TagsToAggrigate = tagsToAggrigate;
         }
     }
