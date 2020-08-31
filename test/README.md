@@ -35,7 +35,7 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | `networkControllerImage` | * | NetworkControllerImage image to be used. Required when running PriorityQueue tests, ignored otherwise.|
 | `optimizeForPerformance` || Boolean value passed to Edge Hub. Usually set to 'false' when running on more constrained platforms like Raspberry Pi. If not given, it defaults to 'true'. |
 | `packagePath` || Path to the folder containing IoT Edge installation packages (e.g., .deb files on Linux, .cab file on Windows). If not given, the latest stable release packages are downloaded and used. |
-| `parentHostname` || parent hostname to enable connection to parent edge device in nested edge scenario. This parameter is optional. |
+| `parentHostname` || parent hostname to enable connection to parent edge device in nested edge scenario. Required when running nested edge tests, ignored otherwise. |
 | `proxy` || URL of an HTTPS proxy server to use for all communication to IoT Hub. |
 | `registries` || JSON array of container registries to be used by the tests. This information will be added to configurations deployed to the edge device under test. If not given, IoT Edge will attempt anonymous access to container registries. The format of each JSON object in the array is: `{ "address": "{server hostname}", "username": "{username}" }`. Note that each object must also have a value `"password": "{password}"`, but you are encouraged to use an environment variable to meet this requirement (see _Secret test parameters_ below). |
 | `relayerImage` | * | Relayer image to be used. Required when running PriorityQueue tests, ignored otherwise.|

@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                             string hostname = Dns.GetHostName();
                             config.SetDeviceHostname(hostname);
-                            msgBuilder.Append("with [hostname '{hostname}'");
+                            msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
 
                             Context.Current.ParentHostname.ForEach(parentHostname =>
@@ -74,7 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 props.Add(proxy.ToString());
                             });
 
-                            msgBuilder.Append("]");
                             config.Update();
 
                             return Task.FromResult((msgBuilder.ToString(), props.ToArray()));
