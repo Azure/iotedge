@@ -255,11 +255,11 @@ publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
 publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
 publish_files $CONNECTIVITY_TEST_SCRIPT_DIR $PUBLISH_FOLDER
 
-# publish_quickstart linux-arm
+publish_quickstart linux-arm
 publish_quickstart linux-x64
-# publish_quickstart linux-arm64
-# publish_leafdevice linux-arm
+publish_quickstart linux-arm64
+publish_leafdevice linux-arm
 publish_leafdevice linux-x64
-# publish_leafdevice linux-arm64
+publish_leafdevice linux-arm64
 
 exit $RES
