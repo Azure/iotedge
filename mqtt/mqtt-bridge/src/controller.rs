@@ -21,9 +21,10 @@ impl BridgeController {
         let settings = Settings::new()?;
         if let Some(upstream) = settings.upstream() {
             let nested_bridge = Bridge::new(upstream.clone());
-                nested_bridge.start().await;
+            nested_bridge.start().await;
 
-                self.bridges.insert(upstream.name().to_string(), nested_bridge);
+            self.bridges
+                .insert(upstream.name().to_string(), nested_bridge);
         } else {
             info!("No nested bridge found.")
         };
