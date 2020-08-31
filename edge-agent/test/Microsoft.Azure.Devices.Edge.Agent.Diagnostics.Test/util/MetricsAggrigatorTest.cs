@@ -160,6 +160,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         public void TestMultipleMetrics()
         {
             MetricAggrigator aggrigator = new MetricAggrigator(
+                new AggrigationTemplate(
+                    new string[] { "test_metric0", "test_metric1" },
+                    "key1",
+                    new Summer()));
+
+            // 2 metrics with 1 tag, key1, that has key values of val[1-10]. The key values don't matter for this test and are ignored by the aggregator. Only the metric values are used. Even values are test_metric0 and odd values are test_metric1.
+            IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, $"test_metric{i % 2}", i, new Dictionary<string, string> { { "key1", $"val{i}" } }));
+
+            Metric[] results = aggrigator.AggrigateMetrics(metrics).ToArray();
+            Assert.Equal(2, results.Length);
+
+            Assert.Equal(2 + 4 + 6 + 8 + 10, results.Where(m => m.Name == "test_metric0").Single().Value);
+            Assert.Equal(1 + 3 + 5 + 7 + 9, results.Where(m => m.Name == "test_metric1").Single().Value);
+        }
+
+        [Fact]
+        public void TestMultipleMetricsDifferentAggrigator()
+        {
+            MetricAggrigator aggrigator = new MetricAggrigator(
                 new AggrigationTemplate("test_metric0", "key1", new Summer()),
                 new AggrigationTemplate("test_metric1", "key1", new Multiplier()));
 

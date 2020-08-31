@@ -22,6 +22,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
         {
         }
 
+        public AggrigationTemplate(IEnumerable<string> targeMetricNames, string targetTag, IAggrigator aggrigator)
+            : this(targeMetricNames, (targetTag, aggrigator))
+        {
+        }
+
         public AggrigationTemplate(IEnumerable<string> targeMetricNames, params (string targetTag, IAggrigator aggrigator)[] tagsToAggrigate)
         {
             this.TargetMetricNames = targeMetricNames;
