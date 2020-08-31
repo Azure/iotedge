@@ -17,20 +17,16 @@ use futures_util::future::{self, Either};
 use monitors::{certs_monitor, config_monitor, utils};
 use tokio::{process::Command, sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
+use log::LevelFilter;
 
 mod monitors;
 mod signals;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::Builder::from_env(
-        env_logger::Env::new().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
-    )
-    .init();
+    env_logger::builder().filter_level(LevelFilter::Info).init();
 
     let notify_need_reload_api_proxy = Arc::new(tokio::sync::Notify::new());
-    let notify_received_config = notify_need_reload_api_proxy.clone();
-    let notify_certs_rotated = notify_need_reload_api_proxy.clone();
 
     let client = config_monitor::get_sdk_client()?;
     let mut shutdown_sdk = client
@@ -43,10 +39,10 @@ async fn main() -> Result<()> {
     let (twin_state_poll_handle, twin_state_poll_shutdown_handle) =
         config_monitor::report_twin_state(report_twin_state_handle);
     let (config_monitor_handle, config_monitor_shutdown_handle) =
-        config_monitor::start(client, notify_received_config)
+        config_monitor::start(client, notify_need_reload_api_proxy.clone())
             .context("Failed running config monitor")?;
     let (cert_monitor_handle, cert_monitor_shutdown_handle) =
-        certs_monitor::start(notify_certs_rotated)
+        certs_monitor::start(notify_need_reload_api_proxy.clone())
             .context("Failed running certificates monitor")?;
     let (nginx_controller_handle, nginx_controller_shutdown_handle) =
         nginx_controller_start(notify_need_reload_api_proxy)

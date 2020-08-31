@@ -9,7 +9,6 @@ FROM alpine:3.12.0
 WORKDIR /app
 COPY target/x86_64-unknown-linux-musl/release/api-proxy-module .
 COPY templates .
-RUN ls
 RUN	apk update && \
     apk add nginx && \
 	mkdir /run/nginx

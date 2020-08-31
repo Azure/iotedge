@@ -7,12 +7,15 @@ use chrono::{DateTime, Duration, Utc};
 use futures_util::future::Either;
 use tokio::{time, sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
+use edgelet_client::CertificateResponse;
 
 const PROXY_SERVER_TRUSTED_CA_PATH: &str = "/app/trustedCA.crt";
 const PROXY_SERVER_CERT_PATH: &str = "/app/server.crt";
-const PROXY_SERVER_PRIVATE_KEY_PATH: &str = "/app/private_key.pem";
+const PROXY_SERVER_PRIVATE_KEY_PATH: &str = "/app/private_key_server.pem";
+const PROXY_IDENTITY_CERT_PATH: &str = "/app/identity.crt";
+const PROXY_IDENTITY_PRIVATE_KEY_PATH: &str = "/app/private_key_identity.pem";
 
-const PROXY_SERVER_CERT_VALIDITY_DAYS: i64 = 90;
+const PROXY_SERVER_VALIDITY_DAYS: i64 = 90;
 //Time in the past, to trigger an certificate expiration event so the system go pick up certificate
 const EXPIRY_TIME_START_DATE: &str = "1996-12-19T00:00:00+00:00";
 
@@ -41,7 +44,7 @@ pub fn start(
         generation_id,
         gateway_hostname,
         workload_url,
-        Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
+        Duration::days(PROXY_SERVER_VALIDITY_DAYS),
     )
     .context("Could not create cert monitor client")?;
 
@@ -86,8 +89,8 @@ pub fn start(
 
             //Same thing as above but for private key and server cert
             match cert_monitor.need_to_rotate_server_cert(Utc::now()).await {
-                Ok((need_to_rotate_cert, server_cert, private_key)) => {
-                    if need_to_rotate_cert == true {
+                Ok(certs) => {
+                    if let Some((server_cert, private_key)) = certs {
                         //If we have a new cert, we need to write it in file system
                         let result = utils::write_binary_to_file(
                             server_cert.as_bytes(),
@@ -110,6 +113,40 @@ pub fn start(
                         need_notify = true;
                     }
                 }
+                
+                Err(err) => {
+                    need_notify = false;
+                    log::error!("Error while trying to get server cert {:?}", err);
+                }
+            };
+
+            //Same thing as above but for private key and identity cert
+            match cert_monitor.need_to_rotate_identity_cert(Utc::now()).await {
+                Ok(certs) => {
+                    if let Some((identity_cert, private_key)) = certs {
+                        //If we have a new cert, we need to write it in file system
+                        let result = utils::write_binary_to_file(
+                            identity_cert.as_bytes(),
+                            PROXY_IDENTITY_CERT_PATH,
+                        );
+                        match result {
+                            Err(err) => panic!("{:?}", err),
+                            Ok(_) => (),
+                        }
+
+                        //If we have a new cert, we need to write it in file system
+                        let result = utils::write_binary_to_file(
+                            private_key.as_bytes(),
+                            PROXY_IDENTITY_PRIVATE_KEY_PATH,
+                        );
+                        match result {
+                            Err(err) => panic!("{:?}", err),
+                            Ok(_) => (),
+                        }
+                        need_notify = true;
+                    }
+                }
+                
                 Err(err) => {
                     need_notify = false;
                     log::error!("Error while trying to get server cert {:?}", err);
@@ -131,7 +168,8 @@ struct CertificateMonitor {
     hostname: String,
     bundle_of_trust_hash: String,
     work_load_api_client: edgelet_client::WorkloadClient,
-    cert_expiration_date: DateTime<Utc>,
+    server_cert_expiration_date: DateTime<Utc>,
+    identity_cert_expiration_date: DateTime<Utc>,
     validity_days: Duration,
 }
 
@@ -144,7 +182,10 @@ impl CertificateMonitor {
         validity_days: Duration,
     ) -> Result<Self, Error> {
         //Create expiry date in the past so cert has to be rotated now.
-        let cert_expiration_date = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
+        let server_cert_expiration_date = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
+            .context("Error reading Start date")?
+            .with_timezone(&Utc);
+        let identity_cert_expiration_date = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
             .context("Error reading Start date")?
             .with_timezone(&Utc);
 
@@ -162,9 +203,10 @@ impl CertificateMonitor {
             module_id,
             generation_id,
             hostname,
-            bundle_of_trust_hash: String::from(""),
+            bundle_of_trust_hash: String::default(),
             work_load_api_client,
-            cert_expiration_date,
+            server_cert_expiration_date,
+            identity_cert_expiration_date,
             validity_days,
         })
     }
@@ -172,43 +214,67 @@ impl CertificateMonitor {
     async fn need_to_rotate_server_cert(
         &mut self,
         current_date: DateTime<Utc>,
-    ) -> Result<(bool, String, String), anyhow::Error> {
-        let mut need_to_rotate = false;
-        let server_crt;
-        let private_key;
-
-        if current_date >= self.cert_expiration_date {
-            let new_expiration_date = Utc::now()
-                .checked_add_signed(self.validity_days)
-                .context("Could not compute new expiration date for certificate")?;
-            let resp = self
-                .work_load_api_client
-                .create_server_cert(
-                    &self.module_id,
-                    &self.generation_id,
-                    &self.hostname,
-                    new_expiration_date,
-                )
-                .await?;
-
-            server_crt = resp.certificate().to_string();
-            let private_key_raw = resp.private_key();
-            private_key = match private_key_raw.bytes() {
-                Some(val) => val.to_string(),
-                None => return Err(anyhow::anyhow!("Private key field is empty")),
-            };
-            need_to_rotate = true;
-
-            let datetime = DateTime::parse_from_rfc3339(&resp.expiration())
-                .context("Error parsing certificate expiration date")?;
-            // convert the string into DateTime<Utc> or other timezone
-            self.cert_expiration_date = datetime.with_timezone(&Utc);
-        } else {
-            server_crt = "".to_string();
-            private_key = "".to_string();
+    ) -> Result<Option<(String, String)>, anyhow::Error> {
+        //If certificates are not expired, we don't need to make a query
+        if current_date < self.server_cert_expiration_date {
+            return Ok(None);
         }
 
-        Ok((need_to_rotate, server_crt, private_key))
+        let new_expiration_date = Utc::now()
+            .checked_add_signed(self.validity_days)
+            .context("Could not compute new expiration date for certificate")?;
+        let resp = self
+            .work_load_api_client
+            .create_server_cert(
+                &self.module_id,
+                &self.generation_id,
+                &self.hostname,
+                new_expiration_date,
+            )
+            .await?;
+
+        let (certificates, expiration_date) = self.unwrap_certificate_response(resp).context("could not extract server certificates")?;
+        self.server_cert_expiration_date = expiration_date;
+        
+        return Ok(Some(certificates));
+    }
+
+    async fn need_to_rotate_identity_cert(
+        &mut self,
+        current_date: DateTime<Utc>,
+    ) -> Result<Option<(String, String)>, anyhow::Error> {
+        //If certificates are not expired, we don't need to make a query
+        if current_date < self.identity_cert_expiration_date {
+            return Ok(None);
+        }
+
+        let resp = self
+            .work_load_api_client
+            .create_identity_cert(
+                &self.module_id,
+            )
+            .await?;
+
+        let (certificates, expiration_date) = self.unwrap_certificate_response(resp).context("could not extract server certificates")?;
+        self.identity_cert_expiration_date = expiration_date;
+    
+        return Ok(Some(certificates));
+    }
+
+    fn unwrap_certificate_response(&mut self, resp: CertificateResponse) -> Result<((String, String), DateTime<Utc>), anyhow::Error> {
+        let server_crt = resp.certificate().to_string();
+        let private_key_raw = resp.private_key();
+        let private_key = match private_key_raw.bytes() {
+            Some(val) => val.to_string(),
+            None => return Err(anyhow::anyhow!("Private key field is empty")),
+        };
+
+        let datetime = DateTime::parse_from_rfc3339(&resp.expiration())
+            .context("Error parsing certificate expiration date")?;
+        // convert the string into DateTime<Utc> or other timezone
+        let expiration_date = datetime.with_timezone(&Utc); 
+
+        Ok(((server_crt, private_key), expiration_date))
     }
 
     async fn has_bundle_of_trust_rotated(&mut self) -> Result<(bool, String), anyhow::Error> {
@@ -235,8 +301,8 @@ mod tests {
     use serde_json::json;
 
     #[tokio::test]
-    async fn test_get_server_cert_and_private_key() {
-        let expiration = Utc::now() + Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS);
+    async fn test_get_server_certs() {
+        let expiration = Utc::now() + Duration::days(PROXY_SERVER_VALIDITY_DAYS);
         let res = json!(
             {
                 "privateKey": { "type": "key", "bytes": "PRIVATE KEY" },
@@ -244,14 +310,6 @@ mod tests {
                 "expiration": expiration.to_rfc3339()
             }
         );
-
-        let _m = mock(
-            "POST",
-            "/modules/api_proxy/genid/0000/certificate/server?api-version=2019-01-30",
-        )
-        .with_status(201)
-        .with_body(serde_json::to_string(&res).unwrap())
-        .create();
 
         let module_id = String::from("api_proxy");
         let generation_id = String::from("0000");
@@ -263,7 +321,7 @@ mod tests {
             generation_id,
             gateway_hostname,
             workload_url,
-            Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
+            Duration::days(PROXY_SERVER_VALIDITY_DAYS),
         )
         .unwrap();
 
@@ -272,14 +330,84 @@ mod tests {
             .with_timezone(&Utc);
         let current_date = start_time.checked_add_signed(Duration::days(1)).unwrap();
 
-        let (need_rotation, server_cert, private_key) = client
+        let _m = mock(
+            "POST",
+            "/modules/api_proxy/genid/0000/certificate/server?api-version=2019-01-30",
+        )
+        .with_status(201)
+        .with_body(serde_json::to_string(&res).unwrap())
+        .create();
+        let (server_cert, private_key) = client
             .need_to_rotate_server_cert(current_date)
             .await
+            .unwrap()
             .unwrap();
 
-        assert_eq!(need_rotation, true);
         assert_eq!(server_cert, "CERTIFICATE");
-        assert_eq!(private_key, "PRIVATE KEY");
+        assert_eq!(private_key, "PRIVATE KEY");    
+
+        //Try again, certificate should be rotated in memory.
+        let result = client
+        .need_to_rotate_server_cert(current_date)
+        .await
+        .unwrap();
+        
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_get_identity_certs() {
+        let expiration = Utc::now() + Duration::days(PROXY_SERVER_VALIDITY_DAYS);
+        let res = json!(
+            {
+                "privateKey": { "type": "key", "bytes": "PRIVATE KEY" },
+                "certificate": "CERTIFICATE",
+                "expiration": expiration.to_rfc3339()
+            }
+        );
+
+        let module_id = String::from("api_proxy");
+        let generation_id = String::from("0000");
+        let gateway_hostname = String::from("dummy");
+        let workload_url = mockito::server_url();
+
+        let mut client = CertificateMonitor::new(
+            module_id,
+            generation_id,
+            gateway_hostname,
+            workload_url,
+            Duration::days(PROXY_SERVER_VALIDITY_DAYS),
+        )
+        .unwrap();
+
+        let start_time = DateTime::parse_from_rfc3339(EXPIRY_TIME_START_DATE)
+            .unwrap()
+            .with_timezone(&Utc);
+        let current_date = start_time.checked_add_signed(Duration::days(1)).unwrap();
+
+        let _m = mock(
+            "POST",
+            "/modules/api_proxy/certificate/identity?api-version=2019-01-30",
+        )
+        .with_status(201)
+        .with_body(serde_json::to_string(&res).unwrap())
+        .create();
+        let (identity_cert, private_key) = client
+        .need_to_rotate_identity_cert(current_date)
+        .await
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(identity_cert, "CERTIFICATE");
+        assert_eq!(private_key, "PRIVATE KEY");  
+
+        //Try again, certificate should be rotated in memory.
+        let result = client
+        .need_to_rotate_identity_cert(current_date)
+        .await
+        .unwrap();
+
+        assert!(result.is_none());
     }
 
     #[tokio::test]
@@ -301,7 +429,7 @@ mod tests {
             generation_id,
             gateway_hostname,
             workload_url,
-            Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS),
+            Duration::days(PROXY_SERVER_VALIDITY_DAYS),
         )
         .unwrap();
 

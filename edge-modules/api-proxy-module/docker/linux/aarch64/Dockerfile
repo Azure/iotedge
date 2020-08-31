@@ -9,7 +9,6 @@ FROM arm64v8/alpine:3.12.0
 WORKDIR /app
 COPY target/aarch64-unknown-linux-gnu/release/api-proxy-module .
 COPY templates .
-RUN ls
 RUN	apk update && \
     apk add nginx && \
 	mkdir /run/nginx

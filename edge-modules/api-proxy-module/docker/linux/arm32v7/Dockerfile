@@ -9,7 +9,6 @@ FROM arm32v7/alpine:3.12.0
 WORKDIR /app
 COPY target/armv7-unknown-linux-gnueabihf/release/api-proxy-module .
 COPY templates .
-RUN ls
 RUN	apk update && \
     apk add nginx && \
 	mkdir /run/nginx

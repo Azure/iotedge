@@ -7,8 +7,7 @@ use chrono::Utc;
 use futures_util::future::Either;
 use tokio::{sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
-use azure_iot_mqtt::{ReportTwinStateHandle, module::Client, ReportTwinStateRequest, Transport::{Tcp, WebSocket}, TwinProperties};
-use structopt::StructOpt;
+use azure_iot_mqtt::{ReportTwinStateHandle, module::Client, ReportTwinStateRequest, Transport::Tcp, TwinProperties};
 use regex::Regex;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
@@ -19,60 +18,17 @@ const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_M
 const TWIN_PROXY_CONFIG_KEY: &str = "nginx_config";
 
 const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+
 const TWIN_STATE_POLL_INTERVAL: Duration = Duration::from_secs(5);
-
-fn duration_from_secs_str(s: &str) -> Result<Duration, <u64 as std::str::FromStr>::Err> {
-    Ok(Duration::from_secs(s.parse()?))
-}
-
-#[derive(Debug, structopt::StructOpt)]
-struct Options {
-    #[structopt(
-        help = "Whether to use websockets or bare TLS to connect to the Iot Hub",
-        long = "use-websocket"
-    )]
-    use_websocket: bool,
-
-    #[structopt(
-        help = "Will message to publish if this client disconnects unexpectedly",
-        long = "will"
-    )]
-    will: Option<String>,
-
-    #[structopt(
-		help = "Maximum back-off time between reconnections to the server, in seconds.",
-		long = "max-back-off",
-		default_value = "30",
-		parse(try_from_str = duration_from_secs_str),
-	)]
-    max_back_off: Duration,
-
-    #[structopt(
-		help = "Keep-alive time advertised to the server, in seconds.",
-		long = "keep-alive",
-		default_value = "5",
-		parse(try_from_str = duration_from_secs_str),
-	)]
-    keep_alive: Duration,
-}
+const TWIN_CONFIG_MAX_BACK_OFF: Duration = Duration::from_secs(30);
+const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_secs(5);
 
 pub fn get_sdk_client() -> Result<Client, Error> {
-    let Options {
-        use_websocket,
-        will,
-        max_back_off,
-        keep_alive,
-    } = StructOpt::from_args();
-
     let client = match Client::new_for_edge_module(
-        if use_websocket {
-            WebSocket
-        } else {
-            Tcp
-        },
-        will.map(Into::into),
-        max_back_off,
-        keep_alive,
+        Tcp,
+        None,
+        TWIN_CONFIG_MAX_BACK_OFF,
+        TWIN_CONFIG_KEEP_ALIVE,
     ) {
         Ok(client) => client,
         Err(err) => return Err(anyhow::anyhow!("Could not create client: {:?}", err)),
