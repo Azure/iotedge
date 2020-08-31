@@ -161,6 +161,13 @@ impl ConnReq {
         (self.peer_addr, self.connect, self.handle)
     }
 }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServiceIdentity {
+    #[serde(rename = "Identity")]
+    identity: String,
+    #[serde(rename = "Auth_Chain")]
+    auth_chain: Option<String>,
+}
 
 #[derive(Debug)]
 pub enum Auth {
@@ -239,6 +246,7 @@ pub enum SystemEvent {
     Shutdown,
     StateSnapshot(StateSnapshotHandle),
     ForceClientDisconnect(ClientId),
+    IdentityScopesUpdate(Vec<ServiceIdentity>)
     // ConfigUpdate,
 }
 

@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables)]
+use std::collections::HashMap;
 use std::{collections::HashSet, time::Duration};
 
 use futures_util::future::BoxFuture;
@@ -6,11 +8,13 @@ use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{debug, error, info};
 
 use mqtt3::{
-    proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
+    proto, Client, Event, IoSource, ReceivedPublication, ShutdownError, SubscriptionUpdateEvent,
+    UpdateSubscriptionError,
 };
-use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
+use mqtt_broker::{BrokerHandle, ClientId, Error, Message, ServiceIdentity, SystemEvent};
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
+const AUTHORIZED_IDENTITIES_TOPIC: &str = "$internal/identities";
 
 pub struct ShutdownHandle {
     client_shutdown: mqtt3::ShutdownHandle,
@@ -46,9 +50,15 @@ impl IoSource for BrokerConnection {
     }
 }
 
+struct Command {
+    topic: String,
+    handle: fn(&mut BrokerHandle, &ReceivedPublication) -> Result<(), HandleDisconnectError>,
+}
+
 pub struct CommandHandler {
     broker_handle: BrokerHandle,
     client: Client<BrokerConnection>,
+    commands: HashMap<String, Command>,
 }
 
 impl CommandHandler {
@@ -68,12 +78,32 @@ impl CommandHandler {
             Duration::from_secs(60),
         );
 
-        let subscribe_topics = &[DISCONNECT_TOPIC.to_string()];
+        let mut commands: HashMap<String, Command> = HashMap::new();
+        commands.insert(
+            DISCONNECT_TOPIC.to_string(),
+            Command {
+                topic: DISCONNECT_TOPIC.to_string(),
+                handle: handle_disconnect,
+            },
+        );
+        commands.insert(
+            AUTHORIZED_IDENTITIES_TOPIC.to_string(),
+            Command {
+                topic: AUTHORIZED_IDENTITIES_TOPIC.to_string(),
+                handle: handle_authorized_scopes,
+            },
+        );
+
+        let subscribe_topics = &[
+            DISCONNECT_TOPIC.to_string(),
+            AUTHORIZED_IDENTITIES_TOPIC.to_string(),
+        ];
         subscribe(&mut client, subscribe_topics).await?;
 
         Ok(CommandHandler {
             broker_handle,
             client,
+            commands,
         })
     }
 
@@ -108,39 +138,68 @@ impl CommandHandler {
 
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
         if let Event::Publication(publication) = event {
-            let client_id: ClientId = serde_json::from_slice(&publication.payload)
-                .map_err(HandleDisconnectError::ParseClientId)?;
-
-            info!("received disconnection request for client {}", client_id);
-
-            if let Err(e) =
-                self.broker_handle
-                    .send(Message::System(SystemEvent::ForceClientDisconnect(
-                        client_id.clone(),
-                    )))
-            {
-                return Err(HandleDisconnectError::SignalError(e));
-            }
-
-            info!(
-                "succeeded sending broker signal to disconnect client{}",
-                client_id
-            );
+            return match self.commands.get(&publication.topic_name) {
+                Some(command) => (command.handle)(&mut self.broker_handle, &publication),
+                None => Ok(()),
+            };
         }
-
         Ok(())
     }
+}
+
+fn handle_disconnect(
+    broker_handle: &mut BrokerHandle,
+    publication: &ReceivedPublication,
+) -> Result<(), HandleDisconnectError> {
+    let client_id: ClientId = serde_json::from_slice(&publication.payload)
+        .map_err(HandleDisconnectError::ParseClientId)?;
+
+    info!("received disconnection request for client {}", client_id);
+
+    if let Err(e) = broker_handle.send(Message::System(SystemEvent::ForceClientDisconnect(
+        client_id.clone(),
+    ))) {
+        return Err(HandleDisconnectError::SignalError(e));
+    }
+
+    info!(
+        "succeeded sending broker signal to disconnect client{}",
+        client_id
+    );
+
+    Ok(())
+}
+
+fn handle_authorized_scopes(
+    broker_handle: &mut BrokerHandle,
+    publication: &ReceivedPublication,
+) -> Result<(), HandleDisconnectError> {
+    let array: Vec<ServiceIdentity> = serde_json::from_slice(&publication.payload)
+        .map_err(HandleDisconnectError::ParseClientId)?;
+    if let Err(e) = broker_handle.send(Message::System(SystemEvent::IdentityScopesUpdate(
+        array,
+    ))) {
+        return Err(HandleDisconnectError::SignalError(e));
+    }
+
+    info!(
+        "succeeded sending authorized identity scopes to broker", 
+    );
+    Ok(())
 }
 
 async fn subscribe(
     client: &mut mqtt3::Client<BrokerConnection>,
     topics: &[String],
 ) -> Result<(), CommandHandlerError> {
-    debug!("command handler subscribing to disconnect topic");
     let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
         topic_filter: topic.to_string(),
         qos: proto::QoS::AtLeastOnce,
     });
+    debug!(
+        "command handler subscribing to topics: {}",
+        topics.join(", ")
+    );
 
     for subscription in subscriptions {
         client
