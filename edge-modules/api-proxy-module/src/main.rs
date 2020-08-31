@@ -14,13 +14,10 @@ use std::{process::Stdio, sync::Arc};
 
 use anyhow::{Context, Error, Result};
 use futures_util::future::{self, Either};
-use monitors::{certs_monitor, config_monitor, utils};
+use api_proxy_module::{signals::shutdown, monitors::{certs_monitor, config_monitor, utils}};
 use tokio::{process::Command, sync::Notify, task::JoinHandle};
 use utils::ShutdownHandle;
 use log::LevelFilter;
-
-mod monitors;
-mod signals;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -131,7 +128,7 @@ pub fn nginx_controller_start(
             let restart_proxy = future::select(child_nginx, signal_restart_nginx);
             //Shutdown on ctrl+c or on signal
 
-            let wait_shutdown_ctrl_c = signals::shutdown::shutdown();
+            let wait_shutdown_ctrl_c = shutdown::shutdown();
             futures::pin_mut!(wait_shutdown_ctrl_c);
             let wait_shutdown_signal = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown_signal);
