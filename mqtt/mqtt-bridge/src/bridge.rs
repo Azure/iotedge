@@ -15,7 +15,7 @@ impl Bridge {
     }
 
     pub async fn start(&self) {
-        info!("Starting nested bridge...{:?}", self.connection_settings);
+        info!("Starting bridge...{:?}", self.connection_settings);
 
         self.connect_to_local().await;
         self.connect_to_remote().await;
