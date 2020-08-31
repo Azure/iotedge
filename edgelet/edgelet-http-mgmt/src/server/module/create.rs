@@ -49,7 +49,6 @@ where
                 let b = b.context(ErrorKind::MalformedRequestBody)?;
                 let spec = serde_json::from_slice::<ModuleSpec>(&b)
                     .context(ErrorKind::MalformedRequestBody)?;
-                println!("module spec is {:?}", spec);
                 let core_spec = spec_to_core::<M>(&spec, ErrorKind::MalformedRequestBody)?;
                 Ok((spec, core_spec))
             })

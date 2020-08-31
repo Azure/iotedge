@@ -10,9 +10,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio_process::CommandExt;
 
-pub fn notary_init(homedir: &Path, hostname: &str, path: &PathBuf) -> Result<PathBuf, Error> {
+pub fn notary_init(
+    home_dir: &Path,
+    registry_server_hostname: &str,
+    path: &PathBuf,
+) -> Result<PathBuf, Error> {
     // Validate inputs
-    if hostname.is_empty() {
+    if registry_server_hostname.is_empty() {
         return Err(ErrorKind::InitializeNotary("hostname is empty".to_owned()).into());
     }
 
@@ -25,19 +29,19 @@ pub fn notary_init(homedir: &Path, hostname: &str, path: &PathBuf) -> Result<Pat
     }
 
     // Create notary home directory
-    let notary_dir = homedir.join("notary");
+    let notary_dir = home_dir.join("notary");
 
     // Create a folder name with santized hostname
     let mut trust_dir = notary_dir;
-    let mut filename = String::new();
-    for c in hostname.chars() {
+    let mut file_name = String::new();
+    for c in registry_server_hostname.chars() {
         if c.is_ascii_alphanumeric() || !c.is_ascii() {
-            filename.push(c);
+            file_name.push(c);
         } else {
-            filename.push_str(&format!("%{:02x}", c as u8));
+            file_name.push_str(&format!("%{:02x}", c as u8));
         }
     }
-    trust_dir.push(filename);
+    trust_dir.push(file_name);
 
     // Create trust directory
     info!("Trust directory is {}", trust_dir.display());
@@ -58,7 +62,7 @@ pub fn notary_init(homedir: &Path, hostname: &str, path: &PathBuf) -> Result<Pat
     })?;
 
     // Add https to hostname
-    let input_url_https = format!("https://{}", hostname);
+    let input_url_https = format!("https://{}", registry_server_hostname);
     debug!("URL with https is {}", input_url_https);
 
     // Create Notary Config.json contents
@@ -150,12 +154,12 @@ mod test {
     #[cfg(unix)]
     #[test]
     fn check_for_empty_hostname() {
-        let hostname = String::new();
+        let registry_server_hostname = String::new();
         let home_dir = NamedTempFile::new().unwrap();
         let root_ca_file = NamedTempFile::new().unwrap();
         let result = notary::notary_init(
             home_dir.path(),
-            &hostname,
+            &registry_server_hostname,
             &root_ca_file.path().to_path_buf(),
         );
         let err = result.unwrap_err();
@@ -165,10 +169,10 @@ mod test {
     #[cfg(unix)]
     #[test]
     fn check_for_root_ca_file_does_not_exist() {
-        let hostname = r"myregistry.azurecr.io";
+        let registry_server_hostname = r"myregistry.azurecr.io";
         let home_dir = NamedTempFile::new().unwrap();
         let root_ca_file = PathBuf::from("filedoesnotexist.crt");
-        let result = notary::notary_init(home_dir.path(), &hostname, &root_ca_file);
+        let result = notary::notary_init(home_dir.path(), &registry_server_hostname, &root_ca_file);
         let err = result.unwrap_err();
         let _display_msg = format!("root ca at path {} does not exist", root_ca_file.display());
         assert!(matches!(

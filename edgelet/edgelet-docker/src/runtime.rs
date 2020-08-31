@@ -293,10 +293,11 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     settings.moby_runtime().content_trust_root_ca_registry()
                 {
                     info!("Notary Content Trust is enabled");
-                    for (hostname, path) in content_trust_map {
-                        let config_path = notary::notary_init(home_dir, hostname, path)
-                            .context(ErrorKind::Initialization)?;
-                        notary_registries.insert(hostname.clone(), config_path);
+                    for (registry_server_hostname, path) in content_trust_map {
+                        let config_path =
+                            notary::notary_init(home_dir, registry_server_hostname, path)
+                                .context(ErrorKind::Initialization)?;
+                        notary_registries.insert(registry_server_hostname.clone(), config_path);
                     }
                 } else {
                     info!("Notary Content Trust is disabled");
