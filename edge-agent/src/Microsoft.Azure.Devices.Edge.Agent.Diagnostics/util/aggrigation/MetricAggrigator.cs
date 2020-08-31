@@ -17,32 +17,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
     /// </summary>
     public class MetricAggrigator
     {
-        HashSet<string> metrics_to_aggregate;
-        (string tag, IAggrigator aggrigator)[] tagsToAggrigate;
+        AggrigationTemplate[] metricsToAggrigate;
 
-        public MetricAggrigator(IEnumerable<string> metrics_to_aggregate, params (string tag, IAggrigator aggrigator)[] tagsToAggrigate)
+        public MetricAggrigator(params AggrigationTemplate[] metricsToAggrigate)
         {
-            this.metrics_to_aggregate = new HashSet<string>(metrics_to_aggregate);
-            this.tagsToAggrigate = tagsToAggrigate;
+            this.metricsToAggrigate = metricsToAggrigate;
         }
 
+        // Will aggregate all metrics for all aggregtion templates
         public IEnumerable<Metric> AggrigateMetrics(IEnumerable<Metric> metrics)
         {
-            foreach (var (tag, agg) in this.tagsToAggrigate)
-            {
-                metrics = this.AggregateTag(tag, agg, metrics);
-            }
-
-            return metrics;
+            // Aggregate is way overused in this class, but this Aggregate function is from linq
+            return this.metricsToAggrigate.Aggregate(metrics, this.AggregateMetric);
         }
 
-        IEnumerable<Metric> AggregateTag(string tag, IAggrigator aggrigator, IEnumerable<Metric> metrics)
+        // Will aggregate metrics for a single aggregation template
+        IEnumerable<Metric> AggregateMetric(IEnumerable<Metric> metrics, AggrigationTemplate aggrigation)
+        {
+            return aggrigation.TagsToAggrigate.Aggregate(metrics, (m, agg) => this.AggregateTag(m, aggrigation.Name, agg.tag, agg.aggrigator));
+        }
+
+        // Will aggregate metrics for a single tag of a single template
+        IEnumerable<Metric> AggregateTag(IEnumerable<Metric> metrics, string metricName, string tag, IAggrigator aggrigator)
         {
             var aggrigateValues = new DefaultDictionary<AggrigateMetric, IAggrigator>(_ => aggrigator.New());
             foreach (Metric metric in metrics)
             {
-                // if metric is in list to be aggrigated and it has a tag that should be aggrigated
-                if (this.metrics_to_aggregate.Contains(metric.Name) && metric.Tags.ContainsKey(tag))
+                // if metric is the aggrigation target and it has a tag that should be aggrigated
+                if (metric.Name == metricName && metric.Tags.ContainsKey(tag))
                 {
                     var aggrigateMetric = new AggrigateMetric(metric, tag);
                     aggrigateValues[aggrigateMetric].PutValue(metric.Value);
@@ -58,44 +60,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
             {
                 double aggrigatedValue = aggrigatePair.Value.GetAggrigate();
                 yield return aggrigatePair.Key.ToMetric(aggrigatedValue);
-            }
-        }
-
-        class AggrigateMetric
-        {
-            public DateTime TimeGeneratedUtc { get; }
-            public string Name { get; }
-            public IReadOnlyDictionary<string, string> Tags { get; }
-
-            int? hash = null;
-
-            public AggrigateMetric(Metric metric, string aggrigateTag)
-            {
-                this.Name = metric.Name;
-                this.TimeGeneratedUtc = metric.TimeGeneratedUtc;
-                this.Tags = new Dictionary<string, string>(metric.Tags.Where(t => t.Key != aggrigateTag));
-            }
-
-            public Metric ToMetric(double value)
-            {
-                return new Metric(this.TimeGeneratedUtc, this.Name, value, this.Tags);
-            }
-
-            public override bool Equals(object other)
-            {
-                return this.GetHashCode() == other.GetHashCode();
-            }
-
-            public override int GetHashCode()
-            {
-                return this.hash ?? this.Hash();
-            }
-
-            int Hash()
-            {
-                this.hash = HashCode.Combine(this.Name.GetHashCode(), this.TimeGeneratedUtc.GetHashCode(), this.Tags.Select(o => HashCode.Combine(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).Aggregate(0, HashCode.Combine));
-
-                return (int)this.hash;
             }
         }
     }

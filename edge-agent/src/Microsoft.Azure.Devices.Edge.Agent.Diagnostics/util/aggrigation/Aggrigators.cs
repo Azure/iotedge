@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
 
         public void PutValue(double value)
         {
-            this.sum *= value;
+            this.sum += value;
             this.count++;
         }
 

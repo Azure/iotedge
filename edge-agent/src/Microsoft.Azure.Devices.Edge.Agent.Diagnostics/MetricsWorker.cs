@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
                 .AddTagsToModify(("id", this.ReplaceDeviceId), ("module_name", name => name.CreateSha256()));
 
-            this.metricAggrigator = new MetricAggrigator(new string[] { "key1" });
+            this.metricAggrigator = new MetricAggrigator();
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
