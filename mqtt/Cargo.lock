@@ -1297,6 +1297,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "policy"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "matches",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
