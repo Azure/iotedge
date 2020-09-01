@@ -7,7 +7,7 @@ mod store;
 
 use crate::error::ErrorKind;
 use crate::backends::rocksdb;
-use crate::store::{Store, StoreBackend as _};
+use crate::store::Store;
 
 use std::error::Error as StdError;
 use std::io;
@@ -48,10 +48,10 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     init(skt);
 
     let store = {
-        let backend = rocksdb::RocksDBBackend::new().unwrap();
-        Arc::new(Store::new(backend, conf.credentials))
+        let backend = rocksdb::RocksDBBackend::new(&conf.local.storage_location).unwrap();
+        Arc::new(Store::new(backend, conf))
     };
-    
+
     Server::bind_unix(skt)?
         .serve(make_service_fn(|conn: &UnixStream| {
             let store = store.to_owned();
@@ -68,7 +68,7 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
                                     ErrorKind::CorruptData => Response::builder().status(400).body(Body::empty()),
                                     ErrorKind::Unauthorized => Response::builder().status(403).body(Body::empty()),
                                     ErrorKind::NotFound => Response::builder().status(404).body(Body::empty()),
-                                    _ => Response::builder().status(500).body(format!("{:?}", e).into())
+                                    e => Response::builder().status(500).body(format!("{}", e).into())
                                 }
                             })
                     }

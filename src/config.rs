@@ -76,7 +76,7 @@ pub struct Certificates {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Configuration {
     pub credentials: AADCredentials,
-    pub principals: Vec<Principal>,
+    pub principal: Vec<Principal>,
     pub local: LocalSettings,
     pub certificates: Certificates
 }

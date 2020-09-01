@@ -1,5 +1,5 @@
-use crate::config::AADCredentials;
-use crate::constants::*;
+use crate::config::Configuration;
+use crate::constants::{AAD_BYTES, AES_KEY_BYTES, AKV_API_VERSION, IV_BYTES};
 use crate::error::{Error, ErrorKind};
 
 use std::sync::Arc;
@@ -47,17 +47,14 @@ pub trait StoreBackend: Send + Sync {
 //       invariant over backend implementation
 pub(crate) struct Store<T: StoreBackend> {
     backend: T,
-    credentials: AADCredentials
+    config: Configuration
 }
 
 impl<T: StoreBackend> Store<T> {
-    pub fn new(backend: T, credentials: AADCredentials) -> Self {
-        backend.init()
-            .expect("Could not initialize storage backend");
-
+    pub fn new(backend: T, config: Configuration) -> Self {
         Self {
-            backend: backend,
-            credentials: credentials
+            backend,
+            config
         }
     }
 
@@ -117,9 +114,9 @@ impl<T: StoreBackend> Store<T> {
     pub async fn pull_secret(&self, id: String, remote: String) -> Result<(), Error> {
         let token = AAD_CLIENT
             .authorize_with_secret(
-                &self.credentials.tenant_id,
-                &self.credentials.client_id,
-                &self.credentials.client_secret
+                &self.config.credentials.tenant_id,
+                &self.config.credentials.client_id,
+                &self.config.credentials.client_secret
             )
             .await
             .map_err(|_| ErrorKind::Azure("GetToken"))?

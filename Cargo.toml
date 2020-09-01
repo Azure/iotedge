@@ -26,11 +26,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "0.2", features = ["macros"] }
 toml = "0.5"
+warp = "0.2"
 
-rocksdb = { version = "0.14", optional = true }
-rusqlite = { version = "0.23", optional = true }
+rocksdb = { version = "0.15", optional = true }
 
 [features]
 default = ["rocksdb"]
-
-sqlite = ["rusqlite"]

@@ -1,4 +1,3 @@
-use crate::constants::STATE_DIRECTORY;
 use crate::store::{Record, StoreBackend};
 
 use std::path::Path;
@@ -25,14 +24,18 @@ pub enum RocksDBError {
 }
 
 impl RocksDBBackend {
-    pub fn new() -> Result<Self, <Self as StoreBackend>::Error> {
+    pub fn new(path: &str) -> Result<Self, <Self as StoreBackend>::Error> {
         let mut opts = Options::default();
         opts.create_if_missing(true);
 
-        let db = DB::open(&opts, Path::new(&format!("{}/{}", STATE_DIRECTORY, STORE_NAME)))
+        let db = DB::open(&opts, Path::new(&format!("{}/{}", path, STORE_NAME)))
             .map_err(|_| RocksDBError::Initialization)?;
 
-        Ok(RocksDBBackend(db))
+        let backend = Self(db);
+        backend.init()
+            .map_err(|_| RocksDBError::Initialization)?;
+
+        Ok(backend)
     }
 }
 

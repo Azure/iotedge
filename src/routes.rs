@@ -1,10 +1,14 @@
+use crate::config::{Configuration, Principal};
 use crate::error::{Error, ErrorKind};
-use crate::store::*;
+use crate::store::{Store, StoreBackend};
 
 use std::str::FromStr;
+use std::sync::Arc;
 
 use hyper::{Body, Method, Request, Response};
 use hyper::body::to_bytes;
+use hyper::service::{service_fn, Service};
+use tokio::net::UnixStream;
 
 #[inline]
 async fn read_request(req: Request<Body>) -> Result<String, Error> {
@@ -24,10 +28,12 @@ async fn read_request(req: Request<Body>) -> Result<String, Error> {
 // TODO: API versioning
 // TODO: Swagger specification
 pub(crate) async fn dispatch<'a, T: StoreBackend>(store: &'a Store<T>, req: Request<Body>) -> Result<Response<Body>, Error> {
+    println!("{:?}", req.extensions().get::<tokio::net::unix::UCred>());
     let id = String::from_str(&req.uri().path()[1 ..]).unwrap();
     match req.method() {
         &Method::GET => {
             let value = store.get_secret(id).await?;
+
             Ok(Response::new(serde_json::to_string(&value).unwrap().into()))
         },
         &Method::PUT => {
