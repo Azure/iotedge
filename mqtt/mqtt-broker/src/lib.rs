@@ -246,8 +246,7 @@ pub enum SystemEvent {
     Shutdown,
     StateSnapshot(StateSnapshotHandle),
     ForceClientDisconnect(ClientId),
-    IdentityScopesUpdate(Vec<ServiceIdentity>)
-    // ConfigUpdate,
+    IdentityScopesUpdate(Vec<ServiceIdentity>), // ConfigUpdate,
 }
 
 #[derive(Debug)]

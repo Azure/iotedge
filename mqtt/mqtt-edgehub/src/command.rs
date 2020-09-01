@@ -156,8 +156,8 @@ fn handle_disconnect(
     broker_handle: &mut BrokerHandle,
     publication: &ReceivedPublication,
 ) -> Result<(), HandleEventError> {
-    let client_id: ClientId = serde_json::from_slice(&publication.payload)
-        .map_err(HandleEventError::ParseClientId)?;
+    let client_id: ClientId =
+        serde_json::from_slice(&publication.payload).map_err(HandleEventError::ParseClientId)?;
 
     info!("received disconnection request for client {}", client_id);
 
@@ -178,17 +178,13 @@ fn handle_authorized_identities(
     broker_handle: &mut BrokerHandle,
     publication: &ReceivedPublication,
 ) -> Result<(), HandleEventError> {
-    let array: Vec<ServiceIdentity> = serde_json::from_slice(&publication.payload)
-        .map_err(HandleEventError::ParseClientId)?;
-    if let Err(e) = broker_handle.send(Message::System(SystemEvent::IdentityScopesUpdate(
-        array,
-    ))) {
+    let array: Vec<ServiceIdentity> =
+        serde_json::from_slice(&publication.payload).map_err(HandleEventError::ParseClientId)?;
+    if let Err(e) = broker_handle.send(Message::System(SystemEvent::IdentityScopesUpdate(array))) {
         return Err(HandleEventError::SendAuthorizedIdentitiesToBroker(e));
     }
 
-    info!(
-        "succeeded sending authorized identity scopes to broker", 
-    );
+    info!("succeeded sending authorized identity scopes to broker",);
     Ok(())
 }
 

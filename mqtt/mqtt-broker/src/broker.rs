@@ -86,7 +86,7 @@ where
                                 debug!("successfully disconnected client");
                             }
                         }
-                        SystemEvent::IdentityScopesUpdate(service_identities ) => {
+                        SystemEvent::IdentityScopesUpdate(service_identities) => {
                             debug!("service identities: {:?} - identity scopes update not implemented yet", service_identities);
                         }
                     }
