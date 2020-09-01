@@ -30,10 +30,15 @@ where
     fn handle(&self, req: Request<Body>, params: Parameters) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let secret_manager = self.secret_manager.clone();
 
-        let response = params.name("id")
-            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("id")))
-            .map(|id| {
-                let id = id.to_string();
+        let response = params.name("name")
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .and_then(|name| {
+                let id = params.name("id")
+                    .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("id")))?;
+                Ok((name, id))
+            })
+            .map(|(name, id)| {
+                let id = format!("{}/{}", name, id);
                 req.into_body()
                     .concat2()
                     .then(|b| -> Result<_, Error> {
@@ -53,7 +58,7 @@ where
                         Ok(())
                     })
             })
-            .and_then(|_| Ok(Response::new(Body::empty())))
+            .and_then(|_| Ok(Response::builder().status(204).body(Body::empty()).unwrap()))
             .or_else(|e| Ok(e.into_response()));
 
         Box::new(response)

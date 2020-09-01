@@ -77,11 +77,11 @@ impl ManagementService {
             put     Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => UpdateIdentity::new(identity.clone()),
             delete  Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => DeleteIdentity::new(identity.clone()),
 
-            get     Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => GetSecret::new(secret.clone()),
-            put     Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => SetSecret::new(secret.clone()),
-            post    Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => PullSecret::new(secret.clone()),
-            patch   Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => RefreshSecret::new(secret.clone()),
-            delete  Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => DeleteSecret::new(secret.clone()),
+            get     Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/?]+)" => GetSecret::new(secret.clone()),
+            put     Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/?]+)" => SetSecret::new(secret.clone()),
+            post    Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/?]+)" => PullSecret::new(secret.clone()),
+            patch   Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/?]+)" => RefreshSecret::new(secret.clone()),
+            delete  Version2020_07_22 runtime Policy::Module(&*AGENT_NAME)  => "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/?]+)" => DeleteSecret::new(secret.clone()),
 
             get     Version2018_06_28 runtime Policy::Anonymous             => "/systeminfo"                        => GetSystemInfo::new(runtime.clone()),
             get     Version2019_11_05 runtime Policy::Anonymous             => "/systeminfo/resources"              => GetSystemResources::new(runtime.clone()),
