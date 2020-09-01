@@ -36,5 +36,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(brokerServiceIdentity.Identity, id);
             Assert.False(brokerServiceIdentity.AuthChain.HasValue);
         }
+
+        [Fact]
+        public void CompareTest()
+        {
+            string id1 = "id";
+            string id2 = "id";
+            string id3 = "id3";
+            string authChain1 = "authChain";
+            string authChain2 = "authChain";
+            string authChain3 = "authChain3";
+            BrokerServiceIdentity brokerServiceIdentity1 = new BrokerServiceIdentity(id1, Option.Some(authChain1));
+            BrokerServiceIdentity brokerServiceIdentity2 = new BrokerServiceIdentity(id2, Option.Some(authChain2));
+            BrokerServiceIdentity brokerServiceIdentity3 = new BrokerServiceIdentity(id3, Option.Some(authChain3));
+            Assert.Equal(brokerServiceIdentity1, brokerServiceIdentity2);
+            Assert.NotEqual(brokerServiceIdentity1, brokerServiceIdentity3);
+        }
     }
 }
