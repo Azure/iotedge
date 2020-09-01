@@ -9,8 +9,8 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use thiserror::Error;
 
-mod simple_message_loader;
-mod simple_queue;
+mod memory_loader;
+mod memory_queue;
 mod waking_map;
 
 #[async_trait]
