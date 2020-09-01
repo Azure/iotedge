@@ -80,6 +80,9 @@ pub enum ErrorKind {
     ModuleOperation(ModuleOperation),
 
     #[fail(display = "{}", _0)]
+    NotaryDigestMismatch(String),
+
+    #[fail(display = "{}", _0)]
     NotFound(String),
 
     #[fail(display = "Target of operation already in this state")]

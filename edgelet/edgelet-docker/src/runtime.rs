@@ -481,24 +481,26 @@ impl ModuleRuntime for DockerModuleRuntime {
                                     )
                                 }
                             })
-                            .map(move |(digest_from_notary, mut lock)| {
+                            .and_then(move |(digest_from_notary, mut lock)| {
                                 let image_with_digest = format!("{}@{}", gun, digest_from_notary);
                                 lock.insert(image_with_digest.clone(), digest_from_notary.clone());
                                 if let Some(digest_from_manifest_str) = digest_from_manifest {
                                     if digest_from_manifest_str == digest_from_notary {
                                         info!("Digest from notary and Digest from manifest does match");
                                         info!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
-                                        (image_with_digest, true)
+                                        Ok((image_with_digest, true))
                                     }
                                     else {
                                         info!("Digest from notary and Digest from manifest does not match");
                                         info!("Digest from notary : {} and Digest from manifest : {} does not match", digest_from_notary, digest_from_manifest_str);
-                                        (image_with_tag, false)
+                                        Err(Error::from(ErrorKind::NotaryDigestMismatch(
+                                             "notary digest mismatch with the manifest".to_owned(),
+                                        )))
                                     }
                                 }
                                 else {
                                     info!("No Digest from the manifest");
-                                    (image_with_digest, true)
+                                    Ok((image_with_digest, true))
                                 }
                             }),
                     )
