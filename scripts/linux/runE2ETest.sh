@@ -278,6 +278,10 @@ function process_args() {
     print_highlighted_message 'Process arguments'
     saveNextArg=0
     BYPASS_EDGE_INSTALLATION=""
+    CONNECT_MANAGEMENT_URI=""
+    CONNECT_WORKLOAD_URI=""
+    LISTEN_MANAGEMENT_URI=""
+    LISTEN_WORKLOAD_URI=""
     for arg in "$@"
     do
         if [ $saveNextArg -eq 1 ]; then
@@ -415,6 +419,18 @@ function process_args() {
         elif [ $saveNextArg -eq 44 ]; then
             RUNTIME_LOG_LEVEL="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 45 ]; then
+            CONNECT_MANAGEMENT_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 46 ]; then
+            CONNECT_WORKLOAD_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 47 ]; then
+            LISTEN_MANAGEMENT_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 48 ]; then
+            LISTEN_WORKLOAD_URI="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -462,6 +478,10 @@ function process_args() {
                 '-testInfo' ) saveNextArg=42;;
                 '-testStartDelay' ) saveNextArg=43;;
                 '-runtimeLogLevel' ) saveNextArg=44;;
+                '-connectManagementUri' ) saveNextArg=45;;
+                '-connectWorkloadUri' ) saveNextArg=46;;
+                '-listenManagementUri' ) saveNextArg=47;;
+                '-listenWorkloadUri' ) saveNextArg=48;;
                 '-bypassEdgeInstallation' ) BYPASS_EDGE_INSTALLATION="--bypass-edge-installation";;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -564,6 +584,10 @@ function run_directmethod_test()
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --verify-data-from-module "DirectMethodSender" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
         $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
@@ -694,6 +718,10 @@ function run_dps_provisioning_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
         $BYPASS_EDGE_INSTALLATION \
         $dps_command_flags \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
@@ -731,6 +759,10 @@ function run_longhaul_test() {
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
         $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
@@ -764,6 +796,10 @@ function run_quickstartcerts_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=Core \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
         $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
@@ -811,6 +847,10 @@ function run_stress_test() {
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
         $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
@@ -843,6 +883,10 @@ function run_tempfilter_test() {
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
         $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
@@ -875,6 +919,10 @@ function run_tempfilterfunctions_test() {
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
         $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
@@ -906,6 +954,10 @@ function run_tempsensor_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
         $BYPASS_EDGE_INSTALLATION \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
@@ -1097,6 +1149,10 @@ function usage() {
     echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
     echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
+    echo ' -connectManagementUri                          Customize connect management socket'
+    echo ' -connectWorkloadUri                            Customize connect workload socket'
+    echo ' -listenManagementUri                           Customize listen management socket'
+    echo ' -listenWorkloadUri                             Customize listen workload socket'
     echo ' -bypassEdgeInstallation                        Skip installing iotedge (if already preinstalled)'
     exit 1;
 }
