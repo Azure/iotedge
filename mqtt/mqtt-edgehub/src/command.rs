@@ -52,7 +52,7 @@ impl IoSource for BrokerConnection {
 
 struct Command {
     topic: String,
-    handle: fn(&mut BrokerHandle, &ReceivedPublication) -> Result<(), HandleDisconnectError>,
+    handle: fn(&mut BrokerHandle, &ReceivedPublication) -> Result<(), HandleEventError>,
 }
 
 pub struct CommandHandler {
@@ -78,21 +78,7 @@ impl CommandHandler {
             Duration::from_secs(60),
         );
 
-        let mut commands: HashMap<String, Command> = HashMap::new();
-        commands.insert(
-            DISCONNECT_TOPIC.to_string(),
-            Command {
-                topic: DISCONNECT_TOPIC.to_string(),
-                handle: handle_disconnect,
-            },
-        );
-        commands.insert(
-            AUTHORIZED_IDENTITIES_TOPIC.to_string(),
-            Command {
-                topic: AUTHORIZED_IDENTITIES_TOPIC.to_string(),
-                handle: handle_authorized_scopes,
-            },
-        );
+        let commands = Self::init_commands();
 
         let subscribe_topics = &[
             DISCONNECT_TOPIC.to_string(),
@@ -136,7 +122,7 @@ impl CommandHandler {
         debug!("command handler stopped");
     }
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
+    async fn handle_event(&mut self, event: Event) -> Result<(), HandleEventError> {
         if let Event::Publication(publication) = event {
             return match self.commands.get(&publication.topic_name) {
                 Some(command) => (command.handle)(&mut self.broker_handle, &publication),
@@ -145,41 +131,59 @@ impl CommandHandler {
         }
         Ok(())
     }
+
+    fn init_commands() -> HashMap<String, Command> {
+        let mut commands = HashMap::new();
+        commands.insert(
+            DISCONNECT_TOPIC.to_string(),
+            Command {
+                topic: DISCONNECT_TOPIC.to_string(),
+                handle: handle_disconnect,
+            },
+        );
+        commands.insert(
+            AUTHORIZED_IDENTITIES_TOPIC.to_string(),
+            Command {
+                topic: AUTHORIZED_IDENTITIES_TOPIC.to_string(),
+                handle: handle_authorized_identities,
+            },
+        );
+        return commands;
+    }
 }
 
 fn handle_disconnect(
     broker_handle: &mut BrokerHandle,
     publication: &ReceivedPublication,
-) -> Result<(), HandleDisconnectError> {
+) -> Result<(), HandleEventError> {
     let client_id: ClientId = serde_json::from_slice(&publication.payload)
-        .map_err(HandleDisconnectError::ParseClientId)?;
+        .map_err(HandleEventError::ParseClientId)?;
 
     info!("received disconnection request for client {}", client_id);
 
     if let Err(e) = broker_handle.send(Message::System(SystemEvent::ForceClientDisconnect(
         client_id.clone(),
     ))) {
-        return Err(HandleDisconnectError::SignalError(e));
+        return Err(HandleEventError::DisconnectSignal(e));
     }
 
     info!(
         "succeeded sending broker signal to disconnect client{}",
         client_id
     );
-
     Ok(())
 }
 
-fn handle_authorized_scopes(
+fn handle_authorized_identities(
     broker_handle: &mut BrokerHandle,
     publication: &ReceivedPublication,
-) -> Result<(), HandleDisconnectError> {
+) -> Result<(), HandleEventError> {
     let array: Vec<ServiceIdentity> = serde_json::from_slice(&publication.payload)
-        .map_err(HandleDisconnectError::ParseClientId)?;
+        .map_err(HandleEventError::ParseClientId)?;
     if let Err(e) = broker_handle.send(Message::System(SystemEvent::IdentityScopesUpdate(
         array,
     ))) {
-        return Err(HandleDisconnectError::SignalError(e));
+        return Err(HandleEventError::SendAuthorizedIdentitiesToBroker(e));
     }
 
     info!(
@@ -250,10 +254,13 @@ pub enum CommandHandlerError {
 }
 
 #[derive(Debug, thiserror::Error)]
-enum HandleDisconnectError {
+enum HandleEventError {
     #[error("failed to parse client id from message payload")]
     ParseClientId(#[from] SerdeError),
 
+    #[error("failed while sending authorized identities to broker")]
+    SendAuthorizedIdentitiesToBroker(Error),
+
     #[error("failed sending broker signal to disconnect client")]
-    SignalError(#[from] Error),
+    DisconnectSignal(Error),
 }

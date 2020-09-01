@@ -87,19 +87,7 @@ where
                             }
                         }
                         SystemEvent::IdentityScopesUpdate(service_identities ) => {
-                            let ids = service_identities.iter().map(|f| f.identity.clone()).collect::<Vec<String>>();
-                            let client_ids = self.sessions.keys().cloned().collect::<Vec<ClientId>>();
-                            for client_id in client_ids {
-                                if !ids.contains(&client_id.as_str().to_string()) {
-                                    if let Err(e) = self.process_close_session(&client_id.clone()) {
-                                        warn!(message = "an error occurred reevaluating identity scopes", error = %e);
-                                    }
-                                    else {
-                                        debug!("successfully reevaluated identity scopes");
-                                    }
-                                }
-                            }
-                            info!("scopes updated.");
+                            debug!("service identities: {:?} - identity scopes update not implemented yet", service_identities);
                         }
                     }
                 }
