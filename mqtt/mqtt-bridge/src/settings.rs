@@ -70,25 +70,31 @@ impl<'de> serde::Deserialize<'de> for Settings {
             messages: MessagesSettings,
         }
 
-        let value: Inner = serde::Deserialize::deserialize(deserializer)?;
+        let Inner {
+            nested_bridge,
+            upstream,
+            remotes,
+            messages,
+        } = serde::Deserialize::deserialize(deserializer)?;
 
-        let upstream_connection_settings = match value.nested_bridge.gateway_hostname.clone() {
-            Some(gateway_hostname) => Some(ConnectionSettings {
-                name: String::from("upstream"),
-                address: gateway_hostname,
-                subscriptions: value.upstream.subscriptions,
-                forwards: value.upstream.forwards,
-                credentials: Credentials::Provider(value.nested_bridge),
-                clean_session: value.upstream.clean_session,
-                keep_alive: value.upstream.keep_alive,
-            }),
-            None => None,
-        };
+        let upstream_connection_settings =
+            nested_bridge
+                .gateway_hostname
+                .clone()
+                .map(|gateway_hostname| ConnectionSettings {
+                    name: "upstream".into(),
+                    address: gateway_hostname.into(),
+                    subscriptions: upstream.subscriptions,
+                    forwards: upstream.forwards,
+                    credentials: Credentials::Provider(nested_bridge),
+                    clean_session: upstream.clean_session,
+                    keep_alive: upstream.keep_alive,
+                });
 
         Ok(Settings {
             upstream: upstream_connection_settings,
-            remotes: value.remotes,
-            messages: value.messages,
+            remotes,
+            messages,
         })
     }
 }
