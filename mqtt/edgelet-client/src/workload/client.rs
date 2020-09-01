@@ -243,10 +243,7 @@ mod tests {
         .create();
 
         let client = workload(&mockito::server_url()).expect("client");
-        let res = client
-            .sign("broker", "12345678", "digest")
-            .await
-            .unwrap();
+        let res = client.sign("broker", "12345678", "digest").await.unwrap();
 
         assert_eq!(res.digest(), "signed-digest");
     }
