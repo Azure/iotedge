@@ -35,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             switch (os)
             {
                 case "Ubuntu":
-                case "NXP-LSDK":
                     os = os.ToLower();
                     packageExtension = SupportedPackageExtension.Deb;
                     break;

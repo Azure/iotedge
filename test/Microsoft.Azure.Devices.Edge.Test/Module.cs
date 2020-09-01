@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             if (OsPlatform.IsArm() && OsPlatform.Is64Bit())
             {
-                Assert.Ignore("TempFilterFun is disabled for arm64 because azureiotedge-functions-filter does not exist for arm64");
+                Assert.Ignore("TempFilterFunc is disabled for arm64 because azureiotedge-functions-filter does not exist for arm64");
             }
 
             const string filterFuncName = "tempFilterFunctions";
