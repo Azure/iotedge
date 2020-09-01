@@ -17,7 +17,7 @@ use tokio::{
     task::JoinHandle,
     time,
 };
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use mqtt_bridge::BridgeController;
 use mqtt_broker::BrokerHandle;
@@ -141,7 +141,7 @@ where
     let state = serve.await?;
 
     sidecar_shutdown_handle.shutdown()?;
-    sidecar_join_handle.await??;
+    sidecar_join_handle.await?;
 
     Ok(state)
 }
@@ -165,7 +165,7 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
 async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
+) -> Result<(SidecarShutdownHandle, JoinHandle<()>)> {
     let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
 
     let device_id = env::var(DEVICE_ID_ENV)?;
@@ -177,17 +177,21 @@ async fn start_sidecars(
 
     let event_loop = tokio::spawn(async move {
         let command_handler_join_handle = tokio::spawn(command_handler.run());
-
         let bridge = bridge_controller.start();
 
-        sidecar_termination_receiver.await?;
+        if let Err(e) = sidecar_termination_receiver.await {
+            error!(message = "failed to listen to sidecar termination", error = %e);
+        }
 
-        command_handler_shutdown_handle.shutdown().await?;
-        command_handler_join_handle.await?;
-
-        bridge.await?;
-
-        Ok::<(), anyhow::Error>(())
+        if let Err(e) = command_handler_shutdown_handle.shutdown().await {
+            error!(message = "failed shutting down command handler", error = %e);
+        }
+        if let Err(e) = command_handler_join_handle.await {
+            error!(message = "failed waiting for command handler shutdown", error = %e);
+        }
+        if let Err(e) = bridge.await {
+            error!(message = "failed waiting for bridge shutdown", error = %e);
+        }
     });
 
     Ok((
