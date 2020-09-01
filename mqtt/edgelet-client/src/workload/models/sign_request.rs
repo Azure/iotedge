@@ -16,7 +16,7 @@ pub struct SignRequest {
 }
 
 impl SignRequest {
-    pub fn new(key_id: String, data: String) -> Self {
+    pub fn new(data: String) -> Self {
         SignRequest {
             key_id: DEFAULT_KEY_ID.into(),
             algorithm: Algorithm::HMACSHA256,
