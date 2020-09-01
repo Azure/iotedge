@@ -148,7 +148,7 @@ impl CommandHandler {
                 handle: handle_authorized_identities,
             },
         );
-        return commands;
+        commands
     }
 }
 
