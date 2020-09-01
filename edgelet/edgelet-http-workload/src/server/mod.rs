@@ -62,9 +62,9 @@ impl WorkloadService {
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/certificate/identity"            => IdentityCertHandler::new(hsm.clone(), config.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(hsm.clone(), config),
 
-            get     Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/?]+)" => GetSecret::new(secret_store.clone()),
-            put     Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/?]+)" => SetSecret::new(secret_store.clone()),
-            delete  Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/?]+)" => DeleteSecret::new(secret_store.clone()),
+            get     Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => GetSecret::new(secret_store.clone()),
+            put     Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => SetSecret::new(secret_store.clone()),
+            delete  Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => DeleteSecret::new(secret_store.clone()),
 
             get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(hsm),
         );
