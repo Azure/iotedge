@@ -43,28 +43,6 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: linux_arm64v8
-################################################################################
-    displayName: Linux arm64v8
-
-    pool:
-      name: $(pool.name)
-      demands: arm64-e2e-tests
-
-    variables:
-      os: linux
-      arch: arm64v8
-      artifactName: iotedged-ubuntu18.04-aarch64
-
-    timeoutInMinutes: 120
-
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
-
-################################################################################
   - job: linux_amd64
 ################################################################################
     displayName: Linux amd64
