@@ -1,7 +1,7 @@
 use std::{
     env,
     future::Future,
-    path::{Path, PathBuf},
+    path::{Path, PathBuf}, collections::HashMap,
 };
 
 use anyhow::{bail, Context, Result};
@@ -27,10 +27,14 @@ use mqtt_broker::{
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::CommandHandler,
+    command::{Command, handle_disconnect, handle_authorized_identities},
+    command_handler::CommandHandler,
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
+
+const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
+const AUTHORIZED_IDENTITIES_TOPIC: &str = "$internal/identities";
 
 pub struct SidecarShutdownHandle(Sender<()>);
 
@@ -169,8 +173,9 @@ async fn start_sidecars(
     let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
 
     let device_id = env::var(DEVICE_ID_ENV)?;
+    let commands = init_commands();
     let command_handler =
-        CommandHandler::new(broker_handle, system_address, device_id.as_str()).await?;
+        CommandHandler::new(broker_handle, system_address, device_id.as_str(), commands).await?;
     let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
 
     let mut bridge_controller = BridgeController::new();
@@ -199,6 +204,26 @@ async fn start_sidecars(
         event_loop,
     ))
 }
+
+fn init_commands() -> HashMap<String, Command> {
+    let mut commands = HashMap::new();
+    commands.insert(
+        DISCONNECT_TOPIC.to_string(),
+        Command {
+            topic: DISCONNECT_TOPIC.to_string(),
+            handle: handle_disconnect,
+        },
+    );
+    commands.insert(
+        AUTHORIZED_IDENTITIES_TOPIC.to_string(),
+        Command {
+            topic: AUTHORIZED_IDENTITIES_TOPIC.to_string(),
+            handle: handle_authorized_identities,
+        },
+    );
+    commands
+}
+
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {
