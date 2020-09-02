@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow( 
+#![allow(
     clippy::cognitive_complexity,
     clippy::large_enum_variant,
     clippy::similar_names,

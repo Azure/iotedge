@@ -1,5 +1,5 @@
 use std::{sync::Arc, time::Duration};
- 
+
 use super::utils;
 use anyhow::{Context, Error, Result};
 use azure_iot_mqtt::{
@@ -18,7 +18,7 @@ const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
 const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,IOTEDGE_PARENTHOSTNAME";
 const TWIN_PROXY_CONFIG_KEY: &str = "nginx_config";
 
-const PROXY_CONFIG_DEFAULT_VALUES: &'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
 
 const TWIN_STATE_POLL_INTERVAL: Duration = Duration::from_secs(5);
 const TWIN_CONFIG_MAX_BACK_OFF: Duration = Duration::from_secs(30);
@@ -42,10 +42,9 @@ pub fn start(
     mut client: Client,
     notify_received_config: Arc<Notify>,
 ) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
+    use futures_util::StreamExt;
     let shutdown_signal = Arc::new(Notify::new());
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
-
-    use futures_util::StreamExt;
 
     //Set default value for some environment variables here
     set_default_env_vars();

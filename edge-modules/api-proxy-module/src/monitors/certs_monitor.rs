@@ -249,15 +249,26 @@ impl CertificateMonitor {
             return Ok(None);
         }
 
+        let new_expiration_date = Utc::now()
+            .checked_add_signed(self.validity_days)
+            .context("Could not compute new expiration date for certificate")?;
+
         let resp = self
             .work_load_api_client
-            .create_identity_cert(&self.module_id)
+            .create_identity_cert(&self.module_id, new_expiration_date)
             .await?;
 
         let (certificates, expiration_date) = self
             .unwrap_certificate_response(resp)
             .context("could not extract server certificates")?;
         self.identity_cert_expiration_date = expiration_date;
+
+        //****** TEMPORARY FIX************//
+        let new_expiration_date = Utc::now()
+            .checked_add_signed(Duration::hours(1))
+            .context("Could not compute new expiration date for certificate")?;
+        self.identity_cert_expiration_date = new_expiration_date;
+        //****** TEMPORARY FIX************//
 
         Ok(Some(certificates))
     }
@@ -280,7 +291,7 @@ impl CertificateMonitor {
 
         Ok(((server_crt, private_key), expiration_date))
     }
- 
+
     async fn has_bundle_of_trust_rotated(&mut self) -> Result<(bool, String), anyhow::Error> {
         let mut has_bundle_of_trust_rotated = false;
         let resp = self.work_load_api_client.trust_bundle().await?;

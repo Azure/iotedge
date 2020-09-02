@@ -3,7 +3,7 @@ use std::{
     fs::{self, File},
     io::prelude::*,
     sync::Arc,
-}; 
+};
 use tokio::sync::Notify;
 
 pub fn write_binary_to_file(file: &[u8], path: &str) -> Result<()> {
