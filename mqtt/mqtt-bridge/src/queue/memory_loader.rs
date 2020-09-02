@@ -1,22 +1,14 @@
-use std::cell::RefCell;
-use std::cmp::min;
-use std::collections::btree_map::Range;
-use std::collections::BTreeMap;
-use std::iter::Take;
 use std::pin::Pin;
-use std::rc::Rc;
-use std::slice::Iter;
 use std::sync::Arc;
 use std::task::Context;
 use std::{task::Poll, vec::IntoIter};
 
-use anyhow::Result;
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use tokio::sync::Mutex;
 use tokio::sync::MutexGuard;
 
-use crate::queue::{waking_map::WakingMap, Key, QueueError};
+use crate::queue::{waking_map::WakingMap, Key};
 
 // TODO REVIEW: should this have some way of shutting down? Callers reading stream will hang?
 pub struct InMemoryMessageLoader {
@@ -38,6 +30,7 @@ impl InMemoryMessageLoader {
     }
 }
 
+// TODO REVIEW: How to remove busy-wait?
 impl Stream for InMemoryMessageLoader {
     type Item = (Key, Publication);
 
@@ -78,16 +71,12 @@ fn get_elements(state: &MutexGuard<WakingMap>, batch_size: usize) -> IntoIter<(K
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
     use std::collections::BTreeMap;
     use std::iter::Iterator;
-    use std::rc::Rc;
     use std::sync::Arc;
     use std::time::Duration;
 
-    use async_std::task;
     use bytes::Bytes;
-    use futures_util::stream::Stream;
     use futures_util::stream::StreamExt;
     use mqtt3::proto::{Publication, QoS};
     use tokio;
@@ -95,7 +84,7 @@ mod tests {
     use tokio::time;
 
     use crate::queue::memory_loader::InMemoryMessageLoader;
-    use crate::queue::{memory_loader::get_elements, waking_map::WakingMap, Key, QueueError};
+    use crate::queue::{memory_loader::get_elements, waking_map::WakingMap, Key};
 
     #[tokio::test]
     async fn smaller_batch_size_respected() {

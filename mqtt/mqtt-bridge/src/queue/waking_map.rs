@@ -1,18 +1,9 @@
-use std::cell::RefCell;
-use std::collections::btree_map::Range;
 use std::collections::BTreeMap;
-use std::rc::Rc;
-use std::sync::Arc;
 use std::task::Waker;
-use std::{iter::Iterator, time::Duration};
 
-use anyhow::{Error, Result};
-use async_trait::async_trait;
 use mqtt3::proto::Publication;
-// TODO REVIEW: do we need this tokio mutex
-use tokio::sync::Mutex;
 
-use crate::queue::{memory_loader::InMemoryMessageLoader, Key, Queue, QueueError};
+use crate::queue::Key;
 pub struct WakingMap {
     map: BTreeMap<Key, Publication>,
     waker: Option<Waker>,
@@ -53,17 +44,15 @@ mod tests {
     use std::task::Context;
     use std::task::Poll;
     use std::time::Duration;
-    use std::vec::IntoIter;
 
     use bytes::Bytes;
     use futures_util::stream::Stream;
     use futures_util::stream::StreamExt;
-    use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
+    // TODO REVIEW: do we need this tokio mutex
     use tokio::sync::Mutex;
     use tokio::time;
 
-    use crate::queue::QueueError;
     use crate::queue::{waking_map::WakingMap, Key};
 
     #[tokio::test]
