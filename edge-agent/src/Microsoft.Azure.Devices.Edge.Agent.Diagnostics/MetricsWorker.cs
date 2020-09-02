@@ -51,7 +51,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
                 .AddTagsToModify(("id", this.ReplaceDeviceId), ("module_name", name => name.CreateSha256()));
 
-            this.metricAggrigator = new MetricAggrigator();
+            this.metricAggrigator = new MetricAggrigator(
+                new AggrigationTemplate("edgehub_gettwin_total", "id", new Summer()),
+                new AggrigationTemplate(
+                    "edgehub_messages_received_total",
+                    ("route_output", new Summer()),
+                    ("id", new Summer())
+                ),
+                new AggrigationTemplate(
+                    "edgehub_messages_sent_total",
+                    ("from", new Summer()),
+                    ("to", new Summer()),
+                    ("from_route_output", new Summer()),
+                    ("to_route_input", new Summer())
+                ),
+                new AggrigationTemplate(
+                    new string[]
+                    {
+                        "edgehub_message_size_bytes",
+                        "edgehub_message_size_bytes_sum",
+                        "edgehub_message_size_bytes_count"
+                    }, "id", new Averager()),
+                new AggrigationTemplate(
+                    new string[]
+                    {
+                        "edgehub_message_process_duration_seconds",
+                        "edgehub_message_process_duration_seconds_sum",
+                        "edgehub_message_process_duration_seconds_count",
+                    },
+                    ("from", new Averager()),
+                    ("to", new Averager())
+                ),
+                new AggrigationTemplate(
+                    "edgehub_direct_methods_total",
+                    ("from", new Summer()),
+                    ("to", new Summer())
+                ),
+                new AggrigationTemplate("edgehub_queue_length", "endpoint", new Summer()),
+                new AggrigationTemplate(
+                    new string[]
+                    {
+                        "edgehub_messages_dropped_total",
+                        "edgehub_messages_unack_total",
+                    },
+                    ("from", new Summer()),
+                    ("from_route_output", new Summer())
+                ),
+                new AggrigationTemplate("edgehub_client_connect_failed_total", "id", new Summer())
+           );
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
