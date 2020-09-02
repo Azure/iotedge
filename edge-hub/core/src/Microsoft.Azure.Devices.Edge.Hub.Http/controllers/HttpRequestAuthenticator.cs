@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             IClientCredentials clientCredentials;
             X509Certificate2 clientCertificate = await context.Connection.GetClientCertificateAsync();
+            Events.AuthenticationDebug($"deviceId: {deviceId}, moduleId: {moduleId.GetOrElse(string.Empty)}, client certificate: {clientCertificate != null}");
 
             if (clientCertificate != null)
             {
@@ -54,6 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     .SelectMany(p => p.Value)
                     .ToList();
 
+                Events.AuthenticationDebug($"authorization Parameters: {string.Join(",", authorizationQueryParameters)}");
+
                 if (!(context.Request.Headers.TryGetValue(HeaderNames.Authorization, out StringValues authorizationHeaderValues)
                       && authorizationQueryParameters.Count == 0))
                 {
@@ -67,6 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 string authHeader = authorizationQueryParameters.Count == 1
                     ? authorizationQueryParameters.First()
                     : authorizationHeaderValues.First();
+
+                Events.AuthenticationDebug($"authorization header: {authHeader}");
 
                 if (!authHeader.StartsWith("SharedAccessSignature", StringComparison.OrdinalIgnoreCase))
                 {
@@ -89,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId.OrDefault(), string.Empty, authHeader, false, Option.None<string>());
             }
 
+            Events.AuthenticationDebug($"client credential: {clientCredentials.Identity.Id}");
             IIdentity identity = clientCredentials.Identity;
 
             if (!await this.authenticator.AuthenticateAsync(clientCredentials))
@@ -108,12 +114,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             enum EventIds
             {
                 AuthenticationFailed = IdStart,
-                AuthenticationSuccess
+                AuthenticationSuccess,
+                AuthenticationDebug
             }
 
             public static string AuthenticationFailed(string message)
             {
                 Log.LogWarning((int)EventIds.AuthenticationFailed, $"Http Authentication failed due to following issue - {message}");
+                return message;
+            }
+
+            public static string AuthenticationDebug(string message)
+            {
+                Log.LogDebug((int)EventIds.AuthenticationDebug, $"{message}");
                 return message;
             }
 
