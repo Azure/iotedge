@@ -33,7 +33,7 @@ impl SecretClient {
         configuration.base_path = UrlConnector::build_hyper_uri(
                 scheme,
                 &base_path,
-                "/"
+                ""
             )
             .context(ErrorKind::Initialization)?
             .to_string();
