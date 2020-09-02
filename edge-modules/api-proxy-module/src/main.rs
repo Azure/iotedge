@@ -12,14 +12,15 @@
 use std::{process::Stdio, sync::Arc};
 
 use anyhow::{Context, Error, Result};
-use api_proxy_module::{
-    monitors::{certs_monitor, config_monitor, utils},
-    signals::shutdown,
-};
 use futures_util::future::{self, Either};
 use log::LevelFilter;
 use tokio::{process::Command, sync::Notify, task::JoinHandle};
-use utils::ShutdownHandle;
+
+use api_proxy_module::{
+    monitors::{certs_monitor, config_monitor, shutdown_handle},
+    signals::shutdown,
+};
+use shutdown_handle::ShutdownHandle;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -48,9 +49,8 @@ async fn main() -> Result<()> {
             .context("Failed running nginx controller")?;
 
     //If one task closes, clean up everything
-    match nginx_controller_handle.await {
-        Ok(_) => (),
-        Err(err) => log::error!("Tasks encountered and error {:?}", err),
+    if let Err(e) = nginx_controller_handle.await {
+        log::error!("Tasks encountered and error {}", e);
     };
 
     //Send shutdown signal to all task
@@ -59,23 +59,22 @@ async fn main() -> Result<()> {
         .await
         .context("Fatal, could not shut down SDK")?;
 
-    future::join_all(vec![
-        cert_monitor_shutdown_handle.shutdown(),
-        twin_state_poll_shutdown_handle.shutdown(),
-        config_monitor_shutdown_handle.shutdown(),
-        nginx_controller_shutdown_handle.shutdown(),
-    ])
-    .await;
+    cert_monitor_shutdown_handle.shutdown().await;
+    twin_state_poll_shutdown_handle.shutdown().await;
+    config_monitor_shutdown_handle.shutdown().await;
+    nginx_controller_shutdown_handle.shutdown().await;
 
-    //Join all tasks.
-    let all_task = vec![
-        cert_monitor_handle,
-        config_monitor_handle,
-        twin_state_poll_handle,
-    ];
-    future::join_all(all_task).await;
+    if let Err(e) = cert_monitor_handle.await {
+        log::error!("error on finishing cert monitor: {}", e);
+    }
+    if let Err(e) = config_monitor_handle.await {
+        log::error!("error on finishing config monitor: {}", e);
+    }
+    if let Err(e) = twin_state_poll_handle.await {
+        log::error!("error on finishing twin state monitor: {}", e);
+    }
 
-    log::info!("Gracefully exiting");
+    log::info!("Api proxy stopped");
     Ok(())
 }
 
@@ -97,11 +96,10 @@ pub fn nginx_controller_start(
     let shutdown_signal = Arc::new(Notify::new());
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
 
-    //Wait for certificate rotation
-    //This is just to avoid error at the beginning when nginx tries to start
-    //but configuration is not ready
-
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
+        //Wait for certificate rotation
+        //This is just to avoid error at the beginning when nginx tries to start
+        //but configuration is not ready
         notify_need_reload_api_proxy.notified().await;
 
         loop {
@@ -109,7 +107,7 @@ pub fn nginx_controller_start(
             let command = Command::new(stop_proxy_program_path)
                 .args(&stop_proxy_args)
                 .spawn()
-                .with_context(|| format!("Failed to start {:?} process.", stop_proxy_name))
+                .with_context(|| format!("Failed to start {} process.", stop_proxy_name))
                 .context("Cannot stop proxy!")?;
             command
                 .await
@@ -120,7 +118,7 @@ pub fn nginx_controller_start(
                 .args(&args)
                 .stdout(Stdio::inherit())
                 .spawn()
-                .with_context(|| format!("Failed to start {:?} process.", name))
+                .with_context(|| format!("Failed to start {} process.", name))
                 .context("Cannot start proxy!")?;
 
             let signal_restart_nginx = notify_need_reload_api_proxy.notified();

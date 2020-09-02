@@ -1,15 +1,17 @@
 use std::{sync::Arc, time::Duration};
 
-use super::utils;
 use anyhow::{Context, Error, Result};
-use azure_iot_mqtt::{
-    module::Client, ReportTwinStateHandle, ReportTwinStateRequest, Transport::Tcp, TwinProperties,
-};
 use chrono::Utc;
 use futures_util::future::Either;
 use regex::Regex;
 use tokio::{sync::Notify, task::JoinHandle};
-use utils::ShutdownHandle;
+
+use azure_iot_mqtt::{
+    module::Client, ReportTwinStateHandle, ReportTwinStateRequest, Transport::Tcp, TwinProperties,
+};
+use super::file;
+use super::shutdown_handle;
+use shutdown_handle::ShutdownHandle;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
@@ -32,7 +34,7 @@ pub fn get_sdk_client() -> Result<Client, Error> {
         TWIN_CONFIG_KEEP_ALIVE,
     ) {
         Ok(client) => client,
-        Err(err) => return Err(anyhow::anyhow!("Could not create client: {:?}", err)),
+        Err(err) => return Err(anyhow::anyhow!("Could not create client: {}", err)),
     };
 
     Ok(client)
@@ -60,7 +62,7 @@ pub fn start(
         Ok(()) => notify_received_config.notify(),
         Err(err) => {
             return Err(anyhow::anyhow!(
-                "Error while parsing default config: {:?}",
+                "Error while parsing default config: {}",
                 err
             ))
         }
@@ -78,7 +80,7 @@ pub fn start(
                 }
                 Either::Right((Some(Ok(message)), _)) => message,
                 Either::Right((Some(Err(err)), _)) => {
-                    log::error!("Error receiving a message! {:?}", err);
+                    log::error!("Error receiving a message! {}", err);
                     continue;
                 }
                 Either::Right((None, _)) => {
@@ -89,16 +91,12 @@ pub fn start(
 
             if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
                 if let Err(err) = save_raw_config(&twin) {
-                    log::error!("received message {:?}", err);
+                    log::error!("received message {}", err);
                 } else {
-                    log::info!("received config {:?}", twin);
-                    //Here we don't need to panic if config is wrong. There is already a good config running.
                     match parse_config() {
                         //Notify watchdog config is there
                         Ok(()) => notify_received_config.notify(),
-                        Err(error) => {
-                            log::error!("Error while parsing default config: {:?}", error)
-                        }
+                        Err(error) => log::error!("Error while parsing default config: {}", error),
                     };
                 }
             };
@@ -157,7 +155,7 @@ fn save_raw_config(twin: &TwinProperties) -> Result<()> {
 
     let bytes = get_raw_config(str)?;
 
-    utils::write_binary_to_file(&bytes, PROXY_CONFIG_PATH_RAW)?;
+    file::write_binary_to_file(&bytes, PROXY_CONFIG_PATH_RAW)?;
 
     Ok(())
 }
@@ -165,11 +163,11 @@ fn save_raw_config(twin: &TwinProperties) -> Result<()> {
 fn parse_config() -> Result<()> {
     //Read "raw configuration". Contains environment variables and sections.
     //Extract IO calls from core function for mocking
-    let str = utils::get_string_from_file(PROXY_CONFIG_PATH_RAW)?;
+    let str = file::get_string_from_file(PROXY_CONFIG_PATH_RAW)?;
 
     let str = get_parsed_config(&str)?;
     //Extract IO calls from core function for mocking
-    utils::write_binary_to_file(&str.as_bytes(), PROXY_CONFIG_PATH_PARSED)?;
+    file::write_binary_to_file(&str.as_bytes(), PROXY_CONFIG_PATH_PARSED)?;
 
     Ok(())
 }
@@ -177,7 +175,7 @@ fn parse_config() -> Result<()> {
 fn get_raw_config(encoded_file: &str) -> Result<Vec<u8>, anyhow::Error> {
     let bytes = match base64::decode(encoded_file) {
         Ok(bytes) => bytes,
-        Err(err) => return Err(anyhow::anyhow!(format!("Cannot decode base64 {:?}", err))),
+        Err(err) => return Err(anyhow::anyhow!(format!("Cannot decode base64 {}", err))),
     };
 
     Ok(bytes)
