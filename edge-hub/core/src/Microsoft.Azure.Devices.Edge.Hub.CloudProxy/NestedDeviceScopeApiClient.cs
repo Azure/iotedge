@@ -92,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public Task<ScopeResult> GetIdentityOnBehalfOfAsync(string targetDeviceId, Option<string> targetModuleId, string onBehalfOfDevice)
         {
             Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
+            Preconditions.CheckNonWhiteSpace(onBehalfOfDevice, nameof(onBehalfOfDevice));
             return this.GetIdentityOnBehalfOfWithRetry(this.GetIdentityOnBehalfOfServiceUri(), targetDeviceId, targetModuleId, onBehalfOfDevice);
         }
 
@@ -123,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 return await ExecuteWithRetry(
-                    () => this.GetIdentityOnBehalfOf(uri, deviceId, moduleId, onBehalfOfDevice),
+                    () => this.GetIdentityOnBehalfOfInternalAsync(uri, deviceId, moduleId, onBehalfOfDevice),
                     Events.RetryingGetIdentities,
                     this.retryStrategy);
             }
@@ -142,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 return await ExecuteWithRetry(
-                    () => this.GetIdentitiesInTargetScope(uri, continuation),
+                    () => this.GetIdentitiesInTargetScopeInternalAsync(uri, continuation),
                     Events.RetryingGetIdentities,
                     this.retryStrategy);
             }
@@ -153,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<ScopeResult> GetIdentityOnBehalfOf(Uri uri, string deviceId, Option<string> moduleId, string onBehalfOfDevice)
+        async Task<ScopeResult> GetIdentityOnBehalfOfInternalAsync(Uri uri, string deviceId, Option<string> moduleId, string onBehalfOfDevice)
         {
             HttpClient client = this.proxy
                 .Map(p => new HttpClient(new HttpClientHandler { Proxy = p }, disposeHandler: true))
@@ -189,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<ScopeResult> GetIdentitiesInTargetScope(Uri uri, Option<string> continuationToken)
+        async Task<ScopeResult> GetIdentitiesInTargetScopeInternalAsync(Uri uri, Option<string> continuationToken)
         {
             HttpClient client = this.proxy
                 .Map(p => new HttpClient(new HttpClientHandler { Proxy = p }, disposeHandler: true))

@@ -116,12 +116,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task RefreshServiceIdentity(string id)
         {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
             await this.RefreshServiceIdentityInternal(id, this.edgeDeviceId, true);
         }
 
-        public async Task RefreshServiceIdentityOnBehalfOf(string refreshTarget, string onBehalfOfEdgeHub)
+        public async Task RefreshServiceIdentityOnBehalfOf(string refreshTarget, string onBehalfOfDevice)
         {
-            await this.RefreshServiceIdentityInternal(refreshTarget, onBehalfOfEdgeHub, true);
+            Preconditions.CheckNonWhiteSpace(refreshTarget, nameof(refreshTarget));
+            Preconditions.CheckNonWhiteSpace(onBehalfOfDevice, nameof(onBehalfOfDevice));
+            await this.RefreshServiceIdentityInternal(refreshTarget, onBehalfOfDevice, true);
         }
 
         public async Task RefreshServiceIdentities(IEnumerable<string> ids)
@@ -164,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
             catch (Exception e)
             {
-                Events.ErrorRefreshingCache(e, refreshTarget);
+                Events.ErrorRefreshingCache(e, refreshTarget, onBehalfOfDevice);
             }
         }
 
@@ -185,9 +188,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return await this.GetServiceIdentityInternal(id);
         }
 
-        public Task<Option<string>> GetAuthChain(string targetId) => this.serviceIdentityHierarchy.GetAuthChain(targetId);
+        public Task<Option<string>> GetAuthChain(string targetId)
+        {
+            Preconditions.CheckNonWhiteSpace(targetId, nameof(targetId));
+            return this.serviceIdentityHierarchy.GetAuthChain(targetId);
+        }
 
-        public async Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId) => await this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
+        public Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId)
+        {
+            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
+            return this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
+        }
 
         public async Task<IList<string>> GetAllIds() => await this.serviceIdentityHierarchy.GetAllIds();
 
@@ -437,9 +448,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void DoneRefreshCycle(TimeSpan refreshRate) =>
                 Log.LogInformation((int)EventIds.DoneCycle, $"Done refreshing device scope identities cache. Waiting for {refreshRate.TotalMinutes} minutes.");
 
-            public static void ErrorRefreshingCache(Exception exception, string deviceId)
+            public static void ErrorRefreshingCache(Exception exception, string deviceId, string onBehalfOfDevice)
             {
-                Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while refreshing the service identity for {deviceId}");
+                Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while refreshing the service identity: {deviceId} OnBehalfOf: {onBehalfOfDevice}");
             }
 
             public static void ErrorProcessing(ServiceIdentity serviceIdentity, Exception exception)

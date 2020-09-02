@@ -35,6 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string onBehalfOfDevice)
         {
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            Preconditions.CheckNonWhiteSpace(onBehalfOfDevice, nameof(onBehalfOfDevice));
+
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
@@ -97,6 +100,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, string onBehalfOfDevice)
         {
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(onBehalfOfDevice, nameof(onBehalfOfDevice));
+
             string id = $"{deviceId}/{moduleId}";
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
 

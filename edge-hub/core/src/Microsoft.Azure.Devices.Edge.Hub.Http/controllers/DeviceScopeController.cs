@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             IEdgeHub edgeHub = await this.edgeHubGetter;
 
             // Check if the actor has provided the originating EdgeHub ID,
-            // if not, then we must by definition by the origin.
+            // if not, then we must be by definition by the origin.
             string originatingEdge = edgeHub.GetEdgeDeviceId();
             if (this.Request.Headers.TryGetValue(Constants.OriginEdgeHeaderKey, out StringValues originHeader) && originHeader.Count > 0)
             {
