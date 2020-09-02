@@ -1,4 +1,3 @@
-#![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::cognitive_complexity,
@@ -26,7 +25,7 @@ use utils::ShutdownHandle;
 async fn main() -> Result<()> {
     env_logger::builder().filter_level(LevelFilter::Info).init();
 
-    let notify_need_reload_api_proxy = Arc::new(tokio::sync::Notify::new());
+    let notify_need_reload_api_proxy = Arc::new(Notify::new());
 
     let client = config_monitor::get_sdk_client()?;
     let mut shutdown_sdk = client
@@ -60,7 +59,7 @@ async fn main() -> Result<()> {
         .await
         .context("Fatal, could not shut down SDK")?;
 
-    futures::future::join_all(vec![
+    future::join_all(vec![
         cert_monitor_shutdown_handle.shutdown(),
         twin_state_poll_shutdown_handle.shutdown(),
         config_monitor_shutdown_handle.shutdown(),
@@ -74,7 +73,7 @@ async fn main() -> Result<()> {
         config_monitor_handle,
         twin_state_poll_handle,
     ];
-    futures::future::join_all(all_task).await;
+    future::join_all(all_task).await;
 
     log::info!("Gracefully exiting");
     Ok(())
@@ -138,7 +137,7 @@ pub fn nginx_controller_start(
 
             let wait_shutdown = future::select(wait_shutdown_ctrl_c, wait_shutdown_signal);
 
-            match futures::future::select(wait_shutdown, restart_proxy).await {
+            match future::select(wait_shutdown, restart_proxy).await {
                 Either::Left(_) => {
                     log::warn!("Shutting down ngxing controller!");
                     return Ok(());
