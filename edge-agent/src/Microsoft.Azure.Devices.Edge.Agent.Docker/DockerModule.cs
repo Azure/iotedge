@@ -97,7 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.Priority == other.Priority &&
-                EnvDictionaryComparer.Equals(this.Env, other.Env);
+                EnvDictionaryComparer.Equals(this.Env, other.Env) &&
+                DictionaryComparer.StringDictionaryComparer.Equals(this.Secrets, other.Secrets);
         }
 
         public virtual bool IsOnlyModuleStatusChanged(IModule other)
@@ -111,7 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.Priority == other.Priority &&
-                EnvDictionaryComparer.Equals(this.Env, other.Env);
+                EnvDictionaryComparer.Equals(this.Env, other.Env) &&
+                DictionaryComparer.StringDictionaryComparer.Equals(this.Secrets, other.Secrets);
         }
 
         public override int GetHashCode()

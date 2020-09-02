@@ -28,6 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         public Task UndoAsync(CancellationToken token) => Task.CompletedTask;
 
-        public string Show() => $"Pull secret {this.secretId} for module {this.module.Name} from ${this.akvId}";
+        public string Show() => $"Pull secret {this.secretId} for module {this.module.Name} from {this.akvId}";
     }
 }
