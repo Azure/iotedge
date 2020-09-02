@@ -83,7 +83,7 @@ impl<'de> serde::Deserialize<'de> for Settings {
                 .clone()
                 .map(|gateway_hostname| ConnectionSettings {
                     name: "upstream".into(),
-                    address: gateway_hostname.into(),
+                    address: gateway_hostname,
                     subscriptions: upstream.subscriptions,
                     forwards: upstream.forwards,
                     credentials: Credentials::Provider(nested_bridge),
