@@ -14,6 +14,7 @@
 mod bridge;
 pub mod controller;
 mod persist;
+mod client;
 mod settings;
 
 pub use crate::controller::BridgeController;

@@ -151,6 +151,7 @@ impl ConnectionSettings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(untagged)]
 pub enum Credentials {
+    Anonymous(String),
     PlainText(AuthenticationSettings),
     Provider(CredentialProviderSettings),
 }
@@ -180,6 +181,9 @@ impl AuthenticationSettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
+    #[serde(rename = "iothubhostname")]
+    iothub_hostname: Option<String>,
+
     #[serde(rename = "gatewayhostname")]
     gateway_hostname: Option<String>,
 
@@ -197,6 +201,10 @@ pub struct CredentialProviderSettings {
 }
 
 impl CredentialProviderSettings {
+    pub fn iothub_hostname(&self) -> Option<&str> {
+        self.iothub_hostname.as_ref().map(AsRef::as_ref)
+    }
+
     pub fn gateway_hostname(&self) -> Option<&str> {
         self.gateway_hostname.as_ref().map(AsRef::as_ref)
     }
@@ -222,12 +230,18 @@ impl CredentialProviderSettings {
 pub struct Subscription {
     pattern: String,
 
+    local: Option<String>,
+
     remote: String,
 }
 
 impl Subscription {
     pub fn pattern(&self) -> &str {
         &self.pattern
+    }
+
+    pub fn local(&self) -> Option<&str> {
+        self.local.as_ref().map(AsRef::as_ref)
     }
 
     pub fn remote(&self) -> &str {
@@ -239,12 +253,18 @@ impl Subscription {
 pub struct Forward {
     pattern: String,
 
+    local: Option<String>,
+
     remote: String,
 }
 
 impl Forward {
     pub fn pattern(&self) -> &str {
         &self.pattern
+    }
+
+    pub fn local(&self) -> Option<&str> {
+        self.local.as_ref().map(AsRef::as_ref)
     }
 
     pub fn remote(&self) -> &str {

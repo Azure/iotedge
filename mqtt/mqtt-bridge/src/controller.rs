@@ -17,13 +17,12 @@ impl BridgeController {
         Self::default()
     }
 
-    pub async fn start(&mut self) -> Result<()> {
+    pub async fn start(&mut self, system_address: String, device_id: &str) -> Result<()> {
         info!("starting bridge");
-
         let settings = Settings::new()?;
         if let Some(upstream) = settings.upstream() {
-            let nested_bridge = Bridge::new(upstream.clone());
-            nested_bridge.start().await;
+            let nested_bridge = Bridge::new(system_address, device_id.into(), upstream.clone());
+            nested_bridge.start().await?;
 
             self.bridges
                 .insert(upstream.name().to_string(), nested_bridge);
