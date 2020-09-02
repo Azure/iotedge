@@ -12,7 +12,7 @@ use mqtt3::proto::Publication;
 // TODO REVIEW: do we need this tokio mutex
 use tokio::sync::Mutex;
 
-use crate::queue::{simple_message_loader::InMemoryMessageLoader, Key, Queue, QueueError};
+use crate::queue::{memory_loader::InMemoryMessageLoader, Key, Queue, QueueError};
 pub struct WakingMap {
     map: BTreeMap<Key, Publication>,
     waker: Option<Waker>,
@@ -47,6 +47,7 @@ impl WakingMap {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::time::Duration;
 
     use bytes::Bytes;
@@ -55,11 +56,27 @@ mod tests {
     use mqtt3::proto::{Publication, QoS};
 
     use crate::queue::QueueError;
-    use crate::queue::{Key, Queue};
+    use crate::queue::{waking_map::WakingMap, Key};
 
     #[tokio::test]
     async fn insert() {
-        todo!()
+        let state = BTreeMap::new();
+        let mut state = WakingMap::new(state);
+
+        let key1 = Key {
+            priority: 0,
+            offset: 0,
+            ttl: Duration::from_secs(5),
+        };
+        let pub1 = Publication {
+            topic_name: "test".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        state.insert(key1.clone(), pub1.clone());
+        assert_eq!(pub1, *state.get_map().get(&key1).unwrap());
     }
 
     #[tokio::test]

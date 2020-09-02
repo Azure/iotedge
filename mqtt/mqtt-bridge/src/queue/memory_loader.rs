@@ -94,10 +94,8 @@ mod tests {
     use tokio::sync::Mutex;
     use tokio::time;
 
-    use crate::queue::simple_message_loader::InMemoryMessageLoader;
-    use crate::queue::{
-        simple_message_loader::get_elements, waking_map::WakingMap, Key, QueueError,
-    };
+    use crate::queue::memory_loader::InMemoryMessageLoader;
+    use crate::queue::{memory_loader::get_elements, waking_map::WakingMap, Key, QueueError};
 
     #[tokio::test]
     async fn smaller_batch_size_respected() {

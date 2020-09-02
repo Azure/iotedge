@@ -13,7 +13,7 @@ use mqtt3::proto::Publication;
 use tokio::sync::Mutex;
 
 use crate::queue::{
-    simple_message_loader::InMemoryMessageLoader, waking_map::WakingMap, Key, Queue, QueueError,
+    memory_loader::InMemoryMessageLoader, waking_map::WakingMap, Key, Queue, QueueError,
 };
 
 struct InMemoryQueue {
@@ -72,7 +72,7 @@ mod tests {
     use mqtt3::proto::{Publication, QoS};
 
     use crate::queue::QueueError;
-    use crate::queue::{simple_queue::InMemoryQueue, Key, Queue};
+    use crate::queue::{memory_queue::InMemoryQueue, Key, Queue};
 
     #[tokio::test]
     async fn insert() {
