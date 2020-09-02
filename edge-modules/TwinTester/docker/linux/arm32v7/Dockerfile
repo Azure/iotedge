@@ -1,5 +1,5 @@
-ARG base_tag=1.0.4.1-linux-arm32v7
-FROM edgebuilds.azurecr.io/microsoft/azureiotedge-module-base-rocksdb:${base_tag}
+ARG base_tag=1.0.4.2-linux-arm32v7
+FROM azureiotedge/azureiotedge-module-base-rocksdb:${base_tag}
 
 ARG EXE_DIR=.
 
