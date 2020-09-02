@@ -117,10 +117,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // Task<IRequestHandler> - SupportBundleRequestHandler
             builder.Register(
-                    async c =>
+                    c =>
                     {
-                        await Task.Yield();
-                        return new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>(), this.iotHubHostName) as IRequestHandler;
+                        IRequestHandler handler = new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>(), this.iotHubHostName);
+                        return Task.FromResult(handler);
                     })
                 .As<Task<IRequestHandler>>()
                 .SingleInstance();
