@@ -3,6 +3,7 @@ use std::{env, sync::Arc};
 use anyhow::{Context, Error, Result};
 use chrono::{DateTime, Duration, Utc};
 use futures_util::future::Either;
+use log::{error, warn};
 use tokio::{sync::Notify, task::JoinHandle, time};
 
 use super::file;
@@ -53,79 +54,74 @@ pub fn start(
                 .await
             {
                 Either::Right(_) => {
-                    log::warn!("Shutting down certs monitor!");
+                    warn!("Shutting down certs monitor!");
                     return Ok(());
                 }
                 Either::Left(_) => {}
             };
 
-            //If root cert has rotated, we need to notify the watchdog to restart nginx.
-            let mut need_notify = false;
             //Check for rotation. If rotated then we notify.
-            match cert_monitor.get_new_trust_bundle().await {
-                Ok(trust_bundle) => {
-                    if let Some(trust_bundle) = trust_bundle {
-                        //If we have a new cert, we need to write it in file system
-                        file::write_binary_to_file(
-                            trust_bundle.as_bytes(),
-                            PROXY_SERVER_TRUSTED_CA_PATH,
-                        )?;
-
-                        need_notify = true;
-                    }
+            let new_trust_bundle = match cert_monitor.get_new_trust_bundle().await {
+                Ok(Some(trust_bundle)) => {
+                    //If we have a new cert, we need to write it in file system
+                    file::write_binary_to_file(
+                        trust_bundle.as_bytes(),
+                        PROXY_SERVER_TRUSTED_CA_PATH,
+                    )?;
+                    true
                 }
-                Err(err) => log::error!("Error while trying to get trust bundle {}", err),
+                Ok(None) => false,
+                Err(err) => {
+                    error!("Error while trying to get trust bundle {}", err);
+                    false
+                }
             };
 
             //Same thing as above but for private key and server cert
-            match cert_monitor.need_to_rotate_server_cert(Utc::now()).await {
-                Ok(certs) => {
-                    if let Some((server_cert, private_key)) = certs {
-                        //If we have a new cert, we need to write it in file system
-                        file::write_binary_to_file(server_cert.as_bytes(), PROXY_SERVER_CERT_PATH)?;
+            let new_server_cert = match cert_monitor.need_to_rotate_server_cert(Utc::now()).await {
+                Ok(Some((server_cert, private_key))) => {
+                    //If we have a new cert, we need to write it in file system
+                    file::write_binary_to_file(server_cert.as_bytes(), PROXY_SERVER_CERT_PATH)?;
 
-                        //If we have a new cert, we need to write it in file system
-                        file::write_binary_to_file(
-                            private_key.as_bytes(),
-                            PROXY_SERVER_PRIVATE_KEY_PATH,
-                        )?;
+                    //If we have a new cert, we need to write it in file system
+                    file::write_binary_to_file(
+                        private_key.as_bytes(),
+                        PROXY_SERVER_PRIVATE_KEY_PATH,
+                    )?;
 
-                        need_notify = true;
-                    }
+                    true
                 }
-
+                Ok(None) => false,
                 Err(err) => {
-                    need_notify = false;
-                    log::error!("Error while trying to get server cert {}", err);
+                    error!("Error while trying to get server cert {}", err);
+                    false
                 }
             };
 
             //Same thing as above but for private key and identity cert
-            match cert_monitor.need_to_rotate_identity_cert(Utc::now()).await {
-                Ok(certs) => {
-                    if let Some((identity_cert, private_key)) = certs {
-                        //If we have a new cert, we need to write it in file system
-                        file::write_binary_to_file(
-                            identity_cert.as_bytes(),
-                            PROXY_IDENTITY_CERT_PATH,
-                        )?;
+            let new_identity_cert = match cert_monitor
+                .need_to_rotate_identity_cert(Utc::now())
+                .await
+            {
+                Ok(Some((identity_cert, private_key))) => {
+                    //If we have a new cert, we need to write it in file system
+                    file::write_binary_to_file(identity_cert.as_bytes(), PROXY_IDENTITY_CERT_PATH)?;
 
-                        //If we have a new cert, we need to write it in file system
-                        file::write_binary_to_file(
-                            private_key.as_bytes(),
-                            PROXY_IDENTITY_PRIVATE_KEY_PATH,
-                        )?;
-                        need_notify = true;
-                    }
+                    //If we have a new cert, we need to write it in file system
+                    file::write_binary_to_file(
+                        private_key.as_bytes(),
+                        PROXY_IDENTITY_PRIVATE_KEY_PATH,
+                    )?;
+                    true
                 }
-
+                Ok(None) => false,
                 Err(err) => {
-                    need_notify = false;
-                    log::error!("Error while trying to get server cert {}", err);
+                    error!("Error while trying to get server cert {}", err);
+                    false
                 }
             };
 
-            if need_notify {
+            if new_trust_bundle | new_identity_cert | new_server_cert {
                 notify_certs_rotated.notify();
             }
         }

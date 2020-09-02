@@ -13,7 +13,7 @@ use std::{process::Stdio, sync::Arc};
 
 use anyhow::{Context, Error, Result};
 use futures_util::future::{self, Either};
-use log::LevelFilter;
+use log::{error, info, warn, LevelFilter};
 use tokio::{process::Command, sync::Notify, task::JoinHandle};
 
 use api_proxy_module::{
@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
 
     //If one task closes, clean up everything
     if let Err(e) = nginx_controller_handle.await {
-        log::error!("Tasks encountered and error {}", e);
+        error!("Tasks encountered and error {}", e);
     };
 
     //Send shutdown signal to all task
@@ -65,16 +65,16 @@ async fn main() -> Result<()> {
     nginx_controller_shutdown_handle.shutdown().await;
 
     if let Err(e) = cert_monitor_handle.await {
-        log::error!("error on finishing cert monitor: {}", e);
+        error!("error on finishing cert monitor: {}", e);
     }
     if let Err(e) = config_monitor_handle.await {
-        log::error!("error on finishing config monitor: {}", e);
+        error!("error on finishing config monitor: {}", e);
     }
     if let Err(e) = twin_state_poll_handle.await {
-        log::error!("error on finishing twin state monitor: {}", e);
+        error!("error on finishing twin state monitor: {}", e);
     }
 
-    log::info!("Api proxy stopped");
+    info!("Api proxy stopped");
     Ok(())
 }
 
@@ -137,22 +137,22 @@ pub fn nginx_controller_start(
 
             match future::select(wait_shutdown, restart_proxy).await {
                 Either::Left(_) => {
-                    log::warn!("Shutting down ngxing controller!");
+                    warn!("Shutting down ngxing controller!");
                     return Ok(());
                 }
                 Either::Right((result, _)) => {
                     match result {
                         Either::Left(_) => {
-                            log::info!("Nginx crashed, restarting");
+                            info!("Nginx crashed, restarting");
                         }
                         Either::Right(_) => {
-                            log::info!("Request to restart Nginx received");
+                            info!("Request to restart Nginx received");
                         }
                     };
                 }
             }
 
-            log::info!("Restarting Proxy");
+            info!("Restarting Proxy");
         }
     });
 

@@ -3,6 +3,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::{Context, Error, Result};
 use chrono::Utc;
 use futures_util::future::Either;
+use log::{error, warn};
 use regex::Regex;
 use tokio::{sync::Notify, task::JoinHandle};
 
@@ -75,28 +76,28 @@ pub fn start(
 
             let message = match futures::future::select(wait_shutdown, client.next()).await {
                 Either::Left(_) => {
-                    log::warn!("Shutting down config monitor!");
+                    warn!("Shutting down config monitor!");
                     return Ok(());
                 }
                 Either::Right((Some(Ok(message)), _)) => message,
                 Either::Right((Some(Err(err)), _)) => {
-                    log::error!("Error receiving a message! {}", err);
+                    error!("Error receiving a message! {}", err);
                     continue;
                 }
                 Either::Right((None, _)) => {
-                    log::warn!("Shutting down config monitor!");
+                    warn!("Shutting down config monitor!");
                     return Ok(());
                 }
             };
 
             if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
                 if let Err(err) = save_raw_config(&twin) {
-                    log::error!("received message {}", err);
+                    error!("received message {}", err);
                 } else {
                     match parse_config() {
                         //Notify watchdog config is there
                         Ok(()) => notify_received_config.notify(),
-                        Err(error) => log::error!("Error while parsing default config: {}", error),
+                        Err(error) => error!("Error while parsing default config: {}", error),
                     };
                 }
             };
@@ -249,7 +250,7 @@ pub fn report_twin_state(
             futures::pin_mut!(wait_shutdown);
             match futures::future::select(wait_shutdown, interval.next()).await {
                 Either::Left(_) => {
-                    log::warn!("Shutting down twin state polling!");
+                    warn!("Shutting down twin state polling!");
                     return Ok(());
                 }
                 Either::Right((result, _)) => {
@@ -263,7 +264,7 @@ pub fn report_twin_state(
                             .await
                             .context("couldn't report twin state patch")?;
                     } else {
-                        log::warn!("Shutting down twin state polling!");
+                        warn!("Shutting down twin state polling!");
                         //Should send a ctrl c event here?
                         return Ok(());
                     }
