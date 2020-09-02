@@ -57,7 +57,6 @@ impl<'a> Queue<'a> for InMemoryQueue {
     }
 }
 
-// TODO: test queue state
 #[cfg(test)]
 mod tests {
     use std::time::Duration;

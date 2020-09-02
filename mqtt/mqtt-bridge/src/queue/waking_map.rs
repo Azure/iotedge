@@ -55,8 +55,8 @@ mod tests {
 
     use crate::queue::{waking_map::WakingMap, Key};
 
-    #[tokio::test]
-    async fn insert() {
+    #[test]
+    fn insert() {
         let state = BTreeMap::new();
         let mut state = WakingMap::new(state);
 
@@ -77,8 +77,8 @@ mod tests {
         assert_eq!(pub1, *extracted);
     }
 
-    #[tokio::test]
-    async fn remove() {
+    #[test]
+    fn remove() {
         let state = BTreeMap::new();
         let mut state = WakingMap::new(state);
 
