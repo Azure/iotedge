@@ -40,7 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.uploader = Preconditions.CheckNotNull(uploader, nameof(uploader));
 
             this.metricFilter = new MetricTransformer()
-                .AddAllowedTags(new KeyValuePair<string, string>(MetricsConstants.MsTelemetry, true.ToString()))
+                .AddAllowedTags((MetricsConstants.MsTelemetry, true.ToString()))
+                .AddDisallowedTags(
+                    ("quantile", "0.1"),
+                    ("quantile", "0.25"),
+                    ("quantile", "0.5"),
+                    ("quantile", "0.99"))
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
                 .AddTagsToModify(
                     ("id", this.ReplaceDeviceId),
