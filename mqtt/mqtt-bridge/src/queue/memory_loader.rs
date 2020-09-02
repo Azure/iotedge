@@ -59,7 +59,10 @@ impl Stream for InMemoryMessageLoader {
     }
 }
 
-fn get_elements(state: &MutexGuard<WakingMap>, batch_size: usize) -> IntoIter<(Key, Publication)> {
+fn get_elements(
+    state: &MutexGuard<'_, WakingMap>,
+    batch_size: usize,
+) -> IntoIter<(Key, Publication)> {
     let batch: Vec<_> = state
         .get_map()
         .iter()

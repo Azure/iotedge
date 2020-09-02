@@ -1,9 +1,6 @@
 use std::cmp::Ordering;
-use std::ops::RangeBounds;
-use std::{iter::Iterator, time::Duration};
+use std::{time::Duration};
 
-use anyhow::Error;
-use anyhow::Result;
 use async_trait::async_trait;
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;

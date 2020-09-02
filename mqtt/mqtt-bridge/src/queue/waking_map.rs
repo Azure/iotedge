@@ -153,7 +153,7 @@ mod tests {
     impl Stream for TestStream {
         type Item = u32;
 
-        fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
             let mut map_lock;
             let mut_self = self.get_mut();
             loop {
