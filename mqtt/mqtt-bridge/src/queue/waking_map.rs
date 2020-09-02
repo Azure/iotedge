@@ -48,12 +48,20 @@ impl WakingMap {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::pin::Pin;
+    use std::sync::Arc;
+    use std::task::Context;
+    use std::task::Poll;
     use std::time::Duration;
+    use std::vec::IntoIter;
 
     use bytes::Bytes;
+    use futures_util::stream::Stream;
     use futures_util::stream::StreamExt;
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
+    use tokio::sync::Mutex;
+    use tokio::time;
 
     use crate::queue::QueueError;
     use crate::queue::{waking_map::WakingMap, Key};
@@ -76,21 +84,100 @@ mod tests {
         };
 
         state.insert(key1.clone(), pub1.clone());
-        assert_eq!(pub1, *state.get_map().get(&key1).unwrap());
+        let extracted = state.get_map().get(&key1).unwrap();
+        assert_eq!(pub1, *extracted);
     }
 
     #[tokio::test]
     async fn remove() {
-        todo!()
+        let state = BTreeMap::new();
+        let mut state = WakingMap::new(state);
+
+        let key1 = Key {
+            priority: 0,
+            offset: 0,
+            ttl: Duration::from_secs(5),
+        };
+        let pub1 = Publication {
+            topic_name: "test".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        state.insert(key1.clone(), pub1.clone());
+
+        let removed_pub = state.remove(key1.clone()).unwrap();
+        assert_eq!(pub1, removed_pub);
     }
 
+    // TODO REVIEW: replace wait with notify
     #[tokio::test]
-    async fn get_map() {
-        todo!()
+    async fn wakes_stream() {
+        let key1 = Key {
+            priority: 0,
+            offset: 0,
+            ttl: Duration::from_secs(5),
+        };
+        let pub1 = Publication {
+            topic_name: "test".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let map = BTreeMap::new();
+        let map = WakingMap::new(map);
+        let map = Arc::new(Mutex::new(map));
+
+        let map_copy = Arc::clone(&map);
+        let poll_stream = async move {
+            let mut test_stream = TestStream::new(map_copy);
+            assert_eq!(test_stream.next().await.unwrap(), 1);
+        };
+
+        let poll_stream_handle = tokio::spawn(poll_stream);
+        time::delay_for(Duration::from_secs(2)).await;
+
+        map.lock().await.insert(key1, pub1);
+
+        poll_stream_handle.await.unwrap();
     }
 
-    #[tokio::test]
-    async fn set_waker() {
-        todo!()
+    struct TestStream {
+        waking_map: Arc<Mutex<WakingMap>>,
+        should_return_pending: bool,
+    }
+
+    impl TestStream {
+        fn new(waking_map: Arc<Mutex<WakingMap>>) -> Self {
+            TestStream {
+                waking_map,
+                should_return_pending: true,
+            }
+        }
+    }
+
+    impl Stream for TestStream {
+        type Item = u32;
+
+        fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+            let mut map_lock;
+            let mut_self = self.get_mut();
+            loop {
+                if let Ok(lock) = mut_self.waking_map.try_lock() {
+                    map_lock = lock;
+                    break;
+                }
+            }
+
+            if mut_self.should_return_pending {
+                mut_self.should_return_pending = false;
+                map_lock.set_waker(cx.waker());
+                return Poll::Pending;
+            } else {
+                return Poll::Ready(Some(1));
+            }
+        }
     }
 }

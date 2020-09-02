@@ -80,7 +80,4 @@ pub struct Key {
 pub enum QueueError {
     #[error("Failed to remove messages from queue")]
     Removal(),
-
-    #[error("Failed loading message from queue")]
-    LoadMessage(),
 }

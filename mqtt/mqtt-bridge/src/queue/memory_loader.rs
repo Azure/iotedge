@@ -18,7 +18,7 @@ use tokio::sync::MutexGuard;
 
 use crate::queue::{waking_map::WakingMap, Key, QueueError};
 
-// TODO: should this have some way of shutting down? Callers reading stream will hang?
+// TODO REVIEW: should this have some way of shutting down? Callers reading stream will hang?
 pub struct InMemoryMessageLoader {
     state: Arc<Mutex<WakingMap>>,
     batch: IntoIter<(Key, Publication)>,
