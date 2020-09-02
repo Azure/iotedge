@@ -52,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     ("to_route_input", name => name.CreateSha256()),
                     ("from_route_output", name => name.CreateSha256()));
 
+#pragma warning disable SA1111 // Closing parenthesis should be on line of last parameter
             this.metricAggrigator = new MetricAggrigator(
                 new AggrigationTemplate("edgehub_gettwin_total", "id", new Summer()),
                 new AggrigationTemplate(
@@ -72,7 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                         "edgehub_message_size_bytes",
                         "edgehub_message_size_bytes_sum",
                         "edgehub_message_size_bytes_count"
-                    }, "id", new Averager()),
+                    },
+                    "id",
+                    new Averager()),
                 new AggrigationTemplate(
                     new string[]
                     {
@@ -100,6 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 ),
                 new AggrigationTemplate("edgehub_client_connect_failed_total", "id", new Summer())
            );
+#pragma warning restore SA1111 // Closing parenthesis should be on line of last parameter
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
