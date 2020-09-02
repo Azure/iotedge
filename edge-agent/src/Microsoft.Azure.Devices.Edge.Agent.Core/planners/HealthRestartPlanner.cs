@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
+    using Org.BouncyCastle.Math.EC.Rfc7748;
     using DiffState = System.ValueTuple<
         // added modules
         System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
@@ -371,7 +372,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // expected to be in the "stopped" state and continues to be in the "stopped" state, that
             // is not very interesting to us.
             IList<IRuntimeModule> runningGreat = currentRuntimeModules
-                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running).ToList();
+                .Where(m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Running)
+                .ToList();
 
             return (added, updateDeployed, desiredStatusUpdated, updateStateChanged, removed, runningGreat);
         }
@@ -397,25 +399,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             return updateRuntimeCommands;
         }
 
-        async Task<IEnumerable<ICommand>> GetUpdateSecretsCommands(IEnumerable<IModule> currentModules, IEnumerable<IModule> desiredModules)
+        async Task<IEnumerable<ICommand>> GetUpdateSecretsCommands(IEnumerable<IModule> desiredModules, IEnumerable<IModule> currentModules)
         {
-            IList<(IModule, string, string)> currentSecrets = currentModules
-                .SelectMany(mod => mod.Secrets.Select(ent => (mod, ent.Key, ent.Value)))
-                .ToImmutableList();
             IList<(IModule, string, string)> desiredSecrets = desiredModules
                  .SelectMany(mod => mod.Secrets.Select(ent => (mod, ent.Key, ent.Value)))
                  .ToImmutableList();
-
+            IList<(IModule, string, string)> currentSecrets = currentModules
+                .SelectMany(mod => mod.Secrets.Select(ent => (mod, ent.Key, ent.Value)))
+                .ToImmutableList();
 
             IEnumerable<ICommand> removeSecretCommands = await Task.WhenAll(
                     currentSecrets
-                            .Except(desiredSecrets)
-                            .Select(ent => this.commandFactory.DeleteSecretAsync(ent.Item1, ent.Item2))
+                        .Where(x => !desiredSecrets.Contains(x)) // .Except does not behave as expected
+                        .Select(ent => this.commandFactory.DeleteSecretAsync(ent.Item1, ent.Item2))
                 );
             IEnumerable<ICommand> addSecretCommands = await Task.WhenAll(
                     desiredSecrets
-                            .Except(currentSecrets)
-                            .Select(ent => this.commandFactory.PullSecretAsync(ent.Item1, ent.Item2, ent.Item3))
+                        .Where(x => !currentSecrets.Contains(x)) // .Except does not behave as expected
+                        .Select(ent => this.commandFactory.PullSecretAsync(ent.Item1, ent.Item2, ent.Item3))
                 );
 
             return removeSecretCommands.Concat(addSecretCommands);

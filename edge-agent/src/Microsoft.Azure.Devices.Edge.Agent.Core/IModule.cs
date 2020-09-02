@@ -115,14 +115,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonProperty(PropertyName = "priority")]
         uint Priority { get; }
 
-        [JsonProperty(PropertyName = "secrets")]
-        IDictionary<string, string> Secrets { get; }
-
         [JsonIgnore]
         ConfigurationInfo ConfigurationInfo { get; }
 
         [JsonProperty(PropertyName = "env")]
         IDictionary<string, EnvVal> Env { get; }
+
+        [JsonProperty(PropertyName = "secrets")]
+        IDictionary<string, string> Secrets { get; }
 
         bool IsOnlyModuleStatusChanged(IModule other);
     }

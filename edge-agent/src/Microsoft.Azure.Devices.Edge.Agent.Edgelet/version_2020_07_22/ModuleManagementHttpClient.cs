@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.IO;
     using System.Linq;
     using System.Net.Http;
     using System.Runtime.ExceptionServices;
@@ -211,48 +212,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_22
             }
         }
 
-        public override Task<string> GetSecretAsync(string name, string secretId)
+        public override async Task<string> GetSecretAsync(string name, string secretId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.GetSecretAsync(this.Version.Name, name, secretId), $"Get secret ${secretId} for module {name}");
+                return await this.Execute(() => edgeletHttpClient.GetSecretAsync(this.Version.Name, name, secretId), $"Get secret ${secretId} for module {name}");
             }
         }
 
-        public override Task SetSecretAsync(string name, string secretId, string secretValue)
+        public override async Task SetSecretAsync(string name, string secretId, string secretValue)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.SetSecretAsync(this.Version.Name, name, secretId, secretValue), $"Set secret ${secretId} for module {name}");
+                await this.Execute(() => edgeletHttpClient.SetSecretAsync(this.Version.Name, name, secretId, secretValue), $"Set secret ${secretId} for module {name}");
             }
         }
 
-        public override Task PullSecretAsync(string name, string secretId, string akvId)
+        public override async Task PullSecretAsync(string name, string secretId, string akvId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.PullSecretAsync(this.Version.Name, name, secretId, akvId), $"Pull secret ${secretId} from ${akvId} for module {name}");
+                await this.Execute(() => edgeletHttpClient.PullSecretAsync(this.Version.Name, name, secretId, akvId), $"Pull secret ${secretId} from ${akvId} for module {name}");
             }
         }
 
-        public override Task RefreshSecretAsync(string name, string secretId)
+        public override async Task RefreshSecretAsync(string name, string secretId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.RefreshSecretAsync(this.Version.Name, name, secretId), $"Refresh secret ${secretId} for module {name}");
+                await this.Execute(() => edgeletHttpClient.RefreshSecretAsync(this.Version.Name, name, secretId), $"Refresh secret ${secretId} for module {name}");
             }
         }
 
-        public override Task DeleteSecretAsync(string name, string secretId)
+        public override async Task DeleteSecretAsync(string name, string secretId)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                return this.Execute(() => edgeletHttpClient.DeleteSecretAsync(this.Version.Name, name, secretId), $"Delete secret ${secretId} for module {name}");
+                await this.Execute(() => edgeletHttpClient.DeleteSecretAsync(this.Version.Name, name, secretId), $"Delete secret ${secretId} for module {name}");
             }
         }
 
