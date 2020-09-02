@@ -48,7 +48,7 @@ impl<C: hyper::client::connect::Connect + 'static> DefaultApi for DefaultApiClie
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("{}{id}?{}", configuration.base_path, query, id=id);
+        let uri_str = format!("{}/{id}?{}", configuration.base_path, query, id=id);
 
         let uri: hyper::Uri = uri_str.parse().unwrap();
         // TODO(farcaller): handle error
@@ -98,7 +98,7 @@ impl<C: hyper::client::connect::Connect + 'static> DefaultApi for DefaultApiClie
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("{}{id}?{}", configuration.base_path, query, id=id);
+        let uri_str = format!("{}/{id}?{}", configuration.base_path, query, id=id);
 
         let uri: hyper::Uri = uri_str.parse().unwrap();
         // TODO(farcaller): handle error
@@ -151,7 +151,7 @@ impl<C: hyper::client::connect::Connect + 'static> DefaultApi for DefaultApiClie
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("{}{id}?{}", configuration.base_path, query, id=id);
+        let uri_str = format!("{}/{id}?{}", configuration.base_path, query, id=id);
 
         let uri: hyper::Uri = uri_str.parse().unwrap();
         // TODO(farcaller): handle error
@@ -204,7 +204,7 @@ impl<C: hyper::client::connect::Connect + 'static> DefaultApi for DefaultApiClie
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("{}{id}?{}", configuration.base_path, query, id=id);
+        let uri_str = format!("{}/{id}?{}", configuration.base_path, query, id=id);
 
         let uri: hyper::Uri = uri_str.parse().unwrap();
         // TODO(farcaller): handle error
@@ -254,7 +254,7 @@ impl<C: hyper::client::connect::Connect + 'static> DefaultApi for DefaultApiClie
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("{}{id}?{}", configuration.base_path, query, id=id);
+        let uri_str = format!("{}/{id}?{}", configuration.base_path, query, id=id);
 
         let uri: hyper::Uri = uri_str.parse().unwrap();
         // TODO(farcaller): handle error
