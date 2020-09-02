@@ -1,5 +1,5 @@
 use serde_json::error::Error as SerdeError;
-use tracing::{info};
+use tracing::info;
 
 use mqtt3::ReceivedPublication;
 use mqtt_broker::{BrokerHandle, ClientId, Error, Message, ServiceIdentity, SystemEvent};

@@ -1,7 +1,8 @@
 use std::{
+    collections::HashMap,
     env,
     future::Future,
-    path::{Path, PathBuf}, collections::HashMap,
+    path::{Path, PathBuf},
 };
 
 use anyhow::{bail, Context, Result};
@@ -27,7 +28,7 @@ use mqtt_broker::{
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::{Command, handle_disconnect, handle_authorized_identities},
+    command::{handle_authorized_identities, handle_disconnect, Command},
     command_handler::CommandHandler,
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
@@ -223,7 +224,6 @@ fn init_commands() -> HashMap<String, Command> {
     );
     commands
 }
-
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {

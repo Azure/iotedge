@@ -5,12 +5,11 @@ use futures_util::future::BoxFuture;
 use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{debug, error};
 
+use crate::command::{Command, HandleEventError};
 use mqtt3::{
-    proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent,
-    UpdateSubscriptionError,
+    proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
-use mqtt_broker::{BrokerHandle};
-use crate::command::{HandleEventError, Command};
+use mqtt_broker::BrokerHandle;
 
 pub struct BrokerConnection {
     address: String,

@@ -1,8 +1,8 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use futures_util::StreamExt;
 use mqtt3::{proto::ClientId, ShutdownError};
-use tokio::{task::JoinHandle};
+use tokio::task::JoinHandle;
 
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
 use mqtt_broker_tests_util::{
@@ -10,11 +10,9 @@ use mqtt_broker_tests_util::{
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::{
-    handle_authorized_identities, handle_disconnect, Command,
-};
+use mqtt_edgehub::command::{handle_authorized_identities, handle_disconnect, Command};
 
-use mqtt_edgehub::command_handler::{ CommandHandler, ShutdownHandle };
+use mqtt_edgehub::command_handler::{CommandHandler, ShutdownHandle};
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 const AUTHORIZED_IDENTITIES_TOPIC: &str = "$internal/identities";
