@@ -7,7 +7,5 @@
         "forwards": []
     },
     "remotes": [],
-    "messages": {
-        "max_count": 100
-    }
+    "messages": {}
 }

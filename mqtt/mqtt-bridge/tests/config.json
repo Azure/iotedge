@@ -41,7 +41,5 @@
             ]
         }
     ],
-    "messages": {
-        "max_count": 10
-    }
+    "messages": {}
 }

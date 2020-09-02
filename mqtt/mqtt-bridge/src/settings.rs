@@ -253,15 +253,7 @@ impl Forward {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct MessagesSettings {
-    max_count: u32,
-}
-
-impl MessagesSettings {
-    pub fn max_count(&self) -> u32 {
-        self.max_count
-    }
-}
+pub struct MessagesSettings {}
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 struct UpstreamSettings {
@@ -335,18 +327,10 @@ mod tests {
 
     #[test]
     #[serial(env_settings)]
-    fn from_file_reads_messages_settings() {
+    fn from_default_sets_keepalive_settings() {
         let settings = Settings::from_file("tests/config.json").unwrap();
 
-        assert_eq!(settings.messages.max_count(), 10);
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_default_sets_messages_settings() {
-        let settings = Settings::new().unwrap();
-
-        assert_eq!(settings.messages.max_count(), 100);
+        assert_eq!(settings.upstream().unwrap().keep_alive().as_secs(), 60);
     }
 
     #[test]
