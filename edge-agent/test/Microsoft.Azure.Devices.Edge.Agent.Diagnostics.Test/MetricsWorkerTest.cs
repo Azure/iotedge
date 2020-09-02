@@ -53,6 +53,94 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
+        public async Task TestTagHashing()
+        {
+            /* Setup mocks */
+            Metric[] testData = new Metric[0];
+            var scraper = new Mock<IMetricsScraper>();
+            scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).ReturnsAsync(() => testData);
+
+            var storage = new Mock<IMetricsStorage>();
+            IEnumerable<Metric> storedValues = Enumerable.Empty<Metric>();
+            storage.Setup(s => s.StoreMetricsAsync(It.IsAny<IEnumerable<Metric>>())).Callback((Action<IEnumerable<Metric>>)(data => storedValues = data)).Returns(Task.CompletedTask);
+
+            var uploader = new Mock<IMetricsPublisher>();
+
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+
+            // test id hash
+            var tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "id", "my_device1/my_module_1" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("id", "device/Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
+
+            // test id not hash edgeAgent
+            tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "id", "my_device1/$edgeAgent" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("id", "device/$edgeAgent"), storedValues.Single().Tags);
+
+            // test module_name hash
+            tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "module_name", "my_module" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("module_name", "rPbHx4uTZz/x2x8rSxfPxL4egT61y7B1dlsSgWpHh6s="), storedValues.Single().Tags);
+
+            // test module name not hash edgeAgent
+            tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "module_name", "$edgeAgent" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("module_name", "$edgeAgent"), storedValues.Single().Tags);
+
+            // test to from hash
+            tags = new Dictionary<string, string>
+            {
+                { "ms_telemetry", true.ToString() },
+                { "not_hashed", "1" },
+                { "to", "my_module_1" },
+                { "from", "my_module_2" },
+                { "to_route_input", "my_module_1" },
+                { "from_route_output", "my_module_2" },
+            };
+            testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
+            await worker.Scrape(CancellationToken.None);
+
+            Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("to", "Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("from", "t+TD1s4uqQrTHY7Xe/lJqasX1biQ9yK4ev5ZnScMcpk="), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("to_route_input", "Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
+            Assert.Contains(new KeyValuePair<string, string>("from_route_output", "t+TD1s4uqQrTHY7Xe/lJqasX1biQ9yK4ev5ZnScMcpk="), storedValues.Single().Tags);
+        }
+
+        [Fact]
         public async Task TestBasicUploading()
         {
             /* Setup mocks */
