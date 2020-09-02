@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
     using System.Linq;
     using System.Text;
 
+    // This class is used to temporaraly compare similar metrics. It doesn't include values, and
+    // the aggrigate tag is removed
     public class AggrigateMetric
     {
         public DateTime TimeGeneratedUtc { get; }
