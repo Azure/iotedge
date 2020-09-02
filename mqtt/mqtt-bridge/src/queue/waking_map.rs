@@ -113,7 +113,8 @@ mod tests {
 
     // TODO REVIEW: replace wait with notify
     #[tokio::test]
-    async fn wakes_stream() {
+    async fn insert_wakes_stream() {
+        // setup data
         let key1 = Key {
             priority: 0,
             offset: 0,
@@ -130,6 +131,8 @@ mod tests {
         let map = WakingMap::new(map);
         let map = Arc::new(Mutex::new(map));
 
+        // start reading stream in a separate thread
+        // this stream will return pending until woken up
         let map_copy = Arc::clone(&map);
         let poll_stream = async move {
             let mut test_stream = TestStream::new(map_copy);
@@ -139,8 +142,8 @@ mod tests {
         let poll_stream_handle = tokio::spawn(poll_stream);
         time::delay_for(Duration::from_secs(2)).await;
 
+        // insert an element to wake the stream, then wait for the other thread to complete
         map.lock().await.insert(key1, pub1);
-
         poll_stream_handle.await.unwrap();
     }
 

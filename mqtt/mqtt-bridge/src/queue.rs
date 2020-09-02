@@ -42,8 +42,8 @@ impl PartialOrd for Key {
     fn partial_cmp(&self, other: &Key) -> Option<Ordering> {
         if other.priority == self.priority && other.offset == self.offset {
             Some(Ordering::Equal)
-        } else if other.priority < self.priority
-            || other.priority == self.priority && other.offset < self.offset
+        } else if self.priority < other.priority
+            || other.priority == self.priority && self.offset < other.offset
         {
             Some(Ordering::Less)
         } else {
@@ -56,4 +56,78 @@ impl PartialOrd for Key {
 pub enum QueueError {
     #[error("Failed to remove messages from queue")]
     Removal(),
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use crate::queue::Key;
+
+    #[test]
+    fn key_offset_ordering() {
+        // ordered by offset
+        let key1 = Key {
+            priority: 0,
+            offset: 0,
+            ttl: Duration::from_secs(5),
+        };
+        let key2 = Key {
+            priority: 0,
+            offset: 1,
+            ttl: Duration::from_secs(5),
+        };
+        assert!(key2 > key1);
+        assert!(key1 < key2);
+    }
+
+    #[test]
+    fn key_priority_ordering() {
+        // ordered by priority
+        let key1 = Key {
+            priority: 0,
+            offset: 0,
+            ttl: Duration::from_secs(5),
+        };
+        let key2 = Key {
+            priority: 1,
+            offset: 0,
+            ttl: Duration::from_secs(5),
+        };
+        assert!(key2 > key1);
+        assert!(key1 < key2);
+
+        // priority is more important for ordering
+        let key1 = Key {
+            priority: 1,
+            offset: 0,
+            ttl: Duration::from_secs(10),
+        };
+        let key2 = Key {
+            priority: 0,
+            offset: 1,
+            ttl: Duration::from_secs(5),
+        };
+        assert!(key1 > key2);
+        assert!(key2 < key1);
+    }
+
+    // TODO REVIEW: Does this guarantee that btreemap is ordered? I know key1 == key2 is false, but is this a problem
+    #[test]
+    fn key_ttl_ordering() {
+        // not ordered by ttl
+        let key1 = Key {
+            priority: 0,
+            offset: 0,
+            ttl: Duration::from_secs(10),
+        };
+        let key2 = Key {
+            priority: 0,
+            offset: 0,
+            ttl: Duration::from_secs(5),
+        };
+        assert_eq!(key1 > key2, false);
+        assert_eq!(key1 < key2, false);
+        assert_eq!(key1 == key2, false);
+    }
 }
