@@ -280,6 +280,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 if (checkpointData.Offset < offset &&
                                      enqueuedTime < messageRef.TimeToLive)
                                 {
+                                    Events.PrintMe($"Not deleting {offset}");
                                     return false;
                                 }
 
@@ -305,6 +306,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                                 if (deleteMessage)
                                 {
+                                    Events.PrintMe($"Deleting message with {offset}");
                                     if (enqueuedTime >= messageRef.TimeToLive)
                                     {
                                         this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString } );
@@ -329,13 +331,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             {
                                 IEnumerable<(long, MessageRef)> batch;
                                 long offset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
+                                Events.PrintMe("Got store");
                                 do
                                 {
+                                    Events.PrintMe("Getting batch");
                                     batch = await sequentialStore.GetBatch(offset, CleanupBatchSize);
                                     foreach ((long, MessageRef) messageWithOffset in batch)
                                     {
                                         if (await sequentialStore.RemoveOffset(DeleteMessageCallback, messageWithOffset.Item1, this.cancellationTokenSource.Token))
                                         {
+                                            Events.PrintMe($"Removed offset {messageWithOffset.Item1}");
+
                                             cleanupCount++;
                                         }
                                     }
@@ -393,6 +399,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 CleanupCheckpointState,
                 MessageAdded,
                 ErrorGettingMessagesBatch
+            }
+
+            public static void PrintMe(string printMe, string id = "")
+            {
+                Log.LogInformation($"DRB - {id} - {printMe}");
             }
 
             public static void MessageStoreCreated()
