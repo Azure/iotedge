@@ -68,6 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(requestedDeviceId, requestedModuleId));
         }
 
+        public Task<ScopeResult> GetIdentityOnBehalfOfAsync(string deviceId, Option<string> moduleId, string onBehalfOfDevice) => throw new NotImplementedException("Use GetIdentityAsync() instead");
+
         internal Uri GetServiceUri(Option<string> continuationToken) =>
             continuationToken
                 .Map(c => new Uri(this.iotHubBaseHttpUri, c))

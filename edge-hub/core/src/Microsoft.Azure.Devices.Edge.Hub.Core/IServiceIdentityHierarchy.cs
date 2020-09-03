@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public interface IServiceIdentityHierarchy
     {
+        string GetActorDeviceId();
         Task InsertOrUpdate(ServiceIdentity identity);
         Task Remove(string id);
         Task<bool> Contains(string id);
