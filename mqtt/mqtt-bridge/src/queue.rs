@@ -30,7 +30,8 @@ trait Queue<'a> {
 }
 
 // Keys used in the queue.
-// Ordered by priority, then offset.
+// Ordered by offset only.
+// When we implement priority and ttl for iothub telemetry we can order by priority first.
 // Unordered by ttl.
 #[derive(Eq, Ord, PartialEq, Clone, Debug)]
 pub struct Key {
@@ -41,12 +42,10 @@ pub struct Key {
 
 impl PartialOrd for Key {
     fn partial_cmp(&self, other: &Key) -> Option<Ordering> {
-        if other.priority == self.priority && other.offset == self.offset {
-            Some(Ordering::Equal)
-        } else if self.priority < other.priority
-            || other.priority == self.priority && self.offset < other.offset
-        {
+        if self.offset < other.offset {
             Some(Ordering::Less)
+        } else if self.offset == other.offset {
+            Some(Ordering::Equal)
         } else {
             Some(Ordering::Greater)
         }
@@ -79,12 +78,13 @@ mod tests {
             ttl: Duration::from_secs(5),
         };
         assert!(key2 > key1);
+        assert!(key2 != key1);
         assert!(key1 < key2);
     }
 
     #[test]
     fn key_priority_ordering() {
-        // ordered by priority
+        // not ordered by priority
         let key1 = Key {
             priority: 0,
             offset: 0,
@@ -95,22 +95,9 @@ mod tests {
             offset: 0,
             ttl: Duration::from_secs(5),
         };
-        assert!(key2 > key1);
-        assert!(key1 < key2);
-
-        // priority is more important for ordering
-        let key1 = Key {
-            priority: 1,
-            offset: 0,
-            ttl: Duration::from_secs(10),
-        };
-        let key2 = Key {
-            priority: 0,
-            offset: 1,
-            ttl: Duration::from_secs(5),
-        };
-        assert!(key1 > key2);
-        assert!(key2 < key1);
+        assert_eq!(key1 > key2, false);
+        assert_eq!(key1 < key2, false);
+        assert!(key1 != key2);
     }
 
     // TODO REVIEW: Does this guarantee that btreemap is not ordered by ttl? Why this weird behavior with equals?
@@ -129,6 +116,6 @@ mod tests {
         };
         assert_eq!(key1 > key2, false);
         assert_eq!(key1 < key2, false);
-        assert_eq!(key1 == key2, false);
+        assert!(key1 != key2);
     }
 }

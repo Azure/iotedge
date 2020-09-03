@@ -11,6 +11,7 @@ use crate::queue::{
     memory_loader::InMemoryMessageLoader, waking_map::WakingMap, Key, Queue, QueueError,
 };
 
+// In memory queue implementation used for the bridge
 struct InMemoryQueue {
     state: Arc<Mutex<WakingMap>>,
     offset: u32,
