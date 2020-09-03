@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
 {
     using System;
     using System.Collections.Generic;

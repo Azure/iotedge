@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
 {
     using System;
     using System.Collections.Generic;
     using System.Text;
 
-    public class Summer : IAggrigator
+    public class Summer : IAggregator
     {
         double sum = 0;
 
-        public IAggrigator New()
+        public IAggregator New()
         {
             return new Summer();
         }
@@ -26,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
         }
     }
 
-    public class Multiplier : IAggrigator
+    public class Multiplier : IAggregator
     {
         double product = 1;
 
-        public IAggrigator New()
+        public IAggregator New()
         {
             return new Multiplier();
         }
@@ -46,12 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
         }
     }
 
-    public class Averager : IAggrigator
+    public class Averager : IAggregator
     {
         double sum = 0;
         double count = 0;
 
-        public IAggrigator New()
+        public IAggregator New()
         {
             return new Averager();
         }

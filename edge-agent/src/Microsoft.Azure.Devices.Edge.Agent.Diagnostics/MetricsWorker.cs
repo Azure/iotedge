@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
-    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
         readonly MetricTransformer metricFilter;
-        readonly MetricAggrigator metricAggrigator;
+        readonly MetricAggregator metricAggregator;
 
         PeriodicTask scrape;
         PeriodicTask upload;
@@ -53,21 +53,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     ("from_route_output", name => name.CreateSha256()));
 
 #pragma warning disable SA1111 // Closing parenthesis should be on line of last parameter
-            this.metricAggrigator = new MetricAggrigator(
-                new AggrigationTemplate("edgehub_gettwin_total", "id", new Summer()),
-                new AggrigationTemplate(
+            this.metricAggregator = new MetricAggregator(
+                new AggregationTemplate("edgehub_gettwin_total", "id", new Summer()),
+                new AggregationTemplate(
                     "edgehub_messages_received_total",
                     ("route_output", new Summer()),
                     ("id", new Summer())
                 ),
-                new AggrigationTemplate(
+                new AggregationTemplate(
                     "edgehub_messages_sent_total",
                     ("from", new Summer()),
                     ("to", new Summer()),
                     ("from_route_output", new Summer()),
                     ("to_route_input", new Summer())
                 ),
-                new AggrigationTemplate(
+                new AggregationTemplate(
                     new string[]
                     {
                         "edgehub_message_size_bytes",
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     },
                     "id",
                     new Averager()),
-                new AggrigationTemplate(
+                new AggregationTemplate(
                     new string[]
                     {
                         "edgehub_message_process_duration_seconds",
@@ -86,13 +86,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     ("from", new Averager()),
                     ("to", new Averager())
                 ),
-                new AggrigationTemplate(
+                new AggregationTemplate(
                     "edgehub_direct_methods_total",
                     ("from", new Summer()),
                     ("to", new Summer())
                 ),
-                new AggrigationTemplate("edgehub_queue_length", "endpoint", new Summer()),
-                new AggrigationTemplate(
+                new AggregationTemplate("edgehub_queue_length", "endpoint", new Summer()),
+                new AggregationTemplate(
                     new string[]
                     {
                         "edgehub_messages_dropped_total",
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     ("from", new Summer()),
                     ("from_route_output", new Summer())
                 ),
-                new AggrigationTemplate("edgehub_client_connect_failed_total", "id", new Summer())
+                new AggregationTemplate("edgehub_client_connect_failed_total", "id", new Summer())
            );
 #pragma warning restore SA1111 // Closing parenthesis should be on line of last parameter
         }
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
 
                 scrapedMetrics = this.metricFilter.TransformMetrics(scrapedMetrics);
-                scrapedMetrics = this.metricAggrigator.AggrigateMetrics(scrapedMetrics);
+                scrapedMetrics = this.metricAggregator.AggrigateMetrics(scrapedMetrics);
 
                 Log.LogInformation("Storing Metrics");
                 await this.storage.StoreMetricsAsync(scrapedMetrics);

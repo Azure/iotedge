@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggrigation
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
 {
     using System;
     using System.Collections.Generic;
     using System.Text;
 
-    public interface IAggrigator
+    public interface IAggregator
     {
         public void PutValue(double value);
 
         public double GetAggrigate();
 
-        public IAggrigator New();
+        public IAggregator New();
     }
 }
