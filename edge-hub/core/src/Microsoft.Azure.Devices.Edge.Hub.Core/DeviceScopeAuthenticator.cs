@@ -155,6 +155,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId);
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
                 serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
+
+                if (!serviceIdentity.HasValue)
+                {
+                    // Identity still doesn't exist, this can happen if the identity
+                    // is newly added and we couldn't refresh the individual identity
+                    // because we don't know where it resides in the nested hierarchy.
+                    // In this case our only recourse is to refresh the whole cache
+                    // and hope the identity shows up.
+                    this.deviceScopeIdentitiesCache.InitiateCacheRefresh();
+                    await this.deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromSeconds(100));
+                    serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
+                }
+
                 (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, authChain), true)).GetOrElse((false, false));
             }
 
