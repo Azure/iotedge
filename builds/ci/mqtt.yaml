@@ -40,7 +40,8 @@ jobs:
       - task: Bash@3
         displayName: Build
         inputs:
-          filePath: mqtt/build/linux/build.sh
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --no-default-features --features "generic"
       - task: Bash@3
         displayName: Test
         inputs:
