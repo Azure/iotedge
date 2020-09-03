@@ -23,7 +23,7 @@ impl WakingMap {
         }
     }
 
-    pub fn remove(&mut self, key: Key) -> Option<Publication> {
+    pub fn remove(&mut self, key: &Key) -> Option<Publication> {
         self.map.remove(&key)
     }
 
@@ -92,7 +92,7 @@ mod tests {
 
         state.insert(key1.clone(), pub1.clone());
 
-        let removed_pub = state.remove(key1.clone()).unwrap();
+        let removed_pub = state.remove(&key1).unwrap();
         assert_eq!(pub1, removed_pub);
     }
 

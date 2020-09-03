@@ -10,7 +10,7 @@ mod memory;
 
 // Queue used in bridge.
 #[async_trait]
-trait Queue<'a> {
+trait Persist<'a> {
     type Loader: Stream;
 
     fn new() -> Self;
@@ -40,13 +40,7 @@ pub struct Key {
 
 impl PartialOrd for Key {
     fn partial_cmp(&self, other: &Key) -> Option<Ordering> {
-        if self.offset < other.offset {
-            Some(Ordering::Less)
-        } else if self.offset == other.offset {
-            Some(Ordering::Equal)
-        } else {
-            Some(Ordering::Greater)
-        }
+        Some(self.offset.cmp(&other.offset))
     }
 }
 

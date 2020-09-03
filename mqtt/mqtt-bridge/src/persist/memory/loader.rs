@@ -37,7 +37,7 @@ impl Stream for InMemoryMessageLoader {
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if let Some(item) = self.batch.next() {
-            return Poll::Ready(Some((item.0.clone(), item.1.clone())));
+            return Poll::Ready(Some((item.0.clone(), item.1)));
         }
 
         let mut_self = self.get_mut();
@@ -49,7 +49,7 @@ impl Stream for InMemoryMessageLoader {
                 state_lock.set_waker(cx.waker());
                 Poll::Pending
             },
-            |item| Poll::Ready(Some((item.0.clone(), item.1.clone()))),
+            |item| Poll::Ready(Some((item.0.clone(), item.1))),
         )
     }
 }
@@ -274,8 +274,8 @@ mod tests {
 
         // remove inserted elements
         let mut state_lock = state.lock();
-        state_lock.remove(key1.clone());
-        state_lock.remove(key2.clone());
+        state_lock.remove(&key1);
+        state_lock.remove(&key2);
         drop(state_lock);
 
         // insert new elements
@@ -366,7 +366,7 @@ mod tests {
             offset: 25,
             ttl: Duration::from_secs(5),
         };
-        state_lock.remove(key_to_delete);
+        state_lock.remove(&key_to_delete);
 
         // verify insertion order
         let elements: Vec<_> = get_elements(&state_lock, num_elements).collect();

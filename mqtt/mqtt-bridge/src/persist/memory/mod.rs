@@ -6,27 +6,27 @@ use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
 use crate::persist::{
-    memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Queue, QueueError,
+    memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Persist, QueueError,
 };
 
 mod loader;
 mod waking_map;
 
 // In memory queue implementation used for the bridge
-struct InMemoryQueue {
+struct InMemoryPersist {
     state: Arc<Mutex<WakingMap>>,
     offset: u32,
 }
 
 #[async_trait]
-impl<'a> Queue<'a> for InMemoryQueue {
+impl<'a> Persist<'a> for InMemoryPersist {
     type Loader = InMemoryMessageLoader;
 
     fn new() -> Self {
         let state = WakingMap::new(BTreeMap::new());
         let state = Arc::new(Mutex::new(state));
         let offset = 0;
-        InMemoryQueue { state, offset }
+        InMemoryPersist { state, offset }
     }
 
     async fn insert(
@@ -49,7 +49,7 @@ impl<'a> Queue<'a> for InMemoryQueue {
 
     async fn remove(&mut self, key: Key) -> Result<bool, QueueError> {
         let mut state_lock = self.state.lock();
-        state_lock.remove(key).ok_or(QueueError::Removal())?;
+        state_lock.remove(&key).ok_or(QueueError::Removal())?;
         Ok(true)
     }
 
@@ -67,12 +67,12 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
-    use crate::persist::{memory::InMemoryQueue, Key, Queue, QueueError};
+    use crate::persist::{memory::InMemoryPersist, Key, Persist, QueueError};
 
     #[tokio::test]
     async fn insert() {
         // setup state
-        let mut queue = InMemoryQueue::new();
+        let mut queue = InMemoryPersist::new();
 
         // setup data
         let key1 = Key {
@@ -124,7 +124,7 @@ mod tests {
     #[tokio::test]
     async fn remove() {
         // setup state
-        let mut queue = InMemoryQueue::new();
+        let mut queue = InMemoryPersist::new();
 
         // setup data
         let key1 = Key {
@@ -176,7 +176,7 @@ mod tests {
     #[tokio::test]
     async fn remove_key_that_dne() {
         // setup state
-        let mut queue = InMemoryQueue::new();
+        let mut queue = InMemoryPersist::new();
 
         // setup data
         let key1 = Key {
@@ -192,7 +192,7 @@ mod tests {
     #[tokio::test]
     async fn get_loader_with_correct_batch_size() {
         // setup state
-        let mut queue = InMemoryQueue::new();
+        let mut queue = InMemoryPersist::new();
 
         // setup data
         let key1 = Key {
