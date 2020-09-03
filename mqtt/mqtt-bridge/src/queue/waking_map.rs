@@ -51,7 +51,7 @@ mod tests {
     use futures_util::stream::Stream;
     use futures_util::stream::StreamExt;
     use mqtt3::proto::{Publication, QoS};
-    use tokio::sync::Mutex;
+    use parking_lot::Mutex;
     use tokio::sync::Notify;
 
     use crate::queue::{waking_map::WakingMap, Key};
@@ -134,7 +134,7 @@ mod tests {
         notify.notified().await;
 
         // insert an element to wake the stream, then wait for the other thread to complete
-        map.lock().await.insert(key1, pub1);
+        map.lock().insert(key1, pub1);
         poll_stream_handle.await.unwrap();
     }
 
@@ -158,14 +158,8 @@ mod tests {
         type Item = u32;
 
         fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-            let mut map_lock;
             let mut_self = self.get_mut();
-            loop {
-                if let Ok(lock) = mut_self.waking_map.try_lock() {
-                    map_lock = lock;
-                    break;
-                }
-            }
+            let mut map_lock = mut_self.waking_map.lock();
 
             if mut_self.should_return_pending {
                 mut_self.should_return_pending = false;

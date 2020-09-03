@@ -5,8 +5,8 @@ use std::{task::Poll, vec::IntoIter};
 
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
-use tokio::sync::Mutex;
-use tokio::sync::MutexGuard;
+use parking_lot::Mutex;
+use parking_lot::MutexGuard;
 
 use crate::queue::{waking_map::WakingMap, Key};
 
@@ -24,7 +24,7 @@ pub struct InMemoryMessageLoader {
 
 impl InMemoryMessageLoader {
     pub async fn new(state: Arc<Mutex<WakingMap>>, batch_size: usize) -> Self {
-        let state_lock = state.lock().await;
+        let state_lock = state.lock();
         let batch = get_elements(&state_lock, batch_size);
 
         InMemoryMessageLoader {
@@ -44,14 +44,8 @@ impl Stream for InMemoryMessageLoader {
             return Poll::Ready(Some((item.0.clone(), item.1.clone())));
         }
 
-        let mut state_lock;
         let mut_self = self.get_mut();
-        loop {
-            if let Ok(lock) = mut_self.state.try_lock() {
-                state_lock = lock;
-                break;
-            }
-        }
+        let mut state_lock = mut_self.state.lock();
 
         mut_self.batch = get_elements(&state_lock, mut_self.batch_size);
         mut_self.batch.next().map_or_else(
@@ -87,8 +81,8 @@ mod tests {
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
     use mqtt3::proto::{Publication, QoS};
+    use parking_lot::Mutex;
     use tokio;
-    use tokio::sync::Mutex;
     use tokio::time;
 
     use crate::queue::memory_loader::InMemoryMessageLoader;
@@ -126,7 +120,7 @@ mod tests {
         };
 
         // insert elements
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         state_lock.insert(key1.clone(), pub1.clone());
         state_lock.insert(key2.clone(), pub2.clone());
 
@@ -173,7 +167,7 @@ mod tests {
         };
 
         // insert elements
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         state_lock.insert(key1.clone(), pub1.clone());
         state_lock.insert(key2.clone(), pub2.clone());
 
@@ -221,7 +215,7 @@ mod tests {
         };
 
         // insert some elements
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         state_lock.insert(key1.clone(), pub1.clone());
         state_lock.insert(key2.clone(), pub2.clone());
         drop(state_lock);
@@ -271,7 +265,7 @@ mod tests {
         };
 
         // insert some elements
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         state_lock.insert(key1.clone(), pub1.clone());
         state_lock.insert(key2.clone(), pub2.clone());
         drop(state_lock);
@@ -285,7 +279,7 @@ mod tests {
         loader.next().await.unwrap();
 
         // remove inserted elements
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         state_lock.remove(key1.clone());
         state_lock.remove(key2.clone());
         drop(state_lock);
@@ -302,7 +296,7 @@ mod tests {
             retain: true,
             payload: Bytes::new(),
         };
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         state_lock.insert(key3.clone(), pub3.clone());
         drop(state_lock);
 
@@ -320,7 +314,7 @@ mod tests {
         let state = Arc::new(Mutex::new(state));
 
         // add many elements
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         let num_elements = 50 as usize;
         for i in 0..num_elements {
             let key = Key {
@@ -353,7 +347,7 @@ mod tests {
         let state = Arc::new(Mutex::new(state));
 
         // add many elements
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         let num_elements = 50 as usize;
         for i in 0..num_elements {
             let key = Key {
@@ -435,7 +429,7 @@ mod tests {
         time::delay_for(Duration::from_secs(2)).await;
 
         // add an element to the state
-        let mut state_lock = state.lock().await;
+        let mut state_lock = state.lock();
         state_lock.insert(key1, pub1);
         drop(state_lock);
         poll_stream_handle.await.unwrap();

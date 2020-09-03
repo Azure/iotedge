@@ -5,7 +5,7 @@ use std::time::Duration;
 use anyhow::Result;
 use async_trait::async_trait;
 use mqtt3::proto::Publication;
-use tokio::sync::Mutex;
+use parking_lot::Mutex;
 
 use crate::queue::{
     memory_loader::InMemoryMessageLoader, waking_map::WakingMap, Key, Queue, QueueError,
@@ -40,14 +40,14 @@ impl<'a> Queue<'a> for InMemoryQueue {
             ttl,
         };
 
-        let mut state_lock = self.state.lock().await;
+        let mut state_lock = self.state.lock();
         state_lock.insert(key.clone(), message);
         self.offset += 1;
         Ok(key)
     }
 
     async fn remove(&mut self, key: Key) -> Result<bool, QueueError> {
-        let mut state_lock = self.state.lock().await;
+        let mut state_lock = self.state.lock();
         state_lock.remove(key).ok_or(QueueError::Removal())?;
         Ok(true)
     }
