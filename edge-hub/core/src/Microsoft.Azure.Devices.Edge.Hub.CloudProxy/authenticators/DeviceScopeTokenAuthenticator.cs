@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             if (!audienceModuleId.HasValue)
             {
                 // Token is for a device
-                if (identity is IDeviceIdentity deviceIdentity && deviceIdentity.DeviceId != audienceDeviceId)
+                if (identity is IDeviceIdentity deviceIdentity && !string.Equals(deviceIdentity.DeviceId, audienceDeviceId, StringComparison.OrdinalIgnoreCase))
                 {
                     Events.IdMismatch(audienceId, identity, deviceIdentity.DeviceId);
                     return false;
