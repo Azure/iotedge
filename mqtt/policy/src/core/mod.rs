@@ -221,7 +221,7 @@ impl From<BTreeMap<String, EffectOrd>> for Resources {
     }
 }
 
-/// Represents a request that needs to be `evaluat`ed by `Policy` engine.
+/// Represents a request that needs to be `evaluate`d by `Policy` engine.
 #[derive(Debug)]
 pub struct Request {
     identity: String,
