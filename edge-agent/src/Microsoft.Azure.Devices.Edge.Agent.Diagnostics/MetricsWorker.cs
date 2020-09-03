@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
 
                 scrapedMetrics = this.metricFilter.TransformMetrics(scrapedMetrics);
-                scrapedMetrics = this.metricAggregator.AggrigateMetrics(scrapedMetrics);
+                scrapedMetrics = this.metricAggregator.AggregateMetrics(scrapedMetrics);
 
                 Log.LogInformation("Storing Metrics");
                 await this.storage.StoreMetricsAsync(scrapedMetrics);

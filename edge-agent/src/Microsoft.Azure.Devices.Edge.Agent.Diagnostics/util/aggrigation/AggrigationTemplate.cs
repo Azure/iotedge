@@ -10,15 +10,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
     {
         public IEnumerable<string> TargetMetricNames { get; }
 
-        public (string targetTag, IAggregator aggregator)[] TagsToAggrigate { get; }
+        public (string targetTag, IAggregator aggregator)[] TagsToAggregate { get; }
 
         public AggregationTemplate(string targetName, string targetTag, IAggregator aggregator)
             : this(new string[] { targetName }, (targetTag, aggregator))
         {
         }
 
-        public AggregationTemplate(string targetName, params (string targetTag, IAggregator aggregator)[] tagsToAggrigate)
-            : this(new string[] { targetName }, tagsToAggrigate)
+        public AggregationTemplate(string targetName, params (string targetTag, IAggregator aggregator)[] tagsToAggregate)
+            : this(new string[] { targetName }, tagsToAggregate)
         {
         }
 
@@ -27,10 +27,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
         {
         }
 
-        public AggregationTemplate(IEnumerable<string> targeMetricNames, params (string targetTag, IAggregator aggregator)[] tagsToAggrigate)
+        public AggregationTemplate(IEnumerable<string> targeMetricNames, params (string targetTag, IAggregator aggregator)[] tagsToAggregate)
         {
             this.TargetMetricNames = targeMetricNames;
-            this.TagsToAggrigate = tagsToAggrigate;
+            this.TagsToAggregate = tagsToAggregate;
         }
     }
 }

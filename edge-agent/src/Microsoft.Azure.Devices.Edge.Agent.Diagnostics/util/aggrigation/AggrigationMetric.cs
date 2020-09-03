@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
     using System.Text;
 
     // This class is used to temporaraly compare similar metrics. It doesn't include values, and
-    // the aggrigate tag is removed
-    public class AggrigateMetric
+    // the aggregate tag is removed
+    public class AggregateMetric
     {
         public DateTime TimeGeneratedUtc { get; }
         public string Name { get; }
@@ -17,11 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
 
         Lazy<int> hash;
 
-        public AggrigateMetric(Metric metric, string aggrigateTag)
+        public AggregateMetric(Metric metric, string aggregateTag)
         {
             this.Name = metric.Name;
             this.TimeGeneratedUtc = metric.TimeGeneratedUtc;
-            this.Tags = new Dictionary<string, string>(metric.Tags.Where(t => t.Key != aggrigateTag));
+            this.Tags = new Dictionary<string, string>(metric.Tags.Where(t => t.Key != aggregateTag));
 
             this.hash = new Lazy<int>(this.Hash);
         }

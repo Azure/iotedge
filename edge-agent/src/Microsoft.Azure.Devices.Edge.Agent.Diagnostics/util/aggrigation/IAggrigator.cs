@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
     {
         public void PutValue(double value);
 
-        public double GetAggrigate();
+        public double GetAggregate();
 
         public IAggregator New();
     }

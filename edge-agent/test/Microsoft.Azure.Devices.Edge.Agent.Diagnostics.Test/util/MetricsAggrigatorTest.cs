@@ -24,12 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
             // metrics with 1 tag, key1, that has key values of val[1-10]. The key values don't matter for this test and are ignored by the aggregator. Only the metric value is averaged.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, "test_metric", i, new Dictionary<string, string> { { "key1", $"val{i}" } }));
 
-            Metric[] result = aggregator.AggrigateMetrics(metrics).ToArray();
+            Metric[] result = aggregator.AggregateMetrics(metrics).ToArray();
             Assert.Equal(5.5, result.Single().Value); // should be sum of 1-10
         }
 
         [Fact]
-        public void TestKeepsNonAggrigateTagsSeperate()
+        public void TestKeepsNonAggregateTagsSeperate()
         {
             MetricAggregator aggregator = new MetricAggregator(new AggregationTemplate("test_metric", "key1", new Summer()));
 
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
                 { "key2", $"val{i % 2}" }
             }));
 
-            Metric[] results = aggregator.AggrigateMetrics(metrics).ToArray();
+            Metric[] results = aggregator.AggregateMetrics(metrics).ToArray();
             Assert.Equal(2, results.Length);
 
             Assert.Equal(2 + 4 + 6 + 8 + 10, results.Where(m => m.Tags.Contains(new KeyValuePair<string, string>("key2", "val0"))).Single().Value);
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        public void TestKeepsMultipleNonAggrigateTagsSeperate()
+        public void TestKeepsMultipleNonAggregateTagsSeperate()
         {
             MetricAggregator aggregator = new MetricAggregator(new AggregationTemplate("test_metric", "key1", new Summer()));
 
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
                 { "key3", $"val{i % 3}" }
             }));
 
-            Metric[] results = aggregator.AggrigateMetrics(metrics).ToArray();
+            Metric[] results = aggregator.AggregateMetrics(metrics).ToArray();
             Assert.Equal(6, results.Length);
 
             Assert.Equal(6 + 12, results
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
                 ("key1", new Summer()),
                 ("key2", new Multiplier())));
 
-            Metric result = aggregator.AggrigateMetrics(metrics).Single();
+            Metric result = aggregator.AggregateMetrics(metrics).Single();
 
             // split by key2 (mod 4) and summed, then the result is multiplied
             double expected = (1 + 5 + 9) * (2 + 6 + 10) * (3 + 7 + 11) * (4 + 8 + 12);
@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
                 ("key2", new Multiplier()),
                 ("key1", new Summer())));
 
-            result = aggregator.AggrigateMetrics(metrics).Single();
+            result = aggregator.AggregateMetrics(metrics).Single();
 
             // split by key1 (mod 2) and multiplied, then the result is summed
             expected = (1 * 3 * 5 * 7 * 9 * 11) + (2 * 4 * 6 * 8 * 10 * 12);
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        public void TestMultipleTagsKeepsNonAggrigateTagsSeperate()
+        public void TestMultipleTagsKeepsNonAggregateTagsSeperate()
         {
             MetricAggregator aggregator = new MetricAggregator(new AggregationTemplate(
                 "test_metric",
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
                 { "key3", (i <= 8).ToString() }
             })).ToArray();
 
-            Metric[] results = aggregator.AggrigateMetrics(metrics).ToArray();
+            Metric[] results = aggregator.AggregateMetrics(metrics).ToArray();
             Assert.Equal(2, results.Length);
 
             // always split by key3 (<= 8), then split by key2 (mod 4) and summed, then multiplied
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
             // 2 metrics with 1 tag, key1, that has key values of val[1-10]. The key values don't matter for this test and are ignored by the aggregator. Only the metric values are used. Even values are test_metric0 and odd values are test_metric1.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, $"test_metric{i % 2}", i, new Dictionary<string, string> { { "key1", $"val{i}" } }));
 
-            Metric[] results = aggregator.AggrigateMetrics(metrics).ToArray();
+            Metric[] results = aggregator.AggregateMetrics(metrics).ToArray();
             Assert.Equal(2, results.Length);
 
             Assert.Equal(2 + 4 + 6 + 8 + 10, results.Where(m => m.Name == "test_metric0").Single().Value);
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
             // 2 metrics with 1 tag, key1, that has key values of val[1-10]. The key values don't matter for this test and are ignored by the aggregator. Only the metric values are used. Even values are test_metric0 and will be summed, odd values are test_metric1 and will be multiplied.
             IEnumerable<Metric> metrics = Enumerable.Range(1, 10).Select(i => new Metric(this.now, $"test_metric{i % 2}", i, new Dictionary<string, string> { { "key1", $"val{i}" } }));
 
-            Metric[] results = aggregator.AggrigateMetrics(metrics).ToArray();
+            Metric[] results = aggregator.AggregateMetrics(metrics).ToArray();
             Assert.Equal(2, results.Length);
 
             Assert.Equal(2 + 4 + 6 + 8 + 10, results.Where(m => m.Name == "test_metric0").Single().Value);

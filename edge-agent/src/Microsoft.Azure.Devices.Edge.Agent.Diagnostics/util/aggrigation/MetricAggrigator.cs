@@ -13,41 +13,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
 
     /// <summary>
     /// This class acts as a pass through for a group of metrics.
-    /// It will aggrigate metrics that share a given tag.
+    /// It will aggregate metrics that share a given tag.
     /// </summary>
     public class MetricAggregator
     {
-        AggregationTemplate[] metricsToAggrigate;
+        AggregationTemplate[] metricsToAggregate;
 
-        public MetricAggregator(params AggregationTemplate[] metricsToAggrigate)
+        public MetricAggregator(params AggregationTemplate[] metricsToAggregate)
         {
-            this.metricsToAggrigate = metricsToAggrigate;
+            this.metricsToAggregate = metricsToAggregate;
         }
 
         // Will aggregate all metrics for all aggregtion templates
-        public IEnumerable<Metric> AggrigateMetrics(IEnumerable<Metric> metrics)
+        public IEnumerable<Metric> AggregateMetrics(IEnumerable<Metric> metrics)
         {
             // Aggregate is way overused in this class, but this Aggregate function is from linq
-            return this.metricsToAggrigate.Aggregate(metrics, this.AggregateMetric);
+            return this.metricsToAggregate.Aggregate(metrics, this.AggregateMetric);
         }
 
         // Will aggregate metrics for a single aggregation template
         IEnumerable<Metric> AggregateMetric(IEnumerable<Metric> metrics, AggregationTemplate aggregation)
         {
-            return aggregation.TagsToAggrigate.Aggregate(metrics, (m, tagAggregation) => this.AggregateTag(m, aggregation.TargetMetricNames, tagAggregation.targetTag, tagAggregation.aggregator));
+            return aggregation.TagsToAggregate.Aggregate(metrics, (m, tagAggregation) => this.AggregateTag(m, aggregation.TargetMetricNames, tagAggregation.targetTag, tagAggregation.aggregator));
         }
 
         // Will aggregate metrics for a single tag of a single template
         IEnumerable<Metric> AggregateTag(IEnumerable<Metric> metrics, IEnumerable<string> targetMetricNames, string targetTag, IAggregator aggregator)
         {
-            var aggrigateValues = new DefaultDictionary<AggrigateMetric, IAggregator>(_ => aggregator.New());
+            var aggregateValues = new DefaultDictionary<AggregateMetric, IAggregator>(_ => aggregator.New());
             foreach (Metric metric in metrics)
             {
-                // if metric is the aggregation target and it has a tag that should be aggrigated
+                // if metric is the aggregation target and it has a tag that should be aggregated
                 if (targetMetricNames.Contains(metric.Name) && metric.Tags.ContainsKey(targetTag))
                 {
-                    var aggrigateMetric = new AggrigateMetric(metric, targetTag);
-                    aggrigateValues[aggrigateMetric].PutValue(metric.Value);
+                    var aggregateMetric = new AggregateMetric(metric, targetTag);
+                    aggregateValues[aggregateMetric].PutValue(metric.Value);
                 }
                 else
                 {
@@ -56,10 +56,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
             }
 
             // aggregate all and construct new metrics from result
-            foreach (var aggrigatePair in aggrigateValues)
+            foreach (var aggregatePair in aggregateValues)
             {
-                double aggrigatedValue = aggrigatePair.Value.GetAggrigate();
-                yield return aggrigatePair.Key.ToMetric(aggrigatedValue);
+                double aggregatedValue = aggregatePair.Value.GetAggregate();
+                yield return aggregatePair.Key.ToMetric(aggregatedValue);
             }
         }
     }

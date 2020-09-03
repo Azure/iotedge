@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
             this.sum += value;
         }
 
-        public double GetAggrigate()
+        public double GetAggregate()
         {
             return this.sum;
         }
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
             this.product *= value;
         }
 
-        public double GetAggrigate()
+        public double GetAggregate()
         {
             return this.product;
         }
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.Aggregation
             this.count++;
         }
 
-        public double GetAggrigate()
+        public double GetAggregate()
         {
             return this.sum / this.count;
         }
