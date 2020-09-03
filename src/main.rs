@@ -1,33 +1,27 @@
 mod backends;
 mod config;
 mod constants;
+mod error;
 mod routes;
 mod store;
+mod unix;
 mod util;
 
 use crate::backends::rocksdb;
-use crate::store::{Store, StoreBackend as _};
 
 use std::error::Error as StdError;
+use std::io;
 use std::fs::remove_file;
-use std::io::ErrorKind;
 use std::path::Path;
-use std::sync::Arc;
 
-use hyper::{Error as HyperError, Response, Server};
-use hyper::service::{make_service_fn, service_fn};
+use scopeguard::defer;
+use hyper::Server;
 use hyperlocal::UnixServerExt;
-use libc::{S_IRWXU, umask};
 use ring::rand::{generate, SystemRandom};
-use tokio::net::UnixStream;
 
 fn init(path: &Path) {
-    unsafe {
-        umask(!S_IRWXU);
-    }
-
     match remove_file(path) {
-        Err(e) if e.kind() != ErrorKind::NotFound =>
+        Err(e) if e.kind() != io::ErrorKind::NotFound =>
             panic!("COULD NOT REMOVE EXISTING SOCKET"),
         _ => ()
     }
@@ -41,32 +35,20 @@ fn init(path: &Path) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
-    let skt = Path::new(constants::SOCKET_NAME);
+    let conf = config::load(Path::new(constants::CONFIGURATION_FILE));
+    let skt = Path::new(constants::LISTEN_SOCKET);
 
     init(skt);
+    defer!(remove_file(skt).unwrap());
 
-    let store = {
-        let conf = config::load(Path::new("store.toml"));
-        let backend = rocksdb::RocksDBBackend::new()?;
-        Arc::new(Store::new(backend, conf))
-    };
-    
-    Server::bind_unix(skt)?
-        .serve(make_service_fn(|_conn: &UnixStream| {
-            let store = store.to_owned();
-            async {
-                <Result<_, HyperError>>::Ok(service_fn(move |req| {
-                    let store = store.to_owned();
-                    async move {
-                        routes::dispatch(&store, req).await
-                            .or_else(|e| {
-                                println!("ERROR: {:?}", e);
-                                Response::builder().status(500).body(format!("{:?}", e).into())
-                            })
-                    }
-                }))
-            }
-        }))
+    let routes = unix::with_umask(0o022, move || {
+        let backend = rocksdb::RocksDBBackend::new(&conf.local.storage_location).unwrap();
+        routes::connect(backend, conf)
+    });
+    let auth_service = util::InjectUnixCredentials::new(routes);
+
+    unix::with_umask(0o000, || Server::bind_unix(skt))?
+        .serve(auth_service)
         .await?;
 
     Ok(())

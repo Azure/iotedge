@@ -1,89 +1,75 @@
 use crate::store::{Record, StoreBackend};
 
-use std::error::Error as StdError;
-use std::fmt::{Display, Formatter, Result as FormatResult};
 use std::path::Path;
-use std::string::FromUtf8Error;
 
-use rocksdb::{DB, Error as EngineError, Options};
-use serde_json::{from_str, to_string, Error as SerdeError};
+use failure::Fail;
+use rocksdb::{DB, Options};
+use serde_json::{from_str, to_string};
 
 const STORE_NAME: &str = "store.rdb";
 
 pub struct RocksDBBackend(DB);
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, Fail, PartialEq)]
 pub enum RocksDBError {
-    Engine(EngineError),
-    RawData(FromUtf8Error),
-    Serialization(SerdeError),
-    NotFound(String)
+    #[fail(display = "Deserialization failure")]
+    Deserialization,
+    #[fail(display = "RocksDB engine error")]
+    Engine,
+    #[fail(display = "Initialization error")]
+    Initialization,
+    #[fail(display = "UTF8 parsing error")]
+    RawData,
+    #[fail(display = "Serialization failure")]
+    Serialization
+}
+
+impl RocksDBBackend {
+    pub fn new(path: &str) -> Result<Self, <Self as StoreBackend>::Error> {
+        let mut opts = Options::default();
+        opts.create_if_missing(true);
+
+        let db = DB::open(&opts, Path::new(&format!("{}/{}", path, STORE_NAME)))
+            .map_err(|_| RocksDBError::Initialization)?;
+
+        let backend = Self(db);
+        backend.init()
+            .map_err(|_| RocksDBError::Initialization)?;
+
+        Ok(backend)
+    }
 }
 
 impl StoreBackend for RocksDBBackend {
     type Error = RocksDBError;
 
-    fn new() -> Result<Self, Self::Error> {
-        let mut opts = Options::default();
-        opts.create_if_missing(true);
-
-        let db = DB::open(&opts, Path::new(STORE_NAME))?;
-
-        Ok(RocksDBBackend(db))
+    fn init(&self) -> Result<(), Self::Error> {
+        Ok(())
     }
 
     fn write_record(&self, id: &str, record: Record) -> Result<(), Self::Error> {
-        let ser = match to_string(&record) {
-            Ok(val) => val,
-            _ => panic!("FAILED TO SERIALIZE RECORD")
-        };
-        self.0.put(id, ser)?;
+        let ser = to_string(&record)
+            .map_err(|_| RocksDBError::Serialization)?;
+        self.0.put(id, ser)
+            .map_err(|_| RocksDBError::Engine)?;
         Ok(())
     }
 
-    fn update_record(&self, id: &str, record: Record) -> Result<(), Self::Error> {
-        self.write_record(id, record)
-    }
-
-    fn read_record(&self, id: &str) -> Result<Record, Self::Error> {
-        match self.0.get(id)? {
-            Some(val) => Ok(from_str(&String::from_utf8(val)?)?),
-            None => Err(RocksDBError::NotFound(id.to_string()))
-        }
+    fn read_record(&self, id: &str) -> Result<Option<Record>, Self::Error> {
+        self.0.get(id)
+            .map_err(|_| RocksDBError::Engine)?
+            .map(|val| {
+                let val_string = String::from_utf8(val)
+                    .map_err(|_| RocksDBError::RawData)?;
+                let record = from_str(&val_string)
+                    .map_err(|_| RocksDBError::Deserialization)?;
+                Ok(record)
+            })
+            .transpose()
     }
 
     fn delete_record(&self, id: &str) -> Result<(), Self::Error> {
-        self.0.delete(id)?;
+        self.0.delete(id)
+            .map_err(|_| RocksDBError::Engine)?;
         Ok(())
     }
 }
-
-impl Display for RocksDBError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FormatResult {
-        match self {
-            RocksDBError::Engine(e) => e.fmt(f),
-            RocksDBError::RawData(e) => e.fmt(f),
-            RocksDBError::Serialization(e) => e.fmt(f),
-            RocksDBError::NotFound(id) => write!(f, "NO SUCH ID: {}", id)
-        }
-    }
-}
-
-impl From<EngineError> for RocksDBError {
-    fn from(eng: EngineError) -> Self {
-        RocksDBError::Engine(eng)
-    }
-}
-
-impl From<SerdeError> for RocksDBError {
-    fn from(ser: SerdeError) -> Self {
-        RocksDBError::Serialization(ser)
-    }
-}
-
-impl From<FromUtf8Error> for RocksDBError {
-    fn from(utf8: FromUtf8Error) -> Self {
-        RocksDBError::RawData(utf8)
-    }
-}
-
-impl StdError for RocksDBError { }
