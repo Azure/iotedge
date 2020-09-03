@@ -8,9 +8,14 @@ use tracing::{debug, error, info, warn};
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
-use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
+use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent, mark_ready_serve_external};
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
+
+pub struct EdgeHubState {
+    authentication_endpoint_started: bool,
+    identity_cached: bool,
+}
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -140,6 +145,8 @@ impl CommandHandler {
             let client_id: ClientId = serde_json::from_slice(&publication.payload)
                 .map_err(HandleDisconnectError::ParseClientId)?;
 
+            // TODO: once both EHC auth endpoint starts and identety ready
+            // mark_ready_serve_external();
             info!("received disconnection request for client {}", client_id);
 
             if let Err(e) =

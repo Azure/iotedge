@@ -92,12 +92,12 @@ where
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();
-    server.tcp(config.listener().system().addr(), authenticator);
+    server.tcp(config.listener().system().addr(), authenticator, true);
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
     if let Some(tcp) = config.listener().tcp() {
-        server.tcp(tcp.addr(), authenticator.clone());
+        server.tcp(tcp.addr(), authenticator.clone(), false);
     }
 
     // Add regular MQTT over TLS transport
@@ -119,7 +119,7 @@ where
                     .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), identity, authenticator.clone())?;
+            server.tls(tls.addr(), identity, authenticator.clone(), false)?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
