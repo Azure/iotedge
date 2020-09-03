@@ -761,15 +761,19 @@ pub fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Err
 }
 
 pub fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
+    println!("3");
     let mut file = File::open(path).context(ErrorKind::CouldNotRestore)?;
+    println!("4");
     let mut buffer = String::new();
     let _ = file
         .read_to_string(&mut buffer)
         .context(ErrorKind::CouldNotRestore)?;
+    println!("5");
     info!("Restoring device credentials from backup");
     let mut prov_result: ProvisioningResult =
         serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
     prov_result.reconfigure = ReprovisioningStatus::DeviceDataNotUpdated;
+    println!("6");
     Ok(prov_result)
 }
 

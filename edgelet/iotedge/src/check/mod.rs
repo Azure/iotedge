@@ -928,6 +928,7 @@ mod tests {
             check_result => panic!("parsing config {} returned {:?}", filename, check_result),
         }
 
+        println!("executing well formed connection string");
         match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => {
                 assert_eq!(check.iothub_hostname, Some(hub_name.to_owned()));

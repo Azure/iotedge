@@ -49,10 +49,12 @@ impl WellFormedConnectionString {
             check.iothub_hostname = Some(hub);
             self.iothub_hostname = check.iothub_hostname.clone();
         } else if check.iothub_hostname.is_none() {
+            println!("1");
             let provisioning_file_path = settings
                 .homedir()
                 .join("cache")
                 .join("provisioning_backup.json");
+            println!("2");
 
             let provision_result = provisioning::restore(provisioning_file_path).map_err(|e| {
                 let reason = "Could not retrieve iothub_hostname from provisioning file.\n\
@@ -61,6 +63,7 @@ impl WellFormedConnectionString {
                 e.context(reason)
             })?;
 
+            println!("7");
             check.iothub_hostname = Some(provision_result.hub_name().to_owned());
             self.iothub_hostname = check.iothub_hostname.clone();
         }
