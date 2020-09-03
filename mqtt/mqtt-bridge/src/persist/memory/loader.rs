@@ -4,7 +4,7 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::{Mutex, MutexGuard};
 
-use crate::queue::{waking_map::WakingMap, Key};
+use crate::persist::{memory::waking_map::WakingMap, Key};
 
 // Message loader used to extract elements from bridge queues
 // This component is responsible for message extraction from the queue
@@ -77,9 +77,9 @@ mod tests {
     use parking_lot::Mutex;
     use tokio::{self, time};
 
-    use crate::queue::{
-        memory_loader::get_elements, memory_loader::InMemoryMessageLoader, waking_map::WakingMap,
-        Key,
+    use crate::persist::{
+        memory::loader::get_elements, memory::loader::InMemoryMessageLoader,
+        memory::waking_map::WakingMap, Key,
     };
 
     #[tokio::test]

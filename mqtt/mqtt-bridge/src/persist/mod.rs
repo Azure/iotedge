@@ -6,9 +6,7 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use thiserror::Error;
 
-mod memory_loader;
-mod memory_queue;
-mod waking_map;
+mod memory;
 
 // Queue used in bridge.
 #[async_trait]
@@ -62,7 +60,7 @@ pub enum QueueError {
 mod tests {
     use std::time::Duration;
 
-    use crate::queue::Key;
+    use crate::persist::Key;
 
     #[test]
     fn key_offset_ordering() {

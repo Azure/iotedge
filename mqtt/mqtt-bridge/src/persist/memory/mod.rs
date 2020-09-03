@@ -5,9 +5,12 @@ use async_trait::async_trait;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
-use crate::queue::{
-    memory_loader::InMemoryMessageLoader, waking_map::WakingMap, Key, Queue, QueueError,
+use crate::persist::{
+    memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Queue, QueueError,
 };
+
+mod loader;
+mod waking_map;
 
 // In memory queue implementation used for the bridge
 struct InMemoryQueue {
@@ -64,7 +67,7 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
-    use crate::queue::{memory_queue::InMemoryQueue, Key, Queue, QueueError};
+    use crate::persist::{memory::InMemoryQueue, Key, Queue, QueueError};
 
     #[tokio::test]
     async fn insert() {

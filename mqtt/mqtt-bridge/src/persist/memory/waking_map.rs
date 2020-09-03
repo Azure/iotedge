@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, task::Waker};
 
 use mqtt3::proto::Publication;
 
-use crate::queue::Key;
+use crate::persist::Key;
 
 // Responsible for waking waiting streams when new elements are added
 pub struct WakingMap {
@@ -49,7 +49,7 @@ mod tests {
     use parking_lot::Mutex;
     use tokio::sync::Notify;
 
-    use crate::queue::{waking_map::WakingMap, Key};
+    use crate::persist::{memory::waking_map::WakingMap, Key};
 
     #[test]
     fn insert() {
