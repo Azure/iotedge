@@ -4,23 +4,19 @@ mod constants;
 mod error;
 mod routes;
 mod store;
+mod util;
 
-use crate::error::ErrorKind;
 use crate::backends::rocksdb;
-use crate::store::Store;
 
 use std::error::Error as StdError;
 use std::io;
 use std::fs::remove_file;
 use std::path::Path;
-use std::sync::Arc;
 
-use hyper::{Body, Error as HyperError, Response, Server};
-use hyper::service::{make_service_fn, service_fn};
+use hyper::Server;
 use hyperlocal::UnixServerExt;
 use libc::{S_IRWXU, umask};
 use ring::rand::{generate, SystemRandom};
-use tokio::net::UnixStream;
 
 fn init(path: &Path) {
     unsafe {
@@ -47,11 +43,11 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
 
     init(skt);
 
-    let store = {
-        let backend = rocksdb::RocksDBBackend::new(&conf.local.storage_location).unwrap();
-        Arc::new(Store::new(backend, conf))
-    };
+    let backend = rocksdb::RocksDBBackend::new(&conf.local.storage_location).unwrap();
+    let routes = routes::connect(backend, conf);
+    let auth_service = util::InjectUnixCredentials::new(routes);
 
+    /*
     Server::bind_unix(skt)?
         .serve(make_service_fn(|conn: &UnixStream| {
             let store = store.to_owned();
@@ -75,6 +71,10 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
                 }))
             }
         }))
+        .await?;
+    */
+    Server::bind_unix(skt)?
+        .serve(auth_service)
         .await?;
 
     Ok(())

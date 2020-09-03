@@ -22,6 +22,11 @@ lazy_static! {
     static ref VAULT_REGEX: Regex = Regex::new(r"(?P<vault_id>[0-9a-zA-Z-]+)/(?P<secret_id>[0-9a-zA-Z-]+)(?:/(?P<secret_version>[0-9a-zA-Z-]+))?").unwrap();
 }
 
+#[derive(Deserialize)]
+struct AKVSecret {
+    value: String
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct Record {
     pub ciphertext: Vec<u8>,
@@ -39,7 +44,7 @@ pub trait StoreBackend: Send + Sync {
 
     fn write_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
     fn update_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
-    fn try_read_record(&self, id: &str) -> Result<Option<Record>, Self::Error>;
+    fn read_record(&self, id: &str) -> Result<Option<Record>, Self::Error>;
     fn delete_record(&self, id: &str) -> Result<(), Self::Error>;
 }
 
@@ -60,7 +65,7 @@ impl<T: StoreBackend> Store<T> {
 
     pub async fn get_secret(&self, id: String) -> Result<String, Error> {
         let record = self.backend
-            .try_read_record(&id)
+            .read_record(&id)
             .context(ErrorKind::Backend("Read"))?;
         if let Some(record) = record {
             let key_handle = KEY_CLIENT.create_key_if_not_exists(
@@ -91,13 +96,17 @@ impl<T: StoreBackend> Store<T> {
     }
 
     pub async fn set_secret(&self, id: String, value: String) -> Result<(), Error> {
+        let upstream = self.backend.read_record(&id)
+            .map(|res| res.map(|opt| opt.upstream))
+            .unwrap_or_default()
+            .flatten();
         let (ciphertext, iv, aad) = encrypt(&id, value).await?;
         self.backend
             .write_record(&id, Record {
-                ciphertext: ciphertext,
-                iv: iv,
-                aad: aad,
-                upstream: None
+                ciphertext,
+                iv,
+                aad,
+                upstream
             })
             .context(ErrorKind::Backend("Write"))?;
         Ok(())
@@ -141,13 +150,8 @@ impl<T: StoreBackend> Store<T> {
                 .send()
                 .await
                 .map_err(|_| ErrorKind::Azure("Fetch"))?;
-            let value = res.json::<serde_json::Value>().await
-                .map_err(|_| ErrorKind::Reqwest)?
-                .get("value")
-                .ok_or(ErrorKind::Azure("UnexpectedAPIResult"))?
-                .as_str()
-                .ok_or(ErrorKind::Azure("UnexpectedAPIResult"))?
-                .to_string();
+            let AKVSecret { value } = res.json::<AKVSecret>().await
+                .map_err(|_| ErrorKind::Azure("UnexpectedAPIResult"))?;
             
             let (ciphertext, iv, aad) = encrypt(&id, value).await?;
             self.backend

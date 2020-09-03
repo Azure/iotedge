@@ -9,7 +9,6 @@ edition = "2018"
 bytes = "0.5"
 failure = "0.1"
 hyper = "0.13"
-hyper-tls = "0.4"
 hyperlocal = "0.7"
 iotedge-aad = { git = "https://github.com/dmolokanov/iotedge-aad" }
 aziot-key-client-async = { path = "extern/iot-identity-service/key/aziot-key-client-async" }
@@ -17,7 +16,7 @@ aziot-key-common = { path = "extern/iot-identity-service/key/aziot-key-common" }
 futures = "0.3"
 lazy_static = "1.4"
 libc = "0.2"
-# log = "0.4"
+log = "0.4"
 # percent-encoding = "2.1"
 regex = "1.3"
 reqwest = "0.10"

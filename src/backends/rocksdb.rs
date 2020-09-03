@@ -58,7 +58,7 @@ impl StoreBackend for RocksDBBackend {
         self.write_record(id, record)
     }
 
-    fn try_read_record(&self, id: &str) -> Result<Option<Record>, Self::Error> {
+    fn read_record(&self, id: &str) -> Result<Option<Record>, Self::Error> {
         self.0.get(id)
             .map_err(|_| RocksDBError::Engine)?
             .map(|val| {

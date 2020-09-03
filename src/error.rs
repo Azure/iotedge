@@ -1,6 +1,7 @@
 use std::fmt;
 
 use failure::{Backtrace, Context, Fail};
+use warp::reject::Reject;
 
 #[derive(Debug)]
 pub struct Error {
@@ -15,19 +16,17 @@ pub enum ErrorKind {
     Backend(&'static str),
     #[fail(display = "CorruptData")]
     CorruptData,
-    #[fail(display = "Hyper")]
-    Hyper,
+    #[fail(display = "Forbidden")]
+    Forbidden,
     #[fail(display = "KeyService: {}", _0)]
     KeyService(&'static str),
     #[fail(display = "NotFound")]
     NotFound,
     #[fail(display = "RandomNumberGenerator")]
-    RandomNumberGenerator,
-    #[fail(display = "Reqwest")]
-    Reqwest,
-    #[fail(display = "Unauthorized")]
-    Unauthorized
+    RandomNumberGenerator
 }
+
+impl Reject for Error { }
 
 impl Fail for Error {
     fn cause(&self) -> Option<&dyn Fail> {

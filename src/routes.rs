@@ -1,61 +1,101 @@
-use crate::config::{Configuration, Principal};
+use crate::config::Configuration;
 use crate::error::{Error, ErrorKind};
 use crate::store::{Store, StoreBackend};
 
-use std::str::FromStr;
+use std::error::{Error as StdError};
+use std::convert::Infallible;
+use std::future::Future;
 use std::sync::Arc;
 
-use hyper::{Body, Method, Request, Response};
-use hyper::body::to_bytes;
-use hyper::service::{service_fn, Service};
-use tokio::net::UnixStream;
+use hyper::{Body, Request, Response};
+use hyper::service::Service;
+use tokio::net::unix::UCred;
+use warp::http::StatusCode;
+use warp::{reject, Filter, Rejection, Reply};
+use warp::filters::ext;
 
-#[inline]
-async fn read_request(req: Request<Body>) -> Result<String, Error> {
-    Ok(
-        serde_json::from_str(
-                &String::from_utf8(
-                        to_bytes(req).await
-                            .map_err(|_| ErrorKind::Hyper)?
-                            .to_vec()
-                    )
-                    .map_err(|_| ErrorKind::CorruptData)?
-            )
-            .map_err(|_| ErrorKind::CorruptData)?
-    )
+pub(crate) fn connect<T: StoreBackend>(backend: T, config: Configuration) -> impl Service<Request<Body>, Response = Response<Body>, Error = impl StdError, Future = impl Future<Output = Result<Response<Body>, impl StdError>>> + Clone + Send {
+    let store = Arc::new(Store::new(backend, config));
+    let ucred = ext::get::<UCred>()
+        .recover(|_| async { <Result<_, Infallible>>::Ok(StatusCode::UNAUTHORIZED) });
+
+    let copy = store.clone();
+    let get_secret = ucred
+        .and(warp::get())
+        .and(warp::path::param())
+        .and_then(move |cred, id| {
+                let store = copy.clone();
+                async move {
+                    store.get_secret(id)
+                        .await
+                        .map_err(reject::custom)
+                }
+            })
+        .map(|val| warp::reply::json(&val));
+
+    let copy = store.clone();
+    let set_secret = ucred
+        .and(warp::put())
+        .and(warp::path::param())
+        .and(warp::body::json::<String>())
+        .and_then(move |cred, id, val| {
+                let store = copy.clone();
+                async move {
+                    store.set_secret(id, val)
+                        .await
+                        .map_err(reject::custom)
+                }
+            })
+        .map(|_| StatusCode::NO_CONTENT);
+
+    let copy = store.clone();
+    let delete_secret = ucred
+        .and(warp::delete())
+        .and(warp::path::param())
+        .and_then(move |cred, id| {
+                let store = copy.clone();
+                async move {
+                    store.delete_secret(id)
+                        .await
+                        .map_err(reject::custom)
+                }
+            })
+        .map(|_| StatusCode::NO_CONTENT);
+
+    let copy = store.clone();
+    let pull_secret = ucred
+        .and(warp::post())
+        .and(warp::path::param())
+        .and(warp::body::json::<String>())
+        .and_then(move |cred, id, akv| {
+                let store = copy.clone();
+                async move {
+                    store.pull_secret(id, akv)
+                        .await
+                        .map_err(reject::custom)
+                }
+            })
+        .map(|_| StatusCode::NO_CONTENT);
+
+    warp::service(
+            get_secret
+                .or(set_secret)
+                .or(delete_secret)
+                .or(pull_secret)
+                .recover(handle_error)
+        )
 }
 
-// TODO: API versioning
-// TODO: Swagger specification
-pub(crate) async fn dispatch<'a, T: StoreBackend>(store: &'a Store<T>, req: Request<Body>) -> Result<Response<Body>, Error> {
-    println!("{:?}", req.extensions().get::<tokio::net::unix::UCred>());
-    let id = String::from_str(&req.uri().path()[1 ..]).unwrap();
-    match req.method() {
-        &Method::GET => {
-            let value = store.get_secret(id).await?;
-
-            Ok(Response::new(serde_json::to_string(&value).unwrap().into()))
-        },
-        &Method::PUT => {
-            let body = read_request(req).await?;
-
-            store.set_secret(id, body).await?;
-            Ok(Response::builder().status(204).body(Body::empty()).unwrap())
-        },
-        &Method::POST => {
-            let body = read_request(req).await?;
-
-            store.pull_secret(id, body).await?;
-            Ok(Response::builder().status(204).body(Body::empty()).unwrap())
-        },
-        &Method::PATCH => {
-            Ok(Response::builder().status(204).body(Body::empty()).unwrap())
-        },
-        &Method::DELETE => {
-            store.delete_secret(id).await?;
-
-            Ok(Response::builder().status(204).body(Body::empty()).unwrap())
-        },
-        _ => Err(Error::from(ErrorKind::NotFound))
-    }
+async fn handle_error(err: Rejection) -> Result<impl Reply, Infallible> {
+    Ok(
+        err.find::<Error>().map(|e|
+                match e.kind() {
+                    ErrorKind::CorruptData => StatusCode::BAD_REQUEST,
+                    ErrorKind::Forbidden => StatusCode::FORBIDDEN,
+                    ErrorKind::NotFound => StatusCode::NOT_FOUND,
+                    _ => StatusCode::INTERNAL_SERVER_ERROR
+                }
+            )
+            .unwrap_or(StatusCode::NOT_FOUND)
+    )
 }
