@@ -18,6 +18,8 @@ impl BridgeController {
     }
 
     pub async fn start(&mut self) -> Result<()> {
+        info!("starting bridge");
+
         let settings = Settings::new()?;
         if let Some(upstream) = settings.upstream() {
             let nested_bridge = Bridge::new(upstream.clone());
