@@ -1,9 +1,9 @@
-using Microsoft.Azure.Devices.Edge.Agent.Core;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.Devices.Edge.Agent.Core;
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 {
