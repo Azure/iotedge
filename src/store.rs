@@ -1,5 +1,5 @@
 use crate::config::Configuration;
-use crate::constants::{AAD_BYTES, AES_KEY_BYTES, AKV_API_VERSION, IV_BYTES};
+use crate::constants::{AAD_BYTES, AES_KEY_BYTES, AKV_API_VERSION, IV_BYTES, KEY_SERVICE_URI};
 use crate::error::{Error, ErrorKind};
 
 use std::sync::Arc;
@@ -19,7 +19,7 @@ use tokio::net::unix::UCred;
 lazy_static! {
     static ref REQWEST: Arc<ReqwestClient> = Arc::new(ReqwestClient::new());
     static ref AAD_CLIENT: Auth = Auth::new(REQWEST.clone(), "https://vault.azure.net");
-    static ref KEY_CLIENT: KeyClient = KeyClient::new(Connector::new(&"unix:///var/run/aziot/keyd.sock".parse().unwrap()).unwrap());
+    static ref KEY_CLIENT: KeyClient = KeyClient::new(Connector::new(&KEY_SERVICE_URI.parse().unwrap()).unwrap());
     static ref VAULT_REGEX: Regex = Regex::new(r"(?P<vault_id>[0-9a-zA-Z-]+)/(?P<secret_id>[0-9a-zA-Z-]+)(?:/(?P<secret_version>[0-9a-zA-Z-]+))?").unwrap();
 }
 
