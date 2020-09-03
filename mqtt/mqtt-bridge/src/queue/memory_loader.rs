@@ -1,12 +1,8 @@
-use std::pin::Pin;
-use std::sync::Arc;
-use std::task::Context;
-use std::{task::Poll, vec::IntoIter};
+use std::{pin::Pin, sync::Arc, task::Context, task::Poll, vec::IntoIter};
 
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
-use parking_lot::Mutex;
-use parking_lot::MutexGuard;
+use parking_lot::{Mutex, MutexGuard};
 
 use crate::queue::{waking_map::WakingMap, Key};
 
@@ -73,20 +69,18 @@ fn get_elements(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-    use std::iter::Iterator;
-    use std::sync::Arc;
-    use std::time::Duration;
+    use std::{collections::BTreeMap, iter::Iterator, sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
-    use tokio;
-    use tokio::time;
+    use tokio::{self, time};
 
-    use crate::queue::memory_loader::InMemoryMessageLoader;
-    use crate::queue::{memory_loader::get_elements, waking_map::WakingMap, Key};
+    use crate::queue::{
+        memory_loader::get_elements, memory_loader::InMemoryMessageLoader, waking_map::WakingMap,
+        Key,
+    };
 
     #[tokio::test]
     async fn smaller_batch_size_respected() {

@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-use std::task::Waker;
+use std::{collections::BTreeMap, task::Waker};
 
 use mqtt3::proto::Publication;
 
@@ -40,16 +39,12 @@ impl WakingMap {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-    use std::pin::Pin;
-    use std::sync::Arc;
-    use std::task::Context;
-    use std::task::Poll;
-    use std::time::Duration;
+    use std::{
+        collections::BTreeMap, pin::Pin, sync::Arc, task::Context, task::Poll, time::Duration,
+    };
 
     use bytes::Bytes;
-    use futures_util::stream::Stream;
-    use futures_util::stream::StreamExt;
+    use futures_util::stream::{Stream, StreamExt};
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
     use tokio::sync::Notify;

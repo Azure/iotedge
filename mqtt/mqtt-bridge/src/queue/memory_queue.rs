@@ -1,6 +1,4 @@
-use std::collections::BTreeMap;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -66,8 +64,7 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
-    use crate::queue::QueueError;
-    use crate::queue::{memory_queue::InMemoryQueue, Key, Queue};
+    use crate::queue::{memory_queue::InMemoryQueue, Key, Queue, QueueError};
 
     #[tokio::test]
     async fn insert() {
