@@ -3,7 +3,7 @@ schemes:
 - "http"
 info:
   description: "IoT Edge Secret Service API"
-  version: "2020-07-22"
+  version: "1.0"
   title: "Secret Service"
     
 paths:
@@ -127,4 +127,3 @@ parameters:
     description: "The API version."
     required: true
     type: "string"
-    default: "2020-07-22"

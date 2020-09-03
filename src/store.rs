@@ -4,10 +4,10 @@ use crate::error::{Error, ErrorKind};
 
 use std::sync::Arc;
 
+use aziot_eis_http::Connector;
 use aziot_key_client_async::Client as KeyClient;
 use aziot_key_common::{CreateKeyValue, EncryptMechanism};
 use failure::{Fail, ResultExt};
-use hyper::client::HttpConnector;
 use iotedge_aad::{Auth, TokenSource};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 lazy_static! {
     static ref REQWEST: Arc<ReqwestClient> = Arc::new(ReqwestClient::new());
     static ref AAD_CLIENT: Auth = Auth::new(REQWEST.clone(), "https://vault.azure.net");
-    static ref KEY_CLIENT: KeyClient<HttpConnector> = KeyClient::new(HttpConnector::new());
+    static ref KEY_CLIENT: KeyClient = KeyClient::new(Connector::new(&"unix:///var/lib/aziot/keyd.sock".parse().unwrap()).unwrap());
     static ref VAULT_REGEX: Regex = Regex::new(r"(?P<vault_id>[0-9a-zA-Z-]+)/(?P<secret_id>[0-9a-zA-Z-]+)(?:/(?P<secret_version>[0-9a-zA-Z-]+))?").unwrap();
 }
 
@@ -43,7 +43,6 @@ pub trait StoreBackend: Send + Sync {
     fn init(&self) -> Result<(), Self::Error>;
 
     fn write_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
-    fn update_record(&self, id: &str, record: Record) -> Result<(), Self::Error>;
     fn read_record(&self, id: &str) -> Result<Option<Record>, Self::Error>;
     fn delete_record(&self, id: &str) -> Result<(), Self::Error>;
 }
@@ -179,6 +178,7 @@ async fn encrypt(id: &str, value: String) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>),
         )
         .await
         .context(ErrorKind::KeyService("GetKey"))?;
+
     let iv = generate::<[u8; IV_BYTES]>(&rng)
         .context(ErrorKind::RandomNumberGenerator)?
         .expose()

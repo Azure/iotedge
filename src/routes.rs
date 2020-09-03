@@ -39,6 +39,7 @@ pub(crate) fn connect<T: StoreBackend>(backend: T, config: Configuration) -> imp
         .and(warp::path::param())
         .and(warp::body::json::<String>())
         .and_then(move |cred, id, val| {
+                println!("{}: {}", id, val);
                 let store = copy.clone();
                 async move {
                     store.set_secret(id, val)
