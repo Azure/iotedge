@@ -43,6 +43,11 @@ jobs:
           filePath: scripts/linux/generic-rust/build.sh
           arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --no-default-features --features "generic"
       - task: Bash@3
+        displayName: Build
+        inputs:
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path
+      - task: Bash@3
         displayName: Test
         inputs:
           filePath: mqtt/build/linux/test.sh
@@ -71,8 +76,13 @@ jobs:
       - task: Bash@3
         displayName: Build
         inputs:
-          filePath: mqtt/build/linux/build.sh
-          arguments: --target armv7-unknown-linux-gnueabihf --cargo cross
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --no-default-features --features "generic" --target armv7-unknown-linux-gnueabihf --cargo cross
+      - task: Bash@3
+        displayName: Build
+        inputs:
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --target armv7-unknown-linux-gnueabihf --cargo cross
       - task: Bash@3
         displayName: Test
         inputs:
