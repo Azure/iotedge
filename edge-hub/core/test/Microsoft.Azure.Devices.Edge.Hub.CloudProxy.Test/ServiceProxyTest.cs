@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
 
             // Assert
             Assert.True(serviceIdentity.HasValue);
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
@@ -196,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act / Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1", "edgedevice"));
         }
 
         [Fact]
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
@@ -232,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act / Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1", "m1"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice"));
         }
 
         [Fact]
@@ -253,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.True(serviceIdentity.HasValue);
@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
@@ -302,7 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
@@ -322,7 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
+            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
