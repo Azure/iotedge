@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Builtins;
     using Moq;
     using Xunit;
 
@@ -330,8 +331,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"), It.IsAny<string>())).ReturnsAsync(Option.Some(si1_updated));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
@@ -397,9 +398,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d3"))).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"), It.IsAny<string>())).ReturnsAsync(Option.Some(si1_updated));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d3"), It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
@@ -468,8 +469,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"), It.Is<string>(id => id == "m1"))).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.Is<string>(id => id == "m2"))).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"), It.Is<string>(id => id == "m1"), It.IsAny<string>())).ReturnsAsync(Option.Some(si1_updated));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.Is<string>(id => id == "m2"), It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
@@ -536,9 +537,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d3"))).ReturnsAsync(Option.Some(si3));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"), It.IsAny<string>())).ReturnsAsync(Option.Some(si1_updated));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d3"), It.IsAny<string>())).ReturnsAsync(Option.Some(si3));
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
@@ -589,9 +590,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
-            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity("d2", "m2")).ReturnsAsync(Option.None<ServiceIdentity>());
-            serviceProxy.Setup(s => s.GetServiceIdentity("d3", "m3")).ReturnsAsync(Option.Some(si3));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1", It.IsAny<string>())).ReturnsAsync(Option.Some(si1_updated));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", "m2", It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity("d3", "m3", It.IsAny<string>())).ReturnsAsync(Option.Some(si3));
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
@@ -626,14 +627,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var si_module = new ServiceIdentity("d1", "m1", "e1", Enumerable.Empty<string>(), "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Disabled);
 
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ReturnsAsync(Option.Some(si_device));
-            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ReturnsAsync(Option.Some(si_module));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", It.IsAny<string>())).ReturnsAsync(Option.Some(si_device));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1", It.IsAny<string>())).ReturnsAsync(Option.Some(si_module));
 
-            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+            string edgeDeviceId = "deviceId";
+            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
 
             // Act
-            Option<ServiceIdentity> deviceServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentityFromService("d2");
-            Option<ServiceIdentity> moduleServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentityFromService("d1/m1");
+            Option<ServiceIdentity> deviceServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentityFromService("d2", edgeDeviceId);
+            Option<ServiceIdentity> moduleServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentityFromService("d1/m1", edgeDeviceId);
 
             // Assert
             Assert.True(deviceServiceIdentity.HasValue);
@@ -723,9 +725,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
 
             // Setup updated response
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1))).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id2))).ReturnsAsync(Option.None<ServiceIdentity>());
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id3))).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1), It.IsAny<string>())).ReturnsAsync(Option.Some(si1_updated));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id2), It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id3), It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
 
             // Refresh the authchain
             await deviceScopeIdentitiesCache.RefreshAuthChain($"{id3};{id2};{id1}");
@@ -772,7 +774,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1))).ReturnsAsync(Option.Some(si1_initial));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1), It.IsAny<string>())).ReturnsAsync(Option.Some(si1_initial));
 
             // Act
             int refreshDelaySec = 10;
@@ -787,7 +789,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
 
             // Setup updated response
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1))).ReturnsAsync(Option.Some(si1_updated));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1), It.IsAny<string>())).ReturnsAsync(Option.Some(si1_updated));
 
             // Refresh again without waiting
             await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
@@ -805,7 +807,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_updated.Equals(receivedServiceIdentity.OrDefault()));
 
             // Flip the response back again and refresh again without waiting
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1))).ReturnsAsync(Option.Some(si1_initial));
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == id1), It.IsAny<string>())).ReturnsAsync(Option.Some(si1_initial));
             await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
             receivedServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(id1);
 

@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.nodes = new Dictionary<string, ServiceIdentityTreeNode>();
         }
 
+        public string GetActorDeviceId() => this.actorDeviceId;
+
         public async Task InsertOrUpdate(ServiceIdentity identity)
         {
             // There should always be a valid ServiceIdentity
