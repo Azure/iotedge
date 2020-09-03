@@ -2,7 +2,10 @@ use crate::errors::Result;
 
 /// Trait to extend `PolicyBuilder` validation for policy definition.
 pub trait PolicyValidator {
-    /// This method is being called by `PolicyBuilder` on every filed in policy definition.
+    /// This method is being called by `PolicyBuilder` on every filed in policy definition 
+    /// while `Policy` is being constructed.
+    ///
+    /// If a field fails the validation, the error is returned.
     fn validate(&self, field: Field, value: &str) -> Result<()>;
 }
 

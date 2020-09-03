@@ -972,8 +972,11 @@ dependencies = [
  "anyhow",
  "config",
  "edgelet-client",
+ "humantime 2.0.1",
+ "humantime-serde",
  "mqtt-broker-tests-util",
  "serde",
+ "serde_derive",
  "serial_test",
  "tracing",
 ]

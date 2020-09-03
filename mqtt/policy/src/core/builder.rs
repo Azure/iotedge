@@ -23,7 +23,7 @@ pub struct PolicyBuilder<V, M, S> {
 }
 
 impl PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter> {
-    /// Construct a `PolicyBuilder` from provided json policy definition and
+    /// Constructs a `PolicyBuilder` from provided json policy definition and
     /// default configuration.
     ///
     /// Call to this method does not parse or validate the json, all heavy work
@@ -223,7 +223,7 @@ fn process_resources(statement: &Statement20201030) -> (Resources, Resources) {
     }
 
     for resource in &statement.resources {
-        // split resources into two static or variable rules:
+        // split resources into two buckets - static or variable rules:
         let map = if is_variable_rule(resource) {
             &mut variable_res
         } else {
