@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::{time::Duration};
+use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::stream::Stream;
@@ -25,7 +25,7 @@ trait Queue<'a> {
 
     async fn remove(&mut self, key: Key) -> Result<bool, QueueError>;
 
-    async fn get_loader(&'a mut self, batch_size: usize) -> Self::Loader;
+    async fn loader(&'a mut self, batch_size: usize) -> Self::Loader;
 }
 
 #[derive(Eq, Ord, PartialEq, Clone, Debug)]

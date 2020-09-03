@@ -10,7 +10,6 @@ use tokio::sync::MutexGuard;
 
 use crate::queue::{waking_map::WakingMap, Key};
 
-// TODO REVIEW: should this have some way of shutting down? Callers reading stream will hang?
 pub struct InMemoryMessageLoader {
     state: Arc<Mutex<WakingMap>>,
     batch: IntoIter<(Key, Publication)>,
@@ -64,7 +63,7 @@ fn get_elements(
     batch_size: usize,
 ) -> IntoIter<(Key, Publication)> {
     let batch: Vec<_> = state
-        .get_map()
+        .map()
         .iter()
         .take(batch_size)
         .map(|element| (element.0.clone(), element.1.clone()))

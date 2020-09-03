@@ -17,7 +17,7 @@ impl WakingMap {
     pub fn insert(&mut self, key: Key, value: Publication) {
         self.map.insert(key, value);
 
-        if let Some(waker) = self.waker.clone() {
+        if let Some(waker) = self.waker.take() {
             waker.wake();
         }
     }
@@ -27,7 +27,7 @@ impl WakingMap {
     }
 
     // exposed for specific loading logic
-    pub fn get_map(&self) -> &BTreeMap<Key, Publication> {
+    pub fn map(&self) -> &BTreeMap<Key, Publication> {
         &self.map
     }
 
@@ -49,7 +49,6 @@ mod tests {
     use futures_util::stream::Stream;
     use futures_util::stream::StreamExt;
     use mqtt3::proto::{Publication, QoS};
-    // TODO REVIEW: do we need this tokio mutex
     use tokio::sync::Mutex;
     use tokio::time;
 
@@ -73,7 +72,7 @@ mod tests {
         };
 
         state.insert(key1.clone(), pub1.clone());
-        let extracted = state.get_map().get(&key1).unwrap();
+        let extracted = state.map().get(&key1).unwrap();
         assert_eq!(pub1, *extracted);
     }
 

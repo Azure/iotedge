@@ -5,7 +5,6 @@ use std::time::Duration;
 use anyhow::Result;
 use async_trait::async_trait;
 use mqtt3::proto::Publication;
-// TODO REVIEW: do we need this tokio mutex
 use tokio::sync::Mutex;
 
 use crate::queue::{
@@ -52,7 +51,7 @@ impl<'a> Queue<'a> for InMemoryQueue {
         Ok(true)
     }
 
-    async fn get_loader(&'a mut self, batch_size: usize) -> InMemoryMessageLoader {
+    async fn loader(&'a mut self, batch_size: usize) -> InMemoryMessageLoader {
         InMemoryMessageLoader::new(Arc::clone(&self.state), batch_size).await
     }
 }
@@ -110,7 +109,7 @@ mod tests {
 
         // init loader
         let batch_size: usize = 5;
-        let mut loader = queue.get_loader(batch_size).await;
+        let mut loader = queue.loader(batch_size).await;
 
         // make sure same publications come out in correct order
         let extracted1 = loader.next().await.unwrap();
@@ -158,7 +157,7 @@ mod tests {
 
         // init loader
         let batch_size: usize = 1;
-        let mut loader = queue.get_loader(batch_size).await;
+        let mut loader = queue.loader(batch_size).await;
 
         // process first message, forcing loader to get new batch on the next read
         loader.next().await.unwrap();
@@ -225,7 +224,7 @@ mod tests {
 
         // init loader with batch size 1
         let batch_size: usize = 1;
-        let mut loader = queue.get_loader(batch_size).await;
+        let mut loader = queue.loader(batch_size).await;
 
         // the queue never removed any elements
         // therefore the loader should get the same element in the two batches of size 1
