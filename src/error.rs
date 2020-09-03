@@ -23,7 +23,9 @@ pub enum ErrorKind {
     #[fail(display = "NotFound")]
     NotFound,
     #[fail(display = "RandomNumberGenerator")]
-    RandomNumberGenerator
+    RandomNumberGenerator,
+    #[fail(display = "Unauthorized")]
+    Unauthorized
 }
 
 impl Reject for Error { }

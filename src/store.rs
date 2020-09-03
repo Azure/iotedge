@@ -14,11 +14,12 @@ use regex::Regex;
 use reqwest::Client as ReqwestClient;
 use ring::rand::{generate, SystemRandom};
 use serde::{Deserialize, Serialize};
+use tokio::net::unix::UCred;
 
 lazy_static! {
     static ref REQWEST: Arc<ReqwestClient> = Arc::new(ReqwestClient::new());
     static ref AAD_CLIENT: Auth = Auth::new(REQWEST.clone(), "https://vault.azure.net");
-    static ref KEY_CLIENT: KeyClient = KeyClient::new(Connector::new(&"unix:///var/lib/aziot/keyd.sock".parse().unwrap()).unwrap());
+    static ref KEY_CLIENT: KeyClient = KeyClient::new(Connector::new(&"unix:///var/run/aziot/keyd.sock".parse().unwrap()).unwrap());
     static ref VAULT_REGEX: Regex = Regex::new(r"(?P<vault_id>[0-9a-zA-Z-]+)/(?P<secret_id>[0-9a-zA-Z-]+)(?:/(?P<secret_version>[0-9a-zA-Z-]+))?").unwrap();
 }
 
@@ -62,7 +63,20 @@ impl<T: StoreBackend> Store<T> {
         }
     }
 
-    pub async fn get_secret(&self, id: String) -> Result<String, Error> {
+    #[inline]
+    fn authorized_principal(&self, creds: UCred) -> Result<&str, Error> {
+        Ok(
+            &self.config.principals.iter()
+                .find(|principal| principal.uid == creds.uid)
+                .ok_or(ErrorKind::Forbidden)?
+                .name
+        )
+    }
+
+    pub async fn get_secret(&self, creds: UCred, id: String) -> Result<String, Error> {
+        let principal_name = self.authorized_principal(creds)?;
+        let id = format!("{}/{}", principal_name, id);
+
         let record = self.backend
             .read_record(&id)
             .context(ErrorKind::Backend("Read"))?;
@@ -94,7 +108,10 @@ impl<T: StoreBackend> Store<T> {
         }
     }
 
-    pub async fn set_secret(&self, id: String, value: String) -> Result<(), Error> {
+    pub async fn set_secret(&self, creds: UCred, id: String, value: String) -> Result<(), Error> {
+        let principal_name = self.authorized_principal(creds)?;
+        let id = format!("{}/{}", principal_name, id);
+
         let upstream = self.backend.read_record(&id)
             .map(|res| res.map(|opt| opt.upstream))
             .unwrap_or_default()
@@ -111,7 +128,10 @@ impl<T: StoreBackend> Store<T> {
         Ok(())
     }
 
-    pub async fn delete_secret(&self, id: String) -> Result<(), Error> {
+    pub async fn delete_secret(&self, creds: UCred, id: String) -> Result<(), Error> {
+        let principal_name = self.authorized_principal(creds)?;
+        let id = format!("{}/{}", principal_name, id);
+
         self.backend
             .delete_record(&id)
             .context(ErrorKind::Backend("Delete"))?;
@@ -119,7 +139,10 @@ impl<T: StoreBackend> Store<T> {
         Ok(())
     }
 
-    pub async fn pull_secret(&self, id: String, remote: String) -> Result<(), Error> {
+    pub async fn pull_secret(&self, creds: UCred, id: String, remote: String) -> Result<(), Error> {
+        let principal_name = self.authorized_principal(creds)?;
+        let id = format!("{}/{}", principal_name, id);
+
         let token = AAD_CLIENT
             .authorize_with_secret(
                 &self.config.credentials.tenant_id,

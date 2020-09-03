@@ -13,11 +13,12 @@ use tokio::net::unix::UCred;
 use warp::http::StatusCode;
 use warp::{reject, Filter, Rejection, Reply};
 use warp::filters::ext;
+use warp::reply::with_status;
 
 pub(crate) fn connect<T: StoreBackend>(backend: T, config: Configuration) -> impl Service<Request<Body>, Response = Response<Body>, Error = impl StdError, Future = impl Future<Output = Result<Response<Body>, impl StdError>>> + Clone + Send {
     let store = Arc::new(Store::new(backend, config));
     let ucred = ext::get::<UCred>()
-        .recover(|_| async { <Result<_, Infallible>>::Ok(StatusCode::UNAUTHORIZED) });
+        .or_else(|_| async { Err(reject::custom(Error::from(ErrorKind::Unauthorized))) });
 
     let copy = store.clone();
     let get_secret = ucred
@@ -26,7 +27,7 @@ pub(crate) fn connect<T: StoreBackend>(backend: T, config: Configuration) -> imp
         .and_then(move |cred, id| {
                 let store = copy.clone();
                 async move {
-                    store.get_secret(id)
+                    store.get_secret(cred, id)
                         .await
                         .map_err(reject::custom)
                 }
@@ -39,10 +40,9 @@ pub(crate) fn connect<T: StoreBackend>(backend: T, config: Configuration) -> imp
         .and(warp::path::param())
         .and(warp::body::json::<String>())
         .and_then(move |cred, id, val| {
-                println!("{}: {}", id, val);
                 let store = copy.clone();
                 async move {
-                    store.set_secret(id, val)
+                    store.set_secret(cred, id, val)
                         .await
                         .map_err(reject::custom)
                 }
@@ -56,7 +56,7 @@ pub(crate) fn connect<T: StoreBackend>(backend: T, config: Configuration) -> imp
         .and_then(move |cred, id| {
                 let store = copy.clone();
                 async move {
-                    store.delete_secret(id)
+                    store.delete_secret(cred, id)
                         .await
                         .map_err(reject::custom)
                 }
@@ -71,7 +71,7 @@ pub(crate) fn connect<T: StoreBackend>(backend: T, config: Configuration) -> imp
         .and_then(move |cred, id, akv| {
                 let store = copy.clone();
                 async move {
-                    store.pull_secret(id, akv)
+                    store.pull_secret(cred, id, akv)
                         .await
                         .map_err(reject::custom)
                 }
@@ -88,15 +88,19 @@ pub(crate) fn connect<T: StoreBackend>(backend: T, config: Configuration) -> imp
 }
 
 async fn handle_error(err: Rejection) -> Result<impl Reply, Infallible> {
+    println!("{:?}", err);
     Ok(
-        err.find::<Error>().map(|e|
-                match e.kind() {
-                    ErrorKind::CorruptData => StatusCode::BAD_REQUEST,
-                    ErrorKind::Forbidden => StatusCode::FORBIDDEN,
-                    ErrorKind::NotFound => StatusCode::NOT_FOUND,
-                    _ => StatusCode::INTERNAL_SERVER_ERROR
-                }
+        err.find::<Error>()
+            .map(|e|
+                with_status(format!("{}", e), match e.kind() {
+                        ErrorKind::CorruptData => StatusCode::BAD_REQUEST,
+                        ErrorKind::Unauthorized => StatusCode::UNAUTHORIZED,
+                        ErrorKind::Forbidden => StatusCode::FORBIDDEN,
+                        ErrorKind::NotFound => StatusCode::NOT_FOUND,
+                        _ => StatusCode::INTERNAL_SERVER_ERROR
+                    })
+                    .into_response()
             )
-            .unwrap_or(StatusCode::NOT_FOUND)
+            .unwrap_or(StatusCode::NOT_FOUND.into_response())
     )
 }

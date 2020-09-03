@@ -35,13 +35,6 @@ pub enum EncryptionSource {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum StorePermissions {
-    Read,
-    ReadWrite
-}
-
-#[derive(Clone, Debug, Deserialize)]
 pub struct AADCredentials {
     pub tenant_id: String,
     pub client_id: String,
@@ -51,8 +44,7 @@ pub struct AADCredentials {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Principal {
     pub name: String,
-    pub uid: u32,
-    pub permissions: StorePermissions
+    pub uid: u32
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -76,7 +68,8 @@ pub struct Certificates {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Configuration {
     pub credentials: AADCredentials,
-    pub principal: Vec<Principal>,
+    #[serde(rename = "principal")]
+    pub principals: Vec<Principal>,
     pub local: LocalSettings,
     pub certificates: Certificates
 }
