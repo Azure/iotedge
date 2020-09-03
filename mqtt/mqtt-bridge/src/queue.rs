@@ -10,6 +10,7 @@ mod memory_loader;
 mod memory_queue;
 mod waking_map;
 
+// Queue used in bridge.
 #[async_trait]
 trait Queue<'a> {
     type Loader: Stream;
@@ -28,6 +29,9 @@ trait Queue<'a> {
     async fn loader(&'a mut self, batch_size: usize) -> Self::Loader;
 }
 
+// Keys used in the queue.
+// Ordered by priority, then offset.
+// Unordered by ttl.
 #[derive(Eq, Ord, PartialEq, Clone, Debug)]
 pub struct Key {
     priority: u32,
@@ -109,7 +113,7 @@ mod tests {
         assert!(key2 < key1);
     }
 
-    // TODO REVIEW: Does this guarantee that btreemap is ordered? I know key1 == key2 is false, but is this a problem
+    // TODO REVIEW: Does this guarantee that btreemap is not ordered by ttl? Why this weird behavior with equals?
     #[test]
     fn key_ttl_ordering() {
         // not ordered by ttl

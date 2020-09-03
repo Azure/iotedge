@@ -10,6 +10,12 @@ use tokio::sync::MutexGuard;
 
 use crate::queue::{waking_map::WakingMap, Key};
 
+// Message loader used to extract elements from bridge queues
+// This component is responsible for message extraction from the queue
+// It works by grabbing a snapshot of the most important messages from the queue
+// Then, will return these elements in order
+// When the batch is exhausted it will grab a new batch
+// If no elements are removed from the queue, the second batch will be identical to first
 pub struct InMemoryMessageLoader {
     state: Arc<Mutex<WakingMap>>,
     batch: IntoIter<(Key, Publication)>,
@@ -389,7 +395,7 @@ mod tests {
         }
     }
 
-    // TODO REVIEW: replace wait with notify
+    // TODO REVIEW: can't use notify here because we would need to notify in the stream implementation
     #[tokio::test]
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state

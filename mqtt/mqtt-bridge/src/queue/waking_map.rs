@@ -4,6 +4,8 @@ use std::task::Waker;
 use mqtt3::proto::Publication;
 
 use crate::queue::Key;
+
+// Responsible for waking waiting streams when new elements are added
 pub struct WakingMap {
     map: BTreeMap<Key, Publication>,
     waker: Option<Waker>,
@@ -50,7 +52,7 @@ mod tests {
     use futures_util::stream::StreamExt;
     use mqtt3::proto::{Publication, QoS};
     use tokio::sync::Mutex;
-    use tokio::time;
+    use tokio::sync::Notify;
 
     use crate::queue::{waking_map::WakingMap, Key};
 
@@ -99,7 +101,6 @@ mod tests {
         assert_eq!(pub1, removed_pub);
     }
 
-    // TODO REVIEW: replace wait with notify
     #[tokio::test]
     async fn insert_wakes_stream() {
         // setup data
@@ -122,13 +123,15 @@ mod tests {
         // start reading stream in a separate thread
         // this stream will return pending until woken up
         let map_copy = Arc::clone(&map);
+        let notify = Arc::new(Notify::new());
+        let notify2 = notify.clone();
         let poll_stream = async move {
-            let mut test_stream = TestStream::new(map_copy);
+            let mut test_stream = TestStream::new(map_copy, notify2);
             assert_eq!(test_stream.next().await.unwrap(), 1);
         };
 
         let poll_stream_handle = tokio::spawn(poll_stream);
-        time::delay_for(Duration::from_secs(2)).await;
+        notify.notified().await;
 
         // insert an element to wake the stream, then wait for the other thread to complete
         map.lock().await.insert(key1, pub1);
@@ -137,13 +140,15 @@ mod tests {
 
     struct TestStream {
         waking_map: Arc<Mutex<WakingMap>>,
+        notify: Arc<Notify>,
         should_return_pending: bool,
     }
 
     impl TestStream {
-        fn new(waking_map: Arc<Mutex<WakingMap>>) -> Self {
+        fn new(waking_map: Arc<Mutex<WakingMap>>, notify: Arc<Notify>) -> Self {
             TestStream {
                 waking_map,
+                notify,
                 should_return_pending: true,
             }
         }
@@ -165,6 +170,7 @@ mod tests {
             if mut_self.should_return_pending {
                 mut_self.should_return_pending = false;
                 map_lock.set_waker(cx.waker());
+                mut_self.notify.notify();
                 return Poll::Pending;
             } else {
                 return Poll::Ready(Some(1));
