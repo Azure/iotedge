@@ -166,10 +166,23 @@ mod tests {
     #[test_case("123b", HumanSize::new_bytes(123); "when using b")]
     #[test_case("123kb", HumanSize::new_kilobytes(123).unwrap(); "when using kb")]
     #[test_case("123mb", HumanSize::new_megabytes(123).unwrap(); "when using mb")]
-    #[test_case("123gb", HumanSize::new_gigabytes(123).unwrap(); "when using gb")]
     fn it_parses_with_supported_unit(input: &str, expected: HumanSize) {
         let size = input.parse();
         assert_eq!(size, Ok(expected));
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    #[test_case("123gb", HumanSize::new_gigabytes(123).unwrap(); "when using gb")]
+    fn it_parses_with_supported_unit_x64(input: &str, expected: HumanSize) {
+        let size = input.parse();
+        assert_eq!(size, Ok(expected));
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    #[test_case("123gb"; "when using gb")]
+    fn it_fails_with_too_big_for_x32(input: &str) {
+        let size: Result<HumanSize, ParseHumanSizeError> = input.parse();
+        assert_matches!(size, Err(ParseHumanSizeError::TooBig(_)));
     }
 
     #[test_case("123kb"; "when using all lowercase")]
