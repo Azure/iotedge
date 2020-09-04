@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class AuthAgentProtocolHead : AbstractNotificationHandler<bool>, IProtocolHead
     {
         const string Topic = "$internal/edgehubcore";
-        static readonly byte[] Payload = Encoding.UTF8.GetBytes("1");
+        static readonly string Payload = "\"AuthAgentProtocolHead started.\"";
 
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public override Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(bool notification)
         {
-            IList<Message> messages = new[] { new Message(Topic, Payload) };
+            IEnumerable<Message> messages = new[] { new Message(Topic, Payload) };
             return Task.FromResult(messages);
         }
 
