@@ -6,11 +6,11 @@ use futures_util::future::Either;
 use regex::Regex;
 use tokio::{sync::Notify, task::JoinHandle};
 
+use super::file;
+use super::shutdown_handle;
 use azure_iot_mqtt::{
     module::Client, ReportTwinStateHandle, ReportTwinStateRequest, Transport::Tcp, TwinProperties,
 };
-use super::file;
-use super::shutdown_handle;
 use shutdown_handle::ShutdownHandle;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
@@ -235,14 +235,14 @@ pub fn report_twin_state(
 
     let mut interval = tokio::time::interval(TWIN_STATE_POLL_INTERVAL);
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
-        let result = report_twin_state_handle
+        report_twin_state_handle
             .report_twin_state(ReportTwinStateRequest::Replace(
                 vec![("start-time".to_string(), Utc::now().to_string().into())]
                     .into_iter()
                     .collect(),
             ))
-            .await;
-        let () = result.context("couldn't report initial twin state")?;
+            .await
+            .context("couldn't report initial twin state")?;
 
         loop {
             let wait_shutdown = shutdown_signal.notified();
@@ -254,15 +254,14 @@ pub fn report_twin_state(
                 }
                 Either::Right((result, _)) => {
                     if result.is_some() {
-                        let result = report_twin_state_handle
+                        report_twin_state_handle
                             .report_twin_state(ReportTwinStateRequest::Patch(
                                 vec![("current-time".to_string(), Utc::now().to_string().into())]
                                     .into_iter()
                                     .collect(),
                             ))
-                            .await;
-
-                        let () = result.context("couldn't report twin state patch")?;
+                            .await
+                            .context("couldn't report twin state patch")?;
                     } else {
                         log::warn!("Shutting down twin state polling!");
                         //Should send a ctrl c event here?

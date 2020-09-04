@@ -7,8 +7,8 @@ use tokio::{sync::Notify, task::JoinHandle, time};
 
 use super::file;
 use super::shutdown_handle;
-use shutdown_handle::ShutdownHandle;
 use edgelet_client::CertificateResponse;
+use shutdown_handle::ShutdownHandle;
 
 const PROXY_SERVER_TRUSTED_CA_PATH: &str = "/app/trustedCA.crt";
 const PROXY_SERVER_CERT_PATH: &str = "/app/server.crt";
@@ -22,8 +22,7 @@ const PROXY_SERVER_VALIDITY_DAYS: i64 = 90;
 pub fn start(
     notify_certs_rotated: Arc<Notify>,
 ) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
-    const CERTIFICATE_POLL_INTERVAL: tokio::time::Duration =
-        tokio::time::Duration::from_secs(1);
+    const CERTIFICATE_POLL_INTERVAL: tokio::time::Duration = tokio::time::Duration::from_secs(1);
 
     let shutdown_signal = Arc::new(Notify::new());
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
@@ -40,7 +39,7 @@ pub fn start(
         module_id,
         generation_id,
         gateway_hostname,
-        workload_url,
+        &workload_url,
         Duration::days(PROXY_SERVER_VALIDITY_DAYS),
     )
     .context("Could not create cert monitor client")?;
@@ -50,11 +49,8 @@ pub fn start(
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
 
-            match futures::future::select(
-                time::delay_for(CERTIFICATE_POLL_INTERVAL),
-                wait_shutdown,
-            )
-            .await
+            match futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
+                .await
             {
                 Either::Right(_) => {
                     log::warn!("Shutting down certs monitor!");
@@ -86,10 +82,7 @@ pub fn start(
                 Ok(certs) => {
                     if let Some((server_cert, private_key)) = certs {
                         //If we have a new cert, we need to write it in file system
-                        file::write_binary_to_file(
-                            server_cert.as_bytes(),
-                            PROXY_SERVER_CERT_PATH,
-                        )?;
+                        file::write_binary_to_file(server_cert.as_bytes(), PROXY_SERVER_CERT_PATH)?;
 
                         //If we have a new cert, we need to write it in file system
                         file::write_binary_to_file(
@@ -132,7 +125,7 @@ pub fn start(
                 }
             };
 
-            if need_notify == true {
+            if need_notify {
                 notify_certs_rotated.notify();
             }
         }
@@ -157,14 +150,15 @@ impl CertificateMonitor {
         module_id: String,
         generation_id: String,
         hostname: String,
-        workload_url: String,
+        workload_url: &str,
         validity_days: Duration,
     ) -> Result<Self, Error> {
         //Create expiry date in the past so cert has to be rotated now.
         let server_cert_expiration_date = None;
         let identity_cert_expiration_date = None;
 
-        let work_load_api_client = edgelet_client::workload(&workload_url).context("Could not get workload client")?;
+        let work_load_api_client =
+            edgelet_client::workload(&workload_url).context("Could not get workload client")?;
 
         Ok(CertificateMonitor {
             module_id,
@@ -184,8 +178,7 @@ impl CertificateMonitor {
     ) -> Result<Option<(String, String)>, anyhow::Error> {
         //If certificates are not expired, we don't need to make a query
 
-        if let Some(expiration_date) = self.server_cert_expiration_date
-        {
+        if let Some(expiration_date) = self.server_cert_expiration_date {
             if current_date < expiration_date {
                 return Ok(None);
             }
@@ -204,9 +197,8 @@ impl CertificateMonitor {
             )
             .await?;
 
-        let (certificates, expiration_date) = self
-            .unwrap_certificate_response(resp)
-            .context("could not extract server certificates")?;
+        let (certificates, expiration_date) =
+            unwrap_certificate_response(&resp).context("could not extract server certificates")?;
         self.server_cert_expiration_date = Some(expiration_date);
 
         Ok(Some(certificates))
@@ -217,8 +209,7 @@ impl CertificateMonitor {
         current_date: DateTime<Utc>,
     ) -> Result<Option<(String, String)>, anyhow::Error> {
         //If certificates are not expired, we don't need to make a query
-        if let Some(expiration_date) = self.identity_cert_expiration_date
-        {
+        if let Some(expiration_date) = self.identity_cert_expiration_date {
             if current_date < expiration_date {
                 return Ok(None);
             }
@@ -232,31 +223,11 @@ impl CertificateMonitor {
             .create_identity_cert(&self.module_id, new_expiration_date)
             .await?;
 
-        let (certificates, expiration_date) = self
-            .unwrap_certificate_response(resp)
-            .context("could not extract server certificates")?;
+        let (certificates, expiration_date) =
+            unwrap_certificate_response(&resp).context("could not extract server certificates")?;
         self.identity_cert_expiration_date = Some(expiration_date);
 
         Ok(Some(certificates))
-    }
-
-    fn unwrap_certificate_response(
-        &mut self,
-        resp: CertificateResponse,
-    ) -> Result<((String, String), DateTime<Utc>), anyhow::Error> {
-        let server_crt = resp.certificate().to_string();
-        let private_key_raw = resp.private_key();
-        let private_key = match private_key_raw.bytes() {
-            Some(val) => val.to_string(),
-            None => return Err(anyhow::anyhow!("Private key field is empty")),
-        };
-
-        let datetime = DateTime::parse_from_rfc3339(&resp.expiration())
-            .context("Error parsing certificate expiration date")?;
-        // convert the string into DateTime<Utc> or other timezone
-        let expiration_date = datetime.with_timezone(&Utc);
-
-        Ok(((server_crt, private_key), expiration_date))
     }
 
     async fn get_new_trust_bundle(&mut self) -> Result<Option<String>, anyhow::Error> {
@@ -273,6 +244,24 @@ impl CertificateMonitor {
 
         Ok(None)
     }
+}
+
+fn unwrap_certificate_response(
+    resp: &CertificateResponse,
+) -> Result<((String, String), DateTime<Utc>), anyhow::Error> {
+    let server_crt = resp.certificate().to_string();
+    let private_key_raw = resp.private_key();
+    let private_key = match private_key_raw.bytes() {
+        Some(val) => val.to_string(),
+        None => return Err(anyhow::anyhow!("Private key field is empty")),
+    };
+
+    let datetime = DateTime::parse_from_rfc3339(&resp.expiration())
+        .context("Error parsing certificate expiration date")?;
+    // convert the string into DateTime<Utc> or other timezone
+    let expiration_date = datetime.with_timezone(&Utc);
+
+    Ok(((server_crt, private_key), expiration_date))
 }
 
 #[cfg(test)]
@@ -301,7 +290,7 @@ mod tests {
             module_id,
             generation_id,
             gateway_hostname,
-            workload_url,
+            &workload_url,
             Duration::days(PROXY_SERVER_VALIDITY_DAYS),
         )
         .unwrap();
@@ -353,7 +342,7 @@ mod tests {
             module_id,
             generation_id,
             gateway_hostname,
-            workload_url,
+            &workload_url,
             Duration::days(PROXY_SERVER_VALIDITY_DAYS),
         )
         .unwrap();
@@ -403,7 +392,7 @@ mod tests {
             module_id,
             generation_id,
             gateway_hostname,
-            workload_url,
+            &workload_url,
             Duration::days(PROXY_SERVER_VALIDITY_DAYS),
         )
         .unwrap();
