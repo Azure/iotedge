@@ -17,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
         // Match for an environment variable in the official POSIX format $ + "letter" + "letter|digit"
         // Then the port has to be specified with ":"
-        const string ImageUpstreamRegexPattern = @"^\$(?<host>[a-zA-Z_][a-zA-Z0-9_]*?)(?<path>:.*)";
+        const string ImageUpstreamRegexPattern = @"^\$upstream(?<path>:[1-9].*)";
+        const string Gateway_hostname = "IOTEDGE_GATEWAYHOSTNAME";
 
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
         static readonly Regex ImageUpstreamRegex = new Regex(ImageUpstreamRegexPattern);
@@ -115,17 +116,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             {
                 Match matchHost = ImageUpstreamRegex.Match(image);
                 if (matchHost.Success
-                    && (matchHost.Groups["host"]?.Length > 0)
                     && (matchHost.Groups["path"]?.Length > 0)
                     && (env != null))
                 {
-                    string enVarName = matchHost.Groups["host"].Value;
-
-                    string hostAddress = env.GetVariable(enVarName);
+                    string hostAddress = env.GetVariable(Gateway_hostname);
 
                     if (hostAddress != null)
                     {
                         image = hostAddress + matchHost.Groups["path"].Value;
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Could not find environment variable: {Gateway_hostname}");
                     }
                 }
                 else
