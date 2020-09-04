@@ -52,16 +52,32 @@ where
 {
     let mut server = Server::from_broker(broker);
 
+    // TODO remove after tests
+
+    // let ready = std::sync::Arc::new(tokio::sync::Notify::new());
+    let (tx,_rx) = tokio::sync::broadcast::channel(1);
+    
+
     if let Some(tcp) = config.listener().tcp() {
         let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
-        server.tcp(tcp.addr(), authenticator);
+        server.tcp(tcp.addr(), authenticator, Some(tx.subscribe()));
     }
+
+    
+        let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
+        server.tcp("0.0.0.0:1111", authenticator, Some(tx.subscribe()));
+    
 
     if let Some(tls) = config.listener().tls() {
         let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
         let identity = load_server_certificate(tls.certificate())?;
-        server.tls(tls.addr(), identity, authenticator)?;
+        server.tls(tls.addr(), identity, authenticator, None);
     }
+
+    tokio::spawn(async move{
+        tokio::time::delay_for(std::time::Duration::from_secs(5)).await;
+        tx.send(()).unwrap();
+    });
 
     let state = server.serve(shutdown_signal).await?;
     Ok(state)

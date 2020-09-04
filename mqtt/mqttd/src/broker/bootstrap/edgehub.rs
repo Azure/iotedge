@@ -2,6 +2,7 @@ use std::{
     env,
     future::Future,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use anyhow::{bail, Context, Result};
@@ -13,7 +14,10 @@ use futures_util::{
     pin_mut, FutureExt,
 };
 use tokio::{
-    sync::oneshot::{channel, Sender},
+    sync::{
+        oneshot::{self, Sender},
+        Notify,
+    },
     task::JoinHandle,
     time,
 };
@@ -92,12 +96,14 @@ where
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();
-    server.tcp(config.listener().system().addr(), authenticator);
+    server.tcp(config.listener().system().addr(), authenticator, None);
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
+    let ready = Arc::new(Notify::new());
+
     if let Some(tcp) = config.listener().tcp() {
-        server.tcp(tcp.addr(), authenticator.clone());
+        server.tcp(tcp.addr(), authenticator.clone(), Some(ready.clone()));
     }
 
     // Add regular MQTT over TLS transport
@@ -119,7 +125,12 @@ where
                     .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), identity, authenticator.clone())?;
+            server.tls(
+                tls.addr(),
+                identity,
+                authenticator.clone(),
+                Some(ready.clone()),
+            );
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -166,7 +177,7 @@ async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
 ) -> Result<(SidecarShutdownHandle, JoinHandle<()>)> {
-    let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
+    let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
 
     let device_id = env::var(DEVICE_ID_ENV)?;
     let command_handler =
