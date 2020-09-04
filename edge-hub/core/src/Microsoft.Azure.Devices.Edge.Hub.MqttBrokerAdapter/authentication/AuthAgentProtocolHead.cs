@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
+    using System.Collections.Generic;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
@@ -9,13 +11,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.handlers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
 
-    public class AuthAgentProtocolHead : IProtocolHead
+    public class AuthAgentProtocolHead : AbstractNotificationHandler<bool>, IProtocolHead
     {
+        const string Topic = "$internal/edgehubcore";
+        static readonly byte[] Payload = Encoding.UTF8.GetBytes("1");
+
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
@@ -23,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly AuthAgentProtocolHeadConfig config;
         readonly object guard = new object();
 
+        bool _started;
         Option<IWebHost> host;
 
         public string Name => "AUTH";
@@ -32,13 +39,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     IUsernameParser usernameParser,
                     IClientCredentialsFactory clientCredentialsFactory,
                     ISystemComponentIdProvider systemComponentIdProvider,
-                    AuthAgentProtocolHeadConfig config)
+                    AuthAgentProtocolHeadConfig config,
+                    IMqttBrokerConnector mqttBrokerConnector) : base()
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.config = Preconditions.CheckNotNull(config);
+            SetConnector(mqttBrokerConnector);
         }
 
         public async Task StartAsync()
@@ -66,13 +75,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             await this.host.Expect(() => new Exception("No AUTH host instance found to start"))
                            .StartAsync();
-
+            await NotifyAsync(true);
             Events.Started();
         }
 
         public async Task CloseAsync(CancellationToken token)
         {
             Events.Closing();
+
+            _started = false;
 
             Option<IWebHost> hostToStop;
             lock (this.guard)
@@ -121,6 +132,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .Build();
         }
 
+        public override Task StoreNotificationAsync(bool notification)
+        {
+            _started = true;
+            return Task.FromResult(true);
+        }
+
+        public override Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
+        {
+            IEnumerable<Message> messages;
+            if (_started)
+            {
+                messages = new[] { new Message(Topic, Payload) };
+            }
+            else
+            {
+                messages = new Message[0];
+            }
+
+            return Task.FromResult(messages);
+        }
+
+        public override Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(bool notification)
+        {
+            IList<Message> messages = new[] { new Message(Topic, Payload) };
+            return Task.FromResult(messages);
+        }
+
         static class Events
         {
             const int IdStart = AuthAgentEventIds.AuthAgentProtocolHead;
@@ -133,7 +171,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Closing,
                 Closed,
                 ClosedWhenNotRunning,
-                StartedWhenAlreadyRunning
+                StartedWhenAlreadyRunning,
+                NotifyingBroker,
+                NotifiedBroker,
+                NotifyBrokerFailed
             }
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting AUTH head");
@@ -142,6 +183,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void Closed() => Log.LogInformation((int)EventIds.Closed, "Closed AUTH head");
             public static void ClosedWhenNotRunning() => Log.LogInformation((int)EventIds.ClosedWhenNotRunning, "Closed AUTH head when it was not running");
             public static void StartedWhenAlreadyRunning() => Log.LogWarning((int)EventIds.StartedWhenAlreadyRunning, "Started AUTH head when it was already running");
+            public static void NotifyingBroker() => Log.LogInformation((int)EventIds.NotifyingBroker, "Notifying broker auth agent started.");
+            public static void NotifiedBroker() => Log.LogInformation((int)EventIds.NotifiedBroker, "Notified broker auth agent started.");
+            public static void NotifyBrokerFailed() => Log.LogInformation((int)EventIds.NotifyBrokerFailed, "Failed to notify broker auth agent started.");
+
         }
     }
 }
