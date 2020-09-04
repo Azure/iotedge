@@ -36,6 +36,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config16 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.Some("4562124545"));
         static readonly DockerConfig ConfigUnknown = new DockerConfig("unknown");
         static readonly DockerConfig ConfigUnknownExpected = new DockerConfig("unknown:latest");
+        internal class MockEnvironment: DockerConfig.IEnvironmentWrapper
+        {
+            public Dictionary<string, string> _mockEnvironment = new Dictionary<string, string>();
+
+            public string GetVariable(string variableName)
+            {
+                if(_mockEnvironment.ContainsKey(variableName))
+                {
+                    return _mockEnvironment[variableName];
+                }
+                else
+                {
+                    return null;
+                }
+                
+            }
+
+            public void SetVariable(string variableName, string value)
+            {
+                // Check for entry not existing and add to dictionary
+                _mockEnvironment[variableName] = value;
+            }
+        }
 
         static readonly string Extended9 = @"
         {
@@ -176,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             Assert.Equal(expected, json);
         }
-
+        /*
         [Theory]
         [InlineData(null, null, typeof(ArgumentException))]
         [InlineData("", null, typeof(ArgumentException))]
@@ -201,6 +224,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             else
             {
                 string updatedImage = DockerConfig.ValidateAndGetImage(image);
+                Assert.Equal(result, updatedImage);
+            }
+        }*/
+
+        [Theory]
+        [InlineData("$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", "parentaddress:9000/comp/ea:tag1", null, "IOTEDGEGATEWAY_HOSTNAME", "parentaddress")]
+        [InlineData("$IOTEDGEGATEWAY_HOSTNAME:9000/ea:tag1", "parentaddress:9000/ea:tag1", null, "IOTEDGEGATEWAY_HOSTNAME", "parentaddress")]
+        [InlineData("$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", "$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", null, "dummyValue", "parentaddress")]
+        public void TestValidateAndGetImageWithEnvVariableInHostAddress(string image, string result, Type expectedException,
+            string variableName, string value)
+        {
+            MockEnvironment mock_env = new MockEnvironment();
+            mock_env.SetVariable(variableName, value);
+
+            if (expectedException != null)
+            {
+                Assert.Throws(expectedException, () => DockerConfig.ValidateAndGetImage(image, mock_env));
+            }
+            else
+            {
+                string updatedImage = DockerConfig.ValidateAndGetImage(image, mock_env);
                 Assert.Equal(result, updatedImage);
             }
         }

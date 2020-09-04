@@ -15,9 +15,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         // This is not the actual docker image regex, but a less strict version.
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
+        const string ImageUpstreamRegexPattern = @"^\$(?<host>.*?)(?<path>:.*)";
 
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
+        static readonly Regex ImageUpstreamRegex = new Regex(ImageUpstreamRegexPattern);
         readonly CreateContainerParameters createOptions;
+
+        internal interface IEnvironmentWrapper
+        {
+            string GetVariable(string variableName);
+        }
+        internal class EnvironmentWrapper: IEnvironmentWrapper
+        {
+            public string GetVariable(string variableName)
+            {
+                return Environment.GetEnvironmentVariable(variableName);
+            }
+        }
 
         public DockerConfig(string image)
             : this(image, string.Empty, Option.None<string>())
@@ -87,8 +101,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         internal static string ValidateAndGetImage(string image)
         {
+            return ValidateAndGetImage(image, new EnvironmentWrapper());
+        }
+
+        internal static string ValidateAndGetImage(string image, IEnvironmentWrapper env)
+        {
             image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
+
+            Match match_host = ImageUpstreamRegex.Match(image);
+            if ((match_host.Success)
+                && (match_host.Groups["host"]?.Length > 0)
+                && (match_host.Groups["path"]?.Length > 0))
+            {
+                String host_address = env.GetVariable(match_host.Groups["host"].Value);
+
+                if (host_address != null)
+                {
+                    image = host_address + match_host.Groups["path"].Value;
+                }
+            }
+
             Match match = ImageRegex.Match(image);
+
             if (match.Success)
             {
                 if (match.Groups["tag"]?.Length > 0)
