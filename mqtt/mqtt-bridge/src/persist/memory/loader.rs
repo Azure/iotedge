@@ -88,22 +88,14 @@ mod tests {
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key {
-            priority: 0,
-            offset: 1,
-            ttl: Duration::from_secs(5),
-        };
+        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -135,22 +127,14 @@ mod tests {
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key {
-            priority: 0,
-            offset: 1,
-            ttl: Duration::from_secs(5),
-        };
+        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -183,22 +167,14 @@ mod tests {
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key {
-            priority: 0,
-            offset: 1,
-            ttl: Duration::from_secs(5),
-        };
+        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -233,22 +209,14 @@ mod tests {
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key {
-            priority: 0,
-            offset: 1,
-            ttl: Duration::from_secs(5),
-        };
+        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -277,11 +245,7 @@ mod tests {
         drop(state_lock);
 
         // insert new elements
-        let key3 = Key {
-            priority: 0,
-            offset: 2,
-            ttl: Duration::from_secs(5),
-        };
+        let key3 = Key { offset: 2 };
         let pub3 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -309,11 +273,7 @@ mod tests {
         let mut state_lock = state.lock();
         let num_elements = 50 as usize;
         for i in 0..num_elements {
-            let key = Key {
-                priority: 0,
-                offset: i as u32,
-                ttl: Duration::from_secs(5),
-            };
+            let key = Key { offset: i as u32 };
             let publication = Publication {
                 topic_name: "test".to_string(),
                 qos: QoS::ExactlyOnce,
@@ -342,11 +302,7 @@ mod tests {
         let mut state_lock = state.lock();
         let num_elements = 50 as usize;
         for i in 0..num_elements {
-            let key = Key {
-                priority: 0,
-                offset: i as u32,
-                ttl: Duration::from_secs(5),
-            };
+            let key = Key { offset: i as u32 };
             let publication = Publication {
                 topic_name: "test".to_string(),
                 qos: QoS::ExactlyOnce,
@@ -359,11 +315,7 @@ mod tests {
 
         // delete an element
         let index_to_delete = 25;
-        let key_to_delete = Key {
-            priority: 0,
-            offset: 25,
-            ttl: Duration::from_secs(5),
-        };
+        let key_to_delete = Key { offset: 25 };
         state_lock.remove(&key_to_delete);
 
         // verify insertion order
@@ -390,11 +342,7 @@ mod tests {
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,

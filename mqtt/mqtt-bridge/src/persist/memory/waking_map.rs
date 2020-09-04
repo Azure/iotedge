@@ -39,9 +39,7 @@ impl WakingMap {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::BTreeMap, pin::Pin, sync::Arc, task::Context, task::Poll, time::Duration,
-    };
+    use std::{collections::BTreeMap, pin::Pin, sync::Arc, task::Context, task::Poll};
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt};
@@ -56,11 +54,7 @@ mod tests {
         let state = BTreeMap::new();
         let mut state = WakingMap::new(state);
 
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -78,11 +72,7 @@ mod tests {
         let state = BTreeMap::new();
         let mut state = WakingMap::new(state);
 
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -99,11 +89,7 @@ mod tests {
     #[tokio::test]
     async fn insert_wakes_stream() {
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,

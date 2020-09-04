@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{collections::BTreeMap, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -30,16 +30,9 @@ impl<'a> Persist<'a> for InMemoryPersist {
         InMemoryPersist { state, offset }
     }
 
-    async fn insert(
-        &mut self,
-        priority: u32,
-        ttl: Duration,
-        message: Publication,
-    ) -> Result<Key, PersistError> {
+    async fn insert(&mut self, message: Publication) -> Result<Key, PersistError> {
         let key = Key {
             offset: self.offset,
-            priority,
-            ttl,
         };
 
         let mut state_lock = self.state.lock();
@@ -61,8 +54,6 @@ impl<'a> Persist<'a> for InMemoryPersist {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
     use matches::assert_matches;
@@ -76,16 +67,8 @@ mod tests {
         let mut persistence = InMemoryPersist::new();
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
-        let key2 = Key {
-            priority: 0,
-            offset: 1,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
+        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -100,14 +83,8 @@ mod tests {
         };
 
         // insert some elements
-        persistence
-            .insert(0, Duration::from_secs(5), pub1.clone())
-            .await
-            .unwrap();
-        persistence
-            .insert(0, Duration::from_secs(5), pub2.clone())
-            .await
-            .unwrap();
+        persistence.insert(pub1.clone()).await.unwrap();
+        persistence.insert(pub2.clone()).await.unwrap();
 
         // init loader
         let batch_size: usize = 5;
@@ -128,16 +105,8 @@ mod tests {
         let mut persistence = InMemoryPersist::new();
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
-        let key2 = Key {
-            priority: 0,
-            offset: 1,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
+        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -152,10 +121,7 @@ mod tests {
         };
 
         // insert some elements
-        persistence
-            .insert(0, Duration::from_secs(5), pub1.clone())
-            .await
-            .unwrap();
+        persistence.insert(pub1.clone()).await.unwrap();
 
         // init loader
         let batch_size: usize = 1;
@@ -166,10 +132,7 @@ mod tests {
         persistence.remove(key1).await.unwrap();
 
         // add a second message and verify this is returned first by loader
-        persistence
-            .insert(0, Duration::from_secs(5), pub2.clone())
-            .await
-            .unwrap();
+        persistence.insert(pub2.clone()).await.unwrap();
         let extracted = loader.next().await.unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
@@ -180,11 +143,7 @@ mod tests {
         let mut persistence = InMemoryPersist::new();
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
 
         let removal = persistence.remove(key1).await;
         assert_matches!(removal, Err(PersistError::Removal()));
@@ -196,11 +155,7 @@ mod tests {
         let mut persistence = InMemoryPersist::new();
 
         // setup data
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -215,14 +170,8 @@ mod tests {
         };
 
         // insert 2 elements
-        persistence
-            .insert(0, Duration::from_secs(5), pub1.clone())
-            .await
-            .unwrap();
-        persistence
-            .insert(0, Duration::from_secs(5), pub2.clone())
-            .await
-            .unwrap();
+        persistence.insert(pub1.clone()).await.unwrap();
+        persistence.insert(pub2.clone()).await.unwrap();
 
         // init loader with batch size 1
         let batch_size: usize = 1;

@@ -1,6 +1,3 @@
-use std::cmp::Ordering;
-use std::time::Duration;
-
 use async_trait::async_trait;
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
@@ -15,12 +12,7 @@ trait Persist<'a> {
 
     fn new() -> Self;
 
-    async fn insert(
-        &mut self,
-        priority: u32,
-        ttl: Duration,
-        message: Publication,
-    ) -> Result<Key, PersistError>;
+    async fn insert(&mut self, message: Publication) -> Result<Key, PersistError>;
 
     async fn remove(&mut self, key: Key) -> Result<bool, PersistError>;
 
@@ -28,19 +20,10 @@ trait Persist<'a> {
 }
 
 // Keys used in persistence.
-// The interface takes priority and ttl
-// But since we are ignoring these fields will order by offset only
-#[derive(Eq, Ord, PartialEq, Clone, Debug)]
+// Ordered by offset
+#[derive(Eq, Ord, PartialOrd, PartialEq, Clone, Debug)]
 pub struct Key {
-    priority: u32,
     offset: u32,
-    ttl: Duration,
-}
-
-impl PartialOrd for Key {
-    fn partial_cmp(&self, other: &Key) -> Option<Ordering> {
-        Some(self.offset.cmp(&other.offset))
-    }
 }
 
 #[derive(Debug, Error)]
@@ -51,62 +34,15 @@ pub enum PersistError {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use crate::persist::Key;
 
     #[test]
     fn key_offset_ordering() {
         // ordered by offset
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
-        let key2 = Key {
-            priority: 0,
-            offset: 1,
-            ttl: Duration::from_secs(5),
-        };
+        let key1 = Key { offset: 0 };
+        let key2 = Key { offset: 1 };
         assert!(key2 > key1);
         assert!(key2 != key1);
         assert!(key1 < key2);
-    }
-
-    #[test]
-    fn key_priority_ordering() {
-        // not ordered by priority
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
-        let key2 = Key {
-            priority: 1,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
-        assert_eq!(key1 > key2, false);
-        assert_eq!(key1 < key2, false);
-        assert!(key1 != key2);
-    }
-
-    // TODO REVIEW: Does this guarantee that btreemap is not ordered by ttl? Why this weird behavior with equals?
-    #[test]
-    fn key_ttl_ordering() {
-        // not ordered by ttl
-        let key1 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(10),
-        };
-        let key2 = Key {
-            priority: 0,
-            offset: 0,
-            ttl: Duration::from_secs(5),
-        };
-        assert_eq!(key1 > key2, false);
-        assert_eq!(key1 < key2, false);
-        assert!(key1 != key2);
     }
 }
