@@ -199,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             Assert.Equal(expected, json);
         }
-        /*
+        
         [Theory]
         [InlineData(null, null, typeof(ArgumentException))]
         [InlineData("", null, typeof(ArgumentException))]
@@ -226,7 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string updatedImage = DockerConfig.ValidateAndGetImage(image);
                 Assert.Equal(result, updatedImage);
             }
-        }*/
+        }
 
         [Theory]
         [InlineData("$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", "parentaddress:9000/comp/ea:tag1", null, "IOTEDGEGATEWAY_HOSTNAME", "parentaddress")]
