@@ -1,8 +1,6 @@
 use crate::IntoResponse;
 use crate::error::{Error, ErrorKind};
 
-use std::sync::{Arc, Mutex};
-
 use edgelet_core::{SecretManager, SecretOperation};
 use edgelet_http::Error as HttpError;
 use edgelet_http::route::{Handler, Parameters};
@@ -12,13 +10,13 @@ use futures::{Future, IntoFuture};
 use hyper::{Body, Request, Response};
 
 pub struct RefreshSecret<S> {
-    secret_manager: Arc<Mutex<S>>
+    secret_manager: S
 }
 
 impl<S> RefreshSecret<S> {
     pub fn new(secret_manager: S) -> Self {
         Self {
-            secret_manager: Arc::new(Mutex::new(secret_manager))
+            secret_manager
         }
     }
 }
@@ -37,8 +35,7 @@ where
             })
             .map(|(name, id)| {
                 let id = format!("{}/{}", name, id);
-                let secret_manager = self.secret_manager.lock().unwrap();
-                secret_manager.refresh(&id)
+                self.secret_manager.refresh(&id)
                     .then(|result| {
                         result.context(ErrorKind::SecretOperation(SecretOperation::Refresh(id)))?;
                         Ok(())

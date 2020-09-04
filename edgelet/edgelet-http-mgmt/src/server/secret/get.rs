@@ -1,8 +1,6 @@
 use crate::IntoResponse;
 use crate::error::{Error, ErrorKind};
 
-use std::sync::{Arc, Mutex};
-
 use edgelet_core::{SecretManager, SecretOperation};
 use edgelet_http::Error as HttpError;
 use edgelet_http::route::{Handler, Parameters};
@@ -13,13 +11,13 @@ use hyper::{Body, Request, Response};
 use serde_json::to_string;
 
 pub struct GetSecret<S> {
-    secret_manager: Arc<Mutex<S>>
+    secret_manager: S
 }
 
 impl<S> GetSecret<S> {
     pub fn new(secret_manager: S) -> Self {
         Self {
-            secret_manager: Arc::new(Mutex::new(secret_manager))
+            secret_manager
         }
     }
 }
@@ -38,8 +36,7 @@ where
             })
             .map(|(name, id)| {
                 let id = format!("{}/{}", name, id);
-                let secret_manager = self.secret_manager.lock().unwrap();
-                secret_manager.get(&id)
+                self.secret_manager.get(&id)
                     .then(|result| {
                         let val = result.context(ErrorKind::SecretOperation(SecretOperation::Get(id)))?;
                         Ok(val)
