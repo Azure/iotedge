@@ -140,6 +140,12 @@ where
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
+    // TODO remove this call when broker readiness is implemented
+    tokio::spawn(async move {
+        tokio::time::delay_for(std::time::Duration::from_millis(500)).await;
+        tx.send(()).expect("ready signal");
+    });
+
     // Start serving new connections
     let serve = server.serve(shutdown);
 
