@@ -6,13 +6,14 @@ use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
 use crate::persist::{
-    memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Persist, QueueError,
+    memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Persist,
+    PersistError,
 };
 
 mod loader;
 mod waking_map;
 
-// In memory queue implementation used for the bridge
+// In memory persistence implementation used for the bridge
 struct InMemoryPersist {
     state: Arc<Mutex<WakingMap>>,
     offset: u32,
@@ -34,7 +35,7 @@ impl<'a> Persist<'a> for InMemoryPersist {
         priority: u32,
         ttl: Duration,
         message: Publication,
-    ) -> Result<Key, QueueError> {
+    ) -> Result<Key, PersistError> {
         let key = Key {
             offset: self.offset,
             priority,
@@ -47,9 +48,9 @@ impl<'a> Persist<'a> for InMemoryPersist {
         Ok(key)
     }
 
-    async fn remove(&mut self, key: Key) -> Result<bool, QueueError> {
+    async fn remove(&mut self, key: Key) -> Result<bool, PersistError> {
         let mut state_lock = self.state.lock();
-        state_lock.remove(&key).ok_or(QueueError::Removal())?;
+        state_lock.remove(&key).ok_or(PersistError::Removal())?;
         Ok(true)
     }
 
@@ -67,12 +68,12 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
-    use crate::persist::{memory::InMemoryPersist, Key, Persist, QueueError};
+    use crate::persist::{memory::InMemoryPersist, Key, Persist, PersistError};
 
     #[tokio::test]
     async fn insert() {
         // setup state
-        let mut queue = InMemoryPersist::new();
+        let mut persistence = InMemoryPersist::new();
 
         // setup data
         let key1 = Key {
@@ -99,18 +100,18 @@ mod tests {
         };
 
         // insert some elements
-        queue
+        persistence
             .insert(0, Duration::from_secs(5), pub1.clone())
             .await
             .unwrap();
-        queue
+        persistence
             .insert(0, Duration::from_secs(5), pub2.clone())
             .await
             .unwrap();
 
         // init loader
         let batch_size: usize = 5;
-        let mut loader = queue.loader(batch_size).await;
+        let mut loader = persistence.loader(batch_size).await;
 
         // make sure same publications come out in correct order
         let extracted1 = loader.next().await.unwrap();
@@ -124,7 +125,7 @@ mod tests {
     #[tokio::test]
     async fn remove() {
         // setup state
-        let mut queue = InMemoryPersist::new();
+        let mut persistence = InMemoryPersist::new();
 
         // setup data
         let key1 = Key {
@@ -151,21 +152,21 @@ mod tests {
         };
 
         // insert some elements
-        queue
+        persistence
             .insert(0, Duration::from_secs(5), pub1.clone())
             .await
             .unwrap();
 
         // init loader
         let batch_size: usize = 1;
-        let mut loader = queue.loader(batch_size).await;
+        let mut loader = persistence.loader(batch_size).await;
 
         // process first message, forcing loader to get new batch on the next read
         loader.next().await.unwrap();
-        queue.remove(key1).await.unwrap();
+        persistence.remove(key1).await.unwrap();
 
         // add a second message and verify this is returned first by loader
-        queue
+        persistence
             .insert(0, Duration::from_secs(5), pub2.clone())
             .await
             .unwrap();
@@ -176,7 +177,7 @@ mod tests {
     #[tokio::test]
     async fn remove_key_that_dne() {
         // setup state
-        let mut queue = InMemoryPersist::new();
+        let mut persistence = InMemoryPersist::new();
 
         // setup data
         let key1 = Key {
@@ -185,14 +186,14 @@ mod tests {
             ttl: Duration::from_secs(5),
         };
 
-        let removal = queue.remove(key1).await;
-        assert_matches!(removal, Err(QueueError::Removal()));
+        let removal = persistence.remove(key1).await;
+        assert_matches!(removal, Err(PersistError::Removal()));
     }
 
     #[tokio::test]
     async fn get_loader_with_correct_batch_size() {
         // setup state
-        let mut queue = InMemoryPersist::new();
+        let mut persistence = InMemoryPersist::new();
 
         // setup data
         let key1 = Key {
@@ -214,20 +215,20 @@ mod tests {
         };
 
         // insert 2 elements
-        queue
+        persistence
             .insert(0, Duration::from_secs(5), pub1.clone())
             .await
             .unwrap();
-        queue
+        persistence
             .insert(0, Duration::from_secs(5), pub2.clone())
             .await
             .unwrap();
 
         // init loader with batch size 1
         let batch_size: usize = 1;
-        let mut loader = queue.loader(batch_size).await;
+        let mut loader = persistence.loader(batch_size).await;
 
-        // the queue never removed any elements
+        // the persistence never removed any elements
         // therefore the loader should get the same element in the two batches of size 1
         let extracted1 = loader.next().await.unwrap();
         let extracted2 = loader.next().await.unwrap();

@@ -6,12 +6,12 @@ use parking_lot::{Mutex, MutexGuard};
 
 use crate::persist::{memory::waking_map::WakingMap, Key};
 
-// Message loader used to extract elements from bridge queues
-// This component is responsible for message extraction from the queue
-// It works by grabbing a snapshot of the most important messages from the queue
+// Message loader used to extract elements from bridge persistence
+// This component is responsible for message extraction from the persistence
+// It works by grabbing a snapshot of the most important messages from the persistence
 // Then, will return these elements in order
 // When the batch is exhausted it will grab a new batch
-// If no elements are removed from the queue, the second batch will be identical to first
+// If no elements are removed from the persistence, the second batch will be identical to first
 pub struct InMemoryMessageLoader {
     state: Arc<Mutex<WakingMap>>,
     batch: IntoIter<(Key, Publication)>,
@@ -20,8 +20,7 @@ pub struct InMemoryMessageLoader {
 
 impl InMemoryMessageLoader {
     pub async fn new(state: Arc<Mutex<WakingMap>>, batch_size: usize) -> Self {
-        let state_lock = state.lock();
-        let batch = get_elements(&state_lock, batch_size);
+        let batch: IntoIter<(Key, Publication)> = Vec::new().into_iter();
 
         InMemoryMessageLoader {
             state: Arc::clone(&state),
@@ -31,7 +30,6 @@ impl InMemoryMessageLoader {
     }
 }
 
-// TODO REVIEW: How to remove busy-wait?
 impl Stream for InMemoryMessageLoader {
     type Item = (Key, Publication);
 

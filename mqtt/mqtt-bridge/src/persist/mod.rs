@@ -8,7 +8,7 @@ use thiserror::Error;
 
 mod memory;
 
-// Queue used in bridge.
+// Persistence used in bridge.
 #[async_trait]
 trait Persist<'a> {
     type Loader: Stream;
@@ -20,17 +20,16 @@ trait Persist<'a> {
         priority: u32,
         ttl: Duration,
         message: Publication,
-    ) -> Result<Key, QueueError>;
+    ) -> Result<Key, PersistError>;
 
-    async fn remove(&mut self, key: Key) -> Result<bool, QueueError>;
+    async fn remove(&mut self, key: Key) -> Result<bool, PersistError>;
 
     async fn loader(&'a mut self, batch_size: usize) -> Self::Loader;
 }
 
-// Keys used in the queue.
-// Ordered by offset only.
-// When we implement priority and ttl for iothub telemetry we can order by priority first.
-// Unordered by ttl.
+// Keys used in persistence.
+// The interface takes priority and ttl
+// But since we are ignoring these fields will order by offset only
 #[derive(Eq, Ord, PartialEq, Clone, Debug)]
 pub struct Key {
     priority: u32,
@@ -45,8 +44,8 @@ impl PartialOrd for Key {
 }
 
 #[derive(Debug, Error)]
-pub enum QueueError {
-    #[error("Failed to remove messages from queue")]
+pub enum PersistError {
+    #[error("Failed to remove messages from persistence")]
     Removal(),
 }
 
