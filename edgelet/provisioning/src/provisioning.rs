@@ -761,8 +761,10 @@ pub fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Err
 }
 
 pub fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
-    println!("3");
-    let mut file = File::open(path).context(ErrorKind::CouldNotRestore)?;
+    println!("3: {:#?}", path);
+    let file = File::open(path);
+    println!("3.5: {:#?}", file);
+    let mut file = file.context(ErrorKind::CouldNotRestore)?;
     println!("4");
     let mut buffer = String::new();
     let _ = file
