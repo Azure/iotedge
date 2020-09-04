@@ -13,8 +13,6 @@ jobs:
     variables:
       build.registry.address: edgebuilds.azurecr.io
       build.registry.user: EdgeBuilds
-      registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease
     steps: 
       - bash: |
             docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
@@ -337,8 +335,6 @@ jobs:
     variables:
       build.registry.address: edgebuilds.azurecr.io
       build.registry.user: EdgeBuilds
-      registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease
     steps: 
       - script: |
             docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
