@@ -1006,7 +1006,7 @@ function run_test()
 function test_setup() {
     validate_test_parameters
 
-    if [ $BYPASS_EDGE_INSTALLATION -ne "--bypass-edge-installation" ]; then
+    if [ -z $BYPASS_EDGE_INSTALLATION ]; then
         clean_up
     fi
     prepare_test_from_artifacts
