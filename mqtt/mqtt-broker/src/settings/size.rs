@@ -181,6 +181,8 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     #[test_case("123gb"; "when using gb")]
     fn it_fails_with_too_big_for_x32(input: &str) {
+        use crate::settings::size::ParseHumanSizeError;
+
         let size: Result<HumanSize, ParseHumanSizeError> = input.parse();
         assert_matches!(size, Err(ParseHumanSizeError::TooBig(_)));
     }
