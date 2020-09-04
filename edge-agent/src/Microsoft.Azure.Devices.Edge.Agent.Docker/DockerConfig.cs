@@ -15,7 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         // This is not the actual docker image regex, but a less strict version.
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
-        const string ImageUpstreamRegexPattern = @"^\$(?<host>.*?)(?<path>:.*)";
+        // Match for an environment variable in the official POSIX format $ + "letter" + "letter|digit"
+        // Then the port has to be specified with ":"
+        const string ImageUpstreamRegexPattern = @"^\$(?<host>[a-zA-Z_][a-zA-Z0-9_]*?)(?<path>:.*)";
 
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
         static readonly Regex ImageUpstreamRegex = new Regex(ImageUpstreamRegexPattern);
@@ -25,7 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             string GetVariable(string variableName);
         }
-        internal class EnvironmentWrapper: IEnvironmentWrapper
+
+        internal class EnvironmentWrapper : IEnvironmentWrapper
         {
             public string GetVariable(string variableName)
             {
@@ -108,16 +111,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
 
-            Match match_host = ImageUpstreamRegex.Match(image);
-            if ((match_host.Success)
-                && (match_host.Groups["host"]?.Length > 0)
-                && (match_host.Groups["path"]?.Length > 0))
+            if (image.Substring(0, 1) == "$")
             {
-                String host_address = env.GetVariable(match_host.Groups["host"].Value);
-
-                if (host_address != null)
+                Match matchHost = ImageUpstreamRegex.Match(image);
+                if (matchHost.Success
+                    && (matchHost.Groups["host"]?.Length > 0)
+                    && (matchHost.Groups["path"]?.Length > 0)
+                    && (env != null))
                 {
-                    image = host_address + match_host.Groups["path"].Value;
+                    string enVarName = matchHost.Groups["host"].Value;
+
+                    string hostAddress = env.GetVariable(enVarName);
+
+                    if (hostAddress != null)
+                    {
+                        image = hostAddress + matchHost.Groups["path"].Value;
+                    }
+                }
+                else
+                {
+                    throw new ArgumentException($"Image {image} is not in the right format. If your intention is to use an environment variable, check the port is specified.");
                 }
             }
 

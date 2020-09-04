@@ -36,27 +36,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config16 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.Some("4562124545"));
         static readonly DockerConfig ConfigUnknown = new DockerConfig("unknown");
         static readonly DockerConfig ConfigUnknownExpected = new DockerConfig("unknown:latest");
-        internal class MockEnvironment: DockerConfig.IEnvironmentWrapper
+        internal class MockEnvironment : DockerConfig.IEnvironmentWrapper
         {
-            public Dictionary<string, string> _mockEnvironment = new Dictionary<string, string>();
+            public Dictionary<string, string> Map = new Dictionary<string, string>();
 
             public string GetVariable(string variableName)
             {
-                if(_mockEnvironment.ContainsKey(variableName))
+                if (this.Map.ContainsKey(variableName))
                 {
-                    return _mockEnvironment[variableName];
+                    return this.Map[variableName];
                 }
                 else
                 {
                     return null;
                 }
-                
             }
 
             public void SetVariable(string variableName, string value)
             {
                 // Check for entry not existing and add to dictionary
-                _mockEnvironment[variableName] = value;
+               this.Map[variableName] = value;
             }
         }
 
@@ -199,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             Assert.Equal(expected, json);
         }
-        
+
         [Theory]
         [InlineData(null, null, typeof(ArgumentException))]
         [InlineData("", null, typeof(ArgumentException))]
@@ -232,8 +231,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [InlineData("$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", "parentaddress:9000/comp/ea:tag1", null, "IOTEDGEGATEWAY_HOSTNAME", "parentaddress")]
         [InlineData("$IOTEDGEGATEWAY_HOSTNAME:9000/ea:tag1", "parentaddress:9000/ea:tag1", null, "IOTEDGEGATEWAY_HOSTNAME", "parentaddress")]
         [InlineData("$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", "$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", null, "dummyValue", "parentaddress")]
-        public void TestValidateAndGetImageWithEnvVariableInHostAddress(string image, string result, Type expectedException,
-            string variableName, string value)
+        [InlineData("$1OTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", "$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", typeof(ArgumentException), "IOTEDGEGATEWAY_HOSTNAME", "parentaddress")]
+        [InlineData("$1OTEDGEGATEWAY_HOSTNAME/comp/ea:tag1", "$IOTEDGEGATEWAY_HOSTNAME:9000/comp/ea:tag1", typeof(ArgumentException), "IOTEDGEGATEWAY_HOSTNAME", "parentaddress")]
+        [InlineData("$iotedgegateway_hostname32:9000/comp/ea:tag1", "parentaddress:9000/comp/ea:tag1", null, "iotedgegateway_hostname32", "parentaddress")]
+        [InlineData("$:9000/comp/ea:tag1", "parentaddress:9000/comp/ea:tag1", typeof(ArgumentException), "iotedgegateway_hostname32", "parentaddress")]
+
+        public void TestValidateAndGetImageWithEnvVariableInHostAddress(string image, string result, Type expectedException, string variableName, string value)
         {
             MockEnvironment mock_env = new MockEnvironment();
             mock_env.SetVariable(variableName, value);
