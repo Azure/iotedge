@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn StdError + Send + Sync>> {
     });
     let auth_service = util::InjectUnixCredentials::new(routes);
 
-    unix::with_umask(0o000, || Server::bind_unix(skt))?
+    unix::with_umask(0o111, || Server::bind_unix(skt))?
         .serve(auth_service)
         .await?;
 

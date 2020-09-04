@@ -99,6 +99,7 @@ dependencies = [
  "aziot-key-client-async",
  "aziot-key-common",
  "bytes",
+ "env_logger",
  "failure",
  "futures",
  "http-common",

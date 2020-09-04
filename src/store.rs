@@ -1,5 +1,5 @@
 use crate::config::Configuration;
-use crate::constants::{AAD_BYTES, AES_KEY_BYTES, AKV_API_VERSION, IV_BYTES, KEY_SERVICE_URI};
+use crate::constants::{AAD_BYTES, AES_KEY_BYTES, AKV_API_VERSION, IV_BYTES};
 use crate::error::{Error, ErrorKind};
 
 use std::sync::Arc;
@@ -19,7 +19,6 @@ use tokio::net::unix::UCred;
 lazy_static! {
     static ref REQWEST: Arc<ReqwestClient> = Arc::new(ReqwestClient::new());
     static ref AAD_CLIENT: Auth = Auth::new(REQWEST.clone(), "https://vault.azure.net");
-    static ref KEY_CLIENT: KeyClient = KeyClient::new(Connector::new(&KEY_SERVICE_URI.parse().unwrap()).unwrap());
     static ref VAULT_REGEX: Regex = Regex::new(r"(?P<vault_id>[0-9a-zA-Z-]+)/(?P<secret_id>[0-9a-zA-Z-]+)(?:/(?P<secret_version>[0-9a-zA-Z-]+))?").unwrap();
 }
 
@@ -52,13 +51,16 @@ pub trait StoreBackend: Send + Sync {
 //       invariant over backend implementation
 pub(crate) struct Store<T: StoreBackend> {
     backend: T,
+    key_client: KeyClient,
     config: Configuration
 }
 
 impl<T: StoreBackend> Store<T> {
     pub fn new(backend: T, config: Configuration) -> Self {
+        let key_client = KeyClient::new(Connector::new(&config.local.key_service.parse().unwrap()).unwrap());
         Self {
             backend,
+            key_client,
             config
         }
     }
@@ -73,6 +75,39 @@ impl<T: StoreBackend> Store<T> {
         )
     }
 
+    async fn encrypt(&self, id: &str, value: String) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Error> {
+        let rng = SystemRandom::new();
+
+        let key_handle = self.key_client.create_key_if_not_exists(
+                &id,
+                CreateKeyValue::Generate { length: AES_KEY_BYTES }
+            )
+            .await
+            .context(ErrorKind::KeyService("GetKey"))?;
+
+        let iv = generate::<[u8; IV_BYTES]>(&rng)
+            .context(ErrorKind::RandomNumberGenerator)?
+            .expose()
+            .to_vec();
+        let aad = generate::<[u8; AAD_BYTES]>(&rng)
+            .context(ErrorKind::RandomNumberGenerator)?
+            .expose()
+            .to_vec();
+
+        let ctext = self.key_client.encrypt(
+                &key_handle,
+                EncryptMechanism::Aead {
+                    iv: iv.clone(),
+                    aad: aad.clone()
+                },
+                value.as_bytes()
+            )
+            .await
+            .context(ErrorKind::KeyService("Encrypt"))?;
+
+        Ok((ctext, iv, aad))
+    }
+
     pub async fn get_secret(&self, creds: UCred, id: String) -> Result<String, Error> {
         let principal_name = self.authorized_principal(creds)?;
         let id = format!("{}/{}", principal_name, id);
@@ -81,13 +116,13 @@ impl<T: StoreBackend> Store<T> {
             .read_record(&id)
             .context(ErrorKind::Backend("Read"))?;
         if let Some(record) = record {
-            let key_handle = KEY_CLIENT.create_key_if_not_exists(
+            let key_handle = self.key_client.create_key_if_not_exists(
                     &id,
                     CreateKeyValue::Generate { length: AES_KEY_BYTES }
                 )
                 .await
                 .context(ErrorKind::KeyService("GetKey"))?;
-            let pbytes = KEY_CLIENT.decrypt(
+            let pbytes = self.key_client.decrypt(
                     &key_handle,
                     EncryptMechanism::Aead {
                         iv: record.iv,
@@ -116,7 +151,7 @@ impl<T: StoreBackend> Store<T> {
             .map(|res| res.map(|opt| opt.upstream))
             .unwrap_or_default()
             .flatten();
-        let (ciphertext, iv, aad) = encrypt(&id, value).await?;
+        let (ciphertext, iv, aad) = self.encrypt(&id, value).await?;
         self.backend
             .write_record(&id, Record {
                 ciphertext,
@@ -175,7 +210,7 @@ impl<T: StoreBackend> Store<T> {
             let AKVSecret { value } = res.json::<AKVSecret>().await
                 .map_err(|_| ErrorKind::Azure("UnexpectedAPIResult"))?;
             
-            let (ciphertext, iv, aad) = encrypt(&id, value).await?;
+            let (ciphertext, iv, aad) = self.encrypt(&id, value).await?;
             self.backend
                 .write_record(&id, Record {
                     ciphertext: ciphertext,
@@ -190,37 +225,4 @@ impl<T: StoreBackend> Store<T> {
             Err(Error::from(ErrorKind::Azure("BadAKVSpecifier")))
         }
     }
-}
-
-async fn encrypt(id: &str, value: String) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Error> {
-    let rng = SystemRandom::new();
-
-    let key_handle = KEY_CLIENT.create_key_if_not_exists(
-            &id,
-            CreateKeyValue::Generate { length: AES_KEY_BYTES }
-        )
-        .await
-        .context(ErrorKind::KeyService("GetKey"))?;
-
-    let iv = generate::<[u8; IV_BYTES]>(&rng)
-        .context(ErrorKind::RandomNumberGenerator)?
-        .expose()
-        .to_vec();
-    let aad = generate::<[u8; AAD_BYTES]>(&rng)
-        .context(ErrorKind::RandomNumberGenerator)?
-        .expose()
-        .to_vec();
-
-    let ctext = KEY_CLIENT.encrypt(
-            &key_handle,
-            EncryptMechanism::Aead {
-                iv: iv.clone(),
-                aad: aad.clone()
-            },
-            value.as_bytes()
-        )
-        .await
-        .context(ErrorKind::KeyService("Encrypt"))?;
-
-    Ok((ctext, iv, aad))
 }

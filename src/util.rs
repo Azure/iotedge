@@ -40,8 +40,7 @@ where
         let service = self.0.clone();
         let creds = conn.peer_cred();
         Box::pin(async move {
-            let creds = creds?;
-            Ok(AuthenticatedService::new(service, creds))
+            Ok(AuthenticatedService::new(service, creds?))
         })
     }
 }

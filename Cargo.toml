@@ -5,8 +5,8 @@ authors = ["R25l84IHeXjIxy6HO1QXn0y0Dq9mt8EN <67037013+R25l84IHeXjIxy6HO1QXn0y0D
 edition = "2018"
 
 [dependencies]
-# base64 = "0.12"
 bytes = "0.5"
+env_logger = "0.7"
 failure = "0.1"
 hyper = "0.13"
 hyperlocal = "0.7"
@@ -18,7 +18,6 @@ futures = "0.3"
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
-# percent-encoding = "2.1"
 regex = "1.3"
 reqwest = "0.10"
 ring = { version = "0.16", features = ["std"] }
@@ -29,7 +28,7 @@ tokio = { version = "0.2", features = ["macros"] }
 toml = "0.5"
 warp = "0.2"
 
-rocksdb = { version = "0.15", optional = true }
+rocksdb = { version = "0.15", default-features = false, optional = true }
 
 [features]
 default = ["rocksdb"]

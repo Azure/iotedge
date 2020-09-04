@@ -1,4 +1,4 @@
-use crate::constants::STATE_DIRECTORY;
+use crate::constants::{KEY_SERVICE_URI, STATE_DIRECTORY};
 
 use std::fs::File;
 use std::io::Read;
@@ -12,6 +12,10 @@ fn default_storage_location() -> String {
 
 fn default_encryption_source() -> EncryptionSource {
     EncryptionSource::Automatic
+}
+
+fn default_key_service_uri() -> String {
+    KEY_SERVICE_URI.to_string()
 }
 
 fn default_device_cert() -> String {
@@ -52,7 +56,9 @@ pub struct LocalSettings {
     #[serde(default = "default_storage_location")]
     pub storage_location: String,
     #[serde(default = "default_encryption_source")]
-    pub encryption_source: EncryptionSource
+    pub encryption_source: EncryptionSource,
+    #[serde(default = "default_key_service_uri")]
+    pub key_service: String
 }
 
 #[derive(Clone, Debug, Deserialize)]
