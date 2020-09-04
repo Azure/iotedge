@@ -1,6 +1,7 @@
 use std::{
     error::Error as StdError,
     fmt::{Display, Formatter, Result as FmtResult},
+    net::SocketAddr,
     path::PathBuf,
 };
 
@@ -80,8 +81,7 @@ pub enum InitializeBrokerError {
     MissingSocketAddr(String),
 
     #[error("An error occurred binding the server's listening socket on {0}.")]
-    //TODO change to sockaddr
-    BindServer(String, #[source] std::io::Error),
+    BindServer(SocketAddr, #[source] std::io::Error),
 
     #[error("An error occurred getting local address.")]
     ConnectionLocalAddress(#[source] tokio::io::Error),

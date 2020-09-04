@@ -298,6 +298,7 @@ impl Listener {
                     // start listening incoming connections on given network address
                     let mut incoming = transport.incoming().await?;
 
+                    let addr = incoming.local_addr()?;
                     info!("Listening on address {}", addr);
 
                     loop {

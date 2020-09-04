@@ -70,14 +70,14 @@ impl Transport {
             Protocol::Tcp(addr) => {
                 let tcp = TcpListener::bind(&addr)
                     .await
-                    .map_err(|e| InitializeBrokerError::BindServer(addr.to_string(), e))?;
+                    .map_err(|e| InitializeBrokerError::BindServer(addr, e))?;
 
                 Ok(Incoming::Tcp(IncomingTcp::new(tcp)))
             }
             Protocol::Tls(addr, identity) => {
                 let tcp = TcpListener::bind(&addr)
                     .await
-                    .map_err(|e| InitializeBrokerError::BindServer(addr.to_string(), e))?;
+                    .map_err(|e| InitializeBrokerError::BindServer(addr, e))?;
                 let acceptor = prepare_acceptor(identity)?;
 
                 Ok(Incoming::Tls(IncomingTls::new(tcp, acceptor)))
@@ -142,7 +142,6 @@ pub enum Incoming {
 }
 
 impl Incoming {
-    #[cfg(test)]
     pub fn local_addr(&self) -> Result<SocketAddr, InitializeBrokerError> {
         let addr = match self {
             Self::Tcp(incoming) => incoming.listener.local_addr(),

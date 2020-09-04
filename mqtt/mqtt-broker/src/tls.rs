@@ -170,7 +170,7 @@ mod tests {
         let connector = builder.build();
 
         let addr = format!("127.0.0.1:{}", port);
-        let tcp = TcpStream::connect(dbg!(addr)).await.unwrap();
+        let tcp = TcpStream::connect(addr).await.unwrap();
 
         let config = connector.configure().unwrap();
         let mut tls = connect(config, "localhost", tcp).await.unwrap();
