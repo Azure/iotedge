@@ -1,4 +1,11 @@
 {
-    "subscriptions": [],
-    "forwards": []
+    "upstream":
+    {
+        "keep_alive": "1m",
+        "clean_session": true,
+        "subscriptions": [],
+        "forwards": []
+    },
+    "remotes": [],
+    "messages": {}
 }

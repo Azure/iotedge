@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -34,23 +33,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId)
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string onBehalfOfDevice)
         {
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            Preconditions.CheckNonWhiteSpace(onBehalfOfDevice, nameof(onBehalfOfDevice));
+
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
                 IDeviceScopeApiClient client;
+                ScopeResult res;
 
                 if (this.nestedEdgeEnabled)
                 {
                     client = this.securityScopesApiClientProvider.CreateNestedDeviceScopeClient();
+                    res = await client.GetIdentityOnBehalfOfAsync(deviceId, Option.None<string>(), onBehalfOfDevice);
                 }
                 else
                 {
                     client = this.securityScopesApiClientProvider.CreateDeviceScopeClient();
+                    res = await client.GetIdentityAsync(deviceId, null);
                 }
 
-                ScopeResult res = await client.GetIdentityAsync(deviceId, null);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(deviceId);
             }
@@ -79,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             }
                             else
                             {
-                                Events.NullDevicesResult(deviceId);
+                                Events.NoResult(deviceId);
                             }
 
                             return Option.None<ServiceIdentity>();
@@ -94,24 +98,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return serviceIdentityResult;
         }
 
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId)
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, string onBehalfOfDevice)
         {
+            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            Preconditions.CheckNonWhiteSpace(onBehalfOfDevice, nameof(onBehalfOfDevice));
+
             string id = $"{deviceId}/{moduleId}";
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
 
             try
             {
                 IDeviceScopeApiClient client;
+                ScopeResult res;
+
                 if (this.nestedEdgeEnabled)
                 {
                     client = this.securityScopesApiClientProvider.CreateNestedDeviceScopeClient();
+                    res = await client.GetIdentityOnBehalfOfAsync(deviceId, Option.Some(moduleId), onBehalfOfDevice);
                 }
                 else
                 {
                     client = this.securityScopesApiClientProvider.CreateDeviceScopeClient();
+                    res = await client.GetIdentityAsync(deviceId, moduleId);
                 }
 
-                ScopeResult res = await client.GetIdentityAsync(deviceId, moduleId);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(id);
             }
@@ -140,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             }
                             else
                             {
-                                Events.NullDevicesResult(id);
+                                Events.NoResult(id);
                             }
 
                             return Option.None<ServiceIdentity>();
@@ -189,9 +200,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.UnexpectedResult, $"Expected to receive {expected} {entityName} but received {count} instead, for {id}");
             }
 
-            public static void NullDevicesResult(string id)
+            public static void NoResult(string id)
             {
-                Log.LogWarning((int)EventIds.UnexpectedResult, $"Received null devices in device scope result for {id}");
+                Log.LogWarning((int)EventIds.UnexpectedResult, $"Received no identity in device scope result for {id}");
             }
 
             public static void NullResult()

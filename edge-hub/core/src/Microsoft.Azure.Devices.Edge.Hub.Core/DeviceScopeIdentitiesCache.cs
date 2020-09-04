@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
+        readonly string edgeDeviceId;
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
         readonly IServiceIdentityHierarchy serviceIdentityHierarchy;
@@ -39,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             TimeSpan refreshDelay)
         {
             this.serviceIdentityHierarchy = serviceIdentityHierarchy;
+            this.edgeDeviceId = serviceIdentityHierarchy.GetActorDeviceId();
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.periodicRefreshRate = periodicRefreshRate;
@@ -114,7 +116,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task RefreshServiceIdentity(string id)
         {
-            await this.RefreshServiceIdentityInternal(id, true);
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            await this.RefreshServiceIdentityInternal(id, this.edgeDeviceId, true);
+        }
+
+        public async Task RefreshServiceIdentityOnBehalfOf(string refreshTarget, string onBehalfOfDevice)
+        {
+            Preconditions.CheckNonWhiteSpace(refreshTarget, nameof(refreshTarget));
+            Preconditions.CheckNonWhiteSpace(onBehalfOfDevice, nameof(onBehalfOfDevice));
+            await this.RefreshServiceIdentityInternal(refreshTarget, onBehalfOfDevice, true);
         }
 
         public async Task RefreshServiceIdentities(IEnumerable<string> ids)
@@ -122,28 +132,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
             foreach (string id in idList)
             {
-                await this.RefreshServiceIdentityInternal(id, false);
+                await this.RefreshServiceIdentityInternal(id, this.edgeDeviceId, false);
             }
 
             this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
         }
 
-        async Task RefreshServiceIdentityInternal(string id, bool invokeServiceIdentitiesUpdated)
+        async Task RefreshServiceIdentityInternal(string refreshTarget, string onBehalfOfDevice, bool invokeServiceIdentitiesUpdated)
         {
             try
             {
-                if (await this.ShouldRefreshIdentity(id))
+                if (await this.ShouldRefreshIdentity(refreshTarget))
                 {
-                    Events.RefreshingServiceIdentity(id);
-                    Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
+                    Events.RefreshingServiceIdentity(refreshTarget);
+                    Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(refreshTarget, onBehalfOfDevice);
                     await serviceIdentity
                         .Map(s => this.HandleNewServiceIdentity(s))
-                        .GetOrElse(() => this.HandleNoServiceIdentity(id));
+                        .GetOrElse(() => this.HandleNoServiceIdentity(refreshTarget));
 
                     // Update the timestamp for this identity so we
                     // don't repeatedly refresh the same identity
                     // in rapid succession.
-                    this.identitiesLastRefreshTime[id] = DateTime.UtcNow;
+                    this.identitiesLastRefreshTime[refreshTarget] = DateTime.UtcNow;
 
                     if (invokeServiceIdentitiesUpdated)
                     {
@@ -152,12 +162,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
                 else
                 {
-                    Events.SkipRefreshServiceIdentity(id, this.identitiesLastRefreshTime[id], this.refreshDelay);
+                    Events.SkipRefreshServiceIdentity(refreshTarget, this.identitiesLastRefreshTime[refreshTarget], this.refreshDelay);
                 }
             }
             catch (Exception e)
             {
-                Events.ErrorRefreshingCache(e, id);
+                Events.ErrorRefreshingCache(e, refreshTarget, onBehalfOfDevice);
             }
         }
 
@@ -178,9 +188,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return await this.GetServiceIdentityInternal(id);
         }
 
-        public Task<Option<string>> GetAuthChain(string targetId) => this.serviceIdentityHierarchy.GetAuthChain(targetId);
+        public Task<Option<string>> GetAuthChain(string targetId)
+        {
+            Preconditions.CheckNonWhiteSpace(targetId, nameof(targetId));
+            return this.serviceIdentityHierarchy.GetAuthChain(targetId);
+        }
 
-        public async Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId) => await this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
+        public Task<IList<ServiceIdentity>> GetDevicesAndModulesInTargetScopeAsync(string targetDeviceId)
+        {
+            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
+            return this.serviceIdentityHierarchy.GetImmediateChildren(targetDeviceId);
+        }
 
         public async Task<IList<string>> GetAllIds() => await this.serviceIdentityHierarchy.GetAllIds();
 
@@ -191,17 +209,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.refreshCacheTask?.Dispose();
         }
 
-        internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string id)
+        internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string targetId, string onBehalfOfDevice)
         {
             // If it is a module id, it will have the format "deviceId/moduleId"
-            string[] parts = id.Split('/');
+            string[] parts = targetId.Split('/');
             if (parts.Length == 2)
             {
-                return this.serviceProxy.GetServiceIdentity(parts[0], parts[1]);
+                return this.serviceProxy.GetServiceIdentity(parts[0], parts[1], onBehalfOfDevice);
             }
             else
             {
-                return this.serviceProxy.GetServiceIdentity(id);
+                return this.serviceProxy.GetServiceIdentity(targetId, onBehalfOfDevice);
             }
         }
 
@@ -430,9 +448,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public static void DoneRefreshCycle(TimeSpan refreshRate) =>
                 Log.LogInformation((int)EventIds.DoneCycle, $"Done refreshing device scope identities cache. Waiting for {refreshRate.TotalMinutes} minutes.");
 
-            public static void ErrorRefreshingCache(Exception exception, string deviceId)
+            public static void ErrorRefreshingCache(Exception exception, string deviceId, string onBehalfOfDevice)
             {
-                Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while refreshing the service identity for {deviceId}");
+                Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while refreshing the service identity: {deviceId} OnBehalfOf: {onBehalfOfDevice}");
             }
 
             public static void ErrorProcessing(ServiceIdentity serviceIdentity, Exception exception)
