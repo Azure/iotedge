@@ -274,7 +274,7 @@ impl Listener {
             broker_handle,
         } = self;
 
-        let addr = transport.local_addr();
+        let addr = transport.addr();
 
         let span = info_span!("server", listener=%addr);
         let inner_span = span.clone();

@@ -84,7 +84,7 @@ pub enum InitializeBrokerError {
     BindServer(String, #[source] std::io::Error),
 
     #[error("An error occurred getting local address.")]
-    ConnectionLocalAddress(#[source] std::io::Error),
+    ConnectionLocalAddress(#[source] tokio::io::Error),
 
     #[error("An error occurred loading identity from file {0}.")]
     LoadIdentity(PathBuf, #[source] std::io::Error),

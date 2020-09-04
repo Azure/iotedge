@@ -86,7 +86,7 @@ impl Transport {
     }
 
     /// Returns a local address which transport listens to.
-    pub fn local_addr(&self) -> SocketAddr {
+    pub fn addr(&self) -> SocketAddr {
         match self.protocol {
             Protocol::Tcp(addr) => addr,
             Protocol::Tls(addr, _) => addr,
@@ -139,6 +139,17 @@ type HandshakeFuture =
 pub enum Incoming {
     Tcp(IncomingTcp),
     Tls(IncomingTls),
+}
+
+impl Incoming {
+    #[cfg(test)]
+    pub fn local_addr(&self) -> Result<SocketAddr, InitializeBrokerError> {
+        let addr = match self {
+            Self::Tcp(incoming) => incoming.listener.local_addr(),
+            Self::Tls(incoming) => incoming.listener.local_addr(),
+        };
+        addr.map_err(InitializeBrokerError::ConnectionLocalAddress)
+    }
 }
 
 impl Stream for Incoming {

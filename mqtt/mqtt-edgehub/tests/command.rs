@@ -1,8 +1,6 @@
-use std::time::Duration;
-
 use futures_util::StreamExt;
 use mqtt3::{proto::ClientId, ShutdownError};
-use tokio::{task::JoinHandle, time};
+use tokio::task::JoinHandle;
 
 use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
 use mqtt_broker_tests_util::{
