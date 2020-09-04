@@ -15,4 +15,6 @@ serial_test = "0.4"
 tracing = "0.1"
 
 edgelet-client = { path = "../edgelet-client" }
+
+[dev-dependencies]
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }

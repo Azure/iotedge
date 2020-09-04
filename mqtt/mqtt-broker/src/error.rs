@@ -73,7 +73,14 @@ pub enum Error {
 /// Represents errors occurred while bootstrapping broker.
 #[derive(Debug, Error)]
 pub enum InitializeBrokerError {
+    #[error("An error occurred converting to a socker address {0}.")]
+    SocketAddr(String, #[source] std::io::Error),
+
+    #[error("Missing socker address {0}.")]
+    MissingSocketAddr(String),
+
     #[error("An error occurred binding the server's listening socket on {0}.")]
+    //TODO change to sockaddr
     BindServer(String, #[source] std::io::Error),
 
     #[error("An error occurred getting local address.")]

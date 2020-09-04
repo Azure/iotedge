@@ -141,7 +141,8 @@ mod tests {
     }
 
     async fn run_echo_server(identity: ServerCertificate) -> u16 {
-        match Transport::new_tls("0.0.0.0:0", identity).await {
+        let transport = Transport::new_tls("0.0.0.0:0", identity).unwrap();
+        match ;await.unwrap() {
             Ok(Transport::Tls(mut listener, acceptor)) => {
                 let port = listener.local_addr().unwrap().port();
 

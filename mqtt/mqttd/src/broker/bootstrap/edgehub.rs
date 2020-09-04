@@ -2,21 +2,19 @@ use std::{
     env,
     future::Future,
     path::{Path, PathBuf},
-    sync::Arc,
 };
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
-use thiserror::Error;
-
 use futures_util::{
     future::{self, Either},
     pin_mut, FutureExt,
 };
+use thiserror::Error;
 use tokio::{
     sync::{
+        broadcast,
         oneshot::{self, Sender},
-        Notify,
     },
     task::JoinHandle,
     time,
@@ -96,14 +94,14 @@ where
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();
-    server.tcp(config.listener().system().addr(), authenticator, None);
+    server.tcp(config.listener().system().addr(), authenticator, None)?;
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
-    let ready = Arc::new(Notify::new());
+    let (tx, _) = broadcast::channel(1);
 
     if let Some(tcp) = config.listener().tcp() {
-        server.tcp(tcp.addr(), authenticator.clone(), Some(ready.clone()));
+        server.tcp(tcp.addr(), authenticator.clone(), Some(tx.subscribe()))?;
     }
 
     // Add regular MQTT over TLS transport
@@ -129,8 +127,8 @@ where
                 tls.addr(),
                 identity,
                 authenticator.clone(),
-                Some(ready.clone()),
-            );
+                Some(tx.subscribe()),
+            )?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
