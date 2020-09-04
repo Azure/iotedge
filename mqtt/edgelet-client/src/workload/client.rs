@@ -2,12 +2,12 @@ use std::str;
 
 use bytes::buf::{Buf, BufExt};
 use chrono::{DateTime, Utc};
-use http::{Request, StatusCode};
+use http::{Request, StatusCode, Uri};
 use hyper::{body, Body, Client};
 
 use crate::{
-    make_hyper_uri, ApiError, CertificateResponse, Connector, Scheme, ServerCertificateRequest,
-    SignRequest, SignResponse, TrustBundleResponse,
+    make_hyper_uri, ApiError, CertificateResponse, Connector, IdentityCertificateRequest, Scheme,
+    ServerCertificateRequest, SignRequest, SignResponse, TrustBundleResponse,
 };
 
 #[derive(Debug)]
@@ -19,6 +19,25 @@ pub struct WorkloadClient {
 impl WorkloadClient {
     pub(crate) fn new(client: Client<Connector>, scheme: Scheme) -> Self {
         Self { client, scheme }
+    }
+
+    pub async fn create_identity_cert(
+        &self,
+        module_id: &str,
+        expiration: DateTime<Utc>,
+    ) -> Result<CertificateResponse, WorkloadError> {
+        let path = format!(
+            "/modules/{}/certificate/identity?api-version=2019-01-30",
+            module_id,
+        );
+
+        let uri =
+            make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequestUrl(e))?;
+
+        let req = IdentityCertificateRequest::new(Some(expiration.to_rfc3339()));
+        let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
+
+        self.get_response(uri, body).await
     }
 
     pub async fn create_server_cert(
@@ -37,6 +56,15 @@ impl WorkloadClient {
 
         let req = ServerCertificateRequest::new(hostname.to_string(), expiration.to_rfc3339());
         let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
+
+        self.get_response(uri, body).await
+    }
+
+    async fn get_response(
+        &self,
+        uri: Uri,
+        body: String,
+    ) -> Result<CertificateResponse, WorkloadError> {
         let req = Request::post(uri)
             .body(Body::from(body))
             .map_err(ApiError::ConstructRequest)?;
@@ -191,6 +219,35 @@ mod tests {
         assert_eq!(res.private_key().bytes(), Some("PRIVATE KEY"));
         assert_eq!(res.certificate(), "CERTIFICATE");
         assert_eq!(res.expiration(), &expiration.to_rfc3339());
+    }
+
+    #[tokio::test]
+    async fn it_downloads_identity_certificate() {
+        let expiration = Utc::now() + Duration::days(90);
+        let res = json!(
+            {
+                "privateKey": { "type": "key", "bytes": "PRIVATE KEY" },
+                "certificate": "CERTIFICATE",
+                "expiration": expiration.to_rfc3339()
+            }
+        );
+
+        let _m = mock(
+            "POST",
+            "/modules/broker/certificate/identity?api-version=2019-01-30",
+        )
+        .with_status(201)
+        .with_body(serde_json::to_string(&res).unwrap())
+        .create();
+
+        let client = workload(&mockito::server_url()).expect("client");
+        let res = client
+            .create_identity_cert("broker", expiration)
+            .await
+            .unwrap();
+
+        assert_eq!(res.private_key().bytes(), Some("PRIVATE KEY"));
+        assert_eq!(res.certificate(), "CERTIFICATE");
     }
 
     #[tokio::test]

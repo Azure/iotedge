@@ -3,46 +3,45 @@ use edgelet_core::RuntimeSettings;
 use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
-use edgelet_core::RuntimeSettings;
 
-pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
+pub(crate) fn get_host_container_iothub_tests() -> Vec<Box<dyn Checker>> {
     vec![
         #[cfg(unix)]
         make_check(
-            "container-default-connect-upstream-amqp",
-            "container on the default network can connect to upstream AMQP port",
+            "container-default-connect-iothub-amqp",
+            "container on the default network can connect to IoT Hub AMQP port",
             UpstreamProtocolPort::Amqp,
             false,
         ),
         #[cfg(unix)]
         make_check(
-            "container-default-connect-upstream-https",
-            "container on the default network can connect to upstream HTTPS / WebSockets port",
+            "container-default-connect-iothub-https",
+            "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
             false,
         ),
         #[cfg(unix)]
         make_check(
-            "container-default-connect-upstream-mqtt",
-            "container on the default network can connect to upstream MQTT port",
+            "container-default-connect-iothub-mqtt",
+            "container on the default network can connect to IoT Hub MQTT port",
             UpstreamProtocolPort::Mqtt,
             false,
         ),
         make_check(
-            "container-connect-upstream-amqp",
-            "container on the IoT Edge module network can connect to upstream AMQP port",
+            "container-connect-iothub-amqp",
+            "container on the IoT Edge module network can connect to IoT Hub AMQP port",
             UpstreamProtocolPort::Amqp,
             true,
         ),
         make_check(
-            "container-connect-upstream-https",
-            "container on the IoT Edge module network can connect to upstream HTTPS / WebSockets port",
+            "container-connect-iothub-https",
+            "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
             true,
         ),
         make_check(
-            "container-connect-upstream-mqtt",
-            "container on the IoT Edge module network can connect to upstream MQTT port",
+            "container-connect-iothub-mqtt",
+            "container on the IoT Edge module network can connect to IoT Hub MQTT port",
             UpstreamProtocolPort::Mqtt,
             true,
         ),
@@ -50,7 +49,7 @@ pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
 }
 
 #[derive(serde_derive::Serialize)]
-pub(crate) struct ContainerConnectUpstream {
+pub(crate) struct ContainerConnectIotHub {
     port_number: u16,
     iothub_hostname: Option<String>,
     network_name: Option<String>,
@@ -64,7 +63,7 @@ pub(crate) struct ContainerConnectUpstream {
     use_container_runtime_network: bool,
 }
 
-impl Checker for ContainerConnectUpstream {
+impl Checker for ContainerConnectIotHub {
     fn id(&self) -> &'static str {
         self.id
     }
@@ -79,7 +78,7 @@ impl Checker for ContainerConnectUpstream {
         serde_json::to_value(self).unwrap()
     }
 }
-impl ContainerConnectUpstream {
+impl ContainerConnectIotHub {
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
@@ -93,14 +92,12 @@ impl ContainerConnectUpstream {
             return Ok(CheckResult::Skipped);
         };
 
-        let upstream_hostname =
-            if let Some(parent_hostname) = RuntimeSettings::parent_hostname(settings) {
-                parent_hostname
-            } else if let Some(iothub_hostname) = &check.iothub_hostname {
-                iothub_hostname
-            } else {
-                return Ok(CheckResult::Skipped);
-            };
+        let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
+            iothub_hostname
+        } else {
+            return Ok(CheckResult::Skipped);
+        };
+        self.iothub_hostname = Some(iothub_hostname.to_owned());
 
         let network_name = settings.moby_runtime().network().name();
         self.network_name = Some(network_name.to_owned());
@@ -120,7 +117,7 @@ impl ContainerConnectUpstream {
             "IotedgeDiagnosticsDotnet.dll",
             "iothub",
             "--hostname",
-            upstream_hostname,
+            iothub_hostname,
             "--port",
             &port,
         ]);
@@ -144,7 +141,7 @@ impl ContainerConnectUpstream {
                     } else {
                         "default"
                     },
-                    upstream_hostname,
+                    iothub_hostname,
                     port,
                 ))
                 .into());
@@ -159,8 +156,8 @@ fn make_check(
     description: &'static str,
     upstream_protocol_port: UpstreamProtocolPort,
     use_container_runtime_network: bool,
-) -> Box<ContainerConnectUpstream> {
-    Box::new(ContainerConnectUpstream {
+) -> Box<ContainerConnectIotHub> {
+    Box::new(ContainerConnectIotHub {
         id,
         description,
         port_number: upstream_protocol_port.as_port(),
