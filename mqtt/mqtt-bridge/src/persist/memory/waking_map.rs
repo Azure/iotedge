@@ -160,9 +160,9 @@ mod tests {
                 mut_self.should_return_pending = false;
                 map_lock.set_waker(cx.waker());
                 mut_self.notify.notify();
-                return Poll::Pending;
+                Poll::Pending
             } else {
-                return Poll::Ready(Some(1));
+                Poll::Ready(Some(1))
             }
         }
     }
