@@ -98,10 +98,11 @@ where
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
-    let (tx, _) = broadcast::channel(1);
+    let (broker_ready, _) = broadcast::channel(1);
 
     if let Some(tcp) = config.listener().tcp() {
-        server.tcp(tcp.addr(), authenticator.clone(), Some(tx.subscribe()))?;
+        let broker_ready = Some(broker_ready.subscribe());
+        server.tcp(tcp.addr(), authenticator.clone(), broker_ready)?;
     }
 
     // Add regular MQTT over TLS transport
@@ -123,12 +124,9 @@ where
                     .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(
-                tls.addr(),
-                identity,
-                authenticator.clone(),
-                Some(tx.subscribe()),
-            )?;
+
+            let broker_ready = Some(broker_ready.subscribe());
+            server.tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -143,7 +141,7 @@ where
     // TODO remove this call when broker readiness is implemented
     tokio::spawn(async move {
         tokio::time::delay_for(std::time::Duration::from_millis(500)).await;
-        tx.send(()).expect("ready signal");
+        broker_ready.send(()).expect("ready signal");
     });
 
     // Start serving new connections
