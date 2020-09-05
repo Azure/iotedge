@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly AuthAgentProtocolHeadConfig config;
         readonly object guard = new object();
 
-        bool _started;
+        bool sendNotificationOnce;
         Option<IWebHost> host;
 
         public string Name => "AUTH";
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             Events.Closing();
 
-            _started = false;
+            sendNotificationOnce = false;
 
             Option<IWebHost> hostToStop;
             lock (this.guard)
@@ -134,14 +134,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public override Task StoreNotificationAsync(bool notification)
         {
-            _started = true;
+            sendNotificationOnce = true;
             return Task.FromResult(true);
         }
 
         public override Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
         {
             IEnumerable<Message> messages;
-            if (_started)
+            if (sendNotificationOnce)
             {
                 messages = new[] { new Message(Topic, Payload) };
             }
