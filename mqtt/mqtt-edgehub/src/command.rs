@@ -57,7 +57,7 @@ impl CommandHandler {
         address: String,
         device_id: &str,
     ) -> Result<Self, CommandHandlerError> {
-        let client_id = format!("{}/$edgeHub/$broker", device_id);
+        let client_id = format!("{}/$broker", device_id);
 
         let mut client = Client::new(
             Some(client_id),
