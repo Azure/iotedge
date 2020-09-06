@@ -45,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool useBackupAndRestore;
         readonly Option<string> storageBackupPath;
         readonly Option<ulong> storageMaxTotalWalSize;
+        readonly Option<int> storageMaxOpenFiles;
         readonly Option<StorageLogLevel> storageLogLevel;
 
         public CommonModule(
@@ -69,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool useBackupAndRestore,
             Option<string> storageBackupPath,
             Option<ulong> storageMaxTotalWalSize,
+            Option<int> storageMaxOpenFiles,
             Option<StorageLogLevel> storageLogLevel)
         {
             this.productInfo = productInfo;
@@ -92,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.useBackupAndRestore = useBackupAndRestore;
             this.storageBackupPath = storageBackupPath;
             this.storageMaxTotalWalSize = storageMaxTotalWalSize;
+            this.storageMaxOpenFiles = storageMaxOpenFiles;
             this.storageLogLevel = storageLogLevel;
         }
 
@@ -110,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                         this.metricsConfig.Enabled
-                            ? new MetricsProvider(MetricsConstants.EdgeHubMetricPrefix, this.iothubHostName, this.edgeDeviceId)
+                            ? new MetricsProvider(MetricsConstants.EdgeHubMetricPrefix, this.iothubHostName, this.edgeDeviceId, this.metricsConfig.HistogramMaxAge)
                             : new NullMetricsProvider() as IMetricsProvider)
                 .As<IMetricsProvider>()
                 .SingleInstance();
@@ -144,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // DataBase options
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize, this.storageLogLevel))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize, this.storageMaxOpenFiles, this.storageLogLevel))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
@@ -232,35 +235,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // Task<IStoreProvider>
             builder.Register(async c =>
                 {
-                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
-                IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                return storeProvider;
+                    var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                    IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                    return storeProvider;
                 })
                 .As<Task<IStoreProvider>>()
                 .SingleInstance();
 
-            // Task<IProductInfoStore>
+            // Task<IMetadataStore>
             builder.Register(
                     async c =>
                     {
                         var storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
-                        IProductInfoStore productInfoStore = new ProductInfoStore(entityStore, this.productInfo);
-                        return productInfoStore;
+                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo", "MetadataStore");
+                        IMetadataStore metadataStore = new MetadataStore(entityStore, this.productInfo);
+                        return metadataStore;
                     })
-                .As<Task<IProductInfoStore>>()
-                .SingleInstance();
-
-            // Task<IModelIdStore>
-            builder.Register(
-                    async c =>
-                    {
-                        var storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ModelIdStore");
-                        IModelIdStore modelIdStore = new ModelIdStore(entityStore);
-                        return modelIdStore;
-                    })
-                .As<Task<IModelIdStore>>()
+                .As<Task<IMetadataStore>>()
                 .SingleInstance();
 
             // ITokenProvider

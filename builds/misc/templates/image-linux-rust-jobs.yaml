@@ -36,15 +36,6 @@ jobs:
       - template: build-edgelet-linux.yaml
         parameters:
           filePath: scripts/linux/buildEdgelet.sh
-          name: Edge Diagnostics
-          imageName: azureiotedge-diagnostics
-          project: iotedge-diagnostics
-          targetArch: ${{ parameters.targetArch }}
-          configuration: $(Build.Configuration)
-
-      - template: build-edgelet-linux.yaml
-        parameters:
-          filePath: scripts/linux/buildEdgelet.sh
           name: Edge Proxy
           imageName: azureiotedge-proxy
           project: iotedge-proxy
@@ -57,14 +48,6 @@ jobs:
           name: Edge Security Daemon
           imageName: azureiotedge-iotedged
           project: azureiotedge-iotedged
-          targetArch: ${{ parameters.targetArch }}
-
-      # Edge Diagnostics
-      - template: image-linux-rust.yaml
-        parameters:
-          name: Edge Diagnostics
-          imageName: azureiotedge-diagnostics
-          project: azureiotedge-diagnostics
           targetArch: ${{ parameters.targetArch }}
 
       # Edge Proxy

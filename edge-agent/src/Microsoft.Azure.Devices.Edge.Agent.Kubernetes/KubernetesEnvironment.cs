@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeInfo.ModuleStatus,
                             dockerModule.ImagePullPolicy,
-                            dockerModule.Priority,
+                            dockerModule.StartupOrder,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeInfo.ModuleStatus,
                             dockerModule.ImagePullPolicy,
-                            dockerModule.Priority,
+                            dockerModule.StartupOrder,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;

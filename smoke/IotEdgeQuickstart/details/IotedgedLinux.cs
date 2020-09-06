@@ -70,16 +70,20 @@ namespace IotEdgeQuickstart.Details
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
         readonly Option<HttpUris> httpUris;
+        readonly UriSocks uriSocks;
         readonly Option<string> proxy;
         readonly Option<UpstreamProtocolType> upstreamProtocol;
+        readonly bool requireEdgeInstallation;
 
-        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol)
+        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
             this.httpUris = httpUris;
+            this.uriSocks = uriSocks;
             this.proxy = proxy;
             this.upstreamProtocol = upstreamProtocol;
+            this.requireEdgeInstallation = requireEdgeInstallation;
         }
 
         public async Task VerifyNotActive()
@@ -147,31 +151,40 @@ namespace IotEdgeQuickstart.Details
 
         public Task Install()
         {
-            const string PackageName = "iotedge";
-
-            Console.WriteLine($"Installing debian package '{PackageName}' from {this.archivePath ?? "apt"}");
-
-            string commandName;
-            string commandArgs;
-
-            // Use apt-get if a package name is given, or dpkg if a package file is given.
-            // We'd like to use apt-get for both cases, but older versions of apt-get (e.g.,
-            // in Raspbian) can't accept a package file.
-            if (string.IsNullOrEmpty(this.archivePath))
+            if (this.requireEdgeInstallation)
             {
-                commandName = "apt-get";
-                commandArgs = $"--yes install {PackageName}";
+                const string PackageName = "iotedge";
+
+                Console.WriteLine($"Installing debian package '{PackageName}' from {this.archivePath ?? "apt"}");
+
+                string commandName;
+                string commandArgs;
+
+                // Use apt-get if a package name is given, or dpkg if a package file is given.
+                // We'd like to use apt-get for both cases, but older versions of apt-get (e.g.,
+                // in Raspbian) can't accept a package file.
+                if (string.IsNullOrEmpty(this.archivePath))
+                {
+                    commandName = "apt-get";
+                    commandArgs = $"--yes install {PackageName}";
+                }
+                else
+                {
+                    commandName = "dpkg";
+                    commandArgs = $"--force-confnew -i {this.archivePath}";
+                }
+
+                return Process.RunAsync(
+                    commandName,
+                    commandArgs,
+                    300); // 5 min timeout because install can be slow on raspberry pi
             }
             else
             {
-                commandName = "dpkg";
-                commandArgs = $"--force-confnew -i {this.archivePath}";
-            }
+                Console.WriteLine("Skipping iotedge installation.");
 
-            return Process.RunAsync(
-                commandName,
-                commandArgs,
-                300); // 5 min timeout because install can be slow on raspberry pi
+                return Task.CompletedTask;
+            }
         }
 
         public async Task Configure(DeviceProvisioningMethod method, Option<string> agentImage, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
@@ -255,10 +268,11 @@ namespace IotEdgeQuickstart.Details
             }
             else
             {
-                doc.ReplaceOrAdd("connect.management_uri", "unix:///var/run/iotedge/mgmt.sock");
-                doc.ReplaceOrAdd("connect.workload_uri", "unix:///var/run/iotedge/workload.sock");
-                doc.ReplaceOrAdd("listen.management_uri", "fd://iotedge.mgmt.socket");
-                doc.ReplaceOrAdd("listen.workload_uri", "fd://iotedge.socket");
+                UriSocks socks = this.uriSocks;
+                doc.ReplaceOrAdd("connect.management_uri", socks.ConnectManagement);
+                doc.ReplaceOrAdd("connect.workload_uri", socks.ConnectWorkload);
+                doc.ReplaceOrAdd("listen.management_uri", socks.ListenManagement);
+                doc.ReplaceOrAdd("listen.workload_uri", socks.ListenWorkload);
             }
 
             if (!string.IsNullOrEmpty(deviceCaCert) && !string.IsNullOrEmpty(deviceCaPk) && !string.IsNullOrEmpty(deviceCaCerts))

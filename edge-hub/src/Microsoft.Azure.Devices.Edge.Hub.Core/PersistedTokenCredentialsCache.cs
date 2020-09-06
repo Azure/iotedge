@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         return Option.Some(
                             ParseTokenCredentialsData(identity, t)
-                                .GetOrElse(() => new TokenCredentials(identity, t, string.Empty, false) as IClientCredentials));
+                                .GetOrElse(() => new TokenCredentials(identity, t, string.Empty, Option.None<string>(), false) as IClientCredentials));
                     }
                     catch (Exception e)
                     {
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 var tokenCredentialsData = json.FromJson<TokenCredentialsData>();
                 Events.Retrieved(identity.Id);
-                return Option.Some(new TokenCredentials(identity, tokenCredentialsData.Token, string.Empty, tokenCredentialsData.IsUpdatable) as IClientCredentials);
+                return Option.Some(new TokenCredentials(identity, tokenCredentialsData.Token, string.Empty, Option.None<string>(), tokenCredentialsData.IsUpdatable) as IClientCredentials);
             }
             catch (Exception e)
             {

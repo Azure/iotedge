@@ -1,4 +1,4 @@
-ARG base_tag=3.1.5-bionic-arm32v7
+ARG base_tag=3.1.7-bionic-arm32v7
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 RUN apt-get update && apt-get install -y libcap2-bin libsnappy1v5 && \
@@ -9,3 +9,7 @@ RUN apt-get update && apt-get install -y libcap2-bin libsnappy1v5 && \
 COPY librocksdb.so /usr/lib/
 
 RUN apt-get update && apt-get install -y --no-install-recommends iproute2 net-tools
+
+# Add an unprivileged user account for running the module
+RUN useradd -ms /bin/bash moduleuser
+USER moduleuser

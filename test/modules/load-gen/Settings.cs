@@ -26,7 +26,8 @@ namespace LoadGen
             LoadGenSenderType senderType,
             Option<List<int>> priorities,
             Option<List<int>> ttls,
-            Option<int> ttlThresholdSecs)
+            Option<int> ttlThresholdSecs,
+            Option<string> modelId)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -46,6 +47,7 @@ namespace LoadGen
             this.Priorities = priorities;
             this.Ttls = ttls;
             this.TtlThresholdSecs = ttlThresholdSecs;
+            this.ModelId = modelId;
         }
 
         static Settings Create()
@@ -104,7 +106,8 @@ namespace LoadGen
                 configuration.GetValue("senderType", LoadGenSenderType.DefaultSender),
                 Option.Maybe(priorities),
                 Option.Maybe(ttls),
-                ttlThresholdSecs);
+                ttlThresholdSecs,
+                Option.Maybe(configuration.GetValue<string>("modelId")));
         }
 
         public TimeSpan MessageFrequency { get; }
@@ -133,6 +136,8 @@ namespace LoadGen
 
         public Option<int> TtlThresholdSecs { get; }
 
+        public Option<string> ModelId { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -153,6 +158,7 @@ namespace LoadGen
             this.Priorities.ForEach(p => fields.Add(nameof(this.Priorities), p.ToString()));
             this.Ttls.ForEach(t => fields.Add(nameof(this.Ttls), t.ToString()));
             this.TtlThresholdSecs.ForEach(t => fields.Add(nameof(this.TtlThresholdSecs), t.ToString()));
+            this.ModelId.ForEach(m => fields.Add(nameof(this.ModelId), m));
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }

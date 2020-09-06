@@ -225,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -396,7 +396,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -575,7 +575,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -769,7 +769,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -1375,7 +1375,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"
@@ -1490,7 +1490,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
 
                 IEdgeAgentModule edgeAgent = new EdgeAgentDockerRuntimeModule(new DockerReportedConfig("image", string.Empty, "hash", Option.None<string>()), ModuleStatus.Running, 0, string.Empty, lastStartTimeUtc, DateTime.MinValue, ImagePullPolicy.OnCreate, new ConfigurationInfo("id"), new Dictionary<string, EnvVal>());
-                IEdgeHubModule edgeHub = new EdgeHubDockerRuntimeModule(ModuleStatus.Running, RestartPolicy.Always, new DockerReportedConfig("hubimage", string.Empty, "hash", Option.None<string>()), 0, string.Empty, DateTime.Now, DateTime.Now, 0, DateTime.Now, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("hub"), new Dictionary<string, EnvVal>());
+                IEdgeHubModule edgeHub = new EdgeHubDockerRuntimeModule(ModuleStatus.Running, RestartPolicy.Always, new DockerReportedConfig("hubimage", string.Empty, "hash", Option.None<string>()), 0, string.Empty, DateTime.Now, DateTime.Now, 0, DateTime.Now, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("hub"), new Dictionary<string, EnvVal>());
 
                 // prepare IEdgeAgentConnection mock
                 var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
@@ -1808,7 +1808,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         ModuleStatus.Backoff,
                         ImagePullPolicy.Never,
-                        Constants.DefaultPriority,
+                        Constants.DefaultStartupOrder,
                         null,
                         new Dictionary<string, EnvVal> { ["e1"] = new EnvVal("e1Val") }),
                     new TestRuntimeModule(
@@ -1826,7 +1826,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         ModuleStatus.Running,
                         ImagePullPolicy.OnCreate,
-                        Constants.DefaultPriority,
+                        Constants.DefaultStartupOrder,
                         null,
                         new Dictionary<string, EnvVal> { ["e2"] = new EnvVal("e2Val") }));
 
@@ -1886,7 +1886,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             edgeAgent = new
                             {
                                 type = "docker",
-                                priority = 0,
+                                startupOrder = 0,
                                 settings = new
                                 {
                                     image = "EdgeAgentImage"

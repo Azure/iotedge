@@ -2,11 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -18,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
-        internal static readonly Version ExpectedSchemaVersion = new Version("1.0");
+        internal static readonly Version ExpectedSchemaVersion = new Version("1.1.0");
         static readonly TimeSpan DefaultConfigRefreshFrequency = TimeSpan.FromHours(1);
         static readonly TimeSpan DeviceClientInitializationWaitTime = TimeSpan.FromSeconds(5);
 
@@ -35,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly IModuleConnection moduleConnection;
         readonly bool pullOnReconnect;
         readonly IDeviceManager deviceManager;
+        readonly IDeploymentMetrics deploymentMetrics;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -44,8 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
-            IDeviceManager deviceManager)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
+            IDeviceManager deviceManager,
+            IDeploymentMetrics deploymentMetrics)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics)
         {
         }
 
@@ -55,8 +59,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IRequestManager requestManager,
             IDeviceManager deviceManager,
             bool enableSubscriptions,
-            TimeSpan configRefreshFrequency)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
+            TimeSpan configRefreshFrequency,
+            IDeploymentMetrics deploymentMetrics)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics)
         {
         }
 
@@ -67,7 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan refreshConfigFrequency,
-            RetryStrategy retryStrategy)
+            RetryStrategy retryStrategy,
+            IDeploymentMetrics deploymentMetrics)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
@@ -75,10 +81,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.moduleConnection = new ModuleConnection(moduleClientProvider, requestManager, this.OnConnectionStatusChanged, this.OnDesiredPropertiesUpdated, enableSubscriptions);
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
             this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
-            this.initTask = this.ForceRefreshTwin();
             this.pullOnReconnect = enableSubscriptions;
             this.deviceManager = Preconditions.CheckNotNull(deviceManager, nameof(deviceManager));
             Events.TwinRefreshInit(refreshConfigFrequency);
+            this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
+            this.initTask = this.ForceRefreshTwin();
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
@@ -110,11 +117,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 }
 
                 await moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                this.deploymentMetrics.ReportIotHubSync(true);
                 Events.UpdatedReportedProperties();
             }
             catch (Exception e)
             {
                 Events.ErrorUpdatingReportedProperties(e);
+                this.deploymentMetrics.ReportIotHubSync(false);
                 throw;
             }
         }
@@ -141,11 +150,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        internal static void ValidateSchemaVersion(string schemaVersion)
+        internal static void ValidateSchemaVersion(DeploymentConfig config)
         {
-            if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
+            string schemaVersion = config.SchemaVersion;
+
+            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version actualSchemaVersion))
             {
-                Events.MismatchedMinorVersions(schemaVersion, ExpectedSchemaVersion);
+                throw new InvalidSchemaVersionException($"Invalid desired properties schema version {schemaVersion}");
+            }
+
+            // Check major version and upper bound
+            if (actualSchemaVersion.Major != ExpectedSchemaVersion.Major ||
+                actualSchemaVersion.Major > ExpectedSchemaVersion.Major)
+            {
+                throw new InvalidSchemaVersionException($"The desired properties schema version {schemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
+            }
+
+            // Validate minor versions
+            if (actualSchemaVersion.Minor == 0)
+            {
+                // 1.0
+                //
+                // Module startup order is not supported
+                foreach (KeyValuePair<string, IModule> kvp in config.Modules)
+                {
+                    IModule moduleConfig = kvp.Value;
+
+                    if (moduleConfig.StartupOrder != Constants.DefaultStartupOrder)
+                    {
+                        throw new InvalidSchemaVersionException($"Module startup order is not supported in schema {actualSchemaVersion}, module: {moduleConfig.Name}, startupOrder: {moduleConfig.StartupOrder}");
+                    }
+                }
+            }
+            else if (actualSchemaVersion.Minor == 1)
+            {
+                // 1.1.0
+                //
+                // Everything from 1.0 is supported
+            }
+            else
+            {
+                throw new InvalidSchemaVersionException($"The deployment schema version {actualSchemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
             }
         }
 
@@ -258,11 +303,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 retryPolicy.Retrying += (_, args) => Events.RetryingGetTwin(args);
                 Twin twin = await retryPolicy.ExecuteAsync(GetTwinFunc);
                 Events.GotTwin(twin);
+                this.deploymentMetrics.ReportIotHubSync(true);
                 return Option.Some(twin);
             }
             catch (Exception e)
             {
                 Events.ErrorGettingTwin(e);
+                this.deploymentMetrics.ReportIotHubSync(false);
 
                 if (!retrying && moduleClient != null)
                 {
@@ -332,7 +379,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             try
             {
                 // Do any validation on deploymentConfig if necessary
-                ValidateSchemaVersion(deploymentConfig.SchemaVersion);
+                ValidateSchemaVersion(deploymentConfig);
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(desiredProperties.Version, deploymentConfig));
                 Events.UpdatedDeploymentConfig();
             }
@@ -390,13 +437,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
                 Log.LogDebug((int)EventIds.ConnectionStatusChanged, $"Connection status changed to {status} with reason {reason}");
-            }
-
-            public static void MismatchedMinorVersions(string receivedVersion, Version expectedVersion)
-            {
-                Log.LogWarning(
-                    (int)EventIds.MismatchedSchemaVersion,
-                    $"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported.");
             }
 
             public static void GotTwin(Twin twin)

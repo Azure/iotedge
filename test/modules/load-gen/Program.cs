@@ -29,8 +29,11 @@ namespace LoadGen
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
 
+                ClientOptions options = new ClientOptions();
+                Settings.Current.ModelId.ForEach(m => options.ModelId = m);
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
+                    options,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
