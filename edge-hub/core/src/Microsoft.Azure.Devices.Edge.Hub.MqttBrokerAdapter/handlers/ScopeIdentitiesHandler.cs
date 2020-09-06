@@ -19,16 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class ScopeIdentitiesHandler : IMessageProducer
     {
         const string Topic = "$internal/identities";
-        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
-        readonly AtomicBoolean connected = new AtomicBoolean(false);
+        readonly Task<IDeviceScopeIdentitiesCache> deviceScopeIdentitiesCacheGetter;
+        readonly AsyncLock cacheUpdate = new AsyncLock();
         IMqttBrokerConnector connector;
-        IList<BrokerServiceIdentity> lastBrokerServiceIdentityUpdate = new List<BrokerServiceIdentity>();
 
-        public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
+        public ScopeIdentitiesHandler(Task<IDeviceScopeIdentitiesCache> deviceScopeIdentitiesCacheGetter)
         {
-            this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
-            this.deviceScopeIdentitiesCache.ServiceIdentitiesUpdated +=
-                async (sender, serviceIdentities) => await this.ServiceIdentitiesUpdated(serviceIdentities);
+            this.deviceScopeIdentitiesCacheGetter = deviceScopeIdentitiesCacheGetter;
         }
 
         public void SetConnector(IMqttBrokerConnector connector)
@@ -39,37 +36,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task OnConnect()
         {
-            this.connected.Set(true);
-            if (this.lastBrokerServiceIdentityUpdate.Count == 0)
+            using (await this.cacheUpdate.LockAsync())
             {
-                this.lastBrokerServiceIdentityUpdate =
-                    await this.ConvertIdsToBrokerServiceIdentities(await this.deviceScopeIdentitiesCache.GetAllIds());
-            }
+                var deviceScopeIdentitiesCache = await this.deviceScopeIdentitiesCacheGetter;
+                deviceScopeIdentitiesCache.ServiceIdentitiesUpdated +=
+                    async (sender, serviceIdentities) => await this.ServiceIdentitiesUpdated(serviceIdentities);
 
-            await this.PublishBrokerServiceIdentities(this.lastBrokerServiceIdentityUpdate);
-            this.lastBrokerServiceIdentityUpdate.Clear();
+                IList<string> scopeIds = await deviceScopeIdentitiesCache.GetAllIds();
+                IList<BrokerServiceIdentity> brokerIds = await ConvertIdsToBrokerServiceIdentities(scopeIds, deviceScopeIdentitiesCache);
+                await this.PublishBrokerServiceIdentities(brokerIds);
+            }
         }
 
         async Task ServiceIdentitiesUpdated(IList<string> serviceIdentities)
         {
-            IList<BrokerServiceIdentity> brokerServiceIdentities = await this.ConvertIdsToBrokerServiceIdentities(serviceIdentities);
-            if (this.connected.Get())
+            var deviceScopeIdentitiesCache = await this.deviceScopeIdentitiesCacheGetter;
+            using (await this.cacheUpdate.LockAsync())
             {
+                IList<BrokerServiceIdentity> brokerServiceIdentities = await ConvertIdsToBrokerServiceIdentities(serviceIdentities, deviceScopeIdentitiesCache);
                 await this.PublishBrokerServiceIdentities(brokerServiceIdentities);
-            }
-            else
-            {
-                this.lastBrokerServiceIdentityUpdate = brokerServiceIdentities;
             }
         }
 
-        async Task<IList<BrokerServiceIdentity>> ConvertIdsToBrokerServiceIdentities(IList<string> ids)
+        static async Task<IList<BrokerServiceIdentity>> ConvertIdsToBrokerServiceIdentities(IList<string> ids, IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
             IList<BrokerServiceIdentity> brokerServiceIdentities = new List<BrokerServiceIdentity>();
             foreach (string id in ids)
             {
                 brokerServiceIdentities.Add(
-                    new BrokerServiceIdentity(id, await this.deviceScopeIdentitiesCache.GetAuthChain(id)));
+                    new BrokerServiceIdentity(id, await deviceScopeIdentitiesCache.GetAuthChain(id)));
             }
 
             return brokerServiceIdentities;
