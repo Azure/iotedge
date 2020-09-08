@@ -84,8 +84,9 @@ mod tests {
     use tokio::{self, time};
 
     use crate::persist::{
-        memory::loader::get_elements, memory::loader::InMemoryMessageLoader,
-        memory::waking_map::WakingMap, Key,
+        memory::loader::{get_elements, InMemoryMessageLoader},
+        memory::waking_map::WakingMap,
+        Key,
     };
 
     #[tokio::test]
