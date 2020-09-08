@@ -5,10 +5,8 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
-async-std = "1.6"
 async-trait = "0.1"
 anyhow = "1.0"
-bytes = "0.5"
 config = { version = "0.10", features = ["json"], default-features = false }
 futures-util = "0.3"
 humantime = "2.0"
