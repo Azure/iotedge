@@ -65,9 +65,6 @@ impl WakingMap {
         self.waker = Some(waker.clone());
     }
 
-    // TODO REVIEW: exposed just for testing.
-    // We don't use the in-flight now, but we need to find a way to use it.
-    // Otherwise just have the queue.
     #[allow(dead_code)]
     fn in_flight(&mut self) -> &HashMap<Key, Publication> {
         &self.in_flight

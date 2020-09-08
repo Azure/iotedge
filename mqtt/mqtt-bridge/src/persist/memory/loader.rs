@@ -294,7 +294,6 @@ mod tests {
         }
     }
 
-    // TODO REVIEW: can't use notify here because we would need to notify in the stream implementation
     #[tokio::test]
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state
