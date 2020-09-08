@@ -10,11 +10,10 @@ use mqtt_broker_tests_util::{
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::init_commands;
-use mqtt_edgehub::command::Command;
-
-use mqtt_edgehub::command_handler::{CommandHandler, ShutdownHandle};
-
+use mqtt_edgehub:: {
+    command::{Command, init_commands},
+    command_handler::{CommandHandler, ShutdownHandle}
+};
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
