@@ -1,4 +1,4 @@
-# 1.0.9.5 (2020-09-04)
+# 1.0.9.5 (2020-09-08)
 ## Edge Agent
 ### Bug Fixes
 * Update [Linux ARM32 security vulnerable issue](https://launchpad.net/ubuntu/+source/glibc/2.27-3ubuntu1.2) to OS version 2.1.21-bionic-arm32v7 ([b3a0346](https://github.com/Azure/iotedge/commit/b3a0346876978b0934297206a77219690002ee07))
