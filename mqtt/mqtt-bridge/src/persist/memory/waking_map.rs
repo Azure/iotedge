@@ -1,15 +1,13 @@
-use std::cmp::min;
-use std::collections::VecDeque;
-use std::{collections::HashMap, task::Waker};
+use std::{cmp::min, collections::HashMap, collections::VecDeque, task::Waker};
 
 use mqtt3::proto::Publication;
-use thiserror::Error;
+use tracing::error;
 
 use crate::persist::Key;
 
-// Responsible for waking waiting streams when new elements are added
-// Exposes a get method for retrieving a count of elements starting from queue head
-// Once elements are retrieved they are added to the in flight collection
+/// Responsible for waking waiting streams when new elements are added
+/// Exposes a get method for retrieving a count of elements starting from queue head
+/// Once elements are retrieved they are added to the in flight collection
 pub struct WakingMap {
     queue: VecDeque<(Key, Publication)>,
     in_flight: HashMap<Key, Publication>,
@@ -36,29 +34,32 @@ impl WakingMap {
         }
     }
 
-    pub fn get(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, WakingMapError> {
+    pub fn get(&mut self, count: usize) -> Vec<(Key, Publication)> {
         let count = min(count, self.queue.len());
         let mut output = vec![];
         for _ in 0..count {
-            let removed = self
-                .queue
-                .pop_front()
-                .ok_or(WakingMapError::InFlightConversion())?;
-            output.push(removed);
+            let removed = self.queue.pop_front();
+
+            match removed {
+                Some(pair) => {
+                    output.push(pair);
+                }
+                None => {
+                    error!("failed retrieving message from persistence");
+                    continue;
+                }
+            }
         }
 
         for element in output.iter() {
             self.in_flight.insert(element.0.clone(), element.1.clone());
         }
 
-        Ok(output)
+        output
     }
 
-    pub fn remove_in_flight(&mut self, key: &Key) -> Result<(), WakingMapError> {
-        self.in_flight
-            .remove(key)
-            .ok_or(WakingMapError::InFlightRemoval())?;
-        Ok(())
+    pub fn remove_in_flight(&mut self, key: &Key) -> Option<Publication> {
+        self.in_flight.remove(key)
     }
 
     pub fn set_waker(&mut self, waker: &Waker) {
@@ -69,15 +70,6 @@ impl WakingMap {
     fn in_flight(&mut self) -> &HashMap<Key, Publication> {
         &self.in_flight
     }
-}
-
-#[derive(Debug, Error)]
-pub enum WakingMapError {
-    #[error("Failed transfering messages to in-flight collection")]
-    InFlightConversion(),
-
-    #[error("Failed to remove element from in-flight storage")]
-    InFlightRemoval(),
 }
 
 #[cfg(test)]
@@ -91,10 +83,7 @@ mod tests {
     use parking_lot::Mutex;
     use tokio::sync::Notify;
 
-    use crate::persist::{
-        memory::waking_map::{WakingMap, WakingMapError},
-        Key,
-    };
+    use crate::persist::{memory::waking_map::WakingMap, Key};
 
     #[test]
     fn insert() {
@@ -110,7 +99,7 @@ mod tests {
 
         state.insert(key1.clone(), pub1.clone());
 
-        let current_state = state.get(1).unwrap();
+        let current_state = state.get(1);
         let extracted_message = current_state.get(0).unwrap().1.clone();
         assert_eq!(pub1, extracted_message);
     }
@@ -130,7 +119,7 @@ mod tests {
         state.insert(key1.clone(), pub1.clone());
 
         let too_many_elements = 20;
-        let current_state = state.get(too_many_elements).unwrap();
+        let current_state = state.get(too_many_elements);
         assert_eq!(current_state.len(), 1);
 
         let extracted_message = current_state.get(0).unwrap().1.clone();
@@ -153,7 +142,7 @@ mod tests {
         state.insert(key1.clone(), pub1.clone());
         assert_eq!(state.in_flight.len(), 0);
 
-        state.get(1).unwrap();
+        state.get(1);
         assert_eq!(state.in_flight.len(), 1);
 
         state.remove_in_flight(&key1).unwrap();
@@ -174,7 +163,7 @@ mod tests {
 
         state.insert(key1.clone(), pub1.clone());
         let bad_removal = state.remove_in_flight(&key1);
-        assert_matches!(bad_removal, Err(WakingMapError::InFlightRemoval()));
+        assert_matches!(bad_removal, None);
     }
 
     #[tokio::test]

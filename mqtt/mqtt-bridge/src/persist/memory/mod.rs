@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{error::Error, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -7,13 +7,12 @@ use parking_lot::Mutex;
 
 use crate::persist::{
     memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Persist,
-    PersistError,
 };
 
 mod loader;
 mod waking_map;
 
-// In memory persistence implementation used for the bridge
+/// In memory persistence implementation used for the bridge
 struct InMemoryPersist {
     state: Arc<Mutex<WakingMap>>,
     offset: u32,
@@ -30,7 +29,7 @@ impl<'a> Persist<'a> for InMemoryPersist {
         InMemoryPersist { state, offset }
     }
 
-    async fn push(&mut self, message: Publication) -> Result<Key, PersistError> {
+    async fn push(&mut self, message: Publication) -> Result<Key, Box<dyn Error>> {
         let key = Key {
             offset: self.offset,
         };
@@ -41,12 +40,9 @@ impl<'a> Persist<'a> for InMemoryPersist {
         Ok(key)
     }
 
-    async fn remove(&mut self, key: Key) -> Result<bool, PersistError> {
+    async fn remove(&mut self, key: Key) -> Option<Publication> {
         let mut state_lock = self.state.lock();
-        state_lock
-            .remove_in_flight(&key)
-            .map_err(|_| PersistError::Removal())?;
-        Ok(true)
+        state_lock.remove_in_flight(&key)
     }
 
     async fn loader(&'a mut self, batch_size: usize) -> InMemoryMessageLoader {
@@ -61,7 +57,7 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
-    use crate::persist::{memory::InMemoryPersist, Key, Persist, PersistError};
+    use crate::persist::{memory::InMemoryPersist, Key, Persist};
 
     #[tokio::test]
     async fn insert() {
@@ -148,7 +144,7 @@ mod tests {
         let key1 = Key { offset: 0 };
 
         let removal = persistence.remove(key1).await;
-        assert_matches!(removal, Err(PersistError::Removal()));
+        assert_matches!(removal, None);
     }
 
     #[tokio::test]

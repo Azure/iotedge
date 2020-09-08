@@ -1,5 +1,4 @@
 use std::{pin::Pin, sync::Arc, task::Context, task::Poll, vec::IntoIter};
-use tracing::error;
 
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
@@ -7,11 +6,11 @@ use parking_lot::{Mutex, MutexGuard};
 
 use crate::persist::{memory::waking_map::WakingMap, Key};
 
-// Message loader used to extract elements from bridge persistence
-// This component is responsible for message extraction from the persistence
-// It works by grabbing a snapshot of the most important messages from the persistence
-// Then, will return these elements in order
-// When the batch is exhausted it will grab a new batch
+/// Message loader used to extract elements from bridge persistence
+/// This component is responsible for message extraction from the persistence
+/// It works by grabbing a snapshot of the most important messages from the persistence
+/// Then, will return these elements in order
+/// When the batch is exhausted it will grab a new batch
 pub struct InMemoryMessageLoader {
     state: Arc<Mutex<WakingMap>>,
     batch: IntoIter<(Key, Publication)>,
@@ -56,21 +55,13 @@ fn get_elements(
     state: &mut MutexGuard<'_, WakingMap>,
     batch_size: usize,
 ) -> IntoIter<(Key, Publication)> {
-    let batch = state.get(batch_size);
+    let batch: Vec<_> = state
+        .get(batch_size)
+        .iter()
+        .map(|element| (element.0.clone(), element.1.clone()))
+        .collect();
 
-    match batch {
-        Ok(batch) => {
-            let batch: Vec<_> = batch
-                .iter()
-                .map(|element| (element.0.clone(), element.1.clone()))
-                .collect();
-            batch.into_iter()
-        }
-        Err(e) => {
-            error!(message = "failed retrieving persisted elements", err = %e);
-            return Vec::new().into_iter();
-        }
-    }
+    batch.into_iter()
 }
 
 #[cfg(test)]
