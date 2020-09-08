@@ -1934,7 +1934,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             var desiredProperties = new
             {
-                schemaVersion = "1.0",
+                schemaVersion = "1.1.0",
                 runtime = new
                 {
                     type = "docker",
@@ -2001,7 +2001,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             var desiredProperties = new
             {
-                schemaVersion = "1.0",
+                schemaVersion = "1.1.0",
                 runtime = new
                 {
                     type = "docker",
