@@ -8,6 +8,8 @@ use thiserror::Error;
 use crate::persist::Key;
 
 // Responsible for waking waiting streams when new elements are added
+// Exposes a get method for retrieving a count of elements starting from queue head
+// Once elements are retrieved they are added to the in flight collection
 pub struct WakingMap {
     queue: VecDeque<(Key, Publication)>,
     in_flight: HashMap<Key, Publication>,
@@ -87,11 +89,15 @@ mod tests {
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt};
+    use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
     use tokio::sync::Notify;
 
-    use crate::persist::{memory::waking_map::WakingMap, Key};
+    use crate::persist::{
+        memory::waking_map::{WakingMap, WakingMapError},
+        Key,
+    };
 
     #[test]
     fn insert() {
@@ -155,6 +161,23 @@ mod tests {
 
         state.remove_in_flight(&key1).unwrap();
         assert_eq!(state.in_flight.len(), 0);
+    }
+
+    #[test]
+    fn remove_in_flight_dne() {
+        let mut state = WakingMap::new();
+
+        let key1 = Key { offset: 0 };
+        let pub1 = Publication {
+            topic_name: "test".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        state.insert(key1.clone(), pub1.clone());
+        let bad_removal = state.remove_in_flight(&key1);
+        assert_matches!(bad_removal, Err(WakingMapError::InFlightRemoval()));
     }
 
     #[tokio::test]
