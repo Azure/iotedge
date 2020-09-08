@@ -48,7 +48,7 @@ impl ShutdownHandle {
 pub struct CommandHandler {
     broker_handle: BrokerHandle,
     client: Client<BrokerConnection>,
-    commands: HashMap<String, Command>,
+    commands: HashMap<String, Box<dyn Command + Send>>,
 }
 
 impl CommandHandler {
@@ -56,7 +56,7 @@ impl CommandHandler {
         broker_handle: BrokerHandle,
         address: String,
         device_id: &str,
-        commands: HashMap<String, Command>,
+        commands: HashMap<String, Box<dyn Command + Send>>,
     ) -> Result<Self, CommandHandlerError> {
         let client_id = format!("{}/$edgeHub/$broker", device_id);
 
@@ -111,7 +111,7 @@ impl CommandHandler {
     async fn handle_event(&mut self, event: Event) -> Result<(), HandleEventError> {
         if let Event::Publication(publication) = event {
             return match self.commands.get(&publication.topic_name) {
-                Some(command) => (command.handle)(&mut self.broker_handle, &publication),
+                Some(command) => (*command).handle(&mut self.broker_handle, &publication),
                 None => Ok(()),
             };
         }

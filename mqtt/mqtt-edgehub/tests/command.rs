@@ -10,12 +10,12 @@ use mqtt_broker_tests_util::{
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::{handle_authorized_identities, handle_disconnect, Command};
+use mqtt_edgehub::command::init_commands;
+use mqtt_edgehub::command::Command;
 
 use mqtt_edgehub::command_handler::{CommandHandler, ShutdownHandle};
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
-const AUTHORIZED_IDENTITIES_TOPIC: &str = "$internal/identities";
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
 /// Scenario:
@@ -67,29 +67,10 @@ async fn disconnect_client() {
     edgehub_client.shutdown().await;
 }
 
-fn init_commands() -> HashMap<String, Command> {
-    let mut commands = HashMap::new();
-    commands.insert(
-        DISCONNECT_TOPIC.to_string(),
-        Command {
-            topic: DISCONNECT_TOPIC.to_string(),
-            handle: handle_disconnect,
-        },
-    );
-    commands.insert(
-        AUTHORIZED_IDENTITIES_TOPIC.to_string(),
-        Command {
-            topic: AUTHORIZED_IDENTITIES_TOPIC.to_string(),
-            handle: handle_authorized_identities,
-        },
-    );
-    commands
-}
-
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     system_address: String,
-    commands: HashMap<String, Command>,
+    commands: HashMap<String, Box<dyn Command + Send>>,
 ) -> Result<(ShutdownHandle, JoinHandle<()>), ShutdownError> {
     let device_id = "test-device";
     let command_handler = CommandHandler::new(broker_handle, system_address, device_id, commands)
