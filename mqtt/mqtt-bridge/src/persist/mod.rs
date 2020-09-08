@@ -1,8 +1,10 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
+use parking_lot::Mutex;
 
 mod memory;
 
@@ -13,13 +15,13 @@ mod memory;
 trait Persist<'a> {
     type Loader: Stream;
 
-    fn new() -> Self;
+    async fn new(batch_size: usize) -> Self;
 
     async fn push(&mut self, message: Publication) -> Result<Key, Box<dyn Error>>;
 
     async fn remove(&mut self, key: Key) -> Option<Publication>;
 
-    async fn loader(&'a mut self, batch_size: usize) -> Self::Loader;
+    async fn loader(&'a mut self) -> Arc<Mutex<Self::Loader>>;
 }
 
 /// Keys used in persistence.

@@ -185,7 +185,7 @@ mod tests {
         state_lock.insert(key2.clone(), pub2.clone());
         drop(state_lock);
 
-        // init loader
+        // get loader
         let batch_size = 5;
         let mut loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size).await;
 
@@ -226,7 +226,7 @@ mod tests {
         state_lock.insert(key2.clone(), pub2.clone());
         drop(state_lock);
 
-        // init loader
+        // get loader
         let batch_size = 5;
         let mut loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size).await;
 
@@ -301,7 +301,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        // init loader
+        // get loader
         let batch_size = 5;
         let mut loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size).await;
 

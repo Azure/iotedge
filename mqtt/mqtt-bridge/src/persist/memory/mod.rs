@@ -16,17 +16,26 @@ mod waking_map;
 struct InMemoryPersist {
     state: Arc<Mutex<WakingMap>>,
     offset: u32,
+    loader: Arc<Mutex<InMemoryMessageLoader>>,
 }
 
 #[async_trait]
 impl<'a> Persist<'a> for InMemoryPersist {
     type Loader = InMemoryMessageLoader;
 
-    fn new() -> Self {
+    async fn new(batch_size: usize) -> Self {
         let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
+
+        let loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size).await;
+        let loader = Arc::new(Mutex::new(loader));
+
         let offset = 0;
-        InMemoryPersist { state, offset }
+        InMemoryPersist {
+            state,
+            offset,
+            loader,
+        }
     }
 
     async fn push(&mut self, message: Publication) -> Result<Key, Box<dyn Error>> {
@@ -45,8 +54,8 @@ impl<'a> Persist<'a> for InMemoryPersist {
         state_lock.remove_in_flight(&key)
     }
 
-    async fn loader(&'a mut self, batch_size: usize) -> InMemoryMessageLoader {
-        InMemoryMessageLoader::new(Arc::clone(&self.state), batch_size).await
+    async fn loader(&'a mut self) -> Arc<Mutex<InMemoryMessageLoader>> {
+        Arc::clone(&self.loader)
     }
 }
 
@@ -62,7 +71,8 @@ mod tests {
     #[tokio::test]
     async fn insert() {
         // setup state
-        let mut persistence = InMemoryPersist::new();
+        let batch_size: usize = 5;
+        let mut persistence = InMemoryPersist::new(batch_size).await;
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -84,9 +94,9 @@ mod tests {
         persistence.push(pub1.clone()).await.unwrap();
         persistence.push(pub2.clone()).await.unwrap();
 
-        // init loader
-        let batch_size: usize = 5;
-        let mut loader = persistence.loader(batch_size).await;
+        // get loader
+        let loader = persistence.loader().await;
+        let mut loader = loader.lock();
 
         // make sure same publications come out in correct order
         let extracted1 = loader.next().await.unwrap();
@@ -100,7 +110,8 @@ mod tests {
     #[tokio::test]
     async fn remove() {
         // setup state
-        let mut persistence = InMemoryPersist::new();
+        let batch_size: usize = 1;
+        let mut persistence = InMemoryPersist::new(batch_size).await;
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -121,9 +132,9 @@ mod tests {
         // insert some elements
         persistence.push(pub1.clone()).await.unwrap();
 
-        // init loader
-        let batch_size: usize = 1;
-        let mut loader = persistence.loader(batch_size).await;
+        // get loader
+        let loader = persistence.loader().await;
+        let mut loader = loader.lock();
 
         // process first message, forcing loader to get new batch on the next read
         loader.next().await.unwrap();
@@ -138,11 +149,13 @@ mod tests {
     #[tokio::test]
     async fn remove_key_that_dne() {
         // setup state
-        let mut persistence = InMemoryPersist::new();
+        let batch_size: usize = 1;
+        let mut persistence = InMemoryPersist::new(batch_size).await;
 
         // setup data
         let key1 = Key { offset: 0 };
 
+        // verify failed removal
         let removal = persistence.remove(key1).await;
         assert_matches!(removal, None);
     }
@@ -150,7 +163,8 @@ mod tests {
     #[tokio::test]
     async fn get_loader() {
         // setup state
-        let mut persistence = InMemoryPersist::new();
+        let batch_size: usize = 1;
+        let mut persistence = InMemoryPersist::new(batch_size).await;
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -172,9 +186,9 @@ mod tests {
         persistence.push(pub1.clone()).await.unwrap();
         persistence.push(pub2.clone()).await.unwrap();
 
-        // init loader with batch size
-        let batch_size: usize = 1;
-        let mut loader = persistence.loader(batch_size).await;
+        // get loader with batch size
+        let loader = persistence.loader().await;
+        let mut loader = loader.lock();
 
         // the persistence never removed any elements
         // therefore the loader should get the same element in the two batches of size 1
