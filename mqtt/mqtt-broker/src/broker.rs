@@ -86,8 +86,10 @@ where
                                 debug!("successfully disconnected client");
                             }
                         }
-                        SystemEvent::IdentityScopesUpdate(service_identities) => {
-                            debug!("service identities: {:?} - identity scopes update not implemented yet", service_identities);
+                        SystemEvent::AuthorizationUpdate(update) => {
+                            if let Err(e) = self.authorizer.update(update) {
+                                warn!(message = "an error occurred updating authorization info", error = %e);
+                            }
                         }
                     }
                 }

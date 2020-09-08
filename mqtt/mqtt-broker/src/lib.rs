@@ -30,6 +30,7 @@ mod transport;
 pub mod proptest;
 
 use std::{
+    any::Any,
     fmt::{Display, Formatter, Result as FmtResult},
     net::SocketAddr,
     sync::Arc,
@@ -161,13 +162,6 @@ impl ConnReq {
         (self.peer_addr, self.connect, self.handle)
     }
 }
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ServiceIdentity {
-    #[serde(rename = "Identity")]
-    identity: String,
-    #[serde(rename = "Auth_Chain")]
-    auth_chain: Option<String>,
-}
 
 #[derive(Debug)]
 pub enum Auth {
@@ -246,8 +240,7 @@ pub enum SystemEvent {
     Shutdown,
     StateSnapshot(StateSnapshotHandle),
     ForceClientDisconnect(ClientId),
-    IdentityScopesUpdate(Vec<ServiceIdentity>),
-    // ConfigUpdate,
+    AuthorizationUpdate(Box<dyn Any + Send + Sync>),
 }
 
 #[derive(Debug)]

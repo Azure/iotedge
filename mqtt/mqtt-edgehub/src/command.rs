@@ -1,8 +1,9 @@
+use serde::{Deserialize, Serialize};
 use serde_json::error::Error as SerdeError;
 use tracing::info;
 
 use mqtt3::ReceivedPublication;
-use mqtt_broker::{BrokerHandle, ClientId, Error, Message, ServiceIdentity, SystemEvent};
+use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
 use std::collections::HashMap;
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
@@ -64,11 +65,11 @@ impl Command for AuthorizedIdentities {
         broker_handle: &mut BrokerHandle,
         publication: &ReceivedPublication,
     ) -> Result<(), HandleEventError> {
-        let array: Vec<ServiceIdentity> = serde_json::from_slice(&publication.payload)
+        let array: ServiceIdentity = serde_json::from_slice(&publication.payload)
             .map_err(HandleEventError::ParseClientId)?;
-        if let Err(e) =
-            broker_handle.send(Message::System(SystemEvent::IdentityScopesUpdate(array)))
-        {
+        if let Err(e) = broker_handle.send(Message::System(SystemEvent::AuthorizationUpdate(
+            Box::new(array),
+        ))) {
             return Err(HandleEventError::SendAuthorizedIdentitiesToBroker(e));
         }
 
@@ -92,6 +93,14 @@ pub fn init_commands() -> HashMap<String, Box<dyn Command + Send>> {
         }),
     );
     commands
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServiceIdentity {
+    #[serde(rename = "Identity")]
+    identity: String,
+    #[serde(rename = "Auth_Chain")]
+    auth_chain: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
