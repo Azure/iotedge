@@ -12,7 +12,7 @@ trait Persist<'a> {
 
     fn new() -> Self;
 
-    async fn insert(&mut self, message: Publication) -> Result<Key, PersistError>;
+    async fn push(&mut self, message: Publication) -> Result<Key, PersistError>;
 
     async fn remove(&mut self, key: Key) -> Result<bool, PersistError>;
 

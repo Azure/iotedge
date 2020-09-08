@@ -30,7 +30,7 @@ impl<'a> Persist<'a> for InMemoryPersist {
         InMemoryPersist { state, offset }
     }
 
-    async fn insert(&mut self, message: Publication) -> Result<Key, PersistError> {
+    async fn push(&mut self, message: Publication) -> Result<Key, PersistError> {
         let key = Key {
             offset: self.offset,
         };
@@ -85,8 +85,8 @@ mod tests {
         };
 
         // insert some elements
-        persistence.insert(pub1.clone()).await.unwrap();
-        persistence.insert(pub2.clone()).await.unwrap();
+        persistence.push(pub1.clone()).await.unwrap();
+        persistence.push(pub2.clone()).await.unwrap();
 
         // init loader
         let batch_size: usize = 5;
@@ -123,7 +123,7 @@ mod tests {
         };
 
         // insert some elements
-        persistence.insert(pub1.clone()).await.unwrap();
+        persistence.push(pub1.clone()).await.unwrap();
 
         // init loader
         let batch_size: usize = 1;
@@ -134,7 +134,7 @@ mod tests {
         persistence.remove(key1).await.unwrap();
 
         // add a second message and verify this is returned first by loader
-        persistence.insert(pub2.clone()).await.unwrap();
+        persistence.push(pub2.clone()).await.unwrap();
         let extracted = loader.next().await.unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
@@ -173,8 +173,8 @@ mod tests {
         };
 
         // insert 2 elements
-        persistence.insert(pub1.clone()).await.unwrap();
-        persistence.insert(pub2.clone()).await.unwrap();
+        persistence.push(pub1.clone()).await.unwrap();
+        persistence.push(pub2.clone()).await.unwrap();
 
         // init loader with batch size
         let batch_size: usize = 1;
