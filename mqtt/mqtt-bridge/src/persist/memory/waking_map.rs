@@ -40,14 +40,11 @@ impl WakingMap {
         for _ in 0..count {
             let removed = self.queue.pop_front();
 
-            match removed {
-                Some(pair) => {
-                    output.push(pair);
-                }
-                None => {
-                    error!("failed retrieving message from persistence");
-                    continue;
-                }
+            if let Some(pair) = removed {
+                output.push(pair);
+            } else {
+                error!("failed retrieving message from persistence");
+                continue;
             }
         }
 
