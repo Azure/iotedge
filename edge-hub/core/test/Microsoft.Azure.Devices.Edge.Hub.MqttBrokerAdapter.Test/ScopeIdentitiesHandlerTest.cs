@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var capture = new SendCapture();
             var connector = GetConnector(capture);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            var sut = new ScopeIdentitiesHandler(deviceScopeIdentitiesCache.Object);
+            var sut = new ScopeIdentitiesHandler(Task.FromResult(deviceScopeIdentitiesCache.Object));
             sut.SetConnector(connector.Object);
             var serviceIdentity = new ServiceIdentity("d1", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
             var serviceIdentity2 = new ServiceIdentity("d2", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
@@ -56,18 +56,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             BrokerServiceIdentity identity = new BrokerServiceIdentity("d1", Option.Some("testAuthChain"));
             BrokerServiceIdentity identity2 = new BrokerServiceIdentity("d2", Option.Some("testAuthChain2"));
+            BrokerServiceIdentity identity3 = new BrokerServiceIdentity("d3", Option.Some("testAuthChain3"));
 
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain("d1")).ReturnsAsync(Option.Some("testAuthChain"));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain("d2")).ReturnsAsync(Option.Some("testAuthChain2"));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain("d3")).ReturnsAsync(Option.Some("testAuthChain3"));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAllIds()).ReturnsAsync(new List<string>() { serviceIdentity.Id, serviceIdentity2.Id, serviceIdentity3.Id });
 
-            var sut = new ScopeIdentitiesHandler(deviceScopeIdentitiesCache.Object);
+            var sut = new ScopeIdentitiesHandler(Task.FromResult(deviceScopeIdentitiesCache.Object));
             sut.SetConnector(connector.Object);
 
             // Act
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string>() { serviceIdentity.Id, serviceIdentity2.Id, serviceIdentity3.Id });
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string>() { serviceIdentity.Id, serviceIdentity2.Id });
-
 
             // Assert
             Assert.Null(capture.Topic);
@@ -79,6 +80,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             // Assert
             Assert.Equal(Topic, capture.Topic);
             IList<BrokerServiceIdentity> brokerServiceIdentities = JsonConvert.DeserializeObject<IList<BrokerServiceIdentity>>(Encoding.UTF8.GetString(capture.Content));
+            Assert.Equal(3, brokerServiceIdentities.Count);
+            Assert.Contains(identity, brokerServiceIdentities);
+            Assert.Contains(identity2, brokerServiceIdentities);
+            Assert.Contains(identity3, brokerServiceIdentities);
+
+            // Act
+            deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string>() { serviceIdentity.Id, serviceIdentity2.Id });
+
+            // Assert
+            Assert.Equal(Topic, capture.Topic);
+            brokerServiceIdentities = JsonConvert.DeserializeObject<IList<BrokerServiceIdentity>>(Encoding.UTF8.GetString(capture.Content));
             Assert.Equal(2, brokerServiceIdentities.Count);
             Assert.Contains(identity, brokerServiceIdentities);
             Assert.Contains(identity2, brokerServiceIdentities);
