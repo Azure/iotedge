@@ -1,6 +1,6 @@
 [package]
 authors = ["Azure IoT Edge Devs"]
-description = "Simple json-based authorization policy engine."
+description = "A json-based authorization policy engine."
 edition = "2018"
 name = "policy"
 version = "0.1.0"

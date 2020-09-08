@@ -29,7 +29,7 @@ fn main() -> Result<()> {
         .with_default_decision(Decision::Denied)
         .build()?;
 
-    let request = Request::new("actor_a".into(), "write".into(), "resource_1".into())?;
+    let request = Request::new("actor_a", "write", "resource_1")?;
 
     let result = policy.evaluate(&request)?;
     println!("Result of policy evaluation: {:?}", result);

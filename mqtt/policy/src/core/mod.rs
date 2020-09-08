@@ -231,7 +231,13 @@ pub struct Request {
 
 impl Request {
     /// Creates a new `Request`. Returns an error if either identity or operation is an empty string.
-    pub fn new(identity: String, operation: String, resource: String) -> Result<Self> {
+    pub fn new(
+        identity: impl Into<String>,
+        operation: impl Into<String>,
+        resource: impl Into<String>,
+    ) -> Result<Self> {
+        let (identity, operation, resource) = (identity.into(), operation.into(), resource.into());
+
         if identity.is_empty() {
             return Err(Error::BadRequest("Identity must be specified".into()));
         }
@@ -365,11 +371,11 @@ pub(crate) mod tests {
 
         let policy = build_policy(json);
 
-        let request = Request::new("actor_a".into(), "write".into(), "resource_1".into()).unwrap();
+        let request = Request::new("actor_a", "write", "resource_1").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Denied));
 
-        let request = Request::new("actor_b".into(), "read".into(), "resource_1".into()).unwrap();
+        let request = Request::new("actor_b", "read", "resource_1").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
@@ -396,9 +402,9 @@ pub(crate) mod tests {
 
         // assert default allow
         let request = Request::new(
-            "contoso.azure-devices.net/some_other_device".into(),
-            "write".into(),
-            "resource_1".into(),
+            "contoso.azure-devices.net/some_other_device",
+            "write",
+            "resource_1",
         )
         .unwrap();
 
@@ -484,13 +490,13 @@ pub(crate) mod tests {
             .expect("Unable to build policy from json.");
 
         // assert static rule wins
-        let request = Request::new("actor_a".into(), "write".into(), "resource_1".into()).unwrap();
+        let request = Request::new("actor_a", "write", "resource_1").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
 
         // assert variable rule wins
         let request =
-            Request::new("actor_b".into(), "read".into(), "resource_group".into()).unwrap();
+            Request::new("actor_b", "read", "resource_group").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
@@ -514,7 +520,7 @@ pub(crate) mod tests {
 
         let policy = build_policy(json);
 
-        let request = Request::new("actor_a".into(), "connect".into(), "".into()).unwrap();
+        let request = Request::new("actor_a", "connect", "").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
@@ -551,11 +557,11 @@ pub(crate) mod tests {
             .build()
             .expect("Unable to build policy from json.");
 
-        let request = Request::new("actor_a".into(), "connect".into(), "".into()).unwrap();
+        let request = Request::new("actor_a", "connect", "").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Denied));
 
-        let request = Request::new("other_actor".into(), "connect".into(), "".into()).unwrap();
+        let request = Request::new("other_actor", "connect", "").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }

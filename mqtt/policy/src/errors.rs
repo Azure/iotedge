@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-/// A specialized `Result` type for mini-redis operations.
+/// A specialized `Result` type for policy engine operations.
 ///
 /// This is defined as a convenience.
 pub type Result<T> = std::result::Result<T, Error>;
