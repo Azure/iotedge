@@ -65,14 +65,19 @@ impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
 
 #[derive(Clone)]
 struct Config {
-    hub_name: String,
+    iot_hub_name: String,
+    parent_hostname: Option<String>,
     device_id: String,
     cert_max_duration: i64,
 }
 
 impl WorkloadConfig for Config {
     fn iot_hub_name(&self) -> &str {
-        &self.hub_name
+        &self.iot_hub_name
+    }
+
+    fn parent_hostname(&self) -> Option<&str> {
+        self.parent_hostname.as_deref()
     }
 
     fn device_id(&self) -> &str {
@@ -175,7 +180,8 @@ fn create_workload_service(module_id: &str) -> (WorkloadService, Crypto) {
         Ok(ModuleRuntimeState::default().with_status(ModuleStatus::Running)),
     )));
     let config = Config {
-        hub_name: "hub1".to_string(),
+        iot_hub_name: "hub1".to_string(),
+        parent_hostname: None,
         device_id: "d1".to_string(),
         cert_max_duration: 10_000_000,
     };

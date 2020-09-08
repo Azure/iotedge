@@ -910,6 +910,7 @@ impl From<SubAckQos> for u8 {
 }
 
 /// A message that can be published to the server
+//  but not yet assigned a packet identifier.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
 pub struct Publication {
