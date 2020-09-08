@@ -495,8 +495,7 @@ pub(crate) mod tests {
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
 
         // assert variable rule wins
-        let request =
-            Request::new("actor_b", "read", "resource_group").unwrap();
+        let request = Request::new("actor_b", "read", "resource_group").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
