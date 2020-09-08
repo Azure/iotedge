@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -24,7 +24,7 @@ impl<'a> Persist<'a> for InMemoryPersist {
     type Loader = InMemoryMessageLoader;
 
     fn new() -> Self {
-        let state = WakingMap::new(BTreeMap::new());
+        let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
         let offset = 0;
         InMemoryPersist { state, offset }
@@ -43,7 +43,9 @@ impl<'a> Persist<'a> for InMemoryPersist {
 
     async fn remove(&mut self, key: Key) -> Result<bool, PersistError> {
         let mut state_lock = self.state.lock();
-        state_lock.remove(&key).ok_or(PersistError::Removal())?;
+        state_lock
+            .remove_in_flight(&key)
+            .map_err(|_| PersistError::Removal())?;
         Ok(true)
     }
 
@@ -150,12 +152,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_loader_with_correct_batch_size() {
+    async fn get_loader() {
         // setup state
         let mut persistence = InMemoryPersist::new();
 
         // setup data
         let key1 = Key { offset: 0 };
+        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
@@ -173,7 +176,7 @@ mod tests {
         persistence.insert(pub1.clone()).await.unwrap();
         persistence.insert(pub2.clone()).await.unwrap();
 
-        // init loader with batch size 1
+        // init loader with batch size
         let batch_size: usize = 1;
         let mut loader = persistence.loader(batch_size).await;
 
@@ -182,8 +185,8 @@ mod tests {
         let extracted1 = loader.next().await.unwrap();
         let extracted2 = loader.next().await.unwrap();
         assert_eq!(extracted1.0, key1);
-        assert_eq!(extracted2.0, key1);
+        assert_eq!(extracted2.0, key2);
         assert_eq!(extracted1.1, pub1);
-        assert_eq!(extracted2.1, pub1);
+        assert_eq!(extracted2.1, pub2);
     }
 }

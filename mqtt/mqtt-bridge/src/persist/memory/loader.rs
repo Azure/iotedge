@@ -1,4 +1,5 @@
 use std::{pin::Pin, sync::Arc, task::Context, task::Poll, vec::IntoIter};
+use tracing::error;
 
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
@@ -11,7 +12,6 @@ use crate::persist::{memory::waking_map::WakingMap, Key};
 // It works by grabbing a snapshot of the most important messages from the persistence
 // Then, will return these elements in order
 // When the batch is exhausted it will grab a new batch
-// If no elements are removed from the persistence, the second batch will be identical to first
 pub struct InMemoryMessageLoader {
     state: Arc<Mutex<WakingMap>>,
     batch: IntoIter<(Key, Publication)>,
@@ -41,7 +41,7 @@ impl Stream for InMemoryMessageLoader {
         let mut_self = self.get_mut();
         let mut state_lock = mut_self.state.lock();
 
-        mut_self.batch = get_elements(&state_lock, mut_self.batch_size);
+        mut_self.batch = get_elements(&mut state_lock, mut_self.batch_size);
         mut_self.batch.next().map_or_else(
             || {
                 state_lock.set_waker(cx.waker());
@@ -53,21 +53,29 @@ impl Stream for InMemoryMessageLoader {
 }
 
 fn get_elements(
-    state: &MutexGuard<'_, WakingMap>,
+    state: &mut MutexGuard<'_, WakingMap>,
     batch_size: usize,
 ) -> IntoIter<(Key, Publication)> {
-    let batch: Vec<_> = state
-        .map()
-        .iter()
-        .take(batch_size)
-        .map(|element| (element.0.clone(), element.1.clone()))
-        .collect();
-    batch.into_iter()
+    let batch = state.get(batch_size);
+
+    match batch {
+        Ok(batch) => {
+            let batch: Vec<_> = batch
+                .iter()
+                .map(|element| (element.0.clone(), element.1.clone()))
+                .collect();
+            batch.into_iter()
+        }
+        Err(e) => {
+            error!(message = "failed retrieving persisted elements", err = %e);
+            return Vec::new().into_iter();
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, iter::Iterator, sync::Arc, time::Duration};
+    use std::{iter::Iterator, sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
@@ -83,8 +91,7 @@ mod tests {
     #[tokio::test]
     async fn smaller_batch_size_respected() {
         // setup state
-        let state = BTreeMap::new();
-        let state = WakingMap::new(state);
+        let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -110,7 +117,7 @@ mod tests {
 
         // get batch size elements
         let batch_size = 1;
-        let iter = get_elements(&state_lock, batch_size);
+        let iter = get_elements(&mut state_lock, batch_size);
 
         // verify
         let elements: Vec<_> = iter.collect();
@@ -122,8 +129,7 @@ mod tests {
     #[tokio::test]
     async fn larger_batch_size_respected() {
         // setup state
-        let state = BTreeMap::new();
-        let state = WakingMap::new(state);
+        let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -149,7 +155,7 @@ mod tests {
 
         // get batch size elements
         let batch_size = 5;
-        let elements: Vec<_> = get_elements(&state_lock, batch_size).collect();
+        let elements: Vec<_> = get_elements(&mut state_lock, batch_size).collect();
 
         // verify
         let extracted1 = elements.get(0).unwrap();
@@ -162,8 +168,7 @@ mod tests {
     #[tokio::test]
     async fn retrieve_elements() {
         // setup state
-        let state = BTreeMap::new();
-        let state = WakingMap::new(state);
+        let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -204,8 +209,7 @@ mod tests {
     #[tokio::test]
     async fn delete_and_retrieve_new_elements() {
         // setup state
-        let state = BTreeMap::new();
-        let state = WakingMap::new(state);
+        let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -240,8 +244,8 @@ mod tests {
 
         // remove inserted elements
         let mut state_lock = state.lock();
-        state_lock.remove(&key1);
-        state_lock.remove(&key2);
+        state_lock.remove_in_flight(&key1).unwrap();
+        state_lock.remove_in_flight(&key2).unwrap();
         drop(state_lock);
 
         // insert new elements
@@ -265,8 +269,7 @@ mod tests {
     #[tokio::test]
     async fn ordering_maintained_across_inserts() {
         // setup state
-        let state = BTreeMap::new();
-        let state = WakingMap::new(state);
+        let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
 
         // add many elements
@@ -285,51 +288,9 @@ mod tests {
         }
 
         // verify insertion order
-        let elements: Vec<_> = get_elements(&state_lock, num_elements).collect();
+        let elements: Vec<_> = get_elements(&mut state_lock, num_elements).collect();
         for count in 0..num_elements {
             assert_eq!(elements.get(count).unwrap().0.offset, count as u32)
-        }
-    }
-
-    #[tokio::test]
-    async fn ordering_maintained_across_delete() {
-        // setup state
-        let state = BTreeMap::new();
-        let state = WakingMap::new(state);
-        let state = Arc::new(Mutex::new(state));
-
-        // add many elements
-        let mut state_lock = state.lock();
-        let num_elements = 50 as usize;
-        for i in 0..num_elements {
-            let key = Key { offset: i as u32 };
-            let publication = Publication {
-                topic_name: "test".to_string(),
-                qos: QoS::ExactlyOnce,
-                retain: true,
-                payload: Bytes::new(),
-            };
-
-            state_lock.insert(key, publication)
-        }
-
-        // delete an element
-        let index_to_delete = 25;
-        let key_to_delete = Key { offset: 25 };
-        state_lock.remove(&key_to_delete);
-
-        // verify insertion order
-        let elements: Vec<_> = get_elements(&state_lock, num_elements).collect();
-        assert_eq!(elements.len(), num_elements - 1);
-
-        let mut compare_offset = 0;
-        for element in elements {
-            if compare_offset == index_to_delete {
-                compare_offset += 1;
-            }
-
-            assert_eq!(element.0.offset, compare_offset);
-            compare_offset += 1;
         }
     }
 
@@ -337,8 +298,7 @@ mod tests {
     #[tokio::test]
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state
-        let state = BTreeMap::new();
-        let state = WakingMap::new(state);
+        let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data

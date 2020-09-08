@@ -21,11 +21,12 @@ trait Persist<'a> {
 
 // Keys used in persistence.
 // Ordered by offset
-#[derive(Eq, Ord, PartialOrd, PartialEq, Clone, Debug)]
+#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug)]
 pub struct Key {
     offset: u32,
 }
 
+// TODO REVIEW: these generic error types don't wrap impl specific types
 #[derive(Debug, Error)]
 pub enum PersistError {
     #[error("Failed to remove messages from persistence")]

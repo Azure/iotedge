@@ -1,45 +1,89 @@
-use std::{collections::BTreeMap, task::Waker};
+use std::cmp::min;
+use std::collections::VecDeque;
+use std::{collections::HashMap, task::Waker};
 
 use mqtt3::proto::Publication;
+use thiserror::Error;
 
 use crate::persist::Key;
 
 // Responsible for waking waiting streams when new elements are added
 pub struct WakingMap {
-    map: BTreeMap<Key, Publication>,
+    queue: VecDeque<(Key, Publication)>,
+    in_flight: HashMap<Key, Publication>,
     waker: Option<Waker>,
 }
 
 impl WakingMap {
-    pub fn new(map: BTreeMap<Key, Publication>) -> Self {
-        WakingMap { map, waker: None }
+    pub fn new() -> Self {
+        let queue: VecDeque<(Key, Publication)> = VecDeque::new();
+        let in_flight = HashMap::new();
+
+        WakingMap {
+            queue,
+            in_flight,
+            waker: None,
+        }
     }
 
     pub fn insert(&mut self, key: Key, value: Publication) {
-        self.map.insert(key, value);
+        self.queue.push_back((key, value));
 
         if let Some(waker) = self.waker.take() {
             waker.wake();
         }
     }
 
-    pub fn remove(&mut self, key: &Key) -> Option<Publication> {
-        self.map.remove(&key)
+    pub fn get(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, WakingMapError> {
+        let count = min(count, self.queue.len());
+        let mut output = vec![];
+        for _ in 0..count {
+            let removed = self
+                .queue
+                .pop_front()
+                .ok_or(WakingMapError::InFlightConversion())?;
+            output.push(removed);
+        }
+
+        for element in output.iter() {
+            self.in_flight.insert(element.0.clone(), element.1.clone());
+        }
+
+        Ok(output)
     }
 
-    // exposed for specific loading logic
-    pub fn map(&self) -> &BTreeMap<Key, Publication> {
-        &self.map
+    pub fn remove_in_flight(&mut self, key: &Key) -> Result<(), WakingMapError> {
+        self.in_flight
+            .remove(key)
+            .ok_or(WakingMapError::InFlightRemoval())?;
+        Ok(())
     }
 
     pub fn set_waker(&mut self, waker: &Waker) {
         self.waker = Some(waker.clone());
     }
+
+    // TODO REVIEW: exposed just for testing.
+    // We don't use the in-flight now, but we need to find a way to use it.
+    // Otherwise just have the queue.
+    #[allow(dead_code)]
+    fn in_flight(&mut self) -> &HashMap<Key, Publication> {
+        &self.in_flight
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum WakingMapError {
+    #[error("Failed transfering messages to in-flight collection")]
+    InFlightConversion(),
+
+    #[error("Failed to remove element from in-flight storage")]
+    InFlightRemoval(),
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, pin::Pin, sync::Arc, task::Context, task::Poll};
+    use std::{pin::Pin, sync::Arc, task::Context, task::Poll};
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt};
@@ -51,8 +95,7 @@ mod tests {
 
     #[test]
     fn insert() {
-        let state = BTreeMap::new();
-        let mut state = WakingMap::new(state);
+        let mut state = WakingMap::new();
 
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -63,14 +106,15 @@ mod tests {
         };
 
         state.insert(key1.clone(), pub1.clone());
-        let extracted = state.map().get(&key1).unwrap();
-        assert_eq!(pub1, *extracted);
+
+        let current_state = state.get(1).unwrap();
+        let extracted_message = current_state.get(0).unwrap().1.clone();
+        assert_eq!(pub1, extracted_message);
     }
 
     #[test]
-    fn remove() {
-        let state = BTreeMap::new();
-        let mut state = WakingMap::new(state);
+    fn get_over_quantity_succeeds() {
+        let mut state = WakingMap::new();
 
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -82,8 +126,35 @@ mod tests {
 
         state.insert(key1.clone(), pub1.clone());
 
-        let removed_pub = state.remove(&key1).unwrap();
-        assert_eq!(pub1, removed_pub);
+        let too_many_elements = 20;
+        let current_state = state.get(too_many_elements).unwrap();
+        assert_eq!(current_state.len(), 1);
+
+        let extracted_message = current_state.get(0).unwrap().1.clone();
+        assert_eq!(pub1, extracted_message);
+    }
+
+    #[test]
+    fn in_flight() {
+        let mut state = WakingMap::new();
+
+        let key1 = Key { offset: 0 };
+        let pub1 = Publication {
+            topic_name: "test".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        assert_eq!(state.in_flight.len(), 0);
+        state.insert(key1.clone(), pub1.clone());
+        assert_eq!(state.in_flight.len(), 0);
+
+        state.get(1).unwrap();
+        assert_eq!(state.in_flight.len(), 1);
+
+        state.remove_in_flight(&key1).unwrap();
+        assert_eq!(state.in_flight.len(), 0);
     }
 
     #[tokio::test]
@@ -97,13 +168,12 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let map = BTreeMap::new();
-        let map = WakingMap::new(map);
-        let map = Arc::new(Mutex::new(map));
+        let state = WakingMap::new();
+        let state = Arc::new(Mutex::new(state));
 
         // start reading stream in a separate thread
         // this stream will return pending until woken up
-        let map_copy = Arc::clone(&map);
+        let map_copy = Arc::clone(&state);
         let notify = Arc::new(Notify::new());
         let notify2 = notify.clone();
         let poll_stream = async move {
@@ -115,7 +185,7 @@ mod tests {
         notify.notified().await;
 
         // insert an element to wake the stream, then wait for the other thread to complete
-        map.lock().insert(key1, pub1);
+        state.lock().insert(key1, pub1);
         poll_stream_handle.await.unwrap();
     }
 
