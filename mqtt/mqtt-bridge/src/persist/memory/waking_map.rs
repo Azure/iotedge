@@ -145,7 +145,8 @@ mod tests {
         state.get(1);
         assert_eq!(state.in_flight.len(), 1);
 
-        state.remove_in_flight(&key1).unwrap();
+        let removed = state.remove_in_flight(&key1).unwrap();
+        assert_eq!(removed, pub1);
         assert_eq!(state.in_flight.len(), 0);
     }
 
