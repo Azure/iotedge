@@ -8,15 +8,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using static System.FormattableString;
-
+    using static System.FormattableString
 
     [JsonConverter(typeof(DockerConfigJsonConverter))]
     public class DockerConfig : IEquatable<DockerConfig>
     {
         // This is not the actual docker image regex, but a less strict version.
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
-        //check if it's prefix is "$upstream" and replace with environment variable. Should support $upstream for any case.
+        // Check if it's prefix is "$upstream" and replace with environment variable. Should support $upstream for any case.
         const string ImageUpstreamRegexPattern = @"^\$upstream(?<path>:[1-9].*)";
 
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
