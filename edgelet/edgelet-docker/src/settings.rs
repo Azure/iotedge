@@ -1177,13 +1177,13 @@ mod tests {
             );
             assert_eq!(
                 content_trust_map.get(""),
-                Some(&std::path::PathBuf::from(
-                    "/path/to/root_ca_contoso3.crt"
-                ))
+                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso3.crt"))
             );
             assert_eq!(
                 content_trust_map.get("contoso4.azurcr.io"),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso4_replaced.crt"))
+                Some(&std::path::PathBuf::from(
+                    "/path/to/root_ca_contoso4_replaced.crt"
+                ))
             );
             assert_eq!(
                 content_trust_map.get("contoso5.azurcr.io"),
