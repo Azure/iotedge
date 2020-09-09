@@ -16,8 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         // This is not the actual docker image regex, but a less strict version.
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
-        // Match for an environment variable in the official POSIX format $ + "letter" + "letter|digit"
-        // Then the port has to be specified with ":"
+        //check if it's prefix is "$upstream" and replace with environment variable. Should support $upstream for any case.
         const string ImageUpstreamRegexPattern = @"^\$upstream(?<path>:[1-9].*)";
 
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
@@ -119,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 }
                 else
                 {
-                    throw new ArgumentException($"Image {image} is not in the right format. If your intention is to use an environment variable, check the port is specified.");
+                    throw new InvalidOperationException($"Image {image} is not in the right format. If your intention is to use an environment variable, check the port is specified.");
                 }
             }
 
