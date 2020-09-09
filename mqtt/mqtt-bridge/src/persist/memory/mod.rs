@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 use thiserror::Error;
+use tracing::debug;
 
 use crate::persist::{
     memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Persist,
@@ -41,6 +42,11 @@ impl<'a> Persist<'a> for InMemoryPersist {
     }
 
     async fn push(&mut self, message: Publication) -> Result<Key, Self::Error> {
+        debug!(
+            "persisting publication on topic {} with offset {}",
+            message.topic_name, self.offset
+        );
+
         let key = Key {
             offset: self.offset,
         };
@@ -52,6 +58,11 @@ impl<'a> Persist<'a> for InMemoryPersist {
     }
 
     async fn remove(&mut self, key: Key) -> Option<Publication> {
+        debug!(
+            "removing publication with offset {} from in-flight collection",
+            self.offset
+        );
+
         let mut state_lock = self.state.lock();
         state_lock.remove_in_flight(&key)
     }
