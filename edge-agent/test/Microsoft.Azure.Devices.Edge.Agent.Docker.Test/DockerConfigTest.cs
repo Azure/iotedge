@@ -230,10 +230,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Theory]
         [InlineData("$upstream:9000/comp/ea:tag1", "parentaddress:9000/comp/ea:tag1", null, "IOTEDGE_GATEWAYHOSTNAME", "parentaddress")]
         [InlineData("$upstream:9000/ea:tag1", "parentaddress:9000/ea:tag1", null, "IOTEDGE_GATEWAYHOSTNAME", "parentaddress")]
-        [InlineData("$upstream:9000/comp/ea:tag1", "$IOTEDGE_GATEWAYHOSTNAME:9000/comp/ea:tag1", typeof(ArgumentException), "dummyValue", "parentaddress")]
-        [InlineData("$dummy:9000/comp/ea:tag1", "$IOTEDGE_GATEWAYHOSTNAME:9000/comp/ea:tag1", typeof(ArgumentException), "IOTEDGE_GATEWAYHOSTNAME", "parentaddress")]
-        [InlineData("$upstream:/comp/ea:tag1", "$IOTEDGE_GATEWAYHOSTNAME:9000/comp/ea:tag1", typeof(ArgumentException), "IOTEDGE_GATEWAYHOSTNAME", "parentaddress")]
-        [InlineData("$upstream:08/comp/ea:tag1", "$IOTEDGE_GATEWAYHOSTNAME:9000/comp/ea:tag1", typeof(ArgumentException), "IOTEDGE_GATEWAYHOSTNAME", "parentaddress")]
+        [InlineData("$upstream:9000/comp/ea:tag1", "$IOTEDGE_GATEWAYHOSTNAME:9000/comp/ea:tag1", typeof(InvalidOperationException), "dummyValue", "parentaddress")]
+        [InlineData("$dummy:9000/comp/ea:tag1", "$IOTEDGE_GATEWAYHOSTNAME:9000/comp/ea:tag1", typeof(InvalidOperationException), "IOTEDGE_GATEWAYHOSTNAME", "parentaddress")]
+        [InlineData("$upstream:/comp/ea:tag1", "$IOTEDGE_GATEWAYHOSTNAME:9000/comp/ea:tag1", typeof(InvalidOperationException), "IOTEDGE_GATEWAYHOSTNAME", "parentaddress")]
+        [InlineData("$upstream:08/comp/ea:tag1", "$IOTEDGE_GATEWAYHOSTNAME:9000/comp/ea:tag1", typeof(InvalidOperationException), "IOTEDGE_GATEWAYHOSTNAME", "parentaddress")]
         public void TestValidateAndGetImageWithEnvVariableInHostAddress(string image, string result, Type expectedException, string variableName, string value)
         {
             MockEnvironment mock_env = new MockEnvironment();
