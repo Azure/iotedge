@@ -300,8 +300,9 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
-    use super::{ContentTrust, MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
-
+    #[cfg(target_os = "linux")]
+    use super::ContentTrust;
+    use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
     use std::cmp::Ordering;
     use std::fs::File;
     use std::io::prelude::*;
