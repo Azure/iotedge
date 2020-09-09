@@ -1,24 +1,20 @@
 #![allow(dead_code)] // TODO remove when ready
-
 use std::{collections::HashSet, time::Duration};
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use futures_util::future::BoxFuture;
-use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
 use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{debug, error};
-use url::form_urlencoded::Serializer as UrlSerializer;
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
 
 use crate::settings::Credentials;
+use crate::token_source::{TokenSource, SasTokenSource};
 
-define_encode_set! {
-    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
-}
+const DEFAULT_TOKEN_DURATION: Duration = Duration::from_secs(60 * 60);
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -54,80 +50,22 @@ where
         let token_source = self.token_source.as_ref().cloned();
 
         Box::pin(async move {
-            // TODO: add to default duration
-            let token_duration = chrono::Duration::hours(1);
-            let expiry = Utc::now() + token_duration;
+            let expiry = Utc::now() + chrono::Duration::from_std(DEFAULT_TOKEN_DURATION).unwrap();
             let mut password = None;
             if let Some(ts) = token_source {
                 // TODO: handle error
                 password = match ts.get(&expiry).await {
                     Ok(x) => Some(x),
-                    Err(_) => None,
+                    Err(_) => {
+                        //error!("Failed to get token {}", e);
+                        None
+                    },
                 }
             };
 
             let io = TcpStream::connect(address).await;
             io.map(|io| (io, password))
         })
-    }
-}
-
-#[async_trait]
-pub trait TokenSource {
-    type Error;
-    async fn get(&self, expiry: &DateTime<Utc>) -> Result<String, Self::Error>;
-}
-
-#[derive(Clone)]
-pub struct SasTokenSource {
-    creds: Credentials,
-}
-
-impl SasTokenSource {
-    pub fn new(creds: Credentials) -> Self {
-        SasTokenSource { creds }
-    }
-}
-
-#[async_trait]
-impl TokenSource for SasTokenSource {
-    type Error = ClientConnectError;
-
-    async fn get(&self, expiry: &DateTime<Utc>) -> Result<String, ClientConnectError> {
-        let token: String = match &self.creds {
-            Credentials::Provider(provider_settings) => {
-                let expiry = expiry.timestamp().to_string();
-                let audience = format!(
-                    "{}/devices/{}/modules/{}",
-                    provider_settings.iothub_hostname().unwrap(),
-                    provider_settings.device_id().unwrap(),
-                    provider_settings.module_id().unwrap()
-                );
-                let resource_uri =
-                    percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET)
-                        .to_string();
-                let sig_data = format!("{}\n{}", &resource_uri, expiry);
-
-                let client =
-                    edgelet_client::workload(provider_settings.workload_uri().unwrap()).unwrap();
-                let signature = client
-                    .sign(
-                        provider_settings.module_id().unwrap(),
-                        provider_settings.generation_id().unwrap(),
-                        &sig_data,
-                    )
-                    .await
-                    .unwrap();
-                let signature = signature.digest();
-                UrlSerializer::new(format!("sr={}", resource_uri))
-                    .append_pair("sig", &signature)
-                    .append_pair("se", &expiry)
-                    .finish()
-            }
-            Credentials::PlainText(creds) => creds.password().into(),
-            Credentials::Anonymous(_) => "".into(),
-        };
-        Ok(token)
     }
 }
 
@@ -148,8 +86,14 @@ impl<T: EventHandler> MqttClient<T> {
         connection_credentials: &Credentials,
     ) -> Self {
         let (client_id, token_source) = match connection_credentials {
-            Credentials::Provider(provider_settings) => (provider_settings.device_id().unwrap().into(), Some(SasTokenSource::new(connection_credentials.clone()))),
-            Credentials::PlainText(creds) => (creds.client_id().into(), Some(SasTokenSource::new(connection_credentials.clone()))),
+            Credentials::Provider(provider_settings) => (
+                provider_settings.device_id().into(),
+                Some(SasTokenSource::new(connection_credentials.clone())),
+            ),
+            Credentials::PlainText(creds) => (
+                creds.client_id().into(),
+                Some(SasTokenSource::new(connection_credentials.clone())),
+            ),
             Credentials::Anonymous(client_id) => (client_id.into(), None),
         };
 
@@ -246,7 +190,10 @@ impl<T: EventHandler> MqttClient<T> {
 
         error!("command handler failed to subscribe to topics");
         Err(ClientConnectError::MissingSubacks(
-            subacks.into_iter().map(|s| s.to_string()).collect(),
+            subacks
+                .into_iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
         ))
     }
 }

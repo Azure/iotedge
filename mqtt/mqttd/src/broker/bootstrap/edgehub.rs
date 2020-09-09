@@ -192,8 +192,7 @@ async fn start_sidecars(
     let device_id = env::var(DEVICE_ID_ENV)?;
 
     let mut bridge_controller = BridgeController::new();
-    let bridge = bridge_controller.start(system_address.clone(), device_id.clone().as_str());
-    bridge.await?;
+    let _bridge = bridge_controller.start(system_address.clone(), device_id.clone().as_str()).await?;
 
     let sidecars = tokio::spawn(async move {
         let mut command_handler = CommandHandler::new(system_address, device_id.as_str());

@@ -61,7 +61,7 @@ impl<'de> serde::Deserialize<'de> for Settings {
         #[derive(Debug, serde_derive::Deserialize)]
         struct Inner {
             #[serde(flatten)]
-            nested_bridge: CredentialProviderSettings,
+            nested_bridge: Option<CredentialProviderSettings>,
 
             upstream: UpstreamSettings,
 
@@ -79,11 +79,11 @@ impl<'de> serde::Deserialize<'de> for Settings {
 
         let upstream_connection_settings =
             nested_bridge
-                .gateway_hostname
-                .clone()
-                .map(|gateway_hostname| ConnectionSettings {
+                // .gateway_hostname
+                //.clone()
+                .map(|nested_bridge| ConnectionSettings {
                     name: "upstream".into(),
-                    address: gateway_hostname,
+                    address: nested_bridge.gateway_hostname.clone(),
                     subscriptions: upstream.subscriptions,
                     forwards: upstream.forwards,
                     credentials: Credentials::Provider(nested_bridge),
@@ -108,9 +108,9 @@ pub struct ConnectionSettings {
     #[serde(flatten)]
     credentials: Credentials,
 
-    subscriptions: Vec<Subscription>,
+    subscriptions: Vec<Topic>,
 
-    forwards: Vec<Forward>,
+    forwards: Vec<Topic>,
 
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
@@ -131,11 +131,11 @@ impl ConnectionSettings {
         &self.credentials
     }
 
-    pub fn subscriptions(&self) -> &Vec<Subscription> {
+    pub fn subscriptions(&self) -> &Vec<Topic> {
         &self.subscriptions
     }
 
-    pub fn forwards(&self) -> &Vec<Forward> {
+    pub fn forwards(&self) -> &Vec<Topic> {
         &self.forwards
     }
 
@@ -182,60 +182,60 @@ impl AuthenticationSettings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
     #[serde(rename = "iothubhostname")]
-    iothub_hostname: Option<String>,
+    iothub_hostname: String,
 
     #[serde(rename = "gatewayhostname")]
-    gateway_hostname: Option<String>,
+    gateway_hostname: String,
 
     #[serde(rename = "deviceid")]
-    device_id: Option<String>,
+    device_id: String,
 
     #[serde(rename = "moduleid")]
-    module_id: Option<String>,
+    module_id: String,
 
     #[serde(rename = "modulegenerationid")]
-    generation_id: Option<String>,
+    generation_id: String,
 
     #[serde(rename = "workloaduri")]
-    workload_uri: Option<String>,
+    workload_uri: String,
 }
 
 impl CredentialProviderSettings {
-    pub fn iothub_hostname(&self) -> Option<&str> {
-        self.iothub_hostname.as_ref().map(AsRef::as_ref)
+    pub fn iothub_hostname(&self) -> &str {
+        &self.iothub_hostname
     }
 
-    pub fn gateway_hostname(&self) -> Option<&str> {
-        self.gateway_hostname.as_ref().map(AsRef::as_ref)
+    pub fn gateway_hostname(&self) -> &str {
+        &self.gateway_hostname
     }
 
-    pub fn device_id(&self) -> Option<&str> {
-        self.device_id.as_ref().map(AsRef::as_ref)
+    pub fn device_id(&self) -> &str {
+        &self.device_id
     }
 
-    pub fn module_id(&self) -> Option<&str> {
-        self.module_id.as_ref().map(AsRef::as_ref)
+    pub fn module_id(&self) -> &str {
+        &self.module_id
     }
 
-    pub fn generation_id(&self) -> Option<&str> {
-        self.generation_id.as_ref().map(AsRef::as_ref)
+    pub fn generation_id(&self) -> &str {
+        &self.generation_id
     }
 
-    pub fn workload_uri(&self) -> Option<&str> {
-        self.workload_uri.as_ref().map(AsRef::as_ref)
+    pub fn workload_uri(&self) -> &str {
+        &self.workload_uri
     }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Subscription {
+pub struct Topic {
     pattern: String,
 
     local: Option<String>,
 
-    remote: String,
+    remote: Option<String>,
 }
 
-impl Subscription {
+impl Topic {
     pub fn pattern(&self) -> &str {
         &self.pattern
     }
@@ -244,31 +244,8 @@ impl Subscription {
         self.local.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn remote(&self) -> &str {
-        &self.remote
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Forward {
-    pattern: String,
-
-    local: Option<String>,
-
-    remote: String,
-}
-
-impl Forward {
-    pub fn pattern(&self) -> &str {
-        &self.pattern
-    }
-
-    pub fn local(&self) -> Option<&str> {
-        self.local.as_ref().map(AsRef::as_ref)
-    }
-
-    pub fn remote(&self) -> &str {
-        &self.remote
+    pub fn remote(&self) -> Option<&str> {
+        self.remote.as_ref().map(AsRef::as_ref)
     }
 }
 
@@ -282,9 +259,9 @@ struct UpstreamSettings {
 
     clean_session: bool,
 
-    subscriptions: Vec<Subscription>,
+    subscriptions: Vec<Topic>,
 
-    forwards: Vec<Forward>,
+    forwards: Vec<Topic>,
 }
 
 #[cfg(test)]
@@ -304,6 +281,15 @@ mod tests {
 
     #[test]
     #[serial(env_settings)]
+    fn new_no_upstream_settings() {
+        let settings = Settings::new().unwrap();
+
+        assert_eq!(settings.remotes().len(), 0);
+        assert_eq!(settings.upstream(), None);
+    }
+
+    #[test]
+    #[serial(env_settings)]
     fn from_file_reads_nested_bridge_settings() {
         let settings = Settings::from_file("tests/config.json").unwrap();
         let upstream = settings.upstream().unwrap();
@@ -313,10 +299,11 @@ mod tests {
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {
-                assert_eq!(provider.device_id().unwrap(), "d1");
-                assert_eq!(provider.module_id().unwrap(), "mymodule");
-                assert_eq!(provider.generation_id().unwrap(), "321");
-                assert_eq!(provider.workload_uri().unwrap(), "uri");
+                assert_eq!(provider.iothub_hostname(), "iothub");
+                assert_eq!(provider.device_id(), "d1");
+                assert_eq!(provider.module_id(), "mymodule");
+                assert_eq!(provider.generation_id(), "321");
+                assert_eq!(provider.workload_uri(), "uri");
             }
             _ => panic!("Expected provider settings"),
         };
@@ -368,6 +355,7 @@ mod tests {
         let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
+        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
 
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();
@@ -377,10 +365,11 @@ mod tests {
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {
-                assert_eq!(provider.device_id().unwrap(), "device1");
-                assert_eq!(provider.module_id().unwrap(), "m1");
-                assert_eq!(provider.generation_id().unwrap(), "123");
-                assert_eq!(provider.workload_uri().unwrap(), "workload");
+                assert_eq!(provider.iothub_hostname(), "iothub");
+                assert_eq!(provider.device_id(), "device1");
+                assert_eq!(provider.module_id(), "m1");
+                assert_eq!(provider.generation_id(), "123");
+                assert_eq!(provider.workload_uri(), "workload");
             }
             _ => panic!("Expected provider settings"),
         };

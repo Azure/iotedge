@@ -1,8 +1,10 @@
 use std::collections::{HashMap, VecDeque};
+use std::str::FromStr;
 
 use anyhow::Error;
 use async_trait::async_trait;
-use mqtt3::{proto::Publication, Event};
+use mqtt3::{proto::Publication, Event, ReceivedPublication};
+use mqtt_broker::TopicFilter;
 use tracing::{debug, info};
 
 use crate::client::{EventHandler, MqttClient};
@@ -13,8 +15,8 @@ pub struct Bridge {
     system_address: String,
     device_id: String,
     connection_settings: ConnectionSettings,
-    local_handler: MessageHandler,
-    remote_handler: MessageHandler,
+    forwards_map: HashMap<String, String>,
+    subs_map: HashMap<String, String> 
 }
 
 impl Bridge {
@@ -29,7 +31,7 @@ impl Bridge {
             .map(|sub| {
                 (
                     format!("{}{}", sub.local().unwrap_or(""), sub.pattern().to_string()),
-                    format!("{}{}", sub.remote(), sub.pattern().to_string()),
+                    format!("{}{}", sub.remote().unwrap_or(""), sub.pattern().to_string()),
                 )
             })
             .collect();
@@ -40,7 +42,7 @@ impl Bridge {
             .map(|sub| {
                 (
                     format!("{}{}", sub.local().unwrap_or(""), sub.pattern().to_string()),
-                    format!("{}{}", sub.remote(), sub.pattern().to_string()),
+                    format!("{}{}", sub.remote().unwrap_or(""), sub.pattern().to_string()),
                 )
             })
             .collect();
@@ -49,14 +51,15 @@ impl Bridge {
             system_address,
             device_id,
             connection_settings,
-            local_handler: MessageHandler::new(forwards_map),
-            remote_handler: MessageHandler::new(subs_map),
+            forwards_map,
+            subs_map,
         }
     }
 
     pub async fn start(&self) -> Result<(), Error> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
+        // TODO: handle errors
         self.connect_to_local().await?;
         self.connect_to_remote().await?;
 
@@ -69,25 +72,22 @@ impl Bridge {
             self.connection_settings.address()
         );
 
-        let mut client =  MqttClient::new(
-                self.system_address.as_str(),
-                *self.connection_settings.keep_alive(),
-                self.connection_settings.clean_session(),
-                self.remote_handler.clone(),
-                self.connection_settings.credentials());
+        let mut client = MqttClient::new(
+            self.system_address.as_str(),
+            *self.connection_settings.keep_alive(),
+            self.connection_settings.clean_session(),
+            MessageHandler::new(&self.subs_map),
+            self.connection_settings.credentials(),
+        );
 
-        let subscriptions: Vec<_> = self
-            .connection_settings
-            .subscriptions()
-            .iter()
-            .map(|sub| format!("{}{}", sub.local().unwrap_or(""), sub.pattern().to_string()))
+        let subscriptions: Vec<String> = self
+            .subs_map
+            .keys()
+            .map(|key| key.into())
             .collect();
         debug!("subscribe to remote {:?}", subscriptions);
-        // TODO: handle error
+        
         client.subscribe(subscriptions).await?;
-
-        // TODO: handle errors
-        // TODO: use ref instead of clone
         client.handle_events().await?;
 
         Ok(())
@@ -108,22 +108,18 @@ impl Bridge {
             self.system_address.as_str(),
             *self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
-            self.local_handler.clone(),
+            MessageHandler::new(&self.forwards_map),
             &Credentials::Anonymous(client_id),
         );
 
-        let subscriptions: Vec<_> = self
-            .connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| format!("{}{}", sub.local().unwrap_or(""), sub.pattern().to_string()))
+        let subscriptions: Vec<String> = self
+            .forwards_map
+            .keys()
+            .map(|key| key.into())
             .collect();
         debug!("subscribe to local {:?}", subscriptions);
-        // TODO: handle error
+        
         client.subscribe(subscriptions).await?;
-
-        // TODO: handle errors
-        // TODO: use ref instead of clone
         client.handle_events().await?;
 
         Ok(())
@@ -132,24 +128,32 @@ impl Bridge {
 
 #[derive(Clone)]
 pub struct MessageHandler {
-    topics: HashMap<String, String>,
+    topics: HashMap<String, TopicFilter>,
     inner: VecDeque<Publication>,
 }
 
-impl MessageHandler {
-    pub fn new(topics: HashMap<String, String>) -> Self {
+impl<'a> MessageHandler {
+    pub fn new(topics: &HashMap<String, String>) -> Self {
+        let mut topic_filters: HashMap<String, TopicFilter> = HashMap::new();
+
+        for (key, val) in topics.iter() {
+            topic_filters.insert(val.into(), TopicFilter::from_str(key).unwrap());
+        }
+
         Self {
-            topics,
+            topics: topic_filters,
             inner: VecDeque::new(),
         }
     }
 
-    // TODO: use TopicFilter to match topics and transform
-    fn transform(&self, topic_name: &str) -> String {
-        match self.topics.get(topic_name) {
-            Some(topic) => topic.to_string(),
-            None => "".to_string(),
-        }
+    fn transform(&self, topic_name: &'a str) -> Option<&'a str> {
+        self.topics.values().find_map(move |topic| {
+            if topic.matches(topic_name) {
+                Some(topic_name)
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -160,14 +164,26 @@ impl EventHandler for MessageHandler {
     // TODO: error
     async fn handle_event(&mut self, event: Event) -> Result<(), Error> {
         if let Event::Publication(publication) = event {
-            // TODO: from received publication to publication
-            self.inner.push_back(Publication {
-                topic_name: self.transform(publication.topic_name.as_str()),
-                qos: publication.qos,
-                retain: publication.retain,
-                payload: publication.payload,
+            let ReceivedPublication {
+                topic_name,
+                qos,
+                retain,
+                payload,
+                dup: _,
+            } = publication;
+            let forward = self.transform(topic_name.as_ref()).map(|f| Publication {
+                topic_name: f.into(),
+                qos,
+                retain,
+                payload,
             });
-            debug!("Save message to store");
+
+            if let Some(f) = forward {
+                debug!("Save message to store");
+                self.inner.push_back(f)
+            } else {
+                debug!("No topic matched");
+            }
         }
 
         Ok(())

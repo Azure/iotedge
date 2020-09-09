@@ -4,6 +4,7 @@
     "moduleid": "mymodule",
     "modulegenerationid": "321",
     "workloaduri": "uri",
+    "iothubhostname": "iothub",
     "upstream": {
         "subscriptions": [
             {
