@@ -139,6 +139,7 @@ where
     // Start serving new connections
     let state = server.serve(shutdown).await?;
 
+    // Shutdown the sidecars
     sidecar_shutdown_handle.shutdown()?;
     sidecar_join_handle.await??;
 
