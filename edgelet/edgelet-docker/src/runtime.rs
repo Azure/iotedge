@@ -35,7 +35,7 @@ use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
 use crate::notary;
-use crate::settings::Settings;
+use crate::settings::{ContentTrust, Settings};
 
 use edgelet_core::DiskInfo;
 use std::convert::TryInto;
@@ -291,8 +291,10 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                 let home_dir = settings.homedir();
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let mut notary_registries = BTreeMap::new();
-                if let Some(content_trust_map) =
-                    settings.moby_runtime().content_trust_root_ca_registry()
+                if let Some(content_trust_map) = settings
+                    .moby_runtime()
+                    .content_trust()
+                    .and_then(ContentTrust::ca_certs)
                 {
                     info!("Notary Content Trust is enabled");
                     for (registry_server_hostname, path) in content_trust_map {
@@ -1389,9 +1391,11 @@ mod tests {
         let (settings, tmp_home_dir) = make_settings(Some(json!({
             "moby_runtime": {
                 "uri": docker_path,
-                "content_trust_root_ca_registry" : {
-                    hostname1 : file1.path(),
-                    hostname2 : file2.path()
+                "content_trust" : {
+                    "ca_certs" : {
+                        hostname1 : file1.path(),
+                        hostname2 : file2.path()
+                    }
                 }
             }
         })));

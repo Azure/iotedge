@@ -34,7 +34,7 @@ pub struct MobyRuntime {
     #[serde(with = "url_serde")]
     uri: Url,
     network: MobyNetwork,
-    content_trust_root_ca_registry: Option<HashMap<String, PathBuf>>,
+    content_trust: Option<ContentTrust>,
 }
 
 impl MobyRuntime {
@@ -46,8 +46,19 @@ impl MobyRuntime {
         &self.network
     }
 
-    pub fn content_trust_root_ca_registry(&self) -> Option<&HashMap<String, PathBuf>> {
-        self.content_trust_root_ca_registry.as_ref()
+    pub fn content_trust(&self) -> Option<&ContentTrust> {
+        self.content_trust.as_ref()
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+pub struct ContentTrust {
+    ca_certs: Option<HashMap<String, PathBuf>>,
+}
+
+impl ContentTrust {
+    pub fn ca_certs(&self) -> Option<&HashMap<String, PathBuf>> {
+        self.ca_certs.as_ref()
     }
 }
 
@@ -289,7 +300,7 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
-    use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
+    use super::{ContentTrust, MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
 
     use std::cmp::Ordering;
     use std::fs::File;
@@ -454,14 +465,14 @@ mod tests {
         let moby1 = MobyRuntime {
             uri: Url::parse("http://test").unwrap(),
             network: MobyNetwork::Name("".to_string()),
-            content_trust_root_ca_registry: None,
+            content_trust: None,
         };
         assert_eq!(DEFAULT_NETWORKID, moby1.network().name());
 
         let moby2 = MobyRuntime {
             uri: Url::parse("http://test").unwrap(),
             network: MobyNetwork::Name("some-network".to_string()),
-            content_trust_root_ca_registry: None,
+            content_trust: None,
         };
         assert_eq!("some-network", moby2.network().name());
     }
@@ -1151,27 +1162,31 @@ mod tests {
     #[test]
     fn content_trust_env_are_set_properly() {
         let settings = Settings::new(Path::new(GOOD_SETTINGS_CONTENT_TRUST)).unwrap();
-        if let Some(content_trust_map) = settings.moby_runtime().content_trust_root_ca_registry() {
+        if let Some(content_trust_map) = settings
+            .moby_runtime()
+            .content_trust()
+            .and_then(ContentTrust::ca_certs)
+        {
             assert_eq!(
-                content_trust_map.get("registryserverhostname1"),
-                Some(&std::path::PathBuf::from("/path/to/root_registry1.ca"))
+                content_trust_map.get("contoso1.azurcr.io"),
+                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso1.crt"))
             );
             assert_eq!(
-                content_trust_map.get("registryserverhostname2"),
-                Some(&std::path::PathBuf::from("/path/to/root_registry2.ca"))
+                content_trust_map.get("contoso2.azurcr.io"),
+                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso2.crt"))
             );
             assert_eq!(
                 content_trust_map.get(""),
-                Some(&std::path::PathBuf::from("/path/to/root_registry3.ca"))
-            );
-            assert_eq!(
-                content_trust_map.get("registryserverhostname4"),
                 Some(&std::path::PathBuf::from(
-                    "/path/to/root_registryreplaced.ca"
+                    "/path/to/root_ca_contoso3.crt"
                 ))
             );
             assert_eq!(
-                content_trust_map.get("registryserverhostname5"),
+                content_trust_map.get("contoso4.azurcr.io"),
+                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso4_replaced.crt"))
+            );
+            assert_eq!(
+                content_trust_map.get("contoso5.azurcr.io"),
                 Some(&std::path::PathBuf::from(""))
             );
         } else {

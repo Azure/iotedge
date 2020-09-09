@@ -34,4 +34,4 @@ homedir: "/tmp"
 moby_runtime:
   uri: "http://localhost:2375"
   network: "azure-iot-edge"
-  content_trust_root_ca_registry : "/path/to/root_registry1.ca"
+  content_trust : "/path/to/root_registry1.ca"

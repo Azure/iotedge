@@ -73,8 +73,9 @@ Notary client directory exists in `~/.notary`. A configuration file has be creat
 
 Notary needs authorization credentials to communicate to the Notary Server. For this, a Service Principal for the Azure Container Registry with Owner and Push access must be created. Follow instructions in [this](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal) link to create a Service Principal.  The base64 encoding of username and password for the Service Principal will be used to create an environment variable for Notary called `NOTARY_AUTH`
 
-`echo -n "username:password" | base64` 
-`export NOTARY_AUTH=<copy-the-encoded-stringhere>`
+`export NOTARY_AUTH="$(printf '%s:%s' 'username' 'password' | base64 -w 0)"`
+
+Note: Replace username and password with actual Service Principal credentials. 
 
 #### Notary TUF Trust collection initialization
 Once the Notary is set up, the TUF trust collection for each individual image can be done.
