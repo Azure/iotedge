@@ -86,6 +86,11 @@ where
                                 debug!("successfully disconnected client");
                             }
                         }
+                        SystemEvent::AuthorizationUpdate(update) => {
+                            if let Err(e) = self.authorizer.update(update) {
+                                warn!(message = "an error occurred updating authorization info", error = %e);
+                            }
+                        }
                     }
                 }
             }
