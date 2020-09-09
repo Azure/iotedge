@@ -171,49 +171,41 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "core", "core", "{E64FF67A-D
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0F9FA084-86EC-4155-88FF-F3DEA69DA971}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Amqp", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Amqp\Microsoft.Azure.Devices.Edge.Hub.Amqp.csproj", "{74239F89-5F09-48BB-9EB9-C18B89811BB6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Amqp", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Amqp\Microsoft.Azure.Devices.Edge.Hub.Amqp.csproj", "{74239F89-5F09-48BB-9EB9-C18B89811BB6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.CloudProxy", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.CloudProxy\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.csproj", "{ABE624B9-226A-4463-8FF5-EA273D3F914E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.CloudProxy", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.CloudProxy\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.csproj", "{ABE624B9-226A-4463-8FF5-EA273D3F914E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Core", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Core\Microsoft.Azure.Devices.Edge.Hub.Core.csproj", "{21BCAD89-94E1-4F40-893C-4B038851109B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Core", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Core\Microsoft.Azure.Devices.Edge.Hub.Core.csproj", "{21BCAD89-94E1-4F40-893C-4B038851109B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Http", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Http\Microsoft.Azure.Devices.Edge.Hub.Http.csproj", "{23EFB988-CEF0-4E0F-99FB-9C289CB6FD07}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Http", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Http\Microsoft.Azure.Devices.Edge.Hub.Http.csproj", "{23EFB988-CEF0-4E0F-99FB-9C289CB6FD07}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Mqtt", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Mqtt\Microsoft.Azure.Devices.Edge.Hub.Mqtt.csproj", "{3ADFEB17-75C6-45F7-A9DF-C54B982D6ED2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Mqtt", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Mqtt\Microsoft.Azure.Devices.Edge.Hub.Mqtt.csproj", "{3ADFEB17-75C6-45F7-A9DF-C54B982D6ED2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.csproj", "{33AE5DC6-3747-4091-A970-BD2991A95C97}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.csproj", "{33AE5DC6-3747-4091-A970-BD2991A95C97}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Service", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Service\Microsoft.Azure.Devices.Edge.Hub.Service.csproj", "{F1C63D08-7F06-4A1A-BFBC-0D2F6D035714}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Service", "edge-hub\core\src\Microsoft.Azure.Devices.Edge.Hub.Service\Microsoft.Azure.Devices.Edge.Hub.Service.csproj", "{F1C63D08-7F06-4A1A-BFBC-0D2F6D035714}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Routing.Core", "edge-hub\core\src\Microsoft.Azure.Devices.Routing.Core\Microsoft.Azure.Devices.Routing.Core.csproj", "{A0B00C04-DBAF-43D4-8918-7B3C84746BE3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Routing.Core", "edge-hub\core\src\Microsoft.Azure.Devices.Routing.Core\Microsoft.Azure.Devices.Routing.Core.csproj", "{A0B00C04-DBAF-43D4-8918-7B3C84746BE3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{F5A09810-99FB-43EB-A86E-A15E48EED108}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Amqp.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Amqp.Test\Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.csproj", "{09F55B24-E8CD-4969-90C0-000C5D45C8BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Amqp.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Amqp.Test\Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.csproj", "{09F55B24-E8CD-4969-90C0-000C5D45C8BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test.csproj", "{4C82EB20-F04E-41C9-9CE8-BB61B675104F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test.csproj", "{4C82EB20-F04E-41C9-9CE8-BB61B675104F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Core.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Core.Test\Microsoft.Azure.Devices.Edge.Hub.Core.Test.csproj", "{63B34CB6-9ECC-4B9B-8257-C77EF657A9F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Core.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Core.Test\Microsoft.Azure.Devices.Edge.Hub.Core.Test.csproj", "{63B34CB6-9ECC-4B9B-8257-C77EF657A9F8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.E2E.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test.csproj", "{9FAB0A0B-498F-4EFB-B5B0-DA506F8CAC76}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.E2E.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test\Microsoft.Azure.Devices.Edge.Hub.E2E.Test.csproj", "{9FAB0A0B-498F-4EFB-B5B0-DA506F8CAC76}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Http.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Http.Test\Microsoft.Azure.Devices.Edge.Hub.Http.Test.csproj", "{0BCF93AC-CEAD-4467-A282-F6A2F018CC1A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Http.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Http.Test\Microsoft.Azure.Devices.Edge.Hub.Http.Test.csproj", "{0BCF93AC-CEAD-4467-A282-F6A2F018CC1A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.csproj", "{357371C5-0C39-43AC-A248-DC4466D3CF6D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test\Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.csproj", "{357371C5-0C39-43AC-A248-DC4466D3CF6D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test.csproj", "{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test.csproj", "{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.Service.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Service.Test\Microsoft.Azure.Devices.Edge.Hub.Service.Test.csproj", "{240DF1F3-6472-472A-9748-494D79AEF085}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.Service.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Edge.Hub.Service.Test\Microsoft.Azure.Devices.Edge.Hub.Service.Test.csproj", "{240DF1F3-6472-472A-9748-494D79AEF085}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Routing.Core.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Routing.Core.Test\Microsoft.Azure.Devices.Routing.Core.Test.csproj", "{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{43E10CBA-2F64-4B4C-A5A5-B9E332DC98A1}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "functions", "functions", "{059BC610-4D1E-4A4D-9099-E67DF47D7DB7}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{4F3B7488-3547-4EEB-A79E-9737182960AB}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdgeHubTriggerCSharp", "edge-modules\functions\samples\EdgeHubTrigger-Csharp\EdgeHubTriggerCSharp.csproj", "{9F5BD0E2-E73D-434A-8568-0C117A0716C9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Routing.Core.Test", "edge-hub\core\test\Microsoft.Azure.Devices.Routing.Core.Test\Microsoft.Azure.Devices.Routing.Core.Test.csproj", "{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -624,12 +616,6 @@ Global
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -715,9 +701,6 @@ Global
 		{111DFD7C-FC04-4A68-8CC1-D986CCC3DAC3} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{240DF1F3-6472-472A-9748-494D79AEF085} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
 		{5D0F6FB0-8716-4247-A5BE-92DA5B9E2189} = {F5A09810-99FB-43EB-A86E-A15E48EED108}
-		{059BC610-4D1E-4A4D-9099-E67DF47D7DB7} = {43E10CBA-2F64-4B4C-A5A5-B9E332DC98A1}
-		{4F3B7488-3547-4EEB-A79E-9737182960AB} = {059BC610-4D1E-4A4D-9099-E67DF47D7DB7}
-		{9F5BD0E2-E73D-434A-8568-0C117A0716C9} = {4F3B7488-3547-4EEB-A79E-9737182960AB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
