@@ -88,10 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             enum EventIds
             {
                 ReceivedModuleLogs = IdStart + 1,
-                ReceivedLogOptions,
+                LargePayload,
                 ProcessingRequest,
                 MismatchedMinorVersions,
-                LargePayload,
             }
 
             public static void ReceivedModuleLogs(byte[] moduleLogs, string id)
@@ -111,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
             public static string LargePayload(int size, ModuleLogOptions options)
             {
+                // TODO: make/get aka link for documentation
                 string message = $"The payload is too large for a direct method. {Name} supports up to {MaxPayloadSize} bytes of logs. The current request returned {size} bytes.\nTry reducing the size of the logs by setting the 'tail', 'since' and 'from' fields in log options filter. For more information, see [[aka.ms/TODO:LinkToDocumentation]].\nCurrent options settings are:\n{Newtonsoft.Json.JsonConvert.SerializeObject(options, Newtonsoft.Json.Formatting.Indented)}";
 
                 Log.LogWarning((int)EventIds.LargePayload, message);
