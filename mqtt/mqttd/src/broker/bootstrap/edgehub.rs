@@ -164,7 +164,7 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
 
 // TODO: We need to elevate failable init steps out of the async block running in it's own thread.
 //       This is because we need to have defined setup steps, that once complete, the sidecars can run without failing.
-//       Once complete, complex startup order will be easier to implement.
+//       Once this is done, complex startup order will be easier to implement.
 //       We can also stop the broker process if sidecars fail to init.
 //
 //       This change depends on restructuring the startup logic so that:
