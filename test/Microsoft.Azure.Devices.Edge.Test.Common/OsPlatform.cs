@@ -20,6 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static bool Is64Bit() => RuntimeInformation.OSArchitecture == Architecture.X64 || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
+        public static bool IsArm() => RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64;
+
         protected CaCertificates GetEdgeQuickstartCertificates(string basePath) =>
             new CaCertificates(
                     FixedPaths.QuickStartCaCert.Cert(basePath),

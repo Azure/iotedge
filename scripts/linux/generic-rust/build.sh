@@ -30,12 +30,14 @@ usage()
     echo "options"
     echo " -h, --help              Print this help and exit."
     echo " -t, --target            Target architecture"
-    echo " -r, --release           Release build? (flag, default: false)"
+    echo " -c, --cargo             Path of cargo installation"
     echo " --project-root          The project root of the desired build"
-    echo " --packages              The manifest paths you want to build"
-    echo " --reduced-linker        Flag to limit the amount of objects sent to the linker"
-    echo " --no-default-features   Flag to specify whether to cargo build with no default features"
+    echo " --packages              The entities you want to build. By default this is a package name, not a manifest path"
     echo " --features              Space-separated list of features to activate"
+    echo " -r, --release           Release build? (flag, default: false)"
+    echo " --reduced-linker        Flag to limit the amount of objects sent to the linker"
+    echo " --manifest-path         Flag specifying that the packages arg is a manifest path"
+    echo " --no-default-features   Flag to specify whether to build with no default features"
     exit 1;
 }
 
@@ -77,7 +79,6 @@ process_args()
                 "--reduced-linker" ) REDUCED_LINKER=1;;
                 "--manifest-path" ) MANIFEST_PATH=1;;
                 "--no-default-features" ) CARGO_ARGS="${CARGO_ARGS} --no-default-features";;
-                "--features" ) save_next_arg=5;;
                 * ) usage;;
             esac
         fi
