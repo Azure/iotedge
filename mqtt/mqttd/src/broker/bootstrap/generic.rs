@@ -6,10 +6,10 @@ use std::{
 use anyhow::{Context, Result};
 use tracing::info;
 
-use mqtt_broker::{Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate};
-use mqtt_broker_core::{
-    auth::{authenticate_fn_ok, authorize_fn_ok, AuthId, Authorization, Authorizer},
+use mqtt_broker::{
+    auth::{authenticate_fn_ok, AllowAll, Authorizer},
     settings::BrokerConfig,
+    AuthId, Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
 };
 use mqtt_generic::settings::{CertificateConfig, Settings};
 
@@ -33,7 +33,7 @@ pub async fn broker(
     state: Option<BrokerSnapshot>,
 ) -> Result<Broker<impl Authorizer>, Error> {
     let broker = BrokerBuilder::default()
-        .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
+        .with_authorizer(AllowAll)
         .with_state(state.unwrap_or_default())
         .with_config(config.clone())
         .build();

@@ -4,10 +4,8 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{info, warn};
 
 use mqtt3::proto::{self, Publication};
-use mqtt_broker_core::ClientId;
 
-use crate::persist::Persist;
-use crate::{Error, Subscription};
+use crate::{persist::Persist, ClientId, Error, Subscription};
 
 /// Used for persisting/loading broker state.
 #[derive(Clone, Default, Debug, PartialEq)]
