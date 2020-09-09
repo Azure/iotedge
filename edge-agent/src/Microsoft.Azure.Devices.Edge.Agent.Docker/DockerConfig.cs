@@ -24,19 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         static readonly Regex ImageUpstreamRegex = new Regex(ImageUpstreamRegexPattern);
         readonly CreateContainerParameters createOptions;
 
-        internal interface IEnvironmentWrapper
-        {
-            string GetVariable(string variableName);
-        }
-
-        internal class EnvironmentWrapper : IEnvironmentWrapper
-        {
-            public string GetVariable(string variableName)
-            {
-                return Environment.GetEnvironmentVariable(variableName);
-            }
-        }
-
         public DockerConfig(string image)
             : this(image, string.Empty, Option.None<string>())
         {
@@ -112,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
 
-            if (image.Substring(0, 1) == "$")
+            if ((image.Length > 0) && (image[0] == '$'))
             {
                 Match matchHost = ImageUpstreamRegex.Match(image);
                 if (matchHost.Success
@@ -251,6 +238,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);
+        }
+    }
+
+    internal interface IEnvironmentWrapper
+    {
+        string GetVariable(string variableName);
+    }
+
+    internal class EnvironmentWrapper : IEnvironmentWrapper
+    {
+        public string GetVariable(string variableName)
+        {
+            return Environment.GetEnvironmentVariable(variableName);
         }
     }
 }

@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config16 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.Some("4562124545"));
         static readonly DockerConfig ConfigUnknown = new DockerConfig("unknown");
         static readonly DockerConfig ConfigUnknownExpected = new DockerConfig("unknown:latest");
-        internal class MockEnvironment : DockerConfig.IEnvironmentWrapper
+        internal class MockEnvironment : IEnvironmentWrapper
         {
             public Dictionary<string, string> Map = new Dictionary<string, string>();
 
