@@ -187,7 +187,8 @@ async fn start_sidecars(
         let device_id = env::var(DEVICE_ID_ENV)?;
         let commands: HashMap<String, Box<dyn Command + Send>> = init_commands();
         let command_handler =
-            CommandHandler::new(broker_handle, system_address, device_id.as_str(), commands).await?;
+            CommandHandler::new(broker_handle, system_address, device_id.as_str(), commands)
+                .await?;
         let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
 
         let command_handler_join_handle = tokio::spawn(command_handler.run());
