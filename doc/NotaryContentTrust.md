@@ -1,21 +1,21 @@
 # Notary Content Trust in IoT Edge
-Content Trust is achieved in IoT edge with [Notary](https://github.com/theupdateframework/notary) which is based on The Update Framework (TUF). Notary aims to make the internet more secure by making it easy for people to publish and verify content. The goal of content trust in IoT edge is to secure the docker container images of the Edge modules with its trust pinned to the Edge device via a root Certificate Authority(CA). The IoT Edge device only deploys signed images and rejects any other images that are tampered or modified in the transfer over the internet. Feature is supported in Unix only. 
+Content Trust is achieved in IoT edge with [Notary](https://github.com/theupdateframework/notary) which is based on The Update Framework (TUF). Notary aims to make the internet more secure by making it easy for people to publish and verify content. The goal of Content Trust in IoT edge is to secure the docker container images of the Edge modules with its trust pinned to the Edge device via a root Certificate Authority(CA). When Content Trust is enabled, IoT Edge device only deploys signed images and rejects any other images that are tampered or modified in the transfer over the internet. Feature is supported in Linux OS only for now. 
 
 ## Sign and Publish Container Images in Azure Container Registry
 The container images can be signed and published in Azure Container Registry which has an in built Notary support for content trust. 
 
 To publish signed images, following tools must be installed in a publisher's environment which is different from the Edge device. 
-1. OpenSSL - to generate root CA and root certs for each container
+1. OpenSSL - to generate root CA for each registry and root certs for each container
 2. Notary client - to initialize and create TUF trust collection
 3. Docker client - to sign the image and publish to the Container Registry
 
 
 ### 1. Generate Certificates using OpenSSL
 Follow instructions in [iotedge repository]([https://github.com/ggjjj/iotedge/blob/master/edgelet/doc/devguide.md](https://github.com/ggjjj/iotedge/blob/master/edgelet/doc/devguide.md)) to install OpenSSL. There are two types of certificates to be generated.
-1. root CA
+1. root CA for each container registry
 2. root certificate for each container image
 
-There is only one root CA which forms the root of all trust for all the images in a registry. When using multiple registries, multiple root CA need to be generated. Root certificate for each image is needed to initialize the TUF trust collection using Notary.
+There is only one root CA needed for each container registry which forms the root of all trust for all its container images. When using multiple registries, multiple root CAs have to be generated. Root certificate for each image is needed to initialize the TUF trust collection using Notary.
 
 ####  Steps to create root CA for a registry
 OpenSSL is a prerequisite tool that must be installed before proceeding.
@@ -44,7 +44,7 @@ Note at the end of the above steps the following files are generated:
 
 Important Note:
 
--   The Comman Name (CN) in contain the registry name in which it is being pushed to along with the image name. 
+-   The Comman Name (CN) in root certificate for each container must contain the Globally Unique Names(GUNs) i.e exampleregistry.azurecr.io/image 
 -  Safely store the pass code for the private key for `root_ca_exampleregistry.key` and `root_image.key` and also it will be used in the next steps. 	
 
 ### 2. Initialize TUF trust collection using Notary client
@@ -71,7 +71,7 @@ Notary client directory exists in `~/.notary`. A configuration file has be creat
 ```
 `trust_dir` is the location where the trust directory gets initialized and downloaded. `remote_server` has a sub field `url` which configures the URL of the registry server host name. 
 
-Notary needs authorization credentials to communicate to the Notary Server. For this, a Service Principal for the Azure Container Registry with Owner and Push access must be created. Follow instructions in [this](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal) link to create Service Principal.  The base64 encoding of username and password for the Service Principal will be used to create an environment variable for Notary called `NOTARY_AUTH`
+Notary needs authorization credentials to communicate to the Notary Server. For this, a Service Principal for the Azure Container Registry with Owner and Push access must be created. Follow instructions in [this](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal) link to create a Service Principal.  The base64 encoding of username and password for the Service Principal will be used to create an environment variable for Notary called `NOTARY_AUTH`
 
 `echo -n "username:password" | base64` 
 `export NOTARY_AUTH=<copy-the-encoded-stringhere>`
@@ -79,7 +79,7 @@ Notary needs authorization credentials to communicate to the Notary Server. For 
 #### Notary TUF Trust collection initialization
 Once the Notary is set up, the TUF trust collection for each individual image can be done.
 
-`notary init --rootkey root_image.key --rootcert root_image.crt exampleregistry.azurecr.io/image`
+`notary init --rootkey root_image.key --rootcert root_image.crt exampleregistry.azurecr.io/image -c ~/.notary/config.json`
 
 Note that Notary Trust collection for an container image can be initialized only once. If a new version of the image there is no need to initialize the trust collection again. 
 
@@ -87,7 +87,7 @@ Note that Notary Trust collection for an container image can be initialized only
 
 TUF Snapshot key must be rotated to the Notary server. With this command, there is no need to maintain the private key of the Snapshot key locally at Publisher instead it will be maintained by the Notary Server. 
 
-`notary key rotate exampleregistry.azurecr.io/image snapshot -r`
+`notary key rotate exampleregistry.azurecr.io/image snapshot -r -c ~/.notary/config.json`
 
 ### 3. Sign and publish images using Docker Client
 
@@ -104,6 +104,10 @@ To check if the image is signed or not, `az` tools can be used. Before that logi
 
 ## Enable Content Trust in IoT edge device
 
-The root CA of each Container Registry must be copied out of band into the device in a specific location.
+The root CA of each Container Registry i.e `root_ca_exampleregistry.crt` must be copied out of band into the device in a specific location.
 
-In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry_server_hostname and location of its corresponding root CA as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/config.yaml)
+In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry server name and location of its corresponding root CA as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/config.yaml)
+
+Recommendation is to create another Service Principal with Pull access for the edge device and ensure the login credentials are applied in the deployment manifest. 
+
+Important Note: When content trust is enabled for a registry, all the contaner images of the edge modules in that registry must be signed. If content trust is enabled for a registry and if one of the images is not signed, the iotedge daemon will fail pulling the container image into the device.

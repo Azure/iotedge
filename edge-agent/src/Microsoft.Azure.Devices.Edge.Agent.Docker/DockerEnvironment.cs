@@ -75,13 +75,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     ? this.restartManager.ComputeModuleStatusFromRestartPolicy(moduleRuntimeInfo.ModuleStatus, dockerModule.RestartPolicy, moduleState.RestartCount, lastExitTime)
                     : moduleRuntimeInfo.ModuleStatus;
 
-                // Check to see if the originalImage label is set. This label is set for content trust feature where the image is pulled by digest.
-                // OrignalImageStr contains the image with tag and it is used to handle the mismatch of image with digest during reconcilation.
+                // Check to see if the originalImage label is set by the iotedege daemon. This label is set for content trust feature where the image is pulled by digest.
+                // OrignalImageLabelStr contains the image with tag and it is used to handle the mismatch of image with digest during reconcilation.
                 var labels = dockerRuntimeInfo.Config.CreateOptions?.Labels ?? new Dictionary<string, string>();
-                labels.TryGetValue(Core.Constants.Labels.OriginalImage, out string orgImageLabelStr);
-                if (!string.IsNullOrWhiteSpace(orgImageLabelStr))
+                labels.TryGetValue(Core.Constants.Labels.OriginalImage, out string orignalImageLabelStr);
+                if (!string.IsNullOrWhiteSpace(orignalImageLabelStr))
                 {
-                    image = orgImageLabelStr;
+                    image = orignalImageLabelStr;
                 }
                 else
                 {

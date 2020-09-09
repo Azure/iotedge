@@ -116,7 +116,9 @@ impl ModuleRegistry for DockerModuleRuntime {
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
         let image_with_tag = config.image().to_string();
+
         // check if the serveraddress exists & check if it exists in notary_registries
+
         let registry_auth = config.auth();
         let (registry_hostname, registry_username, registry_password) = match registry_auth {
             Some(a) => (a.serveraddress(), a.username(), a.password()),
@@ -128,9 +130,8 @@ impl ModuleRegistry for DockerModuleRuntime {
 
         let image = if !hostname.is_empty() && !username.is_empty() && !password.is_empty() {
             let config_path = self.notary_registries.get(hostname);
-            if let Some(c) = config_path {
+            if let Some(config_path_buf) = config_path {
                 info!("{} is enabled for notary content trust", hostname);
-                let config_path_buf = c;
                 let config_path_string_result =
                     config_path_buf.clone().into_os_string().into_string();
                 let config_path_str;
@@ -164,6 +165,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                             }
                         })
                         .map(move |(digest, mut lock)| {
+                            info!("Digest from lookup {}", digest);
                             let image_with_digest = format!("{}@{}", gun, digest);
                             lock.insert(image_with_digest.clone(), digest);
                             (image_with_digest, true)

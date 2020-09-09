@@ -136,6 +136,8 @@ pub fn notary_lookup(
                 )
                 .into());
             }
+
+            // Notary Server output on lookup is of the format [tag, digest, bytes]
             Ok((split_array[1].to_string(), lock))
         })
 }

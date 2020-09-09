@@ -6,7 +6,6 @@ use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
-// use log::{debug, info};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
