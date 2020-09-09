@@ -1,9 +1,10 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
+use thiserror::Error;
 
 use crate::persist::{
     memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Persist,
@@ -22,6 +23,7 @@ struct InMemoryPersist {
 #[async_trait]
 impl<'a> Persist<'a> for InMemoryPersist {
     type Loader = InMemoryMessageLoader;
+    type Error = InMemoryPersistError;
 
     async fn new(batch_size: usize) -> Self {
         let state = WakingMap::new();
@@ -38,7 +40,7 @@ impl<'a> Persist<'a> for InMemoryPersist {
         }
     }
 
-    async fn push(&mut self, message: Publication) -> Result<Key, Box<dyn Error>> {
+    async fn push(&mut self, message: Publication) -> Result<Key, Self::Error> {
         let key = Key {
             offset: self.offset,
         };
@@ -58,6 +60,9 @@ impl<'a> Persist<'a> for InMemoryPersist {
         Arc::clone(&self.loader)
     }
 }
+
+#[derive(Debug, Error)]
+pub enum InMemoryPersistError {}
 
 #[cfg(test)]
 mod tests {

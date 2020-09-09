@@ -41,15 +41,12 @@ impl WakingMap {
             let removed = self.queue.pop_front();
 
             if let Some(pair) = removed {
-                output.push(pair);
+                output.push((pair.0.clone(), pair.1.clone()));
+                self.in_flight.insert(pair.0, pair.1);
             } else {
                 error!("failed retrieving message from persistence");
                 continue;
             }
-        }
-
-        for element in output.iter() {
-            self.in_flight.insert(element.0.clone(), element.1.clone());
         }
 
         output

@@ -14,10 +14,11 @@ mod memory;
 #[async_trait]
 trait Persist<'a> {
     type Loader: Stream;
+    type Error: Error;
 
     async fn new(batch_size: usize) -> Self;
 
-    async fn push(&mut self, message: Publication) -> Result<Key, Box<dyn Error>>;
+    async fn push(&mut self, message: Publication) -> Result<Key, Self::Error>;
 
     async fn remove(&mut self, key: Key) -> Option<Publication>;
 
