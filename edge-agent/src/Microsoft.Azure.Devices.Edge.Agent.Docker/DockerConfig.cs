@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Newtonsoft.Json.Linq;
     using static System.FormattableString;
 
+
     [JsonConverter(typeof(DockerConfigJsonConverter))]
     public class DockerConfig : IEquatable<DockerConfig>
     {
@@ -18,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         // Match for an environment variable in the official POSIX format $ + "letter" + "letter|digit"
         // Then the port has to be specified with ":"
         const string ImageUpstreamRegexPattern = @"^\$upstream(?<path>:[1-9].*)";
-        const string Gateway_hostname = "IOTEDGE_GATEWAYHOSTNAME";
 
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
         static readonly Regex ImageUpstreamRegex = new Regex(ImageUpstreamRegexPattern);
@@ -99,14 +99,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
 
-            if ((image.Length > 0) && (image[0] == '$'))
+            if (image[0] == '$')
             {
                 Match matchHost = ImageUpstreamRegex.Match(image);
                 if (matchHost.Success
                     && (matchHost.Groups["path"]?.Length > 0)
                     && (env != null))
                 {
-                    string hostAddress = env.GetVariable(Gateway_hostname);
+                    string hostAddress = env.GetVariable(Core.Constants.GatewayHostnameVariableName);
 
                     if (hostAddress != null)
                     {
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     }
                     else
                     {
-                        throw new ArgumentException($"Could not find environment variable: {Gateway_hostname}");
+                        throw new InvalidOperationException($"Could not find environment variable: {Core.Constants.GatewayHostnameVariableName}");
                     }
                 }
                 else
