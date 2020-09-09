@@ -12,7 +12,7 @@ pub trait Authorizer {
     /// Authorizes a MQTT client to perform some action.
     fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error>;
 
-    fn update(&self, _update: Box<dyn Any>) -> Result<(), Self::Error> {
+    fn update(&mut self, _update: Box<dyn Any>) -> Result<(), Self::Error> {
         Ok(())
     }
 }

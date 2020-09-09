@@ -11,6 +11,7 @@ use mqtt_broker::{
 #[derive(Debug, Default)]
 pub struct EdgeHubAuthorizer {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
+    service_identities_cache: HashMap<String, ServiceIdentity>,
 }
 
 impl EdgeHubAuthorizer {
@@ -93,7 +94,8 @@ impl EdgeHubAuthorizer {
             ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == client_id => {
-                if self.is_iothub_topic_allowed(client_id, topic) {
+                if self.is_iothub_topic_allowed(client_id, topic)
+                    && self.check_authorized_cache(client_id, topic) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden(
@@ -118,6 +120,38 @@ impl EdgeHubAuthorizer {
         allowed_topics
             .iter()
             .any(|allowed_topic| topic.starts_with(allowed_topic))
+    }
+
+    fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
+        let on_behalf_of_id: &str = match topic.split('/').collect::<Vec<&str>>().get(2) {
+            Some(id) => {
+                id
+            }
+            None => {
+                return false
+            }
+        };
+        if client_id.as_str() == on_behalf_of_id {
+            self.service_identities_cache.contains_key(client_id.as_str())
+        }
+        else {
+            match self.service_identities_cache.get(on_behalf_of_id) {
+                Some(service_identity) => {
+                    match service_identity.auth_chain() {
+                        Some(auth_chain) => {
+                            // if auth_chain for on_behalf_of_id contains client_id, then on_behalf_of_id is a descendant of client_id
+                            auth_chain.contains(client_id.as_str())
+                        }
+                        None => {
+                            false
+                        }
+                    }
+                }
+                None => { 
+                    false 
+                }
+            }
+        }
     }
 }
 
@@ -176,11 +210,15 @@ impl Authorizer for EdgeHubAuthorizer {
         Ok(auth)
     }
 
-    fn update(&self, update: Box<dyn Any>) -> Result<(), Self::Error> {
+    fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
         let identities = update.as_ref();
-        if let Some(service_identities) = identities.downcast_ref::<ServiceIdentity>() {
-            debug!("{:?}", service_identities);
-            // TODO: fill in update method
+        if let Some(service_identities) = identities.downcast_ref::<Vec<ServiceIdentity>>() {
+            debug!("service identities update received. Service identities: {:?}", service_identities);
+            let mut service_identity_map: HashMap<String, ServiceIdentity> = HashMap::new();
+            for id in service_identities {
+                service_identity_map.insert(id.identity(), id.clone());
+            }
+            self.service_identities_cache = service_identity_map;
         }
         Ok(())
     }

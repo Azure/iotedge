@@ -88,7 +88,11 @@ where
                         }
                         SystemEvent::AuthorizationUpdate(update) => {
                             if let Err(e) = self.authorizer.update(update) {
-                                warn!(message = "an error occurred updating authorization info", error = %e);
+                                warn!(message = "an error occurred while updating authorization info", error = %e);
+                                break;
+                            }
+                            if let Err(e) = self.reevaluate_subscriptions() {
+                                warn!(message = "an error occurred while reevaluating authorization info", error = %e);
                             }
                         }
                     }
@@ -98,6 +102,44 @@ where
 
         info!("broker is shutdown.");
         Ok(self.snapshot())
+    }
+
+    fn reevaluate_subscriptions(&mut self) -> Result<(), Error> {
+        let mut client_ids_to_remove: Vec<ClientId> = Vec::new();
+        for session in &self.sessions {
+            for sub in session.1.subscriptions().clone().unwrap().values() {
+                let client_info = session.1.client_info()?.clone();
+                let operation = Operation::new_subscribe(proto::SubscribeTo {
+                    topic_filter: sub.filter().clone().to_string(),
+                    qos: *sub.max_qos(),
+                });
+                let activity = Activity::new(session.0.clone(), client_info, operation);
+                match self.authorizer.authorize(activity) {
+                    Ok(Authorization::Allowed) => {
+                        debug!("client {} successfully reauthorized", session.0);
+                    }
+                    Ok(Authorization::Forbidden(reason)) => {
+                        debug!("client {} is not reauthorized. {}", session.0, reason);
+                        client_ids_to_remove.push(session.0.clone());
+                        break;
+                    }
+                    Err(e) => {
+                        warn!(message="error reauthorizing client - dropping connection: {}", error = %e);
+                        client_ids_to_remove.push(session.0.clone());
+                        break;
+                    }
+                }
+            }
+        }
+        for client_id in client_ids_to_remove {
+            if let Err(x) = self.process_drop_connection(&client_id) {
+                warn!(
+                    "error dropping connection for client {}. Reason {}",
+                    client_id, x
+                );
+            }
+        }
+        Ok(())
     }
 
     fn snapshot(&self) -> BrokerSnapshot {
