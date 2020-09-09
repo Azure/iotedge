@@ -1,7 +1,7 @@
-use crate::command::ServiceIdentity;
 use std::any::Any;
 use std::{cell::RefCell, collections::HashMap, convert::Infallible};
 
+use crate::command::ServiceIdentity;
 use mqtt_broker::{
     auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
     AuthId, ClientId, ClientInfo,
@@ -177,9 +177,10 @@ impl Authorizer for EdgeHubAuthorizer {
     }
 
     fn update(&self, update: Box<dyn Any>) -> Result<(), Self::Error> {
-        let a = update.as_ref();
-        if let Some(identities) = a.downcast_ref::<ServiceIdentity>() {
-            debug!("{:?}", identities);
+        let identities = update.as_ref();
+        if let Some(service_identities) = identities.downcast_ref::<ServiceIdentity>() {
+            debug!("{:?}", service_identities);
+            // TODO: fill in update method
         }
         Ok(())
     }

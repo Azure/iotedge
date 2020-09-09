@@ -14,6 +14,7 @@ use mqtt_edgehub::{
     command::{init_commands, Command},
     command_handler::{CommandHandler, ShutdownHandle},
 };
+
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
