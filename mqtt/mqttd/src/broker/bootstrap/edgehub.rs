@@ -1,3 +1,5 @@
+use mqtt_edgehub::command::Command;
+use std::collections::HashMap;
 use std::{
     env,
     future::Future,
@@ -27,7 +29,8 @@ use mqtt_broker::{
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::CommandHandler,
+    command::init_commands,
+    command_handler::CommandHandler,
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
@@ -169,8 +172,9 @@ async fn start_sidecars(
     let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
 
     let device_id = env::var(DEVICE_ID_ENV)?;
+    let commands: HashMap<String, Box<dyn Command + Send>> = init_commands();
     let command_handler =
-        CommandHandler::new(broker_handle, system_address, device_id.as_str()).await?;
+        CommandHandler::new(broker_handle, system_address, device_id.as_str(), commands).await?;
     let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
 
     let mut bridge_controller = BridgeController::new();
