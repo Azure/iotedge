@@ -1,3 +1,4 @@
+use mqtt3::proto::QoS::AtLeastOnce;
 use std::collections::HashMap;
 use std::{collections::HashSet, time::Duration};
 
@@ -125,7 +126,7 @@ async fn subscribe(
 ) -> Result<(), CommandHandlerError> {
     let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
         topic_filter: topic.to_string(),
-        qos: proto::QoS::AtLeastOnce,
+        qos: AtLeastOnce,
     });
     debug!(
         "command handler subscribing to topics: {}",
