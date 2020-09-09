@@ -2,8 +2,7 @@ trigger:
   batch: true
   branches:
     include:
-      - iiot
-      - preview/iiot
+      - master
 pr: none
 
 jobs:
