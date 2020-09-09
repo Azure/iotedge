@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
         // Check if it's prefix is "$upstream" and replace with environment variable. Should support $upstream for any case.
         const string ImageUpstreamRegexPattern = @"^\$upstream(?<path>:[1-9].*)";
-
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
         static readonly Regex ImageUpstreamRegex = new Regex(ImageUpstreamRegexPattern);
         readonly CreateContainerParameters createOptions;
