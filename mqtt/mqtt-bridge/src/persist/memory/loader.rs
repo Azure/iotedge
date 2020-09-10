@@ -105,7 +105,7 @@ mod tests {
         // insert elements
         let mut state_lock = state.lock();
         state_lock.insert(key1.clone(), pub1.clone());
-        state_lock.insert(key2.clone(), pub2.clone());
+        state_lock.insert(key2, pub2);
 
         // get batch size elements
         let batch_size = 1;
@@ -268,6 +268,7 @@ mod tests {
         let mut state_lock = state.lock();
         let num_elements = 50 as usize;
         for i in 0..num_elements {
+            #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u32 };
             let publication = Publication {
                 topic_name: "test".to_string(),
@@ -282,7 +283,10 @@ mod tests {
         // verify insertion order
         let elements: Vec<_> = get_elements(&mut state_lock, num_elements).collect();
         for count in 0..num_elements {
-            assert_eq!(elements.get(count).unwrap().0.offset, count as u32)
+            #[allow(clippy::cast_possible_truncation)]
+            let num_elements = count as u32;
+
+            assert_eq!(elements.get(count).unwrap().0.offset, num_elements)
         }
     }
 

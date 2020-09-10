@@ -91,7 +91,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1.clone(), pub1.clone());
+        state.insert(key1, pub1.clone());
 
         let current_state = state.get(1);
         let extracted_message = current_state.get(0).unwrap().1.clone();
@@ -110,7 +110,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1.clone(), pub1.clone());
+        state.insert(key1, pub1.clone());
 
         let too_many_elements = 20;
         let current_state = state.get(too_many_elements);
@@ -156,7 +156,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1.clone(), pub1.clone());
+        state.insert(key1.clone(), pub1);
         let bad_removal = state.remove_in_flight(&key1);
         assert_matches!(bad_removal, None);
     }
