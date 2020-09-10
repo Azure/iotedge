@@ -107,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.EdgeAgentBootstrapImage = Option.Maybe(Get("edgeAgentBootstrapImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
+            this.ParentHostname = Option.Maybe(Get("parentHostname"));
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -176,5 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public TimeSpan TestTimeout { get; }
 
         public bool Verbose { get; }
+
+        public Option<string> ParentHostname { get; }
     }
 }

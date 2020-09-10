@@ -16,6 +16,7 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/mqtt
 SCRIPT_NAME=$(basename "$0")
 CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
+TARGET="x86_64-unknown-linux-gnu"
 RELEASE=
 
 ###############################################################################
@@ -40,12 +41,20 @@ process_args()
     for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
+            TARGET="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 2 ]; then
             RELEASE="true"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            CARGO="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
-                "-r" | "--release" ) save_next_arg=1;;
+                "-t" | "--target" ) save_next_arg=1;;
+                "-r" | "--release" ) save_next_arg=2;;
+                "-c" | "--cargo" ) save_next_arg=3;;
                 * ) usage;;
             esac
         fi
@@ -55,7 +64,7 @@ process_args()
 process_args "$@"
 
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp $CARGO test --all --all-features
+    cd "$PROJECT_ROOT" && $CARGO test --workspace --all-features --target "$TARGET"
 else
-    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp $CARGO test --all --all-features --release
+    cd "$PROJECT_ROOT" && $CARGO test --workspace --all-features --release --target "$TARGET"
 fi

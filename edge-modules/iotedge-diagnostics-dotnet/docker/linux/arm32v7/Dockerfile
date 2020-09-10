@@ -7,7 +7,5 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-USER moduleuser
-
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Module is intended to be used with docker run command"
 
