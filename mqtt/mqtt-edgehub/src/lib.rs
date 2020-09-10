@@ -13,6 +13,7 @@
 
 pub mod auth;
 pub mod command;
+pub mod command_handler;
 pub mod connection;
 pub mod settings;
 pub mod topic;
