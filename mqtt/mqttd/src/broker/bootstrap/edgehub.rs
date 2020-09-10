@@ -1,3 +1,5 @@
+use mqtt_edgehub::command::Command;
+use std::collections::HashMap;
 use std::{
     env,
     future::Future,
@@ -27,7 +29,8 @@ use mqtt_broker::{
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::CommandHandler,
+    command::init_commands,
+    command_handler::CommandHandler,
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
@@ -131,17 +134,17 @@ where
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
-    // Start serving new connections
-    let serve = server.serve(shutdown);
-
+    // Start the sidecars
     let system_address = config.listener().system().addr().to_string();
     let (sidecar_shutdown_handle, sidecar_join_handle) =
         start_sidecars(broker_handle, system_address).await?;
 
-    let state = serve.await?;
+    // Start serving new connections
+    let state = server.serve(shutdown).await?;
 
+    // Shutdown the sidecars
     sidecar_shutdown_handle.shutdown()?;
-    sidecar_join_handle.await?;
+    sidecar_join_handle.await??;
 
     Ok(state)
 }
@@ -162,22 +165,33 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
     }
 }
 
+// TODO: We need to elevate failable init steps out of the async block running in it's own thread.
+//       This is because we need to have defined setup steps, that once complete, the sidecars can run without failing.
+//       Once this is done, complex startup order will be easier to implement.
+//       We can also stop the broker process if sidecars fail to init.
+//
+//       This change depends on restructuring the startup logic so that:
+//         1. sidecars and server run at same time
+//         2. if one fails the other shuts down
 async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> Result<(SidecarShutdownHandle, JoinHandle<()>)> {
+) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
     let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
 
-    let device_id = env::var(DEVICE_ID_ENV)?;
-    let command_handler =
-        CommandHandler::new(broker_handle, system_address, device_id.as_str()).await?;
-    let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
-
     let mut bridge_controller = BridgeController::new();
+    let bridge = bridge_controller.start();
+    bridge.await?;
 
-    let event_loop = tokio::spawn(async move {
+    let sidecars = tokio::spawn(async move {
+        let device_id = env::var(DEVICE_ID_ENV)?;
+        let commands: HashMap<String, Box<dyn Command + Send>> = init_commands();
+        let command_handler =
+            CommandHandler::new(broker_handle, system_address, device_id.as_str(), commands)
+                .await?;
+        let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
+
         let command_handler_join_handle = tokio::spawn(command_handler.run());
-        let bridge = bridge_controller.start();
 
         if let Err(e) = sidecar_termination_receiver.await {
             error!(message = "failed to listen to sidecar termination", error = %e);
@@ -189,15 +203,11 @@ async fn start_sidecars(
         if let Err(e) = command_handler_join_handle.await {
             error!(message = "failed waiting for command handler shutdown", error = %e);
         }
-        if let Err(e) = bridge.await {
-            error!(message = "failed waiting for bridge shutdown", error = %e);
-        }
+
+        Ok(())
     });
 
-    Ok((
-        SidecarShutdownHandle(sidecar_termination_handle),
-        event_loop,
-    ))
+    Ok((SidecarShutdownHandle(sidecar_termination_handle), sidecars))
 }
 
 #[derive(Debug, thiserror::Error)]
