@@ -14,9 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class ConnectionHandler : IConnectionRegistry, IMessageConsumer
+    public class ConnectionHandler : IConnectionRegistry, IMessageConsumer, IMessageProducer
     {
         const string TopicDeviceConnected = "$edgehub/connected";
+        const string TopicDeviceDisconnect = "$edgehub/{0}/disconnect";
+        const string TopicModuleDisconnect = "$edgehub/{0}/{1}/disconnect";
 
         static readonly char[] identitySegmentSeparator = new[] { '/' };
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
@@ -25,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IIdentityProvider identityProvider;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly DeviceProxy.Factory deviceProxyFactory;
+
+        IMqttBrokerConnector connector;
 
         AsyncLock guard = new AsyncLock();
 
@@ -43,6 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         }
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
+
+        public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
         public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity)
         {
@@ -92,6 +98,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             return false;
+        }
+
+        public async Task CloseConnectionAsync(IIdentity identity)
+        {
+            var identityFound = false;
+            using (await this.guard.LockAsync())
+            {
+                identityFound = this.knownConnections.TryGetValue(identity, out var _);
+            }
+
+            if (identityFound)
+            {
+                await this.connector.SendAsync(this.GetDisconnectTopic(identity), new byte[0]);
+            }
+        }
+
+        string GetDisconnectTopic(IIdentity identity)
+        {
+            switch (identity)
+            {
+                case IDeviceIdentity deviceIdentity:
+                    return string.Format(TopicDeviceDisconnect, deviceIdentity.DeviceId);
+
+                case IModuleIdentity moduleIdentity:
+                    return string.Format(TopicModuleDisconnect, moduleIdentity.DeviceId, moduleIdentity.ModuleId);
+
+                default:
+                    Events.BadIdentityFormat(identity.Id);
+                    throw new Exception($"cannot decode identity {identity.Id}");
+            }
         }
 
         async Task HandleDeviceConnectedAsync(MqttPublishInfo mqttPublishInfo)
