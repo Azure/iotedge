@@ -97,7 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             if (!audienceModuleId.HasValue)
             {
                 // Token is for a device
-                if (identity is IDeviceIdentity deviceIdentity && deviceIdentity.DeviceId != audienceDeviceId)
+                // According to https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-security#security-token-structure
+                // URL-encoded-resourceURI should be in lowercase.
+                if (identity is IDeviceIdentity deviceIdentity && !string.Equals(deviceIdentity.DeviceId, audienceDeviceId, StringComparison.OrdinalIgnoreCase))
                 {
                     Events.IdMismatch(audienceId, identity, deviceIdentity.DeviceId);
                     return false;

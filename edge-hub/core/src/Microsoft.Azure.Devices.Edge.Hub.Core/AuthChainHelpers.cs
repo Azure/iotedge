@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public static class AuthChainHelpers
@@ -48,6 +49,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             return true;
+        }
+
+        public static string SkipFirstIdentityFromAuthChain(string authChain)
+        {
+            string[] actorAuthChainIds = authChain.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (actorAuthChainIds.Length <= 1)
+            {
+                return authChain;
+            }
+
+            return string.Join(';', actorAuthChainIds.Skip(1));
+        }
+
+        public static bool TryGetTargetDeviceId(string authChain, out string targetDeviceId)
+        {
+            targetDeviceId = string.Empty;
+
+            // The target device is the first ID in the provided authchain,
+            // which could be a module ID of the format "deviceId/moduleId".
+            var actorAuthChainIds = authChain.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (actorAuthChainIds.Length > 0)
+            {
+                var ids = actorAuthChainIds[0].Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (ids.Length > 0)
+                {
+                    targetDeviceId = ids[0];
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
