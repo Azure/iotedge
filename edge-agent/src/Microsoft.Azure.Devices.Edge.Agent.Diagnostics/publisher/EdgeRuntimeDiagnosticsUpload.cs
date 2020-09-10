@@ -14,6 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 
     public sealed class EdgeRuntimeDiagnosticsUpload : IMetricsPublisher
     {
+        // max message size is 256KB, keep a 1KB buffer for safty
+        const int MaxMessageSize = 255000;
+
         static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeRuntimeDiagnosticsUpload>();
         readonly IEdgeAgentConnection edgeAgentConnection;
 
@@ -49,10 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 
             byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
 
-            if (data.Length > 250000)
+            if (data.Length > MaxMessageSize)
             {
-                var part1 = this.BatchAndBuildMessages(metrics.Slice(0, data.Length / 2));
-                var part2 = this.BatchAndBuildMessages(metrics.Slice(data.Length / 2, data.Length / 2));
+                var part1 = this.BatchAndBuildMessages(metrics.Slice(0, metrics.Count / 2));
+                var part2 = this.BatchAndBuildMessages(metrics.Slice(metrics.Count / 2, metrics.Count / 2 + metrics.Count % 2));
 
                 return part1.Concat(part2);
             }

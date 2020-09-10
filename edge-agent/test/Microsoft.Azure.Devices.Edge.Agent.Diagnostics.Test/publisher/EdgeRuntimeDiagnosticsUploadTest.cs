@@ -45,5 +45,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
             Metric uploadedMetric = MetricsSerializer.BytesToMetrics(uploadResult.GetBytes()).Single();
             Assert.Equal(expectedMetric, uploadedMetric);
         }
+
+        [Fact]
+        public async Task SendsMultipleMetrics()
+        {
+            var uploader = new EdgeRuntimeDiagnosticsUpload(this.mockConnection);
+            Metric[] expectedMetrics = this.GetFakeMetrics(20);
+
+            await uploader.PublishAsync(expectedMetrics, CancellationToken.None);
+
+            Metric[] uploadedMetrics = this.ParseLastUploadResult();
+            TestUtilities.OrderlessCompare(expectedMetrics, uploadedMetrics);
+        }
+
+        [Fact]
+        public async Task BatchesMetrics()
+        {
+            var uploader = new EdgeRuntimeDiagnosticsUpload(this.mockConnection);
+
+            // Doesn't batch small numbers of metrics
+            Metric[] singleBatch = this.GetFakeMetrics(20);
+            await uploader.PublishAsync(singleBatch, CancellationToken.None);
+            Assert.Single(this.lastUploadResult);
+            TestUtilities.OrderlessCompare(singleBatch, this.ParseLastUploadResult());
+
+            // correctly batches even number of metrics
+            Metric[] evenBatch = this.GetFakeMetrics(20000);
+            await uploader.PublishAsync(evenBatch, CancellationToken.None);
+            Assert.True(this.lastUploadResult.Length > 1, $"Expected more than 1 uploaded message. Got {this.lastUploadResult.Length}");
+            TestUtilities.OrderlessCompare(evenBatch, this.ParseLastUploadResult());
+
+            // correctly batches odd number of metrics
+            Metric[] oddBatch = this.GetFakeMetrics(20001);
+            await uploader.PublishAsync(oddBatch, CancellationToken.None);
+            Assert.True(this.lastUploadResult.Length > 1, $"Expected more than 1 uploaded message. Got {this.lastUploadResult.Length}");
+            TestUtilities.OrderlessCompare(oddBatch, this.ParseLastUploadResult());
+        }
+
+        Metric[] GetFakeMetrics(int n)
+        {
+            return Enumerable.Range(1, n).Select(i => new Metric(DateTime.UtcNow, $"test_metric_{i}", i, new Dictionary<string, string> { { "tag1", $"asdf{i}" }, { "tag2", $"fdsa{i}" } })).ToArray();
+        }
+
+        Metric[] ParseLastUploadResult()
+        {
+            return this.lastUploadResult.SelectMany(message => MetricsSerializer.BytesToMetrics(message.GetBytes())).ToArray();
+        }
     }
 }
