@@ -7,8 +7,8 @@ ARG DIR=.
 
 FROM alpine:3.12.0
 WORKDIR /app
-COPY target/x86_64-unknown-linux-musl/release/api-proxy-module .
-COPY templates .
+COPY ./docker/linux/amd64/api-proxy-module .
+COPY ./docker/linux/amd64/templates .
 RUN	apk update && \
     apk add nginx && \
 	mkdir /run/nginx

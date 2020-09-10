@@ -5,13 +5,10 @@
 
 ARG DIR=.
 
-FROM arm64v8/alpine:3.12.0
+FROM nginx@sha256:3a85694add68a9e7298d13627007340d17e5da9dcf172c89fc2a111eee805ca7
 WORKDIR /app
-COPY target/aarch64-unknown-linux-gnu/release/api-proxy-module .
-COPY templates .
-RUN	apk update && \
-    apk add nginx && \
-	mkdir /run/nginx
+COPY ./docker/linux/arm64v8/api-proxy-module .
+COPY ./docker/linux/arm64v8/templates .
 EXPOSE 443/tcp	
 EXPOSE 80/tcp
 EXPOSE 5000/tcp
