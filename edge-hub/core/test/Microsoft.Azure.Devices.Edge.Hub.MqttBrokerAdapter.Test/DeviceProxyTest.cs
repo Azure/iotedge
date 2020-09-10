@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             await sut.OnDesiredPropertyUpdates(desired);
 
-            Mock.Get(directMethodHandler).VerifyAll();
+            Mock.Get(twinHandler).VerifyAll();
         }
 
         [Fact]
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             await sut.SendC2DMessageAsync(message);
 
-            Mock.Get(directMethodHandler).VerifyAll();
+            Mock.Get(c2dHandler).VerifyAll();
         }
 
         [Fact]
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             await sut.SendMessageAsync(message, input);
 
-            Mock.Get(directMethodHandler).VerifyAll();
+            Mock.Get(m2mHandler).VerifyAll();
         }
 
         [Fact]
@@ -125,7 +125,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             await sut.SendTwinUpdate(twin);
 
-            Mock.Get(directMethodHandler).VerifyAll();
+            Mock.Get(twinHandler).VerifyAll();
+        }
+
+        [Fact]
+        public async Task CloseForwarded()
+        {
+            var connectionHanlder = Mock.Of<IConnectionRegistry>();
+            var twinHandler = Mock.Of<ITwinHandler>();
+            var m2mHandler = Mock.Of<IModuleToModuleMessageHandler>();
+            var c2dHandler = Mock.Of<ICloud2DeviceMessageHandler>();
+            var directMethodHandler = Mock.Of<IDirectMethodHandler>();
+            var identity = new DeviceIdentity("hub", "device_id");
+
+            Mock.Get(connectionHanlder)
+                .Setup(h => h.CloseConnectionAsync(It.Is<IIdentity>(i => i == identity)))
+                .Returns(Task.CompletedTask);
+
+            var sut = new DeviceProxy(identity, connectionHanlder, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+
+            await sut.CloseAsync(new Exception());
+
+            Mock.Get(connectionHanlder).VerifyAll();
         }
 
         [Fact]

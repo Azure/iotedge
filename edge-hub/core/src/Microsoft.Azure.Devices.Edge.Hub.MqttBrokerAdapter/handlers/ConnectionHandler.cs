@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         const string TopicDeviceConnected = "$edgehub/connected";
         const string TopicDisconnect = "$edgehub/disconnect";
-        
+
         static readonly char[] identitySegmentSeparator = new[] { '/' };
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
 
