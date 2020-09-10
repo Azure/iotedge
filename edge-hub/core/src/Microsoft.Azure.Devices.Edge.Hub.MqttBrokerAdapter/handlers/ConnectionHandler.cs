@@ -17,9 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class ConnectionHandler : IConnectionRegistry, IMessageConsumer, IMessageProducer
     {
         const string TopicDeviceConnected = "$edgehub/connected";
-        const string TopicDeviceDisconnect = "$edgehub/{0}/disconnect";
-        const string TopicModuleDisconnect = "$edgehub/{0}/{1}/disconnect";
-
+        const string TopicDisconnect = "$edgehub/disconnect";
+        
         static readonly char[] identitySegmentSeparator = new[] { '/' };
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
 
@@ -110,23 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             if (identityFound)
             {
-                await this.connector.SendAsync(this.GetDisconnectTopic(identity), new byte[0]);
-            }
-        }
-
-        string GetDisconnectTopic(IIdentity identity)
-        {
-            switch (identity)
-            {
-                case IDeviceIdentity deviceIdentity:
-                    return string.Format(TopicDeviceDisconnect, deviceIdentity.DeviceId);
-
-                case IModuleIdentity moduleIdentity:
-                    return string.Format(TopicModuleDisconnect, moduleIdentity.DeviceId, moduleIdentity.ModuleId);
-
-                default:
-                    Events.BadIdentityFormat(identity.Id);
-                    throw new Exception($"cannot decode identity {identity.Id}");
+                await this.connector.SendAsync(TopicDisconnect, Encoding.UTF8.GetBytes($"\"{identity.Id}\""));
             }
         }
 
