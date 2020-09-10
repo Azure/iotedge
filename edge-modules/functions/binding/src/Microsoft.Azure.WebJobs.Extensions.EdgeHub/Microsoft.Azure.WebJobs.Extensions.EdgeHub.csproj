@@ -14,14 +14,19 @@
     <Title>Microsoft Azure Edge Function extension</Title>
     <Authors>Microsoft</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseUrl>https://github.com/Azure/iotedge/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Description>This package contains binding extensions for IoTEdge.</Description>
-    <PackageIconUrl>http://go.microsoft.com/fwlink/?LinkID=288890</PackageIconUrl>
+    <PackageIcon>nugetIcon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/Azure/iotedge</PackageProjectUrl>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageTags>IoT Microsoft Azure IoTEdge Functions</PackageTags>
   </PropertyGroup>
 
+  <ItemGroup>
+      <None Include="..\..\..\..\..\LICENSE" Pack="true" PackagePath=""/>
+      <!-- Orinal Icon: http://go.microsoft.com/fwlink/?LinkID=288890 -->
+      <None Include="..\..\..\..\..\doc\images\nugetIcon.png" Pack="true" PackagePath=""/>
+  </ItemGroup>
   <!--
     Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.
     See https://github.com/Microsoft/vstest-docs/blob/06f9dc0aeb47be7204dc4e1a98c110ead3e978c7/docs/analyze.md#setup-a-project.
