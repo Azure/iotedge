@@ -59,11 +59,6 @@ impl WakingMap {
     pub fn set_waker(&mut self, waker: &Waker) {
         self.waker = Some(waker.clone());
     }
-
-    #[allow(dead_code)]
-    fn in_flight(&mut self) -> &HashMap<Key, Publication> {
-        &self.in_flight
-    }
 }
 
 #[cfg(test)]
