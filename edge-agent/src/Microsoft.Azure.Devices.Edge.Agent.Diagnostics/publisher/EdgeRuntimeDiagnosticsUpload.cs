@@ -25,24 +25,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(metrics, nameof(metrics));
-            byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
 
-            if (data.Length > 0)
+            Message[] messagesToSend = this.BatchAndBuildMessages(metrics.ToArray()).ToArray();
+            try
             {
-                Message message = this.BuildMessage(data);
-
-                try
-                {
-                    await this.edgeAgentConnection.SendEventAsync(message);
-                }
-                catch (Exception ex) when (ex.HasTimeoutException())
-                {
-                    Log.LogDebug(ex, "Send message to IoTHub");
-                    return false;
-                }
+                await this.edgeAgentConnection.SendEventBatchAsync(messagesToSend);
+            }
+            catch (Exception ex) when (ex.HasTimeoutException())
+            {
+                Log.LogDebug(ex, "Send message to IoTHub");
+                return false;
             }
 
             return true;
+        }
+
+        IEnumerable<Message> BatchAndBuildMessages(ArraySegment<Metric> metrics)
+        {
+            if (!metrics.Any())
+            {
+                return Enumerable.Empty<Message>();
+            }
+
+            byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
+
+            if (data.Length > 250000)
+            {
+                var part1 = this.BatchAndBuildMessages(metrics.Slice(0, data.Length / 2));
+                var part2 = this.BatchAndBuildMessages(metrics.Slice(data.Length / 2, data.Length / 2));
+
+                return part1.Concat(part2);
+            }
+            else
+            {
+                return new Message[] { this.BuildMessage(data) };
+            }
         }
 
         Message BuildMessage(byte[] data)
