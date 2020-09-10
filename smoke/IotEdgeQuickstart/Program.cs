@@ -84,6 +84,18 @@ Defaults:
         [Option("-h|--use-http=<hostname>", Description = "Modules talk to iotedged via tcp instead of unix domain socket")]
         public (bool useHttp, string hostname) UseHttp { get; } = (false, string.Empty);
 
+        [Option("--use-connect-management-uri=<connect_management_uri>", Description = "Modules talk to a custom connect management socket (default is unix:///var/run/iotedge/mgmt.sock)")]
+        public string ConnectManagementUri { get; } = string.Empty;
+
+        [Option("--use-connect-workload-uri=<connect_workload_uri>", Description = "Modules talk to a custom connect workload socket (default is unix:///var/run/iotedge/workload.sock)")]
+        public string ConnectWorkloadUri { get; } = string.Empty;
+
+        [Option("--use-listen-management-uri=<listen_management_uri>", Description = "Modules talk to a custom listen management socket (default is fd://iotedge.mgmt.socket)")]
+        public string ListenManagementUri { get; } = string.Empty;
+
+        [Option("--use-listen-workload-uri=<listen_workload_uri>", Description = "Modules talk to a custom listen workload socket (default is fd://iotedge.socket)")]
+        public string ListenWorkloadUri { get; } = string.Empty;
+
         [Option("-n|--edge-hostname", Description = "Edge device's hostname")]
         public string EdgeHostname { get; } = "quickstart";
 
@@ -209,7 +221,9 @@ Defaults:
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
 
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
+                            UriSocks socks = new UriSocks(this.ConnectManagementUri, this.ConnectWorkloadUri, this.ListenManagementUri, this.ListenWorkloadUri);
+
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, socks, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
                         }
 
                         break;

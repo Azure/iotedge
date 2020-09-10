@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
         };
 
-        static readonly ModuleIdentity CreateIdentity = new ModuleIdentity("hostname", "gateway", "device1", "Module1", new ConnectionStringCredentials("connection string"));
+        static readonly ModuleIdentity CreateIdentity = new ModuleIdentity("hostname", "device1", "Module1", new ConnectionStringCredentials("connection string"));
 
         static KubernetesModule CreateKubernetesModule(CreatePodParameters podParameters)
         {

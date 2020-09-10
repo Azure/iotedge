@@ -1,0 +1,15 @@
+# Please refer to the issue-labeler documentation here: https://github.com/github/issue-labeler
+name: Label all github issues
+on:
+  issues:
+    types: opened
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: github/issue-labeler@v2.0
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        configuration-path: .github/ISSUE_TEMPLATE/issue-label-list.yml
+        enable-versioned-regex: 0
