@@ -129,6 +129,7 @@ pub fn notary_lookup(
                 String::from_utf8(notary_output.stdout).with_context(|_| {
                     ErrorKind::LaunchNotary("could not retrieve notary output as string".to_owned())
                 })?;
+            info!("Notary output string is {}", notary_output_string);
             let split_array: Vec<&str> = notary_output_string.split_whitespace().collect();
             if split_array.len() < 2 {
                 return Err(ErrorKind::LaunchNotary(
@@ -176,10 +177,10 @@ mod test {
         let root_ca_file = PathBuf::from("filedoesnotexist.crt");
         let result = notary::notary_init(home_dir.path(), &registry_server_hostname, &root_ca_file);
         let err = result.unwrap_err();
-        let _display_msg = format!("root ca at path {} does not exist", root_ca_file.display());
+        let display_msg = format!("root ca at path {} does not exist", root_ca_file.display());
         assert!(matches!(
             err.kind(),
-            ErrorKind::InitializeNotary(_display_msg)
+            ErrorKind::InitializeNotary(s) if s == &display_msg,
         ));
     }
 }

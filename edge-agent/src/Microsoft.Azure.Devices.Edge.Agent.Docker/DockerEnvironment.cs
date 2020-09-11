@@ -76,12 +76,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     : moduleRuntimeInfo.ModuleStatus;
 
                 // Check to see if the originalImage label is set by the iotedege daemon. This label is set for content trust feature where the image is pulled by digest.
-                // OrignalImageLabelStr contains the image with tag and it is used to handle the mismatch of image with digest during reconcilation.
+                // OriginalImageLabelStr contains the image with tag and it is used to handle the mismatch of image with digest during reconcilation.
                 var labels = dockerRuntimeInfo.Config.CreateOptions?.Labels ?? new Dictionary<string, string>();
-                labels.TryGetValue(Core.Constants.Labels.OriginalImage, out string orignalImageLabelStr);
-                if (!string.IsNullOrWhiteSpace(orignalImageLabelStr))
+                labels.TryGetValue(Core.Constants.Labels.OriginalImage, out string originalImageLabelStr);
+                if (!string.IsNullOrWhiteSpace(originalImageLabelStr))
                 {
-                    image = orignalImageLabelStr;
+                    image = originalImageLabelStr;
                 }
                 else
                 {
