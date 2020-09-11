@@ -22,12 +22,12 @@ impl SetPlatformDefines for Config {
         // emulator for debug and a real device for release
         let use_emulator = env::var(USE_EMULATOR)
             .or_else(|_| {
-                env::var("PROFILE").and_then(|profile| {
-                    Ok(if profile.to_lowercase() == "release" {
+                env::var("PROFILE").map(|profile| {
+                    if profile.to_lowercase() == "release" {
                         String::from("OFF")
                     } else {
                         String::from("ON")
-                    })
+                    }
                 })
             })
             .unwrap();
