@@ -1,20 +1,21 @@
 #![allow(dead_code)] // TODO remove when ready
 use std::{collections::HashSet, time::Duration};
 
+use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::BoxFuture;
 use tokio::{net::TcpStream, stream::StreamExt};
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
 
 use crate::settings::Credentials;
-use crate::token_source::{TokenSource, SasTokenSource};
+use crate::token_source::{SasTokenSource, TokenSource};
 
-const DEFAULT_TOKEN_DURATION: Duration = Duration::from_secs(60 * 60);
+const DEFAULT_TOKEN_DURATION_SECS: Duration = Duration::from_secs(60 * 60);
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -50,16 +51,17 @@ where
         let token_source = self.token_source.as_ref().cloned();
 
         Box::pin(async move {
-            let expiry = Utc::now() + chrono::Duration::from_std(DEFAULT_TOKEN_DURATION).unwrap();
+            let expiry = Utc::now()
+                + chrono::Duration::from_std(DEFAULT_TOKEN_DURATION_SECS)
+                    .unwrap_or_else(|_| chrono::Duration::hours(1));
             let mut password = None;
             if let Some(ts) = token_source {
-                // TODO: handle error
                 password = match ts.get(&expiry).await {
                     Ok(x) => Some(x),
-                    Err(_) => {
-                        //error!("Failed to get token {}", e);
+                    Err(e) => {
+                        warn!("Failed to get token {}", e);
                         None
-                    },
+                    }
                 }
             };
 
@@ -138,14 +140,12 @@ impl<T: EventHandler> MqttClient<T> {
     }
 
     pub async fn handle_events(mut self) -> Result<(), ClientConnectError> {
-        while let Some(event) = self
-            .client
-            .try_next()
-            .await
-            .map_err(ClientConnectError::PollClientFailure)?
-        {
-            if let Err(_e) = self.event_handler.handle_event(event).await {
-                //warn!(message = "error processing event", error = %e);
+        while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
+            error!(message = "failed to poll events", error=%e);
+            None
+        }) {
+            if let Err(e) = self.event_handler.handle_event(event).await {
+                error!("error processing event {}", e);
             }
         }
 
@@ -167,6 +167,10 @@ impl<T: EventHandler> MqttClient<T> {
         }
 
         let mut subacks: HashSet<_> = topics.iter().collect();
+        if subacks.is_empty() {
+            debug!("no topics to subscribe to");
+            return Ok(());
+        }
 
         while let Some(event) = self
             .client
@@ -182,13 +186,13 @@ impl<T: EventHandler> MqttClient<T> {
                 }
 
                 if subacks.is_empty() {
-                    debug!("command handler successfully subscribed to all topics");
+                    debug!("successfully subscribed to all topics");
                     return Ok(());
                 }
             }
         }
 
-        error!("command handler failed to subscribe to topics");
+        error!("failed to subscribe to topics");
         Err(ClientConnectError::MissingSubacks(
             subacks
                 .into_iter()
@@ -200,9 +204,7 @@ impl<T: EventHandler> MqttClient<T> {
 
 #[async_trait]
 pub trait EventHandler {
-    type Error;
-
-    async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error>;
+    async fn handle_event(&mut self, event: Event) -> Result<()>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -213,7 +215,7 @@ pub enum ClientConnectError {
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
 
-    #[error("failed to poll client when validating command handler subscriptions")]
+    #[error("failed to poll client")]
     PollClientFailure(#[from] mqtt3::Error),
 
     #[error("Failed to shutdown custom mqtt client: {0}")]

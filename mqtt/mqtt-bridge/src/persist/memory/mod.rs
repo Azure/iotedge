@@ -10,7 +10,7 @@ use crate::persist::{
     memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Persist,
 };
 
-mod loader;
+pub mod loader;
 mod waking_map;
 
 /// In memory persistence implementation used for the bridge

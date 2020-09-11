@@ -1,6 +1,6 @@
 #![allow(dead_code)] // TODO remove when ready
 
-use anyhow::Error;
+use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
@@ -14,8 +14,7 @@ define_encode_set! {
 
 #[async_trait]
 pub trait TokenSource {
-    type Error;
-    async fn get(&self, expiry: &DateTime<Utc>) -> Result<String, Self::Error>;
+    async fn get(&self, expiry: &DateTime<Utc>) -> Result<String>;
 }
 
 #[derive(Clone)]
@@ -31,9 +30,7 @@ impl SasTokenSource {
 
 #[async_trait]
 impl TokenSource for SasTokenSource {
-    type Error = Error;
-
-    async fn get(&self, expiry: &DateTime<Utc>) -> Result<String, Error> {
+    async fn get(&self, expiry: &DateTime<Utc>) -> Result<String> {
         let token: String = match &self.creds {
             Credentials::Provider(provider_settings) => {
                 let expiry = expiry.timestamp().to_string();
@@ -48,8 +45,7 @@ impl TokenSource for SasTokenSource {
                         .to_string();
                 let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
-                let client =
-                    edgelet_client::workload(provider_settings.workload_uri())?;
+                let client = edgelet_client::workload(provider_settings.workload_uri())?;
                 let signature = client
                     .sign(
                         provider_settings.module_id(),

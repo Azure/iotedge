@@ -77,19 +77,15 @@ impl<'de> serde::Deserialize<'de> for Settings {
             messages,
         } = serde::Deserialize::deserialize(deserializer)?;
 
-        let upstream_connection_settings =
-            nested_bridge
-                // .gateway_hostname
-                //.clone()
-                .map(|nested_bridge| ConnectionSettings {
-                    name: "upstream".into(),
-                    address: nested_bridge.gateway_hostname.clone(),
-                    subscriptions: upstream.subscriptions,
-                    forwards: upstream.forwards,
-                    credentials: Credentials::Provider(nested_bridge),
-                    clean_session: upstream.clean_session,
-                    keep_alive: upstream.keep_alive,
-                });
+        let upstream_connection_settings = nested_bridge.map(|nested_bridge| ConnectionSettings {
+            name: "upstream".into(),
+            address: nested_bridge.gateway_hostname.clone(),
+            subscriptions: upstream.subscriptions,
+            forwards: upstream.forwards,
+            credentials: Credentials::Provider(nested_bridge),
+            clean_session: upstream.clean_session,
+            keep_alive: upstream.keep_alive,
+        });
 
         Ok(Settings {
             upstream: upstream_connection_settings,

@@ -9,7 +9,10 @@
         "subscriptions": [
             {
                 "pattern": "temp/#",
-                "remote": "floor/kitchen/"
+                "remote": "floor/kitchen"
+            },
+            {
+                "pattern": "pattern/#"
             }
         ],
         "forwards": [
@@ -31,7 +34,7 @@
             "subscriptions": [
                 {
                     "pattern": "temp/#",
-                    "remote": "floor/kitchen/"
+                    "remote": "floor/kitchen"
                 }
             ],
             "forwards": [
