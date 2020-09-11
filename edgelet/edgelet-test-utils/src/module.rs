@@ -97,6 +97,10 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
+    fn parent_hostname(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
     fn connect(&self) -> &Connect {
         unimplemented!()
     }
