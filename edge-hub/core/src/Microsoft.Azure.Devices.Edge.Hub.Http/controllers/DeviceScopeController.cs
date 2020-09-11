@@ -36,9 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             actorDeviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorDeviceId, nameof(actorDeviceId)));
             actorModuleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorModuleId, nameof(actorModuleId)));
+            Preconditions.CheckNonWhiteSpace(request.AuthChain, nameof(request.AuthChain));
 
             IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
+            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), Option.Some(request.AuthChain), this.HttpContext);
 
             if (authResult.Authenticated)
             {
@@ -58,9 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             actorDeviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorDeviceId, nameof(actorDeviceId)));
             actorModuleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(actorModuleId, nameof(actorModuleId)));
+            Preconditions.CheckNonWhiteSpace(request.AuthChain, nameof(request.AuthChain));
 
             IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), this.HttpContext);
+            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), Option.Some(request.AuthChain), this.HttpContext);
 
             if (authResult.Authenticated)
             {
@@ -77,7 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         async Task<EdgeHubScopeResult> HandleDevicesAndModulesInTargetDeviceScopeAsync(string actorDeviceId, string actorModuleId, NestedScopeRequest request)
         {
             Events.ReceivedScopeRequest(actorDeviceId, actorModuleId, request);
-            Preconditions.CheckNonWhiteSpace(request.AuthChain, nameof(request.AuthChain));
 
             if (!this.TryGetTargetDeviceId(request.AuthChain, out string targetDeviceId))
             {

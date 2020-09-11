@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+    using CoreConstants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
 
     /// <summary>
     /// This class is used to get tokens from the Client on the CBS link. It generates
@@ -73,24 +74,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             Events.LinkRegistered(link);
         }
 
-        public async Task<bool> AuthenticateAsync(string id, Option<string> modelId)
+        public async Task<bool> AuthenticateAsync(string id, Option<string> modelId, Option<string> authChain)
         {
             try
             {
-                if (this.clientCredentialsMap.TryGetValue(id, out CredentialsInfo credentialsInfo))
+                // See if we received direct credentials for the target identity
+                CredentialsInfo credentialsInfo;
+                bool hasCredentials = this.clientCredentialsMap.TryGetValue(id, out credentialsInfo);
+
+                // Otherwise, this could be a child Edge acting OnBehalfOf of the target,
+                // in which case we would have the actor's credentials instead
+                if (!hasCredentials)
+                {
+                    Option<string> actorDeviceId = AuthChainHelpers.GetActorDeviceId(authChain);
+                    hasCredentials = actorDeviceId.Map(actor => this.clientCredentialsMap.TryGetValue(actor + $"/{CoreConstants.EdgeHubModuleId}", out credentialsInfo)).GetOrElse(false);
+                }
+
+                if (hasCredentials)
                 {
                     // Not -ve caching isAuthenticated here.
                     // If incorrect credentials are sent, then it authenticates every time and fails
                     // If correct credentials are sent later, then the authentication will succeed.
                     if (!credentialsInfo.IsAuthenticated)
                     {
-                        using (await credentialsInfo.AsyncLock.LockAsync())
+                        if (!credentialsInfo.IsAuthenticated)
                         {
-                            if (!credentialsInfo.IsAuthenticated)
-                            {
-                                credentialsInfo.ClientCredentials.ModelId = modelId;
-                                credentialsInfo.IsAuthenticated = await this.authenticator.AuthenticateAsync(credentialsInfo.ClientCredentials);
-                            }
+                            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(
+                                credentialsInfo.DeviceId,
+                                credentialsInfo.ModuleId.OrDefault(),
+                                string.Empty,
+                                credentialsInfo.Token,
+                                true,
+                                modelId,
+                                authChain);
+
+                            bool isAuthenticated = await this.authenticator.AuthenticateAsync(clientCredentials);
+                            credentialsInfo.IsAuthenticated.Set(isAuthenticated);
                         }
                     }
 
@@ -149,15 +168,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             try
             {
-                SharedAccessSignature.Parse(iotHubHostName, token);
+                SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(iotHubHostName, token);
+                return (token, sharedAccessSignature.Audience);
             }
             catch (Exception e)
             {
                 throw new InvalidOperationException("Cbs message does not contain a valid token", e);
             }
-
-            string audience = message.ApplicationProperties.Map[CbsConstants.PutToken.Audience] as string;
-            return (token, audience);
         }
 
         internal static (string deviceId, string moduleId) ParseIds(string audience)
@@ -185,10 +202,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         // Note: This method updates this.clientCredentialsMap, and should be invoked only within this.identitySyncLock
         internal async Task<(AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
         {
-            IClientCredentials clientCredentials;
+            CredentialsInfo newCredentialsInfo;
+
             try
             {
-                clientCredentials = this.GetClientCredentials(message);
+                newCredentialsInfo = this.GetClientCredentialsInfo(message);
             }
             catch (Exception e) when (!ExceptionEx.IsFatal(e))
             {
@@ -196,37 +214,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 return (AmqpResponseStatusCode.BadRequest, e.Message);
             }
 
-            if (!this.clientCredentialsMap.TryGetValue(clientCredentials.Identity.Id, out CredentialsInfo credentialsInfo))
+            if (!this.clientCredentialsMap.TryGetValue(newCredentialsInfo.Id, out CredentialsInfo credentialsInfo))
             {
-                this.clientCredentialsMap[clientCredentials.Identity.Id] = new CredentialsInfo(clientCredentials);
+                this.clientCredentialsMap[newCredentialsInfo.Id] = newCredentialsInfo;
             }
             else
             {
-                using (await credentialsInfo.AsyncLock.LockAsync())
-                {
-                    credentialsInfo.ClientCredentials = clientCredentials;
-                }
+                // Atomically update the existing entry with the new token
+                credentialsInfo.Token.CompareAndSet(credentialsInfo.Token, newCredentialsInfo.Token);
 
                 if (credentialsInfo.IsAuthenticated)
                 {
+                    IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(
+                        credentialsInfo.DeviceId,
+                        credentialsInfo.ModuleId.OrDefault(),
+                        string.Empty,
+                        credentialsInfo.Token,
+                        true,
+                        Option.None<string>(),
+                        Option.None<string>());
+
                     await this.credentialsCache.Add(clientCredentials);
-                    Events.CbsTokenUpdated(clientCredentials.Identity);
+                    Events.CbsTokenUpdated(credentialsInfo.Id);
                 }
                 else
                 {
-                    Events.CbsTokenNotUpdated(clientCredentials.Identity);
+                    Events.CbsTokenNotUpdated(credentialsInfo.Id);
                 }
             }
 
             return (AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
         }
 
-        internal IClientCredentials GetClientCredentials(AmqpMessage message)
+        internal CredentialsInfo GetClientCredentialsInfo(AmqpMessage message)
         {
             (string token, string audience) = ValidateAndParseMessage(this.iotHubHostName, message);
             (string deviceId, string moduleId) = ParseIds(audience);
-            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, string.Empty, token, true, Option.None<string>());
-            return clientCredentials;
+            return new CredentialsInfo(deviceId, Option.Maybe(moduleId), token);
         }
 
         internal ArraySegment<byte> GetDeliveryTag()
@@ -292,20 +316,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         /// <summary>
         /// This type is deliberately mutable because of the use case.
         /// </summary>
-        class CredentialsInfo
+        internal class CredentialsInfo
         {
-            public CredentialsInfo(IClientCredentials clientCredentials)
+            public CredentialsInfo(string deviceId, Option<string> moduleId, string token)
             {
-                this.ClientCredentials = clientCredentials;
-                this.IsAuthenticated = false;
-                this.AsyncLock = new AsyncLock();
+                this.DeviceId = deviceId;
+                this.ModuleId = moduleId;
+                this.Token = new AtomicReference<string>(token);
+                this.IsAuthenticated = new AtomicBoolean(false);
             }
 
-            public IClientCredentials ClientCredentials { get; set; }
+            public string Id => this.ModuleId.Map(m => $"{this.DeviceId}/{m}").GetOrElse(this.DeviceId);
 
-            public bool IsAuthenticated { get; set; }
+            public string DeviceId { get; }
 
-            public AsyncLock AsyncLock { get; }
+            public Option<string> ModuleId { get; }
+
+            public AtomicReference<string> Token { get; set; }
+
+            public AtomicBoolean IsAuthenticated { get; set; }
         }
 
         static class Events
@@ -350,9 +379,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogWarning((int)EventIds.ErrorGettingIdentity, e, $"Error authenticating token received on the Cbs link for {id}");
             }
 
-            public static void CbsTokenUpdated(IIdentity identity)
+            public static void CbsTokenUpdated(string id)
             {
-                Log.LogInformation((int)EventIds.TokenUpdated, $"Token updated for {identity.Id}");
+                Log.LogInformation((int)EventIds.TokenUpdated, $"Token updated for {id}");
             }
 
             public static void ErrorSendingResponse(Exception exception)
@@ -365,9 +394,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 Log.LogWarning((int)EventIds.ErrorHandlingTokenUpdate, exception, "Error handling token update");
             }
 
-            public static void CbsTokenNotUpdated(IIdentity identity)
+            public static void CbsTokenNotUpdated(string id)
             {
-                Log.LogDebug((int)EventIds.CbsTokenNotUpdated, $"Got a new token for an unauthenticated identity {identity.Id}, not updating credentials cache");
+                Log.LogDebug((int)EventIds.CbsTokenNotUpdated, $"Got a new token for an unauthenticated identity {id}, not updating credentials cache");
             }
         }
     }
