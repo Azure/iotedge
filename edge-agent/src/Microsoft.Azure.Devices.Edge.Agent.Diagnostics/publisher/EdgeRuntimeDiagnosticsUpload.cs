@@ -51,11 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             }
 
             byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
-
             if (data.Length > MaxMessageSize)
             {
                 var part1 = this.BatchAndBuildMessages(metrics.Slice(0, metrics.Count / 2));
-                var part2 = this.BatchAndBuildMessages(metrics.Slice(metrics.Count / 2, metrics.Count / 2 + metrics.Count % 2));
+                var part2 = this.BatchAndBuildMessages(metrics.Slice(metrics.Count / 2));
 
                 return part1.Concat(part2);
             }
