@@ -25,9 +25,7 @@ pub struct ContainerApiClient<C: hyper::client::connect::Connect> {
 
 impl<C: hyper::client::connect::Connect> ContainerApiClient<C> {
     pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
-        ContainerApiClient {
-            configuration: configuration,
-        }
+        ContainerApiClient { configuration }
     }
 }
 
@@ -117,6 +115,7 @@ pub trait ContainerApi: Send + Sync {
         stdout: bool,
         stderr: bool,
         since: i32,
+        until: Option<i32>,
         timestamps: bool,
         tail: &str,
     ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send>;
@@ -819,6 +818,7 @@ where
         stdout: bool,
         stderr: bool,
         since: i32,
+        until: Option<i32>,
         timestamps: bool,
         tail: &str,
     ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send> {
@@ -826,14 +826,19 @@ where
 
         let method = hyper::Method::GET;
 
-        let query = ::url::form_urlencoded::Serializer::new(String::new())
+        let mut serializer = ::url::form_urlencoded::Serializer::new(String::new());
+        serializer
             .append_pair("follow", &follow.to_string())
             .append_pair("stdout", &stdout.to_string())
             .append_pair("stderr", &stderr.to_string())
             .append_pair("since", &since.to_string())
             .append_pair("timestamps", &timestamps.to_string())
-            .append_pair("tail", &tail.to_string())
-            .finish();
+            .append_pair("tail", tail);
+        if let Some(until) = until {
+            serializer.append_pair("until", &until.to_string());
+        }
+
+        let query = serializer.finish();
         let uri_str = format!("/containers/{id}/logs?{}", query, id = id);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);

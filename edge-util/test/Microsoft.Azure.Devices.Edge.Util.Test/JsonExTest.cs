@@ -97,7 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1"
                 },
-                create = "yes"
+                create = "yes",
+                array = new object[] { new object[] { 100L, false } },
+                arrayString = new string[] { "a" }
             };
 
             var patch = new
@@ -118,13 +120,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
+                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
+                arrayString = "a"
             };
 
             var removeAll = new
             {
                 name = (Dictionary<string, string>)null,
                 overwrite = (Dictionary<string, string>)null,
-                create = (Dictionary<string, string>)null
+                create = (Dictionary<string, string>)null,
+                array = (int[])null,
+                arrayString = (string[])null
             };
 
             var removeAllInefficient = new
@@ -144,6 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     level1 = (Dictionary<string, string>)null,
                 },
                 create = (Dictionary<string, string>)null,
+                array = (int[])null,
+                arrayString = (string[])null
             };
 
             var mergedExcludeNull = new
@@ -162,7 +170,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 create = new
                 {
                     level1 = "value1",
-                }
+                },
+                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
+                arrayString = "a"
             };
 
             var mergedIncludeNull = new
@@ -183,7 +193,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 create = new
                 {
                     level1 = "value1",
-                }
+                },
+                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
+                arrayString = "a"
             };
 
             var emptyBaseline = new { };
@@ -198,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 },
                 overwrite = new
                 {
-                },
+                }
             };
 
             var emptyPatch = new { };
@@ -207,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             JToken resultCollection = JsonEx.Merge(JToken.FromObject(baseline), JToken.FromObject(patch), true);
 
             // Assert
-            Assert.True(JToken.DeepEquals(JToken.FromObject(resultCollection), JToken.FromObject(mergedExcludeNull)));
+            Assert.True(JToken.DeepEquals(JToken.FromObject(resultCollection), JToken.FromObject(mergedExcludeNull)), resultCollection.ToString());
 
             // Act
             resultCollection = JsonEx.Merge(JToken.FromObject(baseline), JToken.FromObject(patch), false);
@@ -266,7 +278,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1"
                 },
-                create = "yes"
+                create = "yes",
+                arrayWithObjects = new object[] { new object[] { 100L, false } },
+                arrayWithValue = new string[] { "a" },
+                arrayChangeType = new string[] { "a" },
+                arrayNoChange = new string[] { "a" }
             };
 
             var patch = new
@@ -286,6 +302,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
+                arrayWithObjects = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
+                arrayWithValue = new string[] { "b" },
+                arrayChangeType = "a",
+                // arrayNoChange = new string[] { "a" } // unchanged
             };
 
             var mergedExcludeNull = new
@@ -304,14 +324,22 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 create = new
                 {
                     level1 = "value1",
-                }
+                },
+                arrayWithObjects = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
+                arrayWithValue = new string[] { "b" },
+                arrayChangeType = "a",
+                arrayNoChange = new string[] { "a" }
             };
 
             var removeAll = new
             {
                 name = (Dictionary<string, string>)null,
                 overwrite = (Dictionary<string, string>)null,
-                create = (Dictionary<string, string>)null
+                create = (Dictionary<string, string>)null,
+                arrayWithObjects = (int[])null,
+                arrayWithValue = (string[])null,
+                arrayChangeType = (string[])null,
+                arrayNoChange = (string[])null,
             };
 
             var emptyBaseline = new { };
@@ -322,13 +350,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             JToken resultCollection = JsonEx.Diff(JToken.FromObject(baseline), JToken.FromObject(mergedExcludeNull));
 
             // Assert
-            Assert.True(JToken.DeepEquals(resultCollection, JToken.FromObject(patch)));
+            Assert.True(JToken.DeepEquals(resultCollection, JToken.FromObject(patch)), JToken.FromObject(patch).ToString());
 
             // Act
             resultCollection = JsonEx.Diff(JToken.FromObject(baseline), JToken.FromObject(baseline));
 
             // Assert
-            Assert.True(JToken.DeepEquals(resultCollection, JToken.FromObject(emptyPatch)));
+            Assert.True(JToken.DeepEquals(resultCollection, JToken.FromObject(emptyPatch)), resultCollection.ToString());
 
             // Act
             resultCollection = JsonEx.Diff(JToken.FromObject(emptyBaseline), JToken.FromObject(emptyBaseline));

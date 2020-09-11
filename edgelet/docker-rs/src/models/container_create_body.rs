@@ -16,12 +16,16 @@ use serde_json::Value;
 // We do not want to restrict the properties that the user can set in their create options, because future versions of Docker can add new properties
 // that we don't define here.
 //
-// So this type has a `#[serde(flatten)] HashMap` field to collect all the extra properties that we don't have a struct field for.
+// So this type has a `#[serde(flatten)] BTreeMap` field to collect all the extra properties that we don't have a struct field for.
 //
 // But if an existing field references another type under `crate::models::`, then that would still be parsed lossily, so we would have to also add
-// a `#[serde(flatten)] HashMap` field there. And if that type has fields that reference types under `crate::models::` ...
+// a `#[serde(flatten)] BTreeMap` field there. And if that type has fields that reference types under `crate::models::` ...
 //
 // To avoid having to do this for effectively the whole crate, instead we've just commented out the fields we don't use in our code.
+//
+// Note: We're using BTreeMap instead of HashMap because iotedged stores a hash of its local config (whose object representation uses this struct)
+// to detect changes. Since different HashMaps with the same keys aren't guaranteed to serialize in the same order (and thus won't compare equal),
+// we need to use another map type that can provide that guarantee.
 //
 // ---
 //
@@ -29,7 +33,7 @@ use serde_json::Value;
 //
 // - If it's a simple built-in type, then that is all you need to do.
 //
-// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] HashMap` property
+// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] BTreeMap` property
 //   and is commented out as much as possible. Also copy this devnote there for future readers.
 
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
@@ -54,7 +58,7 @@ pub struct ContainerCreateBody {
     // attach_stderr: Option<bool>,
     // /// An object mapping ports to an empty object in the form:  `{\"<port>/<tcp|udp>\": {}}`
     // #[serde(rename = "ExposedPorts", skip_serializing_if = "Option::is_none")]
-    // exposed_ports: Option<::std::collections::HashMap<String, Value>>,
+    // exposed_ports: Option<::std::collections::BTreeMap<String, Value>>,
     // /// Attach standard streams to a TTY, including `stdin` if it is not closed.
     // #[serde(rename = "Tty", skip_serializing_if = "Option::is_none")]
     // tty: Option<bool>,
@@ -79,7 +83,7 @@ pub struct ContainerCreateBody {
     #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
     image: Option<String>,
     #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
-    volumes: Option<::std::collections::HashMap<String, Value>>,
+    volumes: Option<::std::collections::BTreeMap<String, Value>>,
     // /// The working directory for commands to run in.
     // #[serde(rename = "WorkingDir", skip_serializing_if = "Option::is_none")]
     // working_dir: Option<String>,
@@ -100,7 +104,7 @@ pub struct ContainerCreateBody {
     // on_build: Option<Vec<String>>,
     /// User-defined key/value metadata.
     #[serde(rename = "Labels", skip_serializing_if = "Option::is_none")]
-    labels: Option<::std::collections::HashMap<String, String>>,
+    labels: Option<::std::collections::BTreeMap<String, String>>,
     // /// Signal to stop a container as a string or unsigned integer.
     // #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
     // stop_signal: Option<String>,
@@ -115,7 +119,7 @@ pub struct ContainerCreateBody {
     #[serde(rename = "NetworkingConfig", skip_serializing_if = "Option::is_none")]
     networking_config: Option<crate::models::ContainerCreateBodyNetworkingConfig>,
     #[serde(flatten)]
-    other_properties: std::collections::HashMap<String, serde_json::Value>,
+    other_properties: std::collections::BTreeMap<String, serde_json::Value>,
 }
 
 impl ContainerCreateBody {
@@ -254,19 +258,19 @@ impl ContainerCreateBody {
     //     self.attach_stderr = None;
     // }
 
-    // pub fn set_exposed_ports(&mut self, exposed_ports: ::std::collections::HashMap<String, Value>) {
+    // pub fn set_exposed_ports(&mut self, exposed_ports: ::std::collections::BTreeMap<String, Value>) {
     //     self.exposed_ports = Some(exposed_ports);
     // }
 
     // pub fn with_exposed_ports(
     //     mut self,
-    //     exposed_ports: ::std::collections::HashMap<String, Value>,
+    //     exposed_ports: ::std::collections::BTreeMap<String, Value>,
     // ) -> Self {
     //     self.exposed_ports = Some(exposed_ports);
     //     self
     // }
 
-    // pub fn exposed_ports(&self) -> Option<&::std::collections::HashMap<String, Value>> {
+    // pub fn exposed_ports(&self) -> Option<&::std::collections::BTreeMap<String, Value>> {
     //     self.exposed_ports.as_ref()
     // }
 
@@ -410,16 +414,16 @@ impl ContainerCreateBody {
         self.image = None;
     }
 
-    pub fn set_volumes(&mut self, volumes: ::std::collections::HashMap<String, Value>) {
+    pub fn set_volumes(&mut self, volumes: ::std::collections::BTreeMap<String, Value>) {
         self.volumes = Some(volumes);
     }
 
-    pub fn with_volumes(mut self, volumes: ::std::collections::HashMap<String, Value>) -> Self {
+    pub fn with_volumes(mut self, volumes: ::std::collections::BTreeMap<String, Value>) -> Self {
         self.volumes = Some(volumes);
         self
     }
 
-    pub fn volumes(&self) -> Option<&::std::collections::HashMap<String, Value>> {
+    pub fn volumes(&self) -> Option<&::std::collections::BTreeMap<String, Value>> {
         self.volumes.as_ref()
     }
 
@@ -512,16 +516,16 @@ impl ContainerCreateBody {
     //     self.on_build = None;
     // }
 
-    pub fn set_labels(&mut self, labels: ::std::collections::HashMap<String, String>) {
+    pub fn set_labels(&mut self, labels: ::std::collections::BTreeMap<String, String>) {
         self.labels = Some(labels);
     }
 
-    pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
+    pub fn with_labels(mut self, labels: ::std::collections::BTreeMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
     }
 
-    pub fn labels(&self) -> Option<&::std::collections::HashMap<String, String>> {
+    pub fn labels(&self) -> Option<&::std::collections::BTreeMap<String, String>> {
         self.labels.as_ref()
     }
 

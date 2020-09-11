@@ -7,6 +7,7 @@ namespace TestAnalyzer
         AllMessages = 100,
         NoMessages,
         OldMessages,
-        SkippedMessages
+        SkippedMessages,
+        SkippedAndOldMessages
     }
 }

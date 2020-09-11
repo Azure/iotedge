@@ -51,14 +51,14 @@ impl Volume {
         options: ::std::collections::HashMap<String, String>,
     ) -> Self {
         Volume {
-            name: name,
-            driver: driver,
-            mountpoint: mountpoint,
+            name,
+            driver,
+            mountpoint,
             created_at: None,
             status: None,
-            labels: labels,
-            scope: scope,
-            options: options,
+            labels,
+            scope,
+            options,
             usage_data: None,
         }
     }

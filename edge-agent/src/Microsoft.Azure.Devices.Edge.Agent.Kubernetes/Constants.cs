@@ -33,8 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string K8sEdgeDeviceLabel = "net.azure-devices.edge.deviceid";
 
-        public const string K8sEdgeHubNameLabel = "net.azure-devices.edge.hub";
-
         public const string K8sNameDivider = "-";
 
         public const string K8sPullSecretType = "kubernetes.io/dockerconfigjson";
@@ -84,5 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string RunAsNonRootKey = "RunAsNonRoot";
 
         public const string UnknownImage = "unknown";
+
+        public const string HostIPC = "host";
     }
 }

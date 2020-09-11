@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-  </PropertyGroup>
+  <Import Project="..\..\..\netcoreappVersion.props" />
 
   <ItemGroup>
     <PackageReference Include="Flurl" Version="3.0.0-pre3" />

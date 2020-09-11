@@ -1,9 +1,11 @@
-ARG base_tag=2.1.13-alpine3.10	
-FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder	
+ARG base_tag=3.1.4-alpine3.11
+FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
-FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}	
+FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
-ARG EXE_DIR=.	
+ADD ./watchdog/target/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
+ADD ./mqtt/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
+ADD ./mqtt/broker.json /app/mqttd/broker.json
 
 # RocksDB requires snappy	
 RUN apk update && \	
@@ -22,14 +24,15 @@ COPY --from=builder publish/* /usr/local/lib/
 
 WORKDIR /app	
 
-COPY $EXE_DIR/ ./	
+COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
 
 # Expose MQTT, AMQP and HTTPS ports	
+EXPOSE 1883/tcp
 EXPOSE 8883/tcp	
 EXPOSE 5671/tcp	
 EXPOSE 443/tcp	
 
 USER edgehubuser	
 
-CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \	
-    exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
+CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
+    /usr/local/bin/watchdog

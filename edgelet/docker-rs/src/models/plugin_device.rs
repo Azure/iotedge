@@ -26,10 +26,10 @@ pub struct PluginDevice {
 impl PluginDevice {
     pub fn new(name: String, description: String, settable: Vec<String>, path: String) -> Self {
         PluginDevice {
-            name: name,
-            description: description,
-            settable: settable,
-            path: path,
+            name,
+            description,
+            settable,
+            path,
         }
     }
 

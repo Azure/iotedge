@@ -2,9 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using NUnit.Framework;
 
     // NUnit's [Timeout] attribute isn't supported in .NET Standard
     // and even if it were, it doesn't run the teardown method when
@@ -13,16 +16,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     // we have our own timeout mechanism.
     public class ManualProvisioningFixture : BaseFixture
     {
-        protected readonly IEdgeDaemon daemon;
         protected readonly IotHub iotHub;
+        protected IEdgeDaemon daemon;
+
+        public ManualProvisioningFixture(string connectionString, string eventHubEndpoint)
+        {
+            this.iotHub = new IotHub(connectionString, eventHubEndpoint, Context.Current.Proxy);
+        }
 
         public ManualProvisioningFixture()
+            : this(Context.Current.ConnectionString, Context.Current.EventHubEndpoint)
         {
-            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
-            this.iotHub = new IotHub(
-                Context.Current.ConnectionString,
-                Context.Current.EventHubEndpoint,
-                Context.Current.Proxy);
+        }
+
+        [OneTimeSetUp]
+        protected async Task BeforeAllTestsAsync()
+        {
+            using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
+            Option<Registry> bootstrapRegistry = Option.Maybe(Context.Current.Registries.First());
+            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(
+                Context.Current.InstallerPath,
+                Context.Current.EdgeAgentBootstrapImage,
+                bootstrapRegistry,
+                cts.Token);
         }
 
         protected async Task ConfigureDaemonAsync(

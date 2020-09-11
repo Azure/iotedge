@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
@@ -198,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.PrepareUpdateModuleAsync(this.Version.Name, moduleSpec.Name, MapToModuleSpec(moduleSpec)), $"prepare update for module module {moduleSpec.Name}");
+                await this.Execute(() => edgeletHttpClient.PrepareUpdateModuleAsync(this.Version.Name, moduleSpec.Name, MapToModuleSpec(moduleSpec)), $"prepare update for module {moduleSpec.Name}");
             }
         }
 
@@ -209,6 +208,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
                 await this.Execute(() => edgeletHttpClient.ReprovisionDeviceAsync(this.Version.Name), "reprovision the device");
             }
+        }
+
+        public override Task<System.IO.Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token)
+        {
+            return Task.FromResult(System.IO.Stream.Null);
         }
 
         protected override void HandleException(Exception exception, string operation)

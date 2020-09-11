@@ -32,9 +32,9 @@ impl Port {
     pub fn new(private_port: i32, _type: String) -> Self {
         Port {
             IP: None,
-            private_port: private_port,
+            private_port,
             public_port: None,
-            _type: _type,
+            _type,
         }
     }
 

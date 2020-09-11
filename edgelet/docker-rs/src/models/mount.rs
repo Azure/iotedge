@@ -16,12 +16,16 @@ use serde_json::Value;
 // We do not want to restrict the properties that the user can set in their create options, because future versions of Docker can add new properties
 // that we don't define here.
 //
-// So this type has a `#[serde(flatten)] HashMap` field to collect all the extra properties that we don't have a struct field for.
+// So this type has a `#[serde(flatten)] BTreeMap` field to collect all the extra properties that we don't have a struct field for.
 //
 // But if an existing field references another type under `crate::models::`, then that would still be parsed lossily, so we would have to also add
-// a `#[serde(flatten)] HashMap` field there. And if that type has fields that reference types under `crate::models::` ...
+// a `#[serde(flatten)] BTreeMap` field there. And if that type has fields that reference types under `crate::models::` ...
 //
 // To avoid having to do this for effectively the whole crate, instead we've just commented out the fields we don't use in our code.
+//
+// Note: We're using BTreeMap instead of HashMap because iotedged stores a hash of its local config (whose object representation uses this struct)
+// to detect changes. Since different HashMaps with the same keys aren't guaranteed to serialize in the same order (and thus won't compare equal),
+// we need to use another map type that can provide that guarantee.
 //
 // ---
 //
@@ -29,7 +33,7 @@ use serde_json::Value;
 //
 // - If it's a simple built-in type, then that is all you need to do.
 //
-// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] HashMap` property
+// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] BTreeMap` property
 //   and is commented out as much as possible. Also copy this devnote there for future readers.
 
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
@@ -56,7 +60,7 @@ pub struct Mount {
     // #[serde(rename = "TmpfsOptions", skip_serializing_if = "Option::is_none")]
     // tmpfs_options: Option<crate::models::MountTmpfsOptions>,
     #[serde(flatten)]
-    other_properties: std::collections::HashMap<String, serde_json::Value>,
+    other_properties: std::collections::BTreeMap<String, serde_json::Value>,
 }
 
 impl Mount {

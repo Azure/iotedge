@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::default::Default;
 use std::fmt;
 use std::result::Result as StdResult;
@@ -11,8 +11,9 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
+use serde_derive::Serialize;
 
-use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
+use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::settings::RuntimeSettings;
@@ -143,9 +144,8 @@ pub struct ModuleSpec<T> {
     #[serde(rename = "type")]
     type_: String,
     config: T,
-    #[serde(default = "HashMap::new")]
-    #[serde(serialize_with = "serialize_ordered")]
-    env: HashMap<String, String>,
+    #[serde(default = "BTreeMap::new")]
+    env: BTreeMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
     image_pull_policy: ImagePullPolicy,
@@ -171,7 +171,7 @@ impl<T> ModuleSpec<T> {
         name: String,
         type_: String,
         config: T,
-        env: HashMap<String, String>,
+        env: BTreeMap<String, String>,
         image_pull_policy: ImagePullPolicy,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
@@ -221,15 +221,15 @@ impl<T> ModuleSpec<T> {
         self.config = config;
     }
 
-    pub fn env(&self) -> &HashMap<String, String> {
+    pub fn env(&self) -> &BTreeMap<String, String> {
         &self.env
     }
 
-    pub fn env_mut(&mut self) -> &mut HashMap<String, String> {
+    pub fn env_mut(&mut self) -> &mut BTreeMap<String, String> {
         &mut self.env
     }
 
-    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
+    pub fn with_env(mut self, env: BTreeMap<String, String>) -> Self {
         self.env = env;
         self
     }
@@ -286,6 +286,7 @@ pub struct LogOptions {
     follow: bool,
     tail: LogTail,
     since: i32,
+    until: Option<i32>,
 }
 
 impl LogOptions {
@@ -294,6 +295,7 @@ impl LogOptions {
             follow: false,
             tail: LogTail::All,
             since: 0,
+            until: None,
         }
     }
 
@@ -312,6 +314,11 @@ impl LogOptions {
         self
     }
 
+    pub fn with_until(mut self, until: i32) -> Self {
+        self.until = Some(until);
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
@@ -322,6 +329,10 @@ impl LogOptions {
 
     pub fn since(&self) -> i32 {
         self.since
+    }
+
+    pub fn until(&self) -> Option<i32> {
+        self.until
     }
 }
 
@@ -346,36 +357,19 @@ pub trait ModuleRegistry {
     fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize)]
 pub struct SystemInfo {
     /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
-    os_type: String,
+    #[serde(rename = "osType")]
+    pub os_type: String,
     /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
-    architecture: String,
+    pub architecture: String,
     /// iotedge version string
-    version: &'static str,
-}
-
-impl SystemInfo {
-    pub fn new(os_type: String, architecture: String) -> Self {
-        SystemInfo {
-            os_type,
-            architecture,
-            version: super::version_with_source_version(),
-        }
-    }
-
-    pub fn os_type(&self) -> &str {
-        &self.os_type
-    }
-
-    pub fn architecture(&self) -> &str {
-        &self.architecture
-    }
-
-    pub fn version(&self) -> &str {
-        self.version
-    }
+    pub version: &'static str,
+    pub server_version: String,
+    pub kernel_version: String,
+    pub operating_system: String,
+    pub cpus: i32,
 }
 
 #[derive(Debug, serde_derive::Serialize)]
@@ -502,6 +496,7 @@ pub trait ModuleRuntime: Sized {
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type SystemResourcesFuture: Future<Item = SystemResources, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
+    type StopAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn get(&self, id: &str) -> Self::GetFuture;
@@ -516,6 +511,7 @@ pub trait ModuleRuntime: Sized {
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;
+    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -560,6 +556,7 @@ pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),
     GetModuleLogs(String),
+    GetSupportBundle,
     Init,
     ListModules,
     RemoveModule(String),
@@ -579,6 +576,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::GetModuleLogs(name) => {
                 write!(f, "Could not get logs for module {}", name)
             }
+            RuntimeOperation::GetSupportBundle => write!(f, "Could not get support bundle"),
             RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "Could not list modules"),
             RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
@@ -622,7 +620,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::{Default, HashMap, ImagePullPolicy, ModuleSpec, SystemInfo};
+    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec};
 
     use std::str::FromStr;
     use std::string::ToString;
@@ -662,7 +660,7 @@ mod tests {
             name.clone(),
             "docker".to_string(),
             10_i32,
-            HashMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -683,7 +681,7 @@ mod tests {
             name.clone(),
             "docker".to_string(),
             10_i32,
-            HashMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -704,7 +702,7 @@ mod tests {
             "m1".to_string(),
             type_.clone(),
             10_i32,
-            HashMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -725,7 +723,7 @@ mod tests {
             "m1".to_string(),
             type_.clone(),
             10_i32,
-            HashMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -737,27 +735,5 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn system_info_new_and_access_succeed() {
-        //arrange
-        let system_info = SystemInfo::new(
-            "testValueOsType".to_string(),
-            "testArchitectureType".to_string(),
-        );
-        let expected_value_os_type = "testValueOsType";
-        let expected_test_architecture_type = "testArchitectureType";
-
-        //act
-        let current_value_os_type = system_info.os_type();
-        let current_value_architecture_type = system_info.architecture();
-
-        //assert
-        assert_eq!(expected_value_os_type, current_value_os_type);
-        assert_eq!(
-            expected_test_architecture_type,
-            current_value_architecture_type
-        );
     }
 }

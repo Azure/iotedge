@@ -31,7 +31,7 @@ impl<IoS> Client<IoS>
 where
     IoS: IoSource,
 {
-    /// Create a new client with the given parameters
+    /// Create a new client with the given parameters and a clean session.
     ///
     /// * `client_id`
     ///
@@ -66,6 +66,64 @@ where
             None => crate::proto::ClientId::ServerGenerated,
         };
 
+        Self::create(
+            client_id,
+            username,
+            will,
+            io_source,
+            max_reconnect_back_off,
+            keep_alive,
+        )
+    }
+
+    /// Create a new client with the provided session state.
+    ///
+    /// * `client_id`
+    ///
+    ///     This ID will be used to resume an existing session with the server. On subsequent re-connects, the ID
+    ///     and the session will be re-used.
+    ///
+    /// * `username`
+    ///
+    ///     Optional username credential for the server. Note that password is provided via `io_source`.
+    ///
+    /// * `io_source`
+    ///
+    ///     The MQTT protocol is layered onto the I/O object returned by this source.
+    ///
+    /// * `max_reconnect_back_off`
+    ///
+    ///     Every connection failure will double the back-off period, to a maximum of this value.
+    ///
+    /// * `keep_alive`
+    ///
+    ///     The keep-alive time advertised to the server. The client will ping the server at half this interval.
+    pub fn from_state(
+        client_id: String,
+        username: Option<String>,
+        will: Option<crate::proto::Publication>,
+        io_source: IoS,
+        max_reconnect_back_off: std::time::Duration,
+        keep_alive: std::time::Duration,
+    ) -> Self {
+        Self::create(
+            crate::proto::ClientId::IdWithExistingSession(client_id),
+            username,
+            will,
+            io_source,
+            max_reconnect_back_off,
+            keep_alive,
+        )
+    }
+
+    fn create(
+        client_id: crate::proto::ClientId,
+        username: Option<String>,
+        will: Option<crate::proto::Publication>,
+        io_source: IoS,
+        max_reconnect_back_off: std::time::Duration,
+        keep_alive: std::time::Duration,
+    ) -> Self {
         let (shutdown_send, shutdown_recv) = futures_channel::mpsc::channel(0);
 
         // TODO: username / password / will can be too large and prevent a CONNECT packet from being encoded.

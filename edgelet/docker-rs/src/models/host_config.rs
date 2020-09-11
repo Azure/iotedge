@@ -18,12 +18,16 @@ use serde_json::Value;
 // We do not want to restrict the properties that the user can set in their create options, because future versions of Docker can add new properties
 // that we don't define here.
 //
-// So this type has a `#[serde(flatten)] HashMap` field to collect all the extra properties that we don't have a struct field for.
+// So this type has a `#[serde(flatten)] BTreeMap` field to collect all the extra properties that we don't have a struct field for.
 //
 // But if an existing field references another type under `crate::models::`, then that would still be parsed lossily, so we would have to also add
-// a `#[serde(flatten)] HashMap` field there. And if that type has fields that reference types under `crate::models::` ...
+// a `#[serde(flatten)] BTreeMap` field there. And if that type has fields that reference types under `crate::models::` ...
 //
 // To avoid having to do this for effectively the whole crate, instead we've just commented out the fields we don't use in our code.
+//
+// Note: We're using BTreeMap instead of HashMap because iotedged stores a hash of its local config (whose object representation uses this struct)
+// to detect changes. Since different HashMaps with the same keys aren't guaranteed to serialize in the same order (and thus won't compare equal),
+// we need to use another map type that can provide that guarantee.
 //
 // ---
 //
@@ -31,7 +35,7 @@ use serde_json::Value;
 //
 // - If it's a simple built-in type, then that is all you need to do.
 //
-// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] HashMap` property
+// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] BTreeMap` property
 //   and is commented out as much as possible. Also copy this devnote there for future readers.
 
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
@@ -149,7 +153,7 @@ pub struct HostConfig {
     /// A map of exposed container ports and the host port they should map to.
     #[serde(rename = "PortBindings", skip_serializing_if = "Option::is_none")]
     port_bindings:
-        Option<::std::collections::HashMap<String, Vec<crate::models::HostConfigPortBindings>>>,
+        Option<::std::collections::BTreeMap<String, Vec<crate::models::HostConfigPortBindings>>>,
     // #[serde(rename = "RestartPolicy", skip_serializing_if = "Option::is_none")]
     // restart_policy: Option<crate::models::RestartPolicy>,
     // /// Automatically remove the container when the container's process exits. This has no effect if `RestartPolicy` is set.
@@ -214,10 +218,10 @@ pub struct HostConfig {
     // security_opt: Option<Vec<String>>,
     // /// Storage driver options for this container, in the form `{\"size\": \"120G\"}`.
     // #[serde(rename = "StorageOpt", skip_serializing_if = "Option::is_none")]
-    // storage_opt: Option<::std::collections::HashMap<String, String>>,
+    // storage_opt: Option<::std::collections::BTreeMap<String, String>>,
     // /// A map of container directories which should be replaced by tmpfs mounts, and their corresponding mount options. For example: `{ \"/run\": \"rw,noexec,nosuid,size=65536k\" }`.
     // #[serde(rename = "Tmpfs", skip_serializing_if = "Option::is_none")]
-    // tmpfs: Option<::std::collections::HashMap<String, String>>,
+    // tmpfs: Option<::std::collections::BTreeMap<String, String>>,
     // /// UTS namespace to use for the container.
     // #[serde(rename = "UTSMode", skip_serializing_if = "Option::is_none")]
     // uts_mode: Option<String>,
@@ -229,7 +233,7 @@ pub struct HostConfig {
     // shm_size: Option<i64>,
     // /// A list of kernel parameters (sysctls) to set in the container. For example: `{\"net.ipv4.ip_forward\": \"1\"}`
     // #[serde(rename = "Sysctls", skip_serializing_if = "Option::is_none")]
-    // sysctls: Option<::std::collections::HashMap<String, String>>,
+    // sysctls: Option<::std::collections::BTreeMap<String, String>>,
     // /// Runtime to use with this container.
     // #[serde(rename = "Runtime", skip_serializing_if = "Option::is_none")]
     // runtime: Option<String>,
@@ -240,7 +244,7 @@ pub struct HostConfig {
     // #[serde(rename = "Isolation", skip_serializing_if = "Option::is_none")]
     // isolation: Option<String>,
     #[serde(flatten)]
-    other_properties: std::collections::HashMap<String, serde_json::Value>,
+    other_properties: std::collections::BTreeMap<String, serde_json::Value>,
 }
 
 impl HostConfig {
@@ -926,7 +930,7 @@ impl HostConfig {
 
     pub fn set_port_bindings(
         &mut self,
-        port_bindings: ::std::collections::HashMap<
+        port_bindings: ::std::collections::BTreeMap<
             String,
             Vec<crate::models::HostConfigPortBindings>,
         >,
@@ -936,7 +940,7 @@ impl HostConfig {
 
     pub fn with_port_bindings(
         mut self,
-        port_bindings: ::std::collections::HashMap<
+        port_bindings: ::std::collections::BTreeMap<
             String,
             Vec<crate::models::HostConfigPortBindings>,
         >,
@@ -947,7 +951,7 @@ impl HostConfig {
 
     pub fn port_bindings(
         &self,
-    ) -> Option<&::std::collections::HashMap<String, Vec<crate::models::HostConfigPortBindings>>>
+    ) -> Option<&::std::collections::BTreeMap<String, Vec<crate::models::HostConfigPortBindings>>>
     {
         self.port_bindings.as_ref()
     }
@@ -1313,19 +1317,19 @@ impl HostConfig {
     //     self.security_opt = None;
     // }
 
-    // pub fn set_storage_opt(&mut self, storage_opt: ::std::collections::HashMap<String, String>) {
+    // pub fn set_storage_opt(&mut self, storage_opt: ::std::collections::BTreeMap<String, String>) {
     //     self.storage_opt = Some(storage_opt);
     // }
 
     // pub fn with_storage_opt(
     //     mut self,
-    //     storage_opt: ::std::collections::HashMap<String, String>,
+    //     storage_opt: ::std::collections::BTreeMap<String, String>,
     // ) -> Self {
     //     self.storage_opt = Some(storage_opt);
     //     self
     // }
 
-    // pub fn storage_opt(&self) -> Option<&::std::collections::HashMap<String, String>> {
+    // pub fn storage_opt(&self) -> Option<&::std::collections::BTreeMap<String, String>> {
     //     self.storage_opt.as_ref()
     // }
 
@@ -1333,16 +1337,16 @@ impl HostConfig {
     //     self.storage_opt = None;
     // }
 
-    // pub fn set_tmpfs(&mut self, tmpfs: ::std::collections::HashMap<String, String>) {
+    // pub fn set_tmpfs(&mut self, tmpfs: ::std::collections::BTreeMap<String, String>) {
     //     self.tmpfs = Some(tmpfs);
     // }
 
-    // pub fn with_tmpfs(mut self, tmpfs: ::std::collections::HashMap<String, String>) -> Self {
+    // pub fn with_tmpfs(mut self, tmpfs: ::std::collections::BTreeMap<String, String>) -> Self {
     //     self.tmpfs = Some(tmpfs);
     //     self
     // }
 
-    // pub fn tmpfs(&self) -> Option<&::std::collections::HashMap<String, String>> {
+    // pub fn tmpfs(&self) -> Option<&::std::collections::BTreeMap<String, String>> {
     //     self.tmpfs.as_ref()
     // }
 
@@ -1401,16 +1405,16 @@ impl HostConfig {
     //     self.shm_size = None;
     // }
 
-    // pub fn set_sysctls(&mut self, sysctls: ::std::collections::HashMap<String, String>) {
+    // pub fn set_sysctls(&mut self, sysctls: ::std::collections::BTreeMap<String, String>) {
     //     self.sysctls = Some(sysctls);
     // }
 
-    // pub fn with_sysctls(mut self, sysctls: ::std::collections::HashMap<String, String>) -> Self {
+    // pub fn with_sysctls(mut self, sysctls: ::std::collections::BTreeMap<String, String>) -> Self {
     //     self.sysctls = Some(sysctls);
     //     self
     // }
 
-    // pub fn sysctls(&self) -> Option<&::std::collections::HashMap<String, String>> {
+    // pub fn sysctls(&self) -> Option<&::std::collections::BTreeMap<String, String>> {
     //     self.sysctls.as_ref()
     // }
 

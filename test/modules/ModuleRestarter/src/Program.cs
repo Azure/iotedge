@@ -21,12 +21,6 @@ namespace ModuleRestarter
         {
             Logger.LogInformation($"Starting module restarter with the following settings:\r\n{Settings.Current}");
 
-            if (Settings.Current.DesiredModulesToRestart.Count == 0)
-            {
-                Logger.LogInformation("No modules names found in input. Stopping.");
-                return 0;
-            }
-
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             await RestartModules(cts);
@@ -38,39 +32,51 @@ namespace ModuleRestarter
         }
 
         /// <summary>
-        /// Restarts random modules periodically (with default restart occurrence once every 10 minutes)
+        /// Restarts random modules periodically (with default restart occurrence once every 10 minutes).
         /// </summary>
         static async Task RestartModules(CancellationTokenSource cts)
         {
+            if (Settings.Current.DesiredModulesToRestart.Count == 0)
+            {
+                Logger.LogInformation("No modules names found in input. Stopping.");
+                return;
+            }
+
             try
             {
                 ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
-
                 CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
                 Random random = new Random();
-
                 string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
                 List<string> moduleNames = Settings.Current.DesiredModulesToRestart;
+
                 while (!cts.Token.IsCancellationRequested)
                 {
-                    string payload = string.Format(payloadSchema, moduleNames[random.Next(0, moduleNames.Count)]);
-                    Logger.LogInformation("RestartModule Method Payload: {0}", payload);
-                    c2dMethod.SetPayloadJson(payload);
+                    Logger.LogInformation($"Started delay for {Settings.Current.RestartInterval} till {DateTime.UtcNow.Add(Settings.Current.RestartInterval)}.");
+                    await Task.Delay(Settings.Current.RestartInterval, cts.Token);
 
-                    try
+                    if (!cts.IsCancellationRequested)
                     {
-                        CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
-                        if (response.Status != (int)HttpStatusCode.OK)
+                        string moduleToBeRestarted = moduleNames[random.Next(0, moduleNames.Count)];
+                        string payload = string.Format(payloadSchema, moduleToBeRestarted);
+                        Logger.LogInformation("RestartModule Method Payload: {0}", payload);
+
+                        try
                         {
-                            Logger.LogError($"Calling Direct Method failed with status code {response.Status}.");
+                            c2dMethod.SetPayloadJson(payload);
+                            CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
+                            Logger.LogInformation($"Successfully invoke direct method to restart module {moduleToBeRestarted}.");
+
+                            if (response.Status != (int)HttpStatusCode.OK)
+                            {
+                                Logger.LogError($"Calling Direct Method failed with status code {response.Status}.");
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.LogError($"Exception caught for payload {payload}: {e}");
                         }
                     }
-                    catch (Exception e)
-                    {
-                        Logger.LogError($"Exception caught for payload {payload}: {e}");
-                    }
-
-                    await Task.Delay(Settings.Current.RestartIntervalInMins * 60 * 1000, cts.Token);
                 }
             }
             catch (Exception e)

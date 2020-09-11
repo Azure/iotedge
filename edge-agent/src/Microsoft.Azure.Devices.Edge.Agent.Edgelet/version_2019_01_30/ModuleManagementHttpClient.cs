@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -184,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.PrepareUpdateModuleAsync(this.Version.Name, moduleSpec.Name, MapToModuleSpec(moduleSpec)), $"prepare update for module module {moduleSpec.Name}");
+                await this.Execute(() => edgeletHttpClient.PrepareUpdateModuleAsync(this.Version.Name, moduleSpec.Name, MapToModuleSpec(moduleSpec)), $"prepare update for module {moduleSpec.Name}");
             }
         }
 
@@ -196,6 +195,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
         public override Task<SystemResources> GetSystemResourcesAsync()
         {
             return Task.FromResult<SystemResources>(null);
+        }
+
+        public override Task<System.IO.Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token)
+        {
+            return Task.FromResult(System.IO.Stream.Null);
         }
 
         protected override void HandleException(Exception exception, string operation)

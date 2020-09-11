@@ -15,25 +15,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         // This is not the actual docker image regex, but a less strict version.
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
-
+        // Check if it's prefix is "$upstream" and replace with environment variable.
+        const string ImageUpstreamRegexPattern = @"^\$upstream(?<path>:[1-9].*)";
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
+        static readonly Regex ImageUpstreamRegex = new Regex(ImageUpstreamRegexPattern);
         readonly CreateContainerParameters createOptions;
 
         public DockerConfig(string image)
-            : this(image, string.Empty, Option.None<NotaryContentTrust>())
+            : this(image, string.Empty, Option.None<string>())
         {
         }
 
-        public DockerConfig(string image, string createOptions, Option<NotaryContentTrust> notaryContentTrust)
-            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions), notaryContentTrust)
+        public DockerConfig(string image, string createOptions, Option<string> digest)
+            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions), digest)
         {
         }
 
-        public DockerConfig(string image, CreateContainerParameters createOptions, Option<NotaryContentTrust> notaryContentTrust)
+        public DockerConfig(string image, CreateContainerParameters createOptions, Option<string> digest)
         {
             this.Image = image;
             this.createOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
-            this.NotaryContentTrust = notaryContentTrust;
+            this.Digest = digest;
         }
 
         public string Image { get; }
@@ -42,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
         public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));
 
-        public Option<NotaryContentTrust> NotaryContentTrust { get; }
+        [JsonProperty("digest", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<string> Digest { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);
 
@@ -70,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             return string.Equals(this.Image, other.Image) &&
                    CompareCreateOptions(this.CreateOptions, other.CreateOptions) &&
-                   Equals(this.NotaryContentTrust, other.NotaryContentTrust);
+                   Equals(this.Digest, other.Digest);
         }
 
         internal static CreateContainerParameters GetCreateOptions(string createOptions)
@@ -86,8 +89,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         internal static string ValidateAndGetImage(string image)
         {
+            return ValidateAndGetImage(image, new EnvironmentWrapper());
+        }
+
+        internal static string ValidateAndGetImage(string image, IEnvironmentWrapper env)
+        {
             image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
+
+            if (image[0] == '$')
+            {
+                Match matchHost = ImageUpstreamRegex.Match(image);
+                if (matchHost.Success
+                    && (matchHost.Groups["path"]?.Length > 0))
+                {
+                    string hostAddress = env.GetVariable(Core.Constants.GatewayHostnameVariableName).
+                        Expect(() => new InvalidOperationException($"Could not find environment variable: {Core.Constants.GatewayHostnameVariableName}"));
+
+                    image = hostAddress + matchHost.Groups["path"].Value;
+                }
+                else
+                {
+                    throw new ArgumentException($"Image {image} is not in the right format.If your intention is to use an environment variable, check the port is specified.");
+                }
+            }
+
             Match match = ImageRegex.Match(image);
+
             if (match.Success)
             {
                 if (match.Groups["tag"]?.Length > 0)
@@ -170,9 +197,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     writer.WriteValue(chunk);
                 }
 
-                dockerconfig.NotaryContentTrust.ForEach(ct =>
+                dockerconfig.Digest.ForEach(ct =>
                 {
-                    writer.WritePropertyName("notaryContentTrust");
+                    writer.WritePropertyName("digest");
                     serializer.Serialize(writer, ct);
                 });
                 writer.WriteEndObject();
@@ -190,17 +217,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     .Select(token => token?.ToString() ?? string.Empty)
                     .Join();
 
-                if (obj.TryGetValue("notaryContentTrust", StringComparison.OrdinalIgnoreCase, out JToken jTokenNotaryContentTrust))
+                if (obj.TryGetValue("digest", StringComparison.OrdinalIgnoreCase, out JToken jTokenDigest))
                 {
-                    return new DockerConfig(jTokenImage?.ToString(), options, Option.Maybe(jTokenNotaryContentTrust.ToObject<NotaryContentTrust>()));
+                    return new DockerConfig(jTokenImage?.ToString(), options, Option.Maybe(jTokenDigest.ToObject<string>()));
                 }
                 else
                 {
-                    return new DockerConfig(jTokenImage?.ToString(), options, Option.None<NotaryContentTrust>());
+                    return new DockerConfig(jTokenImage?.ToString(), options, Option.None<string>());
                 }
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);
+        }
+    }
+
+    internal interface IEnvironmentWrapper
+    {
+        Option<string> GetVariable(string variableName);
+    }
+
+    internal class EnvironmentWrapper : IEnvironmentWrapper
+    {
+        public Option<string> GetVariable(string variableName)
+        {
+            return Option.Some(Environment.GetEnvironmentVariable(variableName));
         }
     }
 }

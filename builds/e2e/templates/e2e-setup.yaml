@@ -12,8 +12,10 @@ steps:
       TestContainerRegistryPassword,
       TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
+      TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
+      TestPreviewIotHubConnectionString,
       TestRootCaCertificate,
       TestRootCaKey,
       TestRootCaPassword
@@ -76,7 +78,7 @@ steps:
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
 
-    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp2.1"
+    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
 
@@ -86,6 +88,7 @@ steps:
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
+
     $context = @{
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
@@ -97,8 +100,10 @@ steps:
       methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";
       loadGenImage = "$imagePrefix-load-gen:$imageTag";
       relayerImage = "$imagePrefix-relayer:$imageTag";
+      networkControllerImage = "$imagePrefix-network-controller:$imageTag";
       testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
+      edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
       registries = @(
         @{
           address = '$(cr.address)';
@@ -112,12 +117,7 @@ steps:
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
 
-    if ($IsWindows)
-    {
-      $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
-    }
-
-    if ('$(arch)' -eq 'arm32v7')
+    if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 6

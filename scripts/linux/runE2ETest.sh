@@ -25,6 +25,9 @@ function clean_up() {
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
+
+        echo 'Restart docker'
+        systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
     fi
 }
 
@@ -274,6 +277,11 @@ function print_logs() {
 function process_args() {
     print_highlighted_message 'Process arguments'
     saveNextArg=0
+    BYPASS_EDGE_INSTALLATION=""
+    CONNECT_MANAGEMENT_URI=""
+    CONNECT_WORKLOAD_URI=""
+    LISTEN_MANAGEMENT_URI=""
+    LISTEN_WORKLOAD_URI=""
     for arg in "$@"
     do
         if [ $saveNextArg -eq 1 ]; then
@@ -408,6 +416,21 @@ function process_args() {
         elif [ $saveNextArg -eq 43 ]; then
             TEST_START_DELAY="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 44 ]; then
+            RUNTIME_LOG_LEVEL="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 45 ]; then
+            CONNECT_MANAGEMENT_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 46 ]; then
+            CONNECT_WORKLOAD_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 47 ]; then
+            LISTEN_MANAGEMENT_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 48 ]; then
+            LISTEN_WORKLOAD_URI="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -454,6 +477,12 @@ function process_args() {
                 '-initializeWithAgentArtifact' ) saveNextArg=41;;
                 '-testInfo' ) saveNextArg=42;;
                 '-testStartDelay' ) saveNextArg=43;;
+                '-runtimeLogLevel' ) saveNextArg=44;;
+                '-connectManagementUri' ) saveNextArg=45;;
+                '-connectWorkloadUri' ) saveNextArg=46;;
+                '-listenManagementUri' ) saveNextArg=47;;
+                '-listenWorkloadUri' ) saveNextArg=48;;
+                '-bypassEdgeInstallation' ) BYPASS_EDGE_INSTALLATION="--bypass-edge-installation";;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -470,6 +499,14 @@ function process_args() {
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
 
     echo 'Required parameters are provided'
+}
+
+function get_hash() {
+    # TODO: testHelper.sh needs to be shared across build pipelines
+    local length=$1
+    local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
+
+    echo "$hash"
 }
 
 function run_all_tests()
@@ -547,6 +584,11 @@ function run_directmethod_test()
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --verify-data-from-module "DirectMethodSender" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -676,6 +718,11 @@ function run_dps_provisioning_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         $dps_command_flags \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
@@ -691,7 +738,7 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test for $image_architecture_label"
     test_setup
 
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$(get_hash 8)"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
@@ -711,7 +758,12 @@ function run_longhaul_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
-        --runtime-log-level "Info" \
+        --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -744,6 +796,11 @@ function run_quickstartcerts_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=Core \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
     declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
@@ -769,7 +826,7 @@ function run_stress_test() {
     print_highlighted_message "Run Stress test for $image_architecture_label"
     test_setup
 
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress-$(get_hash 8)"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Stress test with -d '$device_id' started at $test_start_time"
@@ -789,7 +846,12 @@ function run_stress_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
-        --runtime-log-level "Info" \
+        --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -821,6 +883,11 @@ function run_tempfilter_test() {
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -852,6 +919,11 @@ function run_tempfilterfunctions_test() {
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -882,6 +954,11 @@ function run_tempsensor_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
@@ -928,7 +1005,10 @@ function run_test()
 
 function test_setup() {
     validate_test_parameters
-    clean_up
+
+    if [ -z $BYPASS_EDGE_INSTALLATION ]; then
+        clean_up
+    fi
     prepare_test_from_artifacts
     create_iotedge_service_config
 }
@@ -1068,6 +1148,12 @@ function usage() {
     echo ' -initializeWithAgentArtifact                   Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
     echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
+    echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
+    echo ' -connectManagementUri                          Customize connect management socket'
+    echo ' -connectWorkloadUri                            Customize connect workload socket'
+    echo ' -listenManagementUri                           Customize listen management socket'
+    echo ' -listenWorkloadUri                             Customize listen workload socket'
+    echo ' -bypassEdgeInstallation                        Skip installing iotedge (if already preinstalled)'
     exit 1;
 }
 
@@ -1091,6 +1177,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
     EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
     METRICS_SCRAPE_FREQUENCY_IN_SECS="${METRICS_SCRAPE_FREQUENCY_IN_SECS:-300}"
     METRICS_UPLOAD_TARGET="${METRICS_UPLOAD_TARGET:-AzureLogAnalytics}"
+    RUNTIME_LOG_LEVEL="${RUNTIME_LOG_LEVEL:-debug}"
 fi
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"

@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return modules;
         }
 
-        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
         {
             var containerLogsParameters = new ContainerLogsParameters
             {
@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             };
             tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
             since.ForEach(t => containerLogsParameters.Since = t.ToString());
+
             return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }
 
@@ -116,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // Figure out module stats and runtime status
             ModuleStatus runtimeStatus = ToRuntimeStatus(inspectResponse.State);
 
-            var reportedConfig = new DockerReportedConfig(image, string.Empty, imageHash, Option.None<NotaryContentTrust>());
+            var reportedConfig = new DockerReportedConfig(image, string.Empty, imageHash, Option.None<string>());
             var moduleRuntimeInfo = new ModuleRuntimeInfo<DockerReportedConfig>(name, "docker", runtimeStatus, statusDescription, exitCode, Option.Some(lastStartTime), Option.Some(lastExitTime), reportedConfig);
             return moduleRuntimeInfo;
         }
@@ -193,8 +194,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         static Option<ContainerInspectResponse> EdgeAgentNotFoundAlternative(Exception ex)
         {
-                Events.EdgeAgentContainerNotFound(ex);
-                return Option.None<ContainerInspectResponse>();
+            Events.EdgeAgentContainerNotFound(ex);
+            return Option.None<ContainerInspectResponse>();
         }
 
         static class Events

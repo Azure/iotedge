@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
         [Test]
+        [Category("CentOsSafe")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
@@ -63,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("CentOsSafe")]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -101,6 +103,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
+            if (OsPlatform.IsArm() && OsPlatform.Is64Bit())
+            {
+                Assert.Ignore("TempFilterFunc is disabled for arm64 because azureiotedge-functions-filter does not exist for arm64");
+            }
+
             const string filterFuncName = "tempFilterFunctions";
 
             // Azure Function Name: EdgeHubTrigger-CSharp
@@ -135,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("CentOsSafe")]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {
@@ -159,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(
                             new[]
                             {
-                                ("ClientTransportType", clientTransport),
+                                ("TransportType", clientTransport),
                                 ("TargetModuleId", methodReceiver)
                             });
                     builder.AddModule(methodReceiver, receiverImage)

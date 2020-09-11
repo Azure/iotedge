@@ -258,6 +258,9 @@ function process_args() {
             CUSTOM_EDGE_HUB_IMAGE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 34 ]; then
+            TEST_RUNTIME_LOG_LEVEL="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
         else
@@ -296,7 +299,8 @@ function process_args() {
                 '-edgeRuntimeBuildNumber' ) saveNextArg=31;;
                 '-customEdgeAgentImage' ) saveNextArg=32;;
                 '-customEdgeHubImage' ) saveNextArg=33;;
-                '-testInfo' ) saveNextArg=34;;
+                '-testRuntimeLogLevel' ) saveNextArg=34;;
+                '-testInfo' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
@@ -352,7 +356,7 @@ function run_connectivity_test() {
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
-        --runtime-log-level "Info" \
+        --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
         --no-verify && funcRet=$? || funcRet=$?
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
@@ -504,6 +508,7 @@ function usage() {
     echo ' -EdgeHubRestartTestSdkOperationTimeout   SDK retry timeout'
     echo ' -storageAccountConnectionString          Azure storage account connection string with privilege to create blob container.'
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
+    echo ' -testRuntimeLogLevel                     RuntimeLogLevel given to Quickstart, which is given to edgeAgent and edgeHub.'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;

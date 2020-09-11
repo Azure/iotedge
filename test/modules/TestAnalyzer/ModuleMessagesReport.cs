@@ -14,11 +14,6 @@ namespace TestAnalyzer
         {
         }
 
-        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt, IDictionary<string, string> testInfo)
-            : this(moduleId, statusCode, receivedMessagesCount, statusMessage, lastMessageReceivedAt, new List<MissedMessagesDetails>(), testInfo)
-        {
-        }
-
         public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt, IList<MissedMessagesDetails> missedMessages, IDictionary<string, string> testInfo)
         {
             this.ModuleId = moduleId;
@@ -42,7 +37,7 @@ namespace TestAnalyzer
 
         public IList<MissedMessagesDetails> MissedMessages { get; }
 
-        public bool IsPassed => this.StatusCode == StatusCode.AllMessages;
+        public bool IsPassed => this.StatusCode == StatusCode.AllMessages || this.StatusCode == StatusCode.OldMessages;
 
         public IDictionary<string, string> TestInfo { get; }
 

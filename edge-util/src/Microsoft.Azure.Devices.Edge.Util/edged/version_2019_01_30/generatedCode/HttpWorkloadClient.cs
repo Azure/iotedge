@@ -3,7 +3,18 @@
 //     Generated using the NSwag toolchain v11.17.6.0 (NJsonSchema v9.10.46.0 (Newtonsoft.Json v9.0.0.0)) (http://NSwag.org)
 // </auto-generated>
 //----------------------
-// Note: Code manually changed to replace System.Uri.EscapeDataString with System.Net.WebUtility.UrlEncode
+/*
+______  ______          _____  __  __ ______     _   _                          ______                                      _
+|  __ \|  ____|   /\   |  __ \|  \/  |  ____|_  | \ | |                         |  __ \                                    | | (_)            
+| |__) | |__     /  \  | |  | | \  / | |__  (_) |  \| |_____      ____ _  __ _  | |__) |___  __ _  ___ _ __   ___ _ __ __ _| |_ _  ___  _ __  
+|  _  /|  __|   / /\ \ | |  | | |\/| |  __|     | . ` / __\ \ /\ / / _` |/ _` | |  _  // _ \/ _` |/ _ \ '_ \ / _ \ '__/ _` | __| |/ _ \| '_ \ 
+| | \ \| |____ / ____ \| |__| | |  | | |____ _  | |\  \__ \\ V  V / (_| | (_| | | | \ \  __/ (_| |  __/ | | |  __/ | | (_| | |_| | (_) | | | |
+|_|  \_\______/_/    \_\_____/|_|  |_|______(_) |_| \_|___/ \_/\_/ \__,_|\__, | |_|  \_\___|\__, |\___|_| |_|\___|_|  \__,_|\__|_|\___/|_| |_|
+                                                                          __/ |              __/ |                                            
+                                                                         |___/              |___/                                             
+Note: Code manually changed to replace System.Uri.EscapeDataString with System.Net.WebUtility.UrlEncode
+TODO: Write test to ensure that WebUtility.UrlEncode is used
+*/
 
 namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30.GeneratedCode
 {

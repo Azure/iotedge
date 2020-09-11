@@ -37,7 +37,7 @@ namespace DirectMethodSender
             logger.LogInformation($"{this.GetType().ToString()} : Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
             try
             {
-                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
+                int resultStatus = await this.InvokeDirectMethodWithRetryAsync(logger, this.deviceId, this.targetModuleId, methodName, this.directMethodCount);
 
                 string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
                 if (resultStatus == (int)HttpStatusCode.OK)
@@ -62,6 +62,36 @@ namespace DirectMethodSender
                 logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.InternalServerError, this.directMethodCount);
             }
+        }
+
+        async Task<int> InvokeDirectMethodWithRetryAsync(
+            ILogger logger,
+            string deviceId,
+            string targetModuleId,
+            string methodName,
+            ulong directMethodCount)
+        {
+            const int maxRetry = 3;
+            int resultStatus = 0;
+            int transientRetryCount = 0;
+
+            while (transientRetryCount < maxRetry)
+            {
+                try
+                {
+                    logger.LogDebug($"InvokeDirectMethodWithRetryAsync with count {directMethodCount}; Retry {transientRetryCount}");
+                    transientRetryCount++;
+                    resultStatus = await this.InvokeDeviceMethodAsync(deviceId, targetModuleId, methodName, directMethodCount, CancellationToken.None);
+                    break;
+                }
+                catch (IotHubCommunicationException e) when (e.IsTransient)
+                {
+                    logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {directMethodCount}. Retry: {transientRetryCount}");
+                    resultStatus = (int)HttpStatusCode.RequestTimeout;
+                }
+            }
+
+            return resultStatus;
         }
 
         internal abstract Task<int> InvokeDeviceMethodAsync(

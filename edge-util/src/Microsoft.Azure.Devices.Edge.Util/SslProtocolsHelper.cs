@@ -47,15 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static string Print(this SslProtocols sslProtocols)
         {
             var sslProtocolsList = new List<string>();
-            if ((sslProtocols & SslProtocols.Ssl2) > 0)
-            {
-                sslProtocolsList.Add($"{SslProtocols.Ssl2}");
-            }
-
-            if ((sslProtocols & SslProtocols.Ssl3) > 0)
-            {
-                sslProtocolsList.Add($"{SslProtocols.Ssl3}");
-            }
 
             if ((sslProtocols & SslProtocols.Tls) > 0)
             {

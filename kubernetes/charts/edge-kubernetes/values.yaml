@@ -2,7 +2,7 @@
 iotedged:
   image:
     repository: azureiotedge/azureiotedge-iotedged
-    tag: 0.1.0-beta8
+    tag: 0.1.0-beta9
     pullPolicy: Always
   nodeSelector: {}
   # Volumes which support ownership management are modified to be owned and 
@@ -19,6 +19,11 @@ iotedged:
   data:
     enableGetNodesRBAC: true
     targetPath: /var/lib/iotedge
+    # Normally the iotedged is running as a host process, and has access to 
+    # the host's trusted CA certificates.  Use this options to allow the 
+    # iotedged deployment to use the host OS's /etc/ssl/certs 
+    # useHostTrust: false
+    #
     # In order to benefit from HA, at a minimum the data location for iotedged
     # should be backed by a persistent volume. 
     # User may create a PersistentVolumeClaim and provide the name only here. Alternatively.
@@ -96,7 +101,7 @@ iotedged:
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-beta8
+    tag: 0.1.0-beta9
     pullPolicy: Always
 
 # Edge Agent image configuration
@@ -110,7 +115,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-beta8
+    tag: 0.1.0-beta9
     pullPolicy: Always
   hostname: "localhost"
   env:

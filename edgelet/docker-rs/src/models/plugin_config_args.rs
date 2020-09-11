@@ -31,10 +31,10 @@ impl PluginConfigArgs {
         value: Vec<String>,
     ) -> Self {
         PluginConfigArgs {
-            name: name,
-            description: description,
-            settable: settable,
-            value: value,
+            name,
+            description,
+            settable,
+            value,
         }
     }
 

@@ -22,9 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             string Get(string name) => context.GetValue<string>(name);
 
-            IEnumerable<(string, string, string)> GetAndValidateRegistries()
+            IEnumerable<Registry> GetAndValidateRegistries()
             {
-                var result = new List<(string, string, string)>();
+                var result = new List<Registry>();
 
                 var registries = context.GetSection("registries").GetChildren().ToArray();
                 foreach (var reg in registries)
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Preconditions.CheckNonWhiteSpace(username, nameof(username));
                     Preconditions.CheckNonWhiteSpace(password, nameof(password));
 
-                    result.Add((address, username, password));
+                    result.Add(new Registry(address, username, password));
                 }
 
                 return result;
@@ -78,11 +78,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
+            this.PreviewConnectionString = Option.Maybe(Get("PREVIEW_IOT_HUB_CONNECTION_STRING"));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
+            this.PreviewEventHubEndpoint = Option.Maybe(Get("PREVIEW_EVENT_HUB_ENDPOINT"));
             this.InstallerPath = Option.Maybe(Get("installerPath"));
             this.LogFile = Option.Maybe(Get("logFile"));
             this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
@@ -101,8 +103,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
+            this.NetworkControllerImage = Option.Maybe(Get("networkControllerImage"));
+            this.EdgeAgentBootstrapImage = Option.Maybe(Get("edgeAgentBootstrapImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
+            this.ParentHostname = Option.Maybe(Get("parentHostname"));
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -112,6 +117,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> CaCertScriptPath { get; }
 
         public string ConnectionString { get; }
+
+        public Option<string> PreviewConnectionString { get; }
 
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
 
@@ -124,6 +131,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> EdgeHubImage { get; }
 
         public string EventHubEndpoint { get; }
+
+        public Option<string> PreviewEventHubEndpoint { get; }
 
         public Option<string> InstallerPath { get; }
 
@@ -139,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<Uri> Proxy { get; }
 
-        public IEnumerable<(string address, string username, string password)> Registries { get; }
+        public IEnumerable<Registry> Registries { get; }
 
         public Option<(string certificate, string key, string password)> RootCaKeys { get; }
 
@@ -161,8 +170,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> RelayerImage { get; }
 
+        public Option<string> NetworkControllerImage { get; }
+
+        public Option<string> EdgeAgentBootstrapImage { get; }
+
         public TimeSpan TestTimeout { get; }
 
         public bool Verbose { get; }
+
+        public Option<string> ParentHostname { get; }
     }
 }

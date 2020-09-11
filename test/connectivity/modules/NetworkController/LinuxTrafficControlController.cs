@@ -102,15 +102,21 @@ namespace NetworkController
 
                 // Adding rules to filter packages by iotHub IP
                 // Details about how the rules work https://wiki.archlinux.org/index.php/Advanced_traffic_control
+                Log.LogInformation($"Executing: {LinuxTrafficControllerHelper.GetRootRule(this.networkInterfaceName)}");
+
                 await CommandExecutor.Execute(
                     LinuxTrafficControllerHelper.CommandName,
                     LinuxTrafficControllerHelper.GetRootRule(this.networkInterfaceName),
                     cs);
 
+                Log.LogInformation($"Executing: {LinuxTrafficControllerHelper.GetNetworkEmulatorAddRule(this.networkInterfaceName, this.profileRuleSettings)}");
+
                 await CommandExecutor.Execute(
                     LinuxTrafficControllerHelper.CommandName,
                     LinuxTrafficControllerHelper.GetNetworkEmulatorAddRule(this.networkInterfaceName, this.profileRuleSettings),
                     cs);
+
+                Log.LogInformation($"Executing: {LinuxTrafficControllerHelper.GetIpFilter(this.networkInterfaceName, iothubAddresses)}");
 
                 await CommandExecutor.Execute(
                     LinuxTrafficControllerHelper.CommandName,

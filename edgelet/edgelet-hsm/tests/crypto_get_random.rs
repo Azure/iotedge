@@ -2,6 +2,7 @@
 
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::similar_names)]
 
 use lazy_static::lazy_static;
 use std::sync::Mutex;

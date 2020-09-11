@@ -52,6 +52,5 @@ namespace NetworkController
         {
             Log.LogDebug($"Retrying ReportTestResult {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
         }
-
     }
 }

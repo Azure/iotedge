@@ -2,16 +2,10 @@ steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
-    if ($IsWindows)
+    # Unfortunately CentOs has some failing test that need to be worked on.
+    if ('$(Agent.Name)'.Contains('centos'))
     {
-      # The windows installer script doesn't update the PATH in the current
-      # terminal session, so add `iotedge` and `docker` CLIs manually
-      $env:Path =
-        $env:Path,
-        $(Join-Path $env:ProgramFiles 'iotedge'),
-        $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
-
-      dotnet vstest $testFile --logger:trx
+      sudo --preserve-env dotnet test $testFile --logger:trx --filter "TestCategory=CentOsSafe"
     }
     else
     {
@@ -21,7 +15,9 @@ steps:
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
     E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
+    E2E_PREVIEW_EVENT_HUB_ENDPOINT: $(TestPreviewEventHubCompatibleEndpoint)
     E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+    E2E_PREVIEW_IOT_HUB_CONNECTION_STRING: $(TestPreviewIotHubConnectionString)
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
 
@@ -52,5 +48,5 @@ steps:
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)
+    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)-$(artifactName)
   condition: succeededOrFailed()

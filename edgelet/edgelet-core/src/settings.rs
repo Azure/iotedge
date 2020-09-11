@@ -114,13 +114,12 @@ impl ManualDeviceConnectionString {
         let mut device_id = None;
         let mut hub = None;
 
-        let parts: Vec<&str> = self.device_connection_string.split(';').collect();
-        for p in parts {
-            let s: Vec<&str> = p.split('=').collect();
-            match s[0] {
-                SHAREDACCESSKEY_KEY => key = Some(s[1].to_string()),
-                DEVICEID_KEY => device_id = Some(s[1].to_string()),
-                HOSTNAME_KEY => hub = Some(s[1].to_string()),
+        for sections in self.device_connection_string.split(';') {
+            let mut parts = sections.split('=');
+            match parts.next() {
+                Some(SHAREDACCESSKEY_KEY) => key = parts.next().map(String::from),
+                Some(DEVICEID_KEY) => device_id = parts.next().map(String::from),
+                Some(HOSTNAME_KEY) => hub = parts.next().map(String::from),
                 _ => (), // Ignore extraneous component in the connection string
             }
         }
@@ -685,6 +684,7 @@ pub trait RuntimeSettings {
     fn agent(&self) -> &ModuleSpec<Self::Config>;
     fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config>;
     fn hostname(&self) -> &str;
+    fn parent_hostname(&self) -> Option<&str>;
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
@@ -697,6 +697,7 @@ pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
     hostname: String,
+    parent_hostname: Option<String>,
     connect: Connect,
     listen: Listen,
     homedir: PathBuf,
@@ -725,6 +726,10 @@ where
 
     fn hostname(&self) -> &str {
         &self.hostname
+    }
+
+    fn parent_hostname(&self) -> Option<&str> {
+        self.parent_hostname.as_deref()
     }
 
     fn connect(&self) -> &Connect {

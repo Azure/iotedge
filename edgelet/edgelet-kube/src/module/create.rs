@@ -293,7 +293,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     use hyper::service::service_fn;
     use hyper::{Body, Method, Request, StatusCode};
@@ -692,7 +692,7 @@ mod tests {
                     ]),
             )
             .with_labels({
-                let mut labels = HashMap::<String, String>::new();
+                let mut labels = BTreeMap::<String, String>::new();
                 labels.insert(String::from("label1"), String::from("value1"));
                 labels.insert(String::from("label2"), String::from("value2"));
                 labels
@@ -706,7 +706,7 @@ mod tests {
             "docker".to_string(),
             DockerConfig::new("my-image:v1.0".to_string(), create_body, Some(auth_config)).unwrap(),
             {
-                let mut env = HashMap::new();
+                let mut env = BTreeMap::new();
                 env.insert(String::from("a"), String::from("b"));
                 env.insert(String::from("C"), String::from("D"));
                 env

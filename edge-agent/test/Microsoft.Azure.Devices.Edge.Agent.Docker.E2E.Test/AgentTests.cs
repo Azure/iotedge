@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 // Initialize docker configuration for this module.
                 DockerConfig dockerConfig = testConfig.ImageCreateOptions != null
-                    ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions, Option.None<NotaryContentTrust>())
+                    ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions, Option.None<string>())
                     : new DockerConfig(testConfig.Image);
 
                 ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate;
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     dockerConfig,
                     imagePullPolicy,
-                    Constants.DefaultPriority,
+                    Constants.DefaultStartupOrder,
                     null,
                     null);
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };
@@ -179,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 }.ToImmutableDictionary();
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
-                var availabilityMetric = Mock.Of<IAvailabilityMetric>();
+                var availabilityMetric = Mock.Of<IDeploymentMetrics>();
 
                 Agent agent = await Agent.Create(
                     configSource.Object,

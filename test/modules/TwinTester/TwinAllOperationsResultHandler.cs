@@ -72,11 +72,11 @@ namespace TwinTester
             return this.CallAnalyzer(failureStatus);
         }
 
-        async Task CallAnalyzer(string failureStatus)
+        async Task CallAnalyzer(string result)
         {
             try
             {
-                await this.testResultReportingClient.ReportResultAsync(new TestOperationResultDto { Source = this.moduleId, Result = failureStatus, CreatedAt = DateTime.UtcNow, Type = TestOperationResultType.LegacyTwin.ToString() });
+                await this.testResultReportingClient.ReportResultAsync(new TestOperationResultDto { Source = this.moduleId, Result = result, CreatedAt = DateTime.UtcNow, Type = TestOperationResultType.LegacyTwin.ToString() });
             }
             catch (Exception e)
             {

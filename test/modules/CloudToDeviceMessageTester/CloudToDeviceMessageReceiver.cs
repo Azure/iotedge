@@ -3,6 +3,7 @@ namespace CloudToDeviceMessageTester
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
@@ -72,6 +73,7 @@ namespace CloudToDeviceMessageTester
             ITransportSettings transportSettings = ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings();
             OsPlatform.Current.InstallCaCertificates(certs, transportSettings);
             Microsoft.Azure.Devices.RegistryManager registryManager = null;
+
             try
             {
                 registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
@@ -86,10 +88,28 @@ namespace CloudToDeviceMessageTester
                     try
                     {
                         Message message = await this.deviceClient.ReceiveAsync();
+
+                        if (message == null)
+                        {
+                            this.logger.LogWarning("Received message is null");
+                            continue;
+                        }
+
+                        if (!message.Properties.ContainsKey(TestConstants.Message.SequenceNumberPropertyName) ||
+                            !message.Properties.ContainsKey(TestConstants.Message.BatchIdPropertyName) ||
+                            !message.Properties.ContainsKey(TestConstants.Message.TrackingIdPropertyName))
+                        {
+                            string messageBody = new StreamReader(message.BodyStream).ReadToEnd();
+                            string propertyKeys = string.Join(",", message.Properties.Keys);
+                            this.logger.LogWarning($"Received message doesn't contain required key. property keys: {propertyKeys}, message body: {messageBody}, lock token: {message.LockToken}.");
+                            continue;
+                        }
+
                         this.logger.LogInformation($"Message received. " +
                             $"Sequence Number: {message.Properties[TestConstants.Message.SequenceNumberPropertyName]}, " +
                             $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
-                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}.");
+                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}, " +
+                            $"LockToken: {message.LockToken}.");
                         await this.ReportTestResult(message);
                         await this.deviceClient.CompleteAsync(message);
                     }

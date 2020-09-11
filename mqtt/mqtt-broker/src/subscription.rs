@@ -1,5 +1,7 @@
-use std::fmt;
-use std::str::FromStr;
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    str::FromStr,
+};
 
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
@@ -38,7 +40,7 @@ pub struct TopicFilter {
 }
 
 impl TopicFilter {
-    fn new(segments: Vec<Segment>) -> Self {
+    pub fn new(segments: Vec<Segment>) -> Self {
         let len = segments.len();
         let multilevel = len > 0 && segments[len - 1] == Segment::MultiLevelWildcard;
         Self {
@@ -84,7 +86,7 @@ impl TopicFilter {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-enum Segment {
+pub enum Segment {
     Level(String),
     SingleLevelWildcard,
     MultiLevelWildcard,
@@ -93,19 +95,19 @@ enum Segment {
 impl Segment {
     pub fn matches(&self, segment: &str) -> bool {
         match self {
-            Segment::Level(ref s) => s == segment,
+            Segment::Level(s) => s == segment,
             Segment::SingleLevelWildcard => true,
             Segment::MultiLevelWildcard => true,
         }
     }
 }
 
-impl fmt::Display for TopicFilter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for TopicFilter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let len = self.segments.len();
         for (i, segment) in self.segments.iter().enumerate() {
             match segment {
-                Segment::Level(ref s) => write!(f, "{}", s)?,
+                Segment::Level(s) => write!(f, "{}", s)?,
                 Segment::SingleLevelWildcard => write!(f, "{}", SINGLELEVEL_WILDCARD)?,
                 Segment::MultiLevelWildcard => write!(f, "{}", MULTILEVEL_WILDCARD)?,
             }
@@ -160,64 +162,12 @@ impl FromStr for TopicFilter {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use std::str::FromStr;
 
-    use proptest::bool;
-    use proptest::collection::vec;
     use proptest::prelude::*;
 
-    use mqtt3::proto;
-
-    use crate::subscription::{Segment, Subscription, TopicFilter};
-
-    fn arb_segment() -> impl Strategy<Value = Segment> {
-        prop_oneof![
-            "[^+#\0/]+".prop_map(Segment::Level),
-            Just(Segment::SingleLevelWildcard),
-            Just(Segment::MultiLevelWildcard),
-        ]
-    }
-
-    prop_compose! {
-        pub fn arb_topic_filter()(
-            segments in vec(arb_segment(), 1..20),
-            multi in bool::ANY,
-        ) -> TopicFilter {
-            let mut filtered = vec![];
-            for segment in segments {
-                if segment != Segment::MultiLevelWildcard {
-                    filtered.push(segment);
-                }
-            }
-
-            if multi || filtered.is_empty() {
-                filtered.push(Segment::MultiLevelWildcard);
-            }
-
-            TopicFilter::new(filtered)
-        }
-    }
-
-    pub fn arb_qos() -> impl Strategy<Value = proto::QoS> {
-        prop_oneof![
-            Just(proto::QoS::AtMostOnce),
-            Just(proto::QoS::AtLeastOnce),
-            Just(proto::QoS::ExactlyOnce),
-        ]
-    }
-
-    prop_compose! {
-        pub fn arb_subscription()(
-            filter in arb_topic_filter(),
-            max_qos in arb_qos(),
-        ) -> Subscription {
-            Subscription {
-                filter,
-                max_qos,
-            }
-        }
-    }
+    use crate::subscription::{Segment, TopicFilter};
 
     fn filter(segments: Vec<Segment>) -> TopicFilter {
         TopicFilter::new(segments)
@@ -293,7 +243,7 @@ pub(crate) mod tests {
 
     proptest! {
         #[test]
-        fn display_roundtrip(filter in arb_topic_filter()) {
+        fn display_roundtrip(filter in crate::proptest::arb_topic_filter()) {
             let string = filter.to_string();
             prop_assert_eq!(filter, string.parse::<TopicFilter>().unwrap());
         }

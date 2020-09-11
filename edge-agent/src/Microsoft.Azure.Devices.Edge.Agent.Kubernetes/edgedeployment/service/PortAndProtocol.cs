@@ -7,6 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
 
     public class PortAndProtocol
     {
+        static Option<PortAndProtocol> empty = Option.None<PortAndProtocol>();
+        static string defaultProtocol = "TCP";
+
         public int Port { get; }
 
         public string Protocol { get; }
@@ -21,18 +24,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                return Option.None<PortAndProtocol>();
+                return empty;
             }
 
             string[] portProtocol = name.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (portProtocol.Length != 2)
+            if (portProtocol.Length > 2)
             {
-                return Option.None<PortAndProtocol>();
+                return empty;
             }
 
-            if (!int.TryParse(portProtocol[0], out int port) || !SupportedProtocols.TryGetValue(portProtocol[1], out string protocol))
+            if (!int.TryParse(portProtocol[0], out int port))
             {
-                return Option.None<PortAndProtocol>();
+                return empty;
+            }
+
+            // Docker defaults to TCP if not specified.
+            string protocol = defaultProtocol;
+            if (portProtocol.Length > 1)
+            {
+                if (!SupportedProtocols.TryGetValue(portProtocol[1], out protocol))
+                {
+                    return empty;
+                }
             }
 
             return Option.Some(new PortAndProtocol(port, protocol));

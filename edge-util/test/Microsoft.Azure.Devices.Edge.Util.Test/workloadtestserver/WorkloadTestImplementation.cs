@@ -9,6 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
 
     class WorkloadTestImplementation : IController
     {
+        public Task<ModuleList> ListModulesAsync(string api_version) => throw new NotImplementedException();
+
         public Task<SignResponse> SignAsync(string api_version, string name, string genid, SignRequest payload)
         {
             using (var algorithm = new HMACSHA256(Encoding.UTF8.GetBytes("key")))
@@ -34,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
             return Task.FromResult(new DecryptResponse() { Plaintext = Encoding.UTF8.GetBytes(dencrypted) });
         }
 
-        public Task<CertificateResponse> CreateIdentityCertificateAsync(string api_version, string name, string genid) => throw new NotImplementedException();
+        public Task<CertificateResponse> CreateIdentityCertificateAsync(string api_version, string name, IdentityCertificateRequest identityCertificateRequest) => throw new NotImplementedException();
 
         public Task<CertificateResponse> CreateServerCertificateAsync(string api_version, string name, string genid, ServerCertificateRequest request)
         {

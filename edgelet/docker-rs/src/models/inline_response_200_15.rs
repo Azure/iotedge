@@ -23,10 +23,7 @@ pub struct InlineResponse20015 {
 
 impl InlineResponse20015 {
     pub fn new(volumes: Vec<crate::models::Volume>, warnings: Vec<String>) -> Self {
-        InlineResponse20015 {
-            volumes: volumes,
-            warnings: warnings,
-        }
+        InlineResponse20015 { volumes, warnings }
     }
 
     pub fn set_volumes(&mut self, volumes: Vec<crate::models::Volume>) {

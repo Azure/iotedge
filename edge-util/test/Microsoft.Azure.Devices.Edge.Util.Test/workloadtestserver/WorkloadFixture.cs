@@ -4,8 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.Extensions.Hosting;
 
     public class WorkloadFixture : IDisposable
     {
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
 
             ServiceHost()
             {
-                this.webHostTask = BuildWebHost(new string[0], DefaultPort).RunAsync(this.cancellationTokenSource.Token);
+                this.webHostTask = CreateHostBuilder(new string[0], DefaultPort).Build().RunAsync(this.cancellationTokenSource.Token);
                 this.Url = $"http://localhost:{DefaultPort}";
             }
 
@@ -36,11 +36,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
 
             public string Url { get; }
 
-            static IWebHost BuildWebHost(string[] args, int port) =>
-                WebHost.CreateDefaultBuilder(args)
-                    .UseUrls($"http://*:{port}")
-                    .UseStartup<Startup>()
-                    .Build();
+            static IHostBuilder CreateHostBuilder(string[] args, int port) =>
+                Host.CreateDefaultBuilder(args)
+                    .ConfigureWebHostDefaults(webBuilder =>
+                    {
+                        webBuilder
+                            .UseUrls($"http://*:{port}")
+                            .UseStartup<Startup>();
+                    });
         }
     }
 }

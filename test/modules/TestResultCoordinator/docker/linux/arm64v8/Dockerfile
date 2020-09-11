@@ -1,5 +1,5 @@
-ARG base_tag=1.0.4-linux-arm64v8
-FROM edgebuilds.azurecr.io/microsoft/azureiotedge-module-base-rocksdb:${base_tag}
+ARG base_tag=1.0.6.2-linux-arm64v8
+FROM azureiotedge/azureiotedge-module-base-full:${base_tag}
 
 ARG EXE_DIR=.
 
@@ -11,8 +11,6 @@ COPY $EXE_DIR/ ./
 
 # Expose HTTP port
 EXPOSE 5001/tcp
-
-USER moduleuser
 
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Module" && \
     exec /usr/bin/dotnet TestResultCoordinator.dll

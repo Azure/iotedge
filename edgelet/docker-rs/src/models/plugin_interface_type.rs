@@ -24,9 +24,9 @@ pub struct PluginInterfaceType {
 impl PluginInterfaceType {
     pub fn new(prefix: String, capability: String, version: String) -> Self {
         PluginInterfaceType {
-            prefix: prefix,
-            capability: capability,
-            version: version,
+            prefix,
+            capability,
+            version,
         }
     }
 

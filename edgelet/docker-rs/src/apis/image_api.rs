@@ -27,9 +27,7 @@ pub struct ImageApiClient<C: hyper::client::connect::Connect> {
 
 impl<C: hyper::client::connect::Connect> ImageApiClient<C> {
     pub fn new(configuration: Arc<configuration::Configuration<C>>) -> Self {
-        ImageApiClient {
-            configuration: configuration,
-        }
+        ImageApiClient { configuration }
     }
 }
 

@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
         public TestRocksDbStoreProvider()
         {
-            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true, Option.None<ulong>(), Option.None<StorageLogLevel>());
+            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true, Option.None<ulong>(), Option.None<int>(), Option.None<StorageLogLevel>());
             string tempFolder = Path.GetTempPath();
             this.rocksDbFolder = Path.Combine(tempFolder, $"edgeTestDb{Guid.NewGuid()}");
             if (Directory.Exists(this.rocksDbFolder))
@@ -35,6 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         }
 
         public IDbStore GetDbStore(string partitionName) => this.rocksDbStoreProvider.GetDbStore(partitionName);
+
+        public Option<IDbStore> GetIfExistsDbStore(string partitionName) => this.rocksDbStoreProvider.GetIfExistsDbStore(partitionName);
 
         public IDbStore GetDbStore() => this.rocksDbStoreProvider.GetDbStore("default");
 

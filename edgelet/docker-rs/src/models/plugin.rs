@@ -41,11 +41,11 @@ impl Plugin {
     ) -> Self {
         Plugin {
             id: None,
-            name: name,
-            enabled: enabled,
-            settings: settings,
+            name,
+            enabled,
+            settings,
             plugin_reference: None,
-            config: config,
+            config,
         }
     }
 

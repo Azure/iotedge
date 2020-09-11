@@ -28,7 +28,8 @@ parameters:
   metricsCollector.hostPlatform: ''
   edgeRuntime.buildNumber: ''
   customEdgeAgent.image: ''
-  cusotmEdgeHub.image: ''
+  customEdgeHub.image: ''
+  test.runtimeLogLevel: ''
 
 steps:
   - task: CopyFiles@2
@@ -99,6 +100,7 @@ steps:
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \
           -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
+          -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
           -testInfo "$testInfo" \
           -waitForTestComplete \
           -cleanAll

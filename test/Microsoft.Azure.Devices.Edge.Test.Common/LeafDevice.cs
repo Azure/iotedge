@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Reflection.Metadata.Ecma335;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
@@ -41,8 +42,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             bool useSecondaryCertificate,
             CertificateAuthority ca,
             IotHub iotHub,
-            CancellationToken token)
+            CancellationToken token,
+            Option<string> modelId)
         {
+            ClientOptions options = new ClientOptions();
+            modelId.ForEach(m => options.ModelId = m);
             return Profiler.Run(
                 async () =>
                 {
@@ -60,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 iotHub,
                                 transport,
                                 edgeHostname,
-                                token);
+                                token,
+                                options);
 
                         case AuthenticationType.CertificateAuthority:
                             {
@@ -72,7 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     iotHub,
                                     transport,
                                     edgeHostname,
-                                    token);
+                                    token,
+                                    options);
                             }
 
                         case AuthenticationType.SelfSigned:
@@ -86,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     iotHub,
                                     transport,
                                     edgeHostname,
-                                    token);
+                                    token,
+                                    options);
                             }
 
                         default:
@@ -104,7 +111,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             ITransportSettings transport,
             string edgeHostname,
-            CancellationToken token)
+            CancellationToken token,
+            ClientOptions options)
         {
             Device leaf = new Device(leafDeviceId)
             {
@@ -137,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                     return CreateLeafDeviceAsync(
                         leaf,
-                        () => DeviceClient.CreateFromConnectionString(connectionString, new[] { transport }),
+                        () => DeviceClient.CreateFromConnectionString(connectionString, new[] { transport }, options),
                         iotHub,
                         token);
                 });
@@ -150,7 +158,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             ITransportSettings transport,
             string edgeHostname,
-            CancellationToken token)
+            CancellationToken token,
+            ClientOptions options)
         {
             Device edge = await GetEdgeDeviceIdentityAsync(parentId, iotHub, token);
 
@@ -185,7 +194,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             iotHub.Hostname,
                             edgeHostname,
                             new DeviceAuthenticationWithX509Certificate(leaf.Id, leafCert),
-                            new[] { transport }),
+                            new[] { transport },
+                            options),
                         iotHub,
                         token);
                 });
@@ -199,7 +209,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             ITransportSettings transport,
             string edgeHostname,
-            CancellationToken token)
+            CancellationToken token,
+            ClientOptions options)
         {
             IdCertificates primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", token);
             IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", token);
@@ -257,7 +268,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             iotHub.Hostname,
                             edgeHostname,
                             new DeviceAuthenticationWithX509Certificate(leaf.Id, leafCert),
-                            new[] { transport }),
+                            new[] { transport },
+                            options),
                         iotHub,
                         token);
                 });

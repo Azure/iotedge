@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)}";
+            this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId)}";
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.resourceName.Hostname, this.resourceName.DeviceId, this.edgeDeviceHostName);
+            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.resourceName.Hostname, this.resourceName.DeviceId);
             builder.Register(c => new KubernetesModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();

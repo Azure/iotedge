@@ -3,8 +3,11 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
@@ -26,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         protected override void Load(ContainerBuilder builder)
         {
             builder.Register(c => this.metricsConfig.Enabled ?
-                                new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId) :
+                                new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId, this.metricsConfig.HistogramMaxAge) :
                                 new NullMetricsProvider() as IMetricsProvider)
                 .As<IMetricsProvider>()
                 .SingleInstance();
@@ -35,6 +38,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .As<IMetricsListener>()
                 .SingleInstance();
 
+            builder.Register(c =>
+            {
+                var moduleManager = c.Resolve<Edgelet.IModuleManager>();
+                return new MetadataMetrics(c.Resolve<IMetricsProvider>(), () => moduleManager.GetSystemInfoAsync(CancellationToken.None));
+            })
+                .As<MetadataMetrics>()
+                .SingleInstance();
             base.Load(builder);
         }
     }

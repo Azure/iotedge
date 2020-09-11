@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use failure::{Fail, ResultExt};
@@ -39,7 +40,7 @@ use std::convert::TryInto;
 use std::mem;
 use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
-use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
+use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -57,13 +58,14 @@ lazy_static! {
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
+    system_resources: Arc<Mutex<System>>,
 }
 
 impl DockerModuleRuntime {
-    fn merge_env(cur_env: Option<&[String]>, new_env: &HashMap<String, String>) -> Vec<String> {
-        // build a new merged hashmap containing string slices for keys and values
+    fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
+        // build a new merged map containing string slices for keys and values
         // pointing into String instances in new_env
-        let mut merged_env = HashMap::new();
+        let mut merged_env = BTreeMap::new();
         merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
 
         if let Some(env) = cur_env {
@@ -106,7 +108,7 @@ impl ModuleRegistry for DockerModuleRuntime {
                 let json = serde_json::to_string(a).with_context(|_| {
                     ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
                 })?;
-                Ok(base64::encode(&json))
+                Ok(base64::encode_config(&json, base64::URL_SAFE))
             },
         );
 
@@ -197,14 +199,12 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         _: impl GetTrustBundle,
     ) -> Self::Future {
         info!("Initializing module runtime...");
-
-        // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
-        // with `.ok().map_or_else`. This is incorrect because `.ok()` will result in the error being dropped.
-        // So we suppress this lint. There's an open issue for this on the Clippy repo:
-        //      https://github.com/rust-lang/rust-clippy/issues/3730
-        #[allow(clippy::result_map_unwrap_or_else)]
-        let created = init_client(settings.moby_runtime().uri())
-            .map(|client| {
+        let created = init_client(settings.moby_runtime().uri()).map_or_else(
+            |err| {
+                log_failure(Level::Warn, &err);
+                future::Either::B(Err(err).into_future())
+            },
+            |client| {
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
@@ -241,16 +241,18 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         e
                     })
                     .map(|client| {
+                        let mut system_resources = System::new_all();
+                        system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
-                        DockerModuleRuntime { client }
+                        DockerModuleRuntime {
+                            client,
+                            system_resources: Arc::new(Mutex::new(system_resources)),
+                        }
                     });
 
                 future::Either::A(fut)
-            })
-            .unwrap_or_else(|err| {
-                log_failure(Level::Warn, &err);
-                future::Either::B(Err(err).into_future())
-            });
+            },
+        );
 
         Box::new(created)
     }
@@ -313,6 +315,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type SystemResourcesFuture =
         Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
@@ -327,14 +330,14 @@ impl ModuleRuntime for DockerModuleRuntime {
         let result = module
             .config()
             .clone_create_options()
-            .and_then(|create_options| {
+            .map(|create_options| {
                 // merge environment variables
                 let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
                 let mut labels = create_options
                     .labels()
                     .cloned()
-                    .unwrap_or_else(HashMap::new);
+                    .unwrap_or_else(BTreeMap::new);
                 labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
 
                 debug!(
@@ -350,9 +353,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
                 // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
                 // It contains the logic to add a container to the iot edge network only if a network is not already specified.
-
-                Ok(self
-                    .client
+                self.client
                     .container_api()
                     .container_create(create_options, module.name())
                     .then(|result| match result {
@@ -363,7 +364,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 module.name().to_string(),
                             )),
                         )),
-                    }))
+                    })
             })
             .into_future()
             .flatten()
@@ -471,9 +472,9 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let wait_timeout = wait_before_kill.and_then(|s| match s.as_secs() {
-            s if s > i32::max_value() as u64 => Some(i32::max_value()),
-            s => Some(s as i32),
+        let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
+            s if s > i32::max_value() as u64 => i32::max_value(),
+            s => s as i32,
         });
 
         Box::new(
@@ -572,16 +573,30 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .system_info()
                 .then(|result| match result {
                     Ok(system_info) => {
-                        let system_info = CoreSystemInfo::new(
-                            system_info
+                        let system_info = CoreSystemInfo {
+                            os_type: system_info
                                 .os_type()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                            system_info
+                            architecture: system_info
                                 .architecture()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                        );
+                            version: edgelet_core::version_with_source_version(),
+                            cpus: system_info.NCPU().unwrap_or_default(),
+                            kernel_version: system_info
+                                .kernel_version()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                            operating_system: system_info
+                                .operating_system()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                            server_version: system_info
+                                .server_version()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                        };
                         info!("Successfully queried system info");
                         Ok(system_info)
                     }
@@ -629,6 +644,9 @@ impl ModuleRuntime for DockerModuleRuntime {
                 })
             });
 
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let uptime: u64 = 0;
+
         #[cfg(target_os = "linux")]
         let uptime: u64 = {
             let mut info: libc::sysinfo = unsafe { mem::zeroed() };
@@ -639,11 +657,17 @@ impl ModuleRuntime for DockerModuleRuntime {
                 0
             }
         };
+
         #[cfg(windows)]
         let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
 
-        let mut system_info = sysinfo::System::new();
-        system_info.refresh_all();
+        let mut system_resources = self
+            .system_resources
+            .as_ref()
+            .lock()
+            .expect("Could not acquire system resources lock");
+        system_resources.refresh_all();
+
         let current_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -651,19 +675,19 @@ impl ModuleRuntime for DockerModuleRuntime {
         let start_time = process::id()
             .try_into()
             .map(|id| {
-                system_info
+                system_resources
                     .get_process(id)
                     .map(|p| p.start_time())
                     .unwrap_or_default()
             })
             .unwrap_or_default();
 
-        let used_cpu = system_info.get_global_processor_info().get_cpu_usage();
+        let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
 
-        let total_memory = system_info.get_total_memory() * 1000;
-        let used_memory = system_info.get_used_memory() * 1000;
+        let total_memory = system_resources.get_total_memory() * 1000;
+        let used_memory = system_resources.get_used_memory() * 1000;
 
-        let disks = system_info
+        let disks = system_resources
             .get_disks()
             .iter()
             .map(|disk| {
@@ -713,8 +737,13 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .flat_map(|container| {
                                 DockerConfig::new(
                                     container.image().to_string(),
-                                    ContainerCreateBody::new()
-                                        .with_labels(container.labels().clone()),
+                                    ContainerCreateBody::new().with_labels(
+                                        container
+                                            .labels()
+                                            .iter()
+                                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                                            .collect(),
+                                    ),
                                     None,
                                 )
                                 .map(|config| {
@@ -776,6 +805,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 true,
                 options.since(),
+                options.until(),
                 false,
                 tail,
             )
@@ -805,6 +835,26 @@ impl ModuleRuntime for DockerModuleRuntime {
         Box::new(self.list().and_then(move |list| {
             let n = list.into_iter().map(move |c| {
                 <DockerModuleRuntime as ModuleRuntime>::remove(&self_for_remove, c.name())
+            });
+            future::join_all(n).map(|_| ())
+        }))
+    }
+
+    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
+        let self_for_stop = self.clone();
+        Box::new(self.list().and_then(move |list| {
+            let n = list.into_iter().map(move |c| {
+                <DockerModuleRuntime as ModuleRuntime>::stop(
+                    &self_for_stop,
+                    c.name(),
+                    wait_before_kill,
+                )
+                .or_else(|err| {
+                    match Fail::find_root_cause(&err).downcast_ref::<ErrorKind>() {
+                        Some(ErrorKind::NotFound(_)) | Some(ErrorKind::NotModified) => Ok(()),
+                        _ => Err(err),
+                    }
+                })
             });
             future::join_all(n).map(|_| ())
         }))
@@ -1011,9 +1061,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator, Body,
-        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
-        ErrorKind, Future, GetTrustBundle, HashMap, InlineResponse200, LogOptions,
+        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
+        BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
+        Duration, Error, ErrorKind, Future, GetTrustBundle, InlineResponse200, LogOptions,
         MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
         ProvisioningResult, Request, Settings, Stream, SystemResources,
     };
@@ -1123,14 +1173,14 @@ mod tests {
     #[test]
     fn merge_env_empty() {
         let cur_env = Some(&[][..]);
-        let new_env = HashMap::new();
+        let new_env = BTreeMap::new();
         assert_eq!(0, DockerModuleRuntime::merge_env(cur_env, &new_env).len());
     }
 
     #[test]
     fn merge_env_new_empty() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let new_env = HashMap::new();
+        let new_env = BTreeMap::new();
         let mut merged_env =
             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
@@ -1140,7 +1190,7 @@ mod tests {
     #[test]
     fn merge_env_extend_new() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let mut new_env = HashMap::new();
+        let mut new_env = BTreeMap::new();
         new_env.insert("k3".to_string(), "v3".to_string());
         let mut merged_env =
             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
@@ -1151,7 +1201,7 @@ mod tests {
     #[test]
     fn merge_env_extend_replace_new() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let mut new_env = HashMap::new();
+        let mut new_env = BTreeMap::new();
         new_env.insert("k2".to_string(), "v02".to_string());
         new_env.insert("k3".to_string(), "v3".to_string());
         let mut merged_env =
@@ -1326,6 +1376,10 @@ mod tests {
             unimplemented!()
         }
 
+        fn parent_hostname(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
         fn connect(&self) -> &Connect {
             unimplemented!()
         }
@@ -1465,6 +1519,7 @@ mod tests {
         type SystemResourcesFuture =
             Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
+        type StopAllFuture = FutureResult<(), Self::Error>;
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             unimplemented!()
@@ -1515,6 +1570,10 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
+            unimplemented!()
+        }
+
+        fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
             unimplemented!()
         }
     }

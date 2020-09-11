@@ -11,35 +11,54 @@
     clippy::missing_errors_doc
 )]
 
-use std::sync::Arc;
-
-use mqtt3::proto;
-use serde::{Deserialize, Serialize};
-
-mod auth;
+pub mod auth;
 mod broker;
-mod configuration;
 mod connection;
 mod error;
 mod persist;
 mod server;
 mod session;
+pub mod settings;
 mod snapshot;
+mod state_change;
+mod stream;
 mod subscription;
+mod tls;
 mod transport;
 
-pub use crate::auth::{AuthId, Authenticator, Authorizer, Certificate};
-pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
-pub use crate::configuration::BrokerConfig;
-pub use crate::connection::ConnectionHandle;
-pub use crate::error::{Error, InitializeBrokerError};
+#[cfg(any(test, feature = "proptest"))]
+pub mod proptest;
+
+use std::{
+    any::Any,
+    fmt::{Display, Formatter, Result as FmtResult},
+    net::SocketAddr,
+    sync::Arc,
+};
+
+use serde::{Deserialize, Serialize};
+use tokio::sync::OwnedSemaphorePermit;
+
+use mqtt3::proto;
+
+pub use crate::auth::{AuthId, Identity};
+pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
+pub use crate::connection::{
+    ConnectionHandle, IncomingPacketProcessor, MakeIncomingPacketProcessor,
+    MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, OutgoingPacketProcessor, PacketAction,
+};
+pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{
-    ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist, PersistError,
+    FileFormat, FilePersistor, NullPersistor, Persist, PersistError, VersionedFileFormat,
 };
 pub use crate::server::Server;
 pub use crate::session::SessionState;
-pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
-pub use crate::transport::TransportBuilder;
+pub use crate::settings::{BrokerConfig, SessionConfig};
+pub use crate::snapshot::{
+    BrokerSnapshot, SessionSnapshot, ShutdownHandle, Snapshotter, StateSnapshotHandle,
+};
+pub use crate::subscription::{Segment, Subscription, TopicFilter};
+pub use crate::tls::ServerCertificate;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
@@ -56,36 +75,67 @@ impl<T: Into<String>> From<T> for ClientId {
     }
 }
 
-impl std::fmt::Display for ClientId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ClientId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.as_str())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ClientInfo {
+    peer_addr: SocketAddr,
+    auth_id: AuthId,
+}
+
+impl ClientInfo {
+    pub fn new(peer_addr: SocketAddr, auth_id: impl Into<AuthId>) -> Self {
+        Self {
+            peer_addr,
+            auth_id: auth_id.into(),
+        }
+    }
+
+    pub fn peer_addr(&self) -> SocketAddr {
+        self.peer_addr
+    }
+
+    pub fn auth_id(&self) -> &AuthId {
+        &self.auth_id
+    }
+}
+
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,
+    peer_addr: SocketAddr,
     connect: proto::Connect,
-    certificate: Option<Certificate>,
+    auth: Auth,
     handle: ConnectionHandle,
 }
 
 impl ConnReq {
     pub fn new(
         client_id: ClientId,
+        peer_addr: SocketAddr,
         connect: proto::Connect,
-        certificate: Option<Certificate>,
+        auth: Auth,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
             client_id,
+            peer_addr,
             connect,
-            certificate,
+            auth,
             handle,
         }
     }
 
     pub fn client_id(&self) -> &ClientId {
         &self.client_id
+    }
+
+    pub fn peer_addr(&self) -> SocketAddr {
+        self.peer_addr
     }
 
     pub fn connect(&self) -> &proto::Connect {
@@ -96,8 +146,8 @@ impl ConnReq {
         &self.handle
     }
 
-    pub fn certificate(&self) -> Option<&Certificate> {
-        self.certificate.as_ref()
+    pub fn auth(&self) -> &Auth {
+        &self.auth
     }
 
     pub fn handle_mut(&mut self) -> &mut ConnectionHandle {
@@ -108,9 +158,16 @@ impl ConnReq {
         self.handle
     }
 
-    pub fn into_parts(self) -> (proto::Connect, ConnectionHandle) {
-        (self.connect, self.handle)
+    pub fn into_parts(self) -> (SocketAddr, proto::Connect, ConnectionHandle) {
+        (self.peer_addr, self.connect, self.handle)
     }
+}
+
+#[derive(Debug)]
+pub enum Auth {
+    Identity(AuthId),
+    Unknown,
+    Failure,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -155,7 +212,9 @@ pub enum ClientEvent {
     UnsubAck(proto::UnsubAck),
 
     /// PublishFrom - publish packet from a client
-    PublishFrom(proto::Publish),
+    /// Contains optional permit for managing max number of
+    /// incoming messages per publisher.
+    PublishFrom(proto::Publish, Option<OwnedSemaphorePermit>),
 
     /// PublishTo - publish packet to a client
     PublishTo(Publish),
@@ -180,7 +239,8 @@ pub enum ClientEvent {
 pub enum SystemEvent {
     Shutdown,
     StateSnapshot(StateSnapshotHandle),
-    // ConfigUpdate,
+    ForceClientDisconnect(ClientId),
+    AuthorizationUpdate(Box<dyn Any + Send + Sync>),
 }
 
 #[derive(Debug)]
@@ -191,87 +251,9 @@ pub enum Message {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::sync::Arc;
+    use std::net::SocketAddr;
 
-    use bytes::Bytes;
-    use proptest::collection::vec;
-    use proptest::num;
-    use proptest::prelude::*;
-
-    use mqtt3::proto;
-
-    use crate::{subscription::tests::arb_qos, ClientId, Publish};
-
-    pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
-        "[a-zA-Z0-9]{1,23}".prop_map(|s| ClientId(Arc::new(s)))
-    }
-
-    pub fn arb_packet_identifier() -> impl Strategy<Value = proto::PacketIdentifier> {
-        (1_u16..=u16::max_value())
-            .prop_map(|i| proto::PacketIdentifier::new(i).expect("packet identifier failed"))
-    }
-
-    pub fn arb_topic() -> impl Strategy<Value = String> {
-        "\\PC+(/\\PC+)*"
-    }
-
-    pub fn arb_payload() -> impl Strategy<Value = Bytes> {
-        vec(num::u8::ANY, 0..1024).prop_map(Bytes::from)
-    }
-
-    prop_compose! {
-        pub fn arb_publication()(
-            topic_name in arb_topic(),
-            qos in arb_qos(),
-            retain in proptest::bool::ANY,
-            payload in arb_payload(),
-        ) -> proto::Publication {
-            proto::Publication {
-                topic_name,
-                qos,
-                retain,
-                payload,
-            }
-        }
-    }
-
-    pub fn arb_pidq() -> impl Strategy<Value = proto::PacketIdentifierDupQoS> {
-        prop_oneof![
-            Just(proto::PacketIdentifierDupQoS::AtMostOnce),
-            (arb_packet_identifier(), proptest::bool::ANY)
-                .prop_map(|(id, dup)| proto::PacketIdentifierDupQoS::AtLeastOnce(id, dup)),
-            (arb_packet_identifier(), proptest::bool::ANY)
-                .prop_map(|(id, dup)| proto::PacketIdentifierDupQoS::ExactlyOnce(id, dup)),
-        ]
-    }
-
-    prop_compose! {
-        pub fn arb_proto_publish()(
-            pidq in arb_pidq(),
-            retain in proptest::bool::ANY,
-            topic_name in arb_topic(),
-            payload in arb_payload(),
-        ) -> proto::Publish {
-            proto::Publish {
-                packet_identifier_dup_qos: pidq,
-                retain,
-                topic_name,
-                payload,
-            }
-        }
-    }
-
-    pub fn arb_publish() -> impl Strategy<Value = Publish> {
-        prop_oneof![
-            (arb_packet_identifier(), arb_proto_publish())
-                .prop_map(|(id, publish)| Publish::QoS0(id, publish)),
-            (arb_packet_identifier(), arb_proto_publish())
-                .prop_map(|(id, publish)| Publish::QoS12(id, publish)),
-        ]
-    }
-
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+    pub fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
     }
 }

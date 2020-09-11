@@ -5,8 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAccount;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -24,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void RequiredMetadataExistsWhenCreated()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var mapper = new KubernetesServiceAccountMapper();
             var labels = new Dictionary<string, string> { ["device"] = "k8s-device" };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels), Option.None<AuthConfig>());
@@ -33,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var dockerConfig = new DockerConfig("test-image:1");
 
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, dockerConfig, ImagePullPolicy.OnCreate, Constants.DefaultPriority, configurationInfo, envVarsDict);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, dockerConfig, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, configurationInfo, envVarsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
 
             var serviceAccount = mapper.CreateServiceAccount(module, identity, labels);

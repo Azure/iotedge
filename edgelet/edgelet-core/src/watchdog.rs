@@ -99,7 +99,9 @@ where
         .stop(name, Some(EDGE_RUNTIME_STOP_TIME))
         .or_else(|err| match (&err).into() {
             ModuleRuntimeErrorReason::NotFound => Ok(()),
-            _ => Err(Error::from(err.context(ErrorKind::ModuleRuntime))),
+            ModuleRuntimeErrorReason::Other => {
+                Err(Error::from(err.context(ErrorKind::ModuleRuntime)))
+            }
         })
 }
 
@@ -139,15 +141,16 @@ where
             })
         })
         .fold(0, move |exec_count: u32, result: Option<Error>| {
-            result
-                .and_then(|e| {
+            result.map_or_else(
+                || Ok(0),
+                |e| {
                     if max_retries.compare(exec_count) == Ordering::Greater {
-                        Some(Ok(exec_count + 1))
+                        Ok(exec_count + 1)
                     } else {
-                        Some(Err(e))
+                        Err(e)
                     }
-                })
-                .unwrap_or_else(|| Ok(0))
+                },
+            )
         })
         .map(|_| ())
 }
@@ -269,7 +272,7 @@ where
 
         let pull_future = match spec.image_pull_policy() {
             ImagePullPolicy::Never => Either::A(future::ok(())),
-            ImagePullPolicy::OnCreate => Either::B(runtime.registry().pull(spec.clone().config())),
+            ImagePullPolicy::OnCreate => Either::B(runtime.registry().pull(spec.config())),
         };
 
         pull_future

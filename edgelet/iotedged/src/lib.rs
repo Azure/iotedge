@@ -26,13 +26,14 @@ pub mod unix;
 pub mod windows;
 
 use futures::sync::mpsc;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::fs::{DirBuilder, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use failure::{Context, Fail, ResultExt};
 use futures::future::{Either, IntoFuture};
@@ -96,10 +97,14 @@ const AUTH_SCHEME: &str = "sasToken";
 /// is expected to work with.
 const HOSTNAME_KEY: &str = "IOTEDGE_IOTHUBHOSTNAME";
 
+/// This variable holds the host name for the parent edge device. This name is used
+/// by the edge agent to connect to parent edge hub for identity and twin operations.
+const GATEWAY_HOSTNAME_KEY: &str = "IOTEDGE_GATEWAYHOSTNAME";
+
 /// This variable holds the host name for the edge device. This name is used
 /// by the edge agent to provide the edge hub container an alias name in the
 /// network so that TLS cert validation works.
-const GATEWAY_HOSTNAME_KEY: &str = "EDGEDEVICEHOSTNAME";
+const EDGEDEVICE_HOSTNAME_KEY: &str = "EdgeDeviceHostName";
 
 /// This variable holds the IoT Hub device identifier.
 const DEVICEID_KEY: &str = "IOTEDGE_DEVICEID";
@@ -149,7 +154,7 @@ const EXTERNAL_PROVISIONING_ENDPOINT_KEY: &str = "IOTEDGE_EXTERNAL_PROVISIONING_
 /// This is the key for the largest API version that this edgelet supports
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
-const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
+const IOTHUB_API_VERSION: &str = "2019-10-01";
 
 /// This is the name of the provisioning backup file
 const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";
@@ -328,6 +333,22 @@ where
                     crypto.clone(),
                 )?;
 
+                // Normally iotedged will stop all modules when it shuts down. But if it crashed,
+                // modules will continue to run. On Linux systems where iotedged is responsible for
+                // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
+                // support systemd socket activation), modules will be left holding stale file
+                // descriptors for the workload and management APIs and calls on these APIs will
+                // begin to fail. Resilient modules should be able to deal with this, but we'll
+                // restart all modules to ensure a clean start.
+                const STOP_TIME: Duration = Duration::from_secs(30);
+                info!("Stopping all modules...");
+                tokio_runtime
+                    .block_on(runtime.stop_all(Some(STOP_TIME)))
+                    .context(ErrorKind::Initialize(
+                        InitializeErrorReason::StopExistingModules
+                    ))?;
+                info!("Finished stopping modules.");
+
                 if $force_reprovision ||
                     ($provisioning_result.reconfigure() != ReprovisioningStatus::DeviceDataNotUpdated) {
                     // If this device was re-provisioned and the device key was updated it causes
@@ -359,6 +380,7 @@ where
 
                 let cfg = WorkloadData::new(
                     $provisioning_result.hub_name().to_string(),
+                    settings.parent_hostname().map(String::from),
                     $provisioning_result.device_id().to_string(),
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
@@ -1357,7 +1379,6 @@ where
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
-    // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
     tokio_runtime
         .block_on(runtime.remove_all())
@@ -1366,22 +1387,13 @@ where
         ))?;
     info!("Finished removing modules.");
 
-    // Ignore errors from this operation because we could be recovering from a previous bad
-    // configuration and shouldn't stall the current configuration because of that
-    let _u = fs::remove_dir_all(subdir);
-
     let path = subdir.join(filename);
-
-    DirBuilder::new()
-        .recursive(true)
-        .create(subdir)
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::CreateSettingsDirectory,
-        ))?;
 
     // regenerate the workload CA certificate
     destroy_workload_ca(crypto)?;
     prepare_workload_ca(crypto)?;
+
+    // regenerate settings_state
     let mut file =
         File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
     let digest = compute_settings_digest(settings, id_cert_thumbprint)
@@ -1427,15 +1439,19 @@ where
     <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
     for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
-    let hub_name = workload_config.iot_hub_name().to_string();
+    let iot_hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
-    let hostname = format!("https://{}", hub_name);
-    let token_source = SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key);
+    let token_source = SasTokenSource::new(iot_hub_name.clone(), device_id.clone(), root_key);
+    let upstream_gateway = format!(
+        "https://{}",
+        workload_config.parent_hostname().unwrap_or(&iot_hub_name)
+    );
     let http_client = HttpClient::new(
         hyper_client,
         Some(token_source),
         IOTHUB_API_VERSION.to_string(),
-        Url::parse(&hostname).context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
+        Url::parse(&upstream_gateway)
+            .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?,
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
     let device_client = DeviceClient::new(http_client, device_id.clone())
@@ -1500,7 +1516,7 @@ where
     let edge_rt = start_runtime::<_, _, M>(
         runtime.clone(),
         &id_man,
-        &hub_name,
+        &iot_hub_name,
         &device_id,
         &settings,
         runt_rx,
@@ -1627,9 +1643,9 @@ fn manual_provision_connection_string(
                         InitializeErrorReason::ManualProvisioningClient,
                     )))
                 })
-                .and_then(|k| {
+                .map(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());
-                    Ok((derived_key_store, prov_result, k))
+                    (derived_key_store, prov_result, k)
                 })
         });
     tokio_runtime.block_on(provision)
@@ -1785,9 +1801,9 @@ fn external_provision_tpm(
                 ),
             )))
         })
-        .and_then(|k| {
+        .map(|k| {
             let derived_key_store = DerivedKeyStore::new(k.clone());
-            Ok((derived_key_store, k))
+            (derived_key_store, k)
         })
 }
 
@@ -1995,20 +2011,28 @@ where
 
 // Add the environment variables needed by the EdgeAgent.
 fn build_env<S>(
-    spec_env: &HashMap<String, String>,
+    spec_env: &BTreeMap<String, String>,
     hostname: &str,
     device_id: &str,
     settings: &S,
-) -> HashMap<String, String>
+) -> BTreeMap<String, String>
 where
     S: RuntimeSettings,
 {
-    let mut env = HashMap::new();
+    let mut env = BTreeMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
-        GATEWAY_HOSTNAME_KEY.to_string(),
+        EDGEDEVICE_HOSTNAME_KEY.to_string(),
         settings.hostname().to_string().to_lowercase(),
     );
+
+    if let Some(parent_hostname) = settings.parent_hostname() {
+        env.insert(
+            GATEWAY_HOSTNAME_KEY.to_string(),
+            parent_hostname.to_string().to_lowercase(),
+        );
+    }
+
     env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
 
@@ -2202,6 +2226,8 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_SYMM_KEY: &str = "test/linux/sample_settings.dps.symm.key.yaml";
     #[cfg(unix)]
+    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.yaml";
+    #[cfg(unix)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/linux/sample_settings.dps.default.yaml";
     #[cfg(unix)]
@@ -2227,6 +2253,8 @@ mod tests {
     static GOOD_SETTINGS_DPS_TPM1: &str = "test/windows/sample_settings.dps.tpm.1.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_SYMM_KEY: &str = "test/windows/sample_settings.dps.symm.key.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/windows/sample_settings.nested.edge.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/windows/sample_settings.dps.default.yaml";
@@ -2665,6 +2693,76 @@ mod tests {
     }
 
     #[test]
+    fn check_settings_state_does_not_delete_other_files() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
+
+        // create baseline settings_state
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+            None,
+        )
+        .unwrap();
+
+        // create a couple extra files in the same folder as settings_state
+        let provisioning_backup_json = tmp_dir.path().join("provisioning_backup.json");
+        File::create(&provisioning_backup_json)
+            .unwrap()
+            .write_all(b"{}")
+            .unwrap();
+
+        let file1 = tmp_dir.path().join("file1.txt");
+        File::create(&file1).unwrap().write_all(b"hello").unwrap();
+
+        // change settings; will force update of settings_state
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
+            "settings_state",
+            &settings1,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+            None,
+        )
+        .unwrap();
+
+        // verify extra files weren't deleted
+        assert!(provisioning_backup_json.exists());
+        assert!(file1.exists());
+    }
+
+    #[test]
     fn get_proxy_uri_recognizes_https_proxy() {
         // Use existing "https_proxy" env var if it's set, otherwise invent one
         let proxy_val = env::var("https_proxy")
@@ -2965,6 +3063,14 @@ mod tests {
             diff_with_cached(&settings, &path, Some("thumbprint-2")),
             true
         );
+    }
+
+    #[test]
+    fn settings_for_nested_edge() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
+        assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
     }
 
     #[test]

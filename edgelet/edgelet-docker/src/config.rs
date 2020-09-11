@@ -84,7 +84,7 @@ impl DockerConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     use docker::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
     use serde_json::json;
@@ -104,11 +104,11 @@ mod tests {
 
     #[test]
     fn docker_config_ser() {
-        let mut labels = HashMap::new();
+        let mut labels = BTreeMap::new();
         labels.insert("k1".to_string(), "v1".to_string());
         labels.insert("k2".to_string(), "v2".to_string());
 
-        let mut port_bindings = HashMap::new();
+        let mut port_bindings = BTreeMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
             vec![HostConfigPortBindings::new().with_host_port("27017".to_string())],
@@ -149,11 +149,11 @@ mod tests {
 
     #[test]
     fn docker_config_ser_auth() {
-        let mut labels = HashMap::new();
+        let mut labels = BTreeMap::new();
         labels.insert("k1".to_string(), "v1".to_string());
         labels.insert("k2".to_string(), "v2".to_string());
 
-        let mut port_bindings = HashMap::new();
+        let mut port_bindings = BTreeMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
             vec![HostConfigPortBindings::new().with_host_port("27017".to_string())],

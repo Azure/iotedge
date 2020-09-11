@@ -253,6 +253,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
         [Fact]
         [Unit]
+        public void TestForEachNoParameter()
+        {
+            int val = 0;
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+            some.ForEach(() => val = 3);
+            Assert.Equal(3, val);
+            none.ForEach(() => val = 0);
+            Assert.Equal(3, val);
+        }
+
+        [Fact]
+        [Unit]
         public async void TestForEachAsync()
         {
             Option<int> some = Option.Some(3);
@@ -274,6 +287,34 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 v =>
                 {
                     i *= v;
+                    return Task.CompletedTask;
+                });
+            Assert.Equal(2, i);
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestForEachAsyncNoParameter()
+        {
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+
+            int i = 2;
+            // ReSharper disable once AccessToModifiedClosure
+            // Need to test the side effect
+            await some.ForEachAsync(
+                () =>
+                {
+                    i *= 2;
+                    return Task.CompletedTask;
+                });
+            Assert.Equal(4, i);
+
+            i = 2;
+            await none.ForEachAsync(
+                () =>
+                {
+                    i *= 2;
                     return Task.CompletedTask;
                 });
             Assert.Equal(2, i);

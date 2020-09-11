@@ -38,8 +38,11 @@ namespace MetricsValidator
                     .Build();
 
                 var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+
+                Logger.LogInformation("Make Client");
                 using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     transportType,
+                    new ClientOptions(),
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger))

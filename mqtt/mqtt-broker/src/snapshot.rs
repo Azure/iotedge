@@ -1,13 +1,63 @@
-use std::{panic, thread};
+use std::collections::{HashMap, VecDeque};
 
-use crossbeam_channel::{Receiver, Sender};
-use tracing::{error, info, warn};
+use tokio::sync::mpsc::{self, Receiver, Sender};
+use tracing::{info, warn};
 
-use crate::persist::Persist;
-use crate::{BrokerState, Error};
+use mqtt3::proto::{self, Publication};
 
-pub(crate) enum Event {
-    State(BrokerState),
+use crate::{persist::Persist, ClientId, Error, Subscription};
+
+/// Used for persisting/loading broker state.
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct BrokerSnapshot {
+    retained: HashMap<String, Publication>,
+    sessions: Vec<SessionSnapshot>,
+}
+
+impl BrokerSnapshot {
+    pub fn new(retained: HashMap<String, Publication>, sessions: Vec<SessionSnapshot>) -> Self {
+        Self { retained, sessions }
+    }
+
+    pub fn into_parts(self) -> (HashMap<String, Publication>, Vec<SessionSnapshot>) {
+        (self.retained, self.sessions)
+    }
+}
+
+/// Used for persisting/loading session state.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SessionSnapshot {
+    client_id: ClientId,
+    subscriptions: HashMap<String, Subscription>,
+    waiting_to_be_sent: VecDeque<Publication>,
+}
+
+impl SessionSnapshot {
+    pub fn from_parts(
+        client_id: ClientId,
+        subscriptions: HashMap<String, Subscription>,
+        waiting_to_be_sent: VecDeque<Publication>,
+    ) -> Self {
+        Self {
+            client_id,
+            subscriptions,
+            waiting_to_be_sent,
+        }
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        ClientId,
+        HashMap<String, Subscription>,
+        VecDeque<proto::Publication>,
+    ) {
+        (self.client_id, self.subscriptions, self.waiting_to_be_sent)
+    }
+}
+
+enum Event {
+    State(BrokerSnapshot),
     Shutdown,
 }
 
@@ -15,10 +65,10 @@ pub(crate) enum Event {
 pub struct StateSnapshotHandle(Sender<Event>);
 
 impl StateSnapshotHandle {
-    pub fn try_send(&mut self, state: BrokerState) -> Result<(), Error> {
+    pub fn try_send(&mut self, state: BrokerSnapshot) -> Result<(), Error> {
         self.0
-            .send(Event::State(state))
-            .map_err(|_e| Error::SendSnapshotMessage)?;
+            .try_send(Event::State(state))
+            .map_err(|_| Error::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -27,10 +77,11 @@ impl StateSnapshotHandle {
 pub struct ShutdownHandle(Sender<Event>);
 
 impl ShutdownHandle {
-    pub fn try_shutdown(&mut self) -> Result<(), Error> {
+    pub async fn shutdown(&mut self) -> Result<(), Error> {
         self.0
             .send(Event::Shutdown)
-            .map_err(|_e| Error::SendSnapshotMessage)?;
+            .await
+            .map_err(|_| Error::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -43,7 +94,7 @@ pub struct Snapshotter<P> {
 
 impl<P> Snapshotter<P> {
     pub fn new(persistor: P) -> Self {
-        let (sender, events) = crossbeam_channel::bounded(5);
+        let (sender, events) = mpsc::channel(5);
         Snapshotter {
             persistor,
             sender,
@@ -62,46 +113,13 @@ impl<P> Snapshotter<P> {
 
 impl<P> Snapshotter<P>
 where
-    P: Persist + Send + 'static,
+    P: Persist,
 {
-    pub async fn run(self) -> Result<P, Error> {
-        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-
-        let handle = thread::Builder::new()
-            .name("mqtt::snapshotter".to_string())
-            .spawn(|| {
-                let persist = self.snapshotter_loop();
-                if let Err(_e) = tx.send(()) {
-                    error!(
-                        "failed to signal the event loop that the snapshotter thread is exiting"
-                    );
-                }
-                persist
-            })
-            .expect("failed to spawn snapshotter thread");
-
-        // Wait for the thread to exit
-        // This rx will complete for two reasons:
-        //   1. The thread gracefully shutdown
-        //   2. The thread panicked and the tx was dropped.
-        //
-        // We don't really care about the error here ---
-        //   we just want to join the thread handle to get the result
-        //   or deal with the panic
-        rx.await.map_or_else(drop, drop);
-
-        // propagate any panics onto the event loop thread
-        match handle.join() {
-            Ok(persist) => Ok(persist),
-            Err(e) => panic::resume_unwind(e),
-        }
-    }
-
-    fn snapshotter_loop(mut self) -> P {
-        while let Ok(event) = self.events.recv() {
+    pub async fn run(mut self) -> P {
+        while let Some(event) = self.events.recv().await {
             match event {
                 Event::State(state) => {
-                    if let Err(e) = self.persistor.store(state) {
+                    if let Err(e) = self.persistor.store(state).await {
                         warn!(message = "an error occurred persisting state snapshot.", error=%e);
                     }
                 }
