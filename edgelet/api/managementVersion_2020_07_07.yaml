@@ -647,6 +647,8 @@ definitions:
         type: string
       version:
         type: string
+      provisioning_type:
+        type: string
       server_version:
         type: string
       kernel_version:

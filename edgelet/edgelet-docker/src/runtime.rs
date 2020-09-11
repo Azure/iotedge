@@ -20,7 +20,8 @@ use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    ProvisioningType, RegistryOperation, RuntimeOperation, RuntimeSettings,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -59,6 +60,7 @@ lazy_static! {
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
     system_resources: Arc<Mutex<System>>,
+    provisioning_type: String,
 }
 
 impl DockerModuleRuntime {
@@ -204,7 +206,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                 log_failure(Level::Warn, &err);
                 future::Either::B(Err(err).into_future())
             },
-            |client| {
+            move |client| {
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
@@ -240,13 +242,19 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         log_failure(Level::Warn, &e);
                         e
                     })
-                    .map(|client| {
+                    .map(move |client| {
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
+                        let provisioning_type = match settings.provisioning().provisioning_type() {
+                            ProvisioningType::Manual(_) => "manual",
+                            ProvisioningType::Dps(_) => "dps",
+                            ProvisioningType::External(_) => "external",
+                        };
                         info!("Successfully initialized module runtime");
                         DockerModuleRuntime {
                             client,
                             system_resources: Arc::new(Mutex::new(system_resources)),
+                            provisioning_type: provisioning_type.to_string(),
                         }
                     });
 
@@ -567,11 +575,13 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
+        let provisioning_type = self.provisioning_type.to_string();
+
         Box::new(
             self.client
                 .system_api()
                 .system_info()
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(system_info) => {
                         let system_info = CoreSystemInfo {
                             os_type: system_info
@@ -583,6 +593,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
                             version: edgelet_core::version_with_source_version(),
+                            provisioning_type,
                             cpus: system_info.NCPU().unwrap_or_default(),
                             kernel_version: system_info
                                 .kernel_version()

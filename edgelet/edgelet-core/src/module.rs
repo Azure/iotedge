@@ -366,6 +366,9 @@ pub struct SystemInfo {
     pub architecture: String,
     /// iotedge version string
     pub version: &'static str,
+    /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
+    #[serde(rename = "provisioningType")]
+    pub provisioning_type: String,
     pub server_version: String,
     pub kernel_version: String,
     pub operating_system: String,
