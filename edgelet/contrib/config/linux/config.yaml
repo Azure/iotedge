@@ -73,6 +73,10 @@
 #                       provision with DPS, and only fall back to the provisioning backup
 #                       from a previous successful provisioning if the attempt fails.
 #
+#                       If setting this to false, it's recommended to also set
+#                       dynamic_reprovisioning (see below) to true, so that the device can
+#                       automatically reprovision itself if it needs to.
+#
 # External Settings
 #     endpoint - Required. Value of the endpoint used to retrieve device specific
 #                information such as its IoT hub connection information.

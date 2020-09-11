@@ -418,15 +418,7 @@ impl Provisioning {
     }
 
     pub fn dynamic_reprovisioning(&self) -> bool {
-        // If using DPS provisioning and its always_reprovision_on_startup is false,
-        // then dynamic reprovisioning is the only way we can know when the device identity has been deleted in IoT Hub.
-        //
-        // So force dynamic_reprovisioning to be true even if the user didn't set it.
-
-        match &self.provisioning {
-            ProvisioningType::Dps(dps) if !dps.always_reprovision_on_startup() => true,
-            _ => self.dynamic_reprovisioning,
-        }
+        self.dynamic_reprovisioning
     }
 }
 
