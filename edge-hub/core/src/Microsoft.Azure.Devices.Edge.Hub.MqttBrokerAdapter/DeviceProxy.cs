@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             if (this.isActive.GetAndSet(false))
             {
                 await this.connectionRegistry.CloseConnectionAsync(this.Identity);
-                Events.Close(this.Identity);
+                Events.Close(this.Identity, ex);
             }
 
             return;
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             public static void Created(IIdentity identity) => Log.LogInformation((int)EventIds.Created, $"Created device proxy for {identity.IotHubHostname}/{identity.Id}");
-            public static void Close(IIdentity identity) => Log.LogInformation((int)EventIds.Close, $"Closed device proxy for {identity.IotHubHostname}/{identity.Id}");
+            public static void Close(IIdentity identity, Exception ex) => Log.LogInformation((int)EventIds.Close, ex, $"Closed device proxy for {identity.IotHubHostname}/{identity.Id}");
             public static void SetInactive(IIdentity identity) => Log.LogInformation((int)EventIds.Close, $"Inactivated device proxy for {identity.IotHubHostname}/{identity.Id}");
             public static void SendingTwinUpdate(IIdentity identity) => Log.LogDebug((int)EventIds.SendingTwinUpdate, $"Sending twin update to {identity.Id}");
             public static void SendingDesiredPropertyUpdate(IIdentity identity) => Log.LogDebug((int)EventIds.SendingDesiredPropertyUpdate, $"Sending desired property update to {identity.Id}");

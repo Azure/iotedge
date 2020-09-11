@@ -111,6 +111,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 await this.connector.SendAsync(TopicDisconnect, Encoding.UTF8.GetBytes($"\"{identity.Id}\""));
             }
+            else
+            {
+                Events.CouldNotFindClientToClose(identity.Id);
+            }
         }
 
         async Task HandleDeviceConnectedAsync(MqttPublishInfo mqttPublishInfo)
@@ -249,7 +253,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ExistingClientAdded,
                 BlockingDependencyInjection,
                 ErrorProcessingNotification,
-                FailedToObtainConnectionProvider
+                FailedToObtainConnectionProvider,
+                CouldNotFindClientToClose
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize connection update");
@@ -258,6 +263,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void ExistingClientAdded(string identity) => Log.LogWarning((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
             public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing [Connect] notification");
             public static void FailedToObtainConnectionProvider() => Log.LogError((int)EventIds.FailedToObtainConnectionProvider, "Failed to obtain ConnectionProvider");
+            public static void CouldNotFindClientToClose(string identity) => Log.LogInformation((int)EventIds.CouldNotFindClientToClose, $"Could not find to close: {identity}. No signal will be sent to the broker");
         }
     }
 }

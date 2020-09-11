@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var sut = default(ConnectionHandler);
 
-            DeviceProxy.Factory deviceProxyFactory = i => GetProxy(i);
+            DeviceProxy.Factory deviceProxyFactory = GetProxy;
 
             sut = new ConnectionHandler(connectionProviderGetter, identityProvider, systemComponentIdProvider, deviceProxyFactory);
             sut.SetConnector(brokerConnector);
