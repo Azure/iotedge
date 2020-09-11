@@ -11,11 +11,6 @@ jobs:
     displayName: LinuxDotnet
     pool: 
       name: "Hosted Ubuntu 1604"
-    variables:
-      build.registry.address: edgebuilds.azurecr.io
-      build.registry.user: EdgeBuilds
-      registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease
     steps: 
       # Setup dependencies
       - bash: |

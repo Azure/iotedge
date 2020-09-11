@@ -1,4 +1,4 @@
-use std::{convert::Infallible, error::Error as StdError};
+use std::{any::Any, convert::Infallible, error::Error as StdError};
 
 use mqtt3::proto;
 
@@ -11,6 +11,10 @@ pub trait Authorizer {
 
     /// Authorizes a MQTT client to perform some action.
     fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error>;
+
+    fn update(&self, _update: Box<dyn Any>) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 /// Authorization result.

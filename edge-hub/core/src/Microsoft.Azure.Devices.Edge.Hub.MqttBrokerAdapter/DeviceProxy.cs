@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class DeviceProxy : IDeviceProxy
     {
         readonly AtomicBoolean isActive;
+        readonly IConnectionRegistry connectionRegistry;
         readonly ITwinHandler twinHandler;
         readonly IModuleToModuleMessageHandler moduleToModuleMessageHandler;
         readonly ICloud2DeviceMessageHandler cloud2DeviceMessageHandler;
@@ -22,12 +23,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public DeviceProxy(
                     IIdentity identity,
+                    IConnectionRegistry connectionRegistry,
                     ITwinHandler twinHandler,
                     IModuleToModuleMessageHandler moduleToModuleMessageHandler,
                     ICloud2DeviceMessageHandler cloud2DeviceMessageHandler,
                     IDirectMethodHandler directMethodHandler)
         {
             this.Identity = Preconditions.CheckNotNull(identity);
+            this.connectionRegistry = Preconditions.CheckNotNull(connectionRegistry);
             this.twinHandler = Preconditions.CheckNotNull(twinHandler);
             this.moduleToModuleMessageHandler = Preconditions.CheckNotNull(moduleToModuleMessageHandler);
             this.cloud2DeviceMessageHandler = Preconditions.CheckNotNull(cloud2DeviceMessageHandler);
@@ -41,15 +44,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public IIdentity Identity { get; }
 
-        public Task CloseAsync(Exception ex)
+        public async Task CloseAsync(Exception ex)
         {
             if (this.isActive.GetAndSet(false))
             {
-                // Fixme: figure out how to close it (how to tell the broker)
-                Events.Close(this.Identity);
+                await this.connectionRegistry.CloseConnectionAsync(this.Identity);
+                Events.Close(this.Identity, ex);
             }
 
-            return TaskEx.Done;
+            return;
         }
 
         public Task<Option<IClientCredentials>> GetUpdatedIdentity()
@@ -111,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             public static void Created(IIdentity identity) => Log.LogInformation((int)EventIds.Created, $"Created device proxy for {identity.IotHubHostname}/{identity.Id}");
-            public static void Close(IIdentity identity) => Log.LogInformation((int)EventIds.Close, $"Closed device proxy for {identity.IotHubHostname}/{identity.Id}");
+            public static void Close(IIdentity identity, Exception ex) => Log.LogInformation((int)EventIds.Close, ex, $"Closed device proxy for {identity.IotHubHostname}/{identity.Id}");
             public static void SetInactive(IIdentity identity) => Log.LogInformation((int)EventIds.Close, $"Inactivated device proxy for {identity.IotHubHostname}/{identity.Id}");
             public static void SendingTwinUpdate(IIdentity identity) => Log.LogDebug((int)EventIds.SendingTwinUpdate, $"Sending twin update to {identity.Id}");
             public static void SendingDesiredPropertyUpdate(IIdentity identity) => Log.LogDebug((int)EventIds.SendingDesiredPropertyUpdate, $"Sending desired property update to {identity.Id}");

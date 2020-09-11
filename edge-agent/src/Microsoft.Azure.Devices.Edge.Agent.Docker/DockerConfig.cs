@@ -15,8 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         // This is not the actual docker image regex, but a less strict version.
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
-
+        // Check if it's prefix is "$upstream" and replace with environment variable.
+        const string ImageUpstreamRegexPattern = @"^\$upstream(?<path>:[1-9].*)";
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
+        static readonly Regex ImageUpstreamRegex = new Regex(ImageUpstreamRegexPattern);
         readonly CreateContainerParameters createOptions;
 
         public DockerConfig(string image)
@@ -87,8 +89,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         internal static string ValidateAndGetImage(string image)
         {
+            return ValidateAndGetImage(image, new EnvironmentWrapper());
+        }
+
+        internal static string ValidateAndGetImage(string image, IEnvironmentWrapper env)
+        {
             image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
+
+            if (image[0] == '$')
+            {
+                Match matchHost = ImageUpstreamRegex.Match(image);
+                if (matchHost.Success
+                    && (matchHost.Groups["path"]?.Length > 0))
+                {
+                    string hostAddress = env.GetVariable(Core.Constants.GatewayHostnameVariableName).
+                        Expect(() => new InvalidOperationException($"Could not find environment variable: {Core.Constants.GatewayHostnameVariableName}"));
+
+                    image = hostAddress + matchHost.Groups["path"].Value;
+                }
+                else
+                {
+                    throw new ArgumentException($"Image {image} is not in the right format.If your intention is to use an environment variable, check the port is specified.");
+                }
+            }
+
             Match match = ImageRegex.Match(image);
+
             if (match.Success)
             {
                 if (match.Groups["tag"]?.Length > 0)
@@ -202,6 +228,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);
+        }
+    }
+
+    internal interface IEnvironmentWrapper
+    {
+        Option<string> GetVariable(string variableName);
+    }
+
+    internal class EnvironmentWrapper : IEnvironmentWrapper
+    {
+        public Option<string> GetVariable(string variableName)
+        {
+            return Option.Some(Environment.GetEnvironmentVariable(variableName));
         }
     }
 }

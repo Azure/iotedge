@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use futures_util::StreamExt;
 use mqtt3::{proto::ClientId, ShutdownError};
 use tokio::task::JoinHandle;
@@ -8,8 +10,12 @@ use mqtt_broker_tests_util::{
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::{CommandHandler, ShutdownHandle};
+use mqtt_edgehub::{
+    command::{init_commands, Command},
+    command_handler::{CommandHandler, ShutdownHandle},
+};
 
+const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
 /// Scenario:
@@ -25,8 +31,9 @@ async fn disconnect_client() {
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
+    let commands = init_commands();
     let (command_handler_shutdown_handle, join_handle) =
-        start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string())
+        start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string(), commands)
             .await
             .expect("could not start command handler");
 
@@ -43,7 +50,7 @@ async fn disconnect_client() {
         .with_client_id(ClientId::IdWithCleanSession("$edgehub".into()))
         .build();
 
-    let topic = "$edgehub/disconnect";
+    let topic = DISCONNECT_TOPIC;
     edgehub_client
         .publish_qos1(topic, r#""test-client""#, false)
         .await;
@@ -63,9 +70,10 @@ async fn disconnect_client() {
 async fn start_command_handler(
     broker_handle: BrokerHandle,
     system_address: String,
+    commands: HashMap<String, Box<dyn Command + Send>>,
 ) -> Result<(ShutdownHandle, JoinHandle<()>), ShutdownError> {
     let device_id = "test-device";
-    let command_handler = CommandHandler::new(broker_handle, system_address, device_id)
+    let command_handler = CommandHandler::new(broker_handle, system_address, device_id, commands)
         .await
         .unwrap();
     let shutdown_handle: ShutdownHandle = command_handler.shutdown_handle().unwrap();

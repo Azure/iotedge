@@ -11,5 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity);
         Task<Option<IDeviceProxy>> GetDeviceProxyAsync(IIdentity identity);
+
+        Task CloseConnectionAsync(IIdentity identity);
     }
 }
