@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(null, store.Object, IntensiveCareTime, restartManager));
             Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, null, IntensiveCareTime, restartManager));
+            Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager));
             Assert.Throws<ArgumentNullException>(() => new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, null));
             Assert.NotNull(new HealthRestartPlanner(factory, store.Object, IntensiveCareTime, restartManager));
         }

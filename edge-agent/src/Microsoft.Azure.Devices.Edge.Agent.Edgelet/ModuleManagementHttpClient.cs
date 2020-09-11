@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
 
-    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager
+    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager, ISecretManager
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
@@ -57,12 +57,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task ReprovisionDeviceAsync() => this.inner.ReprovisionDeviceAsync();
 
+        public Task<string> GetSecretAsync(string name, string secretId) => this.inner.GetSecretAsync(name, secretId);
+
+        public Task SetSecretAsync(string name, string secretId, string secretValue) => this.inner.SetSecretAsync(name, secretId, secretValue);
+
+        public Task PullSecretAsync(string name, string secretId, string akvId) => this.inner.PullSecretAsync(name, secretId, akvId);
+
+        public Task RefreshSecretAsync(string name, string secretId) => this.inner.RefreshSecretAsync(name, secretId);
+
+        public Task DeleteSecretAsync(string name, string secretId) => this.inner.DeleteSecretAsync(name, secretId);
+
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
 
         internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
             ApiVersion supportedVersion = GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
+
             if (supportedVersion == ApiVersion.Version20180628)
             {
                 return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
@@ -81,6 +92,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             if (supportedVersion == ApiVersion.Version20191105)
             {
                 return new Version_2019_11_05.ModuleManagementHttpClient(managementUri);
+            }
+
+            if (supportedVersion == ApiVersion.Version20200722)
+            {
+                return new Version_2020_07_22.ModuleManagementHttpClient(managementUri);
             }
 
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);

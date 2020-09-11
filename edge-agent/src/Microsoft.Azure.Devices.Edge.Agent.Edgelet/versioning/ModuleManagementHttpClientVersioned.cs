@@ -81,6 +81,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task ReprovisionDeviceAsync();
 
+        public virtual Task<string> GetSecretAsync(string name, string secretId)
+        {
+            return Task.FromResult(string.Empty);
+        }
+
+        public virtual Task SetSecretAsync(string name, string secretId, string secretValue)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task PullSecretAsync(string name, string secretId, string akvId)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task RefreshSecretAsync(string name, string secretId)
+        {
+            return Task.CompletedTask;
+        }
+
+        public virtual Task DeleteSecretAsync(string name, string secretId)
+        {
+            return Task.CompletedTask;
+        }
+
         public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
@@ -121,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 Events.ExecutingOperation(operation, this.ManagementUri.ToString());
                 T result = await ExecuteWithRetry(
                     func,
-                    (r) => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r),
+                    r => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r),
                     this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());

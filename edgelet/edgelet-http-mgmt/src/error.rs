@@ -2,7 +2,7 @@
 
 use std::fmt::{self, Display};
 
-use edgelet_core::{IdentityOperation, ModuleOperation, RuntimeOperation};
+use edgelet_core::{IdentityOperation, ModuleOperation, RuntimeOperation, SecretOperation};
 use edgelet_docker::ErrorKind as DockerErrorKind;
 use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
@@ -62,6 +62,9 @@ pub enum ErrorKind {
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
 
+    #[fail(display = "{}", _0)]
+    SecretOperation(SecretOperation),
+
     #[fail(display = "Could not start management service")]
     StartService,
 
@@ -94,10 +97,10 @@ impl Error {
         match error {
             MgmtError::Hyper(h) => Error::from(h.context(context)),
             MgmtError::Serde(s) => Error::from(s.context(context)),
-            MgmtError::Api(ref e) if e.code == StatusCode::NOT_MODIFIED => {
+            MgmtError::ApiError(ref e) if e.code == StatusCode::NOT_MODIFIED => {
                 Error::from(ErrorKind::NotModified)
             }
-            MgmtError::Api(_) => Error::from(ErrorKind::Client(error).context(context)),
+            MgmtError::ApiError(_) => Error::from(ErrorKind::Client(error).context(context)),
         }
     }
 }

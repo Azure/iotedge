@@ -176,7 +176,7 @@ impl<T> ModuleSpec<T> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
         ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
 
-        Ok(ModuleSpec {
+        Ok(Self {
             name,
             type_,
             config,

@@ -107,6 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [JsonProperty("env")]
         public IDictionary<string, EnvVal> Env { get; }
 
+        [JsonProperty("secrets")]
+        public IDictionary<string, string> Secrets { get; }
+
         public bool IsOnlyModuleStatusChanged(IModule other) =>
             other is TestModuleBase<TConfig> testModuleBase &&
             string.Equals(this.Name, other.Name) &&

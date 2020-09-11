@@ -3,17 +3,18 @@
 mod cert;
 mod decrypt;
 mod encrypt;
+mod secret;
 mod sign;
 mod trust_bundle;
 
 use edgelet_core::{
     Authenticator, CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyStore, Module,
-    ModuleRuntime, ModuleRuntimeErrorReason, Policy, WorkloadConfig,
+    ModuleRuntime, ModuleRuntimeErrorReason, Policy, WorkloadConfig, SecretManager
 };
+use edgelet_http::{router, Version};
 use edgelet_http::authentication::Authentication;
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::{Builder, RegexRecognizer, Router, RouterService};
-use edgelet_http::{router, Version};
 use edgelet_http_mgmt::ListModules;
 use failure::{Compat, Fail, ResultExt};
 use futures::{future, Future};
@@ -24,6 +25,7 @@ use serde::Serialize;
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::decrypt::DecryptHandler;
 use self::encrypt::EncryptHandler;
+use self::secret::*;
 use self::sign::SignHandler;
 use self::trust_bundle::TrustBundleHandler;
 use crate::error::{Error, ErrorKind};
@@ -34,14 +36,16 @@ pub struct WorkloadService {
 }
 
 impl WorkloadService {
-    pub fn new<K, H, M, W>(
+    pub fn new<K, S, H, M, W>(
         key_store: &K,
+        secret_store: &S,
         hsm: H,
         runtime: &M,
         config: W,
     ) -> impl Future<Item = Self, Error = Error>
     where
         K: KeyStore + Clone + Send + Sync + 'static,
+        S: SecretManager + Clone + Send + Sync + 'static,
         H: CreateCertificate + Decrypt + Encrypt + GetTrustBundle + Clone + Send + Sync + 'static,
         M: ModuleRuntime + Authenticator<Request = Request<Body>> + Clone + Send + Sync + 'static,
         for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
@@ -57,6 +61,10 @@ impl WorkloadService {
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt"  => EncryptHandler::new(hsm.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/certificate/identity"            => IdentityCertHandler::new(hsm.clone(), config.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(hsm.clone(), config),
+
+            get     Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => GetSecret::new(secret_store.clone()),
+            put     Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => SetSecret::new(secret_store.clone()),
+            delete  Version2020_07_22 runtime Policy::Caller =>  "/modules/(?P<name>[^/]+)/secrets/(?P<id>[^/]+)" => DeleteSecret::new(secret_store.clone()),
 
             get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(hsm),
         );

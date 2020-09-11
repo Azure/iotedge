@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env,
             string version = "")
-            : base(Core.Constants.EdgeHubModuleName, version, status, restartPolicy, settings, imagePullPolicy, priority, configuration, env)
+            : base(Core.Constants.EdgeHubModuleName, version, status, restartPolicy, settings, imagePullPolicy, priority, configuration, env, ImmutableDictionary<string, string>.Empty)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
             this.DesiredStatus = Preconditions.CheckIsDefined(status);

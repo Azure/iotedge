@@ -11,11 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         readonly IConfigSource configSource;
         readonly IModuleManager moduleManager;
+        readonly ISecretManager secretManager;
         readonly ICombinedConfigProvider<T> combinedConfigProvider;
 
-        public EdgeletCommandFactory(IModuleManager moduleManager, IConfigSource configSource, ICombinedConfigProvider<T> combinedConfigProvider)
+        public EdgeletCommandFactory(IModuleManager moduleManager, ISecretManager secretManager, IConfigSource configSource, ICombinedConfigProvider<T> combinedConfigProvider)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
+            this.secretManager = Preconditions.CheckNotNull(secretManager, nameof(secretManager));
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
         }
@@ -42,6 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<ICommand> StopAsync(IModule module) => Task.FromResult(new StopCommand(this.moduleManager, module) as ICommand);
 
         public Task<ICommand> RestartAsync(IModule module) => Task.FromResult(new RestartCommand(this.moduleManager, module) as ICommand);
+
+        public Task<ICommand> DeleteSecretAsync(IModule module, string secretId) => Task.FromResult(new DeleteSecretCommand(this.secretManager, module, secretId) as ICommand);
+
+        public Task<ICommand> PullSecretAsync(IModule module, string secretId, string akvId) => Task.FromResult(new PullSecretCommand(this.secretManager, module, secretId, akvId) as ICommand);
 
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
 

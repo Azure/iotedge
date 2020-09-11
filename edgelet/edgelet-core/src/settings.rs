@@ -677,6 +677,17 @@ impl WatchdogSettings {
     }
 }
 
+#[derive(Clone, Debug, Default, serde_derive::Deserialize, serde_derive::Serialize)]
+pub struct SecretSettings {
+    secret_host: String
+}
+
+impl SecretSettings {
+    pub fn secret_host(&self) -> &str {
+        &self.secret_host
+    }
+}
+
 pub trait RuntimeSettings {
     type Config;
 
@@ -689,6 +700,7 @@ pub trait RuntimeSettings {
     fn homedir(&self) -> &Path;
     fn certificates(&self) -> &Certificates;
     fn watchdog(&self) -> &WatchdogSettings;
+    fn secret(&self) -> &SecretSettings;
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -702,6 +714,8 @@ pub struct Settings<T> {
     certificates: Option<Certificates>,
     #[serde(default)]
     watchdog: WatchdogSettings,
+    #[serde(default)]
+    secret: SecretSettings
 }
 
 impl<T> RuntimeSettings for Settings<T>
@@ -751,6 +765,10 @@ where
 
     fn watchdog(&self) -> &WatchdogSettings {
         &self.watchdog
+    }
+
+    fn secret(&self) -> &SecretSettings {
+        &self.secret
     }
 }
 

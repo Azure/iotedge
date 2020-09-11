@@ -30,10 +30,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels), Option.None<AuthConfig>());
             var configurationInfo = new ConfigurationInfo("1");
             var envVarsDict = new Dictionary<string, EnvVal>();
+            var secretsDict = new Dictionary<string, string>();
 
             var dockerConfig = new DockerConfig("test-image:1");
 
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, dockerConfig, ImagePullPolicy.OnCreate, Constants.DefaultPriority, configurationInfo, envVarsDict);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, dockerConfig, ImagePullPolicy.OnCreate, Constants.DefaultPriority, configurationInfo, envVarsDict, secretsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
 
             var serviceAccount = mapper.CreateServiceAccount(module, identity, labels);

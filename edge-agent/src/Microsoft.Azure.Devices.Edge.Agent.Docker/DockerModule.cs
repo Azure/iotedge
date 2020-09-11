@@ -21,7 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ImagePullPolicy imagePullPolicy,
             uint priority,
             ConfigurationInfo configurationInfo,
-            IDictionary<string, EnvVal> env)
+            IDictionary<string, EnvVal> env,
+            IDictionary<string, string> secrets)
         {
             this.Name = name;
             this.Version = version ?? string.Empty;
@@ -32,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.Priority = priority;
             this.ConfigurationInfo = configurationInfo ?? new ConfigurationInfo(string.Empty);
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+            this.Secrets = secrets?.ToImmutableDictionary() ?? ImmutableDictionary<string, string>.Empty;
         }
 
         [JsonIgnore]
@@ -68,6 +70,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(PropertyName = "env")]
         public IDictionary<string, EnvVal> Env { get; }
 
+        [JsonProperty(PropertyName = "secrets")]
+        public IDictionary<string, string> Secrets { get; }
+
         public override bool Equals(object obj) => this.Equals(obj as DockerModule);
 
         public virtual bool Equals(IModule other) => this.Equals(other as DockerModule);
@@ -92,7 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.Priority == other.Priority &&
-                EnvDictionaryComparer.Equals(this.Env, other.Env);
+                EnvDictionaryComparer.Equals(this.Env, other.Env) &&
+                DictionaryComparer.StringDictionaryComparer.Equals(this.Secrets, other.Secrets);
         }
 
         public virtual bool IsOnlyModuleStatusChanged(IModule other)
@@ -106,7 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.Priority == other.Priority &&
-                EnvDictionaryComparer.Equals(this.Env, other.Env);
+                EnvDictionaryComparer.Equals(this.Env, other.Env) &&
+                DictionaryComparer.StringDictionaryComparer.Equals(this.Secrets, other.Secrets);
         }
 
         public override int GetHashCode()

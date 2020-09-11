@@ -83,6 +83,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonProperty(PropertyName = "env")]
         public IDictionary<string, EnvVal> Env { get; }
 
+        [JsonProperty(PropertyName = "secrets")]
+        public IDictionary<string, string> Secrets { get; }
+
         [JsonProperty(PropertyName = "settings")]
         [JsonConverter(typeof(ObjectToStringConverter<KubernetesConfig>))]
         public KubernetesConfig Config { get; }

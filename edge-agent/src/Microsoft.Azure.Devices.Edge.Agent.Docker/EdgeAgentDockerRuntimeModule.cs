@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Newtonsoft.Json;
 
@@ -36,7 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 imagePullPolicy,
                 Core.Constants.HighestPriority,
                 configuration,
-                env)
+                env,
+                ImmutableDictionary<string, string>.Empty)
         {
             // You maybe wondering why we are setting this here again even though
             // the base class does this assignment. This is due to a behavior

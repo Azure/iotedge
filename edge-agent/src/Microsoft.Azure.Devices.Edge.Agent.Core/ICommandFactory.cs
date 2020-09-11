@@ -18,6 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         Task<ICommand> RestartAsync(IModule module);
 
         Task<ICommand> StopAsync(IModule module);
+        
+        Task<ICommand> DeleteSecretAsync(IModule module, string secretId);
+
+        Task<ICommand> PullSecretAsync(IModule module, string secretId, string akvId);
 
         Task<ICommand> WrapAsync(ICommand command);
     }

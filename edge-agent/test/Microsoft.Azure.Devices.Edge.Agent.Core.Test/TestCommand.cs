@@ -114,6 +114,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRestart, module, this.Recorder));
         }
 
+        public Task<ICommand> DeleteSecretAsync(IModule module, string secretId)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestDeleteSecret, module, this.Recorder));
+        }
+
+        public Task<ICommand> PullSecretAsync(IModule module, string secretId, string akvId)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPullSecret, module, this.Recorder));
+        }
+
         public Task<ICommand> WrapAsync(ICommand command)
         {
             this.Recorder.ForEach(r => r.CommandWrapped(command));
@@ -171,6 +183,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             Assert.True(module is TestModule);
             return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestRestart, module, this.Recorder, true));
+        }
+
+        public Task<ICommand> DeleteSecretAsync(IModule module, string secretId)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestDeleteSecret, module, this.Recorder, true));
+        }
+
+        public Task<ICommand> PullSecretAsync(IModule module, string secretId, string akvId)
+        {
+            Assert.True(module is TestModule);
+            return Task.FromResult<ICommand>(new TestCommand(TestCommandType.TestPullSecret, module, this.Recorder, true));
         }
 
         public Task<ICommand> WrapAsync(ICommand command)

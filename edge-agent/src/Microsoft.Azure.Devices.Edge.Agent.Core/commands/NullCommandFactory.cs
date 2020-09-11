@@ -25,6 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Commands
 
         public Task<ICommand> RestartAsync(IModule module) => Task.FromResult<ICommand>(NullCommand.Instance);
 
+        public Task<ICommand> DeleteSecretAsync(IModule module, string secretId) => Task.FromResult<ICommand>(NullCommand.Instance);
+
+        public Task<ICommand> PullSecretAsync(IModule module, string secretId, string akvId) => Task.FromResult<ICommand>(NullCommand.Instance);
+
         public Task<ICommand> WrapAsync(ICommand command) => Task.FromResult(command);
     }
 }

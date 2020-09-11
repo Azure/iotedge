@@ -58,6 +58,7 @@ where
 
     let image_pull_policy = match spec
         .image_pull_policy()
+        .map(String::as_str)
         .map_or(Ok(ImagePullPolicy::default()), str::parse)
     {
         Ok(image_pull_policy) => image_pull_policy,

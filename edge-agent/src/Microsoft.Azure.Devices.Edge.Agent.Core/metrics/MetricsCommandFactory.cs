@@ -82,6 +82,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
 
+        public async Task<ICommand> DeleteSecretAsync(IModule module, string secretId)
+        {
+            using (this.factoryMetrics.MeasureTime("deleteSecret"))
+            {
+                return await this.underlying.DeleteSecretAsync(module, secretId);
+            }
+        }
+
+        public async Task<ICommand> PullSecretAsync(IModule module, string secretId, string akvId)
+        {
+            using (this.factoryMetrics.MeasureTime("pullSecret"))
+            {
+                return await this.underlying.PullSecretAsync(module, secretId, akvId);
+            }
+        }
+
         public async Task<ICommand> WrapAsync(ICommand command)
         {
             using (this.factoryMetrics.MeasureTime("wrap"))

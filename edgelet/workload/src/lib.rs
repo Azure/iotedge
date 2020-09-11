@@ -1,13 +1,13 @@
-// Copyright (c) Microsoft. All rights reserved.
+#![allow(unused_imports)]
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
-#![allow(
-    clippy::module_name_repetitions,
-    clippy::must_use_candidate,
-    clippy::too_many_lines,
-    clippy::use_self
-)]
+#[macro_use]
+extern crate serde_derive;
+
+extern crate hyper;
+extern crate serde;
+extern crate serde_json;
+extern crate futures;
+extern crate url;
 
 pub mod apis;
 pub mod models;

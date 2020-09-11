@@ -123,6 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     imagePullPolicy,
                     Constants.DefaultPriority,
                     null,
+                    null,
                     null);
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };
                 var systemModules = new SystemModules(null, null);
