@@ -51,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // assignment becomes a no-op.  In order to fix this we need to assign
             // this here again so that the correct property assignment happens for real!
             this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
-            this.Version = version ?? string.Empty;
         }
 
         [JsonConstructor]
@@ -98,9 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             DefaultValueHandling = DefaultValueHandling.Populate)]
         [DefaultValue(RestartPolicy.Always)]
         public override RestartPolicy RestartPolicy { get; }
-
-        [JsonIgnore]
-        public override string Version { get; }
 
         public override IModule WithRuntimeStatus(ModuleStatus newStatus) => new EdgeHubDockerRuntimeModule(
             this.DesiredStatus,
