@@ -1,4 +1,5 @@
-use std::collections::{HashMap, VecDeque};
+use std::marker::PhantomData;
+use std::collections::{HashMap};
 use std::str::FromStr;
 
 use anyhow::Error;
@@ -8,6 +9,8 @@ use mqtt_broker::TopicFilter;
 use tracing::{debug, info};
 
 use crate::client::{EventHandler, MqttClient};
+use crate::persist::memory::InMemoryPersist;
+use crate::persist::{Persist};
 use crate::settings::{ConnectionSettings, Credentials};
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
@@ -127,12 +130,13 @@ impl Bridge {
 }
 
 #[derive(Clone)]
-pub struct MessageHandler {
+pub struct MessageHandler<'a, T> where T: Persist<'a> {
     topics: HashMap<String, TopicFilter>,
-    inner: VecDeque<Publication>,
+    inner: T,
+    phantom: PhantomData<&'a T>,
 }
 
-impl<'a> MessageHandler {
+impl<'a> MessageHandler<'a, InMemoryPersist> {
     pub fn new(topics: &HashMap<String, String>) -> Self {
         let mut topic_filters: HashMap<String, TopicFilter> = HashMap::new();
 
@@ -142,7 +146,8 @@ impl<'a> MessageHandler {
 
         Self {
             topics: topic_filters,
-            inner: VecDeque::new(),
+            inner: InMemoryPersist::new(10),
+            phantom: PhantomData,
         }
     }
 
@@ -158,7 +163,7 @@ impl<'a> MessageHandler {
 }
 
 #[async_trait]
-impl EventHandler for MessageHandler {
+impl EventHandler for MessageHandler<'_, InMemoryPersist> {
     type Error = Error;
 
     // TODO: error
@@ -180,7 +185,7 @@ impl EventHandler for MessageHandler {
 
             if let Some(f) = forward {
                 debug!("Save message to store");
-                self.inner.push_back(f)
+                self.inner.push(f).await?;
             } else {
                 debug!("No topic matched");
             }
