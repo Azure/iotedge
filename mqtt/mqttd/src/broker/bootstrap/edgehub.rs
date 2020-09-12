@@ -1,5 +1,3 @@
-use mqtt_edgehub::command::Command;
-use std::collections::HashMap;
 use std::{
     env,
     future::Future,
@@ -31,8 +29,7 @@ use mqtt_broker::{
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::init_commands,
-    command_handler::CommandHandler,
+    command::{AuthorizedIdentities, CommandHandler, Disconnect},
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
@@ -93,11 +90,11 @@ where
     let broker_handle = broker.handle();
 
     let mut server =
-        Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor::default());
+        Server::from_broker(broker).with_packet_processor(MakeEdgeHubPacketProcessor::default());
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();
-    server.tcp(config.listener().system().addr(), authenticator, None)?;
+    server.with_tcp(config.listener().system().addr(), authenticator, None)?;
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
@@ -105,7 +102,7 @@ where
 
     if let Some(tcp) = config.listener().tcp() {
         let broker_ready = Some(broker_ready.subscribe());
-        server.tcp(tcp.addr(), authenticator.clone(), broker_ready)?;
+        server.with_tcp(tcp.addr(), authenticator.clone(), broker_ready)?;
     }
 
     // Add regular MQTT over TLS transport
@@ -129,7 +126,7 @@ where
             let renew_at = identity.not_after();
 
             let broker_ready = Some(broker_ready.subscribe());
-            server.tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
+            server.with_tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -198,10 +195,13 @@ async fn start_sidecars(
 
     let sidecars = tokio::spawn(async move {
         let device_id = env::var(DEVICE_ID_ENV)?;
-        let commands: HashMap<String, Box<dyn Command + Send>> = init_commands();
-        let command_handler =
-            CommandHandler::new(broker_handle, system_address, device_id.as_str(), commands)
-                .await?;
+
+        let mut command_handler = CommandHandler::new(system_address, device_id.as_str());
+        command_handler.add_command(Disconnect::new(&broker_handle));
+        command_handler.add_command(AuthorizedIdentities::new(&broker_handle));
+
+        command_handler.init().await?;
+
         let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
 
         let command_handler_join_handle = tokio::spawn(command_handler.run());

@@ -47,7 +47,7 @@ where
     Z: Authorizer + Send + 'static,
     P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
 {
-    pub fn tcp<A, N>(
+    pub fn with_tcp<A, N>(
         &mut self,
         addr: A,
         authenticator: N,
@@ -68,7 +68,7 @@ where
         Ok(self)
     }
 
-    pub fn tls<A, N>(
+    pub fn with_tls<A, N>(
         &mut self,
         addr: A,
         identity: ServerCertificate,
@@ -90,7 +90,7 @@ where
         Ok(self)
     }
 
-    pub fn packet_processor<P1>(self, make_processor: P1) -> Server<Z, P1> {
+    pub fn with_packet_processor<P1>(self, make_processor: P1) -> Server<Z, P1> {
         Server {
             broker: self.broker,
             listeners: self.listeners,
