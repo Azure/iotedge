@@ -3,7 +3,7 @@ use regex::Regex;
 use serde::Deserialize;
 
 use crate::{
-    core::{Effect as CoreEffect, EffectOrd, Identities, Operations, Resources},
+    core::{Identities, Operations, Resources},
     Decision, DefaultResourceMatcher, DefaultSubstituter, DefaultValidator, Error, Policy,
     PolicyValidator, ResourceMatcher, Result, Substituter,
 };
@@ -215,8 +215,18 @@ fn is_variable_rule(value: &str) -> bool {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyDefinition {
-    pub schema_version: String,
-    pub statements: Vec<Statement>,
+    schema_version: String,
+    statements: Vec<Statement>,
+}
+
+impl PolicyDefinition {
+    pub fn schema_version(&self) -> &str {
+        &self.schema_version
+    }
+
+    pub fn statements(&self) -> &Vec<Statement> {
+        &self.statements
+    }
 }
 
 /// Represents a statement in a policy definition.
@@ -226,12 +236,38 @@ pub struct Statement {
     #[serde(default)]
     order: usize,
     #[serde(default)]
-    pub description: String,
-    pub effect: Effect,
-    pub identities: Vec<String>,
-    pub operations: Vec<String>,
+    description: String,
+    effect: Effect,
+    identities: Vec<String>,
+    operations: Vec<String>,
     #[serde(default)]
-    pub resources: Vec<String>,
+    resources: Vec<String>,
+}
+
+impl Statement {
+    pub(crate) fn order(&self) -> usize {
+        self.order
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    pub fn effect(&self) -> Effect {
+        self.effect
+    }
+
+    pub fn identities(&self) -> &Vec<String> {
+        &self.identities
+    }
+
+    pub fn operations(&self) -> &Vec<String> {
+        &self.operations
+    }
+
+    pub fn resources(&self) -> &Vec<String> {
+        &self.resources
+    }
 }
 
 /// Represents an effect on a statement.
@@ -242,19 +278,10 @@ pub enum Effect {
     Deny,
 }
 
-impl Into<EffectOrd> for &Statement {
-    fn into(self) -> EffectOrd {
-        match self.effect {
-            Effect::Allow => EffectOrd::new(CoreEffect::Allow, self.order),
-            Effect::Deny => EffectOrd::new(CoreEffect::Deny, self.order),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::tests::build_policy;
+    use crate::core::{tests::build_policy, Effect as CoreEffect, EffectOrd};
     use matches::assert_matches;
 
     #[test]

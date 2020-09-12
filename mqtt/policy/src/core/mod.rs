@@ -348,6 +348,15 @@ impl From<EffectOrd> for Decision {
     }
 }
 
+impl From<&Statement> for EffectOrd {
+    fn from(statement: &Statement) -> Self {
+        match statement.effect() {
+            builder::Effect::Allow => EffectOrd::new(Effect::Allow, statement.order()),
+            builder::Effect::Deny => EffectOrd::new(Effect::Deny, statement.order()),
+        }
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
