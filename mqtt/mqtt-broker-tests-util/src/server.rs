@@ -69,7 +69,7 @@ where
     let address = format!("localhost:{}", port);
 
     let mut server = Server::from_broker(broker);
-    server.tcp(&address, authenticator);
+    server.tcp(&address, authenticator, None).unwrap();
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let task = tokio::spawn(server.serve(rx.map(drop)));
