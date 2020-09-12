@@ -18,10 +18,10 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AttestationMethod, AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions,
-    ManualAuthMethod, MakeModuleRuntime, MobyNetwork, Module, ModuleId, ModuleRegistry,
-    ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningType, RegistryOperation,
-    RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
+    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
+    SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -245,22 +245,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     .map(move |client| {
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
-                        let provisioning_type = match settings.provisioning().provisioning_type() {
-                            ProvisioningType::Manual(manual) => {
-                                match manual.authentication_method() {
-                                    ManualAuthMethod::DeviceConnectionString(_) => "manual.device_connection_string",
-                                    ManualAuthMethod::X509(_) => "manual.x509",
-                                }
-                            },
-                            ProvisioningType::Dps(dps) => {
-                                match dps.attestation() {
-                                    AttestationMethod::Tpm(_) => "dps.tpm",
-                                    AttestationMethod::SymmetricKey(_) => "dps.symmetric_key",
-                                    AttestationMethod::X509(_) => "dps.x509",
-                                }
-                            },
-                            ProvisioningType::External(_) => "external",
-                        };
+                        let provisioning_type = settings.provisioning().provisioning_type().name();
                         info!("Successfully initialized module runtime");
                         DockerModuleRuntime {
                             client,

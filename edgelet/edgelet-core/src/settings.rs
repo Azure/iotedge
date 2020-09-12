@@ -431,6 +431,23 @@ pub enum ProvisioningType {
     External(External),
 }
 
+impl ProvisioningType {
+    pub fn name(&self) -> &str {
+        match self {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
+                ManualAuthMethod::DeviceConnectionString(_) => "manual.device_connection_string",
+                ManualAuthMethod::X509(_) => "manual.x509",
+            },
+            ProvisioningType::Dps(dps) => match dps.attestation() {
+                AttestationMethod::Tpm(_) => "dps.tpm",
+                AttestationMethod::SymmetricKey(_) => "dps.symmetric_key",
+                AttestationMethod::X509(_) => "dps.x509",
+            },
+            ProvisioningType::External(_) => "external",
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Connect {
     #[serde(with = "url_serde")]
@@ -771,7 +788,11 @@ where
 mod tests {
     use test_case::test_case;
 
-    use super::{convert_to_path, convert_to_uri, FromStr, Protocol, Url};
+    use super::{
+        convert_to_path, convert_to_uri, AttestationMethod, Dps, External, FromStr, Manual,
+        ManualAuthMethod, ManualDeviceConnectionString, ManualX509Auth, Protocol, ProvisioningType,
+        SymmetricKeyAttestationInfo, TpmAttestationInfo, Url, X509AttestationInfo,
+    };
 
     #[test]
     fn test_convert_to_path() {
@@ -959,5 +980,57 @@ mod tests {
             actual,
             Err(format!("Unsupported TLS protocol version: {}", value))
         )
+    }
+
+    #[test]
+    fn name_returns_the_provisioning_type_name() {
+        let ptype = ProvisioningType::Manual(Box::new(Manual::new(
+            ManualAuthMethod::DeviceConnectionString(ManualDeviceConnectionString::new(
+                "".to_string(),
+            )),
+        )));
+        assert_eq!("manual.device_connection_string", ptype.name());
+
+        let ptype = ProvisioningType::Manual(Box::new(Manual::new(ManualAuthMethod::X509(
+            ManualX509Auth {
+                iothub_hostname: String::default(),
+                device_id: String::default(),
+                identity_cert: Url::parse("file:///irrelevant").unwrap(),
+                identity_pk: Url::parse("file:///irrelevant").unwrap(),
+            },
+        ))));
+        assert_eq!("manual.x509", ptype.name());
+
+        let ptype = ProvisioningType::Dps(Box::new(Dps {
+            global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
+            scope_id: "irrelevant".to_string(),
+            attestation: AttestationMethod::Tpm(TpmAttestationInfo::new("irrelevant".to_string())),
+        }));
+        assert_eq!("dps.tpm", ptype.name());
+
+        let ptype = ProvisioningType::Dps(Box::new(Dps {
+            global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
+            scope_id: "irrelevant".to_string(),
+            attestation: AttestationMethod::SymmetricKey(SymmetricKeyAttestationInfo {
+                registration_id: "irrelevant".to_string(),
+                symmetric_key: "irrelevant".to_string(),
+            }),
+        }));
+        assert_eq!("dps.symmetric_key", ptype.name());
+
+        let ptype = ProvisioningType::Dps(Box::new(Dps {
+            global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
+            scope_id: "irrelevant".to_string(),
+            attestation: AttestationMethod::X509(X509AttestationInfo {
+                registration_id: Some("irrelevant".to_string()),
+                identity_cert: Url::parse("file:///irrelevant").unwrap(),
+                identity_pk: Url::parse("file:///irrelevant").unwrap(),
+            }),
+        }));
+        assert_eq!("dps.x509", ptype.name());
+
+        let ptype =
+            ProvisioningType::External(External::new(Url::parse("http://irrelevant.net").unwrap()));
+        assert_eq!("external", ptype.name());
     }
 }
