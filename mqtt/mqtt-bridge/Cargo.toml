@@ -24,6 +24,7 @@ tokio = { version = "0.2", features = ["sync"] }
 edgelet-client = { path = "../edgelet-client"}
 
 [dev-dependencies]
-tokio = { version = "0.2", features = ["macros"] }
 matches = "0.1"
+tokio = { version = "0.2", features = ["macros"] }
+
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
