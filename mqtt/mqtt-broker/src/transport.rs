@@ -1,7 +1,7 @@
 use std::{
     fmt::Display,
     future::Future,
-    net::SocketAddr,
+    net::{SocketAddr, ToSocketAddrs},
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
@@ -16,7 +16,7 @@ use openssl::{
 };
 use tokio::{
     io::{AsyncRead, AsyncWrite},
-    net::{TcpListener, TcpStream, ToSocketAddrs},
+    net::{TcpListener, TcpStream},
     stream::Stream,
 };
 use tokio_openssl::{accept, HandshakeError, SslStream};
@@ -24,82 +24,113 @@ use tracing::{debug, error, warn};
 
 use crate::{auth::Certificate, Error, InitializeBrokerError, ServerCertificate};
 
-pub enum Transport {
-    Tcp(TcpListener),
-    Tls(TcpListener, SslAcceptor),
+/// Represents transport protocol that is exposed to the clients.
+pub struct Transport {
+    protocol: Protocol,
 }
 
 impl Transport {
-    pub async fn new_tcp<A>(addr: A) -> Result<Self, InitializeBrokerError>
+    /// Creates a new instance of a transport protocol over TCP.
+    pub fn new_tcp<A>(addr: A) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs + Display,
     {
-        let tcp = TcpListener::bind(&addr)
-            .await
-            .map_err(|e| InitializeBrokerError::BindServer(addr.to_string(), e))?;
+        let mut addrs = addr
+            .to_socket_addrs()
+            .map_err(|e| InitializeBrokerError::SocketAddr(addr.to_string(), e))?;
 
-        Ok(Transport::Tcp(tcp))
+        match addrs.next() {
+            Some(addr) => Ok(Self {
+                protocol: Protocol::Tcp(addr),
+            }),
+            None => Err(InitializeBrokerError::MissingSocketAddr(addr.to_string())),
+        }
     }
 
-    pub async fn new_tls<A>(
-        addr: A,
-        identity: ServerCertificate,
-    ) -> Result<Self, InitializeBrokerError>
+    /// Creates a new instance of a transport protocol TCP over TLS.
+    pub fn new_tls<A>(addr: A, identity: ServerCertificate) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs + Display,
     {
-        let tcp = TcpListener::bind(&addr)
-            .await
-            .map_err(|e| InitializeBrokerError::BindServer(addr.to_string(), e))?;
+        let mut addrs = addr
+            .to_socket_addrs()
+            .map_err(|e| InitializeBrokerError::SocketAddr(addr.to_string(), e))?;
 
-        let (private_key, certificate, chain, ca) = identity.into_parts();
+        match addrs.next() {
+            Some(addr) => Ok(Self {
+                protocol: Protocol::Tls(addr, identity),
+            }),
+            None => Err(InitializeBrokerError::MissingSocketAddr(addr.to_string())),
+        }
+    }
 
-        let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
+    /// Starts to listen incoming connections from remote clients.
+    pub async fn incoming(self) -> Result<Incoming, InitializeBrokerError> {
+        match self.protocol {
+            Protocol::Tcp(addr) => {
+                let tcp = TcpListener::bind(&addr)
+                    .await
+                    .map_err(|e| InitializeBrokerError::BindServer(addr, e))?;
 
-        // add server certificate and private key
-        acceptor.set_private_key(&private_key)?;
-        acceptor.set_certificate(&certificate)?;
+                Ok(Incoming::Tcp(IncomingTcp::new(tcp)))
+            }
+            Protocol::Tls(addr, identity) => {
+                let tcp = TcpListener::bind(&addr)
+                    .await
+                    .map_err(|e| InitializeBrokerError::BindServer(addr, e))?;
+                let acceptor = prepare_acceptor(identity)?;
 
-        // add all certificates from a chain
-        if let Some(chain) = chain {
-            for cert in chain {
-                acceptor.add_extra_chain_cert(cert)?;
+                Ok(Incoming::Tls(IncomingTls::new(tcp, acceptor)))
             }
         }
-
-        // install CA certificate in the store
-        if let Some(ca) = ca {
-            acceptor.cert_store_mut().add_cert(ca)?;
-        }
-
-        // set options to support some clients
-        acceptor.set_options(
-            SslOptions::NO_SESSION_RESUMPTION_ON_RENEGOTIATION | SslOptions::NO_TICKET,
-        );
-
-        // request client certificate for verification but disabel certificate verification
-        acceptor.set_verify_callback(SslVerifyMode::PEER, |_, _| true);
-
-        // check that private key corresponds to certificate
-        acceptor.check_private_key()?;
-
-        Ok(Transport::Tls(tcp, acceptor.build()))
     }
 
-    pub fn incoming(self) -> Incoming {
-        match self {
-            Self::Tcp(listener) => Incoming::Tcp(IncomingTcp::new(listener)),
-            Self::Tls(listener, acceptor) => Incoming::Tls(IncomingTls::new(listener, acceptor)),
+    /// Returns a local address which transport listens to.
+    pub fn addr(&self) -> SocketAddr {
+        match self.protocol {
+            Protocol::Tcp(addr) => addr,
+            Protocol::Tls(addr, _) => addr,
         }
     }
+}
 
-    pub fn local_addr(&self) -> Result<SocketAddr, InitializeBrokerError> {
-        let addr = match self {
-            Self::Tcp(listener) => listener.local_addr(),
-            Self::Tls(listener, _) => listener.local_addr(),
-        };
-        addr.map_err(InitializeBrokerError::ConnectionLocalAddress)
+enum Protocol {
+    Tcp(SocketAddr),
+    Tls(SocketAddr, ServerCertificate),
+}
+
+fn prepare_acceptor(identity: ServerCertificate) -> Result<SslAcceptor, InitializeBrokerError> {
+    let (private_key, certificate, chain, ca) = identity.into_parts();
+
+    let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
+
+    // add server certificate and private key
+    acceptor.set_private_key(&private_key)?;
+    acceptor.set_certificate(&certificate)?;
+
+    // add all certificates from a chain
+    if let Some(chain) = chain {
+        for cert in chain {
+            acceptor.add_extra_chain_cert(cert)?;
+        }
     }
+
+    // install CA certificate in the store
+    if let Some(ca) = ca {
+        acceptor.cert_store_mut().add_cert(ca)?;
+    }
+
+    // set options to support some clients
+    acceptor
+        .set_options(SslOptions::NO_SESSION_RESUMPTION_ON_RENEGOTIATION | SslOptions::NO_TICKET);
+
+    // request client certificate for verification but disabel certificate verification
+    acceptor.set_verify_callback(SslVerifyMode::PEER, |_, _| true);
+
+    // check that private key corresponds to certificate
+    acceptor.check_private_key()?;
+
+    Ok(acceptor.build())
 }
 
 type HandshakeFuture =
@@ -108,6 +139,16 @@ type HandshakeFuture =
 pub enum Incoming {
     Tcp(IncomingTcp),
     Tls(IncomingTls),
+}
+
+impl Incoming {
+    pub fn local_addr(&self) -> Result<SocketAddr, InitializeBrokerError> {
+        let addr = match self {
+            Self::Tcp(incoming) => incoming.listener.local_addr(),
+            Self::Tls(incoming) => incoming.listener.local_addr(),
+        };
+        addr.map_err(InitializeBrokerError::ConnectionLocalAddress)
+    }
 }
 
 impl Stream for Incoming {
