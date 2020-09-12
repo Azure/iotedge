@@ -8,14 +8,16 @@ use std::{
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
-use thiserror::Error;
-
 use futures_util::{
     future::{self, Either},
     pin_mut, FutureExt,
 };
+use thiserror::Error;
 use tokio::{
-    sync::oneshot::{channel, Sender},
+    sync::{
+        broadcast,
+        oneshot::{self, Sender},
+    },
     task::JoinHandle,
     time,
 };
@@ -95,12 +97,15 @@ where
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();
-    server.tcp(config.listener().system().addr(), authenticator);
+    server.tcp(config.listener().system().addr(), authenticator, None)?;
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
+    let (broker_ready, _) = broadcast::channel(1);
+
     if let Some(tcp) = config.listener().tcp() {
-        server.tcp(tcp.addr(), authenticator.clone());
+        let broker_ready = Some(broker_ready.subscribe());
+        server.tcp(tcp.addr(), authenticator.clone(), broker_ready)?;
     }
 
     // Add regular MQTT over TLS transport
@@ -122,7 +127,9 @@ where
                     .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), identity, authenticator.clone())?;
+
+            let broker_ready = Some(broker_ready.subscribe());
+            server.tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -133,6 +140,12 @@ where
     // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
+
+    // TODO remove this call when broker readiness is implemented
+    tokio::spawn(async move {
+        tokio::time::delay_for(std::time::Duration::from_millis(500)).await;
+        broker_ready.send(()).expect("ready signal");
+    });
 
     // Start the sidecars
     let system_address = config.listener().system().addr().to_string();
@@ -177,7 +190,7 @@ async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
 ) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
-    let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
+    let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
 
     let mut bridge_controller = BridgeController::new();
     let bridge = bridge_controller.start();

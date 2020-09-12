@@ -48,7 +48,7 @@ impl Command for Disconnect {
         }
 
         info!(
-            "succeeded sending broker signal to disconnect client{}",
+            "succeeded sending broker signal to disconnect client {}",
             client_id
         );
         Ok(())
