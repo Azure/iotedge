@@ -164,7 +164,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             moduleStateStore.Setup(m => m.Get("contentTrustModule")).ReturnsAsync(Option.Some(new ModuleState(4, new DateTime(2017, 10, 13))));
             moduleStateStore.Setup(m => m.Get("edgeHub")).ReturnsAsync(Option.Some(new ModuleState(3, new DateTime(2017, 10, 13))));
             moduleStateStore.Setup(m => m.Get("edgeAgent")).ReturnsAsync(Option.Some(new ModuleState(4, new DateTime(2017, 10, 13))));
-            
             string minDockerVersion = "20";
             string dockerLoggingOptions = "dummy logging options";
 
