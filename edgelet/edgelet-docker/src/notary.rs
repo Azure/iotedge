@@ -180,7 +180,7 @@ mod test {
         let display_msg = format!("root ca at path {} does not exist", root_ca_file.display());
         assert!(matches!(
             err.kind(),
-            ErrorKind::InitializeNotary(s) if s == &display_msg,
+            ErrorKind::InitializeNotary(s) if s == &display_msg
         ));
     }
 }
