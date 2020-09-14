@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use std::{boxed::Box, collections::HashMap, task::Waker};
 
 use bincode::{deserialize, serialize, ErrorKind};
@@ -48,11 +49,10 @@ impl StreamWakeableState for WakingStore {
 
     /// Get count elements of store, exluding those that are already in in-flight
     fn get(&mut self, count: usize) -> Vec<(Key, Publication)> {
-        let mut iter = self.db.iterator(IteratorMode::Start);
+        let iter = self.db.iterator(IteratorMode::Start);
         let mut output = vec![];
 
-        let mut iterations = 0;
-        while let Some(extracted) = iter.next() {
+        for (iterations, extracted) in iter.enumerate() {
             let key: Result<Key, Box<ErrorKind>> = deserialize(&*extracted.0);
             let key = match key {
                 Ok(key) => key,
@@ -71,12 +71,12 @@ impl StreamWakeableState for WakingStore {
                 }
             };
 
-            if !self.in_flight.contains_key(&key) {
+            if let Entry::Vacant(o) = self.in_flight.entry(key.clone()) {
+                o.insert(publication.clone());
                 output.push((key.clone(), publication.clone()));
                 self.in_flight.insert(key, publication);
             }
 
-            iterations += 1;
             if iterations == count {
                 break;
             }
