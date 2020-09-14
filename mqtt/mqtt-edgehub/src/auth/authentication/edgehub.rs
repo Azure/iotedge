@@ -1,6 +1,5 @@
 use std::{
     convert::{TryFrom, TryInto},
-    error::Error as StdError,
     time::Duration,
 };
 
@@ -69,7 +68,7 @@ impl EdgeHubAuthenticator {
 
 #[async_trait]
 impl Authenticator for EdgeHubAuthenticator {
-    type Error = Box<dyn StdError>;
+    type Error = AuthenticateError;
 
     async fn authenticate(
         &self,
@@ -179,7 +178,7 @@ pub enum AuthenticateError {
 
 #[cfg(test)]
 mod tests {
-    use std::{error::Error as StdError, net::SocketAddr, time::Duration};
+    use std::{net::SocketAddr, time::Duration};
 
     use matches::assert_matches;
     use mockito::{mock, Matcher};
@@ -187,7 +186,7 @@ mod tests {
 
     use mqtt_broker::auth::{AuthenticationContext, Authenticator, Certificate};
 
-    use super::EdgeHubAuthenticator;
+    use super::{AuthenticateError, EdgeHubAuthenticator};
 
     const CERT: &str = "-----BEGIN CERTIFICATE-----
 MIIEbjCCAlagAwIBAgIEdLDcUTANBgkqhkiG9w0BAQsFADAfMR0wGwYDVQQDDBRp
@@ -417,7 +416,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
-        let authenticator: &dyn Authenticator<Error = Box<dyn StdError>> = &authenticator();
+        let authenticator: &dyn Authenticator<Error = AuthenticateError> = &authenticator();
         let result = authenticator.authenticate(context).await.unwrap().unwrap();
 
         tx.send(()).unwrap();

@@ -1,4 +1,4 @@
-use std::{error::Error as StdError, net::SocketAddr, ops::Deref};
+use std::{convert::Infallible, error::Error as StdError, net::SocketAddr};
 
 use async_trait::async_trait;
 
@@ -30,7 +30,7 @@ impl From<String> for Certificate {
 #[async_trait]
 pub trait Authenticator {
     /// Authentication error.
-    type Error: Deref<Target = dyn StdError>;
+    type Error: std::fmt::Display; //: Deref<Target = dyn StdError>;
 
     /// Authenticates a MQTT client with given credentials.
     ///
@@ -114,7 +114,7 @@ impl AuthenticationContext {
 
 /// Creates an authenticator from a function.
 /// It wraps any provided function with an interface aligned with authenticator.
-pub fn authenticate_fn_ok<F>(f: F) -> impl Authenticator<Error = Box<dyn StdError>>
+pub fn authenticate_fn_ok<F>(f: F) -> impl Authenticator<Error = Infallible>
 where
     F: Fn(AuthenticationContext) -> Option<AuthId> + Sync + 'static,
 {
@@ -125,7 +125,8 @@ where
 impl<F, E> Authenticator for F
 where
     F: Fn(AuthenticationContext) -> Result<Option<AuthId>, E> + Sync,
-    E: Deref<Target = dyn StdError> + 'static,
+    // E: Deref<Target = dyn StdError> + 'static,
+    E: StdError + 'static,
 {
     type Error = E;
 
@@ -143,10 +144,38 @@ pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    type Error = Box<dyn StdError>;
+    type Error = Infallible;
 
     async fn authenticate(&self, _: AuthenticationContext) -> Result<Option<AuthId>, Self::Error> {
         Ok(None)
+    }
+}
+
+/// Wrapper to take any authenticator and wrap error type as a trait object.
+pub struct DynAuthenticator<N> {
+    inner: N,
+}
+
+#[async_trait]
+impl<N, E> Authenticator for DynAuthenticator<N>
+where
+    N: Authenticator<Error = E> + Send + Sync,
+    E: StdError + Into<Box<dyn StdError>> + Send + Sync + 'static,
+{
+    type Error = Box<dyn StdError + Send + Sync>;
+
+    async fn authenticate(
+        &self,
+        context: AuthenticationContext,
+    ) -> Result<Option<AuthId>, Self::Error> {
+        let auth_id = self.inner.authenticate(context).await?;
+        Ok(auth_id)
+    }
+}
+
+impl<C> From<C> for DynAuthenticator<C> {
+    fn from(command: C) -> Self {
+        Self { inner: command }
     }
 }
 

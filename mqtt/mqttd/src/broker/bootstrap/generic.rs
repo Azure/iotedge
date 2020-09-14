@@ -54,13 +54,13 @@ where
 
     if let Some(tcp) = config.listener().tcp() {
         let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
-        server.tcp(tcp.addr(), authenticator, None)?;
+        server.with_tcp(tcp.addr(), authenticator, None)?;
     }
 
     if let Some(tls) = config.listener().tls() {
         let authenticator = authenticate_fn_ok(|_| Some(AuthId::Anonymous));
         let identity = load_server_certificate(tls.certificate())?;
-        server.tls(tls.addr(), identity, authenticator, None)?;
+        server.with_tls(tls.addr(), identity, authenticator, None)?;
     }
 
     let state = server.serve(shutdown_signal).await?;
