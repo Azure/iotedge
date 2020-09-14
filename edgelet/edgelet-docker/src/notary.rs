@@ -103,10 +103,10 @@ pub fn notary_init(
 }
 
 pub fn notary_lookup(
-    notary_auth: &str,
+    notary_auth: Option<&str>,
     image_gun: &str,
     tag: &str,
-    config_path: &str,
+    config_path: &Path,
     lock: tokio::sync::lock::LockGuard<BTreeMap<String, String>>,
 ) -> impl Future<
     Item = (
@@ -115,11 +115,15 @@ pub fn notary_lookup(
     ),
     Error = Error,
 > {
-    Command::new("notary")
-        .env("NOTARY_AUTH", notary_auth)
+    let mut notary_cmd = Command::new("notary");
+    if let Some(notary_auth) = notary_auth {
+        notary_cmd.env("NOTARY_AUTH", notary_auth);
+    }
+    notary_cmd
         .arg("lookup")
         .args(&[image_gun, tag])
-        .args(&["-c", config_path])
+        .arg("-c")
+        .arg(config_path)
         .output_async()
         .then(|notary_output| {
             let notary_output = notary_output.with_context(|_| {
@@ -129,7 +133,7 @@ pub fn notary_lookup(
                 String::from_utf8(notary_output.stdout).with_context(|_| {
                     ErrorKind::LaunchNotary("could not retrieve notary output as string".to_owned())
                 })?;
-            info!("Notary output string is {}", notary_output_string);
+            debug!("Notary output string is {}", notary_output_string);
             let split_array: Vec<&str> = notary_output_string.split_whitespace().collect();
             if split_array.len() < 2 {
                 return Err(ErrorKind::LaunchNotary(

@@ -117,71 +117,39 @@ impl ModuleRegistry for DockerModuleRuntime {
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
         let image_with_tag = config.image().to_string();
 
-        // check if the serveraddress exists & check if it exists in notary_registries
-
-        let registry_auth = config.auth();
-        let (registry_hostname, registry_username, registry_password) = match registry_auth {
-            Some(a) => (a.serveraddress(), a.username(), a.password()),
-            None => (None, None, None),
-        };
-        let hostname = registry_hostname.unwrap_or_default();
-        let username = registry_username.unwrap_or_default();
-        let password = registry_password.unwrap_or_default();
-
-        let image = if !hostname.is_empty() && !username.is_empty() && !password.is_empty() {
-            let config_path = self.notary_registries.get(hostname);
-            if let Some(config_path_buf) = config_path {
-                info!("{} is enabled for notary content trust", hostname);
-                let config_path_string_result =
-                    config_path_buf.clone().into_os_string().into_string();
-                let config_path_str;
-                match config_path_string_result {
-                    Ok(c) => config_path_str = c,
-                    Err(_) => config_path_str = "".to_string(),
-                }
-                let mut image_with_tag_parts = image_with_tag.split(':');
-                let gun = image_with_tag_parts
-                    .next()
-                    .expect("split always returns atleast one element")
-                    .to_owned();
-                let gun: Arc<str> = gun.into();
-                let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
-                let notary_auth = format!("{}:{}", username, password);
-                let notary_auth = base64::encode(&notary_auth);
-                let lock = self.notary_lock.clone();
-                let mutex = MutexFuture(lock);
-                future::Either::A(
-                    mutex
-                        .and_then({
-                            let gun = gun.clone();
-                            move |lock| {
-                                notary::notary_lookup(
-                                    &notary_auth,
-                                    &gun,
-                                    &tag,
-                                    &config_path_str,
-                                    lock,
-                                )
-                            }
-                        })
-                        .map(move |(digest, mut lock)| {
-                            info!("Digest from lookup {}", digest);
-                            let image_with_digest = format!("{}@{}", gun, digest);
-                            lock.insert(image_with_tag, digest);
-                            (image_with_digest, true)
-                        }),
-                )
-            } else {
-                info!("{} is not enabled for notary content trust", hostname);
-                future::Either::B(futures::future::ok((image_with_tag, false)))
-            }
+        let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
+            get_notary_parameters(config, &self.notary_registries, &image_with_tag)
+        {
+            let lock = self.notary_lock.clone();
+            let mutex = MutexFuture(lock);
+            future::Either::A(
+                mutex
+                    .and_then({
+                        let gun = gun.clone();
+                        move |lock| {
+                            notary::notary_lookup(
+                                notary_auth.as_deref(),
+                                &gun,
+                                &tag,
+                                &config_path,
+                                lock,
+                            )
+                        }
+                    })
+                    .map(move |(digest, mut lock)| {
+                        debug!("Digest from notary lookup {}", digest);
+                        let image_with_digest = format!("{}@{}", gun, digest);
+                        lock.insert(image_with_tag, digest);
+                        (image_with_digest, true)
+                    }),
+            )
         } else {
             future::Either::B(futures::future::ok((image_with_tag, false)))
         };
 
         let creds = config.auth().cloned();
         let client_copy = self.client.clone();
-        let response = image
+        let response = image_by_notary
             .and_then(|(image, is_content_trust_enabled)| {
                 let creds = match creds {
                     Some(a) => {
@@ -435,90 +403,55 @@ impl ModuleRuntime for DockerModuleRuntime {
         let image_with_tag = module.config().image().to_string();
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
-        // check if the serveraddress exists & check if it exists in notary_registries
-        let registry_auth = module.config().auth();
-        let (registry_hostname, registry_username, registry_password) = match registry_auth {
-            Some(a) => (a.serveraddress(), a.username(), a.password()),
-            None => (None, None, None),
-        };
-        let hostname = registry_hostname.unwrap_or_default();
-        let username = registry_username.unwrap_or_default();
-        let password = registry_password.unwrap_or_default();
-
-        let image_by_notary = if !hostname.is_empty()
-            && !username.is_empty()
-            && !password.is_empty()
+        let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
+            get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
         {
-            let config_path = self.notary_registries.get(hostname);
-            if let Some(c) = config_path {
-                info!("{} is enabled for notary content trust", hostname);
-                let config_path_buf = c;
-                let config_path_string_result =
-                    config_path_buf.clone().into_os_string().into_string();
-                let config_path_str;
-                match config_path_string_result {
-                    Ok(c) => config_path_str = c,
-                    Err(_) => config_path_str = "".to_string(),
-                }
-                let mut image_with_tag_parts = image_with_tag.split(':');
-                let gun = image_with_tag_parts
-                    .next()
-                    .expect("split always returns atleast one element")
-                    .to_owned();
-                let gun: Arc<str> = gun.into();
-                let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
-                let notary_auth = format!("{}:{}", username, password);
-                let notary_auth = base64::encode(&notary_auth);
-                let lock = self.notary_lock.clone();
-                let mutex = MutexFuture(lock);
-                future::Either::A(
-                        mutex
-                            .and_then({
-                                let gun = gun.clone();
-                                let image_with_tag = image_with_tag.clone();
-                                move |lock| {
-                                    let digest_from_notary = lock.get(&image_with_tag);
-                                    if let Some(digest_from_notary) = digest_from_notary {
-                                        future::Either::A(future::ok((digest_from_notary.clone(), lock)))
-                                    }
-                                    else {
-                                        future::Either::B(notary::notary_lookup(
-                                            &notary_auth,
-                                            &gun,
-                                            &tag,
-                                            &config_path_str,
-                                            lock,
-                                        ))
-                                    }
-                                }
-                            })
-                            .and_then(move |(digest_from_notary, mut lock)| {
-                                lock.insert(image_with_tag, digest_from_notary.clone());
-                                let image_with_digest = format!("{}@{}", gun, digest_from_notary);
-                                if let Some(digest_from_manifest_str) = digest_from_manifest {
-                                    if digest_from_manifest_str == digest_from_notary {
-                                        info!("Digest from notary and Digest from manifest does match");
-                                        info!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
-                                        Ok((image_with_digest, true))
-                                    }
-                                    else {
-                                        info!("Digest from notary and Digest from manifest does not match");
-                                        info!("Digest from notary : {} and Digest from manifest : {} does not match", digest_from_notary, digest_from_manifest_str);
-                                        Err(Error::from(ErrorKind::NotaryDigestMismatch(
-                                             "notary digest mismatch with the manifest".to_owned(),
-                                        )))
-                                    }
-                                }
-                                else {
-                                    info!("No Digest from the manifest");
-                                    Ok((image_with_digest, true))
-                                }
-                            }),
-                    )
-            } else {
-                info!("{} is not enabled for notary content trust", hostname);
-                future::Either::B(futures::future::ok::<_, Error>((image_with_tag, false)))
-            }
+            let lock = self.notary_lock.clone();
+            let mutex = MutexFuture(lock);
+            future::Either::A(
+                mutex
+                    .and_then({
+                        let gun = gun.clone();
+                        let image_with_tag = image_with_tag.clone();
+                        move |lock| {
+                            let digest_from_notary = lock.get(&image_with_tag);
+                            if let Some(digest_from_notary) = digest_from_notary {
+                                future::Either::A(future::ok((digest_from_notary.clone(), lock)))
+                            }
+                            else {
+                                future::Either::B(notary::notary_lookup(
+                                    notary_auth.as_deref(),
+                                    &gun,
+                                    &tag,
+                                    &config_path,
+                                    lock,
+                                ))
+                            }
+                        }
+                    })
+                    .and_then(move |(digest_from_notary, mut lock)| {
+                        lock.insert(image_with_tag, digest_from_notary.clone());
+                        let image_with_digest = format!("{}@{}", gun, digest_from_notary);
+                        if let Some(digest_from_manifest_str) = digest_from_manifest {
+                            if digest_from_manifest_str == digest_from_notary {
+                                info!("Digest from notary and Digest from manifest does match");
+                                debug!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
+                                Ok((image_with_digest, true))
+                            }
+                            else {
+                                info!("Digest from notary and Digest from manifest does not match");
+                                debug!("Digest from notary : {} and Digest from manifest : {} does not match", digest_from_notary, digest_from_manifest_str);
+                                Err(Error::from(ErrorKind::NotaryDigestMismatch(
+                                        "notary digest mismatch with the manifest".to_owned(),
+                                )))
+                            }
+                        }
+                        else {
+                            info!("No Digest from the manifest");
+                            Ok((image_with_digest, true))
+                        }
+                    }),
+            )
         } else {
             future::Either::B(futures::future::ok((image_with_tag, false)))
         };
@@ -1261,6 +1194,43 @@ where
             },
         ),
     })
+}
+
+fn get_notary_parameters(
+    config: &DockerConfig,
+    notary_registries: &BTreeMap<String, PathBuf>,
+    image_with_tag: &str,
+) -> Option<(Option<String>, Arc<str>, String, PathBuf)> {
+    // check if the serveraddress exists & check if it exists in notary_registries
+    let registry_auth = config.auth();
+    let (registry_hostname, registry_username, registry_password) = match registry_auth {
+        Some(a) => (a.serveraddress(), a.username(), a.password()),
+        None => (None, None, None),
+    };
+    let hostname = registry_hostname?;
+    let config_path = notary_registries.get(hostname)?;
+    info!("{} is enabled for notary content trust", hostname);
+    let notary_auth = match (registry_username, registry_password) {
+        (None, None) => None,
+        (username, password) => {
+            let notary_auth = format!(
+                "{}:{}",
+                username.unwrap_or_default(),
+                password.unwrap_or_default()
+            );
+            let notary_auth = base64::encode(&notary_auth);
+            Some(notary_auth)
+        }
+    };
+    let mut image_with_tag_parts = image_with_tag.split(':');
+    let gun = image_with_tag_parts
+        .next()
+        .expect("split always returns atleast one element")
+        .to_owned();
+    let gun: Arc<str> = gun.into();
+    let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
+
+    Some((notary_auth, gun, tag, config_path.to_path_buf()))
 }
 
 #[cfg(test)]
