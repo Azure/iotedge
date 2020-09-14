@@ -1,34 +1,26 @@
-use std::{error::Error, sync::Arc};
+use bincode::ErrorKind;
+use rocksdb::Error;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-use async_trait::async_trait;
-use futures_util::stream::Stream;
-use mqtt3::proto::Publication;
-use parking_lot::Mutex;
-
-mod memory;
-
-/// Persistence used in bridge.
-/// Elements are added, then can be removed once retrieved by the loader
-/// If one attempts to remove added elements before reading via the loader remove returns None
-#[async_trait]
-trait Persist<'a> {
-    type Loader: Stream;
-    type Error: Error;
-
-    async fn new(batch_size: usize) -> Self;
-
-    async fn push(&mut self, message: Publication) -> Result<Key, Self::Error>;
-
-    async fn remove(&mut self, key: Key) -> Option<Publication>;
-
-    async fn loader(&'a mut self) -> Arc<Mutex<Self::Loader>>;
-}
+pub mod loader;
+pub mod persistor;
+mod waking_state;
 
 /// Keys used in persistence.
 /// Ordered by offset
-#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug)]
+#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Deserialize, Serialize)]
 pub struct Key {
     offset: u32,
+}
+
+#[derive(Debug, Error)]
+pub enum PersistError {
+    #[error("Failed to serialize on database insert")]
+    Serialization(#[from] Box<ErrorKind>),
+
+    #[error("Failed to serialize on database insert")]
+    Insertion(#[from] Error),
 }
 
 #[cfg(test)]
