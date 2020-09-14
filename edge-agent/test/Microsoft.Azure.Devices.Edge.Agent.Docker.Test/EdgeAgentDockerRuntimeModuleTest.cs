@@ -52,8 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                         imageHash = "someSha",
                         createOptions = "{}"
                     },
-                    env = new { },
-                    version = string.Empty
+                    env = new { }
                 });
 
             Assert.True(JToken.DeepEquals(expected, json));
