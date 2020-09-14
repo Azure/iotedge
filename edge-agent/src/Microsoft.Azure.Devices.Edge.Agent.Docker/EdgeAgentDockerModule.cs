@@ -27,7 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             if (!string.Equals(this.Name, other.Name) ||
                 !string.Equals(this.Type, other.Type) ||
-                !string.Equals(this.Config.Image, other.Config.Image))
+                !string.Equals(this.Config.Image, other.Config.Image) ||
+                !string.Equals(this.Version, other.Version))
                 return false;
 
             IDictionary<string, string> labels = other.Config.CreateOptions?.Labels ?? new Dictionary<string, string>();
