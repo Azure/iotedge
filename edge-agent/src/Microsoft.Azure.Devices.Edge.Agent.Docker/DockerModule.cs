@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public string Name { get; set; }
 
         [JsonProperty(PropertyName = "version")]
-        public virtual string Version { get; }
+        public string Version { get; }
 
         [JsonProperty(PropertyName = "status")]
         public virtual ModuleStatus DesiredStatus { get; }
