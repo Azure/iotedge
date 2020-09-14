@@ -243,14 +243,14 @@ mod tests {
     use futures_util::stream::StreamExt;
     use mqtt3::proto::QoS;
     use mqtt3::{Event, ReceivedPublication};
-    use std::{str::FromStr};
+    use std::str::FromStr;
 
     use mqtt_broker::TopicFilter;
 
     use crate::bridge::{Bridge, MessageHandler};
     use crate::client::EventHandler;
     use crate::persist::{memory::InMemoryPersist, Persist};
-    use crate::settings::{Settings};
+    use crate::settings::Settings;
 
     #[tokio::test]
     async fn bridge_new() {
@@ -358,11 +358,9 @@ mod tests {
         let topics: Vec<TopicMapper> = connection_settings
             .subscriptions()
             .iter()
-            .map(move |sub| {
-                TopicMapper {
-                    topic_settings: sub.clone(),
-                    topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-                }
+            .map(move |sub| TopicMapper {
+                topic_settings: sub.clone(),
+                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
             })
             .collect();
 
