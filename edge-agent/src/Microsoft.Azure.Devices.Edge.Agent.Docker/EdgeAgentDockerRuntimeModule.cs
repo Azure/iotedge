@@ -48,11 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.DesiredStatus = ModuleStatus.Running;
             this.RestartCount = 0;
             this.LastRestartTimeUtc = DateTime.MinValue;
-            this.Version = version ?? string.Empty;
         }
-
-        [JsonIgnore]
-        public override string Version { get; }
 
         [JsonIgnore]
         public override ModuleStatus DesiredStatus { get; }
