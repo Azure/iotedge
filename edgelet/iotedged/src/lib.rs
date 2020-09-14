@@ -36,12 +36,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use failure::{Context, Fail, ResultExt};
-use futures::future::{Either, IntoFuture};
+use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future, Stream};
 use hyper::server::conn::Http;
 use hyper::{Body, Request, Uri};
-use log::{debug, info, Level};
+use log::{debug, error, info, Level};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -73,7 +73,6 @@ use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
 use edgelet_utils::log_failure;
-pub use error::{Error, ErrorKind, InitializeErrorReason};
 use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
@@ -83,8 +82,9 @@ use provisioning::provisioning::{
     ProvisioningResult, ReprovisioningStatus,
 };
 
-use crate::error::ExternalProvisioningErrorReason;
-use crate::workload::WorkloadData;
+use error::ExternalProvisioningErrorReason;
+pub use error::{Error, ErrorKind, InitializeErrorReason};
+use workload::WorkloadData;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -572,9 +572,8 @@ where
                     AttestationMethod::Tpm(ref tpm) => {
                         info!("Starting provisioning edge device via TPM...");
                         let (tpm_instance, dps_tpm) =
-                            dps_tpm_provision_init(&dps, hyper_client.clone(), tpm)?;
+                            dps_tpm_provision_init(&dps, hyper_client.clone(), tpm, dps_path)?;
                         let (key_store, provisioning_result, root_key) = dps_tpm_provision(
-                            dps_path,
                             &mut tokio_runtime,
                             hsm_lock,
                             tpm_instance,
@@ -596,10 +595,10 @@ where
                             &dps,
                             hyper_client.clone(),
                             symmetric_key_info,
+                            dps_path,
                         )?;
                         let (key_store, provisioning_result, root_key) =
                             dps_symmetric_key_provision(
-                                dps_path,
                                 &mut tokio_runtime,
                                 memory_hsm,
                                 &dps_symmetric_key,
@@ -626,12 +625,12 @@ where
                             x509_info,
                             hybrid_identity_key,
                             &id_data.common_name,
+                            dps_path,
                         )?;
 
                         let (key_store, provisioning_result, root_key) = dps_x509_provision(
                             memory_hsm,
                             &dps_x509,
-                            dps_path,
                             &mut tokio_runtime,
                             id_data.thumbprint.clone(),
                         )?;
@@ -1524,16 +1523,13 @@ where
 
     // This mpsc sender/receiver is used for getting notifications from the mgmt service
     // indicating that the daemon should shut down and attempt to reprovision the device.
-    let mgmt_stop_and_reprovision_signaled = mgmt_stop_and_reprovision_rx
-        .then(|res| match res {
-            Ok(_) => Err(None),
-            Err(_) => Err(Some(Error::from(ErrorKind::ManagementService))),
-        })
-        .for_each(move |_x: Option<Error>| Ok(()))
-        .then(|res| match res {
-            Ok(_) | Err(None) => Ok(None),
-            Err(Some(e)) => Err(Some(e)),
-        });
+    let mgmt_stop_and_reprovision_signaled =
+        mgmt_stop_and_reprovision_rx
+            .into_future()
+            .then(|res| match res {
+                Ok((Some(()), _)) | Ok((None, _)) => Ok(()),
+                Err(((), _)) => Err(Error::from(ErrorKind::ManagementService)),
+            });
 
     let mgmt_stop_and_reprovision_signaled = if settings.provisioning().dynamic_reprovisioning() {
         futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
@@ -1542,25 +1538,22 @@ where
     };
 
     let edge_rt_with_mgmt_signal = edge_rt.select2(mgmt_stop_and_reprovision_signaled).then(
-        |res: Result<
-            Either<((), _), (Option<Error>, _)>,
-            Either<(Error, _), (Option<Error>, _)>,
-        >| {
-            // A -> EdgeRt Future
-            // B -> Mgmt Stop and Reprovision Signal Future
-            match res {
-                Ok(Either::A((_x, _y))) => {
-                    Ok((StartApiReturnStatus::Shutdown, false)).into_future()
-                }
-                Ok(Either::B((_x, _y))) => {
-                    debug!("Shutdown with device reprovisioning.");
-                    Ok((StartApiReturnStatus::Shutdown, true)).into_future()
-                }
-                Err(Either::A((err, _y))) => Err(err).into_future(),
-                Err(Either::B((err, _y))) => {
-                    debug!("The mgmt shutdown and reprovision signal failed.");
-                    Err(err.unwrap()).into_future()
-                }
+        |res| match res {
+            Ok(Either::A((_edge_rt_ok, _mgmt_stop_and_reprovision_signaled_future))) => {
+                info!("Edge runtime will stop because of the shutdown signal.");
+                future::ok((StartApiReturnStatus::Shutdown, false))
+            }
+            Ok(Either::B((_mgmt_stop_and_reprovision_signaled_ok, _edge_rt_future))) => {
+                info!("Edge runtime will stop because of the device reprovisioning signal.");
+                future::ok((StartApiReturnStatus::Shutdown, true))
+            }
+            Err(Either::A((edge_rt_err, _mgmt_stop_and_reprovision_signaled_future))) => {
+                error!("Edge runtime will stop because the shutdown signal raised an error.");
+                future::err(edge_rt_err)
+            },
+            Err(Either::B((mgmt_stop_and_reprovision_signaled_err, _edge_rt_future))) => {
+                error!("Edge runtime will stop because the device reprovisioning signal raised an error.");
+                future::err(mgmt_stop_and_reprovision_signaled_err)
             }
         },
     );
@@ -1576,12 +1569,17 @@ where
             // A -> EdgeRt + Mgmt Stop and Reprovision Signal Future
             // B -> Restart Signal Future
             match res {
-                Ok(Either::A((x, _))) => Ok((StartApiReturnStatus::Shutdown, x.1)).into_future(),
-                Ok(Either::B(_)) => Ok((StartApiReturnStatus::Restart, false)).into_future(),
-                Err(Either::A((err, _))) => Err(err).into_future(),
+                Ok(Either::A((
+                    (start_api_return_status, should_reprovision),
+                    _restart_rx_future,
+                ))) => future::ok((start_api_return_status, should_reprovision)),
+                Ok(Either::B((_restart_rx_ok, _edge_rt_future))) => {
+                    future::ok((StartApiReturnStatus::Restart, false))
+                }
+                Err(Either::A((err, _))) => future::err(err),
                 Err(Either::B(_)) => {
                     debug!("The restart signal failed, shutting down.");
-                    Ok((StartApiReturnStatus::Shutdown, false)).into_future()
+                    future::ok((StartApiReturnStatus::Shutdown, false))
                 }
             }
         });
@@ -1682,7 +1680,8 @@ fn dps_x509_provision_init<HC>(
     x509_info: &X509AttestationInfo,
     hybrid_identity_key: Option<Vec<u8>>,
     common_name: &str,
-) -> Result<(MemoryKeyStore, DpsX509Provisioning<HC>), Error>
+    backup_path: PathBuf,
+) -> Result<(MemoryKeyStore, impl Provision<Hsm = MemoryKeyStore>), Error>
 where
     HC: 'static + ClientImpl,
 {
@@ -1699,7 +1698,7 @@ where
     memory_hsm
         .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes)
         .context(ErrorKind::ActivateSymmetricKey)?;
-    let dps_x509 = DpsX509Provisioning::new(
+    let provisioner = DpsX509Provisioning::new(
         hyper_client,
         dps.global_endpoint().clone(),
         dps.scope_id().to_string(),
@@ -1709,24 +1708,24 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
+    let always_reprovision_on_startup = dps.always_reprovision_on_startup();
+    let provisioner =
+        BackupProvisioning::new(provisioner, backup_path, !always_reprovision_on_startup);
 
-    Ok((memory_hsm, dps_x509))
+    Ok((memory_hsm, provisioner))
 }
 
 #[allow(clippy::too_many_arguments)]
-fn dps_x509_provision<HC>(
+fn dps_x509_provision<P>(
     memory_hsm: MemoryKeyStore,
-    dps: &DpsX509Provisioning<HC>,
-    backup_path: PathBuf,
+    provisioner: &P,
     tokio_runtime: &mut tokio::runtime::Runtime,
     cert_thumbprint: String,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
 where
-    HC: 'static + ClientImpl,
+    P: Provision<Hsm = MemoryKeyStore>,
 {
-    let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
-
-    let provision = provision_with_file_backup
+    let provision = provisioner
         .provision(memory_hsm.clone())
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Initialize(
@@ -1835,7 +1834,8 @@ fn dps_symmetric_key_provision_init<HC>(
     provisioning: &Dps,
     hyper_client: HC,
     key: &SymmetricKeyAttestationInfo,
-) -> Result<(MemoryKeyStore, DpsSymmetricKeyProvisioning<HC>), Error>
+    backup_path: PathBuf,
+) -> Result<(MemoryKeyStore, impl Provision<Hsm = MemoryKeyStore>), Error>
 where
     HC: 'static + ClientImpl,
 {
@@ -1847,7 +1847,7 @@ where
         .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes)
         .context(ErrorKind::ActivateSymmetricKey)?;
 
-    let dps = DpsSymmetricKeyProvisioning::new(
+    let provisioner = DpsSymmetricKeyProvisioning::new(
         hyper_client,
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
@@ -1857,22 +1857,22 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    Ok((memory_hsm, dps))
+    let always_reprovision_on_startup = provisioning.always_reprovision_on_startup();
+    let provisioner =
+        BackupProvisioning::new(provisioner, backup_path, !always_reprovision_on_startup);
+    Ok((memory_hsm, provisioner))
 }
 
-fn dps_symmetric_key_provision<HC>(
-    backup_path: PathBuf,
+fn dps_symmetric_key_provision<P>(
     tokio_runtime: &mut tokio::runtime::Runtime,
     memory_hsm: MemoryKeyStore,
-    dps: &DpsSymmetricKeyProvisioning<HC>,
+    provisioner: &P,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
 where
-    HC: 'static + ClientImpl,
+    P: Provision<Hsm = MemoryKeyStore>,
 {
-    let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
-
     let provision =
-        provision_with_file_backup
+        provisioner
             .provision(memory_hsm.clone())
             .map_err(|err| {
                 Error::from(err.context(ErrorKind::Initialize(
@@ -1895,7 +1895,8 @@ fn dps_tpm_provision_init<HC>(
     provisioning: &Dps,
     hyper_client: HC,
     tpm_attestation_info: &TpmAttestationInfo,
-) -> Result<(Tpm, DpsTpmProvisioning<HC>), Error>
+    backup_path: PathBuf,
+) -> Result<(Tpm, impl Provision<Hsm = TpmKeyStore>), Error>
 where
     HC: 'static + ClientImpl,
 {
@@ -1923,7 +1924,7 @@ where
     let srk_result = tpm.get_srk().context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let dps = DpsTpmProvisioning::new(
+    let provisioner = DpsTpmProvisioning::new(
         hyper_client,
         provisioning.global_endpoint().clone(),
         provisioning.scope_id().to_string(),
@@ -1935,24 +1936,25 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    Ok((tpm, dps))
+    let always_reprovision_on_startup = provisioning.always_reprovision_on_startup();
+    let provisioner =
+        BackupProvisioning::new(provisioner, backup_path, !always_reprovision_on_startup);
+    Ok((tpm, provisioner))
 }
 
-fn dps_tpm_provision<HC>(
-    backup_path: PathBuf,
+fn dps_tpm_provision<P>(
     tokio_runtime: &mut tokio::runtime::Runtime,
     hsm_lock: Arc<HsmLock>,
     tpm: Tpm,
-    dps: &DpsTpmProvisioning<HC>,
+    provisioner: &P,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
 where
-    HC: 'static + ClientImpl,
+    P: Provision<Hsm = TpmKeyStore>,
 {
     let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
-    let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
-    let provision = provision_with_file_backup
+    let provision = provisioner
         .provision(tpm_hsm.clone())
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Initialize(

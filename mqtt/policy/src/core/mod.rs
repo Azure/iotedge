@@ -7,7 +7,7 @@ use crate::errors::Result;
 use crate::{substituter::Substituter, Error, ResourceMatcher};
 
 mod builder;
-pub use builder::PolicyBuilder;
+pub use builder::{PolicyBuilder, PolicyDefinition, Statement};
 
 /// Policy engine. Represents a read-only set of rules and can
 /// evaluate `Request` based on those rules.
@@ -26,15 +26,15 @@ pub struct Policy<R, S> {
     variable_rules: BTreeMap<String, Operations>,
 }
 
-impl<R, S> Policy<R, S>
+impl<R, S, RC> Policy<R, S>
 where
-    R: ResourceMatcher,
-    S: Substituter,
+    R: ResourceMatcher<Context = RC>,
+    S: Substituter<Context = RC>,
 {
     /// Evaluates the provided `&Request` and produces the `Decision`.
     ///
     /// If no rules match the `&Request` - the default `Decision` is returned.
-    pub fn evaluate(&self, request: &Request) -> Result<Decision> {
+    pub fn evaluate(&self, request: &Request<RC>) -> Result<Decision> {
         match self.eval_static_rules(request) {
             // static rules not defined. Need to check variable rules.
             Ok(EffectOrd {
@@ -76,7 +76,7 @@ where
         }
     }
 
-    fn eval_static_rules(&self, request: &Request) -> Result<EffectOrd> {
+    fn eval_static_rules(&self, request: &Request<RC>) -> Result<EffectOrd> {
         // lookup an identity
         match self.static_rules.get(&request.identity) {
             // identity exists. Look up operations.
@@ -100,7 +100,7 @@ where
         }
     }
 
-    fn eval_variable_rules(&self, request: &Request) -> Result<EffectOrd> {
+    fn eval_variable_rules(&self, request: &Request<RC>) -> Result<EffectOrd> {
         for (identity, operations) in &self.variable_rules {
             // process identity variables.
             let identity = self.substituter.visit_identity(identity, request)?;
@@ -223,18 +223,39 @@ impl From<BTreeMap<String, EffectOrd>> for Resources {
 
 /// Represents a request that needs to be `evaluate`d by `Policy` engine.
 #[derive(Debug)]
-pub struct Request {
+pub struct Request<RC> {
     identity: String,
     operation: String,
     resource: String,
+
+    /// Optional request context that can be used for request processing.
+    context: Option<RC>,
 }
 
-impl Request {
+impl<RC> Request<RC> {
     /// Creates a new `Request`. Returns an error if either identity or operation is an empty string.
     pub fn new(
         identity: impl Into<String>,
         operation: impl Into<String>,
         resource: impl Into<String>,
+    ) -> Result<Self> {
+        Self::create(identity, operation, resource, None)
+    }
+
+    pub fn with_context(
+        identity: impl Into<String>,
+        operation: impl Into<String>,
+        resource: impl Into<String>,
+        context: RC,
+    ) -> Result<Self> {
+        Self::create(identity, operation, resource, Some(context))
+    }
+
+    fn create(
+        identity: impl Into<String>,
+        operation: impl Into<String>,
+        resource: impl Into<String>,
+        context: Option<RC>,
     ) -> Result<Self> {
         let (identity, operation, resource) = (identity.into(), operation.into(), resource.into());
 
@@ -250,7 +271,12 @@ impl Request {
             identity,
             operation,
             resource,
+            context,
         })
+    }
+
+    pub fn context(&self) -> Option<&RC> {
+        self.context.as_ref()
     }
 }
 
@@ -318,6 +344,15 @@ impl From<EffectOrd> for Decision {
             Effect::Allow => Decision::Allowed,
             Effect::Deny => Decision::Denied,
             Effect::Undefined => Decision::Denied,
+        }
+    }
+}
+
+impl From<&Statement> for EffectOrd {
+    fn from(statement: &Statement) -> Self {
+        match statement.effect() {
+            builder::Effect::Allow => EffectOrd::new(Effect::Allow, statement.order()),
+            builder::Effect::Deny => EffectOrd::new(Effect::Deny, statement.order()),
         }
     }
 }
@@ -401,12 +436,7 @@ pub(crate) mod tests {
         }"#;
 
         // assert default allow
-        let request = Request::new(
-            "contoso.azure-devices.net/some_other_device",
-            "write",
-            "resource_1",
-        )
-        .unwrap();
+        let request = Request::new("other_actor", "write", "resource_1").unwrap();
 
         let allow_default_policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Allowed)
@@ -570,11 +600,13 @@ pub(crate) mod tests {
     struct TestSubstituter;
 
     impl Substituter for TestSubstituter {
-        fn visit_identity(&self, _value: &str, context: &Request) -> Result<String> {
+        type Context = ();
+
+        fn visit_identity(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
             Ok(context.identity.clone())
         }
 
-        fn visit_resource(&self, _value: &str, context: &Request) -> Result<String> {
+        fn visit_resource(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
             Ok(context.resource.clone())
         }
     }
