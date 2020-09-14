@@ -43,7 +43,6 @@ mod tests {
         Key,
     };
 
-    // TODO REVIEW: move folder ignore to main gitignore
     const STORAGE_DIR: &str = "unit-tests/persistence/";
 
     #[test_case(WakingMap::new())]
