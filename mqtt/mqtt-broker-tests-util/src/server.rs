@@ -1,4 +1,5 @@
 use std::{
+    convert::Infallible,
     error::Error as StdError,
     sync::atomic::{AtomicU32, Ordering},
 };
@@ -56,10 +57,11 @@ impl Drop for ServerHandle {
 
 /// Starts a test server with a provided broker and returns
 /// shutdown handle, broker task and server binding.
-pub fn start_server<N, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
+pub fn start_server<N, E, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
 where
-    N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
+    N: Authenticator<Error = E> + Send + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,
+    E: StdError + Send + Sync + 'static,
 {
     lazy_static! {
         static ref PORT: AtomicU32 = AtomicU32::new(5555);
@@ -69,7 +71,7 @@ where
     let address = format!("localhost:{}", port);
 
     let mut server = Server::from_broker(broker);
-    server.tcp(&address, authenticator, None).unwrap();
+    server.with_tcp(&address, authenticator, None).unwrap();
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let task = tokio::spawn(server.serve(rx.map(drop)));
@@ -91,7 +93,7 @@ impl DummyAuthenticator {
 
 #[async_trait]
 impl Authenticator for DummyAuthenticator {
-    type Error = Box<dyn StdError>;
+    type Error = Infallible;
 
     async fn authenticate(&self, _: AuthenticationContext) -> Result<Option<AuthId>, Self::Error> {
         Ok(Some(self.0.clone()))

@@ -10,7 +10,7 @@ use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
 
 use crate::{
-    auth::{Authenticator, Authorizer},
+    auth::{Authenticator, Authorizer, DynAuthenticator},
     broker::{Broker, BrokerHandle},
     connection::{
         self, MakeIncomingPacketProcessor, MakeMqttPacketProcessor, MakeOutgoingPacketProcessor,
@@ -47,7 +47,7 @@ where
     Z: Authorizer + Send + 'static,
     P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
 {
-    pub fn tcp<A, N>(
+    pub fn with_tcp<A, N, E>(
         &mut self,
         addr: A,
         authenticator: N,
@@ -55,7 +55,8 @@ where
     ) -> Result<&mut Self, InitializeBrokerError>
     where
         A: ToSocketAddrs + Display,
-        N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
+        N: Authenticator<Error = E> + Send + Sync + 'static,
+        E: StdError + Send + Sync + 'static,
     {
         let listener = Listener::new(
             Transport::new_tcp(addr)?,
@@ -68,7 +69,7 @@ where
         Ok(self)
     }
 
-    pub fn tls<A, N>(
+    pub fn with_tls<A, N, E>(
         &mut self,
         addr: A,
         identity: ServerCertificate,
@@ -77,7 +78,8 @@ where
     ) -> Result<&mut Self, Error>
     where
         A: ToSocketAddrs + Display,
-        N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
+        N: Authenticator<Error = E> + Send + Sync + 'static,
+        E: StdError + Send + Sync + 'static,
     {
         let listener = Listener::new(
             Transport::new_tls(addr, identity)?,
@@ -90,7 +92,7 @@ where
         Ok(self)
     }
 
-    pub fn packet_processor<P1>(self, make_processor: P1) -> Server<Z, P1> {
+    pub fn with_packet_processor<P1>(self, make_processor: P1) -> Server<Z, P1> {
         Server {
             broker: self.broker,
             listeners: self.listeners,
@@ -234,21 +236,23 @@ where
 
 struct Listener {
     transport: Transport,
-    authenticator: Arc<(dyn Authenticator<Error = Box<dyn StdError>> + Send + Sync)>,
+    authenticator: Arc<(dyn Authenticator<Error = Box<dyn StdError + Send + Sync>> + Send + Sync)>,
     ready: Option<Receiver<()>>,
     broker_handle: BrokerHandle,
 }
 
 impl Listener {
-    fn new<N>(
+    fn new<N, E>(
         transport: Transport,
         authenticator: N,
         broker_handle: BrokerHandle,
         ready: Option<Receiver<()>>,
     ) -> Self
     where
-        N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
+        N: Authenticator<Error = E> + Send + Sync + 'static,
+        E: StdError + Into<Box<dyn StdError>> + Send + Sync + 'static,
     {
+        let authenticator = DynAuthenticator::from(authenticator);
         Self {
             transport,
             authenticator: Arc::new(authenticator),
