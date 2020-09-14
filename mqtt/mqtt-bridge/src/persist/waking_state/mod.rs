@@ -25,7 +25,7 @@ pub trait StreamWakeableState {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::Path, pin::Pin, sync::Arc, task::Context, task::Poll};
+    use std::{path::Path, pin::Pin, sync::Arc, task::Context, task::Poll};
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt};
@@ -33,7 +33,6 @@ mod tests {
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
     use rocksdb::DB;
-    use serial_test::serial;
     use test_case::test_case;
     use tokio::sync::Notify;
     use uuid::Uuid;

@@ -68,7 +68,7 @@ fn get_elements(
 
 #[cfg(test)]
 mod tests {
-    use std::{iter::Iterator, marker::Send, sync::Arc, time::Duration};
+    use std::{iter::Iterator, sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
