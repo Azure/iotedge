@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
   ""lastRestartTimeUtc"": ""0001-01-01T00:00:00"",
   ""runtimeStatus"": ""running"",
   ""type"": ""docker"",
+  ""version"": """",
   ""settings"": {
     ""image"": ""edg0eHubImage:latest"",
     ""createOptions"": ""{}""
@@ -214,6 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
   ""lastRestartTimeUtc"": ""0001-01-01T00:00:00"",
   ""runtimeStatus"": ""running"",
   ""type"": ""docker"",
+  ""version"": """",
   ""settings"": {
     ""image"": ""edg0eHubImage:latest"",
     ""createOptions"": ""{}""
