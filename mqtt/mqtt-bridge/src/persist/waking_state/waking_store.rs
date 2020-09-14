@@ -1,17 +1,11 @@
-use std::boxed::Box;
-use std::{collections::HashMap, task::Waker};
+use std::{boxed::Box, collections::HashMap, task::Waker};
 
-use bincode::deserialize;
-use bincode::serialize;
-use bincode::ErrorKind;
+use bincode::{deserialize, serialize, ErrorKind};
 use mqtt3::proto::Publication;
-use rocksdb::IteratorMode;
-use rocksdb::DB;
+use rocksdb::{IteratorMode, DB};
 use tracing::error;
 
-use crate::persist::waking_state::StreamWakeableState;
-use crate::persist::Key;
-use crate::persist::PersistError;
+use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
 /// Responsible for waking waiting streams when new elements are added.
 ///

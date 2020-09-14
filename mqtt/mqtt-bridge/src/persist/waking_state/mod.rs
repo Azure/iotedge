@@ -4,8 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use mqtt3::proto::Publication;
 
-use crate::persist::Key;
-use crate::persist::PersistError;
+use crate::persist::{Key, PersistError};
 
 pub mod waking_map;
 pub mod waking_store;
@@ -26,9 +25,7 @@ pub trait StreamWakeableState {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-    use std::path::Path;
-    use std::{pin::Pin, sync::Arc, task::Context, task::Poll};
+    use std::{fs, path::Path, pin::Pin, sync::Arc, task::Context, task::Poll};
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt};
@@ -41,9 +38,11 @@ mod tests {
     use tokio::sync::Notify;
     use uuid::Uuid;
 
-    use crate::persist::waking_state::waking_store::WakingStore;
-    use crate::persist::waking_state::StreamWakeableState;
-    use crate::persist::{waking_state::waking_map::WakingMap, Key};
+    use crate::persist::{
+        waking_state::waking_map::WakingMap,
+        waking_state::{waking_store::WakingStore, StreamWakeableState},
+        Key,
+    };
 
     // TODO REVIEW: move folder ignore to main gitignore
     const STORAGE_DIR: &str = "unit-tests/persistence/";

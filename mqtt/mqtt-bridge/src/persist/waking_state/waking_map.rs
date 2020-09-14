@@ -3,9 +3,7 @@ use std::{cmp::min, collections::HashMap, collections::VecDeque, task::Waker};
 use mqtt3::proto::Publication;
 use tracing::error;
 
-use crate::persist::waking_state::StreamWakeableState;
-use crate::persist::Key;
-use crate::persist::PersistError;
+use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
 /// Responsible for waking waiting streams when new elements are added.
 ///

@@ -5,10 +5,7 @@ use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 use tracing::debug;
 
-use crate::persist::loader::MessageLoader;
-use crate::persist::waking_state::StreamWakeableState;
-use crate::persist::Key;
-use crate::persist::PersistError;
+use crate::persist::{loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError};
 
 /// Persistence implementation used for the bridge
 pub struct Persistor<S: StreamWakeableState> {
@@ -69,9 +66,11 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
-    use crate::persist::waking_state::waking_map::WakingMap;
-    use crate::persist::waking_state::StreamWakeableState;
-    use crate::persist::{persistor::Persistor, Key};
+    use crate::persist::{
+        persistor::Persistor,
+        waking_state::{waking_map::WakingMap, StreamWakeableState},
+        Key,
+    };
 
     #[tokio::test]
     async fn insert() {

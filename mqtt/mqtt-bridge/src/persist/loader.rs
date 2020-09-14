@@ -4,8 +4,7 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::{Mutex, MutexGuard};
 
-use crate::persist::waking_state::StreamWakeableState;
-use crate::persist::Key;
+use crate::persist::{waking_state::StreamWakeableState, Key};
 
 /// Message loader used to extract elements from bridge persistence
 ///
@@ -69,8 +68,7 @@ fn get_elements(
 
 #[cfg(test)]
 mod tests {
-    use std::marker::Send;
-    use std::{iter::Iterator, sync::Arc, time::Duration};
+    use std::{iter::Iterator, marker::Send, sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
@@ -78,9 +76,10 @@ mod tests {
     use parking_lot::Mutex;
     use tokio::{self, time};
 
-    use crate::persist::loader::{get_elements, Key, MessageLoader};
-    use crate::persist::waking_state::waking_map::WakingMap;
-    use crate::persist::waking_state::StreamWakeableState;
+    use crate::persist::{
+        loader::{get_elements, Key, MessageLoader},
+        waking_state::{waking_map::WakingMap, StreamWakeableState},
+    };
 
     #[tokio::test]
     async fn smaller_batch_size_respected() {
