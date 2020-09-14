@@ -1,4 +1,4 @@
-use std::error::Error as StdError;
+use std::convert::Infallible;
 
 use async_trait::async_trait;
 
@@ -21,7 +21,7 @@ impl LocalAuthenticator {
 
 #[async_trait]
 impl Authenticator for LocalAuthenticator {
-    type Error = Box<dyn StdError>;
+    type Error = Infallible;
 
     async fn authenticate(
         &self,
