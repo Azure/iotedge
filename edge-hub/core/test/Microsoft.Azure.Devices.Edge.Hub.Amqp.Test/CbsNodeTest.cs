@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         }
 
         [Fact]
-        public void GetIdentityTest()
+        public void GetCredentialsInfoTest()
         {
             // Arrange
             var amqpValue = new AmqpValue
@@ -145,24 +145,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             };
             AmqpMessage validAmqpMessage = AmqpMessage.Create(amqpValue);
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
-            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "edgehubtest1.azure-devices.net/devices/device1";
+            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "edgehubtest1.azure-devices.net/devices/device1/modules/mod1";
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
 
-            var clientCredentials = Mock.Of<IClientCredentials>();
             var identityFactory = new Mock<IClientCredentialsFactory>();
-            identityFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true, It.IsAny<Option<string>>()))
-                .Returns(clientCredentials);
-
             string iotHubHostName = "edgehubtest1.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
             var cbsNode = new CbsNode(identityFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
 
             // Act
-            IClientCredentials receivedClientCredentials = cbsNode.GetClientCredentials(validAmqpMessage);
+            CbsNode.CredentialsInfo credentialsInfo = cbsNode.GetClientCredentialsInfo(validAmqpMessage);
 
             // Assert
-            Assert.NotNull(receivedClientCredentials);
-            Assert.Equal(clientCredentials, receivedClientCredentials);
+            Assert.NotNull(credentialsInfo);
+            Assert.Equal("device1/mod1", credentialsInfo.Id);
+            Assert.Equal(amqpValue.Value, credentialsInfo.Token.Value);
         }
 
         [Fact]
@@ -181,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var identity = Mock.Of<IIdentity>(i => i.Id == "device1/mod1");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             var clientCredentialsFactory = new Mock<IClientCredentialsFactory>();
-            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true, It.IsAny<Option<string>>()))
+            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true, It.IsAny<Option<string>>(), It.IsAny<Option<string>>()))
                 .Returns(clientCredentials);
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
@@ -191,7 +188,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             // Act
             (AmqpResponseStatusCode statusCode, string description) = await cbsNode.UpdateCbsToken(validAmqpMessage);
-            bool isAuthenticated = await cbsNode.AuthenticateAsync(identity.Id, Option.None<string>());
+            bool isAuthenticated = await cbsNode.AuthenticateAsync(identity.Id, Option.None<string>(), Option.None<string>());
+
+            // Assert
+            Assert.True(isAuthenticated);
+            Assert.Equal(AmqpResponseStatusCode.OK, statusCode);
+            Assert.Equal(AmqpResponseStatusCode.OK.ToString(), description);
+        }
+
+        [Fact]
+        public async Task OnBehalfOfAuthTest()
+        {
+            // Arrange
+            var amqpValue = new AmqpValue
+            {
+                Value = TokenHelper.CreateSasToken("edgehubtest1.azure-devices.net/devices/edge1/modules/$edgeHub")
+            };
+            AmqpMessage validAmqpMessage = AmqpMessage.Create(amqpValue);
+            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Type] = "azure-devices.net:sastoken";
+            validAmqpMessage.ApplicationProperties.Map[CbsConstants.PutToken.Audience] = "edgehubtest1.azure-devices.net/devices/edge1/modules/$edgeHub";
+            validAmqpMessage.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
+            Option<string> authChain = Option.Some("device1;edge1");
+
+            var actorEdgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edge1/$edegHub");
+            var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == actorEdgeHubIdentity && c.AuthChain == authChain);
+            var clientCredentialsFactory = new Mock<IClientCredentialsFactory>();
+            clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true, It.IsAny<Option<string>>(), It.Is<Option<string>>(chain => chain == authChain)))
+                .Returns(clientCredentials);
+
+            string iotHubHostName = "edgehubtest1.azure-devices.net";
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+            var cbsNode = new CbsNode(clientCredentialsFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
+
+            // Act
+            (AmqpResponseStatusCode statusCode, string description) = await cbsNode.UpdateCbsToken(validAmqpMessage);
+            bool isAuthenticated = await cbsNode.AuthenticateAsync("device1", Option.None<string>(), authChain);
 
             // Assert
             Assert.True(isAuthenticated);
