@@ -173,7 +173,7 @@ where
             let forward_topic = mapper
                 .topic_settings
                 .local()
-                // maps if local does not have a value it uses the topic that was received, 
+                // maps if local does not have a value it uses the topic that was received,
                 // else it checks that the received topic starts with local prefix and removes the local prefix
                 .map_or(Some(topic_name.to_owned()), |local_prefix| {
                     if topic_name.to_owned().starts_with(local_prefix) {
@@ -184,7 +184,7 @@ where
 
                         Some(rs)
                     } else {
-                        // is no match if there is a local prefix for the mapper but received topic does not start with it 
+                        // is no match if there is a local prefix for the mapper but received topic does not start with it
                         None
                     }
                 })
