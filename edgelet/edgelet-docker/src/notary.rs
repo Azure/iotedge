@@ -1,14 +1,18 @@
-use crate::{Error, ErrorKind};
-use failure::ResultExt;
-use futures::Future;
-use log::{debug, info};
-use serde_json::json;
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use failure::ResultExt;
+use futures::Future;
+use log::{debug, info};
+use serde_json::json;
 use tokio_process::CommandExt;
+
+use crate::{Error, ErrorKind};
 
 pub fn notary_init(
     home_dir: &Path,
@@ -149,16 +153,13 @@ pub fn notary_lookup(
 
 #[cfg(test)]
 mod test {
-    #[cfg(target_os = "linux")]
-    use crate::notary;
-    #[cfg(target_os = "linux")]
-    use crate::ErrorKind;
-    #[cfg(target_os = "linux")]
     use std::path::PathBuf;
-    #[cfg(target_os = "linux")]
+
     use tempfile::NamedTempFile;
 
-    #[cfg(unix)]
+    use crate::notary;
+    use crate::ErrorKind;
+
     #[test]
     fn check_for_empty_hostname() {
         let registry_server_hostname = String::new();
@@ -173,7 +174,6 @@ mod test {
         assert!(matches!(err.kind(), ErrorKind::InitializeNotary(s) if s == "hostname is empty"));
     }
 
-    #[cfg(unix)]
     #[test]
     fn check_for_root_ca_file_does_not_exist() {
         let registry_server_hostname = r"myregistry.azurecr.io";
