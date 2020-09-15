@@ -192,7 +192,7 @@ async fn start_sidecars(
     let device_id = env::var(DEVICE_ID_ENV)?;
 
     let mut bridge_controller = BridgeController::new();
-    let _bridge = bridge_controller
+    bridge_controller
         .start(system_address.clone(), device_id.clone().as_str())
         .await?;
 
