@@ -17,7 +17,7 @@ use crate::{
     },
     transport::{GetPeerInfo, Transport},
     BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
-    SystemEvent
+    SystemEvent,
 };
 
 pub struct Server<Z, P>
