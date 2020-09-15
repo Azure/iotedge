@@ -992,7 +992,7 @@ mod tests {
     }
 
     #[test]
-    fn name_returns_the_provisioning_type_name() {
+    fn to_string_returns_the_provisioning_type_as_a_string() {
         let ptype = ProvisioningType::Manual(Box::new(Manual::new(
             ManualAuthMethod::DeviceConnectionString(ManualDeviceConnectionString::new(
                 "".to_string(),
