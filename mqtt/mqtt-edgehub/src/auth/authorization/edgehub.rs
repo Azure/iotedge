@@ -123,7 +123,7 @@ impl EdgeHubAuthorizer {
     }
 
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
-        let on_behalf_of_id: &str = match topic.split('/').collect::<Vec<&str>>().get(2) {
+        let on_behalf_of_id: &str = match topic.split('/').collect::<Vec<&str>>().get(1) {
             Some(id) => {
                 id
             }
