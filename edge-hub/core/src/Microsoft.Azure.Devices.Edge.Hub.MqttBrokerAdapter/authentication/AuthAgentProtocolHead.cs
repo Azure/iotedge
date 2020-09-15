@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly AuthAgentProtocolHeadConfig config;
         readonly object guard = new object();
 
-        bool startedWithoutNotify;
+        volatile bool started;
         Option<IWebHost> host;
 
         public string Name => "AUTH";
@@ -75,6 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             await this.host.Expect(() => new Exception("No AUTH host instance found to start"))
                            .StartAsync();
+
+            started = true;
             await NotifyAsync(true);
             Events.Started();
         }
@@ -83,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             Events.Closing();
 
-            startedWithoutNotify = false;
+            started = false;
 
             Option<IWebHost> hostToStop;
             lock (this.guard)
@@ -132,16 +134,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .Build();
         }
 
-        public override Task StoreNotificationAsync(bool notification)
-        {
-            startedWithoutNotify = true;
-            return Task.FromResult(true);
-        }
+        public override Task StoreNotificationAsync(bool notification) => Task.FromResult(true);
 
         public override Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
         {
             IEnumerable<Message> messages;
-            if (startedWithoutNotify)
+            if (started)
             {
                 messages = new[] { new Message(Topic, Payload) };
             }
