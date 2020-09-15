@@ -41,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 lastBrokerServiceIdentityUpdate.Clear();
             }
 
-
             return Task.FromResult(messages);
+
         }
 
         public override async Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(IList<string> notification)
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             foreach (string id in ids)
             {
                 brokerServiceIdentities.Add(
-                    new BrokerServiceIdentity(id, await this.deviceScopeIdentitiesCache.GetAuthChain(id)));
+                    new BrokerServiceIdentity(id, await deviceScopeIdentitiesCache.GetAuthChain(id)));
             }
 
             return brokerServiceIdentities;

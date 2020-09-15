@@ -1,19 +1,23 @@
-use std::{error::Error as StdError, future::Future, sync::Arc};
+use std::{error::Error as StdError, fmt::Display, future::Future, net::ToSocketAddrs, sync::Arc};
 
 use futures_util::{
-    future::{self, BoxFuture, Either, FutureExt},
+    future::{self, Either, FutureExt},
     pin_mut,
     stream::StreamExt,
 };
+<<<<<<< HEAD
 use tokio::sync::oneshot;
 use tokio::time;
+=======
+use tokio::sync::{broadcast::Receiver, oneshot};
+>>>>>>> a832716f1e23586914b4ddaf5907e9abf86b4004
 use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
 
 use std::time::Duration;
 
 use crate::{
-    auth::{Authenticator, Authorizer},
+    auth::{Authenticator, Authorizer, DynAuthenticator},
     broker::{Broker, BrokerHandle},
     connection::{
         self, MakeIncomingPacketProcessor, MakeMqttPacketProcessor, MakeOutgoingPacketProcessor,
@@ -29,12 +33,7 @@ where
     Z: Authorizer,
 {
     broker: Broker<Z>,
-    #[allow(clippy::type_complexity)]
-    transports: Vec<(
-        BoxFuture<'static, Result<Transport, InitializeBrokerError>>,
-        Arc<(dyn Authenticator<Error = Box<dyn StdError>> + Send + Sync)>,
-        bool
-    )>,
+    listeners: Vec<Listener>,
     make_processor: P,
 }
 
@@ -45,7 +44,7 @@ where
     pub fn from_broker(broker: Broker<Z>) -> Self {
         Self {
             broker,
-            transports: Vec::new(),
+            listeners: Vec::new(),
             make_processor: MakeMqttPacketProcessor,
         }
     }
@@ -56,37 +55,55 @@ where
     Z: Authorizer + Send + 'static,
     P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
 {
-    pub fn tcp<N>(&mut self, addr: &str, authenticator: N, internal: bool) -> &mut Self
-    where
-        N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
-    {
-        let make_transport = Box::pin(Transport::new_tcp(addr.to_string()));
-        self.transports
-            .push((make_transport, Arc::new(authenticator), internal));
-        self
-    }
-
-    pub fn tls<N>(
+    pub fn with_tcp<A, N, E>(
         &mut self,
-        addr: &str,
-        identity: ServerCertificate,
+        addr: A,
         authenticator: N,
-        internal: bool
-    ) -> Result<&mut Self, Error>
+        ready: Option<Receiver<()>>,
+    ) -> Result<&mut Self, InitializeBrokerError>
     where
-        N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
+        A: ToSocketAddrs + Display,
+        N: Authenticator<Error = E> + Send + Sync + 'static,
+        E: StdError + Send + Sync + 'static,
     {
-        let make_transport = Box::pin(Transport::new_tls(addr.to_string(), identity));
-        self.transports
-            .push((make_transport, Arc::new(authenticator), internal));
+        let listener = Listener::new(
+            Transport::new_tcp(addr)?,
+            authenticator,
+            self.broker.handle(),
+            ready,
+        );
 
+        self.listeners.push(listener);
         Ok(self)
     }
 
-    pub fn packet_processor<P1>(self, make_processor: P1) -> Server<Z, P1> {
+    pub fn with_tls<A, N, E>(
+        &mut self,
+        addr: A,
+        identity: ServerCertificate,
+        authenticator: N,
+        ready: Option<Receiver<()>>,
+    ) -> Result<&mut Self, Error>
+    where
+        A: ToSocketAddrs + Display,
+        N: Authenticator<Error = E> + Send + Sync + 'static,
+        E: StdError + Send + Sync + 'static,
+    {
+        let listener = Listener::new(
+            Transport::new_tls(addr, identity)?,
+            authenticator,
+            self.broker.handle(),
+            ready,
+        );
+
+        self.listeners.push(listener);
+        Ok(self)
+    }
+
+    pub fn with_packet_processor<P1>(self, make_processor: P1) -> Server<Z, P1> {
         Server {
             broker: self.broker,
-            transports: self.transports,
+            listeners: self.listeners,
             make_processor,
         }
     }
@@ -97,32 +114,25 @@ where
     {
         let Server {
             broker,
-            transports,
+            listeners,
             make_processor,
         } = self;
         let mut handle = broker.handle();
-        let broker_task = tokio::spawn(broker.run());
 
+        // prepare dispatcher in a separate task
+        let broker_task = tokio::spawn(broker.run());
+        pin_mut!(broker_task);
+
+        // prepare each transport listener
         let mut incoming_tasks = Vec::new();
         let mut shutdown_handles = Vec::new();
-        for (new_transport, authenticator, internal) in transports {
+        for listener in listeners {
             let (itx, irx) = oneshot::channel::<()>();
             shutdown_handles.push(itx);
 
-            let incoming_task = incoming_task(
-                new_transport,
-                handle.clone(),
-                irx.map(drop),
-                authenticator,
-                make_processor.clone(),
-                internal
-            );
-
-            let incoming_task = Box::pin(incoming_task);
+            let incoming_task = Box::pin(listener.run(irx.map(drop), make_processor.clone()));
             incoming_tasks.push(incoming_task);
         }
-
-        pin_mut!(broker_task);
 
         let incoming_tasks = future::select_all(incoming_tasks);
         let main_task = future::select(broker_task, incoming_tasks);
@@ -232,96 +242,127 @@ where
     }
 }
 
-async fn incoming_task<F, N, T, P>(
-    new_transport: T,
-    handle: BrokerHandle,
-    mut shutdown_signal: F,
-    authenticator: Arc<N>,
-    make_processor: P,
-    internal: bool
-) -> Result<(), Error>
-where
-    F: Future<Output = ()> + Unpin,
-    N: Authenticator + ?Sized + Send + Sync + 'static,
-    T: Future<Output = Result<Transport, InitializeBrokerError>>,
-    P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
-{
-    if !internal {
-        // TODO loop every 1 second to check if EHC is ready. It could be simplified with future waiting for ready signal
-        let mut interval = time::interval(Duration::from_secs(1));
+struct Listener {
+    transport: Transport,
+    authenticator: Arc<(dyn Authenticator<Error = Box<dyn StdError + Send + Sync>> + Send + Sync)>,
+    ready: Option<Receiver<()>>,
+    broker_handle: BrokerHandle,
+}
 
-        let mut shutdown= false;
-        while !shutdown && !is_ready_serve_external() {
-            match future::select(&mut shutdown_signal, interval.tick()).await {
-                Either::Left(_) => {
-                    shutdown = true;
-                    break;
-                }
-                Either::Right(_) => {
-                    break;
-                }
-            }
+impl Listener {
+    fn new<N, E>(
+        transport: Transport,
+        authenticator: N,
+        broker_handle: BrokerHandle,
+        ready: Option<Receiver<()>>,
+    ) -> Self
+    where
+        N: Authenticator<Error = E> + Send + Sync + 'static,
+        E: StdError + Into<Box<dyn StdError>> + Send + Sync + 'static,
+    {
+        let authenticator = DynAuthenticator::from(authenticator);
+        Self {
+            transport,
+            authenticator: Arc::new(authenticator),
+            ready,
+            broker_handle,
         }
     }
 
-    if !shutdown {
-        // Start TCP listener and accept connections
-        let io = new_transport.await?;
-        let addr = io.local_addr()?;
+    async fn run<F, P>(self, shutdown_signal: F, make_processor: P) -> Result<(), Error>
+    where
+        F: Future<Output = ()> + Unpin,
+        P: MakeIncomingPacketProcessor
+            + MakeOutgoingPacketProcessor
+            + Clone
+            + Send
+            + Sync
+            + 'static,
+    {
+        let Self {
+            transport,
+            authenticator,
+            ready,
+            broker_handle,
+        } = self;
+
+        let addr = transport.addr();
 
         let span = info_span!("server", listener=%addr);
         let inner_span = span.clone();
 
         async move {
-            let mut incoming = io.incoming();
-
-            info!("Listening on address {}", addr);
-
-            loop {
-                match future::select(&mut shutdown_signal, incoming.next()).await {
-                    Either::Right((Some(Ok(stream)), _)) => {
-                        let peer = stream.peer_addr()?;
-
-                        let broker_handle = handle.clone();
-                        let span = inner_span.clone();
-                        let authenticator = authenticator.clone();
-                        let make_processor = make_processor.clone();
-                        tokio::spawn(async move {
-                            if let Err(e) =
-                            connection::process(stream, peer, broker_handle, &*authenticator, make_processor)
-                                .instrument(span)
-                                .await
-                            {
-                                warn!(message = "failed to process connection", error =% DetailedErrorValue(&e));
-                            }
-                        });
-                    }
-                    Either::Left(_) => {
-                        info!(
-                            "accept loop shutdown. no longer accepting connections on {}",
-                            addr
-                        );
-                        break;
-                    }
-                    Either::Right((Some(Err(e)), _)) => {
-                        warn!(
-                        message = "accept loop exiting due to an error",
-                        error =% DetailedErrorValue(&e)
-                    );
-                        break;
-                    }
-                    Either::Right((None, _)) => {
-                        warn!("accept loop exiting due to no more incoming connections (incoming returned None)");
-                        break;
-                    }
+            let ready = match ready {
+                Some(mut ready) => {
+                    info!("Waiting for broker to be ready to serve requests");
+                    // async block required to consume ready and make a future with
+                    // a 'static lifetime
+                    Either::Left(async move { ready.recv().await })
                 }
+                None => Either::Right(future::ready(Ok(()))),
+            };
+            pin_mut!(ready);
+
+            // wait until broker is ready to serve external clients or a shutdown request
+            match future::select(ready, shutdown_signal).await
+            {
+                Either::Left((Ok(_), mut shutdown_signal)) => {
+                    // start listening incoming connections on given network address
+                    let mut incoming = transport.incoming().await?;
+
+                    let addr = incoming.local_addr()?;
+                    info!("Listening on address {}", addr);
+
+                    loop {
+                        match future::select(&mut shutdown_signal, incoming.next()).await {
+                            Either::Right((Some(Ok(stream)), _)) => {
+                                let peer = stream.peer_addr()?;
+
+                                let broker_handle = broker_handle.clone();
+                                let span = inner_span.clone();
+                                let authenticator = authenticator.clone();
+                                let make_processor = make_processor.clone();
+                                tokio::spawn(async move {
+                                    if let Err(e) =
+                                        connection::process(stream, peer, broker_handle, &*authenticator, make_processor)
+                                            .instrument(span)
+                                            .await
+                                    {
+                                        warn!(message = "failed to process connection", error =% DetailedErrorValue(&e));
+                                    }
+                                });
+                            }
+                            Either::Left(_) => {
+                                info!(
+                                    "accept loop shutdown. no longer accepting connections on {}",
+                                    addr
+                                );
+                                break;
+                            }
+                            Either::Right((Some(Err(e)), _)) => {
+                                warn!(
+                                    message = "accept loop exiting due to an error",
+                                    error =% DetailedErrorValue(&e)
+                                );
+                                break;
+                            }
+                            Either::Right((None, _)) => {
+                                warn!("accept loop exiting due to no more incoming connections (incoming returned None)");
+                                break;
+                            }
+                        }
+                    }
+                    Ok(())
+                }
+                Either::Left((Err(e), _)) => {
+                    error!("error occurred when waiting for broker readiness. {}", e);
+                    Ok(())
+                }
+                Either::Right((_, _)) => Ok(()),
             }
             Ok(())
         }
         .instrument(span)
         .await
-    }
-    else {
-        Ok(())
     }
 }

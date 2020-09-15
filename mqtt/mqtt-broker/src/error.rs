@@ -1,6 +1,7 @@
 use std::{
     error::Error as StdError,
     fmt::{Display, Formatter, Result as FmtResult},
+    net::SocketAddr,
     path::PathBuf,
 };
 
@@ -73,11 +74,17 @@ pub enum Error {
 /// Represents errors occurred while bootstrapping broker.
 #[derive(Debug, Error)]
 pub enum InitializeBrokerError {
+    #[error("An error occurred converting to a socker address {0}.")]
+    SocketAddr(String, #[source] std::io::Error),
+
+    #[error("Missing socker address {0}.")]
+    MissingSocketAddr(String),
+
     #[error("An error occurred binding the server's listening socket on {0}.")]
-    BindServer(String, #[source] std::io::Error),
+    BindServer(SocketAddr, #[source] std::io::Error),
 
     #[error("An error occurred getting local address.")]
-    ConnectionLocalAddress(#[source] std::io::Error),
+    ConnectionLocalAddress(#[source] tokio::io::Error),
 
     #[error("An error occurred loading identity from file {0}.")]
     LoadIdentity(PathBuf, #[source] std::io::Error),

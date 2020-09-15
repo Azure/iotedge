@@ -1,18 +1,18 @@
-use std::time::Duration;
+use std::error::Error as StdError;
 
 use futures_util::StreamExt;
+use tokio::task::JoinHandle;
+
 use mqtt3::{proto::ClientId, ShutdownError};
-use mqtt_broker::{auth::AllowAll, BrokerBuilder, BrokerHandle};
+use mqtt_broker::{auth::AllowAll, BrokerBuilder};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::{
-    CommandHandler, CommandHandlerError, ShutdownHandle as CommandShutdownHandle,
-};
-use tokio::{task::JoinHandle, time};
+use mqtt_edgehub::command::{Command, CommandHandler, Disconnect, ShutdownHandle};
 
+const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
 /// Scenario:
@@ -28,15 +28,11 @@ async fn disconnect_client() {
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
-    let (mut command_handler_shutdown_handle, join_handle) =
-        start_command_handler(broker_handle, TEST_SERVER_ADDRESS.to_string())
+    let command = Disconnect::new(&broker_handle);
+    let (command_handler_shutdown_handle, join_handle) =
+        start_command_handler(TEST_SERVER_ADDRESS.to_string(), command)
             .await
             .expect("could not start command handler");
-
-    // TODO: This wait is necessary because edgehub can send disconnect before command handler subscribes to disconnect topic
-    //       We can remove once we have a proper approach for starting command handler before edgehub sends disconnects
-    //       The risk of this causing issues in a containerized scenario is very small because edgehub startup time > broker startup time
-    time::delay_for(Duration::from_secs(1)).await;
 
     let mut test_client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),
@@ -51,7 +47,7 @@ async fn disconnect_client() {
         .with_client_id(ClientId::IdWithCleanSession("$edgehub".into()))
         .build();
 
-    let topic = "$edgehub/disconnect";
+    let topic = DISCONNECT_TOPIC;
     edgehub_client
         .publish_qos1(topic, r#""test-client""#, false)
         .await;
@@ -62,27 +58,26 @@ async fn disconnect_client() {
         .shutdown()
         .await
         .expect("failed to stop command handler client");
-    join_handle
-        .await
-        .expect("failed to shutdown command handler")
-        .expect("command handler failed");
+
+    join_handle.await.unwrap();
 
     edgehub_client.shutdown().await;
 }
 
-async fn start_command_handler(
-    broker_handle: BrokerHandle,
+async fn start_command_handler<C, E>(
     system_address: String,
-) -> Result<
-    (
-        CommandShutdownHandle,
-        JoinHandle<Result<(), CommandHandlerError>>,
-    ),
-    ShutdownError,
-> {
-    let device_id = "test-device";
-    let command_handler = CommandHandler::new(broker_handle, system_address, device_id);
-    let shutdown_handle = command_handler.shutdown_handle()?;
+    command: C,
+) -> Result<(ShutdownHandle, JoinHandle<()>), ShutdownError>
+where
+    C: Command<Error = E> + Send + 'static,
+    E: StdError + 'static,
+{
+    let mut command_handler = CommandHandler::new(system_address, "test-device");
+    command_handler.add_command(command);
+
+    command_handler.init().await.unwrap();
+
+    let shutdown_handle: ShutdownHandle = command_handler.shutdown_handle().unwrap();
 
     let join_handle = tokio::spawn(command_handler.run());
 

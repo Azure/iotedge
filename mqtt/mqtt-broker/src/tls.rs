@@ -119,10 +119,10 @@ mod tests {
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
     };
+    use tokio_openssl::connect;
 
     use super::{parse_openssl_time, ServerCertificate};
     use crate::transport::Transport;
-    use tokio_openssl::{accept, connect};
 
     const PRIVATE_KEY: &str = include_str!("../test/tls/pkey.pem");
 
@@ -141,27 +141,23 @@ mod tests {
     }
 
     async fn run_echo_server(identity: ServerCertificate) -> u16 {
-        match Transport::new_tls("0.0.0.0:0", identity).await {
-            Ok(Transport::Tls(mut listener, acceptor)) => {
-                let port = listener.local_addr().unwrap().port();
+        let transport = Transport::new_tls("0.0.0.0:0", identity).unwrap();
 
+        let mut incoming = transport.incoming().await.unwrap();
+        let addr = incoming.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            while let Some(Ok(mut stream)) = incoming.next().await {
                 tokio::spawn(async move {
-                    while let Some(stream) = listener.next().await {
-                        let acceptor = acceptor.clone();
-                        tokio::spawn(async move {
-                            let mut tls = accept(&acceptor, stream.unwrap()).await.unwrap();
-                            let mut buffer = [0_u8; 1024];
-                            while tls.read(&mut buffer).await.unwrap() > 0 {
-                                tls.write(&buffer).await.unwrap();
-                            }
-                        });
+                    let mut buffer = [0_u8; 1024];
+                    while stream.read(&mut buffer).await.unwrap() > 0 {
+                        stream.write(&buffer).await.unwrap();
                     }
                 });
-
-                port
             }
-            _ => panic!("wrong protocol"),
-        }
+        });
+
+        addr.port()
     }
 
     async fn run_echo_client(port: u16, message: &[u8]) -> Vec<u8> {

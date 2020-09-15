@@ -1,4 +1,7 @@
-use std::{cell::RefCell, collections::HashMap, convert::Infallible};
+use std::{any::Any, cell::RefCell, collections::HashMap, convert::Infallible, fmt};
+
+use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 use mqtt_broker::{
     auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
@@ -171,6 +174,35 @@ impl Authorizer for EdgeHubAuthorizer {
         };
 
         Ok(auth)
+    }
+
+    fn update(&self, update: Box<dyn Any>) -> Result<(), Self::Error> {
+        let identities = update.as_ref();
+        if let Some(service_identities) = identities.downcast_ref::<ServiceIdentity>() {
+            debug!("{:?}", service_identities);
+            // TODO: fill in update method
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServiceIdentity {
+    #[serde(rename = "Identity")]
+    identity: String,
+
+    #[serde(rename = "AuthChain")]
+    auth_chain: Option<String>,
+}
+
+impl fmt::Display for ServiceIdentity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.auth_chain {
+            Some(auth_chain) => {
+                write!(f, "Identity: {}; Auth_Chain: {}", self.identity, auth_chain)
+            }
+            None => write!(f, "Identity: {}", self.identity),
+        }
     }
 }
 

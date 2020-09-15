@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         protected override void Load(ContainerBuilder builder)
         {
             builder.Register(c => this.metricsConfig.Enabled ?
-                                new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId) :
+                                new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId, this.metricsConfig.HistogramMaxAge) :
                                 new NullMetricsProvider() as IMetricsProvider)
                 .As<IMetricsProvider>()
                 .SingleInstance();

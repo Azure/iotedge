@@ -343,9 +343,9 @@ where
     let port = PORT.fetch_add(1, Ordering::SeqCst);
     let address = format!("localhost:{}", port);
 
-    let mut server =
-        Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor::default());
-    server.tcp(&address, authenticator);
+    let mut server = Server::from_broker(broker)
+        .with_packet_processor(MakeEdgeHubPacketProcessor::default())
+        .with_tcp(&address, authenticator, None);
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let task = tokio::spawn(server.serve(rx.map(drop)));

@@ -30,6 +30,7 @@ mod transport;
 pub mod proptest;
 
 use std::{
+    any::Any,
     fmt::{Display, Formatter, Result as FmtResult},
     net::SocketAddr,
     sync::Arc,
@@ -239,7 +240,7 @@ pub enum SystemEvent {
     Shutdown,
     StateSnapshot(StateSnapshotHandle),
     ForceClientDisconnect(ClientId),
-    // ConfigUpdate,
+    AuthorizationUpdate(Box<dyn Any + Send + Sync>),
 }
 
 #[derive(Debug)]
