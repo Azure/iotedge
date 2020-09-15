@@ -17,8 +17,8 @@ pub struct Bridge {
     system_address: String,
     device_id: String,
     connection_settings: ConnectionSettings,
-    forwards_map: HashMap<String, Topic>,
-    subs_map: HashMap<String, Topic>,
+    forwards: HashMap<String, Topic>,
+    subscriptions: HashMap<String, Topic>,
 }
 
 impl Bridge {
@@ -27,24 +27,24 @@ impl Bridge {
         device_id: String,
         connection_settings: ConnectionSettings,
     ) -> Self {
-        let forwards_map: HashMap<String, Topic> = connection_settings
+        let forwards = connection_settings
             .forwards()
             .iter()
-            .map(move |sub| Bridge::format_key_value(sub))
+            .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let subs_map: HashMap<String, Topic> = connection_settings
+        let subscriptions = connection_settings
             .subscriptions()
             .iter()
-            .map(|sub| Bridge::format_key_value(sub))
+            .map(|sub| Self::format_key_value(sub))
             .collect();
 
         Bridge {
             system_address,
             device_id,
             connection_settings,
-            forwards_map,
-            subs_map,
+            forwards,
+            subscriptions,
         }
     }
 
@@ -73,7 +73,7 @@ impl Bridge {
         );
 
         self.connect(
-            &self.subs_map,
+            &self.subscriptions,
             self.connection_settings.address(),
             *self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
@@ -94,7 +94,7 @@ impl Bridge {
         );
 
         self.connect(
-            &self.forwards_map,
+            &self.forwards,
             self.system_address.as_str(),
             *self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
@@ -151,7 +151,7 @@ struct MessageHandler<'a, T>
 where
     T: Persist<'a>,
 {
-    topics: Vec<TopicMapper>,
+    topic_mappers: Vec<TopicMapper>,
     inner: T,
     phantom: PhantomData<&'a T>,
 }
@@ -160,27 +160,28 @@ impl<'a, T> MessageHandler<'a, T>
 where
     T: Persist<'a>,
 {
-    pub fn new(topics: Vec<TopicMapper>, batch_size: usize) -> Self {
+    pub fn new(topic_mappers: Vec<TopicMapper>, batch_size: usize) -> Self {
         Self {
-            topics,
+            topic_mappers,
             inner: T::new(batch_size),
             phantom: PhantomData,
         }
     }
 
     fn transform(&self, topic_name: &str) -> Option<String> {
-        for mapper in &self.topics {
+        for mapper in &self.topic_mappers {
             let forward_topic = mapper
                 .topic_settings
                 .local()
                 // maps if local does not have a value it uses the topic that was received,
                 // else it checks that the received topic starts with local prefix and removes the local prefix
                 .map_or(Some(topic_name.to_owned()), |local_prefix| {
-                    if topic_name.to_owned().starts_with(local_prefix) {
+                    let prefix = format!("{}/", local_prefix);
+                    if topic_name.to_owned().starts_with(&prefix) {
                         let rs: String = topic_name
-                            .strip_prefix(local_prefix)
+                            .strip_prefix(&prefix)
                             .unwrap_or(&topic_name)
-                            .to_string();
+                            .to_owned();
 
                         Some(rs)
                     } else {
@@ -239,19 +240,19 @@ impl EventHandler for MessageHandler<'_, InMemoryPersist> {
 
 #[cfg(test)]
 mod tests {
-    use crate::bridge::TopicMapper;
-    use crate::persist::Key;
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
-    use mqtt3::proto::QoS;
-    use mqtt3::{Event, ReceivedPublication};
     use std::str::FromStr;
 
+    use mqtt3::{
+        proto::{Publication, QoS},
+        Event, ReceivedPublication,
+    };
     use mqtt_broker::TopicFilter;
 
-    use crate::bridge::{Bridge, MessageHandler};
+    use crate::bridge::{Bridge, MessageHandler, TopicMapper};
     use crate::client::EventHandler;
-    use crate::persist::{memory::InMemoryPersist, Persist};
+    use crate::persist::{memory::InMemoryPersist, Key, Persist};
     use crate::settings::Settings;
 
     #[tokio::test]
@@ -265,18 +266,66 @@ mod tests {
             connection_settings.clone(),
         );
 
-        for (key, value) in &bridge.forwards_map {
-            assert_eq!(key, "some");
-            assert_eq!(value.remote().unwrap(), "remote");
-        }
-
-        let (key, value) = bridge.subs_map.get_key_value("temp/#").unwrap();
+        let (key, value) = bridge.forwards.get_key_value("temp/#").unwrap();
         assert_eq!(key, "temp/#");
         assert_eq!(value.remote().unwrap(), "floor/kitchen");
+        assert_eq!(value.local(), None);
 
-        let (key, value) = bridge.subs_map.get_key_value("pattern/#").unwrap();
+        let (key, value) = bridge.forwards.get_key_value("pattern/#").unwrap();
         assert_eq!(key, "pattern/#");
         assert_eq!(value.remote(), None);
+
+        let (key, value) = bridge.forwards.get_key_value("local/floor/#").unwrap();
+        assert_eq!(key, "local/floor/#");
+        assert_eq!(value.local().unwrap(), "local");
+        assert_eq!(value.remote().unwrap(), "remote");
+
+        let (key, value) = bridge.subscriptions.get_key_value("temp/#").unwrap();
+        assert_eq!(key, "temp/#");
+        assert_eq!(value.remote().unwrap(), "floor/kitchen");
+    }
+
+    #[tokio::test]
+    async fn message_handler_saves_message_with_local_and_forward_topic() {
+        let batch_size: usize = 5;
+        let settings = Settings::from_file("tests/config.json").unwrap();
+        let connection_settings = settings.upstream().unwrap();
+
+        let topics: Vec<TopicMapper> = connection_settings
+            .forwards()
+            .iter()
+            .map(move |sub| TopicMapper {
+                topic_settings: sub.clone(),
+                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+            })
+            .collect();
+
+        let mut handler = MessageHandler::<InMemoryPersist>::new(topics, batch_size);
+
+        let pub1 = ReceivedPublication {
+            topic_name: "local/floor/1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+
+        let expected = Publication {
+            topic_name: "remote/floor/1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle_event(Event::Publication(pub1))
+            .await
+            .unwrap();
+
+        let loader = handler.inner.loader().await;
+
+        let extracted1 = loader.lock().next().await.unwrap();
+        assert_eq!(extracted1.1, expected);
     }
 
     #[tokio::test]
@@ -286,7 +335,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics: Vec<TopicMapper> = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(move |sub| TopicMapper {
                 topic_settings: sub.clone(),
@@ -304,6 +353,13 @@ mod tests {
             dup: false,
         };
 
+        let expected = Publication {
+            topic_name: "floor/kitchen/temp/1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
         handler
             .handle_event(Event::Publication(pub1))
             .await
@@ -312,7 +368,7 @@ mod tests {
         let loader = handler.inner.loader().await;
 
         let extracted1 = loader.lock().next().await.unwrap();
-        assert_eq!(extracted1.1.topic_name, "floor/kitchen/temp/1");
+        assert_eq!(extracted1.1, expected);
     }
 
     #[tokio::test]
@@ -322,7 +378,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics: Vec<TopicMapper> = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(move |sub| TopicMapper {
                 topic_settings: sub.clone(),
@@ -340,6 +396,13 @@ mod tests {
             dup: false,
         };
 
+        let expected = Publication {
+            topic_name: "pattern/p1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
         handler
             .handle_event(Event::Publication(pub1))
             .await
@@ -348,7 +411,7 @@ mod tests {
         let loader = handler.inner.loader().await;
 
         let extracted1 = loader.lock().next().await.unwrap();
-        assert_eq!(extracted1.1.topic_name, "pattern/p1");
+        assert_eq!(extracted1.1, expected);
     }
 
     #[tokio::test]
@@ -358,7 +421,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics: Vec<TopicMapper> = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(move |sub| TopicMapper {
                 topic_settings: sub.clone(),

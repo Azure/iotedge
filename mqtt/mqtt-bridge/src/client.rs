@@ -209,15 +209,15 @@ pub trait EventHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientConnectError {
-    #[error("failed to receive expected subacks for command topics: {0:?}")]
+    #[error("failed to receive expected subacks for topics: {0:?}")]
     MissingSubacks(Vec<String>),
 
-    #[error("failed to subscribe command handler to command topic")]
+    #[error("failed to subscribe topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
 
     #[error("failed to poll client")]
     PollClientFailure(#[from] mqtt3::Error),
 
-    #[error("Failed to shutdown custom mqtt client: {0}")]
+    #[error("failed to shutdown custom mqtt client: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
 }
