@@ -1,5 +1,4 @@
-#![allow(dead_code)] // TODO remove when ready
-use std::{collections::HashMap, marker::PhantomData, str::FromStr};
+use std::{collections::HashMap, marker::PhantomData, str::FromStr, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -8,8 +7,7 @@ use mqtt_broker::TopicFilter;
 use tracing::{debug, info, warn};
 
 use crate::client::{EventHandler, MqttClient};
-use crate::persist::memory::InMemoryPersist;
-use crate::persist::Persist;
+use crate::persist::{memory::InMemoryPersist, Persist};
 use crate::settings::{ConnectionSettings, Credentials, Topic};
 
 const BATCH_SIZE: usize = 10;
@@ -32,27 +30,13 @@ impl Bridge {
         let forwards_map: HashMap<String, Topic> = connection_settings
             .forwards()
             .iter()
-            .map(move |sub| {
-                let key = if let Some(local) = sub.local() {
-                    format!("{}/{}", local, sub.pattern().to_string())
-                } else {
-                    sub.pattern().into()
-                };
-                (key, sub.clone())
-            })
+            .map(move |sub| Bridge::format_key_value(sub))
             .collect();
 
         let subs_map: HashMap<String, Topic> = connection_settings
             .subscriptions()
             .iter()
-            .map(|sub| {
-                let key = if let Some(local) = sub.local() {
-                    format!("{}/{}", local, sub.pattern().to_string())
-                } else {
-                    sub.pattern().into()
-                };
-                (key, sub.clone())
-            })
+            .map(|sub| Bridge::format_key_value(sub))
             .collect();
 
         Bridge {
@@ -62,6 +46,15 @@ impl Bridge {
             forwards_map,
             subs_map,
         }
+    }
+
+    fn format_key_value(topic: &Topic) -> (String, Topic) {
+        let key = if let Some(local) = topic.local() {
+            format!("{}/{}", local, topic.pattern().to_string())
+        } else {
+            topic.pattern().into()
+        };
+        (key, topic.clone())
     }
 
     pub async fn start(&self) -> Result<()> {
@@ -75,33 +68,18 @@ impl Bridge {
 
     async fn connect_to_remote(&self) -> Result<()> {
         info!(
-            "connecting to broker {}",
+            "connecting to remote broker {}",
             self.connection_settings.address()
         );
 
-        let mut topic_filters = Vec::new();
-        for val in self.subs_map.values() {
-            topic_filters.push(TopicMapper {
-                topic_settings: val.clone(),
-                topic_filter: TopicFilter::from_str(val.pattern())?,
-            });
-        }
-
-        let mut client = MqttClient::new(
-            self.system_address.as_str(),
+        self.connect(
+            &self.subs_map,
+            self.connection_settings.address(),
             *self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
-            MessageHandler::new(topic_filters, BATCH_SIZE),
             self.connection_settings.credentials(),
-        );
-
-        let subscriptions: Vec<String> = self.subs_map.keys().map(|key| key.into()).collect();
-        debug!("subscribe to remote {:?}", subscriptions);
-
-        client.subscribe(subscriptions).await?;
-        let _events_task = tokio::spawn(client.handle_events());
-
-        Ok(())
+        )
+        .await
     }
 
     async fn connect_to_local(&self) -> Result<()> {
@@ -115,8 +93,26 @@ impl Bridge {
             self.system_address, client_id
         );
 
+        self.connect(
+            &self.forwards_map,
+            self.system_address.as_str(),
+            *self.connection_settings.keep_alive(),
+            self.connection_settings.clean_session(),
+            &Credentials::Anonymous(client_id),
+        )
+        .await
+    }
+
+    async fn connect(
+        &self,
+        topics: &HashMap<String, Topic>,
+        address: &str,
+        keep_alive: Duration,
+        clean_session: bool,
+        credentials: &Credentials,
+    ) -> Result<()> {
         let mut topic_filters = Vec::new();
-        for val in self.forwards_map.values() {
+        for val in topics.values() {
             topic_filters.push(TopicMapper {
                 topic_settings: val.clone(),
                 topic_filter: TopicFilter::from_str(val.pattern())?,
@@ -124,18 +120,19 @@ impl Bridge {
         }
 
         let mut client = MqttClient::new(
-            self.system_address.as_str(),
-            *self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
+            address,
+            keep_alive,
+            clean_session,
             MessageHandler::new(topic_filters, BATCH_SIZE),
-            &Credentials::Anonymous(client_id),
+            credentials,
         );
 
-        let subscriptions: Vec<String> = self.forwards_map.keys().map(|key| key.into()).collect();
-        debug!("subscribe to local {:?}", subscriptions);
+        let subscriptions: Vec<String> = topics.keys().map(|key| key.into()).collect();
+        debug!("subscribe to remote {:?}", subscriptions);
 
         client.subscribe(subscriptions).await?;
 
+        //TODO: handle this with shutdown
         let _events_task = tokio::spawn(client.handle_events());
 
         Ok(())
@@ -148,6 +145,7 @@ struct TopicMapper {
     topic_filter: TopicFilter,
 }
 
+/// Handle events from client and saves them with the forward topic
 #[derive(Clone)]
 struct MessageHandler<'a, T>
 where
@@ -172,9 +170,11 @@ where
 
     fn transform(&self, topic_name: &str) -> Option<String> {
         for mapper in &self.topics {
-            let pattern = mapper
+            let forward_topic = mapper
                 .topic_settings
                 .local()
+                // maps if local does not have a value it uses the topic that was received, 
+                // else it checks that the received topic starts with local prefix and removes the local prefix
                 .map_or(Some(topic_name.to_owned()), |local_prefix| {
                     if topic_name.to_owned().starts_with(local_prefix) {
                         let rs: String = topic_name
@@ -184,20 +184,22 @@ where
 
                         Some(rs)
                     } else {
+                        // is no match if there is a local prefix for the mapper but received topic does not start with it 
                         None
                     }
                 })
-                .filter(|pattern| mapper.topic_filter.matches(pattern))
-                .map(|pattern| {
+                // match topic without local prefix with the topic filter pattern
+                .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
+                .map(|stripped_topic| {
                     if let Some(remote_prefix) = mapper.topic_settings.remote() {
-                        format!("{}/{}", remote_prefix, pattern)
+                        format!("{}/{}", remote_prefix, stripped_topic)
                     } else {
-                        pattern
+                        stripped_topic
                     }
                 });
 
-            if pattern.is_some() {
-                return pattern;
+            if forward_topic.is_some() {
+                return forward_topic;
             }
         }
         None
@@ -216,14 +218,14 @@ impl EventHandler for MessageHandler<'_, InMemoryPersist> {
                 payload,
                 dup: _,
             } = publication;
-            let forward = self.transform(topic_name.as_ref()).map(|f| Publication {
+            let forward_publication = self.transform(topic_name.as_ref()).map(|f| Publication {
                 topic_name: f,
                 qos,
                 retain,
                 payload,
             });
 
-            if let Some(f) = forward {
+            if let Some(f) = forward_publication {
                 debug!("Save message to store");
                 self.inner.push(f).await?;
             } else {
