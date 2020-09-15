@@ -29,7 +29,7 @@ impl<'a> Persist<'a> for InMemoryPersist {
         let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
 
-        let loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size);
+        let loader = InMemoryMessageLoader::new(&Arc::clone(&state), batch_size);
         let loader = Arc::new(Mutex::new(loader));
 
         let offset = 0;

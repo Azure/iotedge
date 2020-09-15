@@ -18,7 +18,7 @@ pub struct InMemoryMessageLoader {
 }
 
 impl InMemoryMessageLoader {
-    pub fn new(state: Arc<Mutex<WakingMap>>, batch_size: usize) -> Self {
+    pub fn new(state: &Arc<Mutex<WakingMap>>, batch_size: usize) -> Self {
         let batch: IntoIter<(Key, Publication)> = Vec::new().into_iter();
 
         InMemoryMessageLoader {
