@@ -20,8 +20,8 @@ use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
-    SystemResources, UrlExt,
+    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -60,7 +60,7 @@ lazy_static! {
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
     system_resources: Arc<Mutex<System>>,
-    provisioning_type: String,
+    provisioning_info: ProvisioningInfo,
 }
 
 impl DockerModuleRuntime {
@@ -245,12 +245,11 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     .map(move |client| {
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
-                        let provisioning_type = settings.provisioning().provisioning_type().name();
                         info!("Successfully initialized module runtime");
                         DockerModuleRuntime {
                             client,
                             system_resources: Arc::new(Mutex::new(system_resources)),
-                            provisioning_type: provisioning_type.to_string(),
+                            provisioning_info: ProvisioningInfo::new(settings.provisioning()),
                         }
                     });
 
@@ -571,7 +570,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
-        let provisioning_type = self.provisioning_type.to_string();
+        let provisioning = self.provisioning_info.clone();
 
         Box::new(
             self.client
@@ -589,7 +588,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
                             version: edgelet_core::version_with_source_version(),
-                            provisioning_type,
+                            provisioning,
                             cpus: system_info.NCPU().unwrap_or_default(),
                             kernel_version: system_info
                                 .kernel_version()

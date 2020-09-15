@@ -420,6 +420,14 @@ impl Provisioning {
     pub fn dynamic_reprovisioning(&self) -> bool {
         self.dynamic_reprovisioning
     }
+
+    pub fn always_reprovision_on_startup(&self) -> bool {
+        if let ProvisioningType::Dps(dps) = self.provisioning_type() {
+            dps.always_reprovision_on_startup()
+        } else {
+            true
+        }
+    }
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -431,9 +439,9 @@ pub enum ProvisioningType {
     External(External),
 }
 
-impl ProvisioningType {
-    pub fn name(&self) -> &str {
-        match self {
+impl std::fmt::Display for ProvisioningType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let result = match self {
             ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(_) => "manual.device_connection_string",
                 ManualAuthMethod::X509(_) => "manual.x509",
@@ -444,7 +452,8 @@ impl ProvisioningType {
                 AttestationMethod::X509(_) => "dps.x509",
             },
             ProvisioningType::External(_) => "external",
-        }
+        };
+        write!(f, "{}", result)
     }
 }
 
@@ -989,7 +998,10 @@ mod tests {
                 "".to_string(),
             )),
         )));
-        assert_eq!("manual.device_connection_string", ptype.name());
+        assert_eq!(
+            "manual.device_connection_string",
+            ptype.to_string().as_str()
+        );
 
         let ptype = ProvisioningType::Manual(Box::new(Manual::new(ManualAuthMethod::X509(
             ManualX509Auth {
@@ -999,14 +1011,15 @@ mod tests {
                 identity_pk: Url::parse("file:///irrelevant").unwrap(),
             },
         ))));
-        assert_eq!("manual.x509", ptype.name());
+        assert_eq!("manual.x509", ptype.to_string().as_str());
 
         let ptype = ProvisioningType::Dps(Box::new(Dps {
             global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
             scope_id: "irrelevant".to_string(),
             attestation: AttestationMethod::Tpm(TpmAttestationInfo::new("irrelevant".to_string())),
+            always_reprovision_on_startup: true,
         }));
-        assert_eq!("dps.tpm", ptype.name());
+        assert_eq!("dps.tpm", ptype.to_string().as_str());
 
         let ptype = ProvisioningType::Dps(Box::new(Dps {
             global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
@@ -1015,8 +1028,9 @@ mod tests {
                 registration_id: "irrelevant".to_string(),
                 symmetric_key: "irrelevant".to_string(),
             }),
+            always_reprovision_on_startup: true,
         }));
-        assert_eq!("dps.symmetric_key", ptype.name());
+        assert_eq!("dps.symmetric_key", ptype.to_string().as_str());
 
         let ptype = ProvisioningType::Dps(Box::new(Dps {
             global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
@@ -1026,11 +1040,12 @@ mod tests {
                 identity_cert: Url::parse("file:///irrelevant").unwrap(),
                 identity_pk: Url::parse("file:///irrelevant").unwrap(),
             }),
+            always_reprovision_on_startup: true,
         }));
-        assert_eq!("dps.x509", ptype.name());
+        assert_eq!("dps.x509", ptype.to_string().as_str());
 
         let ptype =
             ProvisioningType::External(External::new(Url::parse("http://irrelevant.net").unwrap()));
-        assert_eq!("external", ptype.name());
+        assert_eq!("external", ptype.to_string().as_str());
     }
 }

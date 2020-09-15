@@ -15,8 +15,8 @@ use hyper_tls::HttpsConnector;
 
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleRegistry,
-    ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
-    RuntimeOperation, SystemInfo, SystemResources,
+    ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
+    ProvisioningResult as CoreProvisioningResult, RuntimeOperation, SystemInfo, SystemResources,
 };
 use edgelet_docker::DockerConfig;
 use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
@@ -237,7 +237,11 @@ where
                             os_type: "Kubernetes".to_string(),
                             architecture: serde_json::to_string(&architectures).unwrap(),
                             version: edgelet_core::version_with_source_version(),
-                            provisioning_type: not_supported.clone(),
+                            provisioning: ProvisioningInfo {
+                                r#type: not_supported.clone(),
+                                dynamic_reprovisioning: false,
+                                always_reprovision_on_startup: true,
+                            },
                             cpus: 0,
                             kernel_version: not_supported.clone(),
                             operating_system: not_supported.clone(),
@@ -251,7 +255,11 @@ where
                 os_type: "Kubernetes".to_string(),
                 architecture: "Kubernetes".to_string(),
                 version: edgelet_core::version_with_source_version(),
-                provisioning_type: not_supported.clone(),
+                provisioning: ProvisioningInfo {
+                    r#type: not_supported.clone(),
+                    dynamic_reprovisioning: false,
+                    always_reprovision_on_startup: true,
+                },
                 cpus: 0,
                 kernel_version: not_supported.clone(),
                 operating_system: not_supported.clone(),

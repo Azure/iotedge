@@ -44,8 +44,8 @@ pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
     DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
     ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
-    ModuleStatus, ModuleTop, ProvisioningResult, RegistryOperation, RuntimeOperation, SystemInfo,
-    SystemResources,
+    ModuleStatus, ModuleTop, ProvisioningInfo, ProvisioningResult, RegistryOperation,
+    RuntimeOperation, SystemInfo, SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;
