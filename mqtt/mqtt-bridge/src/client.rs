@@ -1,5 +1,5 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::{collections::HashSet, time::Duration};
+use std::{collections::HashSet, convert::TryInto, time::Duration};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -15,7 +15,8 @@ use mqtt3::{
 use crate::settings::Credentials;
 use crate::token_source::{SasTokenSource, TokenSource};
 
-const DEFAULT_TOKEN_DURATION_SECS: Duration = Duration::from_secs(60 * 60);
+const DEFAULT_TOKEN_DURATION_MINS: u64 = 60;
+const DEFAULT_TOKEN_DURATION_SECS: Duration = Duration::from_secs(60 * DEFAULT_TOKEN_DURATION_MINS);
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -52,8 +53,9 @@ where
 
         Box::pin(async move {
             let expiry = Utc::now()
-                + chrono::Duration::from_std(DEFAULT_TOKEN_DURATION_SECS)
-                    .unwrap_or_else(|_| chrono::Duration::hours(1));
+                + chrono::Duration::from_std(DEFAULT_TOKEN_DURATION_SECS).unwrap_or_else(|_| {
+                    chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS.try_into().unwrap())
+                });
             let mut password = None;
             if let Some(ts) = token_source {
                 password = match ts.get(&expiry).await {
