@@ -5,16 +5,9 @@ use futures_util::{
     pin_mut,
     stream::StreamExt,
 };
-<<<<<<< HEAD
-use tokio::sync::oneshot;
-use tokio::time;
-=======
 use tokio::sync::{broadcast::Receiver, oneshot};
->>>>>>> a832716f1e23586914b4ddaf5907e9abf86b4004
 use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
-
-use std::time::Duration;
 
 use crate::{
     auth::{Authenticator, Authorizer, DynAuthenticator},
@@ -24,8 +17,7 @@ use crate::{
     },
     transport::{GetPeerInfo, Transport},
     BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
-    SystemEvent,
-    is_ready_serve_external,
+    SystemEvent
 };
 
 pub struct Server<Z, P>
@@ -360,7 +352,6 @@ impl Listener {
                 }
                 Either::Right((_, _)) => Ok(()),
             }
-            Ok(())
         }
         .instrument(span)
         .await

@@ -257,13 +257,3 @@ pub(crate) mod tests {
         "127.0.0.1:12345".parse().unwrap()
     }
 }
-
-static mut READY_SERVE_EXTERNAL : bool = false;
-
-fn is_ready_serve_external() -> bool {
-    unsafe {return READY_SERVE_EXTERNAL;}
-}
-
-pub fn mark_ready_serve_external() {
-    unsafe {READY_SERVE_EXTERNAL = true;}
-}

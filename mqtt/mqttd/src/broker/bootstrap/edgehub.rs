@@ -124,6 +124,7 @@ where
                     .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
+
             let broker_ready = Some(broker_ready.subscribe());
             server.with_tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
 
