@@ -5,14 +5,18 @@
 
 ARG DIR=.
 
-FROM nginx@sha256:088807753a80fae07f41d44e0e723d04f8fd8acee5d74bf929b926c3d90c10ab
+FROM arm32v7/nginx:1.19.2
 WORKDIR /app
 COPY ./docker/linux/arm32v7/api-proxy-module .
 COPY ./docker/linux/arm32v7/templates .
+#expose ports
 EXPOSE 443/tcp	
 EXPOSE 80/tcp
+#used by registry
 EXPOSE 5000/tcp
+#used by blob storage
 EXPOSE 11002/tcp
+#use for custom defining ports
 EXPOSE 7000-8000/tcp
 ENTRYPOINT ["/app/api-proxy-module"]
  

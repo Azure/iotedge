@@ -3,9 +3,6 @@ pr:
   branches:
     include:
       - master
-      - release/*
-      - iiot
-      - preview/iiot
 jobs:
 
 ################################################################################

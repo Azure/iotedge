@@ -13,13 +13,10 @@ set -e
 ARCH=$(uname -m)
 DIR=$(cd "$(dirname "$0")" && pwd)
 TARGET=
-STRIP=
 SCRIPT_NAME=$(basename "$0")
 PROJECT=
 DOCKERFILE=
 DOCKER_IMAGENAME=
-DEFAULT_DOCKER_NAMESPACE="microsoft"
-DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH}
 PUBLISH_DIR=${BUILD_BINARIESDIRECTORY}/publish
 API_PROXY_DIR=${BUILD_REPOSITORY_LOCALPATH}/edge-modules/api-proxy-module
@@ -69,7 +66,6 @@ print_args()
     echo "Arch:         $ARCH"
     echo "Target:       $TARGET"
     echo "Image:        $DOCKER_IMAGENAME"
-    echo "Namespace:    $DOCKER_NAMESPACE"
     echo "Dockerfile:   $DOCKERFILE"
     echo
 }
@@ -94,12 +90,9 @@ process_args()
             DOCKER_IMAGENAME="$arg"
             save_next_arg=0
         elif [[ ${save_next_arg} -eq 4 ]]; then
-            DOCKER_NAMESPACE="$arg"
-            save_next_arg=0
-        elif [[ ${save_next_arg} -eq 5 ]]; then
             BUILD_CONFIGURATION="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 6 ]]; then
+        elif [[ ${save_next_arg} -eq 5 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
         else
@@ -108,9 +101,8 @@ process_args()
                 "-t" | "--target-arch" ) save_next_arg=1;;
                 "-P" | "--project" ) save_next_arg=2;;
                 "-i" | "--image-name" ) save_next_arg=3;;
-                "-n" | "--namespace" ) save_next_arg=4;;
-                "-c" | "--configuration" ) save_next_arg=5;;
-                "--bin-dir" ) save_next_arg=6;;
+                "-c" | "--configuration" ) save_next_arg=4;;
+                "--bin-dir" ) save_next_arg=5;;
                 * ) usage;;
             esac
         fi
@@ -183,7 +175,6 @@ build_project()
 
     # copy template files
     execute cp -r "$API_PROXY_DIR/templates" "$EXE_DOCKER_DIR/"
-
 }
 
 ###############################################################################

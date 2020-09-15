@@ -1,4 +1,4 @@
-# archname is used for job/display name and get image
+# archname is used for job/display name
 # targetarch is used for the script.
 parameters:
   archName: ''

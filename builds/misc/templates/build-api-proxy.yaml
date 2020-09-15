@@ -1,7 +1,6 @@
-parameters:
+envVariables:
   name: 'API proxy'
   imageName: 'api-proxy-module'
-  namespace: 'microsoft'
   project: 'api-proxy-module'
   configuration: 'release'
   filePath: 'scripts/linux/buildAPIProxy.sh'
@@ -10,15 +9,15 @@ steps:
   - task: Bash@3
     displayName: Build API-Proxy - amd64
     inputs:
-      filePath: ${{ parameters.filePath }}
-      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "x86_64"
+      filePath: ${{ envVariables.filePath }}
+      arguments: -i ${{ envVariables.imageName }} -P ${{ envVariables.project }} -c ${{ envVariables.configuration }} --target-arch "x86_64"
   - task: Bash@3
     displayName: Build API-Proxy - arm32
     inputs:
-      filePath: ${{ parameters.filePath }}
-      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "armv7l"
+      filePath: ${{ envVariables.filePath }}
+      arguments: -i ${{ envVariables.imageName }} -P ${{ envVariables.project }} -c ${{ envVariables.configuration }} --target-arch "armv7l"
   - task: Bash@3
     displayName: Build API-Proxy - arm64
     inputs:
-      filePath: ${{ parameters.filePath }}
-      arguments: -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "aarch64"
+      filePath: ${{ envVariables.filePath }}
+      arguments: -i ${{ envVariables.imageName }} -P ${{ envVariables.project }} -c ${{ envVariables.configuration }} --target-arch "aarch64"
