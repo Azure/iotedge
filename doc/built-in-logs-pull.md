@@ -35,10 +35,10 @@ This method accepts a JSON payload with the following schema:
             {
                 "id": "regex string", 
                 "filter": {
-                    "tail": "int", 
-                    "since": "int",
-                    "until": "int",
-                    "loglevel": "int", 
+                    "tail": int, 
+                    "since": int,
+                    "until": int,
+                    "loglevel": int, 
                     "regex": "regex string" 
                 }
             }
