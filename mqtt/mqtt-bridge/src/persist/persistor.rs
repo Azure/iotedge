@@ -68,7 +68,7 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
-    use crate::persist::{persistor::Persistor, waking_state::waking_map::WakingMap, Key};
+    use crate::persist::{persistor::Persistor, waking_state::WakingMap, Key};
 
     #[tokio::test]
     async fn insert() {
