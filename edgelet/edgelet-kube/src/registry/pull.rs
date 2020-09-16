@@ -240,6 +240,7 @@ mod tests {
         let config = DockerConfig::new(
             "my-image:v1.0".to_string(),
             ContainerCreateBody::new(),
+            None,
             Some(auth_config),
         )
         .unwrap();
@@ -279,6 +280,7 @@ mod tests {
         let config = DockerConfig::new(
             "my-image:v1.0".to_string(),
             ContainerCreateBody::new(),
+            None,
             Some(auth_config),
         )
         .unwrap();
