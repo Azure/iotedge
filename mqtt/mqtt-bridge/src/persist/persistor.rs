@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO remove when ready
+
 use std::sync::Arc;
 
 use anyhow::Result;

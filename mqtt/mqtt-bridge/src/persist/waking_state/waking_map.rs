@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO remove when ready
+
 use std::{cmp::min, collections::HashMap, collections::VecDeque, task::Waker};
 
 use mqtt3::proto::Publication;

@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO remove when ready
+
 use std::{
     collections::VecDeque,
     pin::Pin,

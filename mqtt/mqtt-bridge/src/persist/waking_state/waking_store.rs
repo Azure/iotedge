@@ -1,5 +1,6 @@
-use std::collections::hash_map::Entry;
-use std::{collections::HashMap, task::Waker};
+#![allow(dead_code)] // TODO remove when ready
+
+use std::{collections::hash_map::Entry, collections::HashMap, task::Waker};
 
 use bincode::{self};
 use mqtt3::proto::Publication;
