@@ -16,7 +16,11 @@ impl BridgeController {
         Self::default()
     }
 
-    pub async fn start(&mut self, system_address: String, device_id: &str) -> Result<(), BridgeError> {
+    pub async fn start(
+        &mut self,
+        system_address: String,
+        device_id: &str,
+    ) -> Result<(), BridgeError> {
         info!("starting bridge");
         let settings = Settings::new().map_err(BridgeError::LoadingSettingsError)?;
         if let Some(upstream) = settings.upstream() {
