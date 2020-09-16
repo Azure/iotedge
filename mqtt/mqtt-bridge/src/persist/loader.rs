@@ -1,4 +1,9 @@
-use std::{pin::Pin, sync::Arc, task::Context, task::Poll, vec::IntoIter};
+use std::{
+    collections::VecDeque,
+    pin::Pin,
+    sync::Arc,
+    task::{Context, Poll},
+};
 
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
@@ -15,13 +20,13 @@ use crate::persist::{waking_state::StreamWakeableState, Key};
 /// When the batch is exhausted it will grab a new batch
 pub struct MessageLoader<S: StreamWakeableState> {
     state: Arc<Mutex<S>>,
-    batch: IntoIter<(Key, Publication)>,
+    batch: VecDeque<(Key, Publication)>,
     batch_size: usize,
 }
 
 impl<S: StreamWakeableState> MessageLoader<S> {
     pub fn new(state: Arc<Mutex<S>>, batch_size: usize) -> Self {
-        let batch: IntoIter<(Key, Publication)> = Vec::new().into_iter();
+        let batch = VecDeque::new();
 
         MessageLoader {
             state: Arc::clone(&state),
@@ -30,16 +35,15 @@ impl<S: StreamWakeableState> MessageLoader<S> {
         }
     }
 
-    fn next_batch(&mut self) -> IntoIter<(Key, Publication)> {
+    fn next_batch(&mut self) -> VecDeque<(Key, Publication)> {
         let mut state_lock = self.state.lock();
-
-        let batch: Vec<_> = state_lock
+        let batch: VecDeque<_> = state_lock
             .get(self.batch_size)
             .iter()
-            .map(|element| (element.0.clone(), element.1.clone()))
+            .map(|(key, publication)| (key.clone(), publication.clone()))
             .collect();
 
-        batch.into_iter()
+        batch
     }
 }
 
@@ -47,13 +51,13 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
     type Item = (Key, Publication);
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        if let Some(item) = self.batch.next() {
+        if let Some(item) = self.batch.pop_front() {
             return Poll::Ready(Some((item.0.clone(), item.1)));
         }
 
         let mut_self = self.get_mut();
         mut_self.batch = mut_self.next_batch();
-        mut_self.batch.next().map_or_else(
+        mut_self.batch.pop_front().map_or_else(
             || {
                 let mut state_lock = mut_self.state.lock();
                 state_lock.set_waker(cx.waker());
@@ -66,7 +70,7 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
 
 #[cfg(test)]
 mod tests {
-    use std::{iter::Iterator, sync::Arc, time::Duration};
+    use std::{sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
@@ -110,12 +114,11 @@ mod tests {
         // get batch size elements
         let batch_size = 1;
         let mut loader = MessageLoader::new(state, batch_size);
-        let iter = loader.next_batch();
+        let mut elements = loader.next_batch();
 
         // verify
-        let elements: Vec<_> = iter.collect();
-        let extracted = elements.get(0).unwrap();
         assert_eq!(elements.len(), 1);
+        let extracted = elements.pop_front().unwrap();
         assert_eq!((extracted.0.clone(), extracted.1.clone()), (key1, pub1));
     }
 
@@ -150,12 +153,12 @@ mod tests {
         // get batch size elements
         let batch_size = 5;
         let mut loader = MessageLoader::new(state, batch_size);
-        let elements: Vec<_> = loader.next_batch().collect();
+        let mut elements = loader.next_batch();
 
         // verify
-        let extracted1 = elements.get(0).unwrap();
-        let extracted2 = elements.get(1).unwrap();
         assert_eq!(elements.len(), 2);
+        let extracted1 = elements.pop_front().unwrap();
+        let extracted2 = elements.pop_front().unwrap();
         assert_eq!((extracted1.0.clone(), extracted1.1.clone()), (key1, pub1));
         assert_eq!((extracted2.0.clone(), extracted2.1.clone()), (key2, pub2));
     }
@@ -185,12 +188,13 @@ mod tests {
 
         // verify insertion order
         let mut loader = MessageLoader::new(state, num_elements);
-        let elements: Vec<_> = loader.next_batch().collect();
+        let mut elements = loader.next_batch();
+
         for count in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
             let num_elements = count as u32;
 
-            assert_eq!(elements.get(count).unwrap().0.offset, num_elements)
+            assert_eq!(elements.pop_front().unwrap().0.offset, num_elements)
         }
     }
 
