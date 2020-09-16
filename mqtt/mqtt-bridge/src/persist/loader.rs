@@ -38,7 +38,7 @@ impl<S: StreamWakeableState> MessageLoader<S> {
     fn next_batch(&mut self) -> VecDeque<(Key, Publication)> {
         let mut state_lock = self.state.lock();
         let batch: VecDeque<_> = state_lock
-            .get(self.batch_size)
+            .batch(self.batch_size)
             .iter()
             .map(|(key, publication)| (key.clone(), publication.clone()))
             .collect();

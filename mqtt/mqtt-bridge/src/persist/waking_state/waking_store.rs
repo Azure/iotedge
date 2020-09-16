@@ -48,7 +48,7 @@ impl StreamWakeableState for WakingStore {
     }
 
     /// Get count elements of store, exluding those that are already in in-flight
-    fn get(&mut self, count: usize) -> Vec<(Key, Publication)> {
+    fn batch(&mut self, count: usize) -> Vec<(Key, Publication)> {
         let iter = self.db.iterator(IteratorMode::Start);
         let mut output = vec![];
 

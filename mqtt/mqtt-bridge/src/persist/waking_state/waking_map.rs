@@ -39,7 +39,7 @@ impl StreamWakeableState for WakingMap {
         Ok(())
     }
 
-    fn get(&mut self, count: usize) -> Vec<(Key, Publication)> {
+    fn batch(&mut self, count: usize) -> Vec<(Key, Publication)> {
         let count = min(count, self.queue.len());
         let mut output = vec![];
         for _ in 0..count {

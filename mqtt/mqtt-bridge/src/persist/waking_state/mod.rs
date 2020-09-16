@@ -16,7 +16,7 @@ pub mod waking_store;
 pub trait StreamWakeableState {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError>;
 
-    fn get(&mut self, count: usize) -> Vec<(Key, Publication)>;
+    fn batch(&mut self, count: usize) -> Vec<(Key, Publication)>;
 
     fn remove_in_flight(&mut self, key: &Key) -> Option<Publication>;
 
@@ -58,7 +58,7 @@ mod tests {
 
         state.insert(key1, pub1.clone()).unwrap();
 
-        let current_state = state.get(1);
+        let current_state = state.batch(1);
         let extracted_message = current_state.get(0).unwrap().1.clone();
         assert_eq!(pub1, extracted_message);
     }
@@ -77,7 +77,7 @@ mod tests {
         state.insert(key1, pub1.clone()).unwrap();
 
         let too_many_elements = 20;
-        let current_state = state.get(too_many_elements);
+        let current_state = state.batch(too_many_elements);
         assert_eq!(current_state.len(), 1);
 
         let extracted_message = current_state.get(0).unwrap().1.clone();
@@ -96,7 +96,7 @@ mod tests {
         };
 
         state.insert(key1.clone(), pub1.clone()).unwrap();
-        state.get(1);
+        state.batch(1);
         let removed = state.remove_in_flight(&key1).unwrap();
         assert_eq!(removed, pub1);
     }
