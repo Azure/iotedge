@@ -106,26 +106,25 @@ where
 
     fn reevaluate_subscriptions(&mut self) -> Result<(), Error> {
         let mut client_ids_to_remove: Vec<ClientId> = Vec::new();
-        for session in &self.sessions {
-            for sub in session.1.subscriptions().clone().unwrap().values() {
-                let client_info = session.1.client_info()?.clone();
+        for (client_id, session) in &self.sessions {
+            for sub in session.subscriptions().into_iter().flat_map(std::collections::HashMap::values) {
+                let client_info = session.client_info()?.clone();
+                let sub_topic_filter = sub.filter().clone().to_string();
                 let operation = Operation::new_subscribe(proto::SubscribeTo {
-                    topic_filter: sub.filter().clone().to_string(),
+                    topic_filter: sub_topic_filter.clone(),
                     qos: *sub.max_qos(),
                 });
-                let activity = Activity::new(session.0.clone(), client_info, operation);
+                let activity = Activity::new(client_id.clone(), client_info, operation);
                 match self.authorizer.authorize(activity) {
-                    Ok(Authorization::Allowed) => {
-                        debug!("client {} successfully reauthorized", session.0);
-                    }
+                    Ok(Authorization::Allowed) => (),
                     Ok(Authorization::Forbidden(reason)) => {
-                        debug!("client {} is not reauthorized. {}", session.0, reason);
-                        client_ids_to_remove.push(session.0.clone());
+                        debug!("client {} not allowed to subscribe to topic {}. {}", client_id, sub_topic_filter.clone(), reason);
+                        client_ids_to_remove.push(client_id.clone());
                         break;
-                    }
+                    },
                     Err(e) => {
-                        warn!(message="error reauthorizing client - dropping connection: {}", error = %e);
-                        client_ids_to_remove.push(session.0.clone());
+                        warn!(message="error authorizing client subscription: {}", error = %e);
+                        client_ids_to_remove.push(client_id.clone());
                         break;
                     }
                 }

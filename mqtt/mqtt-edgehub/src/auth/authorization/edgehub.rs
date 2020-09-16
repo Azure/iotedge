@@ -122,8 +122,20 @@ impl EdgeHubAuthorizer {
             .any(|allowed_topic| topic.starts_with(allowed_topic))
     }
 
+    fn get_on_behalf_of_id(topic: &str) -> Option<&str> {
+        let topic_parts = topic.split('/').collect::<Vec<&str>>();
+        if topic_parts.len() >= 5 {
+            return Some(topic_parts[1] + "/" + topic_parts[2]);
+        }
+        else if topic_parts.len() == 4 {
+            
+        }
+
+        let x = vec!["messages", "twin", "methods", "inputs", "outputs"];
+    }
+
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
-        let on_behalf_of_id: &str = match topic.split('/').collect::<Vec<&str>>().get(1) {
+        let on_behalf_of_id = match EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
             Some(id) => {
                 id
             }
@@ -264,18 +276,19 @@ impl fmt::Display for ServiceIdentity {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use crate::auth::EdgeHubAuthorizer;
+use std::time::Duration;
 
     use matches::assert_matches;
     use test_case::test_case;
 
     use mqtt3::proto;
     use mqtt_broker::{
-        auth::{Activity, AuthId, Authorization, Authorizer, Operation},
+        auth::{Activity, AuthId, Authorization, Operation},
         ClientInfo,
-    };
+    auth::Authorizer};
 
-    use super::EdgeHubAuthorizer;
+    use super::ServiceIdentity;
 
     #[test_case(connect_activity("device-1", "device-1"); "identical auth_id and client_id")]
     fn it_allows_to_connect(activity: Activity) {
@@ -311,7 +324,18 @@ mod tests {
     #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
     #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
     fn it_allows_to_subscribe_to(activity: Activity) {
-        let authorizer = authorizer();
+        let mut authorizer = authorizer();
+
+        let service_identity = ServiceIdentity {
+        identity: "device-1".to_string(),
+        auth_chain: Some("edgeB;device-1;".to_string())
+        };
+        let service_identity2 = ServiceIdentity {
+            identity: "device-1/module-a".to_string(),
+            auth_chain: Some("edgeB;device-1/module-a;".to_string())
+            };
+        
+        let _ = authorizer.update(Box::new(vec![service_identity, service_identity2]));
 
         let auth = authorizer.authorize(activity);
 
