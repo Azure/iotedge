@@ -31,7 +31,7 @@ impl<S: StreamWakeableState> MessageLoader<S> {
         let batch = VecDeque::new();
 
         Self {
-            state: Arc::clone(&state),
+            state: state,
             batch,
             batch_size,
         }

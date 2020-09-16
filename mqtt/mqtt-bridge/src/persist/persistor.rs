@@ -46,7 +46,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         Ok(key)
     }
 
-    fn remove(&mut self, key: Key) -> Option<Publication> {
+    fn remove(&mut self, key: &Key) -> Option<Publication> {
         debug!(
             "removing publication with offset {} from in-flight collection",
             self.offset
@@ -142,7 +142,7 @@ mod tests {
 
         // process first message, forcing loader to get new batch on the next read
         loader.next().await.unwrap();
-        let removed = persistence.remove(key1).unwrap();
+        let removed = persistence.remove(&key1).unwrap();
         assert_eq!(removed, pub1);
 
         // add a second message and verify this is returned by loader
@@ -169,7 +169,7 @@ mod tests {
 
         // can't remove an element that hasn't been seen
         persistence.push(pub1.clone()).unwrap();
-        let removed = persistence.remove(key1);
+        let removed = persistence.remove(&key1);
         assert_matches!(removed, None);
     }
 
@@ -184,7 +184,7 @@ mod tests {
         let key1 = Key { offset: 0 };
 
         // verify failed removal
-        let removal = persistence.remove(key1);
+        let removal = persistence.remove(&key1);
         assert_matches!(removal, None);
     }
 
