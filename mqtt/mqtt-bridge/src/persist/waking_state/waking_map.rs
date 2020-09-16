@@ -1,7 +1,6 @@
 use std::{cmp::min, collections::HashMap, collections::VecDeque, task::Waker};
 
 use mqtt3::proto::Publication;
-use tracing::error;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
@@ -41,18 +40,8 @@ impl StreamWakeableState for WakingMap {
 
     fn batch(&mut self, count: usize) -> Vec<(Key, Publication)> {
         let count = min(count, self.queue.len());
-        let mut output = vec![];
-        for _ in 0..count {
-            let removed = self.queue.pop_front();
-
-            if let Some(pair) = removed {
-                output.push((pair.0.clone(), pair.1.clone()));
-                self.in_flight.insert(pair.0, pair.1);
-            } else {
-                error!("failed retrieving message from persistence");
-                continue;
-            }
-        }
+        let output: Vec<_> = self.queue.drain(..count).collect();
+        self.in_flight.extend(output.clone().into_iter());
 
         output
     }
