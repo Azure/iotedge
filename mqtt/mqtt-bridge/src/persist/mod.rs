@@ -17,7 +17,10 @@ pub struct Key {
 #[derive(Debug, Error)]
 pub enum PersistError {
     #[error("Failed to serialize on database insert")]
-    Serialization(#[from] Box<ErrorKind>),
+    Serialization(#[source] Box<ErrorKind>),
+
+    #[error("Failed to deserialize database entry")]
+    Deserialization(#[source] Box<ErrorKind>),
 
     #[error("Failed to serialize on database insert")]
     Insertion(#[from] Error),

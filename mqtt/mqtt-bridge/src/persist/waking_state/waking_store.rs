@@ -1,10 +1,9 @@
 use std::collections::hash_map::Entry;
-use std::{boxed::Box, collections::HashMap, task::Waker};
+use std::{collections::HashMap, task::Waker};
 
-use bincode::{self, ErrorKind};
+use bincode::{self};
 use mqtt3::proto::Publication;
 use rocksdb::{IteratorMode, DB};
-use tracing::error;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
@@ -45,29 +44,17 @@ impl StreamWakeableState for WakingStore {
     }
 
     /// Get count elements of store, exluding those that are already in in-flight
-    fn batch(&mut self, count: usize) -> Vec<(Key, Publication)> {
+    fn batch(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, PersistError> {
         let iter = self.db.iterator(IteratorMode::Start);
         let mut output = vec![];
-
         for (iterations, extracted) in iter.enumerate() {
-            let key: Result<Key, Box<ErrorKind>> = bincode::deserialize(&*extracted.0);
-            let key = match key {
-                Ok(key) => key,
-                Err(e) => {
-                    error!(message = "failed to deserialize key", err = %e);
-                    break;
-                }
-            };
-
-            let publication: Result<Publication, Box<ErrorKind>> =
-                bincode::deserialize(&*extracted.1);
-            let publication = match publication {
-                Ok(publication) => publication,
-                Err(e) => {
-                    error!(message = "failed to deserialize publication", err = %e);
-                    break;
-                }
-            };
+            let (key, publication) = bincode::deserialize(&*extracted.0)
+                .map_err(PersistError::Deserialization)
+                .and_then(|key: Key| {
+                    bincode::deserialize(&extracted.1)
+                        .map_err(PersistError::Deserialization)
+                        .map(|publication: Publication| (key, publication))
+                })?;
 
             if let Entry::Vacant(o) = self.in_flight.entry(key.clone()) {
                 o.insert(publication.clone());
@@ -80,7 +67,7 @@ impl StreamWakeableState for WakingStore {
             }
         }
 
-        output
+        Ok(output)
     }
 
     fn remove_in_flight(&mut self, key: &Key) -> Option<Publication> {

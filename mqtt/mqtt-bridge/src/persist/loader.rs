@@ -9,7 +9,7 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
-use crate::persist::{waking_state::StreamWakeableState, Key};
+use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
 /// Message loader used to extract elements from bridge persistence
 ///
@@ -35,15 +35,15 @@ impl<S: StreamWakeableState> MessageLoader<S> {
         }
     }
 
-    fn next_batch(&mut self) -> VecDeque<(Key, Publication)> {
+    fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let mut state_lock = self.state.lock();
         let batch: VecDeque<_> = state_lock
-            .batch(self.batch_size)
+            .batch(self.batch_size)?
             .iter()
             .map(|(key, publication)| (key.clone(), publication.clone()))
             .collect();
 
-        batch
+        Ok(batch)
     }
 }
 
@@ -56,7 +56,9 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
         }
 
         let mut_self = self.get_mut();
-        mut_self.batch = mut_self.next_batch();
+        if let Ok(batch) = mut_self.next_batch() {
+            mut_self.batch = batch;
+        }
         mut_self.batch.pop_front().map_or_else(
             || {
                 let mut state_lock = mut_self.state.lock();
@@ -114,7 +116,7 @@ mod tests {
         // get batch size elements
         let batch_size = 1;
         let mut loader = MessageLoader::new(state, batch_size);
-        let mut elements = loader.next_batch();
+        let mut elements = loader.next_batch().unwrap();
 
         // verify
         assert_eq!(elements.len(), 1);
@@ -153,7 +155,7 @@ mod tests {
         // get batch size elements
         let batch_size = 5;
         let mut loader = MessageLoader::new(state, batch_size);
-        let mut elements = loader.next_batch();
+        let mut elements = loader.next_batch().unwrap();
 
         // verify
         assert_eq!(elements.len(), 2);
@@ -188,7 +190,7 @@ mod tests {
 
         // verify insertion order
         let mut loader = MessageLoader::new(state, num_elements);
-        let mut elements = loader.next_batch();
+        let mut elements = loader.next_batch().unwrap();
 
         for count in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]

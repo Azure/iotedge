@@ -38,12 +38,12 @@ impl StreamWakeableState for WakingMap {
         Ok(())
     }
 
-    fn batch(&mut self, count: usize) -> Vec<(Key, Publication)> {
+    fn batch(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, PersistError> {
         let count = min(count, self.queue.len());
         let output: Vec<_> = self.queue.drain(..count).collect();
         self.in_flight.extend(output.clone().into_iter());
 
-        output
+        Ok(output)
     }
 
     fn remove_in_flight(&mut self, key: &Key) -> Option<Publication> {
