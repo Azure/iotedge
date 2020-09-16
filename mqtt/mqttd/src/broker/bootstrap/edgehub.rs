@@ -6,14 +6,16 @@ use std::{
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
-use thiserror::Error;
-
 use futures_util::{
     future::{self, Either},
     pin_mut, FutureExt,
 };
+use thiserror::Error;
 use tokio::{
-    sync::oneshot::{channel, Sender},
+    sync::{
+        broadcast,
+        oneshot::{self, Sender},
+    },
     task::JoinHandle,
     time,
 };
@@ -27,7 +29,7 @@ use mqtt_broker::{
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::CommandHandler,
+    command::{AuthorizedIdentities, CommandHandler, Disconnect},
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
@@ -88,16 +90,19 @@ where
     let broker_handle = broker.handle();
 
     let mut server =
-        Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor::default());
+        Server::from_broker(broker).with_packet_processor(MakeEdgeHubPacketProcessor::default());
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();
-    server.tcp(config.listener().system().addr(), authenticator);
+    server.with_tcp(config.listener().system().addr(), authenticator, None)?;
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
+    let (broker_ready, _) = broadcast::channel(1);
+
     if let Some(tcp) = config.listener().tcp() {
-        server.tcp(tcp.addr(), authenticator.clone());
+        let broker_ready = Some(broker_ready.subscribe());
+        server.with_tcp(tcp.addr(), authenticator.clone(), broker_ready)?;
     }
 
     // Add regular MQTT over TLS transport
@@ -119,7 +124,9 @@ where
                     .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), identity, authenticator.clone())?;
+
+            let broker_ready = Some(broker_ready.subscribe());
+            server.with_tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -130,6 +137,12 @@ where
     // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
+
+    // TODO remove this call when broker readiness is implemented
+    tokio::spawn(async move {
+        tokio::time::delay_for(std::time::Duration::from_millis(500)).await;
+        broker_ready.send(()).expect("ready signal");
+    });
 
     // Start the sidecars
     let system_address = config.listener().system().addr().to_string();
@@ -174,7 +187,7 @@ async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
 ) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
-    let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
+    let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
 
     let mut bridge_controller = BridgeController::new();
     let bridge = bridge_controller.start();
@@ -182,8 +195,13 @@ async fn start_sidecars(
 
     let sidecars = tokio::spawn(async move {
         let device_id = env::var(DEVICE_ID_ENV)?;
-        let command_handler =
-            CommandHandler::new(broker_handle, system_address, device_id.as_str()).await?;
+
+        let mut command_handler = CommandHandler::new(system_address, device_id.as_str());
+        command_handler.add_command(Disconnect::new(&broker_handle));
+        command_handler.add_command(AuthorizedIdentities::new(&broker_handle));
+
+        command_handler.init().await?;
+
         let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
 
         let command_handler_join_handle = tokio::spawn(command_handler.run());
