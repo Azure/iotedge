@@ -37,7 +37,7 @@ This method accepts a JSON payload with the following schema:
                 "filter": {
                     "tail": int, 
                     "since": int,
-                    "until": int
+                    "until": int,
                     "loglevel": int, 
                     "regex": "regex string" 
                 }
