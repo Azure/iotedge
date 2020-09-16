@@ -1,6 +1,6 @@
 use failure::{self, Fail, ResultExt};
 
-use edgelet_core::{self, ManualAuthMethod, ProvisioningType, RuntimeSettings};
+use edgelet_core::{self, ManualAuthMethod, ProvisioningResult, ProvisioningType, RuntimeSettings};
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
@@ -54,7 +54,7 @@ impl WellFormedConnectionString {
                 .join("cache")
                 .join("provisioning_backup.json");
 
-            let provision_result = provisioning::restore(provisioning_file_path).map_err(|e| {
+            let provision_result = provisioning::restore(&provisioning_file_path).map_err(|e| {
                 let reason = "Could not retrieve iothub_hostname from provisioning file.\n\
                 Please specify the backing IoT Hub name using --iothub-hostname switch if you have that information.\n\
                 If no hostname is provided, all hub connectivity tests will be skipped.";

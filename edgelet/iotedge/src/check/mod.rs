@@ -905,7 +905,7 @@ mod tests {
             provisioning::ReprovisioningStatus::default(),
             None,
         );
-        provisioning::backup(&fake_result, provision_file).unwrap();
+        provisioning::backup(&fake_result, &provision_file).unwrap();
 
         let mut check = runtime
             .block_on(Check::new(

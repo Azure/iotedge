@@ -190,10 +190,6 @@ impl ProvisioningResult {
     pub fn credentials(&self) -> Option<&Credentials> {
         self.credentials.as_ref()
     }
-
-    pub fn hub_name(&self) -> &str {
-        self.hub_name.as_ref()
-    }
 }
 
 impl CoreProvisioningResult for ProvisioningResult {
@@ -752,9 +748,45 @@ impl<P> BackupProvisioning<P> {
             skip_if_backup_is_valid,
         }
     }
+
+    fn diff_with_backup_inner(
+        path: &Path,
+        prov_result: &ProvisioningResult,
+    ) -> Result<bool, serde_json::Error> {
+        match restore(path) {
+            Ok(restored_prov_result) => {
+                let buffer = serde_json::to_string(&restored_prov_result)?;
+                let buffer = Sha256::digest_str(&buffer);
+                let buffer = base64::encode(&buffer);
+
+                let s = serde_json::to_string(prov_result)?;
+                let s = Sha256::digest_str(&s);
+                let encoded = base64::encode(&s);
+                if encoded == buffer {
+                    Ok(false)
+                } else {
+                    Ok(true)
+                }
+            }
+            Err(err) => {
+                log_failure(Level::Debug, &err);
+                Ok(true)
+            }
+        }
+    }
+
+    fn diff_with_backup(path: &Path, prov_result: &ProvisioningResult) -> bool {
+        match Self::diff_with_backup_inner(path, prov_result) {
+            Ok(result) => result,
+            Err(err) => {
+                log_failure(Level::Debug, &err);
+                true
+            }
+        }
+    }
 }
 
-pub fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Error> {
+pub fn backup(prov_result: &ProvisioningResult, path: &Path) -> Result<(), Error> {
     // create a file if it doesn't exist, else open it for writing
     let mut file = File::create(path).context(ErrorKind::CouldNotBackup)?;
     let buffer = serde_json::to_string(&prov_result).context(ErrorKind::CouldNotBackup)?;
@@ -763,7 +795,7 @@ pub fn backup(prov_result: &ProvisioningResult, path: PathBuf) -> Result<(), Err
     Ok(())
 }
 
-pub fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
+pub fn restore(path: &Path) -> Result<ProvisioningResult, Error> {
     let mut file = File::open(path).context(ErrorKind::CouldNotRestore)?;
     let mut buffer = String::new();
     let _ = file
@@ -774,42 +806,6 @@ pub fn restore(path: PathBuf) -> Result<ProvisioningResult, Error> {
         serde_json::from_str(&buffer).context(ErrorKind::CouldNotRestore)?;
     prov_result.reconfigure = ReprovisioningStatus::DeviceDataNotUpdated;
     Ok(prov_result)
-}
-
-fn diff_with_backup_inner(
-    path: PathBuf,
-    prov_result: &ProvisioningResult,
-) -> Result<bool, serde_json::Error> {
-    match restore(path) {
-        Ok(restored_prov_result) => {
-            let buffer = serde_json::to_string(&restored_prov_result)?;
-            let buffer = Sha256::digest_str(&buffer);
-            let buffer = base64::encode(&buffer);
-
-            let s = serde_json::to_string(prov_result)?;
-            let s = Sha256::digest_str(&s);
-            let encoded = base64::encode(&s);
-            if encoded == buffer {
-                Ok(false)
-            } else {
-                Ok(true)
-            }
-        }
-        Err(err) => {
-            log_failure(Level::Debug, &err);
-            Ok(true)
-        }
-    }
-}
-
-fn diff_with_backup(path: PathBuf, prov_result: &ProvisioningResult) -> bool {
-    match diff_with_backup_inner(path, prov_result) {
-        Ok(result) => result,
-        Err(err) => {
-            log_failure(Level::Debug, &err);
-            true
-        }
-    }
 }
 
 impl<P> Provision for BackupProvisioning<P>
@@ -824,7 +820,7 @@ where
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         if self.skip_if_backup_is_valid {
             info!("Attempting to restore provisioning backup...");
-            match Self::restore(&self.path) {
+            match restore(&self.path) {
                 Ok(prov_result) => return Box::new(future::ok(prov_result)),
                 Err(err) => info!("Provisioning backup could not be restored: {}", err),
             }
@@ -834,30 +830,34 @@ where
         Box::new(
             self.underlying
                 .provision(key_activator)
-                .and_then(move |mut prov_result| {
-                    debug!("Provisioning result {:?}", prov_result);
-                    let reconfigure = match prov_result.reconfigure {
-                        ReprovisioningStatus::DeviceDataUpdated => {
-                            if diff_with_backup(restore_path, &prov_result) {
-                                info!("Provisioning credentials were changed.");
-                                ReprovisioningStatus::InitialAssignment
-                            } else {
-                                info!("No changes to device reprovisioning.");
-                                ReprovisioningStatus::DeviceDataNotUpdated
-                            }
-                        }
-                        _ => ReprovisioningStatus::InitialAssignment,
-                    };
+                .and_then({
+                    let path = path.clone();
 
-                    prov_result.reconfigure = reconfigure;
-                    match backup(&prov_result, path) {
-                        Ok(_) => Either::A(future::ok(prov_result.clone())),
-                        Err(err) => Either::B(future::err(err)),
+                    move |mut prov_result| {
+                        debug!("Provisioning result {:?}", prov_result);
+                        let reconfigure = match prov_result.reconfigure {
+                            ReprovisioningStatus::DeviceDataUpdated => {
+                                if Self::diff_with_backup(&path, &prov_result) {
+                                    info!("Provisioning credentials were changed.");
+                                    ReprovisioningStatus::InitialAssignment
+                                } else {
+                                    info!("No changes to device reprovisioning.");
+                                    ReprovisioningStatus::DeviceDataNotUpdated
+                                }
+                            }
+                            _ => ReprovisioningStatus::InitialAssignment,
+                        };
+
+                        prov_result.reconfigure = reconfigure;
+                        match backup(&prov_result, &path) {
+                            Ok(_) => Either::A(future::ok(prov_result.clone())),
+                            Err(err) => Either::B(future::err(err)),
+                        }
                     }
                 })
                 .or_else(move |err| {
                     log_failure(Level::Warn, &err);
-                    match restore(path_on_err) {
+                    match restore(&path) {
                         Ok(prov_result) => Either::A(future::ok(prov_result)),
                         Err(err) => Either::B(future::err(err)),
                     }
@@ -882,10 +882,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        future, restore, AuthType, BackupProvisioning, CoreProvisioningResult, CredentialSource,
-        Error, ExternalProvisioning, ExternalProvisioningErrorReason,
-        ExternalProvisioningInterface, Future, IntoFuture, ManualProvisioning, MemoryKeyStore,
-        Provision, ProvisioningResult, ReprovisioningStatus,
+        future, AuthType, BackupProvisioning, CoreProvisioningResult, CredentialSource, Error,
+        ExternalProvisioning, ExternalProvisioningErrorReason, ExternalProvisioningInterface,
+        Future, IntoFuture, ManualProvisioning, MemoryKeyStore, Provision, ProvisioningResult,
+        ReprovisioningStatus,
     };
 
     use edgelet_core::{Error as CoreError, ManualDeviceConnectionString};
@@ -1077,7 +1077,7 @@ mod tests {
             .provision(MemoryKeyStore::new())
             .then(|result| {
                 let _ = result.expect("Unexpected");
-                let result = restore(file_path_clone).unwrap();
+                let result = restore(&file_path_clone).unwrap();
                 assert_eq!(result.device_id(), "TestDevice");
                 assert_eq!(result.hub_name(), "TestHub");
                 Ok::<_, Error>(())
