@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         }
 
         [Fact]
-        public void GetCredentialsInfoTest()
+        public void GetClientTokenTest()
         {
             // Arrange
             var amqpValue = new AmqpValue
@@ -154,12 +154,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var cbsNode = new CbsNode(identityFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
 
             // Act
-            CbsNode.CredentialsInfo credentialsInfo = cbsNode.GetClientCredentialsInfo(validAmqpMessage);
+            CbsNode.ClientToken clientToken = cbsNode.GetClientToken(validAmqpMessage);
 
             // Assert
-            Assert.NotNull(credentialsInfo);
-            Assert.Equal("device1/mod1", credentialsInfo.Id);
-            Assert.Equal(amqpValue.Value, credentialsInfo.Token.Value);
+            Assert.NotNull(clientToken);
+            Assert.Equal("device1/mod1", clientToken.Id);
+            Assert.Equal(amqpValue.Value, clientToken.Token);
         }
 
         [Fact]
@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             validAmqpMessage.ApplicationProperties.Map[CbsConstants.Operation] = CbsConstants.PutToken.OperationValue;
             Option<string> authChain = Option.Some("device1;edge1");
 
-            var actorEdgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edge1/$edegHub");
+            var actorEdgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edge1/$edgeHub");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == actorEdgeHubIdentity && c.AuthChain == authChain);
             var clientCredentialsFactory = new Mock<IClientCredentialsFactory>();
             clientCredentialsFactory.Setup(i => i.GetWithSasToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), true, It.IsAny<Option<string>>(), It.Is<Option<string>>(chain => chain == authChain)))
