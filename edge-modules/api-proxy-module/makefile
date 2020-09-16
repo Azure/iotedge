@@ -9,7 +9,7 @@ all:
 
 release:
 	$(CARGO) build $(CARGOFLAGS) --release
-	$(STRIP_COMMAND) ../$(TARGET)/api-proxy-module
+	$(STRIP_COMMAND) $(TARGET)/api-proxy-module
 
 clean:
-	rm -rf ../$(TARGET)
+	rm -rf $(TARGET)
