@@ -11,7 +11,8 @@
 #  4. If basepath/edgeAgent exists, make sure all files are owned by EDGEAGENTUSER_ID
 #     Do same for backuppath/edgeAgent_backup
 #  5. Make sure file specified by IOTEDGE_MANAGEMENTURI is owned by EDGEAGENTUSER_ID
-#  6. Set user id as EDGEAGENTUSER_ID.
+#  6. Make sure /app/backup.json is writeable.
+#  7. Set user id as EDGEAGENTUSER_ID.
 # then start Edge Agent.
 #
 # This preserves backwards compatibility with earlier versions of edgeAgent and
@@ -87,7 +88,12 @@ then
     chown -f "${TARGET_UID}" "$mgmt"
   fi
 
-  exec su "$username" -c /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll
+  # Ensure backup.json is writeable.
+  touch backup.json
+  chown -f "${TARGET_UID}" backup.json
+  chmod 600 backup.json
+
+  exec su "$username" -c "/usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll"
 else
   exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll
 fi
