@@ -1,5 +1,4 @@
 %define iotedge_user iotedge
-%define agentuser 1000
 %define iotedge_group %{iotedge_user}
 %define iotedge_home %{_localstatedir}/lib/iotedge
 %define iotedge_logdir %{_localstatedir}/log/iotedge
@@ -122,7 +121,7 @@ echo "==========================================================================
 %{_unitdir}/%{name}.service
 
 # sockets
-%attr(660, %{agentuser}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
+%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
 %attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/workload.sock
 
 # dirs

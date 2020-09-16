@@ -2,7 +2,6 @@
 set -e
 
 USER=iotedge
-AGENTUSER=1000
 GROUP=iotedge
 
 case "$1" in
@@ -29,7 +28,7 @@ case "$1" in
             # Do this for debian systems which don't support FDNAMES
             touch /var/lib/iotedge/mgmt.sock
             touch /var/lib/iotedge/workload.sock
-            chown ${AGENTUSER}:${GROUP} /var/lib/iotedge/mgmt.sock
+            chown ${USER}:${GROUP} /var/lib/iotedge/mgmt.sock
             chown ${USER}:${GROUP} /var/lib/iotedge/workload.sock
             chmod 660 /var/lib/iotedge/mgmt.sock
             chmod 666 /var/lib/iotedge/workload.sock

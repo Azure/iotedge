@@ -7,7 +7,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-USER edgeagentuser
-
-CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Agent" && \
-    exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll
+CMD exec /app/agentStart.sh
