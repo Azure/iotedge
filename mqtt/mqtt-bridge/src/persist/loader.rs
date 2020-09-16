@@ -30,7 +30,7 @@ impl<S: StreamWakeableState> MessageLoader<S> {
     pub fn new(state: Arc<Mutex<S>>, batch_size: usize) -> Self {
         let batch = VecDeque::new();
 
-        MessageLoader {
+        Self {
             state: Arc::clone(&state),
             batch,
             batch_size,

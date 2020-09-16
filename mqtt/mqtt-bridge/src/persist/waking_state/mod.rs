@@ -24,9 +24,6 @@ pub trait StreamWakeableState {
     fn set_waker(&mut self, waker: &Waker);
 }
 
-/// Responsible for waking waiting streams when new elements are added.
-///
-/// Exposes a get method for retrieving a count of elements in order of insertion.
 /// When elements are retrieved they are moved to the in flight collection.
 pub struct WakingMap {
     queue: VecDeque<(Key, Publication)>,
@@ -75,9 +72,6 @@ impl StreamWakeableState for WakingMap {
     }
 }
 
-/// Responsible for waking waiting streams when new elements are added.
-///
-/// Exposes a get method for retrieving a count of elements in order of insertion.
 /// When elements are retrieved they are added to the in flight collection, but kept in the original db store.
 /// Only when elements are removed from the in-flight collection they will be removed from the store.
 pub struct WakingStore {
