@@ -882,10 +882,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        future, AuthType, BackupProvisioning, CoreProvisioningResult, CredentialSource, Error,
-        ExternalProvisioning, ExternalProvisioningErrorReason, ExternalProvisioningInterface,
-        Future, IntoFuture, ManualProvisioning, MemoryKeyStore, Provision, ProvisioningResult,
-        ReprovisioningStatus,
+        future, restore, AuthType, BackupProvisioning, CoreProvisioningResult, CredentialSource,
+        Error, ExternalProvisioning, ExternalProvisioningErrorReason,
+        ExternalProvisioningInterface, Future, IntoFuture, ManualProvisioning, MemoryKeyStore,
+        Provision, ProvisioningResult, ReprovisioningStatus,
     };
 
     use edgelet_core::{Error as CoreError, ManualDeviceConnectionString};
