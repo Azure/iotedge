@@ -3,6 +3,7 @@ mod authorization;
 
 pub use authentication::{
     authenticate_fn_ok, AuthenticationContext, Authenticator, Certificate, DefaultAuthenticator,
+    DynAuthenticator,
 };
 pub use authorization::{
     authorize_fn_ok, Activity, AllowAll, Authorization, Authorizer, Connect, DenyAll, Operation,

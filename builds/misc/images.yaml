@@ -11,7 +11,7 @@ jobs:
 ################################################################################
   - job: linux_dotnet_projects
 ################################################################################
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
     displayName: LinuxDotnet
     pool:
       vmImage: 'ubuntu-16.04'
@@ -29,7 +29,7 @@ jobs:
       - template: templates/build-broker.yaml
 
       - template: templates/build-watchdog.yaml
-
+          
       - template: templates/consolidate-edgehub-artifacts.yaml
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
@@ -182,6 +182,29 @@ jobs:
           project: CloudToDeviceMessageTester
 
 ################################################################################
+  - job: linux_API_proxy_module
+################################################################################
+    timeoutInMinutes: 80
+    displayName: linuxAPIProxy
+    pool:
+      vmImage: 'ubuntu-16.04'
+    steps:
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+      # Build API Proxy executable
+      - template: templates/build-api-proxy.yaml
+      # Build API Proxy Image
+      - template: templates/image-linux.yaml
+        parameters:
+          name: API Proxy
+          imageName: api-proxy-module
+          project: api-proxy-module      
+      # Check API proxy
+      - task: ComponentGovernanceComponentDetection@0
+        inputs:
+          dockerImagesToScan: '$(registry.address)/microsoft/api-proxy-module:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/api-proxy-module:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/api-proxy-module:$(Build.BuildNumber)-linux-arm64v8' 
+
+################################################################################
 # linux - Rust amd64
 ################################################################################
   - template: templates/image-linux-rust-jobs.yaml
@@ -194,7 +217,7 @@ jobs:
 ################################################################################
   - template: templates/image-linux-rust-jobs.yaml
     parameters:
-      archName: arm32
+      archName: arm32v7
       targetArch: armv7l
 
 ################################################################################
@@ -202,7 +225,7 @@ jobs:
 ################################################################################
   - template: templates/image-linux-rust-jobs.yaml
     parameters:
-      archName: arm64
+      archName: arm64v8
       targetArch: aarch64
 
 ################################################################################
@@ -214,8 +237,9 @@ jobs:
     dependsOn:
       - linux_dotnet_projects
       - linux_rust_amd64
-      - linux_rust_arm32
-      - linux_rust_arm64
+      - linux_rust_arm32v7
+      - linux_rust_arm64v8
+      - linux_API_proxy_module
     variables:
       tags: "['latest']"
     steps:
@@ -231,3 +255,5 @@ jobs:
       displayName: 'Publish azureiotedge-diagnostics Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-proxy Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish api-proxy-module Manifest'
