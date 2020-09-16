@@ -110,7 +110,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 p =>
                 {
                     string connectionString = this.GetModuleConnectionString(p);
-                    return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
+                    return new ModuleIdentity(
+                        this.iothubHostName,
+                        this.deviceId,
+                        p.Id,
+                        new ConnectionStringCredentials(connectionString));
                 });
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));

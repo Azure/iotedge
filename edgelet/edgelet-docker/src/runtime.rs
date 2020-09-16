@@ -1659,6 +1659,10 @@ mod tests {
             unimplemented!()
         }
 
+        fn parent_hostname(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
         fn connect(&self) -> &Connect {
             unimplemented!()
         }

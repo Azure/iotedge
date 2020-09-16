@@ -1,7 +1,13 @@
-use std::path::PathBuf;
+use std::{
+    error::Error as StdError,
+    fmt::{Display, Formatter, Result as FmtResult},
+    net::SocketAddr,
+    path::PathBuf,
+};
+
+use thiserror::Error;
 
 use mqtt3::proto::Packet;
-use thiserror::Error;
 
 use crate::Message;
 
@@ -50,36 +56,53 @@ pub enum Error {
     Persist(#[from] crate::persist::PersistError),
 
     #[error("Unable to obtain peer certificate.")]
-    PeerCertificate(#[source] native_tls::Error),
+    PeerCertificate(#[source] Box<dyn StdError + Send + Sync>),
+
+    #[error("Unable to obtain peer address.")]
+    PeerAddr(#[source] std::io::Error),
 
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
 
     #[error("An error occurred when constructing state change: {0}")]
     StateChange(#[from] serde_json::Error),
+
+    #[error("Failed to shutdown custom mqtt client: {0}")]
+    ShutdownClient(#[from] mqtt3::ShutdownError),
 }
 
 /// Represents errors occurred while bootstrapping broker.
 #[derive(Debug, Error)]
 pub enum InitializeBrokerError {
-    #[error("An error occurred binding the server's listening socket.")]
-    BindServer(#[source] std::io::Error),
+    #[error("An error occurred converting to a socker address {0}.")]
+    SocketAddr(String, #[source] std::io::Error),
 
-    #[error("An error occurred getting a connection's peer address.")]
-    ConnectionPeerAddress(#[source] std::io::Error),
+    #[error("Missing socker address {0}.")]
+    MissingSocketAddr(String),
+
+    #[error("An error occurred binding the server's listening socket on {0}.")]
+    BindServer(SocketAddr, #[source] std::io::Error),
 
     #[error("An error occurred getting local address.")]
-    ConnectionLocalAddress(#[source] std::io::Error),
-
-    #[error("An error occurred loading configuration.")]
-    LoadConfiguration(#[source] config::ConfigError),
+    ConnectionLocalAddress(#[source] tokio::io::Error),
 
     #[error("An error occurred loading identity from file {0}.")]
     LoadIdentity(PathBuf, #[source] std::io::Error),
 
-    #[error("An error occurred  decoding identity content.")]
-    DecodeIdentity(#[source] native_tls::Error),
-
     #[error("An error occurred  bootstrapping TLS")]
-    Tls(#[source] native_tls::Error),
+    Tls(#[from] openssl::error::ErrorStack),
+}
+
+pub struct DetailedErrorValue<'a, E>(pub &'a E);
+
+impl<'a, E: StdError> Display for DetailedErrorValue<'a, E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.0)?;
+        let mut current: &dyn StdError = self.0;
+        while let Some(source) = current.source() {
+            write!(f, " Caused by: {}", source)?;
+            current = source;
+        }
+        Ok(())
+    }
 }
