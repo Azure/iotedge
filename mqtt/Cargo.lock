@@ -396,6 +396,7 @@ dependencies = [
  "matches",
  "mockito",
  "openssl",
+ "percent-encoding 1.0.1",
  "serde",
  "serde_json",
  "test-case",
