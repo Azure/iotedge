@@ -15,9 +15,9 @@ pub struct Persistor<S: StreamWakeableState> {
 }
 
 impl<S: StreamWakeableState> Persistor<S> {
-    async fn new(state: S, batch_size: usize) -> Self {
+    fn new(state: S, batch_size: usize) -> Self {
         let state = Arc::new(Mutex::new(state));
-        let loader = MessageLoader::new(Arc::clone(&state), batch_size).await;
+        let loader = MessageLoader::new(Arc::clone(&state), batch_size);
         let loader = Arc::new(Mutex::new(loader));
 
         let offset = 0;
@@ -28,7 +28,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         }
     }
 
-    async fn push(&mut self, message: Publication) -> Result<Key, PersistError> {
+    fn push(&mut self, message: Publication) -> Result<Key, PersistError> {
         debug!(
             "persisting publication on topic {} with offset {}",
             message.topic_name, self.offset
@@ -44,7 +44,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         Ok(key)
     }
 
-    async fn remove(&mut self, key: Key) -> Option<Publication> {
+    fn remove(&mut self, key: Key) -> Option<Publication> {
         debug!(
             "removing publication with offset {} from in-flight collection",
             self.offset
@@ -54,7 +54,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         state_lock.remove_in_flight(&key)
     }
 
-    async fn loader(&mut self) -> Arc<Mutex<MessageLoader<S>>> {
+    fn loader(&mut self) -> Arc<Mutex<MessageLoader<S>>> {
         Arc::clone(&self.loader)
     }
 }
@@ -73,7 +73,7 @@ mod tests {
         // setup state
         let state = WakingMap::new();
         let batch_size: usize = 5;
-        let mut persistence = Persistor::new(state, batch_size).await;
+        let mut persistence = Persistor::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -92,11 +92,11 @@ mod tests {
         };
 
         // insert some elements
-        persistence.push(pub1.clone()).await.unwrap();
-        persistence.push(pub2.clone()).await.unwrap();
+        persistence.push(pub1.clone()).unwrap();
+        persistence.push(pub2.clone()).unwrap();
 
         // get loader
-        let loader = persistence.loader().await;
+        let loader = persistence.loader();
         let mut loader = loader.lock();
 
         // make sure same publications come out in correct order
@@ -113,7 +113,7 @@ mod tests {
         // setup state
         let state = WakingMap::new();
         let batch_size: usize = 1;
-        let mut persistence = Persistor::new(state, batch_size).await;
+        let mut persistence = Persistor::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -132,19 +132,19 @@ mod tests {
         };
 
         // insert some elements
-        persistence.push(pub1.clone()).await.unwrap();
+        persistence.push(pub1.clone()).unwrap();
 
         // get loader
-        let loader = persistence.loader().await;
+        let loader = persistence.loader();
         let mut loader = loader.lock();
 
         // process first message, forcing loader to get new batch on the next read
         loader.next().await.unwrap();
-        let removed = persistence.remove(key1).await.unwrap();
+        let removed = persistence.remove(key1).unwrap();
         assert_eq!(removed, pub1);
 
         // add a second message and verify this is returned by loader
-        persistence.push(pub2.clone()).await.unwrap();
+        persistence.push(pub2.clone()).unwrap();
         let extracted = loader.next().await.unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
@@ -154,7 +154,7 @@ mod tests {
         // setup state
         let state = WakingMap::new();
         let batch_size: usize = 1;
-        let mut persistence = Persistor::new(state, batch_size).await;
+        let mut persistence = Persistor::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -166,8 +166,8 @@ mod tests {
         };
 
         // can't remove an element that hasn't been seen
-        persistence.push(pub1.clone()).await.unwrap();
-        let removed = persistence.remove(key1).await;
+        persistence.push(pub1.clone()).unwrap();
+        let removed = persistence.remove(key1);
         assert_matches!(removed, None);
     }
 
@@ -176,13 +176,13 @@ mod tests {
         // setup state
         let state = WakingMap::new();
         let batch_size: usize = 1;
-        let mut persistence = Persistor::new(state, batch_size).await;
+        let mut persistence = Persistor::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
 
         // verify failed removal
-        let removal = persistence.remove(key1).await;
+        let removal = persistence.remove(key1);
         assert_matches!(removal, None);
     }
 
@@ -191,7 +191,7 @@ mod tests {
         // setup state
         let state = WakingMap::new();
         let batch_size: usize = 1;
-        let mut persistence = Persistor::new(state, batch_size).await;
+        let mut persistence = Persistor::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -210,11 +210,11 @@ mod tests {
         };
 
         // insert 2 elements
-        persistence.push(pub1.clone()).await.unwrap();
-        persistence.push(pub2.clone()).await.unwrap();
+        persistence.push(pub1.clone()).unwrap();
+        persistence.push(pub2.clone()).unwrap();
 
         // get loader with batch size
-        let loader = persistence.loader().await;
+        let loader = persistence.loader();
         let mut loader = loader.lock();
 
         // verify the loader returns both elements
