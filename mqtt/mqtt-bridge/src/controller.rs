@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
 use tracing::info;
 
-use crate::bridge::Bridge;
+use crate::bridge::{Bridge, BridgeError};
 use crate::settings::Settings;
 
 /// Controller that handles the settings and monitors changes, spawns new Bridges and monitors shutdown signal.
@@ -17,9 +16,9 @@ impl BridgeController {
         Self::default()
     }
 
-    pub async fn start(&mut self, system_address: String, device_id: &str) -> Result<()> {
+    pub async fn start(&mut self, system_address: String, device_id: &str) -> Result<(), BridgeError> {
         info!("starting bridge");
-        let settings = Settings::new()?;
+        let settings = Settings::new().map_err(BridgeError::LoadingSettingsError)?;
         if let Some(upstream) = settings.upstream() {
             let nested_bridge = Bridge::new(system_address, device_id.into(), upstream.clone());
 

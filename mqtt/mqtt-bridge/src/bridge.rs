@@ -1,12 +1,11 @@
 use std::{collections::HashMap, marker::PhantomData, str::FromStr, time::Duration};
 
-use anyhow::Result;
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
 use mqtt_broker::TopicFilter;
 use tracing::{debug, info, warn};
 
-use crate::client::{EventHandler, MqttClient};
+use crate::client::{ClientConnectError, EventHandler, MqttClient};
 use crate::persist::{memory::InMemoryPersist, Persist};
 use crate::settings::{ConnectionSettings, Credentials, Topic};
 
@@ -57,7 +56,7 @@ impl Bridge {
         (key, topic.clone())
     }
 
-    pub async fn start(&self) -> Result<()> {
+    pub async fn start(&self) -> Result<(), BridgeError> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
         self.connect_to_local().await?;
@@ -66,7 +65,7 @@ impl Bridge {
         Ok(())
     }
 
-    async fn connect_to_remote(&self) -> Result<()> {
+    async fn connect_to_remote(&self) -> Result<(), BridgeError> {
         info!(
             "connecting to remote broker {}",
             self.connection_settings.address()
@@ -82,7 +81,7 @@ impl Bridge {
         .await
     }
 
-    async fn connect_to_local(&self) -> Result<()> {
+    async fn connect_to_local(&self) -> Result<(), BridgeError> {
         let client_id = format!(
             "{}/$edgeHub/$bridge/{}",
             self.device_id,
@@ -110,12 +109,13 @@ impl Bridge {
         keep_alive: Duration,
         clean_session: bool,
         credentials: &Credentials,
-    ) -> Result<()> {
+    ) -> Result<(), BridgeError> {
         let mut topic_filters = Vec::new();
         for val in topics.values() {
             topic_filters.push(TopicMapper {
                 topic_settings: val.clone(),
-                topic_filter: TopicFilter::from_str(val.pattern())?,
+                topic_filter: TopicFilter::from_str(val.pattern())
+                    .map_err(BridgeError::TopicFilterParseError)?,
             });
         }
 
@@ -130,7 +130,10 @@ impl Bridge {
         let subscriptions: Vec<String> = topics.keys().map(|key| key.into()).collect();
         debug!("subscribe to remote {:?}", subscriptions);
 
-        client.subscribe(subscriptions).await?;
+        client
+            .subscribe(subscriptions)
+            .await
+            .map_err(BridgeError::SubscribeError)?;
 
         //TODO: handle this with shutdown
         let _events_task = tokio::spawn(client.handle_events());
@@ -210,7 +213,9 @@ where
 // TODO: implement for generic T where T: Persist
 #[async_trait]
 impl EventHandler for MessageHandler<'_, InMemoryPersist> {
-    async fn handle_event(&mut self, event: Event) -> Result<()> {
+    type Error = BridgeError;
+
+    async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
         if let Event::Publication(publication) = event {
             let ReceivedPublication {
                 topic_name,
@@ -228,7 +233,7 @@ impl EventHandler for MessageHandler<'_, InMemoryPersist> {
 
             if let Some(f) = forward_publication {
                 debug!("Save message to store");
-                self.inner.push(f).await?;
+                self.inner.push(f).await.map_err(BridgeError::StoreError)?;
             } else {
                 warn!("No topic matched");
             }
@@ -236,6 +241,22 @@ impl EventHandler for MessageHandler<'_, InMemoryPersist> {
 
         Ok(())
     }
+}
+
+/// Authentication error.
+#[derive(Debug, thiserror::Error)]
+pub enum BridgeError {
+    #[error("failed to save to store.")]
+    StoreError(#[from] std::io::Error),
+
+    #[error("failed to subscribe to topic.")]
+    SubscribeError(#[from] ClientConnectError),
+
+    #[error("failed to parse topic pattern.")]
+    TopicFilterParseError(#[from] mqtt_broker::Error),
+
+    #[error("failed to load settings.")]
+    LoadingSettingsError(#[from] config::ConfigError),
 }
 
 #[cfg(test)]

@@ -1,7 +1,6 @@
 #![allow(dead_code)] // TODO remove when ready
 use std::{collections::HashSet, convert::TryInto, time::Duration};
 
-use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::BoxFuture;
@@ -206,7 +205,9 @@ impl<T: EventHandler> MqttClient<T> {
 
 #[async_trait]
 pub trait EventHandler {
-    async fn handle_event(&mut self, event: Event) -> Result<()>;
+    type Error: std::fmt::Display;
+
+    async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, thiserror::Error)]
