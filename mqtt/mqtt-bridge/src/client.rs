@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::BoxFuture;
 use tokio::{net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
@@ -16,6 +16,7 @@ use crate::token_source::{SasTokenSource, TokenSource};
 
 const DEFAULT_TOKEN_DURATION_MINS: u64 = 60;
 const DEFAULT_TOKEN_DURATION_SECS: Duration = Duration::from_secs(60 * DEFAULT_TOKEN_DURATION_MINS);
+const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(5);
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -60,7 +61,7 @@ where
                 password = match ts.get(&expiry).await {
                     Ok(x) => Some(x),
                     Err(e) => {
-                        warn!("Failed to get token {}", e);
+                        error!("Failed to get token for connection {} {}", address, e);
                         None
                     }
                 }
@@ -109,7 +110,7 @@ impl<T: EventHandler> MqttClient<T> {
                     address: address.into(),
                     token_source,
                 },
-                Duration::from_secs(1),
+                DEFAULT_MAX_RECONNECT,
                 keep_alive,
             )
         } else {
@@ -121,7 +122,7 @@ impl<T: EventHandler> MqttClient<T> {
                     address: address.into(),
                     token_source,
                 },
-                Duration::from_secs(1),
+                DEFAULT_MAX_RECONNECT,
                 keep_alive,
             )
         };
