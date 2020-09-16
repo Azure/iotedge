@@ -3,8 +3,9 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::marker::PhantomData;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use bytes::Bytes;
 use failure::{Fail, ResultExt};
@@ -737,16 +738,18 @@ where
     }
 }
 
-pub struct BackupProvisioning<'a, P> {
-    underlying: &'a P,
+pub struct BackupProvisioning<P> {
+    underlying: P,
     path: PathBuf,
+    skip_if_backup_is_valid: bool,
 }
 
-impl<'a, P: 'a> BackupProvisioning<'a, P> {
-    pub fn new(provisioner: &'a P, path: PathBuf) -> Self {
+impl<P> BackupProvisioning<P> {
+    pub fn new(underlying: P, path: PathBuf, skip_if_backup_is_valid: bool) -> Self {
         BackupProvisioning {
-            underlying: provisioner,
+            underlying,
             path,
+            skip_if_backup_is_valid,
         }
     }
 }
@@ -809,7 +812,7 @@ fn diff_with_backup(path: PathBuf, prov_result: &ProvisioningResult) -> bool {
     }
 }
 
-impl<'a, P: 'a> Provision for BackupProvisioning<'a, P>
+impl<P> Provision for BackupProvisioning<P>
 where
     P: Provision,
 {
@@ -819,9 +822,15 @@ where
         &self,
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
-        let path = self.path.clone();
-        let restore_path = self.path.clone();
-        let path_on_err = self.path.clone();
+        if self.skip_if_backup_is_valid {
+            info!("Attempting to restore provisioning backup...");
+            match Self::restore(&self.path) {
+                Ok(prov_result) => return Box::new(future::ok(prov_result)),
+                Err(err) => info!("Provisioning backup could not be restored: {}", err),
+            }
+        }
+
+        let path: Arc<Path> = (&*self.path).into();
         Box::new(
             self.underlying
                 .provision(key_activator)
@@ -836,9 +845,8 @@ where
                                 info!("No changes to device reprovisioning.");
                                 ReprovisioningStatus::DeviceDataNotUpdated
                             }
-                        }
-                        _ => ReprovisioningStatus::InitialAssignment,
-                    };
+                            _ => ReprovisioningStatus::InitialAssignment,
+                        };
 
                     prov_result.reconfigure = reconfigure;
                     match backup(&prov_result, path) {
@@ -857,7 +865,16 @@ where
     }
 
     fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
-        panic!("A reprovisioning operation is not expected for `BackupProvisioning`")
+        // We've been told to reprovision, so whatever provisioning info we have in the backup should be discarded
+        // so that future provisions start afresh.
+
+        match std::fs::remove_file(&self.path) {
+            Ok(()) => (),
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
+            Err(err) => return Box::new(future::err(err.context(ErrorKind::Reprovision).into())),
+        }
+
+        Box::new(self.underlying.reprovision())
     }
 }
 
@@ -934,6 +951,25 @@ mod tests {
             _key_activator: Self::Hsm,
         ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::err(Error::from(ErrorKind::Provision)))
+        }
+
+        fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+            Box::new(future::err(Error::from(ErrorKind::Reprovision)))
+        }
+    }
+
+    struct TestProvisioningNeverUsed {}
+
+    impl Provision for TestProvisioningNeverUsed {
+        type Hsm = MemoryKeyStore;
+
+        fn provision(
+            &self,
+            _key_activator: Self::Hsm,
+        ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
+            unreachable!(
+                "TestProvisioningNeverUsed::provision was not supposed to have been called",
+            )
         }
 
         fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
@@ -1035,7 +1071,7 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path, false);
         let task = prov_wrapper
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1057,7 +1093,7 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path, false);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -1065,7 +1101,7 @@ mod tests {
             .unwrap();
 
         let prov_wrapper_err =
-            BackupProvisioning::new(&TestProvisioningWithError {}, file_path_clone);
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone, false);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1086,14 +1122,47 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path, false);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
             .unwrap();
 
-        let prov_wrapper_err = BackupProvisioning::new(&TestProvisioning {}, file_path_clone);
+        let prov_wrapper_err = BackupProvisioning::new(TestProvisioning {}, file_path_clone, false);
+        let task1 = prov_wrapper_err
+            .provision(MemoryKeyStore::new())
+            .then(|result| {
+                let prov_result = result.expect("Unexpected");
+                assert_eq!(prov_result.device_id(), "TestDevice");
+                assert_eq!(prov_result.hub_name(), "TestHub");
+                assert_eq!(
+                    prov_result.reconfigure(),
+                    ReprovisioningStatus::DeviceDataNotUpdated
+                );
+                Ok::<_, Error>(())
+            });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task1)
+            .unwrap();
+    }
+
+    #[test]
+    fn provisioning_restore_no_reprovision_because_skipped() {
+        let test_provisioner = TestProvisioning {};
+        let tmp_dir = TempDir::new("backup").unwrap();
+        let file_path = tmp_dir.path().join("dps_backup.json");
+        let file_path_clone = file_path.clone();
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path, false);
+        let task = prov_wrapper.provision(MemoryKeyStore::new());
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+
+        let prov_wrapper_err =
+            BackupProvisioning::new(TestProvisioningNeverUsed {}, file_path_clone, true);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1118,7 +1187,7 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path, false);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -1126,7 +1195,7 @@ mod tests {
             .unwrap();
 
         let prov_wrapper_err =
-            BackupProvisioning::new(&TestProvisioningWithError {}, file_path_clone);
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone, false);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1151,14 +1220,15 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path, false);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
             .unwrap();
 
-        let prov_wrapper_err = BackupProvisioning::new(&TestReprovisioning {}, file_path_clone);
+        let prov_wrapper_err =
+            BackupProvisioning::new(TestReprovisioning {}, file_path_clone, false);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1183,7 +1253,7 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_wrong = tmp_dir.path().join("dps_backup_wrong.json");
-        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path, false);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -1191,7 +1261,7 @@ mod tests {
             .unwrap();
 
         let prov_wrapper_err =
-            BackupProvisioning::new(&TestProvisioningWithError {}, file_path_wrong);
+            BackupProvisioning::new(TestProvisioningWithError {}, file_path_wrong, false);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {

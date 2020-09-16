@@ -1,0 +1,8 @@
+{
+    "broker": {
+        "retained_messages": {
+            "max_count": 1000,
+            "expiration": "90d"
+        }
+    }
+}

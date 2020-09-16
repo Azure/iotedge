@@ -31,7 +31,7 @@
                 "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
-                  "value": "true"
+                "value": "true"
               }
             },
             "settings": {
@@ -54,6 +54,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                 "value": "true"
+              },
+              "NestedEdgeEnabled": {
+                "value": "false"
               }
             },
             "status": "running",

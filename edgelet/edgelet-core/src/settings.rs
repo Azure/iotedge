@@ -322,6 +322,7 @@ pub struct Dps {
     global_endpoint: Url,
     scope_id: String,
     attestation: AttestationMethod,
+    always_reprovision_on_startup: bool,
 }
 
 impl<'de> serde::Deserialize<'de> for Dps {
@@ -337,6 +338,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
             registration_id: Option<String>,
             #[serde(skip_serializing_if = "Option::is_none")]
             attestation: Option<AttestationMethod>,
+            always_reprovision_on_startup: Option<bool>,
         }
 
         let value: Inner = serde::Deserialize::deserialize(deserializer)?;
@@ -360,6 +362,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
             global_endpoint: value.global_endpoint,
             scope_id: value.scope_id,
             attestation,
+            always_reprovision_on_startup: value.always_reprovision_on_startup.unwrap_or(true),
         })
     }
 }
@@ -375,6 +378,10 @@ impl Dps {
 
     pub fn attestation(&self) -> &AttestationMethod {
         &self.attestation
+    }
+
+    pub fn always_reprovision_on_startup(&self) -> bool {
+        self.always_reprovision_on_startup
     }
 }
 
@@ -684,6 +691,7 @@ pub trait RuntimeSettings {
     fn agent(&self) -> &ModuleSpec<Self::Config>;
     fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config>;
     fn hostname(&self) -> &str;
+    fn parent_hostname(&self) -> Option<&str>;
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
@@ -696,6 +704,7 @@ pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
     hostname: String,
+    parent_hostname: Option<String>,
     connect: Connect,
     listen: Listen,
     homedir: PathBuf,
@@ -724,6 +733,10 @@ where
 
     fn hostname(&self) -> &str {
         &self.hostname
+    }
+
+    fn parent_hostname(&self) -> Option<&str> {
+        self.parent_hostname.as_deref()
     }
 
     fn connect(&self) -> &Connect {

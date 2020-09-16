@@ -25,10 +25,10 @@
                 "value": "<UpstreamProtocol>"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
                 "value": "true"
@@ -50,10 +50,13 @@
                 "value": "true"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
+              },
+              "NestedEdgeEnabled": {
+                "value": "false"
               }
             },
             "status": "running",
