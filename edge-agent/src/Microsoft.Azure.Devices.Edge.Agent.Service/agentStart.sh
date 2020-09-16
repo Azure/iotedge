@@ -41,7 +41,7 @@ then
   # Create the agent user id if it does not exist
   if ! getent passwd "${TARGET_UID}" >/dev/null
   then
-    echo "Creating UID ${TARGET_UID} as agent${TARGET_UID}"
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Creating UID ${TARGET_UID} as agent${TARGET_UID}"
     if [ $usercreate = useradd ]
     then
       useradd -ms /bin/bash -u "${TARGET_UID}" "agent${TARGET_UID}"
@@ -64,7 +64,7 @@ then
     storageuid=$(stat -c "%u" "$storagepath")
     if [ ${TARGET_UID} -ne ${storageuid} ]
     then 
-      echo "Changing ownership of storage folder: ${storagepath}"
+      echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of storage folder: ${storagepath}"
       chown -fR "${TARGET_UID}" "${storagepath}"
     fi
   fi
@@ -74,7 +74,7 @@ then
     backupuid=$(stat -c "%u" "$backuppath")
     if [ ${TARGET_UID} -ne ${backupuid} ]
     then 
-      echo "Changing ownership of backup folder: ${backuppath}"
+      echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of backup folder: ${backuppath}"
       chown -fR "${TARGET_UID}" "${backuppath}"
     fi
   fi
@@ -84,7 +84,7 @@ then
   mgmt=${IOTEDGE_MANAGEMENTURI#unix:\/\/}
   if [ -e "$mgmt" ]
   then
-    echo "Changing ownership of management socket: ${mgmt}"
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of management socket: ${mgmt}"
     chown -f "${TARGET_UID}" "$mgmt"
   fi
 
