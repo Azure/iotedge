@@ -115,7 +115,7 @@ impl Bridge {
             topic_filters.push(TopicMapper {
                 topic_settings: val.clone(),
                 topic_filter: TopicFilter::from_str(val.pattern())
-                    .map_err(BridgeError::TopicFilterParseError)?,
+                    .map_err(BridgeError::TopicFilterParse)?,
             });
         }
 
@@ -133,7 +133,7 @@ impl Bridge {
         client
             .subscribe(subscriptions)
             .await
-            .map_err(BridgeError::SubscribeError)?;
+            .map_err(BridgeError::Subscribe)?;
 
         //TODO: handle this with shutdown
         let _events_task = tokio::spawn(client.handle_events());
@@ -233,7 +233,7 @@ impl EventHandler for MessageHandler<'_, InMemoryPersist> {
 
             if let Some(f) = forward_publication {
                 debug!("Save message to store");
-                self.inner.push(f).await.map_err(BridgeError::StoreError)?;
+                self.inner.push(f).await.map_err(BridgeError::Store)?;
             } else {
                 warn!("No topic matched");
             }
@@ -247,16 +247,16 @@ impl EventHandler for MessageHandler<'_, InMemoryPersist> {
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
     #[error("failed to save to store.")]
-    StoreError(#[from] std::io::Error),
+    Store(#[from] std::io::Error),
 
     #[error("failed to subscribe to topic.")]
-    SubscribeError(#[from] ClientConnectError),
+    Subscribe(#[from] ClientConnectError),
 
     #[error("failed to parse topic pattern.")]
-    TopicFilterParseError(#[from] mqtt_broker::Error),
+    TopicFilterParse(#[from] mqtt_broker::Error),
 
     #[error("failed to load settings.")]
-    LoadingSettingsError(#[from] config::ConfigError),
+    LoadingSettings(#[from] config::ConfigError),
 }
 
 #[cfg(test)]
