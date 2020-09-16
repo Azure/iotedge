@@ -28,7 +28,7 @@ pub trait Persist<'a> {
 /// Ordered by offset
 #[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug)]
 pub struct Key {
-    pub offset: u32,
+    offset: u32,
 }
 
 #[cfg(test)]

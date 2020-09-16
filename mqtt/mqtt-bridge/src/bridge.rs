@@ -273,7 +273,7 @@ mod tests {
 
     use crate::bridge::{Bridge, MessageHandler, TopicMapper};
     use crate::client::EventHandler;
-    use crate::persist::{memory::InMemoryPersist, Key, Persist};
+    use crate::persist::{memory::InMemoryPersist, Persist};
     use crate::settings::Settings;
 
     #[tokio::test]
@@ -465,7 +465,9 @@ mod tests {
             .await
             .unwrap();
 
-        let key1 = Key { offset: 0 };
-        assert_eq!(None, handler.inner.remove(key1).await);
+        let loader = handler.inner.loader().await;
+
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+        futures_util::future::select(interval.next(), loader.lock().next()).await;
     }
 }
