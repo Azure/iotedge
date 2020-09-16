@@ -21,7 +21,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         let loader = Arc::new(Mutex::new(loader));
 
         let offset = 0;
-        Persistor {
+        Self {
             state,
             offset,
             loader,
