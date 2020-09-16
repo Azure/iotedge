@@ -1,63 +1,62 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-using Microsoft.Azure.Devices.Edge.Hub.Core;
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.handlers
+namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+
     public abstract class AbstractNotificationHandler<T>
     {
-        readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
-        bool _connected;
-        IMqttBrokerConnector _connector;
+        readonly SemaphoreSlim stateLock = new SemaphoreSlim(1);
+        bool connected;
+        IMqttBrokerConnector connector;
 
         public void SetConnector(IMqttBrokerConnector connector)
         {
-            _connector = Preconditions.CheckNotNull(connector);
-            _connector.OnConnected += async (sender, args) => await OnConnectAsync();
+            this.connector = Preconditions.CheckNotNull(connector);
+            this.connector.OnConnected += async (sender, args) => await OnConnectAsync();
         }
 
         async Task OnConnectAsync()
         {
-            await _lock.WaitAsync();
+            await this.stateLock.WaitAsync();
             try
             {
-                _connected = true;
-                var messages = await ConvertStoredNotificationsToMessagesAsync();
-                await SendMessagesAsync(messages);
+                this.connected = true;
+                var messages = await this.ConvertStoredNotificationsToMessagesAsync();
+                await this.SendMessagesAsync(messages);
             }
             finally
             {
-                _lock.Release();
+                this.stateLock.Release();
             }
         }
 
         public async Task NotifyAsync(T notification)
         {
-            await _lock.WaitAsync();
+            await this.stateLock.WaitAsync();
             try
             {
-                if (!_connected)
+                if (!this.connected)
                 {
                     Events<T>.StoringNotification();
-                    await StoreNotificationAsync(notification);
+                    await this.StoreNotificationAsync(notification);
                     Events<T>.NotificationStored();
                 }
                 else
                 {
-                    var messages = await ConvertNotificationToMessagesAsync(notification);
-                    await SendMessagesAsync(messages);
+                    var messages = await this.ConvertNotificationToMessagesAsync(notification);
+                    await this.SendMessagesAsync(messages);
                 }
             }
             finally
             {
-                _lock.Release();
+                this.stateLock.Release();
             }
         }
 
@@ -69,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.handlers
                 foreach (var message in messages)
                 {
                     
-                    tasks.Add(SendMessageAsync(message));
+                    tasks.Add(this.SendMessageAsync(message));
                 }
                 await Task.WhenAll(tasks);
             }
@@ -80,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.handlers
             Events<T>.SendingNotification(message);
             try
             {
-                var delivered = await _connector.SendAsync(message.Topic, Encoding.UTF8.GetBytes(message.Payload));
+                var delivered = await connector.SendAsync(message.Topic, Encoding.UTF8.GetBytes(message.Payload));
                 if (delivered)
                 {
                     Events<T>.NotificationSent(message);
@@ -108,12 +107,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.handlers
     public class Message
     {
         public string Topic { get; }
-        public string Payload { get;  }
+        public string Payload { get; }
 
         public Message(string topic, string payload)
         {
-            Topic = topic;
-            Payload = payload;
+            this.Topic = topic;
+            this.Payload = payload;
         }
     }
 

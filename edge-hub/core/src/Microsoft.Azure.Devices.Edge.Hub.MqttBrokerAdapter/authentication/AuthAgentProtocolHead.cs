@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
@@ -11,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.handlers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -184,7 +182,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void NotifyingBroker() => Log.LogInformation((int)EventIds.NotifyingBroker, "Notifying broker auth agent started.");
             public static void NotifiedBroker() => Log.LogInformation((int)EventIds.NotifiedBroker, "Notified broker auth agent started.");
             public static void NotifyBrokerFailed() => Log.LogInformation((int)EventIds.NotifyBrokerFailed, "Failed to notify broker auth agent started.");
-
         }
     }
 }
