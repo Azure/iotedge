@@ -845,8 +845,9 @@ where
                                 info!("No changes to device reprovisioning.");
                                 ReprovisioningStatus::DeviceDataNotUpdated
                             }
-                            _ => ReprovisioningStatus::InitialAssignment,
-                        };
+                        }
+                        _ => ReprovisioningStatus::InitialAssignment,
+                    };
 
                     prov_result.reconfigure = reconfigure;
                     match backup(&prov_result, path) {
