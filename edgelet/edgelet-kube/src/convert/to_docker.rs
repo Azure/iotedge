@@ -52,6 +52,7 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
                                     image_name.to_string(),
                                     ContainerCreateBody::new(),
                                     None,
+                                    None,
                                 )
                                 .map_err(|err| Error::from(err.context(ErrorKind::PodToModule)))
                             },
