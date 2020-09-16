@@ -5,15 +5,31 @@ use std::sync::Arc;
 use anyhow::Result;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
+use rocksdb::DB;
 use tracing::debug;
 
-use crate::persist::{loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError};
+use crate::persist::{
+    loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMap,
+    WakingStore,
+};
 
 /// Persistence implementation used for the bridge
 pub struct Persistor<S: StreamWakeableState> {
     state: Arc<Mutex<S>>,
     offset: u32,
     loader: Arc<Mutex<MessageLoader<S>>>,
+}
+
+impl Persistor<WakingMap> {
+    fn new_memory(batch_size: usize) -> Persistor<WakingMap> {
+        Self::new(WakingMap::new(), batch_size)
+    }
+}
+
+impl Persistor<WakingStore> {
+    fn new_disk(db: Arc<DB>, batch_size: usize) -> Persistor<WakingStore> {
+        Self::new(WakingStore::new(db), batch_size)
+    }
 }
 
 impl<S: StreamWakeableState> Persistor<S> {

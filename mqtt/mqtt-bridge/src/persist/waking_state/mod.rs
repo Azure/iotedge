@@ -1,7 +1,9 @@
 #![allow(dead_code)] // TODO remove when ready
 
-use std::collections::hash_map::Entry;
-use std::{cmp::min, collections::HashMap, collections::VecDeque, task::Waker};
+use std::{
+    cmp::min, collections::hash_map::Entry, collections::HashMap, collections::VecDeque, sync::Arc,
+    task::Waker,
+};
 
 use async_trait::async_trait;
 use bincode::{self};
@@ -75,13 +77,13 @@ impl StreamWakeableState for WakingMap {
 /// When elements are retrieved they are added to the in flight collection, but kept in the original db store.
 /// Only when elements are removed from the in-flight collection they will be removed from the store.
 pub struct WakingStore {
-    db: DB,
+    db: Arc<DB>,
     in_flight: HashMap<Key, Publication>,
     waker: Option<Waker>,
 }
 
 impl WakingStore {
-    pub fn new(db: DB) -> Self {
+    pub fn new(db: Arc<DB>) -> Self {
         Self {
             db,
             in_flight: HashMap::new(),
@@ -317,7 +319,7 @@ mod tests {
         storage_dir.push_str(&uuid);
         let path = Path::new(&storage_dir);
 
-        let db = DB::open_default(path).unwrap();
+        let db = Arc::new(DB::open_default(path).unwrap());
         WakingStore::new(db)
     }
 }
