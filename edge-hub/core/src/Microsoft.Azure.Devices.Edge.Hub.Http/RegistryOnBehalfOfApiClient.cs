@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class RegistryOnBehalfOfApiClient : IRegistryOnBehalfOfApiClient
@@ -37,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         public async Task<RegistryApiHttpResult> PutModuleAsync(string actorEdgeDeviceId, CreateOrUpdateModuleOnBehalfOfData requestData, string eTag)
         {
             var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.putModuleOnBehalfOfUriTemplate, actorEdgeDeviceId, ApiVersion));
-            var response = await this.SendRequestAsync(requesteUri, HttpMethod.Put, requestData, eTag);
+            var response = await this.SendRequestAsync(requesteUri, HttpMethod.Post, requestData, eTag);
             return response;
         }
 

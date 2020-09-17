@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPut]
         [Route("devices/{actorDeviceId}/modules/$edgeHub/putModuleOnBehalfOf")]
         public async Task CreateOrUpdateModuleOnBehalfOfAsync(
             [FromRoute] string actorDeviceId,
