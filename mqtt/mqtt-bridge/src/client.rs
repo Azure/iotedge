@@ -1,5 +1,5 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::{collections::HashSet, convert::TryInto, fmt::Display, time::Duration};
+use std::{collections::HashSet, fmt::Display, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -16,9 +16,10 @@ use crate::{
     token_source::{SasTokenSource, TokenSource},
 };
 
-const DEFAULT_TOKEN_DURATION_MINS: u64 = 60;
-const DEFAULT_TOKEN_DURATION_SECS: Duration = Duration::from_secs(60 * DEFAULT_TOKEN_DURATION_MINS);
+const DEFAULT_TOKEN_DURATION_MINS: i64 = 60;
 const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(5);
+// TODO: get QOS from topic settings
+const DEFAULT_QOS: proto::QoS = proto::QoS::AtLeastOnce;
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -66,10 +67,7 @@ where
         let token_source = self.token_source.as_ref().cloned();
 
         Box::pin(async move {
-            let expiry = Utc::now()
-                + chrono::Duration::from_std(DEFAULT_TOKEN_DURATION_SECS).unwrap_or_else(|_| {
-                    chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS.try_into().unwrap())
-                });
+            let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
 
             let password: Option<String> = if let Some(ts) = token_source {
                 ts.get(&expiry)
@@ -174,7 +172,7 @@ impl<T: EventHandler> MqttClient<T> {
         debug!("subscribing to topics");
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
-            qos: proto::QoS::AtLeastOnce,
+            qos: DEFAULT_QOS,
         });
 
         for subscription in subscriptions {
