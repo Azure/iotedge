@@ -7,9 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Akka.Event;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -332,6 +334,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             await worker.Upload(CancellationToken.None);
             Assert.Equal(maxRetries + 1, uploader.Invocations.Count); // It tries once, then retries maxRetryTimes.
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+        }
+
+        [Fact]
+        public async Task TestUploadMaxAge()
+        {
+            /* Make fake data */
+            DateTime baseTime = DateTime.UtcNow;
+
+            // This will create 20 fake scrapes. Each has an offset equal to the hours since they were scraped.
+            IEnumerable<(long offset, IEnumerable<Metric> metrics)> fakeScrapes = Enumerable.Range(0, 20).Select(hoursAgo =>
+            {
+                DateTime scrapeTime = baseTime.AddHours(-1 * hoursAgo);
+                IEnumerable<Metric> data = Enumerable.Range(1, 10).Select(i => new Metric(scrapeTime, $"metric_{i}", 0, new Dictionary<string, string>()));
+
+                return ((long offset, IEnumerable<Metric> metrics))(hoursAgo, data);
+            }).ToArray();
+
+            /* Setup mocks */
+            var sequentialStoreMock = new Mock<ISequentialStore<IEnumerable<Metric>>>();
+
+            // mock retrieving data
+            sequentialStoreMock.Setup(s => s.GetBatch(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(fakeScrapes);
+
+            // mock removing data
+            List<long> offsetsRemoved = new List<long>();
+            void GetOffsetToRemove(Func<long, IEnumerable<Metric>, Task<bool>> func)
+            {
+                IEnumerable<long> newOffsetsRemoved = AsyncEnumerable.Range(0, 100).WhereAwait(async i => await func(i, null)).ToListAsync().Result.Cast<long>();
+
+                offsetsRemoved.AddRange(newOffsetsRemoved);
+            }
+
+            sequentialStoreMock.Setup(s => s.RemoveFirst(It.IsAny<Func<long, IEnumerable<Metric>, Task<bool>>>())).Callback((Action<Func<long, IEnumerable<Metric>, Task<bool>>>)GetOffsetToRemove).ReturnsAsync(false);
+
+            /* Test */
+
+            // No max age
+            var storageNoLimit = new MetricsStorage(sequentialStoreMock.Object, TimeSpan.FromDays(50));
+            var returnedMetrics = (await storageNoLimit.GetAllMetricsAsync()).ToList();
+            Assert.Equal(200, returnedMetrics.Count);
+            Assert.Empty(offsetsRemoved);
+            await storageNoLimit.RemoveAllReturnedMetricsAsync();
+            Assert.Equal(20, offsetsRemoved.Count);
+            offsetsRemoved.Clear();
         }
 
         class FakeRetryStrategy : RetryStrategy
