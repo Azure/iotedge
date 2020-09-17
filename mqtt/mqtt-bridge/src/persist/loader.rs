@@ -84,7 +84,8 @@ mod tests {
 
     use crate::persist::{
         loader::{Key, MessageLoader},
-        waking_state::{StreamWakeableState, WakingMap},
+        waking_state::StreamWakeableState,
+        WakingMap,
     };
 
     #[tokio::test]

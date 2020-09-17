@@ -5,9 +5,9 @@ use thiserror::Error;
 
 pub mod loader;
 pub mod persistor;
-pub mod waking_state;
-pub use waking_state::WakingMap;
-pub use waking_state::WakingStore;
+mod waking_state;
+pub use waking_state::waking_map::WakingMap;
+pub use waking_state::waking_store::WakingStore;
 
 /// Keys used in persistence.
 /// Ordered by offset
