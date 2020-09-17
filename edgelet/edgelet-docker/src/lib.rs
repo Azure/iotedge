@@ -14,6 +14,7 @@ mod client;
 mod config;
 mod error;
 mod module;
+mod notary;
 mod runtime;
 mod settings;
 
