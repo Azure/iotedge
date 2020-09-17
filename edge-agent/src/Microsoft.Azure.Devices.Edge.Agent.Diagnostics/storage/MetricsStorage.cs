@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
                 cancellationToken.ThrowIfCancellationRequested();
                 // This makes the assumption that metrics are stored in batches with matching timestamps.
                 // This is the case b/c the metrics are stored immediately after being scraped.
-                if (metrics.First().TimeGeneratedUtc < DateTime.Now - this.maxMetricAge)
+                if (metrics.First().TimeGeneratedUtc < DateTime.UtcNow - this.maxMetricAge)
                 {
                     // TODO: log removed
                     maxAgeEntriesToRemove.Add(offset);

@@ -342,7 +342,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             /* Make fake data */
             DateTime baseTime = DateTime.UtcNow;
 
-            // This will create 20 fake scrapes. Each has an offset equal to the hours since they were scraped.
+            // This will create 20 fake scrapes of 10 metrics each.
+            // Each has an offset equal to the hours since they were scraped.
             IEnumerable<(long offset, IEnumerable<Metric> metrics)> fakeScrapes = Enumerable.Range(0, 20).Select(hoursAgo =>
             {
                 DateTime scrapeTime = baseTime.AddHours(-1 * hoursAgo);
@@ -358,10 +359,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             sequentialStoreMock.Setup(s => s.GetBatch(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>())).ReturnsAsync(fakeScrapes);
 
             // mock removing data
-            List<long> offsetsRemoved = new List<long>();
+            List<int> offsetsRemoved = new List<int>();
             void GetOffsetToRemove(Func<long, IEnumerable<Metric>, Task<bool>> func)
             {
-                IEnumerable<long> newOffsetsRemoved = AsyncEnumerable.Range(0, 100).WhereAwait(async i => await func(i, null)).ToListAsync().Result.Cast<long>();
+                // Note: .Result was used b/c moq `Callback` does not handle tasks.
+                IEnumerable<int> newOffsetsRemoved = AsyncEnumerable.Range(0, 100).WhereAwait(async i => await func(i, null)).ToListAsync().Result;
 
                 offsetsRemoved.AddRange(newOffsetsRemoved);
             }
@@ -369,14 +371,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             sequentialStoreMock.Setup(s => s.RemoveFirst(It.IsAny<Func<long, IEnumerable<Metric>, Task<bool>>>())).Callback((Action<Func<long, IEnumerable<Metric>, Task<bool>>>)GetOffsetToRemove).ReturnsAsync(false);
 
             /* Test */
-
             // No max age
             var storageNoLimit = new MetricsStorage(sequentialStoreMock.Object, TimeSpan.FromDays(50));
-            var returnedMetrics = (await storageNoLimit.GetAllMetricsAsync()).ToList();
-            Assert.Equal(200, returnedMetrics.Count);
+
+            // When metrics are returned, all 200 are there and none are removed from db.
+            var noLimitReturnedMetrics = (await storageNoLimit.GetAllMetricsAsync()).ToList();
+            Assert.Equal(200, noLimitReturnedMetrics.Count);
             Assert.Empty(offsetsRemoved);
+
+            // all metrics are removed
             await storageNoLimit.RemoveAllReturnedMetricsAsync();
-            Assert.Equal(20, offsetsRemoved.Count);
+            TestUtilities.OrderlessCompare(Enumerable.Range(0, 20), offsetsRemoved);
+            offsetsRemoved.Clear();
+
+            // Only keep last 7 hours
+            var storageLast7Hours = new MetricsStorage(sequentialStoreMock.Object, TimeSpan.FromHours(7));
+
+            // When metrics are returned, all only last 7 scrapes of 10 are returned. Remaining 13 scrapes are deleted
+            var last7ReturnedMetrics = (await storageLast7Hours.GetAllMetricsAsync()).ToList();
+            Assert.Equal(70, last7ReturnedMetrics.Count);
+            TestUtilities.OrderlessCompare(Enumerable.Range(7, 13), offsetsRemoved);
+            offsetsRemoved.Clear();
+
+            // only returned metrics are removed
+            await storageLast7Hours.RemoveAllReturnedMetricsAsync();
+            TestUtilities.OrderlessCompare(Enumerable.Range(0, 7), offsetsRemoved);
             offsetsRemoved.Clear();
         }
 
