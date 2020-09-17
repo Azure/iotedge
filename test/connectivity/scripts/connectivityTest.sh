@@ -343,7 +343,7 @@ function run_connectivity_test() {
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-    PARENT_HOSTNAME=$(printEnv E2E_PARENT_HOSTNAME)
+    PARENT_HOSTNAME=$(printenv E2E_PARENT_HOSTNAME)
     if [[ ! -z "$PARENT_HOSTNAME" ]]; then
         echo "Parent hostname=$PARENT_HOSTNAME"
     fi

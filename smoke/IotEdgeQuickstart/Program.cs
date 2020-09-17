@@ -59,6 +59,7 @@ Defaults:
   --runtime-log-level                   debug
   --clean_up_existing_device            false
   --proxy                               no proxy is used
+  --parent-hostname                     no parent hostname is used
 ")]
     [HelpOption]
     class Program
