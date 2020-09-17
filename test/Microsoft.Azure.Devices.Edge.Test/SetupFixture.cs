@@ -65,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 config.SetParentHostname(parentHostname);
                                 msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
+                                Log.Information($"parentHostname={parentHostname}");
                             });
 
                             Context.Current.Proxy.ForEach(proxy =>
