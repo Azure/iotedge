@@ -397,6 +397,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             await storageLast7Hours.RemoveAllReturnedMetricsAsync();
             TestUtilities.OrderlessCompare(Enumerable.Range(0, 7), offsetsRemoved);
             offsetsRemoved.Clear();
+
+            // Only keep last 12 hours
+            var storageLast12Hours = new MetricsStorage(sequentialStoreMock.Object, TimeSpan.FromHours(12));
+
+            // When metrics are returned, all only last 12 scrapes of 10 are returned. Remaining 13 scrapes are deleted
+            var last12ReturnedMetrics = (await storageLast12Hours.GetAllMetricsAsync()).ToList();
+            Assert.Equal(120, last12ReturnedMetrics.Count);
+            TestUtilities.OrderlessCompare(Enumerable.Range(12, 8), offsetsRemoved);
+            offsetsRemoved.Clear();
+
+            // only returned metrics are removed
+            await storageLast12Hours.RemoveAllReturnedMetricsAsync();
+            TestUtilities.OrderlessCompare(Enumerable.Range(0, 12), offsetsRemoved);
+            offsetsRemoved.Clear();
         }
 
         class FakeRetryStrategy : RetryStrategy
