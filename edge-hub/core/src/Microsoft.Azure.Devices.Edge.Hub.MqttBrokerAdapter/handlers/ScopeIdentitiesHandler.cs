@@ -9,24 +9,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     /// <summary>
     /// ScopeIdentitiesHandler is responsible for syncing authorized identities from edgeHub core to the Mqtt Broker.
     /// </summary>
-    public class ScopeIdentitiesHandler : AbstractNotificationHandler<IList<string>>, IMessageProducer
+    public class ScopeIdentitiesHandler : IMessageProducer
     {
         const string Topic = "$internal/identities";
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
+        readonly NotificationHandler<IList<string>> notificationHandler;
+
         IList<BrokerServiceIdentity> lastBrokerServiceIdentityUpdate = new List<BrokerServiceIdentity>();
 
-        public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache) : base()
+        public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
+            this.notificationHandler = new NotificationHandler<IList<string>>(ConvertNotificationToMessagesAsync, StoreNotificationAsync, ConvertStoredNotificationsToMessagesAsync);
             this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
-            this.deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += async (sender, serviceIdentities) => await NotifyAsync(serviceIdentities);
+            this.deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += async (sender, serviceIdentities) => await this.notificationHandler.NotifyAsync(serviceIdentities);
         }
 
-        public override async Task StoreNotificationAsync(IList<string> notification)
+        public void SetConnector(IMqttBrokerConnector connector)
+        {
+            this.notificationHandler.SetConnector(connector);
+        }
+
+        async Task StoreNotificationAsync(IList<string> notification)
         {
             this.lastBrokerServiceIdentityUpdate = await ConvertIdsToBrokerServiceIdentitiesAsync(notification);
         }
 
-        public override Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
+        Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
         {
             IEnumerable<Message> messages;
             if (this.lastBrokerServiceIdentityUpdate.Count == 0)
@@ -43,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         }
 
-        public override async Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(IList<string> notification)
+        async Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(IList<string> notification)
         {
             IEnumerable<Message> messages;
             if (notification?.Count > 0)
@@ -69,5 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             return brokerServiceIdentities;
         }
+ 
     }
 }

@@ -15,10 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
 
-    public class AuthAgentProtocolHead : AbstractNotificationHandler<bool>, IProtocolHead
+    public class AuthAgentProtocolHead : IProtocolHead
     {
-        const string Topic = "$internal/edgehubcore";
-        static readonly string Payload = "\"AuthAgentProtocolHead started.\"";
+        static readonly IEnumerable<Message> AuthAgentProtocolHeadStartedNotification = new[] { new Message("$internal/edgehubcore", "\"AuthAgentProtocolHead started.\"") };
 
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
@@ -26,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly AuthAgentProtocolHeadConfig config;
         readonly object guard = new object();
+        readonly NotificationHandler<bool> notificationHandler;
 
         volatile bool started;
         Option<IWebHost> host;
@@ -38,14 +38,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     IClientCredentialsFactory clientCredentialsFactory,
                     ISystemComponentIdProvider systemComponentIdProvider,
                     AuthAgentProtocolHeadConfig config,
-                    IMqttBrokerConnector mqttBrokerConnector) : base()
+                    IMqttBrokerConnector mqttBrokerConnector)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.config = Preconditions.CheckNotNull(config);
-            SetConnector(mqttBrokerConnector);
+            this.notificationHandler = new NotificationHandler<bool>(ConvertNotificationToMessagesAsync, storedNotificationRetriever: ConvertStoredNotificationsToMessagesAsync);
+            this.notificationHandler.SetConnector(mqttBrokerConnector);
         }
 
         public async Task StartAsync()
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                            .StartAsync();
 
             started = true;
-            await NotifyAsync(true);
+            await notificationHandler.NotifyAsync(true);
             Events.Started();
         }
 
@@ -132,28 +133,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .Build();
         }
 
-        public override Task StoreNotificationAsync(bool notification) => Task.FromResult(true);
+        Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync() => Task.FromResult(started ? AuthAgentProtocolHeadStartedNotification : new Message[0]);
 
-        public override Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
-        {
-            IEnumerable<Message> messages;
-            if (started)
-            {
-                messages = new[] { new Message(Topic, Payload) };
-            }
-            else
-            {
-                messages = new Message[0];
-            }
-
-            return Task.FromResult(messages);
-        }
-
-        public override Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(bool notification)
-        {
-            IEnumerable<Message> messages = new[] { new Message(Topic, Payload) };
-            return Task.FromResult(messages);
-        }
+        Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(bool _) => Task.FromResult(AuthAgentProtocolHeadStartedNotification);
 
         static class Events
         {

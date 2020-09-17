@@ -10,11 +10,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public abstract class AbstractNotificationHandler<T>
+    public class NotificationHandler<T>
     {
         readonly SemaphoreSlim stateLock = new SemaphoreSlim(1);
-        bool connected;
+        readonly Func<T, Task> notificationStorer;
+        readonly Func<T, Task<IEnumerable<Message>>> notificationConvertor;
+        readonly Func<Task<IEnumerable<Message>>> storedNotificationRetriever;
+
         IMqttBrokerConnector connector;
+        bool connected;
+
+        public NotificationHandler(
+            Func<T, Task<IEnumerable<Message>>> notificationConvertor,
+            Func<T, Task> notificationStorer = null,
+            Func<Task<IEnumerable<Message>>> storedNotificationRetriever = null)
+        {
+            this.notificationConvertor = Preconditions.CheckNotNull(notificationConvertor);
+            this.notificationStorer = notificationStorer;
+            this.storedNotificationRetriever = storedNotificationRetriever;
+            this.connected = false;
+        }
 
         public void SetConnector(IMqttBrokerConnector connector)
         {
@@ -28,8 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             try
             {
                 this.connected = true;
-                var messages = await this.ConvertStoredNotificationsToMessagesAsync();
-                await this.SendMessagesAsync(messages);
+                if (storedNotificationRetriever != null)
+                {
+                    var messages = await this.storedNotificationRetriever();
+                    await this.SendMessagesAsync(messages);
+                }
             }
             finally
             {
@@ -42,16 +60,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             await this.stateLock.WaitAsync();
             try
             {
-                if (!this.connected)
+                if (this.connected)
                 {
-                    Events<T>.StoringNotification();
-                    await this.StoreNotificationAsync(notification);
-                    Events<T>.NotificationStored();
+                    var messages = await this.notificationConvertor(notification);
+                    await this.SendMessagesAsync(messages);
+                }
+                else if (this.notificationStorer == null)
+                {
+                    Events<T>.NotificationDiscarded();
                 }
                 else
                 {
-                    var messages = await this.ConvertNotificationToMessagesAsync(notification);
-                    await this.SendMessagesAsync(messages);
+                    Events<T>.StoringNotification();
+                    await this.notificationStorer(notification);
+                    Events<T>.NotificationStored();
                 }
             }
             finally
@@ -95,13 +117,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-
-        // Store event if not connected 
-        public abstract Task StoreNotificationAsync(T notification);
-        // what to send
-        public abstract Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync();
-        // convert event to message
-        public abstract Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(T notification);
     }
 
     public class Message
@@ -119,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     static class Events<T>
     {
         const int IdStart = HubCoreEventIds.NotificationToBroker;
-        static readonly ILogger Log = Logger.Factory.CreateLogger<AbstractNotificationHandler<T>>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<NotificationHandler<T>>();
 
         enum EventIds
         {
@@ -127,7 +142,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             NotificationSent,
             ErrorSendingNotification,
             StoringNotification,
-            NotificationStored
+            NotificationStored,
+            NotificationDiscarded
         }
 
         internal static void SendingNotification(Message message) => Log.LogDebug((int)EventIds.SendingNotification, $"Publishing notification: [topic={message.Topic}, payload={message.Payload}] to mqtt broker.");
@@ -138,8 +154,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         internal static void NotificationNotDelivered(Message message) => Log.LogError((int)EventIds.ErrorSendingNotification, $"Publishing notification failed: [topic={message.Topic}, payload={message.Payload}] to mqtt broker is not delivered.");
 
-        internal static void StoringNotification() => Log.LogDebug((int)EventIds.StoringNotification, $"Storing notification while not connected to mqtt broker.");
+        internal static void StoringNotification() => Log.LogDebug((int)EventIds.StoringNotification, "Storing notification while not connected to mqtt broker.");
 
-        internal static void NotificationStored() => Log.LogDebug((int)EventIds.NotificationStored, $"Stored notification while not connected to mqtt broker.");
+        internal static void NotificationStored() => Log.LogDebug((int)EventIds.NotificationStored, "Stored notification while not connected to mqtt broker.");
+
+        internal static void NotificationDiscarded() => Log.LogDebug((int)EventIds.NotificationDiscarded, "Notification was discarded while not connected to mqtt broker.");
     }
 }
