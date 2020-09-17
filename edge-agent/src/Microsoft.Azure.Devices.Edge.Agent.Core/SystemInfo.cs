@@ -2,15 +2,14 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using Newtonsoft.Json;
-
     public class SystemInfo
     {
-        public SystemInfo(string operatingSystemType, string architecture, string version, string serverVersion, string kernelVersion, string operatingSystem, int numCpus)
+        public SystemInfo(string operatingSystemType, string architecture, string version, ProvisioningInfo provisioning, string serverVersion, string kernelVersion, string operatingSystem, int numCpus)
         {
             this.OperatingSystemType = operatingSystemType;
             this.Architecture = architecture;
             this.Version = version;
+            this.Provisioning = provisioning;
             this.ServerVersion = serverVersion;
             this.KernelVersion = kernelVersion;
             this.OperatingSystem = operatingSystem;
@@ -18,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         }
 
         public SystemInfo(string operatingSystemType, string architecture, string version)
-            : this(operatingSystemType, architecture, version, string.Empty, string.Empty, string.Empty, 0)
+            : this(operatingSystemType, architecture, version, ProvisioningInfo.Empty, string.Empty, string.Empty, string.Empty, 0)
         {
         }
 
@@ -27,6 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public string Architecture { get; }
 
         public string Version { get; }
+
+        public ProvisioningInfo Provisioning { get; }
 
         public string ServerVersion { get; }
 
