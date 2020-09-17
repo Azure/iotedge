@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             foreach (var id in identityList)
             {
-                if (this.IsSystemComponent(id))
+                if (this.systemComponentIdProvider.IsSystemComponent(id))
                 {
                     continue;
                 }
@@ -237,8 +237,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             return Option.Some(result);
         }
-
-        bool IsSystemComponent(string id) => string.Equals(id, this.systemComponentIdProvider.EdgeHubBridgeId);
 
         static class Events
         {
