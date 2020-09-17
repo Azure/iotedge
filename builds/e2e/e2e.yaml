@@ -33,6 +33,8 @@ jobs:
       name: $(pool.name)
       demands: rpi3-e2e-tests
 
+    condition: eq(variables['agent.name'], '')
+
     variables:
       os: linux
       arch: arm32v7
@@ -54,6 +56,8 @@ jobs:
     pool:
       vmImage: ubuntu-16.04
 
+    condition: eq(variables['agent.name'], '')
+
     variables:
       os: linux
       arch: amd64
@@ -73,7 +77,9 @@ jobs:
       demands:	
         - Agent.OS -equals Linux	
         - Agent.OSArchitecture -equals X64	
-        - run-new-e2e-tests -equals true	
+        - run-new-e2e-tests -equals true
+
+    condition: eq(variables['agent.name'], '')
 
     variables:	
       os: linux	
@@ -86,3 +92,28 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml	
     - template: templates/e2e-run.yaml
 
+################################################################################		
+  - job: linux_amd64_nested_edge_l3	
+################################################################################		
+    displayName: Linux amd64 (Nested Edge L3)
+
+    pool:	
+      name: $(pool.name)	
+      demands:	
+        - Agent.OS -equals Linux	
+        - Agent.OSArchitecture -equals X64
+        - Agent.Name -equals $(agent.name)
+        - nested-edge -equals L3
+
+    condition: ne(variables['agent.name'], '')
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu16.04-amd64
+
+    steps:	
+    - template: templates/e2e-clean-directory.yaml	
+    - template: templates/e2e-setup.yaml	
+    - template: templates/e2e-clear-docker-cached-images.yaml	
+    - template: templates/e2e-run.yaml
