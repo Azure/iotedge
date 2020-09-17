@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         public async Task<RegistryApiHttpResult> PutModuleAsync(string actorEdgeDeviceId, CreateOrUpdateModuleOnBehalfOfData requestData, string eTag)
         {
             var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.putModuleOnBehalfOfUriTemplate, actorEdgeDeviceId, ApiVersion));
-            var response = await this.SendRequestAsync(requesteUri, HttpMethod.Post, requestData, eTag);
+            var response = await this.SendRequestAsync(requesteUri, HttpMethod.Put, requestData, eTag);
             return response;
         }
 
