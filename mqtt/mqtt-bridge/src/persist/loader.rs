@@ -123,7 +123,7 @@ mod tests {
         // verify
         assert_eq!(elements.len(), 1);
         let extracted = elements.pop_front().unwrap();
-        assert_eq!((extracted.0.clone(), extracted.1.clone()), (key1, pub1));
+        assert_eq!((extracted.0.clone(), extracted.1), (key1, pub1));
     }
 
     #[tokio::test]
@@ -163,8 +163,8 @@ mod tests {
         assert_eq!(elements.len(), 2);
         let extracted1 = elements.pop_front().unwrap();
         let extracted2 = elements.pop_front().unwrap();
-        assert_eq!((extracted1.0.clone(), extracted1.1.clone()), (key1, pub1));
-        assert_eq!((extracted2.0.clone(), extracted2.1.clone()), (key2, pub2));
+        assert_eq!((extracted1.0.clone(), extracted1.1), (key1, pub1));
+        assert_eq!((extracted2.0.clone(), extracted2.1), (key2, pub2));
     }
 
     #[tokio::test]

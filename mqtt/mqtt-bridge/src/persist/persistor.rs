@@ -185,7 +185,7 @@ mod tests {
         };
 
         // can't remove an element that hasn't been seen
-        persistence.push(pub1.clone()).unwrap();
+        persistence.push(pub1).unwrap();
         let removed = persistence.remove(&key1);
         assert_matches!(removed, Err(_));
     }
