@@ -111,7 +111,7 @@ impl WorkloadClient {
         let uri =
             make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequestUrl(e))?;
 
-        let req = SignRequest::new(data.to_string());
+        let req = SignRequest::new(base64::encode(data.to_string()));
         let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
         let req = Request::post(uri)
             .body(Body::from(body))
@@ -298,11 +298,18 @@ mod tests {
     async fn it_signs_request() {
         let res = json!( { "digest": "signed-digest" } );
 
+        let body = format!(
+            "{}{}{}",
+            "{\"keyId\":\"primary\",\"algo\":\"HMACSHA256\",\"data\":\"",
+            base64::encode("digest"),
+            "\"}"
+        );
+
         let _m = mock(
             "POST",
             "/modules/%24edgeHub/genid/12345678/sign?api-version=2019-01-30",
         )
-        .match_body(r#"{"keyId":"primary","algo":"HMACSHA256","data":"digest"}"#)
+        .match_body(body.as_ref())
         .with_status(200)
         .with_body(serde_json::to_string(&res).unwrap())
         .create();
