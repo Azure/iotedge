@@ -27,8 +27,9 @@ impl Persistor<WakingMap> {
 }
 
 impl Persistor<WakingStore> {
-    fn new_disk(db: Arc<DB>, batch_size: usize) -> Persistor<WakingStore> {
-        Self::new(WakingStore::new(db), batch_size)
+    fn new_disk(db: DB, batch_size: usize) -> Result<Persistor<WakingStore>, PersistError> {
+        let waking_store = WakingStore::new(db)?;
+        Ok(Self::new(waking_store, batch_size))
     }
 }
 
@@ -62,7 +63,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         Ok(key)
     }
 
-    fn remove(&mut self, key: &Key) -> Option<Publication> {
+    fn remove(&mut self, key: &Key) -> Result<Publication, PersistError> {
         debug!(
             "removing publication with offset {} from in-flight collection",
             self.offset
@@ -186,7 +187,7 @@ mod tests {
         // can't remove an element that hasn't been seen
         persistence.push(pub1.clone()).unwrap();
         let removed = persistence.remove(&key1);
-        assert_matches!(removed, None);
+        assert_matches!(removed, Err(_));
     }
 
     #[tokio::test]
@@ -201,7 +202,7 @@ mod tests {
 
         // verify failed removal
         let removal = persistence.remove(&key1);
-        assert_matches!(removal, None);
+        assert_matches!(removal, Err(_));
     }
 
     #[tokio::test]

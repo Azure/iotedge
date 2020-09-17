@@ -18,14 +18,26 @@ pub struct Key {
 
 #[derive(Debug, Error)]
 pub enum PersistError {
-    #[error("Failed to serialize on database insert")]
-    Serialization(#[source] Box<ErrorKind>),
+    #[error("Failed to create rocksdb column family")]
+    CreateColumnFamily(#[source] Error),
 
     #[error("Failed to deserialize database entry")]
     Deserialization(#[source] Box<ErrorKind>),
 
+    #[error("Failed to get rocksdb column family")]
+    GetColumnFamily(),
+
     #[error("Failed to serialize on database insert")]
-    Insertion(#[from] Error),
+    Insertion(#[source] Error),
+
+    #[error("Failed to remove element from persistent store. Element either does not exist or is not in-flight.")]
+    Removal(#[source] Error),
+
+    #[error("Attempted to remove entry which does not exist")]
+    RemovalForMissing(),
+
+    #[error("Failed to serialize on database insert")]
+    Serialization(#[source] Box<ErrorKind>),
 }
 
 #[cfg(test)]

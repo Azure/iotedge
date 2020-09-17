@@ -1,14 +1,15 @@
 #![allow(dead_code)] // TODO remove when ready
 
 use std::{
-    cmp::min, collections::hash_map::Entry, collections::HashMap, collections::VecDeque, sync::Arc,
+    cmp::min, collections::hash_map::Entry, collections::HashMap, collections::VecDeque,
     task::Waker,
 };
 
 use async_trait::async_trait;
 use bincode::{self};
 use mqtt3::proto::Publication;
-use rocksdb::{IteratorMode, DB};
+use rocksdb::{IteratorMode, Options, DB};
+use uuid::Uuid;
 
 use crate::persist::{Key, PersistError};
 
@@ -21,7 +22,7 @@ pub trait StreamWakeableState {
 
     fn batch(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, PersistError>;
 
-    fn remove_in_flight(&mut self, key: &Key) -> Option<Publication>;
+    fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError>;
 
     fn set_waker(&mut self, waker: &Waker);
 }
@@ -65,8 +66,10 @@ impl StreamWakeableState for WakingMap {
         Ok(output)
     }
 
-    fn remove_in_flight(&mut self, key: &Key) -> Option<Publication> {
-        self.in_flight.remove(key)
+    fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError> {
+        self.in_flight
+            .remove(key)
+            .ok_or(PersistError::RemovalForMissing())
     }
 
     fn set_waker(&mut self, waker: &Waker) {
@@ -77,18 +80,24 @@ impl StreamWakeableState for WakingMap {
 /// When elements are retrieved they are added to the in flight collection, but kept in the original db store.
 /// Only when elements are removed from the in-flight collection they will be removed from the store.
 pub struct WakingStore {
-    db: Arc<DB>,
+    db: DB,
     in_flight: HashMap<Key, Publication>,
     waker: Option<Waker>,
+    column_family: String,
 }
 
 impl WakingStore {
-    pub fn new(db: Arc<DB>) -> Self {
-        Self {
+    pub fn new(mut db: DB) -> Result<Self, PersistError> {
+        let column_family = Uuid::new_v4().to_string();
+        db.create_cf(column_family.clone(), &Options::default())
+            .map_err(PersistError::CreateColumnFamily)?;
+
+        Ok(Self {
             db,
             in_flight: HashMap::new(),
             waker: None,
-        }
+            column_family,
+        })
     }
 }
 
@@ -96,8 +105,13 @@ impl StreamWakeableState for WakingStore {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
         let publication_bytes = bincode::serialize(&value).map_err(PersistError::Serialization)?;
+
+        let column_family = self
+            .db
+            .cf_handle(&self.column_family)
+            .ok_or(PersistError::GetColumnFamily())?;
         self.db
-            .put(key_bytes, publication_bytes)
+            .put_cf(column_family, key_bytes, publication_bytes)
             .map_err(PersistError::Insertion)?;
 
         if let Some(waker) = self.waker.take() {
@@ -109,7 +123,12 @@ impl StreamWakeableState for WakingStore {
 
     /// Get count elements of store, exluding those that are already in in-flight
     fn batch(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, PersistError> {
-        let iter = self.db.iterator(IteratorMode::Start);
+        let column_family = self
+            .db
+            .cf_handle(&self.column_family)
+            .ok_or(PersistError::GetColumnFamily())?;
+        let iter = self.db.iterator_cf(column_family, IteratorMode::Start);
+
         let mut output = vec![];
         for (iterations, extracted) in iter.enumerate() {
             let (key, publication) = bincode::deserialize(&*extracted.0)
@@ -134,10 +153,22 @@ impl StreamWakeableState for WakingStore {
         Ok(output)
     }
 
-    fn remove_in_flight(&mut self, key: &Key) -> Option<Publication> {
-        let key_bytes = bincode::serialize(&key).unwrap();
-        self.db.delete(key_bytes).unwrap();
-        self.in_flight.remove(key)
+    fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError> {
+        let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
+
+        let column_family = self
+            .db
+            .cf_handle(&self.column_family)
+            .ok_or(PersistError::GetColumnFamily())?;
+
+        self.db
+            .delete_cf(column_family, key_bytes)
+            .map_err(PersistError::Removal)?;
+        let removed = self
+            .in_flight
+            .remove(key)
+            .ok_or(PersistError::RemovalForMissing())?;
+        Ok(removed)
     }
 
     fn set_waker(&mut self, waker: &Waker) {
@@ -228,7 +259,7 @@ mod tests {
     fn remove_in_flight_dne(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let bad_removal = state.remove_in_flight(&key1);
-        assert_matches!(bad_removal, None);
+        assert_matches!(bad_removal, Err(_));
     }
 
     #[test_case(WakingMap::new())]
@@ -244,7 +275,7 @@ mod tests {
 
         state.insert(key1.clone(), pub1).unwrap();
         let bad_removal = state.remove_in_flight(&key1);
-        assert_matches!(bad_removal, None);
+        assert_matches!(bad_removal, Err(_));
     }
 
     #[test_case(WakingMap::new())]
@@ -319,7 +350,7 @@ mod tests {
         storage_dir.push_str(&uuid);
         let path = Path::new(&storage_dir);
 
-        let db = Arc::new(DB::open_default(path).unwrap());
-        WakingStore::new(db)
+        let db = DB::open_default(path).unwrap();
+        WakingStore::new(db).unwrap()
     }
 }
