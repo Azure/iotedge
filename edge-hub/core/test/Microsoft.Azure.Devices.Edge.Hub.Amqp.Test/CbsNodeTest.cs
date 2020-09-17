@@ -218,12 +218,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             string iotHubHostName = "edgehubtest1.azure-devices.net";
             var authenticator = new Mock<IAuthenticator>();
-            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+            authenticator.Setup(a => a.AuthenticateAsync(It.Is<IClientCredentials>(cred => cred == clientCredentials))).ReturnsAsync(true);
             var cbsNode = new CbsNode(clientCredentialsFactory.Object, iotHubHostName, authenticator.Object, new NullCredentialsCache());
 
             // Act
             (AmqpResponseStatusCode statusCode, string description) = await cbsNode.UpdateCbsToken(validAmqpMessage);
             bool isAuthenticated = await cbsNode.AuthenticateAsync("device1", Option.None<string>(), authChain);
+
+            // Auth again, we should still succeed even with the wrong credentials due to cached auth state
+            (statusCode, description) = await cbsNode.UpdateCbsToken(validAmqpMessage);
+            bool isReauthenticated = await cbsNode.AuthenticateAsync("device1", Option.None<string>(), Option.Some("not;valid;authchain"));
 
             // Assert
             Assert.True(isAuthenticated);

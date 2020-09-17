@@ -80,37 +80,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             try
             {
                 // See if we received direct credentials for the target identity
-                ClientToken credentialsInfo;
-                bool hasCredentials = this.clientTokens.TryGetValue(id, out credentialsInfo);
+                bool hasToken = this.clientTokens.TryGetValue(id, out ClientToken clientToken);
 
                 // Otherwise, this could be a child Edge acting OnBehalfOf of the target,
                 // in which case we would have the actor's credentials instead
-                if (!hasCredentials)
+                if (!hasToken)
                 {
                     Option<string> actorDeviceId = AuthChainHelpers.GetActorDeviceId(authChain);
-                    hasCredentials = actorDeviceId.Map(actor => this.clientTokens.TryGetValue(actor + $"/{CoreConstants.EdgeHubModuleId}", out credentialsInfo)).GetOrElse(false);
+                    hasToken = actorDeviceId.Map(actor => this.clientTokens.TryGetValue($"{actor}/{CoreConstants.EdgeHubModuleId}", out clientToken)).GetOrElse(false);
                 }
 
-                if (hasCredentials)
+                if (hasToken)
                 {
-                    if (!authenticatedClients.ContainsKey(id))
+                    // Lock the auth-state check and the auth call to avoid
+                    // redundant calls into the authenticator
+                    using (await this.identitySyncLock.LockAsync())
                     {
-                        IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(
-                            credentialsInfo.DeviceId,
-                            credentialsInfo.ModuleId.OrDefault(),
-                            string.Empty,
-                            credentialsInfo.Token,
-                            true,
-                            modelId,
-                            authChain);
-
-                        if (await this.authenticator.AuthenticateAsync(clientCredentials))
+                        if (this.authenticatedClients.ContainsKey(id))
                         {
-                            // Authentication success, add an entry for the authenticated
-                            // client identity, the value in the dictionary doesn't matter
-                            // as we're effectively using it as a thread-safe HashSet
-                            authenticatedClients[id] = new byte();
+                            // We've previously authenticated this client already
                             return true;
+                        }
+                        else
+                        {
+                            IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(
+                                clientToken.DeviceId,
+                                clientToken.ModuleId.OrDefault(),
+                                string.Empty,
+                                clientToken.Token,
+                                true,
+                                modelId,
+                                authChain);
+
+                            if (await this.authenticator.AuthenticateAsync(clientCredentials))
+                            {
+                                // Authentication success, add an entry for the authenticated
+                                // client identity, the value in the dictionary doesn't matter
+                                // as we're effectively using it as a thread-safe HashSet
+                                this.authenticatedClients[id] = default(byte);
+
+                                // TODO: After auth success, we should be adding the client
+                                // token to the credentials cache
+                                return true;
+                            }
                         }
                     }
                 }
@@ -196,7 +208,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             throw new InvalidOperationException($"Matching template not found for audience {audienceUri}");
         }
 
-        // Note: This method updates this.clientCredentialsMap, and should be invoked only within this.identitySyncLock
         internal async Task<(AmqpResponseStatusCode, string)> UpdateCbsToken(AmqpMessage message)
         {
             ClientToken clientToken;
@@ -214,26 +225,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             // Insert/update the cached tokens with the new value
             this.clientTokens[clientToken.Id] = clientToken;
 
-            if (this.clientTokens.TryGetValue(clientToken.Id, out ClientToken credentialsInfo))
+            // TODO: This check is incorrect for OnBehalfOf auth, as the
+            // token might be from the actor EdgeHub, but a leaf identity
+            // gets authenticated instead
+            if (this.authenticatedClients.ContainsKey(clientToken.Id))
             {
-                if (this.authenticatedClients.ContainsKey(clientToken.Id))
-                {
-                    IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(
-                        credentialsInfo.DeviceId,
-                        credentialsInfo.ModuleId.OrDefault(),
-                        string.Empty,
-                        credentialsInfo.Token,
-                        true,
-                        Option.None<string>(),
-                        Option.None<string>());
+                IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(
+                    clientToken.DeviceId,
+                    clientToken.ModuleId.OrDefault(),
+                    string.Empty,
+                    clientToken.Token,
+                    true,
+                    Option.None<string>(),
+                    Option.None<string>());
 
-                    await this.credentialsCache.Add(clientCredentials);
-                    Events.CbsTokenUpdated(credentialsInfo.Id);
-                }
-                else
-                {
-                    Events.CbsTokenNotUpdated(credentialsInfo.Id);
-                }
+                await this.credentialsCache.Add(clientCredentials);
+                Events.CbsTokenUpdated(clientToken.Id);
+            }
+            else
+            {
+                Events.CbsTokenNotUpdated(clientToken.Id);
             }
 
             return (AmqpResponseStatusCode.OK, AmqpResponseStatusCode.OK.ToString());
@@ -277,18 +288,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         async Task HandleTokenUpdate(AmqpMessage message)
         {
-            using (await this.identitySyncLock.LockAsync())
+            try
             {
-                try
-                {
-                    (AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
-                    await this.SendResponseAsync(message, statusCode, description);
-                }
-                catch (Exception e)
-                {
-                    await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
-                    Events.ErrorUpdatingToken(e);
-                }
+                (AmqpResponseStatusCode statusCode, string description) = await this.UpdateCbsToken(message);
+                await this.SendResponseAsync(message, statusCode, description);
+            }
+            catch (Exception e)
+            {
+                await this.SendResponseAsync(message, AmqpResponseStatusCode.InternalServerError, e.Message);
+                Events.ErrorUpdatingToken(e);
             }
         }
 
@@ -312,7 +320,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 this.DeviceId = deviceId;
                 this.ModuleId = moduleId;
-                this.Token = new AtomicReference<string>(token);
+                this.Token = token;
             }
 
             public string Id => this.ModuleId.Map(m => $"{this.DeviceId}/{m}").GetOrElse(this.DeviceId);
