@@ -401,7 +401,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             // Only keep last 12 hours
             var storageLast12Hours = new MetricsStorage(sequentialStoreMock.Object, TimeSpan.FromHours(12));
 
-            // When metrics are returned, all only last 12 scrapes of 10 are returned. Remaining 13 scrapes are deleted
+            // When metrics are returned, all only last 12 scrapes of 10 are returned. Remaining 8 scrapes are deleted
             var last12ReturnedMetrics = (await storageLast12Hours.GetAllMetricsAsync()).ToList();
             Assert.Equal(120, last12ReturnedMetrics.Count);
             TestUtilities.OrderlessCompare(Enumerable.Range(12, 8), offsetsRemoved);
