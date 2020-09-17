@@ -135,8 +135,8 @@ impl ConnectionSettings {
         &self.forwards
     }
 
-    pub fn keep_alive(&self) -> &Duration {
-        &self.keep_alive
+    pub fn keep_alive(&self) -> Duration {
+        self.keep_alive
     }
 
     pub fn clean_session(&self) -> bool {

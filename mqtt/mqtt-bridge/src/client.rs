@@ -1,5 +1,5 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::{collections::HashSet, convert::TryInto, time::Duration};
+use std::{collections::HashSet, convert::TryInto, fmt::Display, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -11,8 +11,10 @@ use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
 
-use crate::settings::Credentials;
-use crate::token_source::{SasTokenSource, TokenSource};
+use crate::{
+    settings::Credentials,
+    token_source::{SasTokenSource, TokenSource},
+};
 
 const DEFAULT_TOKEN_DURATION_MINS: u64 = 60;
 const DEFAULT_TOKEN_DURATION_SECS: Duration = Duration::from_secs(60 * DEFAULT_TOKEN_DURATION_MINS);
@@ -39,6 +41,18 @@ where
     token_source: Option<T>,
 }
 
+impl<T> TcpConnection<T>
+where
+    T: TokenSource + Clone + Send + Sync + 'static,
+{
+    pub fn new(address: String, token_source: Option<T>) -> Self {
+        Self {
+            address,
+            token_source,
+        }
+    }
+}
+
 impl<T> IoSource for TcpConnection<T>
 where
     T: TokenSource + Clone + Send + Sync + 'static,
@@ -56,15 +70,17 @@ where
                 + chrono::Duration::from_std(DEFAULT_TOKEN_DURATION_SECS).unwrap_or_else(|_| {
                     chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS.try_into().unwrap())
                 });
-            let mut password = None;
-            if let Some(ts) = token_source {
-                password = match ts.get(&expiry).await {
-                    Ok(x) => Some(x),
-                    Err(e) => {
+
+            let password: Option<String> = if let Some(ts) = token_source {
+                ts.get(&expiry)
+                    .await
+                    .map_err(|e| {
                         error!("Failed to get token for connection {} {}", address, e);
-                        None
-                    }
-                }
+                        e
+                    })
+                    .ok()
+            } else {
+                None
             };
 
             let io = TcpStream::connect(address).await;
@@ -127,7 +143,7 @@ impl<T: EventHandler> MqttClient<T> {
             )
         };
 
-        MqttClient {
+        Self {
             client,
             event_handler,
         }
@@ -206,7 +222,7 @@ impl<T: EventHandler> MqttClient<T> {
 
 #[async_trait]
 pub trait EventHandler {
-    type Error: std::fmt::Display;
+    type Error: Display;
 
     async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error>;
 }

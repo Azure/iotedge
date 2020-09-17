@@ -1,13 +1,15 @@
-use std::{collections::HashMap, marker::PhantomData, str::FromStr, time::Duration};
+use std::{collections::HashMap, marker::PhantomData, time::Duration};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
 use mqtt_broker::TopicFilter;
 use tracing::{debug, info, warn};
 
-use crate::client::{ClientConnectError, EventHandler, MqttClient};
-use crate::persist::{memory::InMemoryPersist, Persist};
-use crate::settings::{ConnectionSettings, Credentials, Topic};
+use crate::{
+    client::{ClientConnectError, EventHandler, MqttClient},
+    persist::{memory::InMemoryPersist, Persist},
+    settings::{ConnectionSettings, Credentials, Topic},
+};
 
 const BATCH_SIZE: usize = 10;
 
@@ -74,7 +76,7 @@ impl Bridge {
         self.connect(
             &self.subscriptions,
             self.connection_settings.address(),
-            *self.connection_settings.keep_alive(),
+            self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
             self.connection_settings.credentials(),
         )
@@ -95,7 +97,7 @@ impl Bridge {
         self.connect(
             &self.forwards,
             self.system_address.as_str(),
-            *self.connection_settings.keep_alive(),
+            self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
             &Credentials::Anonymous(client_id),
         )
@@ -110,14 +112,10 @@ impl Bridge {
         clean_session: bool,
         credentials: &Credentials,
     ) -> Result<(), BridgeError> {
-        let mut topic_filters = Vec::new();
-        for val in topics.values() {
-            topic_filters.push(TopicMapper {
-                topic_settings: val.clone(),
-                topic_filter: TopicFilter::from_str(val.pattern())
-                    .map_err(BridgeError::TopicFilterParse)?,
-            });
-        }
+        let topic_filters = topics
+            .values()
+            .map(|topic| TopicMapper::from_topic(topic))
+            .collect::<Result<Vec<_>, _>>()?;
 
         let mut client = MqttClient::new(
             address,
@@ -148,6 +146,20 @@ struct TopicMapper {
     topic_filter: TopicFilter,
 }
 
+impl TopicMapper {
+    pub fn from_topic(topic: &Topic) -> Result<Self, BridgeError> {
+        let topic_filter = topic
+            .pattern()
+            .parse()
+            .map_err(BridgeError::TopicFilterParse)?;
+
+        Ok(Self {
+            topic_settings: topic.clone(),
+            topic_filter,
+        })
+    }
+}
+
 /// Handle events from client and saves them with the forward topic
 #[derive(Clone)]
 struct MessageHandler<'a, T>
@@ -172,25 +184,15 @@ where
     }
 
     fn transform(&self, topic_name: &str) -> Option<String> {
-        for mapper in &self.topic_mappers {
-            let forward_topic = mapper
+        self.topic_mappers.iter().find_map(|mapper| {
+            mapper
                 .topic_settings
                 .local()
                 // maps if local does not have a value it uses the topic that was received,
                 // else it checks that the received topic starts with local prefix and removes the local prefix
-                .map_or(Some(topic_name.to_owned()), |local_prefix| {
+                .map_or(Some(topic_name), |local_prefix| {
                     let prefix = format!("{}/", local_prefix);
-                    if topic_name.to_owned().starts_with(&prefix) {
-                        let rs: String = topic_name
-                            .strip_prefix(&prefix)
-                            .unwrap_or(&topic_name)
-                            .to_owned();
-
-                        Some(rs)
-                    } else {
-                        // is no match if there is a local prefix for the mapper but received topic does not start with it
-                        None
-                    }
+                    topic_name.strip_prefix(&prefix)
                 })
                 // match topic without local prefix with the topic filter pattern
                 .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
@@ -198,15 +200,10 @@ where
                     if let Some(remote_prefix) = mapper.topic_settings.remote() {
                         format!("{}/{}", remote_prefix, stripped_topic)
                     } else {
-                        stripped_topic
+                        stripped_topic.to_string()
                     }
-                });
-
-            if forward_topic.is_some() {
-                return forward_topic;
-            }
-        }
-        None
+                })
+        })
     }
 }
 
