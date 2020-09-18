@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     {
         static readonly TimeSpan DefaultMessageAckTimeout = TimeSpan.FromSeconds(30);
         static readonly Random Rand = new Random();
+        static readonly string edgeHubModuleId = "$edgeHub";
 
         [Fact]
         public async Task RouteToCloudTest()
@@ -360,6 +361,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(module2.HasReceivedMessages(message2));
         }
 
+        [Fact]
+        public async Task ReportedPropertyUpdatesAsTelemetryTest()
+        {
+            var routes = new List<string>
+            {
+                @"FROM /* INTO $upstream",
+            };
+
+            string edgeDeviceId = "edge";
+            ;
+            var iotHub = new IoTHub();
+            (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
+
+            TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
+            TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
+
+            IMessage message = GetReportedPropertiesMessage();
+            await device1.UpdateReportedProperties(message);
+            await Task.Delay(GetSleepTime());
+
+            Assert.True(iotHub.HasReceivedMessageFromModule(edgeDeviceId, edgeHubModuleId));
+        }
+
         [Fact(Skip = "Flaky test, bug #2494150")]
         public async Task TestRoutingTwinChangeNotificationFromDevice()
         {
@@ -445,7 +469,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
             var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>();
             var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, "$edgeHub", invokeMethodHandler, subscriptionProcessor, Mock.Of<IDeviceScopeIdentitiesCache>());
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, edgeHubModuleId, invokeMethodHandler, subscriptionProcessor, Mock.Of<IDeviceScopeIdentitiesCache>());
             return (edgeHub, connectionManager);
         }
 
@@ -504,6 +528,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             public bool HasReceivedTwinChangeNotification() => this.ReceivedMessages.Any(
                 m =>
                     m.SystemProperties[SystemProperties.MessageType] == Constants.TwinChangeNotificationMessageType);
+
+            public bool HasReceivedMessageFromModule(string deviceId, string moduleId) => this.ReceivedMessages.Any(
+                m =>
+                    m.SystemProperties[SystemProperties.ConnectionDeviceId] == deviceId
+                        && m.SystemProperties[SystemProperties.ConnectionModuleId] == moduleId);
         }
 
         class TestDevice
