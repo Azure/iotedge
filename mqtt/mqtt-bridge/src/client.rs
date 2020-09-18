@@ -104,8 +104,10 @@ impl<T: EventHandler> MqttClient<T> {
         let (client_id, username, token_source) = match connection_credentials {
             Credentials::Provider(provider_settings) => (
                 provider_settings.device_id().into(),
+                //TODO: handle properties that are sent by client in username (modelId, authchain)
                 Some(format!(
-                    "{}/{}",
+                    "{}/{}/{}",
+                    provider_settings.iothub_hostname().to_owned(),
                     provider_settings.device_id().to_owned(),
                     provider_settings.module_id().to_owned()
                 )),
