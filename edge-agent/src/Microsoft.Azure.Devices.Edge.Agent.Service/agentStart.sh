@@ -48,8 +48,8 @@ then
 
   # If "StorageFolder" env variable exists, use as basepath, else use /tmp
   # same for BackupFolder
-  agentstorage=$(env | grep -m 1 -i StorageFolder | awk -F '=' '{ print $2;}')
-  agentbackup=$(env | grep -m 1 -i BackupFolder | awk -F '=' '{ print $2;}')
+  agentstorage=$(env | grep -m 1 -i StorageFolder | awk -F '=' '{ print $2; }')
+  agentbackup=$(env | grep -m 1 -i BackupFolder | awk -F '=' '{ print $2; }')
   storagepath=${agentstorage:-/tmp}/edgeAgent
   backuppath=${agentbackup:-/tmp}/edgeAgent_backup
   # If basepath/edgeAgent exists, make sure all files are owned by TARGET_UID
