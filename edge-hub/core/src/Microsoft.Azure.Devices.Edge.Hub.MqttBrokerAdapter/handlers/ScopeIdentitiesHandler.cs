@@ -1,9 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
+    using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -13,68 +20,102 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         const string Topic = "$internal/identities";
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
-        readonly NotificationHandler<IList<string>> notificationHandler;
-
+        readonly AtomicBoolean connected = new AtomicBoolean(false);
+        IMqttBrokerConnector connector;
         IList<BrokerServiceIdentity> lastBrokerServiceIdentityUpdate = new List<BrokerServiceIdentity>();
 
         public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
-            this.notificationHandler = new NotificationHandler<IList<string>>(this.ConvertNotificationToMessagesAsync, this.StoreNotificationAsync, this.ConvertStoredNotificationsToMessagesAsync);
             this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
-            this.deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += async (sender, serviceIdentities) => await this.notificationHandler.NotifyAsync(serviceIdentities);
+            this.deviceScopeIdentitiesCache.ServiceIdentitiesUpdated +=
+                async (sender, serviceIdentities) => await this.ServiceIdentitiesUpdated(serviceIdentities);
         }
 
         public void SetConnector(IMqttBrokerConnector connector)
         {
-            this.notificationHandler.SetConnector(connector);
+            this.connector = connector;
+            this.connector.OnConnected += async (sender, args) => await this.OnConnect();
         }
 
-        async Task StoreNotificationAsync(IList<string> notification)
+        async Task OnConnect()
         {
-            this.lastBrokerServiceIdentityUpdate = await this.ConvertIdsToBrokerServiceIdentitiesAsync(notification);
-        }
-
-        Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
-        {
-            IEnumerable<Message> messages;
+            this.connected.Set(true);
             if (this.lastBrokerServiceIdentityUpdate.Count == 0)
             {
-                messages = new Message[0];
-            }
-            else
-            {
-                messages = new[] { new Message(Topic, JsonConvert.SerializeObject(this.lastBrokerServiceIdentityUpdate)) };
-                this.lastBrokerServiceIdentityUpdate.Clear();
+                this.lastBrokerServiceIdentityUpdate =
+                    await this.ConvertIdsToBrokerServiceIdentities(await this.deviceScopeIdentitiesCache.GetAllIds());
             }
 
-            return Task.FromResult(messages);
+            await this.PublishBrokerServiceIdentities(this.lastBrokerServiceIdentityUpdate);
+            this.lastBrokerServiceIdentityUpdate.Clear();
         }
 
-        async Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(IList<string> notification)
+        async Task ServiceIdentitiesUpdated(IList<string> serviceIdentities)
         {
-            IEnumerable<Message> messages;
-            if (notification?.Count > 0)
+            IList<BrokerServiceIdentity> brokerServiceIdentities = await this.ConvertIdsToBrokerServiceIdentities(serviceIdentities);
+            if (this.connected.Get())
             {
-                IList<BrokerServiceIdentity> brokerServiceIdentities = await this.ConvertIdsToBrokerServiceIdentitiesAsync(notification);
-                messages = new[] { new Message(Topic, JsonConvert.SerializeObject(brokerServiceIdentities)) };
+                await this.PublishBrokerServiceIdentities(brokerServiceIdentities);
             }
             else
             {
-                messages = new Message[0];
+                this.lastBrokerServiceIdentityUpdate = brokerServiceIdentities;
             }
-
-            return messages;
         }
 
-        async Task<IList<BrokerServiceIdentity>> ConvertIdsToBrokerServiceIdentitiesAsync(IList<string> ids)
+        async Task<IList<BrokerServiceIdentity>> ConvertIdsToBrokerServiceIdentities(IList<string> ids)
         {
             IList<BrokerServiceIdentity> brokerServiceIdentities = new List<BrokerServiceIdentity>();
             foreach (string id in ids)
             {
-                brokerServiceIdentities.Add(new BrokerServiceIdentity(id, await this.deviceScopeIdentitiesCache.GetAuthChain(id)));
+                brokerServiceIdentities.Add(
+                    new BrokerServiceIdentity(id, await this.deviceScopeIdentitiesCache.GetAuthChain(id)));
             }
 
             return brokerServiceIdentities;
+        }
+
+        async Task PublishBrokerServiceIdentities(IList<BrokerServiceIdentity> brokerServiceIdentities)
+        {
+            if (brokerServiceIdentities.Count == 0)
+            {
+                return;
+            }
+
+            Events.PublishingAddOrUpdateBrokerServiceIdentities(brokerServiceIdentities);
+            try
+            {
+                var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(brokerServiceIdentities));
+                await this.connector.SendAsync(Topic, payload);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorPublishingIdentities(ex);
+            }
+        }
+
+        static class Events
+        {
+            const int IdStart = HubCoreEventIds.DeviceScopeIdentitiesCache;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ScopeIdentitiesHandler>();
+
+            enum EventIds
+            {
+                PublishingAddOrUpdateBrokerServiceIdentity = IdStart,
+                PublishingRemoveBrokerServiceIdentity,
+                ErrorPublishingIdentity
+            }
+
+            internal static void PublishingAddOrUpdateBrokerServiceIdentities(IList<BrokerServiceIdentity> brokerServiceIdentities)
+            {
+                Log.LogDebug((int)EventIds.PublishingAddOrUpdateBrokerServiceIdentity, $"Publishing:" +
+                    $" {brokerServiceIdentities.Select(b => $"identity: {b.Identity} with AuthChain: {b.AuthChain}").Join(", ")} to mqtt broker on topic: {Topic}");
+            }
+
+            internal static void ErrorPublishingIdentities(Exception ex)
+            {
+                Log.LogError((int)EventIds.ErrorPublishingIdentity, ex, $"A problem occurred while publishing identities to mqtt broker.");
+            }
         }
     }
 }
