@@ -28,18 +28,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             this.callerProductInfo = callerProductInfo;
         }
 
-        public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType, X509Certificate2 clientCertificate, IList<X509Certificate2> clientChainCertificate, Option<string> modelId)
+        public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType, X509Certificate2 clientCertificate, IList<X509Certificate2> clientChainCertificate, Option<string> modelId, Option<string> authChain)
         {
             string productInfo = string.Join(" ", deviceClientType, this.callerProductInfo).Trim();
             IIdentity identity = this.identityProvider.Create(deviceId, moduleId);
-            return new X509CertCredentials(identity, productInfo, modelId, clientCertificate, clientChainCertificate);
+            return new X509CertCredentials(identity, productInfo, modelId, authChain, clientCertificate, clientChainCertificate);
         }
 
-        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable, Option<string> modelId)
+        public IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable, Option<string> modelId, Option<string> authChain)
         {
             string productInfo = string.Join(" ", deviceClientType, this.callerProductInfo).Trim();
             IIdentity identity = this.identityProvider.Create(deviceId, moduleId);
-            return new TokenCredentials(identity, token, productInfo, modelId, updatable);
+            return new TokenCredentials(identity, token, productInfo, modelId, authChain, updatable);
         }
 
         public IClientCredentials GetWithConnectionString(string connectionString)
@@ -47,10 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
             IIdentity identity = this.identityProvider.Create(iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId);
-            return new SharedKeyCredentials(identity, connectionString, this.callerProductInfo, Option.None<string>());
+            return new SharedKeyCredentials(identity, connectionString, this.callerProductInfo, Option.None<string>(), Option.None<string>());
         }
 
         public IClientCredentials GetWithIotEdged(string deviceId, string moduleId) =>
-            new IotEdgedCredentials(this.identityProvider.Create(deviceId, moduleId), this.callerProductInfo, Option.None<string>());
+            new IotEdgedCredentials(this.identityProvider.Create(deviceId, moduleId), this.callerProductInfo, Option.None<string>(), Option.None<string>());
     }
 }
