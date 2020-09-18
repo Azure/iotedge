@@ -186,7 +186,7 @@ impl<T: EventHandler> MqttClient<T> {
             return Ok(());
         }
 
-        while let Some(_event) = self
+        while let Some(event) = self
             .client
             .try_next()
             .await
@@ -194,7 +194,9 @@ impl<T: EventHandler> MqttClient<T> {
         {
             //TODO: change the mqtt client to send an error back when the subscriotion fails instead of reconnecting and resending the sub
             //right now it can't detect if the the broker doesn't allow to subscribe to the specific topic, but it will send a connect event
-            return Ok(());
+            if let Event::NewConnection { reset_session: _ } = event {
+                return Ok(());
+            }
         }
 
         error!("failed to subscribe to topics");

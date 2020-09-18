@@ -158,7 +158,7 @@ impl TryFrom<Topic> for TopicMapper {
             .map_err(BridgeError::TopicFilterParse)?;
 
         Ok(Self {
-            topic_settings: topic.clone(),
+            topic_settings: topic,
             topic_filter,
         })
     }
