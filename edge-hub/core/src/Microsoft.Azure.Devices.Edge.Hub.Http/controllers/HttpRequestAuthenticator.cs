@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
         }
 
-        public async Task<HttpAuthResult> AuthenticateAsync(string deviceId, Option<string> moduleId, HttpContext context)
+        public async Task<HttpAuthResult> AuthenticateAsync(string deviceId, Option<string> moduleId, Option<string> authChain, HttpContext context)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNotNull(context, nameof(context));
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             if (clientCertificate != null)
             {
                 IList<X509Certificate2> certChain = context.GetClientCertificateChain();
-                clientCredentials = this.identityFactory.GetWithX509Cert(deviceId, moduleId.OrDefault(), string.Empty, clientCertificate, certChain, Option.None<string>());
+                clientCredentials = this.identityFactory.GetWithX509Cert(deviceId, moduleId.OrDefault(), string.Empty, clientCertificate, certChain, Option.None<string>(), authChain);
             }
             else
             {
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     return new HttpAuthResult(false, Events.AuthenticationFailed($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}"));
                 }
 
-                clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId.OrDefault(), string.Empty, authHeader, false, Option.None<string>());
+                clientCredentials = this.identityFactory.GetWithSasToken(deviceId, moduleId.OrDefault(), string.Empty, authHeader, false, Option.None<string>(), authChain);
             }
 
             IIdentity identity = clientCredentials.Identity;
