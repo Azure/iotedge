@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
             await this.runtime.DeployConfigurationAsync(token);
 
-            var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeHub, new CloudToDeviceMethod("Ping"), token);
+            var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeHub, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
 
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
             Assert.AreEqual(result.GetPayloadAsJson(), null);
