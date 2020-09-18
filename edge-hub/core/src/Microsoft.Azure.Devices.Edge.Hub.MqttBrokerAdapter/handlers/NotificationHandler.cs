@@ -4,15 +4,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System;
     using System.Collections.Generic;
     using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
     public class NotificationHandler<T>
     {
-        readonly SemaphoreSlim stateLock = new SemaphoreSlim(1);
+        readonly AsyncLock stateLock = new AsyncLock(1);
         readonly Func<T, Task> notificationStorer;
         readonly Func<T, Task<IEnumerable<Message>>> notificationConvertor;
         readonly Func<Task<IEnumerable<Message>>> storedNotificationRetriever;
@@ -39,8 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task OnConnectAsync()
         {
-            await this.stateLock.WaitAsync();
-            try
+            using (await this.stateLock.LockAsync())
             {
                 this.connected = true;
                 if (this.storedNotificationRetriever != null)
@@ -49,16 +48,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     await this.SendMessagesAsync(messages);
                 }
             }
-            finally
-            {
-                this.stateLock.Release();
-            }
         }
 
         public async Task NotifyAsync(T notification)
         {
-            await this.stateLock.WaitAsync();
-            try
+            using (await this.stateLock.LockAsync())
             {
                 if (this.connected)
                 {
@@ -75,10 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     await this.notificationStorer(notification);
                     Events<T>.NotificationStored();
                 }
-            }
-            finally
-            {
-                this.stateLock.Release();
             }
         }
 
