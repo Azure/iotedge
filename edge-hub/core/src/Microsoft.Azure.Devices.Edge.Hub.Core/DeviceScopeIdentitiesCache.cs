@@ -440,7 +440,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void PrintMe(string printMe)
             {
-                Log.LogInformation("$DRB - {printMe}");
+                Log.LogInformation($"$DRB - {printMe}");
             }
 
             public static void ErrorInRefreshCycle(Exception exception)
