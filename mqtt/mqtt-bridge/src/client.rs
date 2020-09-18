@@ -7,9 +7,7 @@ use futures_util::future::BoxFuture;
 use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{debug, error};
 
-use mqtt3::{
-    proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
-};
+use mqtt3::{proto, Client, Event, IoSource, ShutdownError, UpdateSubscriptionError};
 
 use crate::{
     settings::Credentials,
@@ -103,39 +101,39 @@ impl<T: EventHandler> MqttClient<T> {
         event_handler: T,
         connection_credentials: &Credentials,
     ) -> Self {
-        let (client_id, token_source) = match connection_credentials {
+        let (client_id, username, token_source) = match connection_credentials {
             Credentials::Provider(provider_settings) => (
                 provider_settings.device_id().into(),
+                Some(format!(
+                    "{}/{}",
+                    provider_settings.device_id().to_owned(),
+                    provider_settings.module_id().to_owned()
+                )),
                 Some(SasTokenSource::new(connection_credentials.clone())),
             ),
             Credentials::PlainText(creds) => (
-                creds.client_id().into(),
+                creds.client_id().to_owned(),
+                Some(creds.username().to_owned()),
                 Some(SasTokenSource::new(connection_credentials.clone())),
             ),
-            Credentials::Anonymous(client_id) => (client_id.into(), None),
+            Credentials::Anonymous(client_id) => (client_id.into(), None, None),
         };
 
         let client = if clean_session {
             Client::new(
                 Some(client_id),
+                username,
                 None,
-                None,
-                TcpConnection {
-                    address: address.into(),
-                    token_source,
-                },
+                TcpConnection::new(address.into(), token_source),
                 DEFAULT_MAX_RECONNECT,
                 keep_alive,
             )
         } else {
             Client::from_state(
                 client_id,
+                username,
                 None,
-                None,
-                TcpConnection {
-                    address: address.into(),
-                    token_source,
-                },
+                TcpConnection::new(address.into(), token_source),
                 DEFAULT_MAX_RECONNECT,
                 keep_alive,
             )
@@ -182,30 +180,21 @@ impl<T: EventHandler> MqttClient<T> {
                 .map_err(ClientConnectError::SubscribeFailure)?;
         }
 
-        let mut subacks: HashSet<_> = topics.iter().collect();
+        let subacks: HashSet<_> = topics.iter().collect();
         if subacks.is_empty() {
             debug!("no topics to subscribe to");
             return Ok(());
         }
 
-        while let Some(event) = self
+        while let Some(_event) = self
             .client
             .try_next()
             .await
             .map_err(ClientConnectError::PollClientFailure)?
         {
-            if let Event::SubscriptionUpdates(subscriptions) = event {
-                for subscription in subscriptions {
-                    if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
-                        subacks.remove(&sub.topic_filter);
-                    }
-                }
-
-                if subacks.is_empty() {
-                    debug!("successfully subscribed to all topics");
-                    return Ok(());
-                }
-            }
+            //TODO: change the mqtt client to send an error back when the subscriotion fails instead of reconnecting and resending the sub
+            //right now it can't detect if the the broker doesn't allow to subscribe to the specific topic, but it will send a connect event
+            return Ok(());
         }
 
         error!("failed to subscribe to topics");

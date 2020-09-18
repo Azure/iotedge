@@ -1,4 +1,6 @@
-use std::{collections::HashMap, marker::PhantomData, time::Duration};
+use std::{
+    collections::HashMap, convert::TryFrom, convert::TryInto, marker::PhantomData, time::Duration,
+};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
@@ -74,7 +76,7 @@ impl Bridge {
         );
 
         self.connect(
-            &self.subscriptions,
+            self.subscriptions.clone(),
             self.connection_settings.address(),
             self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
@@ -95,7 +97,7 @@ impl Bridge {
         );
 
         self.connect(
-            &self.forwards,
+            self.forwards.clone(),
             self.system_address.as_str(),
             self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
@@ -106,15 +108,16 @@ impl Bridge {
 
     async fn connect(
         &self,
-        topics: &HashMap<String, Topic>,
+        mut topics: HashMap<String, Topic>,
         address: &str,
         keep_alive: Duration,
         clean_session: bool,
         credentials: &Credentials,
     ) -> Result<(), BridgeError> {
+        let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
         let topic_filters = topics
-            .values()
-            .map(|topic| TopicMapper::from_topic(topic))
+            .into_iter()
+            .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
         let mut client = MqttClient::new(
@@ -125,7 +128,6 @@ impl Bridge {
             credentials,
         );
 
-        let subscriptions: Vec<String> = topics.keys().map(|key| key.into()).collect();
         debug!("subscribe to remote {:?}", subscriptions);
 
         client
@@ -146,8 +148,10 @@ struct TopicMapper {
     topic_filter: TopicFilter,
 }
 
-impl TopicMapper {
-    pub fn from_topic(topic: &Topic) -> Result<Self, BridgeError> {
+impl TryFrom<Topic> for TopicMapper {
+    type Error = BridgeError;
+
+    fn try_from(topic: Topic) -> Result<Self, BridgeError> {
         let topic_filter = topic
             .pattern()
             .parse()
