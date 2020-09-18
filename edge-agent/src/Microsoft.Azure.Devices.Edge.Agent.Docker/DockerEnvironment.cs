@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             IEnumerable<ModuleRuntimeInfo> moduleStatuses = await this.moduleStatusProvider.GetModules(token);
             var modules = new List<IModule>();
+            string image;
             ModuleSet moduleSet = this.deploymentConfig.GetModuleSet();
 
             foreach (ModuleRuntimeInfo moduleRuntimeInfo in moduleStatuses)
@@ -74,7 +75,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     ? this.restartManager.ComputeModuleStatusFromRestartPolicy(moduleRuntimeInfo.ModuleStatus, dockerModule.RestartPolicy, moduleState.RestartCount, lastExitTime)
                     : moduleRuntimeInfo.ModuleStatus;
 
-                string image = !string.IsNullOrWhiteSpace(dockerRuntimeInfo.Config.Image) ? dockerRuntimeInfo.Config.Image : dockerModule.Config.Image;
+                // Check to see if the originalImage label is set by the iotedege daemon. This label is set for content trust feature where the image is pulled by digest.
+                // OriginalImageLabelStr contains the image with tag and it is used to handle the mismatch of image with digest during reconcilation.
+                var labels = dockerRuntimeInfo.Config.CreateOptions?.Labels ?? new Dictionary<string, string>();
+                labels.TryGetValue(Core.Constants.Labels.OriginalImage, out string originalImageLabelStr);
+                if (!string.IsNullOrWhiteSpace(originalImageLabelStr))
+                {
+                    image = originalImageLabelStr;
+                }
+                else
+                {
+                    image = !string.IsNullOrWhiteSpace(dockerRuntimeInfo.Config.Image) ? dockerRuntimeInfo.Config.Image : dockerModule.Config.Image;
+                }
+
                 var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash, dockerModule.Config.Digest);
                 IModule module;
                 switch (moduleRuntimeInfo.Name)
@@ -99,13 +112,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                         break;
 
                     case Core.Constants.EdgeAgentModuleName:
-                        var labels = dockerRuntimeInfo.Config.CreateOptions?.Labels ?? new Dictionary<string, string>();
                         var env = labels.TryGetValue(Core.Constants.Labels.Env, out string envStr)
                             ? JsonConvert.DeserializeObject<Dictionary<string, EnvVal>>(envStr)
                             : new Dictionary<string, EnvVal>();
+                        dockerReportedConfig = new DockerReportedConfig(image, dockerRuntimeInfo.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash, dockerRuntimeInfo.Config.Digest);
 
                         module = new EdgeAgentDockerRuntimeModule(
-                            dockerRuntimeInfo.Config,
+                            dockerReportedConfig,
                             moduleRuntimeStatus,
                             (int)dockerRuntimeInfo.ExitCode,
                             dockerRuntimeInfo.Description,

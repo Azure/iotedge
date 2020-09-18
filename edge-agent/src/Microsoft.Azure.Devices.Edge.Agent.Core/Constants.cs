@@ -117,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             public const string ConfigurationId = "net.azure-devices.edge.configurationId";
             public const string CreateOptions = "net.azure-devices.edge.create-options";
             public const string Env = "net.azure-devices.edge.env";
+            public const string OriginalImage = "net.azure-devices.edge.original-image";
         }
     }
 }

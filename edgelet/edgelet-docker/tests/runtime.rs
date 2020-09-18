@@ -251,6 +251,7 @@ fn image_pull_with_invalid_image_name_fails() {
             let config = DockerConfig::new(
                 INVALID_IMAGE_NAME.to_string(),
                 ContainerCreateBody::new(),
+                None,
                 Some(auth),
             )
             .unwrap();
@@ -352,6 +353,7 @@ fn image_pull_with_invalid_image_host_fails() {
             let config = DockerConfig::new(
                 INVALID_IMAGE_HOST.to_string(),
                 ContainerCreateBody::new(),
+                None,
                 Some(auth),
             )
             .unwrap();
@@ -468,6 +470,7 @@ fn image_pull_with_invalid_creds_fails() {
             let config = DockerConfig::new(
                 IMAGE_NAME.to_string(),
                 ContainerCreateBody::new(),
+                None,
                 Some(auth),
             )
             .unwrap();
@@ -566,6 +569,7 @@ fn image_pull_succeeds() {
             let config = DockerConfig::new(
                 IMAGE_NAME.to_string(),
                 ContainerCreateBody::new(),
+                None,
                 Some(auth),
             )
             .unwrap();
@@ -652,6 +656,7 @@ fn image_pull_with_creds_succeeds() {
             let config = DockerConfig::new(
                 IMAGE_NAME.to_string(),
                 ContainerCreateBody::new(),
+                None,
                 Some(auth),
             )
             .unwrap();
@@ -856,7 +861,7 @@ fn container_create_succeeds() {
             let module_config = ModuleSpec::new(
                 "m1".to_string(),
                 "docker".to_string(),
-                DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
+                DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
                 env,
                 ImagePullPolicy::default(),
             )
@@ -1286,8 +1291,13 @@ fn create_fails_for_non_docker_type() {
             let module_config = ModuleSpec::new(
                 "m1".to_string(),
                 name.to_string(),
-                DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
-                    .unwrap(),
+                DockerConfig::new(
+                    "nginx:latest".to_string(),
+                    ContainerCreateBody::new(),
+                    None,
+                    None,
+                )
+                .unwrap(),
                 BTreeMap::new(),
                 ImagePullPolicy::default(),
             )
