@@ -33,10 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             this.baseUri = new UriBuilder(Uri.UriSchemeHttps, upstreamHostname).Uri;
         }
 
-        public async Task<RegistryApiHttpResult> PutModuleAsync(string actorDeviceId, CreateOrUpdateModuleOnBehalfOfData requestData, string eTag)
+        public async Task<RegistryApiHttpResult> PutModuleAsync(string actorDeviceId, CreateOrUpdateModuleOnBehalfOfData requestData, string ifMatchHeader)
         {
             var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.putModuleOnBehalfOfUriTemplate, actorDeviceId, ApiVersion));
-            var response = await this.SendRequestAsync(requesteUri, HttpMethod.Put, requestData, eTag);
+            var response = await this.SendRequestAsync(requesteUri, HttpMethod.Put, requestData, ifMatchHeader);
             return response;
         }
 

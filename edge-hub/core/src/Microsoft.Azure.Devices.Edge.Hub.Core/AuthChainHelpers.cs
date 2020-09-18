@@ -53,6 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static string SkipFirstIdentityFromAuthChain(string authChain)
         {
+            Preconditions.CheckNotNull(authChain, nameof(authChain));
+
             string[] actorAuthChainIds = authChain.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (actorAuthChainIds.Length <= 1)
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static bool TryGetTargetDeviceId(string authChain, out string targetDeviceId)
         {
+            Preconditions.CheckNotNull(authChain, nameof(authChain));
             targetDeviceId = string.Empty;
 
             // The target device is the first ID in the provided authchain,
