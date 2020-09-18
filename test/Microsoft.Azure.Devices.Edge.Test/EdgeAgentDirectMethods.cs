@@ -26,8 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
 
-            Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
-            Assert.AreEqual(result.GetPayloadAsJson(), null);
+            Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
+            Assert.AreEqual("null", result.GetPayloadAsJson());
         }
     }
 }
