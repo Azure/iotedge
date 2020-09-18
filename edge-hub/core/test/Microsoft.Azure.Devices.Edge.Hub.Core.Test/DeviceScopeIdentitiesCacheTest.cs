@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task RefreshCacheTest()
         {
-            ILogger Log = Logger.Factory.CreateLogger<IDeviceScopeIdentitiesCache>();
+            ILogger log = Logger.Factory.CreateLogger<DeviceScopeIdentitiesCacheTest>();
 
             // Arrange
             var store = GetEntityStore("cache");
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
             deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) =>
             {
-                Log.LogInformation("DRB2 - service identities updated even triggered test side");
+                log.LogInformation("DRB2 - service identities updated even triggered test side");
                 entireCache = serviceIdentities;
             };
 
