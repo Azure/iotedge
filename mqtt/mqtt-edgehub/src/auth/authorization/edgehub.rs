@@ -95,7 +95,8 @@ impl EdgeHubAuthorizer {
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == client_id => {
                 if self.is_iothub_topic_allowed(client_id, topic)
-                    && self.check_authorized_cache(client_id, topic) {
+                    && self.check_authorized_cache(client_id, topic)
+                {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden(
@@ -133,54 +134,39 @@ impl EdgeHubAuthorizer {
             Some(s) => {
                 if *s == "modules" {
                     topic_parts.get(4)
-                }
-                else {
+                } else {
                     None
                 }
             }
-            None => {
-                None
-            }
+            None => None,
         };
         match module_id {
-            Some(mid) => {
-                match device_id {
-                    Some(did) => {
-                        Some(format!("{}/{}", did, mid))
-                    }
-                    None => {
-                        None
-                    }
-                }
-            }
-            None => {
-                match device_id {
-                    Some(id) => {
-                        Some((*id).to_string())
-                    }
-                    None => {
-                        None
-                    }
-                }
-            }
+            Some(mid) => match device_id {
+                Some(did) => Some(format!("{}/{}", did, mid)),
+                None => None,
+            },
+            None => match device_id {
+                Some(id) => Some((*id).to_string()),
+                None => None,
+            },
         }
     }
 
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
         let on_behalf_of_id = match EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
-            Some(id) => {
-                id
-            }
+            Some(id) => id,
             None => {
                 // If there is no on_behalf_of_id, we are dealing with a legacy topic
                 // The client_id must still be in the identities cache
-                return self.service_identities_cache.contains_key(client_id.as_str())
+                return self
+                    .service_identities_cache
+                    .contains_key(client_id.as_str());
             }
         };
         if client_id.as_str() == on_behalf_of_id {
-            self.service_identities_cache.contains_key(client_id.as_str())
-        }
-        else {
+            self.service_identities_cache
+                .contains_key(client_id.as_str())
+        } else {
             match self.service_identities_cache.get(&on_behalf_of_id) {
                 Some(service_identity) => {
                     match service_identity.auth_chain() {
@@ -188,14 +174,10 @@ impl EdgeHubAuthorizer {
                             // if auth_chain for on_behalf_of_id contains client_id, then on_behalf_of_id is a descendant of client_id
                             auth_chain.contains(client_id.as_str())
                         }
-                        None => {
-                            false
-                        }
+                        None => false,
                     }
                 }
-                None => { 
-                    false 
-                }
+                None => false,
             }
         }
     }
@@ -224,12 +206,8 @@ fn is_iothub_topic(topic: &str) -> bool {
 fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
     let client_id_parts = client_id.as_str().split("/").collect::<Vec<&str>>();
     let x = match client_id_parts.len() {
-        1 => {
-            client_id_parts[0].to_string()
-        }
-        2 => {
-            format!("{}/modules/{}", client_id_parts[0], client_id_parts[1])
-        }
+        1 => client_id_parts[0].to_string(),
+        2 => format!("{}/modules/{}", client_id_parts[0], client_id_parts[1]),
         _ => {
             panic!("ClientId cannot have more than deviceId and moduleId");
         }
@@ -252,7 +230,7 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
         format!("$iothub/clients/{}/twin/get", x),
         format!("$iothub/clients/{}/twin/res", x),
         format!("$iothub/clients/{}/methods/post", x),
-        format!("$iothub/clients/{}/methods/res", x)
+        format!("$iothub/clients/{}/methods/res", x),
     ]
 }
 
@@ -279,7 +257,10 @@ impl Authorizer for EdgeHubAuthorizer {
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
         let identities = update.as_ref();
         if let Some(service_identities) = identities.downcast_ref::<Vec<ServiceIdentity>>() {
-            debug!("service identities update received. Service identities: {:?}", service_identities);
+            debug!(
+                "service identities update received. Service identities: {:?}",
+                service_identities
+            );
             let mut service_identity_map: HashMap<String, ServiceIdentity> = HashMap::new();
             for id in service_identities {
                 service_identity_map.insert(id.identity(), id.clone());
@@ -290,7 +271,7 @@ impl Authorizer for EdgeHubAuthorizer {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServiceIdentity {
     #[serde(rename = "Identity")]
     identity: String,
@@ -308,15 +289,6 @@ impl ServiceIdentity {
     }
 }
 
-impl Clone for ServiceIdentity {
-    fn clone(&self) -> Self {
-        ServiceIdentity {
-            identity: self.identity.clone(),
-            auth_chain: self.auth_chain.clone(),
-        }
-    }
-}
-
 impl fmt::Display for ServiceIdentity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.auth_chain {
@@ -331,16 +303,17 @@ impl fmt::Display for ServiceIdentity {
 #[cfg(test)]
 mod tests {
     use crate::auth::EdgeHubAuthorizer;
-use std::time::Duration;
+    use std::time::Duration;
 
     use matches::assert_matches;
     use test_case::test_case;
 
     use mqtt3::proto;
     use mqtt_broker::{
+        auth::Authorizer,
         auth::{Activity, AuthId, Authorization, Operation},
         ClientInfo,
-    auth::Authorizer};
+    };
 
     use super::ServiceIdentity;
 
@@ -477,14 +450,14 @@ use std::time::Duration;
 
     fn authorizer() -> EdgeHubAuthorizer {
         let mut authorizer = EdgeHubAuthorizer::default();
-        
+
         let service_identity = ServiceIdentity {
             identity: "device-1".to_string(),
-            auth_chain: Some("edgeB;device-1;".to_string())
-            };
+            auth_chain: Some("edgeB;device-1;".to_string()),
+        };
         let service_identity2 = ServiceIdentity {
             identity: "device-1/module-a".to_string(),
-            auth_chain: Some("edgeB;device-1/module-a;".to_string())
+            auth_chain: Some("edgeB;device-1/module-a;".to_string()),
         };
         let _ = authorizer.update(Box::new(vec![service_identity, service_identity2]));
         authorizer
