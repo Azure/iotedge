@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public void SetConnector(IMqttBrokerConnector connector)
         {
             this.connector = Preconditions.CheckNotNull(connector);
-            this.connector.OnConnected += async (sender, args) => await OnConnectAsync();
+            this.connector.OnConnected += async (sender, args) => await this.OnConnectAsync();
         }
 
         async Task OnConnectAsync()
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             try
             {
                 this.connected = true;
-                if (storedNotificationRetriever != null)
+                if (this.storedNotificationRetriever != null)
                 {
                     var messages = await this.storedNotificationRetriever();
                     await this.SendMessagesAsync(messages);
@@ -89,9 +89,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 var tasks = new List<Task>();
                 foreach (var message in messages)
                 {
-                    
                     tasks.Add(this.SendMessageAsync(message));
                 }
+
                 await Task.WhenAll(tasks);
             }
         }
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             Events<T>.SendingNotification(message);
             try
             {
-                var delivered = await connector.SendAsync(message.Topic, Encoding.UTF8.GetBytes(message.Payload));
+                var delivered = await this.connector.SendAsync(message.Topic, Encoding.UTF8.GetBytes(message.Payload));
                 if (delivered)
                 {
                     Events<T>.NotificationSent(message);
@@ -111,12 +111,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     Events<T>.NotificationNotDelivered(message);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Events<T>.SendingNotificationError(message, ex);
             }
         }
-
     }
 
     public class Message

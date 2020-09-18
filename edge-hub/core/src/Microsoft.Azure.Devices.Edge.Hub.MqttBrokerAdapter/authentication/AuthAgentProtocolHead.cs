@@ -45,14 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.config = Preconditions.CheckNotNull(config);
-            this.notificationHandler = new NotificationHandler<bool>(ConvertNotificationToMessagesAsync, storedNotificationRetriever: ConvertStoredNotificationsToMessagesAsync);
+            this.notificationHandler = new NotificationHandler<bool>(this.ConvertNotificationToMessagesAsync, storedNotificationRetriever: this.ConvertStoredNotificationsToMessagesAsync);
             this.notificationHandler.SetConnector(mqttBrokerConnector);
         }
 
         public async Task StartAsync()
         {
             Events.Starting();
-
             lock (this.guard)
             {
                 if (this.host.HasValue)
@@ -74,18 +73,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             await this.host.Expect(() => new Exception("No AUTH host instance found to start"))
                            .StartAsync();
-
-            started = true;
-            await notificationHandler.NotifyAsync(true);
+            this.started = true;
+            await this.notificationHandler.NotifyAsync(true);
             Events.Started();
         }
 
         public async Task CloseAsync(CancellationToken token)
         {
             Events.Closing();
-
-            started = false;
-
+            this.started = false;
             Option<IWebHost> hostToStop;
             lock (this.guard)
             {
@@ -133,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .Build();
         }
 
-        Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync() => Task.FromResult(started ? AuthAgentProtocolHeadStartedNotification : new Message[0]);
+        Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync() => Task.FromResult(this.started ? AuthAgentProtocolHeadStartedNotification : new Message[0]);
 
         Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(bool _) => Task.FromResult(AuthAgentProtocolHeadStartedNotification);
 

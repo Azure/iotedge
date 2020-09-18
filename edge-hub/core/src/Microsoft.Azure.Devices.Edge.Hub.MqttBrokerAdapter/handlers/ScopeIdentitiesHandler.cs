@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public ScopeIdentitiesHandler(IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
-            this.notificationHandler = new NotificationHandler<IList<string>>(ConvertNotificationToMessagesAsync, StoreNotificationAsync, ConvertStoredNotificationsToMessagesAsync);
+            this.notificationHandler = new NotificationHandler<IList<string>>(this.ConvertNotificationToMessagesAsync, this.StoreNotificationAsync, this.ConvertStoredNotificationsToMessagesAsync);
             this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
             this.deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += async (sender, serviceIdentities) => await this.notificationHandler.NotifyAsync(serviceIdentities);
         }
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task StoreNotificationAsync(IList<string> notification)
         {
-            this.lastBrokerServiceIdentityUpdate = await ConvertIdsToBrokerServiceIdentitiesAsync(notification);
+            this.lastBrokerServiceIdentityUpdate = await this.ConvertIdsToBrokerServiceIdentitiesAsync(notification);
         }
 
         Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
@@ -43,12 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
             else
             {
-                messages = new[] { new Message(Topic, JsonConvert.SerializeObject(lastBrokerServiceIdentityUpdate)) };
+                messages = new[] { new Message(Topic, JsonConvert.SerializeObject(this.lastBrokerServiceIdentityUpdate)) };
                 this.lastBrokerServiceIdentityUpdate.Clear();
             }
 
             return Task.FromResult(messages);
-
         }
 
         async Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(IList<string> notification)
@@ -77,6 +76,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             return brokerServiceIdentities;
         }
- 
     }
 }
