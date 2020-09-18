@@ -19,6 +19,7 @@ serde_derive = "1.0"
 serde_json = "1.0"
 sysinfo = "0.14.10"
 tokio = "0.1.11"
+tokio-process = "0.2" 
 url = "1.7"
 url_serde = "0.2"
 
@@ -41,9 +42,7 @@ json-patch = "0.2.5"
 maplit = "1.0"
 time = "0.1"
 tempdir = "0.3.7"
+tempfile = "3"
 typed-headers = "0.1"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
-
-[target.'cfg(unix)'.dev_dependencies]
-tempfile = "3"

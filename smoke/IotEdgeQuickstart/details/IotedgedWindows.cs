@@ -111,8 +111,9 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        public async Task Configure(DeviceProvisioningMethod method, Option<string> agentImage, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, Option<string> agentImage, string hostname, Option<string> parentHostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
+            // IMPORTANT: Parent hostname is not going to handled in Windows since Windows is not going to support for 1.1.0.
             const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
 
             agentImage.ForEach(
