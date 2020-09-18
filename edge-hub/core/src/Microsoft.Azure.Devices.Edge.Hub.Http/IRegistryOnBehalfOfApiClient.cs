@@ -6,12 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
     public interface IRegistryOnBehalfOfApiClient
     {
-        Task<RegistryApiHttpResult> PutModuleAsync(string actorEdgeDeviceId, CreateOrUpdateModuleOnBehalfOfData requestData, string ifMatchHeader);
+        Task<RegistryApiHttpResult> PutModuleAsync(string actorDeviceId, CreateOrUpdateModuleOnBehalfOfData requestData, string ifMatchHeader);
 
-        Task<RegistryApiHttpResult> GetModuleAsync(string actorEdgeDeviceId, GetModuleOnBehalfOfData requestData);
+        Task<RegistryApiHttpResult> GetModuleAsync(string actorDeviceId, GetModuleOnBehalfOfData requestData);
 
-        Task<RegistryApiHttpResult> ListModulesAsync(string actorEdgeDeviceId, ListModulesOnBehalfOfData requestData);
+        Task<RegistryApiHttpResult> ListModulesAsync(string actorDeviceId, ListModulesOnBehalfOfData requestData);
 
-        Task<RegistryApiHttpResult> DeleteModuleAsync(string actorEdgeDeviceId, DeleteModuleOnBehalfOfData requestData);
+        Task<RegistryApiHttpResult> DeleteModuleAsync(string actorDeviceId, DeleteModuleOnBehalfOfData requestData);
     }
 }

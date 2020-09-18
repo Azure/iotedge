@@ -33,30 +33,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
             this.baseUri = new UriBuilder(Uri.UriSchemeHttps, upstreamHostname).Uri;
         }
 
-        public async Task<RegistryApiHttpResult> PutModuleAsync(string actorEdgeDeviceId, CreateOrUpdateModuleOnBehalfOfData requestData, string eTag)
+        public async Task<RegistryApiHttpResult> PutModuleAsync(string actorDeviceId, CreateOrUpdateModuleOnBehalfOfData requestData, string eTag)
         {
-            var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.putModuleOnBehalfOfUriTemplate, actorEdgeDeviceId, ApiVersion));
+            var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.putModuleOnBehalfOfUriTemplate, actorDeviceId, ApiVersion));
             var response = await this.SendRequestAsync(requesteUri, HttpMethod.Put, requestData, eTag);
             return response;
         }
 
-        public async Task<RegistryApiHttpResult> GetModuleAsync(string actorEdgeDeviceId, GetModuleOnBehalfOfData requestData)
+        public async Task<RegistryApiHttpResult> GetModuleAsync(string actorDeviceId, GetModuleOnBehalfOfData requestData)
         {
-            var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.getModuleOnBehalfOfUriTemplate, actorEdgeDeviceId, ApiVersion));
+            var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.getModuleOnBehalfOfUriTemplate, actorDeviceId, ApiVersion));
             var response = await this.SendRequestAsync(requesteUri, HttpMethod.Post, requestData);
             return response;
         }
 
-        public async Task<RegistryApiHttpResult> ListModulesAsync(string actorEdgeDeviceId, ListModulesOnBehalfOfData requestData)
+        public async Task<RegistryApiHttpResult> ListModulesAsync(string actorDeviceId, ListModulesOnBehalfOfData requestData)
         {
-            var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.listModulesOnBehalfOfUriTemplate, actorEdgeDeviceId, ApiVersion));
+            var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.listModulesOnBehalfOfUriTemplate, actorDeviceId, ApiVersion));
             var response = await this.SendRequestAsync(requesteUri, HttpMethod.Post, requestData);
             return response;
         }
 
-        public async Task<RegistryApiHttpResult> DeleteModuleAsync(string actorEdgeDeviceId, DeleteModuleOnBehalfOfData requestData)
+        public async Task<RegistryApiHttpResult> DeleteModuleAsync(string actorDeviceId, DeleteModuleOnBehalfOfData requestData)
         {
-            var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.deleteModuleOnBehalfOfUriTemplate, actorEdgeDeviceId, ApiVersion));
+            var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.deleteModuleOnBehalfOfUriTemplate, actorDeviceId, ApiVersion));
             var response = await this.SendRequestAsync(requesteUri, HttpMethod.Post, requestData);
             return response;
         }
@@ -94,74 +94,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
                 }
             }
         }
-    }
-
-    public class RegistryApiHttpResult
-    {
-        public RegistryApiHttpResult(HttpStatusCode statusCode, string jsonContent)
-        {
-            this.StatusCode = statusCode;
-            this.JsonContent = jsonContent ?? string.Empty;
-        }
-
-        public HttpStatusCode StatusCode { get; private set; }
-
-        public string JsonContent { get; private set; }
-    }
-
-    public class CreateOrUpdateModuleOnBehalfOfData
-    {
-        public CreateOrUpdateModuleOnBehalfOfData(string authChain, Module module)
-        {
-            this.AuthChain = authChain;
-            this.Module = module;
-        }
-
-        [JsonProperty(PropertyName = "authChain", Required = Required.Always)]
-        public string AuthChain { get; private set; }
-
-        [JsonProperty(PropertyName = "module", Required = Required.Always)]
-        public Module Module { get; private set; }
-    }
-
-    public class GetModuleOnBehalfOfData
-    {
-        public GetModuleOnBehalfOfData(string authChain, string moduleId)
-        {
-            this.AuthChain = authChain;
-            this.ModuleId = moduleId;
-        }
-
-        [JsonProperty(PropertyName = "authChain", Required = Required.Always)]
-        public string AuthChain { get; private set; }
-
-        [JsonProperty(PropertyName = "targetModuleId", Required = Required.Always)]
-        public string ModuleId { get; private set; }
-    }
-
-    public class ListModulesOnBehalfOfData
-    {
-        public ListModulesOnBehalfOfData(string authChain)
-        {
-            this.AuthChain = authChain;
-        }
-
-        [JsonProperty(PropertyName = "authChain", Required = Required.Always)]
-        public string AuthChain { get; private set; }
-    }
-
-    public class DeleteModuleOnBehalfOfData
-    {
-        public DeleteModuleOnBehalfOfData(string authChian, string moduleId)
-        {
-            this.AuthChain = authChian;
-            this.ModuleId = moduleId;
-        }
-
-        [JsonProperty(PropertyName = "authChain", Required = Required.Always)]
-        public string AuthChain { get; private set; }
-
-        [JsonProperty(PropertyName = "moduleId", Required = Required.Always)]
-        public string ModuleId { get; private set; }
     }
 }
