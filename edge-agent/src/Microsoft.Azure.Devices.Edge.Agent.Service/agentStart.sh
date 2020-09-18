@@ -30,19 +30,13 @@ cuid=$(id -u)
 
 if [ $cuid -eq 0 ]
 then
-  # which user creation tool to use.
-  usercreate=useradd
-  if cat /etc/os-release | grep -i alpine > /dev/null
-  then
-    # Alpine only has "adduser"
-    usercreate=adduser
-  fi
 
   # Create the agent user id if it does not exist
   if ! getent passwd "${TARGET_UID}" >/dev/null
   then
     echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Creating UID ${TARGET_UID} as agent${TARGET_UID}"
-    if [ $usercreate = useradd ]
+    # Use "useradd" if it is available.
+    if command -v useradd >/dev/null
     then
       useradd -ms /bin/bash -u "${TARGET_UID}" "agent${TARGET_UID}"
     else
@@ -53,7 +47,7 @@ then
   username=$(getent passwd "${TARGET_UID}" | awk -F ':' '{ print $1; }')
 
   # If "StorageFolder" env variable exists, use as basepath, else use /tmp
-  # same for backuppath
+  # same for BackupFolder
   agentstorage=$(env | grep -m 1 -i StorageFolder | awk -F '=' '{ print $2;}')
   agentbackup=$(env | grep -m 1 -i BackupFolder | awk -F '=' '{ print $2;}')
   storagepath=${agentstorage:-/tmp}/edgeAgent
@@ -61,22 +55,14 @@ then
   # If basepath/edgeAgent exists, make sure all files are owned by TARGET_UID
   if [ -d $storagepath ]
   then
-    storageuid=$(stat -c "%u" "$storagepath")
-    if [ ${TARGET_UID} -ne ${storageuid} ]
-    then 
-      echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of storage folder: ${storagepath}"
-      chown -fR "${TARGET_UID}" "${storagepath}"
-    fi
-  fi
-  # same for backuppath
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of storage folder: ${storagepath} to ${TARGET_UID}"
+    chown -fR "${TARGET_UID}" "${storagepath}"
+   fi
+  # same for BackupFolder
   if [ -d $backuppath ]
   then
-    backupuid=$(stat -c "%u" "$backuppath")
-    if [ ${TARGET_UID} -ne ${backupuid} ]
-    then 
-      echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of backup folder: ${backuppath}"
-      chown -fR "${TARGET_UID}" "${backuppath}"
-    fi
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of backup folder: ${backuppath} to ${TARGET_UID}"
+    chown -fR "${TARGET_UID}" "${backuppath}"
   fi
 
   # Make sure file specified by IOTEDGE_MANAGEMENTURI is owned by TARGET_UID
@@ -88,10 +74,16 @@ then
     chown -f "${TARGET_UID}" "$mgmt"
   fi
 
-  # Ensure backup.json is writeable.
-  touch backup.json
-  chown -f "${TARGET_UID}" backup.json
-  chmod 600 backup.json
+  # Ensure backup.json is writeable. 
+  # Need only to check if user has set this to a non-default location,
+  # because default location is in storageFolder, which was fixed above.
+  backupjson=$(env | grep -m 1 -i BackupConfigFilePath | awk -F '=' '{ print $2;}')
+  if [ -e "$backupjson" ]
+  then 
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of configuration back : ${backupjson}"
+    chown -f "${TARGET_UID}" "$backupjson"
+    chmod 600 "$backupjson"
+  fi
 
   exec su "$username" -c "/usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll"
 else
