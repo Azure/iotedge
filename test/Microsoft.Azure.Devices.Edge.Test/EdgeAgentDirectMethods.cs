@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class EdgeAgentDirectMethods : SasManualProvisioningFixture
     {
         [Test]
-        public async Task ValidateMetrics()
+        public async Task TestPing()
         {
             CancellationToken token = this.TestToken;
             await this.runtime.DeployConfigurationAsync(token);
