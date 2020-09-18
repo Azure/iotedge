@@ -370,12 +370,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             };
 
             string edgeDeviceId = "edge";
-            ;
             var iotHub = new IoTHub();
             (IEdgeHub edgeHub, IConnectionManager connectionManager) = await SetupEdgeHub(routes, iotHub, edgeDeviceId);
 
             TestDevice device1 = await TestDevice.Create("device1", edgeHub, connectionManager);
-            TestModule module1 = await TestModule.Create(edgeDeviceId, "mod1", "op1", "in1", edgeHub, connectionManager);
 
             IMessage message = GetReportedPropertiesMessage();
             await device1.UpdateReportedProperties(message);
