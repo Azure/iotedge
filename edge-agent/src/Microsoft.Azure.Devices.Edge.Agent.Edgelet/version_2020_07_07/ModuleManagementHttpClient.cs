@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
@@ -132,10 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
                     () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
                     "Getting System Info");
                 var provisioning = new ProvisioningInfo(systemInfo.Provisioning.Type, systemInfo.Provisioning.DynamicReprovisioning, systemInfo.Provisioning.AlwaysReprovisionOnStartup ?? true);
-                var info = new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, provisioning, systemInfo.Server_version, systemInfo.Kernel_version, systemInfo.Operating_system, systemInfo.Cpus ?? 0);
-                var log = Logger.Factory.CreateLogger<ModuleManagementHttpClient>();
-                log.LogInformation(101501, $">>> SYSTEM INFO:\n{JsonConvert.SerializeObject(info, Formatting.Indented)}");
-                return info;
+                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version, provisioning, systemInfo.Server_version, systemInfo.Kernel_version, systemInfo.Operating_system, systemInfo.Cpus ?? 0);
             }
         }
 
