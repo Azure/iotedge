@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Query.Builtins;
+    using Microsoft.Extensions.Logging;
     using Moq;
     using Xunit;
 
@@ -49,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public async Task RefreshCacheTest()
         {
+            ILogger Log = Logger.Factory.CreateLogger<IDeviceScopeIdentitiesCache>();
+
             // Arrange
             var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
@@ -101,7 +104,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromSeconds(8), TimeSpan.FromSeconds(0));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
-            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) => entireCache = serviceIdentities;
+            deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += (sender, serviceIdentities) =>
+            {
+                Log.LogInformation("DRB2 - service identities updated even triggered test side");
+                entireCache = serviceIdentities;
+            };
 
             // Wait for refresh to complete
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
