@@ -47,13 +47,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [InlineData("longdevicename", "longdevicename")]
         public void SkipFirstIdentityFromAuthChain_Success(string authChain, string expected)
         {
-            Assert.Equal(expected, AuthChainHelpers.SkipFirstIdentityFromAuthChain(authChain));
+            Assert.Equal(expected, AuthChainHelpers.GetOriginEdgeAuthChain(authChain));
         }
 
         [Fact]
         public void SkipFirstIdentityFromAuthChain_Fail()
         {
-            Assert.Throws<ArgumentNullException>(() => AuthChainHelpers.SkipFirstIdentityFromAuthChain(null));
+            Assert.Throws<ArgumentNullException>(() => AuthChainHelpers.GetOriginEdgeAuthChain(null));
         }
 
         [Theory]

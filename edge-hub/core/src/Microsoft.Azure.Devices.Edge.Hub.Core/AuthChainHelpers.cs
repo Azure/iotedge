@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return true;
         }
 
-        public static string SkipFirstIdentityFromAuthChain(string authChain)
+        public static string GetOriginEdgeAuthChain(string authChain)
         {
             Preconditions.CheckNotNull(authChain, nameof(authChain));
 

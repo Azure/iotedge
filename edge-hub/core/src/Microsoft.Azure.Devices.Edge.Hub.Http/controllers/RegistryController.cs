@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
 
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, Constants.EdgeHubModuleId, deviceId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, deviceId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 // Check that the actor device is authorized to act OnBehalfOf the target
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, Constants.EdgeHubModuleId, requestData.Module.DeviceId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, requestData.Module.DeviceId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
@@ -195,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 string targetId = $"{deviceId}/{moduleId}";
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
 
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, Constants.EdgeHubModuleId, targetId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, targetId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
@@ -203,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 }
 
                 Events.Authorized(nameof(this.GetModuleAsync), edgeDeviceId, Constants.EdgeHubModuleId, targetId, authChain);
-                var requestData = new GetModuleOnBehalfOfData($"{AuthChainHelpers.SkipFirstIdentityFromAuthChain(authChain)}", moduleId);
+                var requestData = new GetModuleOnBehalfOfData($"{AuthChainHelpers.GetOriginEdgeAuthChain(authChain)}", moduleId);
                 RegistryApiHttpResult result = await this.apiClient.GetModuleAsync(edgeDeviceId, requestData);
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
                 Events.CompleteRequest(nameof(this.GetModuleAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
@@ -257,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
                 string targetId = $"{targetDeviceId}/{requestData.ModuleId}";
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, Constants.EdgeHubModuleId, targetId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, targetId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 RegistryApiHttpResult result = await this.apiClient.GetModuleAsync(
                     edgeDeviceId,
-                    new GetModuleOnBehalfOfData($"{AuthChainHelpers.SkipFirstIdentityFromAuthChain(authChain)}", requestData.ModuleId));
+                    new GetModuleOnBehalfOfData($"{AuthChainHelpers.GetOriginEdgeAuthChain(authChain)}", requestData.ModuleId));
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
                 Events.CompleteRequest(nameof(this.GetModuleOnBehalfOfAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
             }
@@ -309,7 +309,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
 
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, Constants.EdgeHubModuleId, deviceId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, deviceId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
@@ -371,7 +371,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
 
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, Constants.EdgeHubModuleId, targetId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, targetId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
@@ -426,7 +426,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 string targetId = $"{deviceId}/{moduleId}";
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
 
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, Constants.EdgeHubModuleId, targetId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, targetId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
@@ -434,7 +434,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 }
 
                 Events.Authorized(nameof(this.DeleteModuleAsync), edgeDeviceId, Constants.EdgeHubModuleId, deviceId, authChain);
-                var requestData = new DeleteModuleOnBehalfOfData($"{AuthChainHelpers.SkipFirstIdentityFromAuthChain(authChain)}", moduleId);
+                var requestData = new DeleteModuleOnBehalfOfData($"{AuthChainHelpers.GetOriginEdgeAuthChain(authChain)}", moduleId);
                 RegistryApiHttpResult result = await this.apiClient.DeleteModuleAsync(edgeDeviceId, requestData);
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
                 Events.CompleteRequest(nameof(this.DeleteModuleAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
@@ -489,7 +489,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
                 string targetId = $"{targetDeviceId}/{requestData.ModuleId}";
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, Constants.EdgeHubModuleId, targetId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, targetId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
@@ -500,7 +500,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 RegistryApiHttpResult result = await this.apiClient.DeleteModuleAsync(
                     edgeDeviceId,
-                    new DeleteModuleOnBehalfOfData($"{AuthChainHelpers.SkipFirstIdentityFromAuthChain(authChain)}", requestData.ModuleId));
+                    new DeleteModuleOnBehalfOfData($"{AuthChainHelpers.GetOriginEdgeAuthChain(authChain)}", requestData.ModuleId));
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
                 Events.CompleteRequest(nameof(this.DeleteModuleOnBehalfOfAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
             }
@@ -526,15 +526,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return false;
         }
 
-        async Task<(bool, string)> AuthorizeActorAsync(IDeviceScopeIdentitiesCache identitiesCache, string actorDeviceId, string actorModuleId, string targetId)
+        async Task<(bool, string)> AuthorizeActorAsync(IDeviceScopeIdentitiesCache identitiesCache, string actorDeviceId, string targetId)
         {
-            if (actorModuleId != Constants.EdgeHubModuleId)
-            {
-                // Only child EdgeHubs are allowed to act OnBehalfOf of devices/modules.
-                Events.AuthorizationFail_BadActor(actorDeviceId, actorModuleId, targetId);
-                return (false, string.Empty);
-            }
-
             // Actor device is claiming to be our child, and that the target device is its child.
             // So we should have an authchain already cached for the target device.
             Option<string> targetAuthChainOption = await identitiesCache.GetAuthChain(targetId);
@@ -663,11 +656,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 Log.LogInformation(
                     (int)EventIds.Authorized,
                     $"Authorized in {source}: deviceId/moduleId={deviceId}/{moduleId}, targetDeviceId={targetDeviceId}, authChain={authChain}");
-            }
-
-            public static void AuthorizationFail_BadActor(string actorDeviceId, string actorModuleId, string targetId)
-            {
-                Log.LogError((int)EventIds.AuthorizationFail_BadActor, $"{actorDeviceId}/{actorModuleId} not authorized to connect OnBehalfOf {targetId}");
             }
 
             public static void AuthorizationFail_NoAuthChain(string targetId)
