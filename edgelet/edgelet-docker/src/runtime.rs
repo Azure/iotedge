@@ -21,8 +21,8 @@ use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
-    SystemResources, UrlExt,
+    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -65,6 +65,7 @@ pub struct DockerModuleRuntime {
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
+    provisioning_info: ProvisioningInfo,
 }
 
 impl DockerModuleRuntime {
@@ -255,7 +256,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         info!("Initializing module runtime...");
 
         let created = init_client(settings.moby_runtime().uri())
-            .and_then(|client| {
+            .and_then(move |client| {
                 let home_dir = settings.homedir();
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let mut notary_registries = BTreeMap::new();
@@ -308,7 +309,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         log_failure(Level::Warn, &e);
                         e
                     })
-                    .map(|client| {
+                    .map(move |client| {
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
@@ -318,6 +319,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             notary_registries,
                             notary_lock,
+                            provisioning_info: ProvisioningInfo::new(settings.provisioning()),
                         }
                     });
                 Ok(future::Either::A(fut))
@@ -704,11 +706,13 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
+        let provisioning = self.provisioning_info.clone();
+
         Box::new(
             self.client
                 .system_api()
                 .system_info()
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(system_info) => {
                         let system_info = CoreSystemInfo {
                             os_type: system_info
@@ -720,6 +724,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
                             version: edgelet_core::version_with_source_version(),
+                            provisioning,
                             cpus: system_info.NCPU().unwrap_or_default(),
                             kernel_version: system_info
                                 .kernel_version()
