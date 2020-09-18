@@ -240,7 +240,8 @@ mod tests {
         let docker_module = DockerModule::new(
             create_api_client("boo"),
             "mod1".to_string(),
-            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                .unwrap(),
         )
         .unwrap();
 
@@ -254,7 +255,8 @@ mod tests {
         let _ = DockerModule::new(
             create_api_client("boo"),
             "".to_string(),
-            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                .unwrap(),
         )
         .unwrap_err();
     }
@@ -264,7 +266,8 @@ mod tests {
         let _ = DockerModule::new(
             create_api_client("boo"),
             "     ".to_string(),
-            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                .unwrap(),
         )
         .unwrap_err();
     }
@@ -298,7 +301,8 @@ mod tests {
                     ),
                 ),
                 "mod1".to_string(),
-                DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+                DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                    .unwrap(),
             )
             .unwrap();
 
@@ -329,7 +333,8 @@ mod tests {
                     .with_exec_i_ds(vec!["id1".to_string(), "id2".to_string()]),
             ),
             "mod1".to_string(),
-            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                .unwrap(),
         )
         .unwrap();
 
@@ -366,7 +371,8 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1".to_string(),
-            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                .unwrap(),
         )
         .unwrap();
 
@@ -402,7 +408,8 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1".to_string(),
-            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                .unwrap(),
         )
         .unwrap();
 
@@ -431,7 +438,8 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1".to_string(),
-            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                .unwrap(),
         )
         .unwrap();
 
@@ -460,7 +468,8 @@ mod tests {
                     .with_id("mod1".to_string()),
             ),
             "mod1".to_string(),
-            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
+            DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
+                .unwrap(),
         )
         .unwrap();
 

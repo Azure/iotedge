@@ -357,7 +357,24 @@ homedir: "/var/lib/iotedge"
 # Additional container network configuration such as enabling IPv6 networking
 # and providing the IPAM settings can be achieved by specifying the relevant
 # configuration in the network settings.
+# 
+# Content Trust is enabled by specifying the location of root CAs for each registry 
+# using the fields below 
 #
+# content_trust - configuration to enable Content Trust feature 
+# ca_certs - CA certs for each registry is specified under this configuration
+#
+# 'contoso1.azurecr.io' - Login server name of registry 1
+# "/path/to/root_ca_contoso1.crt" - path to the root CA for registry 1
+#
+# 'contoso2.azurecr.io' - Login server name of registry 2
+# "/path/to/root_ca_contoso2.crt" - path to the root CA for registry 2
+#
+# content_trust :
+#   ca_certs :
+#     'contoso1.azurecr.io' : "/path/to/root_ca_contoso1.crt"
+#     'contoso2.azurecr.io' : "/path/to/root_ca_contoso2.crt"
+# 
 # network:
 #   name: "azure-iot-edge"
 #   ipv6: true
@@ -375,7 +392,10 @@ homedir: "/var/lib/iotedge"
 
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
-  # network: "azure-iot-edge"
+  # content_trust:
+  #   ca_certs: 
+  #     'contoso1.azurecr.io' : "/path/to/root_ca_contoso1.crt"
+  #     'contoso2.azurecr.io' : "/path/to/root_ca_contoso2.crt"
   #
   # network:
   #   name: "azure-iot-edge"

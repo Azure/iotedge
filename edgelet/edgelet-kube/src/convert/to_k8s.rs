@@ -586,7 +586,13 @@ mod tests {
         ModuleSpec::new(
             "$edgeAgent".to_string(),
             "docker".to_string(),
-            DockerConfig::new("my-image:v1.0".to_string(), create_body, Some(auth_config)).unwrap(),
+            DockerConfig::new(
+                "my-image:v1.0".to_string(),
+                create_body,
+                None,
+                Some(auth_config),
+            )
+            .unwrap(),
             {
                 let mut env = BTreeMap::new();
                 env.insert(String::from("a"), String::from("b"));
