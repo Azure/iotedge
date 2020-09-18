@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             // Setup
             var authChainMapping = new Dictionary<string, string>()
             {
-                { $"{ChildEdgeId}/{ModuleId}", ModuleAuthChain }
+                { $"{ChildEdgeId}", DeviceAuthChain }
             };
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
                 this.TestSetup(ParentEdgeId, authChainMapping);
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             // Setup
             var authChainMapping = new Dictionary<string, string>()
             {
-                { $"{ChildEdgeId}/{ModuleId}", ModuleAuthChain }
+                { $"{ChildEdgeId}", DeviceAuthChain }
             };
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
                 this.TestSetup(ParentEdgeId, authChainMapping);
@@ -357,8 +357,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             return new List<object[]>
             {
-                new object[] { createOrUpdateModuleFunc, $"{ChildEdgeId}/{ModuleId}" },
-                new object[] { createOrUpdateModuleOnBehalfOfFunc, $"{ChildEdgeId}/{ModuleId}" },
+                new object[] { createOrUpdateModuleFunc, $"{ChildEdgeId}" },
+                new object[] { createOrUpdateModuleOnBehalfOfFunc, $"{ChildEdgeId}" },
                 new object[] { getModuleFunc, $"{ChildEdgeId}/{ModuleId}" },
                 new object[] { getModuleOnBehalfOfFunc, $"{ChildEdgeId}/{ModuleId}" },
                 new object[] { listModulesFunc, $"{ChildEdgeId}" },

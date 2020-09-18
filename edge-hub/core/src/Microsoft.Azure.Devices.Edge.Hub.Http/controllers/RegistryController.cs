@@ -67,21 +67,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
-                string targetId = $"{deviceId}/{moduleId}";
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
 
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, Constants.EdgeHubModuleId, targetId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, Constants.EdgeHubModuleId, deviceId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                Events.Authorized(nameof(this.CreateOrUpdateModuleAsync), edgeDeviceId, Constants.EdgeHubModuleId, targetId, authChain);
-                var requestData = new CreateOrUpdateModuleOnBehalfOfData($"{AuthChainHelpers.SkipFirstIdentityFromAuthChain(authChain)}", module);
+                Events.Authorized(nameof(this.CreateOrUpdateModuleAsync), edgeDeviceId, Constants.EdgeHubModuleId, deviceId, authChain);
+                var requestData = new CreateOrUpdateModuleOnBehalfOfData($"{authChain}", module);
                 RegistryApiHttpResult result = await this.apiClient.PutModuleAsync(edgeDeviceId, requestData, ifMatchHeader);
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.CreateOrUpdateModuleAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
+                Events.CompleteRequest(nameof(this.CreateOrUpdateModuleAsync), edgeDeviceId, deviceId, requestData.AuthChain, result);
             }
             catch (Exception ex)
             {
@@ -140,22 +139,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 // Check that the actor device is authorized to act OnBehalfOf the target
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-                string targetId = $"{requestData.Module.DeviceId}/{requestData.Module.Id}";
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, Constants.EdgeHubModuleId, targetId);
+                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, Constants.EdgeHubModuleId, requestData.Module.DeviceId);
                 if (!authorized)
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                Events.Authorized(nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), actorDeviceId, Constants.EdgeHubModuleId, targetId, authChain);
+                Events.Authorized(nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), actorDeviceId, Constants.EdgeHubModuleId, requestData.Module.DeviceId, authChain);
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 RegistryApiHttpResult result = await this.apiClient.PutModuleAsync(
                     edgeDeviceId,
-                    new CreateOrUpdateModuleOnBehalfOfData($"{AuthChainHelpers.SkipFirstIdentityFromAuthChain(authChain)}", requestData.Module),
+                    new CreateOrUpdateModuleOnBehalfOfData($"{authChain}", requestData.Module),
                     ifMatchHeader);
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
+                Events.CompleteRequest(nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), edgeDeviceId, requestData.Module.DeviceId, requestData.AuthChain, result);
             }
             catch (Exception ex)
             {
