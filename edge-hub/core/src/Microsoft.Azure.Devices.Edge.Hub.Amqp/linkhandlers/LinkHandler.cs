@@ -41,10 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
 
             string modelId = null;
-            if (this.Link.Settings?.Properties?.TryGetValue(IotHubAmqpProperty.ModelId, out modelId) ?? false)
-            {
-                this.ModelId = Option.Maybe(modelId);
-            }
+            this.Link.Settings?.Properties?.TryGetValue(IotHubAmqpProperty.ModelId, out modelId);
+            this.ModelId = Option.Maybe(modelId);
+
+            string authChain = null;
+            this.Link.Settings?.Properties?.TryGetValue<string>(IotHubAmqpProperty.AuthChain, out authChain);
+            this.AuthChain = Option.Maybe(authChain);
         }
 
         public IAmqpLink Link { get; }
@@ -67,7 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         protected Option<string> ClientVersion { get; }
 
-        public Option<string> ModelId { get; }
+        protected Option<string> ModelId { get; }
+
+        protected Option<string> AuthChain { get; }
 
         public async Task OpenAsync(TimeSpan timeout)
         {
@@ -110,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 throw new InvalidOperationException($"Unable to find authentication mechanism for AMQP connection for identity {this.Identity.Id}");
             }
 
-            bool authenticated = await amqpAuth.AuthenticateAsync(this.Identity.Id, this.ModelId);
+            bool authenticated = await amqpAuth.AuthenticateAsync(this.Identity.Id, this.ModelId, this.AuthChain);
             if (authenticated)
             {
                 string productInfo = string.Empty;

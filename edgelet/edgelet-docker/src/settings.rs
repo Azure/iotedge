@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
+use std::path::PathBuf;
 
 use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
@@ -33,6 +34,7 @@ pub struct MobyRuntime {
     #[serde(with = "url_serde")]
     uri: Url,
     network: MobyNetwork,
+    content_trust: Option<ContentTrust>,
 }
 
 impl MobyRuntime {
@@ -42,6 +44,21 @@ impl MobyRuntime {
 
     pub fn network(&self) -> &MobyNetwork {
         &self.network
+    }
+
+    pub fn content_trust(&self) -> Option<&ContentTrust> {
+        self.content_trust.as_ref()
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+pub struct ContentTrust {
+    ca_certs: Option<HashMap<String, PathBuf>>,
+}
+
+impl ContentTrust {
+    pub fn ca_certs(&self) -> Option<&HashMap<String, PathBuf>> {
+        self.ca_certs.as_ref()
     }
 }
 
@@ -287,8 +304,9 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "linux")]
+    use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
-
     use std::cmp::Ordering;
     use std::fs::File;
     use std::io::prelude::*;
@@ -363,6 +381,10 @@ mod tests {
         "test/linux/bad_sample_settings.dyn.repro.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_TLS: &str = "test/linux/sample_settings.tls.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -448,12 +470,14 @@ mod tests {
         let moby1 = MobyRuntime {
             uri: Url::parse("http://test").unwrap(),
             network: MobyNetwork::Name("".to_string()),
+            content_trust: None,
         };
         assert_eq!(DEFAULT_NETWORKID, moby1.network().name());
 
         let moby2 = MobyRuntime {
             uri: Url::parse("http://test").unwrap(),
             network: MobyNetwork::Name("some-network".to_string()),
+            content_trust: None,
         };
         assert_eq!("some-network", moby2.network().name());
     }
@@ -1137,5 +1161,48 @@ mod tests {
             labels.get("net.azure-devices.edge.env"),
             Some(&"{}".to_string())
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn content_trust_env_are_set_properly() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_CONTENT_TRUST)).unwrap();
+        if let Some(content_trust_map) = settings
+            .moby_runtime()
+            .content_trust()
+            .and_then(ContentTrust::ca_certs)
+        {
+            assert_eq!(
+                content_trust_map.get("contoso1.azurcr.io"),
+                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso1.crt"))
+            );
+            assert_eq!(
+                content_trust_map.get("contoso2.azurcr.io"),
+                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso2.crt"))
+            );
+            assert_eq!(
+                content_trust_map.get(""),
+                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso3.crt"))
+            );
+            assert_eq!(
+                content_trust_map.get("contoso4.azurcr.io"),
+                Some(&std::path::PathBuf::from(
+                    "/path/to/root_ca_contoso4_replaced.crt"
+                ))
+            );
+            assert_eq!(
+                content_trust_map.get("contoso5.azurcr.io"),
+                Some(&std::path::PathBuf::from(""))
+            );
+        } else {
+            panic!();
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn content_trust_env_are_not_set_properly() {
+        let settings = Settings::new(Path::new(BAD_SETTINGS_CONTENT_TRUST));
+        assert!(settings.is_err());
     }
 }
