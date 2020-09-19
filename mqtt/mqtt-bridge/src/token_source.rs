@@ -1,5 +1,7 @@
 #![allow(dead_code)] // TODO remove when ready
 
+use std::io::{Error, ErrorKind};
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
@@ -13,7 +15,7 @@ define_encode_set! {
 
 #[async_trait]
 pub trait TokenSource {
-    async fn get(&self, expiry: &DateTime<Utc>) -> Result<String, TokenSourceError>;
+    async fn get(&self, expiry: &DateTime<Utc>) -> Result<Option<String>, Error>;
 }
 
 #[derive(Clone)]
@@ -29,23 +31,30 @@ impl SasTokenSource {
 
 #[async_trait]
 impl TokenSource for SasTokenSource {
-    async fn get(&self, expiry: &DateTime<Utc>) -> Result<String, TokenSourceError> {
-        let token: String = match &self.creds {
+    async fn get(&self, expiry: &DateTime<Utc>) -> Result<Option<String>, Error> {
+        let token = match &self.creds {
             Credentials::Provider(provider_settings) => {
                 let expiry = expiry.timestamp().to_string();
                 let audience = format!(
                     "{}/devices/{}/modules/{}",
                     provider_settings.iothub_hostname(),
-                    provider_settings.device_id(),
-                    provider_settings.module_id()
+                    percent_encode(provider_settings.device_id().as_bytes(), IOTHUB_ENCODE_SET)
+                        .to_string(),
+                    percent_encode(provider_settings.module_id().as_bytes(), IOTHUB_ENCODE_SET)
+                        .to_string()
                 );
                 let resource_uri =
                     percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET)
                         .to_string();
                 let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
-                let client = edgelet_client::workload(provider_settings.workload_uri())
-                    .map_err(TokenSourceError::CreateClient)?;
+                let client =
+                    edgelet_client::workload(provider_settings.workload_uri()).map_err(|e| {
+                        Error::new(
+                            ErrorKind::Other,
+                            format!("could not create workload client: {}", e),
+                        )
+                    })?;
                 let signature = client
                     .sign(
                         provider_settings.module_id(),
@@ -53,26 +62,57 @@ impl TokenSource for SasTokenSource {
                         &sig_data,
                     )
                     .await
-                    .map_err(TokenSourceError::Sign)?;
+                    .map_err(|e| {
+                        Error::new(ErrorKind::Other, format!("could not get signature: {}", e))
+                    })?;
                 let signature = signature.digest();
-                UrlSerializer::new(format!("sr={}", resource_uri))
+                let token = UrlSerializer::new(format!("sr={}", resource_uri))
                     .append_pair("sig", &signature)
                     .append_pair("se", &expiry)
-                    .finish()
+                    .finish();
+
+                Some(format!("SharedAccessSignature {}", token).to_owned())
             }
-            Credentials::PlainText(creds) => creds.password().into(),
-            Credentials::Anonymous(_) => "".into(),
+            Credentials::PlainText(creds) => Some(creds.password().into()),
+            Credentials::Anonymous(_) => None,
         };
 
         Ok(token)
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum TokenSourceError {
-    #[error("failed to save to store.")]
-    Sign(#[from] edgelet_client::WorkloadError),
+#[derive(Clone)]
+pub struct TrustBundleSource {
+    creds: Credentials,
+}
 
-    #[error("failed to subscribe to topic.")]
-    CreateClient(#[from] edgelet_client::Error),
+impl TrustBundleSource {
+    pub fn new(creds: Credentials) -> Self {
+        Self { creds }
+    }
+
+    pub async fn get_trust_bundle(&self) -> Result<Option<String>, Error> {
+        let certificate: Option<String> = match &self.creds {
+            Credentials::Provider(provider_settings) => {
+                let client =
+                    edgelet_client::workload(provider_settings.workload_uri()).map_err(|e| {
+                        Error::new(
+                            ErrorKind::Other,
+                            format!("could not create workload client: {}", e),
+                        )
+                    })?;
+                let trust_bundle = client.trust_bundle().await.map_err(|e| {
+                    Error::new(
+                        ErrorKind::Other,
+                        format!("failed to get trusted certificate: {}", e),
+                    )
+                })?;
+                let cert = trust_bundle.certificate();
+                Some(cert.to_owned())
+            }
+            _ => None,
+        };
+
+        Ok(certificate)
+    }
 }
