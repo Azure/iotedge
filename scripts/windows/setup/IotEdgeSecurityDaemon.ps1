@@ -990,7 +990,7 @@ function Install-Packages(
     $restartNeeded = $false
 
     if (-not $Update) {
-        if ((-not (Test-IotCore)) -or (-not ($ContainerOs -eq 'Linux'))) {
+        if ((-not (Test-IotCore)) -and ($ContainerOs -eq 'Windows')) {
             $result = Get-WindowsOptionalFeature -Online -FeatureName 'Containers'
             if ($result -and ($result.State -ne 'Enabled')) {
                 $result = Enable-WindowsOptionalFeature -FeatureName 'Containers' -Online -NoRestart
@@ -1965,7 +1965,7 @@ function Set-ListenConnectUriForLinuxContainers {
 }
 
 function Disable-IoTEdgeMoby {
-    Invoke-Native "sc config iotedge depend= """ 
+    Invoke-Native "sc config iotedge depend= """"" 
     Invoke-Native "sc config iotedge-moby start= disabled" 
     Invoke-Native "sc stop iotedge-moby" 
 }
