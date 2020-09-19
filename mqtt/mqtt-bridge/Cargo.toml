@@ -13,6 +13,8 @@ chrono = "0.4"
 futures-util = "0.3"
 humantime = "2.0"
 humantime-serde = "1.0"
+native-tls = "0.2"
+openssl = "0.10"
 parking_lot = "0.11.0"
 percent-encoding = "1.0"
 serde = { version = "1.0", features = ["derive", "rc"] }
@@ -20,6 +22,7 @@ serde_derive = "1.0"
 serial_test = "0.4"
 thiserror = "1.0"
 tokio = { version = "0.2", features = ["sync"] }
+tokio-tls = "0.3"
 tracing = "0.1"
 url = "1.7"
 

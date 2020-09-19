@@ -68,10 +68,48 @@ impl TokenSource for SasTokenSource {
     }
 }
 
+#[derive(Clone)]
+pub struct TrustBundleSource {
+    creds: Credentials,
+}
+
+impl TrustBundleSource {
+    pub fn new(creds: Credentials) -> Self {
+        Self { creds }
+    }
+
+    pub async fn get_trust_bundle(&self) -> Result<Option<String>, CertificateSourceError> {
+        let certificate: Option<String> = match &self.creds {
+            Credentials::Provider(provider_settings) => {
+                let client = edgelet_client::workload(provider_settings.workload_uri())
+                    .map_err(CertificateSourceError::CreateClient)?;
+                let trust_bundle = client
+                    .trust_bundle()
+                    .await
+                    .map_err(CertificateSourceError::TrustBundle)?;
+                let cert = trust_bundle.certificate();
+                Some(cert.to_owned())
+            }
+            _ => None,
+        };
+
+        Ok(certificate)
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum TokenSourceError {
     #[error("failed to save to store.")]
     Sign(#[from] edgelet_client::WorkloadError),
+
+    #[error("failed to subscribe to topic.")]
+    CreateClient(#[from] edgelet_client::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CertificateSourceError {
+    #[error("failed to save to store.")]
+    TrustBundle(#[from] edgelet_client::WorkloadError),
 
     #[error("failed to subscribe to topic.")]
     CreateClient(#[from] edgelet_client::Error),

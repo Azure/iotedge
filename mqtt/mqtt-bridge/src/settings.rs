@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 pub const ENVIRONMENT_PREFIX: &str = "iotedge";
+const DEFAULT_UPSTREAM_PORT: &str = "8883";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
@@ -80,6 +81,7 @@ impl<'de> serde::Deserialize<'de> for Settings {
         let upstream_connection_settings = nested_bridge.map(|nested_bridge| ConnectionSettings {
             name: "upstream".into(),
             address: nested_bridge.gateway_hostname.clone(),
+            port: DEFAULT_UPSTREAM_PORT.to_owned(),
             subscriptions: upstream.subscriptions,
             forwards: upstream.forwards,
             credentials: Credentials::Provider(nested_bridge),
@@ -101,6 +103,8 @@ pub struct ConnectionSettings {
 
     address: String,
 
+    port: String,
+
     #[serde(flatten)]
     credentials: Credentials,
 
@@ -121,6 +125,10 @@ impl ConnectionSettings {
 
     pub fn address(&self) -> &str {
         &self.address
+    }
+
+    pub fn port(&self) -> &str {
+        &self.port
     }
 
     pub fn credentials(&self) -> &Credentials {
@@ -292,6 +300,7 @@ mod tests {
 
         assert_eq!(upstream.name(), "upstream");
         assert_eq!(upstream.address(), "edge1");
+        assert_eq!(upstream.port(), "8883");
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {
@@ -358,6 +367,7 @@ mod tests {
 
         assert_eq!(upstream.name(), "upstream");
         assert_eq!(upstream.address(), "upstream");
+        assert_eq!(upstream.port(), "8883");
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {

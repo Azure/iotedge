@@ -110,11 +110,7 @@ impl State {
                             }
 
                             crate::proto::SubAckQos::Failure => {
-                                if err.is_none() {
-                                    err = Some(super::Error::SubscriptionRejectedByServer);
-                                }
-
-                                self.subscriptions.insert(topic_filter, expected_qos);
+                                subscription_updates.push(super::SubscriptionUpdateEvent::SubscriptionRejectedByServer(topic_filter));
                             }
                         }
                     }

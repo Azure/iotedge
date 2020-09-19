@@ -1,16 +1,21 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::{collections::HashSet, fmt::Display, time::Duration};
+use std::{collections::HashSet, fmt::Display, pin::Pin, str, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::BoxFuture;
-use tokio::{net::TcpStream, stream::StreamExt};
+use native_tls::{Certificate, TlsConnector};
+use openssl::x509::X509;
+use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
 use tracing::{debug, error};
 
-use mqtt3::{proto, Client, Event, IoSource, ShutdownError, UpdateSubscriptionError};
+use mqtt3::{
+    proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
+};
 
 use crate::{
     settings::Credentials,
+    token_source::TrustBundleSource,
     token_source::{SasTokenSource, TokenSource},
 };
 
@@ -32,56 +37,164 @@ impl ShutdownHandle {
     }
 }
 
+enum BridgeIoSource {
+    Tcp(TcpConnection<SasTokenSource>),
+    Tls(TcpConnection<SasTokenSource>),
+}
+
+trait BridgeIo: AsyncRead + AsyncWrite + Send + Sync + 'static {}
+
+impl<I> BridgeIo for I where I: AsyncRead + AsyncWrite + Send + Sync + 'static {}
+
 pub struct TcpConnection<T>
 where
     T: TokenSource + Clone + Send + Sync + 'static,
 {
     address: String,
+    port: Option<String>,
     token_source: Option<T>,
+    trust_bundle_source: Option<TrustBundleSource>,
 }
 
 impl<T> TcpConnection<T>
 where
     T: TokenSource + Clone + Send + Sync + 'static,
 {
-    pub fn new(address: String, token_source: Option<T>) -> Self {
+    pub fn new(
+        address: String,
+        port: Option<String>,
+        token_source: Option<T>,
+        trust_bundle_source: Option<TrustBundleSource>,
+    ) -> Self {
         Self {
             address,
+            port,
             token_source,
+            trust_bundle_source,
         }
     }
 }
 
-impl<T> IoSource for TcpConnection<T>
-where
-    T: TokenSource + Clone + Send + Sync + 'static,
-{
-    type Io = TcpStream;
+impl IoSource for BridgeIoSource {
+    type Io = Pin<Box<dyn BridgeIo>>;
     type Error = std::io::Error;
-    type Future = BoxFuture<'static, Result<(TcpStream, Option<String>), std::io::Error>>;
+    type Future = BoxFuture<'static, Result<(Self::Io, Option<String>), std::io::Error>>;
 
     fn connect(&mut self) -> Self::Future {
-        let address = self.address.clone();
-        let token_source = self.token_source.as_ref().cloned();
+        match self {
+            BridgeIoSource::Tcp(connect) => {
+                let address = connect.address.clone();
+                let port = connect.port.clone();
+                let token_source = connect.token_source.as_ref().cloned();
 
-        Box::pin(async move {
-            let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
+                Box::pin(async move {
+                    let expiry =
+                        Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
 
-            let password: Option<String> = if let Some(ts) = token_source {
-                ts.get(&expiry)
-                    .await
-                    .map_err(|e| {
-                        error!("Failed to get token for connection {} {}", address, e);
-                        e
+                    let password: Option<String> = if let Some(ts) = token_source {
+                        ts.get(&expiry)
+                            .await
+                            .map_err(|e| {
+                                error!("Failed to get token for connection {} {}", address, e);
+                                e
+                            })
+                            .ok()
+                    } else {
+                        None
+                    };
+
+                    let host =
+                        port.map_or(address.clone(), |p| format!("{}:{}", address.clone(), p));
+
+                    let io = TcpStream::connect(&host).await;
+                    debug!("Tcp connection {:?} for {:?}", io, address);
+                    io.map(|io| {
+                        let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
+                        (stream, password)
                     })
-                    .ok()
-            } else {
-                None
-            };
+                })
+            }
+            BridgeIoSource::Tls(connect) => {
+                let address = connect.address.clone();
+                let port = connect.port.clone();
+                let token_source = connect.token_source.as_ref().cloned();
+                let trust_bundle_source = connect.trust_bundle_source.clone();
 
-            let io = TcpStream::connect(address).await;
-            io.map(|io| (io, password))
-        })
+                Box::pin(async move {
+                    let expiry =
+                        Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
+
+                    let host =
+                        port.map_or(address.clone(), |p| format!("{}:{}", address.clone(), p));
+                    let stream = TcpStream::connect(host)
+                        .await
+                        .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
+
+                    let server_root_certificate = if let Some(source) = trust_bundle_source {
+                        source.get_trust_bundle().await.map_or_else(
+                            |e| {
+                                error!(
+                                    "Failed to get trust bundle for connection {} {}",
+                                    address, e
+                                );
+                                None
+                            },
+                            |cert| cert,
+                        )
+                    } else {
+                        None
+                    };
+
+                    debug!("Trust bundle {:?}", server_root_certificate);
+
+                    let password: Option<String> = if let Some(ts) = token_source {
+                        ts.get(&expiry)
+                            .await
+                            .map_err(|e| {
+                                error!("Failed to get token for connection {} {}", address, e);
+                                e
+                            })
+                            .ok()
+                    } else {
+                        None
+                    };
+
+                    let mut builder = TlsConnector::builder();
+
+                    if let Some(trust_bundle) = server_root_certificate {
+                        let certs = X509::stack_from_pem(trust_bundle.as_bytes())
+                            .unwrap()
+                            .into_iter()
+                            .map(|cert| Certificate::from_der(&cert.to_der().unwrap()).unwrap());
+                        debug!("{}", certs.len());
+                        for cert in certs {
+                            debug!("found cert");
+                            builder.add_root_certificate(cert);
+                        }
+                    }
+
+                    let connector = builder.build().map_err(|err| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!("could not create TLS connector: {}", err),
+                        )
+                    })?;
+                    let connector: tokio_tls::TlsConnector = connector.into();
+
+                    let io = connector.connect(&address, stream).await;
+
+                    debug!("Tls connection {:?} for {:?}", io, address);
+
+                    io.map_or_else(
+                        |e| Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
+                        |io| {
+                            let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
+                            Ok((stream, password))
+                        },
+                    )
+                })
+            }
+        }
     }
 }
 
@@ -89,24 +202,26 @@ pub struct MqttClient<T>
 where
     T: EventHandler,
 {
-    client: Client<TcpConnection<SasTokenSource>>,
+    client: Client<BridgeIoSource>,
     event_handler: T,
 }
 
 impl<T: EventHandler> MqttClient<T> {
     pub fn new(
         address: &str,
+        port: Option<String>,
         keep_alive: Duration,
-        clean_session: bool,
+        _clean_session: bool,
         event_handler: T,
         connection_credentials: &Credentials,
+        secure: bool,
     ) -> Self {
         let (client_id, username, token_source) = match connection_credentials {
             Credentials::Provider(provider_settings) => (
                 provider_settings.device_id().into(),
                 //TODO: handle properties that are sent by client in username (modelId, authchain)
                 Some(format!(
-                    "{}/{}/{}",
+                    "{}/{}/{}/?api-version=2010-01-01",
                     provider_settings.iothub_hostname().to_owned(),
                     provider_settings.device_id().to_owned(),
                     provider_settings.module_id().to_owned()
@@ -121,21 +236,31 @@ impl<T: EventHandler> MqttClient<T> {
             Credentials::Anonymous(client_id) => (client_id.into(), None, None),
         };
 
-        let client = if clean_session {
+        let client = if !secure {
             Client::new(
                 Some(client_id),
                 username,
                 None,
-                TcpConnection::new(address.into(), token_source),
+                BridgeIoSource::Tcp(TcpConnection::<SasTokenSource>::new(
+                    address.to_owned(),
+                    port,
+                    token_source,
+                    None,
+                )),
                 DEFAULT_MAX_RECONNECT,
                 keep_alive,
             )
         } else {
-            Client::from_state(
-                client_id,
+            Client::new(
+                Some(client_id),
                 username,
                 None,
-                TcpConnection::new(address.into(), token_source),
+                BridgeIoSource::Tls(TcpConnection::<SasTokenSource>::new(
+                    address.to_owned(),
+                    port,
+                    token_source,
+                    Some(TrustBundleSource::new(connection_credentials.clone())),
+                )),
                 DEFAULT_MAX_RECONNECT,
                 keep_alive,
             )
@@ -160,6 +285,7 @@ impl<T: EventHandler> MqttClient<T> {
             error!(message = "failed to poll events", error=%e);
             None
         }) {
+            debug!("handle event {:?}", event);
             if let Err(e) = self.event_handler.handle_event(event).await {
                 error!("error processing event {}", e);
             }
@@ -182,7 +308,7 @@ impl<T: EventHandler> MqttClient<T> {
                 .map_err(ClientConnectError::SubscribeFailure)?;
         }
 
-        let subacks: HashSet<_> = topics.iter().collect();
+        let mut subacks: HashSet<_> = topics.iter().collect();
         if subacks.is_empty() {
             debug!("no topics to subscribe to");
             return Ok(());
@@ -194,20 +320,35 @@ impl<T: EventHandler> MqttClient<T> {
             .await
             .map_err(ClientConnectError::PollClientFailure)?
         {
-            //TODO: change the mqtt client to send an error back when the subscriotion fails instead of reconnecting and resending the sub
-            //right now it can't detect if the the broker doesn't allow to subscribe to the specific topic, but it will send a connect event
-            if let Event::NewConnection { reset_session: _ } = event {
-                return Ok(());
+            if let Event::SubscriptionUpdates(subscriptions) = event {
+                for subscription in subscriptions {
+                    match subscription {
+                        SubscriptionUpdateEvent::Subscribe(sub) => {
+                            subacks.remove(&sub.topic_filter);
+                        }
+                        SubscriptionUpdateEvent::SubscriptionRejectedByServer(sub) => {
+                            subacks.remove(&sub);
+                            error!("SubscriptionRejectedByServer {}", sub);
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
 
-        error!("failed to subscribe to topics");
-        Err(ClientConnectError::MissingSubacks(
-            subacks
-                .into_iter()
-                .map(std::string::ToString::to_string)
-                .collect(),
-        ))
+        if subacks.is_empty() {
+            debug!("command handler successfully subscribed to disconnect topic");
+        } else {
+            error!(
+                "failed to receive expected subacks for topics: {0:?}",
+                subacks
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect::<String>()
+            );
+        }
+
+        Ok(())
     }
 }
 
@@ -220,9 +361,6 @@ pub trait EventHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientConnectError {
-    #[error("failed to receive expected subacks for topics: {0:?}")]
-    MissingSubacks(Vec<String>),
-
     #[error("failed to subscribe topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
 

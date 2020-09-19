@@ -31,6 +31,7 @@
         {
             "name": "r1",
             "address": "remote",
+            "port": "8883",
             "client_id": "client",
             "username": "mymodule",
             "password": "pass",
