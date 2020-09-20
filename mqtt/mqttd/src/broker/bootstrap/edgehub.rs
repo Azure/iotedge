@@ -1,3 +1,4 @@
+#![allow(dead_code)] // TODO remove when ready
 use std::{
     env,
     future::Future,
@@ -33,6 +34,46 @@ use mqtt_edgehub::{
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
+
+pub struct ServerWrapper<Z, F>
+where
+    Z: Authorizer + Send + 'static,
+    F: Future<Output = ()> + Unpin,
+{
+    config: Settings,
+    broker: Broker<Z>,
+    shutdown_signal: F,
+}
+
+impl<Z, F> ServerWrapper<Z, F>
+where
+    Z: Authorizer + Send + 'static,
+    F: Future<Output = ()> + Unpin,
+{
+    pub fn new(config: Settings, broker: Broker<Z>, shutdown_signal: F) -> Self {
+        Self {
+            config,
+            broker,
+            shutdown_signal,
+        }
+    }
+
+    // TODO REVIEW: How to shut the broker down?
+    //              Need to poke around in broker shutdown logic.
+    pub fn start() {
+        // start broker
+        // init bridge
+        // init command handler
+        // start sidecars
+        // combine future for all sidecars
+        // wait on future for sidecars or broker
+        // if one of them exits then shut the other down
+    }
+
+    fn start_server() {}
+
+    fn start_sidecars() {}
+}
 
 pub struct SidecarShutdownHandle(Sender<()>);
 
