@@ -1965,8 +1965,8 @@ function Set-ListenConnectUriForLinuxContainers {
 }
 
 function Disable-IoTEdgeMoby {
-    Invoke-Native "sc config iotedge depend= """"" 
-    Invoke-Native "sc config iotedge-moby start= disabled" 
+    Invoke-Native 'sc config iotedge depend= ""' 
+    Invoke-Native 'sc config iotedge-moby start= disabled' 
     Stop-Service iotedge-moby
 }
 
