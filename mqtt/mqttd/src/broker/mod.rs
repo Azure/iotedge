@@ -8,16 +8,9 @@ use anyhow::{Context, Result};
 use futures_util::future::select;
 use futures_util::future::select_all;
 use futures_util::future::Either;
-use tokio::{
-    task::JoinHandle,
-    time::{Duration, Instant},
-};
-use tracing::{info, warn};
+use tracing::info;
 
-use mqtt_broker::{
-    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
-    StateSnapshotHandle, SystemEvent, VersionedFileFormat,
-};
+use mqtt_broker::{FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat};
 
 // TODO REVIEW: How to shut the broker down?
 //              Need to poke around in broker shutdown logic.
@@ -56,6 +49,13 @@ where
     // combine future for all sidecars
     // wait on future for sidecars or broker
     // if one of them exits then shut the other down
+    // TODO REVIEW: log errors
+    // if let Err(e) = command_handler_shutdown_handle.shutdown().await {
+    //     error!(message = "failed shutting down command handler", error = %e);
+    // }
+    // if let Err(e) = command_handler_join_handle.await {
+    //     error!(message = "failed waiting for command handler shutdown", error = %e);
+    // }
     let sidecars_fut = select_all(sidecar_join_handles);
     let state = match select(server_join_handle, sidecars_fut).await {
         Either::Left((server_join_handle, sidecar_join_handle)) => {
@@ -91,59 +91,6 @@ where
     info!("exiting... goodbye");
 
     Ok(())
-}
-
-// if let Err(e) = command_handler_shutdown_handle.shutdown().await {
-//     error!(message = "failed shutting down command handler", error = %e);
-// }
-// if let Err(e) = command_handler_join_handle.await {
-//     error!(message = "failed waiting for command handler shutdown", error = %e);
-// }
-
-async fn start_snapshotter(
-    broker_handle: BrokerHandle,
-    persistor: FilePersistor<VersionedFileFormat>,
-    snapshot_interval: Duration,
-) -> (
-    ShutdownHandle,
-    JoinHandle<FilePersistor<VersionedFileFormat>>,
-) {
-    let snapshotter = Snapshotter::new(persistor);
-    let snapshot_handle = snapshotter.snapshot_handle();
-    let shutdown_handle = snapshotter.shutdown_handle();
-    let join_handle = tokio::spawn(snapshotter.run());
-
-    // Tick the snapshotter
-    let tick = tick_snapshot(
-        snapshot_interval,
-        broker_handle.clone(),
-        snapshot_handle.clone(),
-    );
-    tokio::spawn(tick);
-
-    // Signal the snapshotter
-    let snapshot = snapshot::snapshot(broker_handle, snapshot_handle);
-    tokio::spawn(snapshot);
-
-    (shutdown_handle, join_handle)
-}
-
-async fn tick_snapshot(
-    period: Duration,
-    mut broker_handle: BrokerHandle,
-    snapshot_handle: StateSnapshotHandle,
-) {
-    info!("Persisting state every {:?}", period);
-    let start = Instant::now() + period;
-    let mut interval = tokio::time::interval_at(start, period);
-    loop {
-        interval.tick().await;
-        if let Err(e) = broker_handle.send(Message::System(SystemEvent::StateSnapshot(
-            snapshot_handle.clone(),
-        ))) {
-            warn!(message = "failed to tick the snapshotter", error=%e);
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
