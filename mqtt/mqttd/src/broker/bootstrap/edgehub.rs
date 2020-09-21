@@ -35,44 +35,164 @@ use mqtt_edgehub::{
     settings::Settings,
 };
 
-pub struct ServerWrapper<Z, F>
-where
-    Z: Authorizer + Send + 'static,
-    F: Future<Output = ()> + Unpin,
-{
-    config: Settings,
-    broker: Broker<Z>,
-    shutdown_signal: F,
-}
+// TODO REVIEW: My plan was to init sidecars in new() method and save broker, sidecars in struct
+//              This won't work because we then can't move the broker out of the struct
+//              Workaround: new method takes broker handle and config, creates sidecars.
+//              Then start method will take broker and shutdown signal, start the server
+pub struct ServerWrapper;
 
-impl<Z, F> ServerWrapper<Z, F>
-where
-    Z: Authorizer + Send + 'static,
-    F: Future<Output = ()> + Unpin,
-{
-    pub fn new(config: Settings, broker: Broker<Z>, shutdown_signal: F) -> Self {
-        Self {
-            config,
-            broker,
-            shutdown_signal,
-        }
+impl ServerWrapper {
+    pub async fn new() {
+        /*
+        - creates snapshotter
+        - creates bridge
+        - creates command handler
+        - saves all these
+        */
     }
 
     // TODO REVIEW: How to shut the broker down?
     //              Need to poke around in broker shutdown logic.
-    pub fn start() {
+    pub async fn start<Z, F>(config: Settings, broker: Broker<Z>, shutdown_signal: F)
+    where
+        Z: Authorizer + Send + 'static,
+        F: Future<Output = ()> + Unpin,
+    {
+        let broker_handle = broker.handle();
+        let system_address = config.listener().system().addr().to_string();
+
         // start broker
-        // init bridge
-        // init command handler
+        Self::start_server(config, broker, shutdown_signal)
+            .await
+            .unwrap();
+
         // start sidecars
+        Self::start_sidecars(broker_handle, system_address)
+            .await
+            .unwrap();
+
         // combine future for all sidecars
         // wait on future for sidecars or broker
         // if one of them exits then shut the other down
     }
 
-    fn start_server() {}
+    async fn start_server<Z, F>(
+        config: Settings,
+        broker: Broker<Z>,
+        shutdown_signal: F,
+    ) -> Result<BrokerSnapshot>
+    where
+        Z: Authorizer + Send + 'static,
+        F: Future<Output = ()> + Unpin,
+    {
+        let broker_handle = broker.handle();
 
-    fn start_sidecars() {}
+        let mut server = Server::from_broker(broker)
+            .with_packet_processor(MakeEdgeHubPacketProcessor::default());
+
+        // Add system transport to allow communication between edgehub components
+        let authenticator = LocalAuthenticator::new();
+        server.with_tcp(config.listener().system().addr(), authenticator, None)?;
+
+        // Add regular MQTT over TCP transport
+        let authenticator = EdgeHubAuthenticator::new(config.auth().url());
+        let (broker_ready, _) = broadcast::channel(1);
+
+        if let Some(tcp) = config.listener().tcp() {
+            let broker_ready = Some(broker_ready.subscribe());
+            server.with_tcp(tcp.addr(), authenticator.clone(), broker_ready)?;
+        }
+
+        // Add regular MQTT over TLS transport
+        let renewal_signal = match config.listener().tls() {
+            Some(tls) => {
+                let identity = if let Some(config) = tls.certificate() {
+                    info!("loading identity from {}", config.cert_path().display());
+                    ServerCertificate::from_pem(config.cert_path(), config.private_key_path())
+                        .with_context(|| {
+                            ServerCertificateLoadError::File(
+                                config.cert_path().to_path_buf(),
+                                config.private_key_path().to_path_buf(),
+                            )
+                        })?
+                } else {
+                    info!("downloading identity from edgelet");
+                    download_server_certificate()
+                        .await
+                        .with_context(|| ServerCertificateLoadError::Edgelet)?
+                };
+                let renew_at = identity.not_after();
+
+                let broker_ready = Some(broker_ready.subscribe());
+                server.with_tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
+
+                let renewal_signal = server_certificate_renewal(renew_at);
+                Either::Left(renewal_signal)
+            }
+            None => Either::Right(future::pending()),
+        };
+
+        // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
+        pin_mut!(renewal_signal);
+        let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
+
+        // TODO remove this call when broker readiness is implemented
+        tokio::spawn(async move {
+            tokio::time::delay_for(std::time::Duration::from_millis(500)).await;
+            broker_ready.send(()).expect("ready signal");
+        });
+
+        // Start the sidecars
+        let system_address = config.listener().system().addr().to_string();
+        let (sidecar_shutdown_handle, sidecar_join_handle) =
+            start_sidecars(broker_handle, system_address).await?;
+
+        // Start serving new connections
+        let state = server.serve(shutdown).await?;
+
+        // Shutdown the sidecars
+        sidecar_shutdown_handle.shutdown()?;
+        sidecar_join_handle.await??;
+
+        Ok(state)
+    }
+
+    async fn start_sidecars(
+        broker_handle: BrokerHandle,
+        system_address: String,
+    ) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
+        let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
+
+        let mut bridge_controller = BridgeController::new();
+        let bridge = bridge_controller.start();
+        bridge.await?;
+
+        let device_id = env::var(DEVICE_ID_ENV)?;
+        let mut command_handler = CommandHandler::new(system_address, device_id.as_str());
+        command_handler.add_command(Disconnect::new(&broker_handle));
+        command_handler.add_command(AuthorizedIdentities::new(&broker_handle));
+        command_handler.init().await?;
+        let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
+
+        let sidecars = tokio::spawn(async move {
+            let command_handler_join_handle = tokio::spawn(command_handler.run());
+
+            if let Err(e) = sidecar_termination_receiver.await {
+                error!(message = "failed to listen to sidecar termination", error = %e);
+            }
+
+            if let Err(e) = command_handler_shutdown_handle.shutdown().await {
+                error!(message = "failed shutting down command handler", error = %e);
+            }
+            if let Err(e) = command_handler_join_handle.await {
+                error!(message = "failed waiting for command handler shutdown", error = %e);
+            }
+
+            Ok(())
+        });
+
+        Ok((SidecarShutdownHandle(sidecar_termination_handle), sidecars))
+    }
 }
 
 pub struct SidecarShutdownHandle(Sender<()>);
