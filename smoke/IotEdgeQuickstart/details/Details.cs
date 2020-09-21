@@ -123,6 +123,8 @@ namespace IotEdgeQuickstart.Details
 
         readonly string hostname;
 
+        readonly Option<string> parentHostname;
+
         readonly string deviceCaCert;
 
         readonly string deviceCaPk;
@@ -151,6 +153,7 @@ namespace IotEdgeQuickstart.Details
             string imageTag,
             string deviceId,
             string hostname,
+            Option<string> parentHostname,
             Option<string> deploymentFileName,
             Option<string> twinTestFileName,
             string deviceCaCert,
@@ -189,6 +192,7 @@ namespace IotEdgeQuickstart.Details
             this.imageTag = imageTag;
             this.deviceId = deviceId;
             this.hostname = hostname;
+            this.parentHostname = parentHostname;
             this.DeploymentFileName = deploymentFileName;
             this.TwinTestFileName = twinTestFileName;
             this.deviceCaCert = deviceCaCert;
@@ -273,7 +277,7 @@ namespace IotEdgeQuickstart.Details
                 agentImage = Option.Some<string>(this.EdgeAgentImage());
             }
 
-            return this.bootstrapper.Configure(method, agentImage, this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
+            return this.bootstrapper.Configure(method, agentImage, this.hostname, this.parentHostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper()

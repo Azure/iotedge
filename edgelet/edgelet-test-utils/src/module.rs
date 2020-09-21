@@ -5,8 +5,8 @@ use std::time::Duration;
 use edgelet_core::{
     AuthId, Authenticator, Certificates, Connect, DiskInfo, GetTrustBundle, Listen, LogOptions,
     MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    Provisioning, ProvisioningResult, RuntimeSettings, SystemInfo, SystemResources,
-    WatchdogSettings,
+    Provisioning, ProvisioningInfo, ProvisioningResult, RuntimeSettings, SystemInfo,
+    SystemResources, WatchdogSettings,
 };
 use failure::Fail;
 use futures::future::{self, FutureResult};
@@ -396,6 +396,11 @@ where
                 os_type: "os_type_sample".to_string(),
                 architecture: "architecture_sample".to_string(),
                 version: edgelet_core::version_with_source_version(),
+                provisioning: ProvisioningInfo {
+                    r#type: "test".to_string(),
+                    dynamic_reprovisioning: false,
+                    always_reprovision_on_startup: true,
+                },
                 cpus: 0,
                 kernel_version: "test".to_string(),
                 operating_system: "test".to_string(),

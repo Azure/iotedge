@@ -7,9 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public interface IClientCredentialsFactory
     {
-        IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType, X509Certificate2 clientCertificate, IList<X509Certificate2> clientChainCertificate, Option<string> modelId);
+        IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType, X509Certificate2 clientCertificate, IList<X509Certificate2> clientChainCertificate, Option<string> modelId, Option<string> authChain);
 
-        IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable, Option<string> modelId);
+        IClientCredentials GetWithSasToken(string deviceId, string moduleId, string deviceClientType, string token, bool updatable, Option<string> modelId, Option<string> authChain);
 
         IClientCredentials GetWithConnectionString(string connectionString);
 
