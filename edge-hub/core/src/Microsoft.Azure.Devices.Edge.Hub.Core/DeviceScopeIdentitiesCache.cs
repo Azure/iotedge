@@ -166,7 +166,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
                     }
-
                 }
                 else
                 {
@@ -217,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.lifeCycleSignal.Cancel();
         }
 
-        public async Task WaitForIntialialCachingCompleteAsync() => await this.initialCachedSignal.WaitAsync(lifeCycleSignal.Token);
+        public async Task WaitForIntialialCachingCompleteAsync() => await this.initialCachedSignal.WaitAsync(this.lifeCycleSignal.Token);
 
         internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string targetId, string onBehalfOfDevice)
         {
