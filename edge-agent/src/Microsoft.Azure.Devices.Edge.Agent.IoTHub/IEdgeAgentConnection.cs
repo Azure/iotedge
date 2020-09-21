@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -18,6 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         Task UpdateReportedPropertiesAsync(TwinCollection patch);
 
-        Task SendEventAsync(Message message);
+        Task SendEventBatchAsync(IEnumerable<Message> messages);
     }
 }

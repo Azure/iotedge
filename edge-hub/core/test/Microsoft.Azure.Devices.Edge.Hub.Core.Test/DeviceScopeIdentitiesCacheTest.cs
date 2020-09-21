@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
         }
 
-        [Fact]
+        [Fact(Skip = "Consistently flakey test - bug logged")]
         public async Task RefreshCacheTest()
         {
             // Arrange
@@ -817,7 +817,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity.OrDefault()));
         }
 
-        [Fact]
+        [Fact(Skip = "Consistently flakey test - bug logged")]
         public async Task RefreshCacheNegativeCachingTest()
         {
             // Arrange
