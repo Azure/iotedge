@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class DeviceScopeIdentitiesCacheTest
     {
-        readonly static TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
+        static readonly TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
 
         [Fact]
         public async Task InitializeFromStoreTest()
@@ -995,7 +995,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             blocker.Set();
         }
-
 
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
 

@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     [Integration]
     public class AuthAgentHeadTest
     {
-        readonly static TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
+        static readonly TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
 
         const string HOST = "localhost";
         const int PORT = 7120;

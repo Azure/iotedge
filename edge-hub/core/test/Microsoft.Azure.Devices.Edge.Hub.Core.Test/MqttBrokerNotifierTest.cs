@@ -17,29 +17,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class MqttBrokerNotifierTest
     {
-        readonly static TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
+        static readonly TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
 
         [Fact]
-        public Task AuthAgentProtocolHeadThenBrokerConnectThenIdentitiesCache() => MqttBrokerNotifierWithVariousSignalSequenceAsync(0, 1, 2);
+        public Task AuthAgentProtocolHeadThenBrokerConnectThenIdentitiesCache() => this.MqttBrokerNotifierWithVariousSignalSequenceAsync(0, 1, 2);
 
         [Fact]
-        public Task AuthAgentProtocolHeadThenIdentitiesCacheThenBrokerConnect() => MqttBrokerNotifierWithVariousSignalSequenceAsync(0, 2, 1);
+        public Task AuthAgentProtocolHeadThenIdentitiesCacheThenBrokerConnect() => this.MqttBrokerNotifierWithVariousSignalSequenceAsync(0, 2, 1);
 
         [Fact]
-        public Task BrokerConnectThenAuthAgentProtocolHeadThenIdentitiesCache() => MqttBrokerNotifierWithVariousSignalSequenceAsync(1, 0, 2);
+        public Task BrokerConnectThenAuthAgentProtocolHeadThenIdentitiesCache() => this.MqttBrokerNotifierWithVariousSignalSequenceAsync(1, 0, 2);
 
         [Fact]
-        public Task BrokerConnectThenIdentitiesCacheThenAuthAgentProtocolHead() => MqttBrokerNotifierWithVariousSignalSequenceAsync(1, 2, 0);
+        public Task BrokerConnectThenIdentitiesCacheThenAuthAgentProtocolHead() => this.MqttBrokerNotifierWithVariousSignalSequenceAsync(1, 2, 0);
 
         [Fact]
-        public Task IdentitiesCacheThenAuthAgentProtocolHeadThenBrokerConnect() => MqttBrokerNotifierWithVariousSignalSequenceAsync(2, 0, 1);
+        public Task IdentitiesCacheThenAuthAgentProtocolHeadThenBrokerConnect() => this.MqttBrokerNotifierWithVariousSignalSequenceAsync(2, 0, 1);
 
         [Fact]
-        public Task IdentitiesCacheThenBrokerConnectThenAuthAgentProtocolHead() => MqttBrokerNotifierWithVariousSignalSequenceAsync(2, 1, 0);
+        public Task IdentitiesCacheThenBrokerConnectThenAuthAgentProtocolHead() => this.MqttBrokerNotifierWithVariousSignalSequenceAsync(2, 1, 0);
 
         async Task MqttBrokerNotifierWithVariousSignalSequenceAsync(int firstSignalIndex, int secondSignalIndex, int thirdSignalIndex)
         {
-            (var authAgentProtocolHead, var mqttBrokerConnectorMock, var signals) = TestSetup();
+            (var authAgentProtocolHead, var mqttBrokerConnectorMock, var signals) = this.TestSetup();
             await Task.Delay(OneHundredMilliSeconds);
             mqttBrokerConnectorMock.Verify(m => m.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
 
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         (AuthAgentProtocolHead, Mock<IMqttBrokerConnector>, AsyncManualResetEvent[]) TestSetup()
         {
-            var authAgentProtocolHead = CreateAuthAgentProtocolHeadAcceptEverything();
+            var authAgentProtocolHead = this.CreateAuthAgentProtocolHeadAcceptEverything();
             var mqttBrokerConnectorMock = new Mock<IMqttBrokerConnector>();
             var deviceScopeIdentitiesCacheMock = new Mock<IDeviceScopeIdentitiesCache>();
             var authAgentProtocolHeadStartSignal = new AsyncManualResetEvent(false);
