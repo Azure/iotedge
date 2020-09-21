@@ -5,6 +5,9 @@ mod snapshot;
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
+use futures_util::future::select;
+use futures_util::future::select_all;
+use futures_util::future::Either;
 use futures_util::pin_mut;
 use tokio::{
     task::JoinHandle,
@@ -43,28 +46,51 @@ where
     info!("state loaded.");
 
     let broker = bootstrap::broker(config.broker(), state).await?;
-    let broker_handle = broker.handle();
+    let mut broker_handle = broker.handle();
     let system_address = config.listener().system().addr().to_string();
 
     let shutdown_signal = shutdown::shutdown();
     pin_mut!(shutdown_signal);
 
     // start broker
-    // TODO REVIEW: need to tokio spawn
     info!("starting server...");
-    let state = bootstrap::start_server(config, broker, shutdown_signal)
-        .await
-        .unwrap();
+    let server_join_handle = tokio::spawn(bootstrap::start_server(config, broker, shutdown_signal));
 
     // start sidecars
     let (sidecar_shutdown, sidecar_join_handles) =
-        bootstrap::start_sidecars(broker_handle, system_address)
+        bootstrap::start_sidecars(broker_handle.clone(), system_address)
             .await
             .unwrap();
 
     // combine future for all sidecars
     // wait on future for sidecars or broker
     // if one of them exits then shut the other down
+    let sidecars_fut = select_all(sidecar_join_handles);
+    let state = match select(server_join_handle, sidecars_fut).await {
+        Either::Left((server_join_handle, sidecar_join_handle)) => {
+            let state = server_join_handle??;
+
+            sidecar_shutdown.shutdown().await?;
+            let (completed_join_handle, _, other_handles) = sidecar_join_handle.await;
+            for handle in other_handles {
+                handle.await?;
+            }
+
+            state
+        }
+        Either::Right((sidecar_join_handle, server_join_handle)) => {
+            let (completed_join_handle, _, other_handles) = sidecar_join_handle;
+            for handle in other_handles {
+                handle.await?;
+            }
+
+            sidecar_shutdown.shutdown().await?;
+            broker_handle.send(Message::System(SystemEvent::Shutdown));
+            let state = server_join_handle.await??;
+
+            state
+        }
+    };
 
     info!("persisting state before exiting...");
     persistor.store(state).await?;
