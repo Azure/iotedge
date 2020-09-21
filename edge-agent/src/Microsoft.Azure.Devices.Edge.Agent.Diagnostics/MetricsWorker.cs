@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
     public class MetricsWorker : IDisposable
     {
-        public static RetryStrategy RetryStrategy = new ExponentialBackoff(20, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(1), false);
+        public static RetryStrategy RetryStrategy = new ExponentialBackoff(20, TimeSpan.FromMinutes(5), TimeSpan.FromHours(12), TimeSpan.FromMinutes(1), false);
 
         readonly IMetricsScraper scraper;
         readonly IMetricsStorage storage;
