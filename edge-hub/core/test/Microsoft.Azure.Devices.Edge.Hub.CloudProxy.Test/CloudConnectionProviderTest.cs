@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.Some(deviceIdentity.Id));
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
-            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), false);
+            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), Option.None<string>(), false);
 
             // Act
             Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(tokenCreds, null);
@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.Some(deviceIdentity.Id));
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
-            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), false);
+            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), Option.None<string>(), false);
 
             // Act
             Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(tokenCreds, null);
@@ -265,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
-            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), false);
+            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), Option.None<string>(), false);
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
             var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled);
@@ -313,7 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
-            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), false);
+            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), Option.None<string>(), false);
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
