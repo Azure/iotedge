@@ -22,9 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     {
         const string ChildEdgeId = "childEdge";
         const string ParentEdgeId = "parentEdge";
+        const string RootEdgeId = "rootEdge";
         const string ModuleId = "module1";
-        const string ModuleAuthChain = "childEdge/module1;childEdge;parentEdge;rootEdge";
-        const string DeviceAuthChain = "childEdge;parentEdge;rootEdge";
+        const string AuthChainOnParent = "childEdge;parentEdge";
+        const string AuthChainOnRoot = "childEdge;parentEdge;rootEdge";
 
         [Fact]
         public async Task CreateOrUpdateModule_Success()
@@ -32,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             // Setup
             var authChainMapping = new Dictionary<string, string>()
             {
-                { $"{ChildEdgeId}", DeviceAuthChain }
+                { ChildEdgeId, AuthChainOnParent }
             };
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
                 this.TestSetup(ParentEdgeId, authChainMapping);
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             registryApiClient.Setup(c => c.PutModuleAsync(ParentEdgeId, It.IsAny<CreateOrUpdateModuleOnBehalfOfData>(), It.IsAny<string>()))
                 .Callback<string, CreateOrUpdateModuleOnBehalfOfData, string>((_, data, __) => actualRequestData = data)
                 .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(module))));
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.None<string>(), It.IsAny<HttpContext>()))
+            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.None<string>(), Option.None<string>(), It.IsAny<HttpContext>()))
                 .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
             // Act
@@ -49,42 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             // Verify
             registryApiClient.Verify(c => c.PutModuleAsync(ParentEdgeId, It.IsAny<CreateOrUpdateModuleOnBehalfOfData>(), It.IsAny<string>()), Times.Once());
-            Assert.Equal(DeviceAuthChain, actualRequestData.AuthChain);
-            Assert.Equal(ChildEdgeId, actualRequestData.Module.DeviceId);
-            Assert.Equal(ModuleId, actualRequestData.Module.Id);
-            Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
-
-            byte[] actualResponseBytes = this.GetResponseBodyBytes(controller);
-            string actualResponseJson = Encoding.UTF8.GetString(actualResponseBytes);
-            Module actualModule = JsonConvert.DeserializeObject<Module>(actualResponseJson);
-            Assert.Equal(ChildEdgeId, actualModule.DeviceId);
-            Assert.Equal(ModuleId, actualModule.Id);
-        }
-
-        [Fact]
-        public async Task CreateOrUpdateModuleOnBehalfOf_Success()
-        {
-            // Setup
-            var authChainMapping = new Dictionary<string, string>()
-            {
-                { $"{ChildEdgeId}", DeviceAuthChain }
-            };
-            (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
-                this.TestSetup(ParentEdgeId, authChainMapping);
-            CreateOrUpdateModuleOnBehalfOfData actualRequestData = null;
-            var module = new Module(ChildEdgeId, ModuleId);
-            registryApiClient.Setup(c => c.PutModuleAsync(ParentEdgeId, It.IsAny<CreateOrUpdateModuleOnBehalfOfData>(), It.IsAny<string>()))
-                .Callback<string, CreateOrUpdateModuleOnBehalfOfData, string>((_, data, __) => actualRequestData = data)
-                .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(module))));
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.Some(Constants.EdgeHubModuleId), It.IsAny<HttpContext>()))
-                .ReturnsAsync(new HttpAuthResult(true, string.Empty));
-
-            // Act
-            await controller.CreateOrUpdateModuleOnBehalfOfAsync(ChildEdgeId, "*", new CreateOrUpdateModuleOnBehalfOfData($"{ChildEdgeId};{ParentEdgeId}", module));
-
-            // Verify
-            registryApiClient.Verify(c => c.PutModuleAsync(ParentEdgeId, It.IsAny<CreateOrUpdateModuleOnBehalfOfData>(), It.IsAny<string>()), Times.Once());
-            Assert.Equal(DeviceAuthChain, actualRequestData.AuthChain);
+            Assert.Equal(AuthChainOnParent, actualRequestData.AuthChain);
             Assert.Equal(ChildEdgeId, actualRequestData.Module.DeviceId);
             Assert.Equal(ModuleId, actualRequestData.Module.Id);
             Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
@@ -102,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             // Setup
             var authChainMapping = new Dictionary<string, string>()
             {
-                { $"{ChildEdgeId}/{ModuleId}", ModuleAuthChain }
+                { ChildEdgeId, AuthChainOnParent }
             };
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
                 this.TestSetup(ParentEdgeId, authChainMapping);
@@ -111,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             registryApiClient.Setup(c => c.GetModuleAsync(ParentEdgeId, It.IsAny<GetModuleOnBehalfOfData>()))
                 .Callback<string, GetModuleOnBehalfOfData>((_, data) => actualRequestData = data)
                 .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(module))));
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.None<string>(), It.IsAny<HttpContext>()))
+            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.None<string>(), Option.None<string>(), It.IsAny<HttpContext>()))
                 .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
             // Act
@@ -119,41 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             // Verify
             registryApiClient.Verify(c => c.GetModuleAsync(ParentEdgeId, It.IsAny<GetModuleOnBehalfOfData>()), Times.Once());
-            Assert.Equal(DeviceAuthChain, actualRequestData.AuthChain);
-            Assert.Equal(ModuleId, actualRequestData.ModuleId);
-            Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
-
-            byte[] actualResponseBytes = this.GetResponseBodyBytes(controller);
-            string actualResponseJson = Encoding.UTF8.GetString(actualResponseBytes);
-            Module actualModule = JsonConvert.DeserializeObject<Module>(actualResponseJson);
-            Assert.Equal(ChildEdgeId, actualModule.DeviceId);
-            Assert.Equal(ModuleId, actualModule.Id);
-        }
-
-        [Fact]
-        public async Task GetModuleOnBehalfOf_Success()
-        {
-            // Setup
-            var authChainMapping = new Dictionary<string, string>()
-            {
-                { $"{ChildEdgeId}/{ModuleId}", ModuleAuthChain }
-            };
-            (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
-                this.TestSetup(ParentEdgeId, authChainMapping);
-            GetModuleOnBehalfOfData actualRequestData = null;
-            var module = new Module(ChildEdgeId, ModuleId);
-            registryApiClient.Setup(c => c.GetModuleAsync(ParentEdgeId, It.IsAny<GetModuleOnBehalfOfData>()))
-                .Callback<string, GetModuleOnBehalfOfData>((_, data) => actualRequestData = data)
-                .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(module))));
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.Some(Constants.EdgeHubModuleId), It.IsAny<HttpContext>()))
-                .ReturnsAsync(new HttpAuthResult(true, string.Empty));
-
-            // Act
-            await controller.GetModuleOnBehalfOfAsync(ChildEdgeId, new GetModuleOnBehalfOfData($"{ChildEdgeId};{ParentEdgeId}", ModuleId));
-
-            // Verify
-            registryApiClient.Verify(c => c.GetModuleAsync(ParentEdgeId, It.IsAny<GetModuleOnBehalfOfData>()), Times.Once());
-            Assert.Equal(DeviceAuthChain, actualRequestData.AuthChain);
+            Assert.Equal(AuthChainOnParent, actualRequestData.AuthChain);
             Assert.Equal(ModuleId, actualRequestData.ModuleId);
             Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
 
@@ -170,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             // Setup
             var authChainMapping = new Dictionary<string, string>()
             {
-                { $"{ChildEdgeId}", DeviceAuthChain }
+                { ChildEdgeId, AuthChainOnParent }
             };
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
                 this.TestSetup(ParentEdgeId, authChainMapping);
@@ -179,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             registryApiClient.Setup(c => c.ListModulesAsync(ParentEdgeId, It.IsAny<ListModulesOnBehalfOfData>()))
                 .Callback<string, ListModulesOnBehalfOfData>((_, data) => actualRequestData = data)
                 .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(modules))));
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.None<string>(), It.IsAny<HttpContext>()))
+            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.None<string>(), Option.None<string>(), It.IsAny<HttpContext>()))
                 .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
             // Act
@@ -187,43 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             // Verify
             registryApiClient.Verify(c => c.ListModulesAsync(ParentEdgeId, It.IsAny<ListModulesOnBehalfOfData>()), Times.Once());
-            Assert.Equal(DeviceAuthChain, actualRequestData.AuthChain);
-            Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
-
-            byte[] actualResponseBytes = this.GetResponseBodyBytes(controller);
-            string actualResponseJson = Encoding.UTF8.GetString(actualResponseBytes);
-            Module[] actualModules = JsonConvert.DeserializeObject<Module[]>(actualResponseJson);
-            Assert.Equal(2, actualModules.Length);
-            Assert.Equal(ChildEdgeId, actualModules[0].DeviceId);
-            Assert.Contains(actualModules, m => m.Id.Equals("moduleId1"));
-            Assert.Equal(ChildEdgeId, actualModules[1].DeviceId);
-            Assert.Contains(actualModules, m => m.Id.Equals("moduleId2"));
-        }
-
-        [Fact]
-        public async Task ListModulesOnBehalfOf_Success()
-        {
-            // Setup
-            var authChainMapping = new Dictionary<string, string>()
-            {
-                { $"{ChildEdgeId}", DeviceAuthChain }
-            };
-            (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
-                this.TestSetup(ParentEdgeId, authChainMapping);
-            ListModulesOnBehalfOfData actualRequestData = null;
-            var modules = new[] { new Module(ChildEdgeId, "moduleId2"), new Module(ChildEdgeId, "moduleId1") };
-            registryApiClient.Setup(c => c.ListModulesAsync(ParentEdgeId, It.IsAny<ListModulesOnBehalfOfData>()))
-                .Callback<string, ListModulesOnBehalfOfData>((_, data) => actualRequestData = data)
-                .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(modules))));
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.Some(Constants.EdgeHubModuleId), It.IsAny<HttpContext>()))
-                .ReturnsAsync(new HttpAuthResult(true, string.Empty));
-
-            // Act
-            await controller.ListModulesOnBehalfOfAsync(ChildEdgeId, new ListModulesOnBehalfOfData($"{ChildEdgeId};{ParentEdgeId}"));
-
-            // Verify
-            registryApiClient.Verify(c => c.ListModulesAsync(ParentEdgeId, It.IsAny<ListModulesOnBehalfOfData>()), Times.Once());
-            Assert.Equal(DeviceAuthChain, actualRequestData.AuthChain);
+            Assert.Equal(AuthChainOnParent, actualRequestData.AuthChain);
             Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
 
             byte[] actualResponseBytes = this.GetResponseBodyBytes(controller);
@@ -242,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             // Setup
             var authChainMapping = new Dictionary<string, string>()
             {
-                { $"{ChildEdgeId}/{ModuleId}", ModuleAuthChain }
+                { ChildEdgeId, AuthChainOnParent }
             };
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
                 this.TestSetup(ParentEdgeId, authChainMapping);
@@ -251,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             registryApiClient.Setup(c => c.DeleteModuleAsync(ParentEdgeId, It.IsAny<DeleteModuleOnBehalfOfData>()))
                 .Callback<string, DeleteModuleOnBehalfOfData>((_, data) => actualRequestData = data)
                 .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, string.Empty)));
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.None<string>(), It.IsAny<HttpContext>()))
+            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.None<string>(), Option.None<string>(), It.IsAny<HttpContext>()))
                 .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
             // Act
@@ -259,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             // Verify
             registryApiClient.Verify(c => c.DeleteModuleAsync(ParentEdgeId, It.IsAny<DeleteModuleOnBehalfOfData>()), Times.Once());
-            Assert.Equal(DeviceAuthChain, actualRequestData.AuthChain);
+            Assert.Equal(AuthChainOnParent, actualRequestData.AuthChain);
             Assert.Equal(ModuleId, actualRequestData.ModuleId);
             Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
 
@@ -268,28 +164,133 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         }
 
         [Fact]
+        public async Task CreateOrUpdateModuleOnBehalfOf_Success()
+        {
+            // Setup
+            var authChainMapping = new Dictionary<string, string>()
+            {
+                { ChildEdgeId, AuthChainOnRoot }
+            };
+            (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
+                this.TestSetup(RootEdgeId, authChainMapping);
+            CreateOrUpdateModuleOnBehalfOfData actualRequestData = null;
+            var module = new Module(ChildEdgeId, ModuleId);
+            registryApiClient.Setup(c => c.PutModuleAsync(RootEdgeId, It.IsAny<CreateOrUpdateModuleOnBehalfOfData>(), It.IsAny<string>()))
+                .Callback<string, CreateOrUpdateModuleOnBehalfOfData, string>((_, data, __) => actualRequestData = data)
+                .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(module))));
+            authenticator.Setup(a => a.AuthenticateAsync(ParentEdgeId, Option.Some(Constants.EdgeHubModuleId), Option.Some(AuthChainOnParent), It.IsAny<HttpContext>()))
+                .ReturnsAsync(new HttpAuthResult(true, string.Empty));
+
+            // Act
+            await controller.CreateOrUpdateModuleOnBehalfOfAsync(ParentEdgeId, "*", new CreateOrUpdateModuleOnBehalfOfData(AuthChainOnParent, module));
+
+            // Verify
+            registryApiClient.Verify(c => c.PutModuleAsync(RootEdgeId, It.IsAny<CreateOrUpdateModuleOnBehalfOfData>(), It.IsAny<string>()), Times.Once());
+            Assert.Equal(AuthChainOnRoot, actualRequestData.AuthChain);
+            Assert.Equal(ChildEdgeId, actualRequestData.Module.DeviceId);
+            Assert.Equal(ModuleId, actualRequestData.Module.Id);
+            Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
+
+            byte[] actualResponseBytes = this.GetResponseBodyBytes(controller);
+            string actualResponseJson = Encoding.UTF8.GetString(actualResponseBytes);
+            Module actualModule = JsonConvert.DeserializeObject<Module>(actualResponseJson);
+            Assert.Equal(ChildEdgeId, actualModule.DeviceId);
+            Assert.Equal(ModuleId, actualModule.Id);
+        }
+
+        [Fact]
+        public async Task GetModuleOnBehalfOf_Success()
+        {
+            // Setup
+            var authChainMapping = new Dictionary<string, string>()
+            {
+                { ChildEdgeId, AuthChainOnRoot }
+            };
+            (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
+                this.TestSetup(RootEdgeId, authChainMapping);
+            GetModuleOnBehalfOfData actualRequestData = null;
+            var module = new Module(ChildEdgeId, ModuleId);
+            registryApiClient.Setup(c => c.GetModuleAsync(RootEdgeId, It.IsAny<GetModuleOnBehalfOfData>()))
+                .Callback<string, GetModuleOnBehalfOfData>((_, data) => actualRequestData = data)
+                .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(module))));
+            authenticator.Setup(a => a.AuthenticateAsync(ParentEdgeId, Option.Some(Constants.EdgeHubModuleId), Option.Some(AuthChainOnParent), It.IsAny<HttpContext>()))
+                .ReturnsAsync(new HttpAuthResult(true, string.Empty));
+
+            // Act
+            await controller.GetModuleOnBehalfOfAsync(ParentEdgeId, new GetModuleOnBehalfOfData(AuthChainOnParent, ModuleId));
+
+            // Verify
+            registryApiClient.Verify(c => c.GetModuleAsync(RootEdgeId, It.IsAny<GetModuleOnBehalfOfData>()), Times.Once());
+            Assert.Equal(AuthChainOnRoot, actualRequestData.AuthChain);
+            Assert.Equal(ModuleId, actualRequestData.ModuleId);
+            Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
+
+            byte[] actualResponseBytes = this.GetResponseBodyBytes(controller);
+            string actualResponseJson = Encoding.UTF8.GetString(actualResponseBytes);
+            Module actualModule = JsonConvert.DeserializeObject<Module>(actualResponseJson);
+            Assert.Equal(ChildEdgeId, actualModule.DeviceId);
+            Assert.Equal(ModuleId, actualModule.Id);
+        }
+
+        [Fact]
+        public async Task ListModulesOnBehalfOf_Success()
+        {
+            // Setup
+            var authChainMapping = new Dictionary<string, string>()
+            {
+                { ChildEdgeId, AuthChainOnRoot }
+            };
+            (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
+                this.TestSetup(RootEdgeId, authChainMapping);
+            ListModulesOnBehalfOfData actualRequestData = null;
+            var modules = new[] { new Module(ChildEdgeId, "moduleId2"), new Module(ChildEdgeId, "moduleId1") };
+            registryApiClient.Setup(c => c.ListModulesAsync(RootEdgeId, It.IsAny<ListModulesOnBehalfOfData>()))
+                .Callback<string, ListModulesOnBehalfOfData>((_, data) => actualRequestData = data)
+                .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, JsonConvert.SerializeObject(modules))));
+            authenticator.Setup(a => a.AuthenticateAsync(ParentEdgeId, Option.Some(Constants.EdgeHubModuleId), Option.Some(AuthChainOnParent), It.IsAny<HttpContext>()))
+                .ReturnsAsync(new HttpAuthResult(true, string.Empty));
+
+            // Act
+            await controller.ListModulesOnBehalfOfAsync(ParentEdgeId, new ListModulesOnBehalfOfData(AuthChainOnParent));
+
+            // Verify
+            registryApiClient.Verify(c => c.ListModulesAsync(RootEdgeId, It.IsAny<ListModulesOnBehalfOfData>()), Times.Once());
+            Assert.Equal(AuthChainOnRoot, actualRequestData.AuthChain);
+            Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
+
+            byte[] actualResponseBytes = this.GetResponseBodyBytes(controller);
+            string actualResponseJson = Encoding.UTF8.GetString(actualResponseBytes);
+            Module[] actualModules = JsonConvert.DeserializeObject<Module[]>(actualResponseJson);
+            Assert.Equal(2, actualModules.Length);
+            Assert.Equal(ChildEdgeId, actualModules[0].DeviceId);
+            Assert.Contains(actualModules, m => m.Id.Equals("moduleId1"));
+            Assert.Equal(ChildEdgeId, actualModules[1].DeviceId);
+            Assert.Contains(actualModules, m => m.Id.Equals("moduleId2"));
+        }
+
+        [Fact]
         public async Task DeleteModuleOnBehalfOf_Success()
         {
             // Setup
             var authChainMapping = new Dictionary<string, string>()
             {
-                { $"{ChildEdgeId}/{ModuleId}", ModuleAuthChain }
+                { ChildEdgeId, AuthChainOnRoot }
             };
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> registryApiClient, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> _) =
-                this.TestSetup(ParentEdgeId, authChainMapping);
+                this.TestSetup(RootEdgeId, authChainMapping);
             DeleteModuleOnBehalfOfData actualRequestData = null;
-            registryApiClient.Setup(c => c.DeleteModuleAsync(ParentEdgeId, It.IsAny<DeleteModuleOnBehalfOfData>()))
+            registryApiClient.Setup(c => c.DeleteModuleAsync(RootEdgeId, It.IsAny<DeleteModuleOnBehalfOfData>()))
                 .Callback<string, DeleteModuleOnBehalfOfData>((_, data) => actualRequestData = data)
                 .Returns(Task.FromResult(new RegistryApiHttpResult(HttpStatusCode.OK, string.Empty)));
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, Option.Some(Constants.EdgeHubModuleId), It.IsAny<HttpContext>()))
+            authenticator.Setup(a => a.AuthenticateAsync(ParentEdgeId, Option.Some(Constants.EdgeHubModuleId), Option.Some(AuthChainOnParent), It.IsAny<HttpContext>()))
                 .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
             // Act
-            await controller.DeleteModuleOnBehalfOfAsync(ChildEdgeId, new DeleteModuleOnBehalfOfData(ChildEdgeId, ModuleId));
+            await controller.DeleteModuleOnBehalfOfAsync(ParentEdgeId, new DeleteModuleOnBehalfOfData(AuthChainOnParent, ModuleId));
 
             // Verify
-            registryApiClient.Verify(c => c.DeleteModuleAsync(ParentEdgeId, It.IsAny<DeleteModuleOnBehalfOfData>()), Times.Once());
-            Assert.Equal(DeviceAuthChain, actualRequestData.AuthChain);
+            registryApiClient.Verify(c => c.DeleteModuleAsync(RootEdgeId, It.IsAny<DeleteModuleOnBehalfOfData>()), Times.Once());
+            Assert.Equal(AuthChainOnRoot, actualRequestData.AuthChain);
             Assert.Equal(ModuleId, actualRequestData.ModuleId);
             Assert.Equal((int)HttpStatusCode.OK, controller.HttpContext.Response.StatusCode);
 
@@ -303,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             "Usage",
             "xUnit1026:Theory methods should use all of their parameters",
             Justification = "For reuse in both AuthenticatedFail and AuthorizedFailed tests.")]
-        public async Task AuthenticateFailed(Func<RegistryController, Task> funcDelegate, string targetId)
+        public async Task AuthenticateFailed(Func<RegistryController, Task> funcDelegate, string _)
         {
             // Setup
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> _, Mock<IHttpRequestAuthenticator> _, Mock<IDeviceScopeIdentitiesCache> _) =
@@ -318,19 +319,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
         [Theory]
         [MemberData(nameof(GetControllerMethodDelegates))]
-        public async Task AuthorizeFailed(Func<RegistryController, Task> funcDelegate, string targetId)
+        public async Task AuthorizeFailed(Func<RegistryController, Task> funcDelegate, string actorDeviceId)
         {
             // Setup
             (RegistryController controller, Mock<IRegistryOnBehalfOfApiClient> _, Mock<IHttpRequestAuthenticator> authenticator, Mock<IDeviceScopeIdentitiesCache> identitiesCache) =
                 this.TestSetup(ParentEdgeId, new Dictionary<string, string>());
-            authenticator.Setup(a => a.AuthenticateAsync(ChildEdgeId, It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))
+            authenticator.Setup(a => a.AuthenticateAsync(actorDeviceId, It.IsAny<Option<string>>(), It.IsAny<Option<string>>(), It.IsAny<HttpContext>()))
                 .ReturnsAsync(new HttpAuthResult(true, string.Empty));
 
             // Act
             await funcDelegate(controller);
 
             // Verify
-            identitiesCache.Verify(c => c.GetAuthChain(targetId), Times.Once());
+            identitiesCache.Verify(c => c.GetAuthChain(ChildEdgeId), Times.Once());
             Assert.Equal((int)HttpStatusCode.Unauthorized, controller.HttpContext.Response.StatusCode);
         }
 
@@ -340,31 +341,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             Func<RegistryController, Task> createOrUpdateModuleFunc =
                 (controller) => controller.CreateOrUpdateModuleAsync(ChildEdgeId, ModuleId, "*", module);
-            Func<RegistryController, Task> createOrUpdateModuleOnBehalfOfFunc =
-                (controller) => controller.CreateOrUpdateModuleOnBehalfOfAsync(ChildEdgeId, "*", new CreateOrUpdateModuleOnBehalfOfData($"{ChildEdgeId};{ParentEdgeId}", module));
             Func<RegistryController, Task> getModuleFunc =
                 (controller) => controller.GetModuleAsync(ChildEdgeId, ModuleId);
-            Func<RegistryController, Task> getModuleOnBehalfOfFunc =
-                (controller) => controller.GetModuleOnBehalfOfAsync(ChildEdgeId, new GetModuleOnBehalfOfData($"{ChildEdgeId};{ParentEdgeId}", ModuleId));
             Func<RegistryController, Task> listModulesFunc =
                 (controller) => controller.ListModulesAsync(ChildEdgeId);
-            Func<RegistryController, Task> listModulesOnBehalfOfFunc =
-                (controller) => controller.ListModulesOnBehalfOfAsync(ChildEdgeId, new ListModulesOnBehalfOfData($"{ChildEdgeId};{ParentEdgeId}"));
             Func<RegistryController, Task> deleteModuleFunc =
                 (controller) => controller.DeleteModuleAsync(ChildEdgeId, ModuleId);
+            Func<RegistryController, Task> createOrUpdateModuleOnBehalfOfFunc =
+                (controller) => controller.CreateOrUpdateModuleOnBehalfOfAsync(ParentEdgeId, "*", new CreateOrUpdateModuleOnBehalfOfData(AuthChainOnParent, module));
+            Func<RegistryController, Task> getModuleOnBehalfOfFunc =
+                (controller) => controller.GetModuleOnBehalfOfAsync(ParentEdgeId, new GetModuleOnBehalfOfData(AuthChainOnParent, ModuleId));
+            Func<RegistryController, Task> listModulesOnBehalfOfFunc =
+                (controller) => controller.ListModulesOnBehalfOfAsync(ParentEdgeId, new ListModulesOnBehalfOfData(AuthChainOnParent));
             Func<RegistryController, Task> deleteModuleOnBehalfOfFunc =
-                (controller) => controller.DeleteModuleOnBehalfOfAsync(ChildEdgeId, new DeleteModuleOnBehalfOfData(ChildEdgeId, ModuleId));
+                (controller) => controller.DeleteModuleOnBehalfOfAsync(ParentEdgeId, new DeleteModuleOnBehalfOfData(AuthChainOnParent, ModuleId));
 
             return new List<object[]>
             {
                 new object[] { createOrUpdateModuleFunc, $"{ChildEdgeId}" },
-                new object[] { createOrUpdateModuleOnBehalfOfFunc, $"{ChildEdgeId}" },
-                new object[] { getModuleFunc, $"{ChildEdgeId}/{ModuleId}" },
-                new object[] { getModuleOnBehalfOfFunc, $"{ChildEdgeId}/{ModuleId}" },
+                new object[] { getModuleFunc, $"{ChildEdgeId}" },
                 new object[] { listModulesFunc, $"{ChildEdgeId}" },
-                new object[] { listModulesOnBehalfOfFunc, $"{ChildEdgeId}" },
-                new object[] { deleteModuleFunc, $"{ChildEdgeId}/{ModuleId}" },
-                new object[] { deleteModuleOnBehalfOfFunc, $"{ChildEdgeId}/{ModuleId}" },
+                new object[] { deleteModuleFunc, $"{ChildEdgeId}" },
+                new object[] { createOrUpdateModuleOnBehalfOfFunc, $"{ParentEdgeId}" },
+                new object[] { getModuleOnBehalfOfFunc, $"{ParentEdgeId}" },
+                new object[] { listModulesOnBehalfOfFunc, $"{ParentEdgeId}" },
+                new object[] { deleteModuleOnBehalfOfFunc, $"{ParentEdgeId}" },
             };
         }
 

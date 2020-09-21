@@ -317,27 +317,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
-            string rootDeviceId = "rootEdge";
-            string actorDeviceId = "childEdge";
+            string actorDeviceId = "actorEdge";
             string leafDeviceId = "leaf";
-            var authChain = Option.Some<string>(leafDeviceId + ";" + actorDeviceId + ";" + rootDeviceId);
+            var authChain = Option.Some<string>(leafDeviceId + ";" + actorDeviceId);
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
-            var leafIdentity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == leafDeviceId && d.Id == leafDeviceId);
             var actorAuth = new SymmetricKeyAuthentication(key, key);
-            var actorEdgeHubIdentity = new ServiceIdentity(actorDeviceId, Constants.EdgeHubModuleId, null, new List<string>(), "1234", Enumerable.Empty<string>(), new ServiceAuthentication(actorAuth), ServiceIdentityStatus.Enabled);
-            string actorEdgeHubId = actorEdgeHubIdentity.Id;
+            var actorEdgeHubServiceIdentity = new ServiceIdentity(actorDeviceId, Constants.EdgeHubModuleId, null, new List<string>(), "1234", Enumerable.Empty<string>(), new ServiceAuthentication(actorAuth), ServiceIdentityStatus.Enabled);
+            string actorEdgeHubId = actorEdgeHubServiceIdentity.Id;
 
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == leafDeviceId)))
                 .ReturnsAsync(authChain);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == actorEdgeHubId)))
-                .ReturnsAsync(Option.Some(actorEdgeHubIdentity));
+                .ReturnsAsync(Option.Some(actorEdgeHubServiceIdentity));
 
             var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, true, true, true);
 
+            var actorEdgeHubIdentity = Mock.Of<IModuleIdentity>(d => d.DeviceId == actorDeviceId && d.ModuleId == Constants.EdgeHubModuleId && d.Id == $"{actorDeviceId}/{Constants.EdgeHubModuleId}");
             string token = GetDeviceToken(iothubHostName, actorDeviceId, Constants.EdgeHubModuleId, key);
-            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == leafIdentity && t.Token == token);
+            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == actorEdgeHubIdentity && t.Token == token && t.AuthChain == authChain);
 
             // Act
             bool isAuthenticated = await authenticator.AuthenticateAsync(tokenCredentials);
@@ -353,28 +352,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             string iothubHostName = "testiothub.azure-devices.net";
             string edgehubHostName = "edgehub1";
-            string rootEdgeId = "rootEdge";
             string actorEdgeId = "parentEdge";
             string nestedEdgeId = "childEdge";
             string nestedModuleId = nestedEdgeId + "/" + Constants.EdgeHubModuleId;
-            var authChain = Option.Some<string>(nestedModuleId + ";" + nestedEdgeId + ";" + actorEdgeId + ";" + rootEdgeId);
+            var authChain = Option.Some<string>(nestedModuleId + ";" + nestedEdgeId + ";" + actorEdgeId);
             var underlyingAuthenticator = Mock.Of<IAuthenticator>();
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string key = GetKey();
             var nestedModuleIdentity = Mock.Of<IModuleIdentity>(i => i.DeviceId == nestedEdgeId && i.ModuleId == Constants.EdgeHubModuleId && i.Id == nestedModuleId);
             var actorAuth = new SymmetricKeyAuthentication(key, key);
-            var actorEdgeHubIdentity = new ServiceIdentity(actorEdgeId, Constants.EdgeHubModuleId, null, new List<string>(), "1234", Enumerable.Empty<string>(), new ServiceAuthentication(actorAuth), ServiceIdentityStatus.Enabled);
-            string actorEdgeHubId = actorEdgeHubIdentity.Id;
+            var actorEdgeHubServiceIdentity = new ServiceIdentity(actorEdgeId, Constants.EdgeHubModuleId, null, new List<string>(), "1234", Enumerable.Empty<string>(), new ServiceAuthentication(actorAuth), ServiceIdentityStatus.Enabled);
+            string actorEdgeHubId = actorEdgeHubServiceIdentity.Id;
 
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == nestedModuleId)))
                 .ReturnsAsync(authChain);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == actorEdgeHubId)))
-                .ReturnsAsync(Option.Some(actorEdgeHubIdentity));
+                .ReturnsAsync(Option.Some(actorEdgeHubServiceIdentity));
 
             var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, true, true, true);
 
+            var actorEdgeHubIdentity = Mock.Of<IModuleIdentity>(d => d.DeviceId == actorEdgeId && d.ModuleId == Constants.EdgeHubModuleId && d.Id == $"{actorEdgeId}/{Constants.EdgeHubModuleId}");
             string token = GetDeviceToken(iothubHostName, actorEdgeId, Constants.EdgeHubModuleId, key);
-            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == nestedModuleIdentity && t.Token == token);
+            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == actorEdgeHubIdentity && t.Token == token && t.AuthChain == authChain);
 
             // Act
             bool isAuthenticated = await authenticator.AuthenticateAsync(tokenCredentials);
@@ -403,7 +402,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = sharedAccessSignature.Audience;
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
 
             // Assert
             Assert.True(isAuthenticated);
@@ -429,7 +428,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = sharedAccessSignature.Audience;
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
 
             // Assert
             Assert.True(isAuthenticated);
@@ -456,7 +455,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = sharedAccessSignature.Audience;
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
 
             // Assert
             Assert.False(isAuthenticated);
@@ -483,7 +482,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = sharedAccessSignature.Audience;
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
 
             // Assert
             Assert.False(isAuthenticated);
@@ -507,7 +506,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = $"{iothubHostName}/devices/{deviceId}/foo";
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
 
             // Assert
             Assert.False(isAuthenticated);
@@ -532,7 +531,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string audience = $"{iothubHostName}/devices/{deviceId}/modules/{moduleId}/m1";
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, Option.None<string>());
+            bool isAuthenticated = authenticator.ValidateAudience(audience, identity);
 
             // Assert
             Assert.False(isAuthenticated);
@@ -540,38 +539,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
-        public void InvalidAuthChainTest_LeafDeviceMismatch()
-        {
-            // Arrange
-            string iothubHostName = "testiothub.azure-devices.net";
-            string edgehubHostName = "edgehub1";
-            string rootEdgeId = "rootEdge";
-            string actorEdgeId = "childEdge";
-            string leafDeviceId = "leaf";
-            var authChain = Option.Some<string>("NotLeafDevice" + ";" + actorEdgeId + ";" + rootEdgeId);
-            var underlyingAuthenticator = Mock.Of<IAuthenticator>();
-            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            string key = GetKey();
-
-            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == leafDeviceId)))
-                .ReturnsAsync(authChain);
-
-            var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, true, true);
-
-            var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == leafDeviceId && d.Id == leafDeviceId);
-            string token = GetDeviceToken(iothubHostName, actorEdgeId, Constants.EdgeHubModuleId, key);
-            SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(iothubHostName, token);
-            string audience = sharedAccessSignature.Audience;
-
-            // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, authChain);
-
-            // Assert
-            Assert.False(isAuthenticated);
-        }
-
-        [Fact]
-        public void InvalidAuthChainTest_UnauthorizedActor()
+        public async Task InvalidAuthChainTest_UnauthorizedActor()
         {
             // Arrange
             string iothubHostName = "testiothub.azure-devices.net";
@@ -589,13 +557,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var authenticator = new DeviceScopeTokenAuthenticator(deviceScopeIdentitiesCache.Object, iothubHostName, edgehubHostName, underlyingAuthenticator, true, true);
 
-            var identity = Mock.Of<IDeviceIdentity>(d => d.DeviceId == leafDeviceId && d.Id == leafDeviceId);
+            var identity = Mock.Of<IModuleIdentity>(d => d.DeviceId == actorEdgeId && d.ModuleId == Constants.EdgeHubModuleId && d.Id == $"{actorEdgeId}/{Constants.EdgeHubModuleId}");
             string token = GetDeviceToken(iothubHostName, actorEdgeId, Constants.EdgeHubModuleId, key);
-            SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(iothubHostName, token);
-            string audience = sharedAccessSignature.Audience;
+            var tokenCredentials = Mock.Of<ITokenCredentials>(t => t.Identity == identity && t.Token == token);
 
             // Act
-            bool isAuthenticated = authenticator.ValidateAudience(audience, identity, authChain);
+            bool isAuthenticated = await authenticator.AuthenticateAsync(tokenCredentials);
 
             // Assert
             Assert.False(isAuthenticated);

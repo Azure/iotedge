@@ -43,20 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Theory]
-        [InlineData("device1/$edgeHub;device1;device2", "device1;device2")]
-        [InlineData("longdevicename", "longdevicename")]
-        public void SkipFirstIdentityFromAuthChain_Success(string authChain, string expected)
-        {
-            Assert.Equal(expected, AuthChainHelpers.GetOriginEdgeAuthChain(authChain));
-        }
-
-        [Fact]
-        public void SkipFirstIdentityFromAuthChain_Fail()
-        {
-            Assert.Throws<ArgumentNullException>(() => AuthChainHelpers.GetOriginEdgeAuthChain(null));
-        }
-
-        [Theory]
         [InlineData("device1/$edgeHub;device1;device2", true, "device1")]
         [InlineData("longdevicename", true, "longdevicename")]
         [InlineData("", false, null)]

@@ -59,32 +59,182 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     return;
                 }
 
-                if (!await this.AuthenticateAsync(deviceId, Option.None<string>()))
+                if (!await this.AuthenticateAsync(deviceId, Option.None<string>(), Option.None<string>()))
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
                 IEdgeHub edgeHub = await this.edgeHubGetter;
-                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(deviceId);
+                if (!targetAuthChain.HasValue)
+                {
+                    Events.AuthorizationFail_NoAuthChain(deviceId);
+                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    return;
+                }
 
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, deviceId);
-                if (!authorized)
+                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
+                var requestData = new CreateOrUpdateModuleOnBehalfOfData($"{targetAuthChain.OrDefault()}", module);
+                RegistryApiHttpResult result = await this.apiClient.PutModuleAsync(edgeDeviceId, requestData, ifMatchHeader);
+                await this.SendResponseAsync(result.StatusCode, result.JsonContent);
+                Events.CompleteRequest(nameof(this.CreateOrUpdateModuleAsync), edgeDeviceId, requestData.AuthChain, result);
+            }
+            catch (Exception ex)
+            {
+                Events.InternalServerError(nameof(this.CreateOrUpdateModuleAsync), ex);
+                await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
+            }
+        }
+
+        [HttpGet]
+        [Route("devices/{deviceId}/modules/{moduleId}")]
+        public async Task GetModuleAsync(
+            [FromRoute] string deviceId,
+            [FromRoute] string moduleId)
+        {
+            try
+            {
+                Events.ReceivedRequest(nameof(this.GetModuleAsync), deviceId, moduleId);
+
+                try
+                {
+                    deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
+                    moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
+                }
+                catch (Exception ex)
+                {
+                    Events.BadRequest(nameof(this.GetModuleAsync), ex.Message);
+                    await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage(ex.Message));
+                    return;
+                }
+
+                if (!await this.AuthenticateAsync(deviceId, Option.None<string>(), Option.None<string>()))
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                Events.Authorized(nameof(this.CreateOrUpdateModuleAsync), edgeDeviceId, Constants.EdgeHubModuleId, deviceId, authChain);
-                var requestData = new CreateOrUpdateModuleOnBehalfOfData($"{authChain}", module);
-                RegistryApiHttpResult result = await this.apiClient.PutModuleAsync(edgeDeviceId, requestData, ifMatchHeader);
+                IEdgeHub edgeHub = await this.edgeHubGetter;
+                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(deviceId);
+                if (!targetAuthChain.HasValue)
+                {
+                    Events.AuthorizationFail_NoAuthChain(deviceId);
+                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    return;
+                }
+
+                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
+                var requestData = new GetModuleOnBehalfOfData($"{targetAuthChain.OrDefault()}", moduleId);
+                RegistryApiHttpResult result = await this.apiClient.GetModuleAsync(edgeDeviceId, requestData);
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.CreateOrUpdateModuleAsync), edgeDeviceId, deviceId, requestData.AuthChain, result);
+                Events.CompleteRequest(nameof(this.GetModuleAsync), edgeDeviceId, requestData.AuthChain, result);
             }
             catch (Exception ex)
             {
-                Events.InternalServerError(nameof(this.CreateOrUpdateModuleAsync), ex);
+                Events.InternalServerError(nameof(this.GetModuleAsync), ex);
+                await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
+            }
+        }
+
+        [HttpGet]
+        [Route("devices/{deviceId}/modules")]
+        public async Task ListModulesAsync(
+            [FromRoute] string deviceId)
+        {
+            try
+            {
+                Events.ReceivedRequest(nameof(this.ListModulesAsync), deviceId);
+
+                try
+                {
+                    deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
+                }
+                catch (Exception ex)
+                {
+                    Events.BadRequest(nameof(this.ListModulesAsync), ex.Message);
+                    await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage(ex.Message));
+                    return;
+                }
+
+                if (!await this.AuthenticateAsync(deviceId, Option.None<string>(), Option.None<string>()))
+                {
+                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    return;
+                }
+
+                IEdgeHub edgeHub = await this.edgeHubGetter;
+                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(deviceId);
+                if (!targetAuthChain.HasValue)
+                {
+                    Events.AuthorizationFail_NoAuthChain(deviceId);
+                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    return;
+                }
+
+                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
+                var requestData = new ListModulesOnBehalfOfData($"{targetAuthChain.OrDefault()}");
+                RegistryApiHttpResult result = await this.apiClient.ListModulesAsync(edgeDeviceId, requestData);
+                await this.SendResponseAsync(result.StatusCode, result.JsonContent);
+                Events.CompleteRequest(nameof(this.ListModulesAsync), edgeDeviceId, requestData.AuthChain, result);
+            }
+            catch (Exception ex)
+            {
+                Events.InternalServerError(nameof(this.ListModulesAsync), ex);
+                await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
+            }
+        }
+
+        [HttpDelete]
+        [Route("devices/{deviceId}/modules/{moduleId}")]
+        public async Task DeleteModuleAsync(
+            [FromRoute] string deviceId,
+            [FromRoute] string moduleId)
+        {
+            try
+            {
+                Events.ReceivedRequest(nameof(this.DeleteModuleAsync), deviceId, moduleId);
+
+                try
+                {
+                    deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
+                    moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
+                }
+                catch (Exception ex)
+                {
+                    Events.BadRequest(nameof(this.DeleteModuleAsync), ex.Message);
+                    await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage(ex.Message));
+                    return;
+                }
+
+                if (!await this.AuthenticateAsync(deviceId, Option.None<string>(), Option.None<string>()))
+                {
+                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    return;
+                }
+
+                IEdgeHub edgeHub = await this.edgeHubGetter;
+                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(deviceId);
+                if (!targetAuthChain.HasValue)
+                {
+                    Events.AuthorizationFail_NoAuthChain(deviceId);
+                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    return;
+                }
+
+                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
+                var requestData = new DeleteModuleOnBehalfOfData($"{targetAuthChain.OrDefault()}", moduleId);
+                RegistryApiHttpResult result = await this.apiClient.DeleteModuleAsync(edgeDeviceId, requestData);
+                await this.SendResponseAsync(result.StatusCode, result.JsonContent);
+                Events.CompleteRequest(nameof(this.DeleteModuleAsync), edgeDeviceId, requestData.AuthChain, result);
+            }
+            catch (Exception ex)
+            {
+                Events.InternalServerError(nameof(this.DeleteModuleAsync), ex);
                 await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
             }
         }
@@ -130,87 +280,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     return;
                 }
 
-                if (!await this.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId)))
+                if (!await this.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId), Option.Some(requestData.AuthChain)))
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                // Check that the actor device is authorized to act OnBehalfOf the target
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, requestData.Module.DeviceId);
-                if (!authorized)
+                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(targetDeviceId);
+                if (!targetAuthChain.HasValue)
                 {
+                    Events.AuthorizationFail_NoAuthChain(requestData.Module.DeviceId);
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                Events.Authorized(nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), actorDeviceId, Constants.EdgeHubModuleId, requestData.Module.DeviceId, authChain);
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 RegistryApiHttpResult result = await this.apiClient.PutModuleAsync(
                     edgeDeviceId,
-                    new CreateOrUpdateModuleOnBehalfOfData($"{authChain}", requestData.Module),
+                    new CreateOrUpdateModuleOnBehalfOfData($"{targetAuthChain.OrDefault()}", requestData.Module),
                     ifMatchHeader);
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), edgeDeviceId, requestData.Module.DeviceId, requestData.AuthChain, result);
+                Events.CompleteRequest(nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), edgeDeviceId, targetAuthChain.OrDefault(), result);
             }
             catch (Exception ex)
             {
                 Events.InternalServerError(nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), ex);
-                await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
-            }
-        }
-
-        [HttpGet]
-        [Route("devices/{deviceId}/modules/{moduleId}")]
-        public async Task GetModuleAsync(
-            [FromRoute] string deviceId,
-            [FromRoute] string moduleId)
-        {
-            try
-            {
-                Events.ReceivedRequest(nameof(this.GetModuleAsync), deviceId, moduleId);
-
-                try
-                {
-                    deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
-                    moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
-                }
-                catch (Exception ex)
-                {
-                    Events.BadRequest(nameof(this.GetModuleAsync), ex.Message);
-                    await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage(ex.Message));
-                    return;
-                }
-
-                if (!await this.AuthenticateAsync(deviceId, Option.None<string>()))
-                {
-                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
-                    return;
-                }
-
-                IEdgeHub edgeHub = await this.edgeHubGetter;
-                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
-                string targetId = $"{deviceId}/{moduleId}";
-                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, targetId);
-                if (!authorized)
-                {
-                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
-                    return;
-                }
-
-                Events.Authorized(nameof(this.GetModuleAsync), edgeDeviceId, Constants.EdgeHubModuleId, targetId, authChain);
-                var requestData = new GetModuleOnBehalfOfData($"{AuthChainHelpers.GetOriginEdgeAuthChain(authChain)}", moduleId);
-                RegistryApiHttpResult result = await this.apiClient.GetModuleAsync(edgeDeviceId, requestData);
-                await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.GetModuleAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
-            }
-            catch (Exception ex)
-            {
-                Events.InternalServerError(nameof(this.GetModuleAsync), ex);
                 await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
             }
         }
@@ -247,84 +343,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     return;
                 }
 
-                if (!await this.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId)))
+                if (!await this.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId), Option.Some(requestData.AuthChain)))
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                // Check that the actor device is authorized to act OnBehalfOf the target
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-                string targetId = $"{targetDeviceId}/{requestData.ModuleId}";
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, targetId);
-                if (!authorized)
+                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(targetDeviceId);
+                if (!targetAuthChain.HasValue)
                 {
+                    Events.AuthorizationFail_NoAuthChain(targetDeviceId);
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                Events.Authorized(nameof(this.GetModuleOnBehalfOfAsync), actorDeviceId, Constants.EdgeHubModuleId, targetId, authChain);
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 RegistryApiHttpResult result = await this.apiClient.GetModuleAsync(
                     edgeDeviceId,
-                    new GetModuleOnBehalfOfData($"{AuthChainHelpers.GetOriginEdgeAuthChain(authChain)}", requestData.ModuleId));
+                    new GetModuleOnBehalfOfData($"{targetAuthChain.OrDefault()}", requestData.ModuleId));
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.GetModuleOnBehalfOfAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
+                Events.CompleteRequest(nameof(this.GetModuleOnBehalfOfAsync), edgeDeviceId, targetAuthChain.OrDefault(), result);
             }
             catch (Exception ex)
             {
                 Events.InternalServerError(nameof(this.GetModuleOnBehalfOfAsync), ex);
-                await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
-            }
-        }
-
-        [HttpGet]
-        [Route("devices/{deviceId}/modules")]
-        public async Task ListModulesAsync(
-            [FromRoute] string deviceId)
-        {
-            try
-            {
-                Events.ReceivedRequest(nameof(this.ListModulesAsync), deviceId);
-
-                try
-                {
-                    deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
-                }
-                catch (Exception ex)
-                {
-                    Events.BadRequest(nameof(this.ListModulesAsync), ex.Message);
-                    await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage(ex.Message));
-                    return;
-                }
-
-                if (!await this.AuthenticateAsync(deviceId, Option.None<string>()))
-                {
-                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
-                    return;
-                }
-
-                IEdgeHub edgeHub = await this.edgeHubGetter;
-                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
-                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, deviceId);
-                if (!authorized)
-                {
-                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
-                    return;
-                }
-
-                Events.Authorized(nameof(this.ListModulesAsync), edgeDeviceId, Constants.EdgeHubModuleId, deviceId, authChain);
-                var requestData = new ListModulesOnBehalfOfData($"{authChain}");
-                RegistryApiHttpResult result = await this.apiClient.ListModulesAsync(edgeDeviceId, requestData);
-                await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.ListModulesAsync), edgeDeviceId, deviceId, requestData.AuthChain, result);
-            }
-            catch (Exception ex)
-            {
-                Events.InternalServerError(nameof(this.ListModulesAsync), ex);
                 await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
             }
         }
@@ -354,94 +398,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
                 actorDeviceId = WebUtility.UrlDecode(actorDeviceId);
 
-                if (!AuthChainHelpers.TryGetTargetDeviceId(requestData.AuthChain, out string targetId))
+                if (!AuthChainHelpers.TryGetTargetDeviceId(requestData.AuthChain, out string targetDeviceId))
                 {
                     Events.InvalidRequestAuthChain(nameof(this.ListModulesOnBehalfOfAsync), requestData.AuthChain);
                     await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage($"Invalid request auth chain {requestData.AuthChain}."));
                     return;
                 }
 
-                if (!await this.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId)))
+                if (!await this.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId), Option.Some(requestData.AuthChain)))
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                // Check that the actor device is authorized to act OnBehalfOf the target
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, targetId);
-                if (!authorized)
+                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(targetDeviceId);
+                if (!targetAuthChain.HasValue)
                 {
+                    Events.AuthorizationFail_NoAuthChain(targetDeviceId);
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                Events.Authorized(nameof(this.ListModulesOnBehalfOfAsync), actorDeviceId, Constants.EdgeHubModuleId, targetId, authChain);
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 RegistryApiHttpResult result = await this.apiClient.ListModulesAsync(
                     edgeDeviceId,
-                    new ListModulesOnBehalfOfData($"{authChain}"));
+                    new ListModulesOnBehalfOfData($"{targetAuthChain.OrDefault()}"));
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.ListModulesOnBehalfOfAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
+                Events.CompleteRequest(nameof(this.ListModulesOnBehalfOfAsync), edgeDeviceId, targetAuthChain.OrDefault(), result);
             }
             catch (Exception ex)
             {
                 Events.InternalServerError(nameof(this.ListModulesOnBehalfOfAsync), ex);
-                await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
-            }
-        }
-
-        [HttpDelete]
-        [Route("devices/{deviceId}/modules/{moduleId}")]
-        public async Task DeleteModuleAsync(
-            [FromRoute] string deviceId,
-            [FromRoute] string moduleId)
-        {
-            try
-            {
-                Events.ReceivedRequest(nameof(this.DeleteModuleAsync), deviceId, moduleId);
-
-                try
-                {
-                    deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
-                    moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
-                }
-                catch (Exception ex)
-                {
-                    Events.BadRequest(nameof(this.DeleteModuleAsync), ex.Message);
-                    await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage(ex.Message));
-                    return;
-                }
-
-                if (!await this.AuthenticateAsync(deviceId, Option.None<string>()))
-                {
-                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
-                    return;
-                }
-
-                IEdgeHub edgeHub = await this.edgeHubGetter;
-                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
-                string targetId = $"{deviceId}/{moduleId}";
-                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, edgeDeviceId, targetId);
-                if (!authorized)
-                {
-                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
-                    return;
-                }
-
-                Events.Authorized(nameof(this.DeleteModuleAsync), edgeDeviceId, Constants.EdgeHubModuleId, deviceId, authChain);
-                var requestData = new DeleteModuleOnBehalfOfData($"{AuthChainHelpers.GetOriginEdgeAuthChain(authChain)}", moduleId);
-                RegistryApiHttpResult result = await this.apiClient.DeleteModuleAsync(edgeDeviceId, requestData);
-                await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.DeleteModuleAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
-            }
-            catch (Exception ex)
-            {
-                Events.InternalServerError(nameof(this.DeleteModuleAsync), ex);
                 await this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.ToString()));
             }
         }
@@ -479,30 +468,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     return;
                 }
 
-                if (!await this.AuthenticateAsync(actorDeviceId, Option.Some<string>(Constants.EdgeHubModuleId)))
+                if (!await this.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId), Option.Some(requestData.AuthChain)))
                 {
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                // Check that the actor device is authorized to act OnBehalfOf the target
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-                string targetId = $"{targetDeviceId}/{requestData.ModuleId}";
-                (bool authorized, string authChain) = await this.AuthorizeActorAsync(identitiesCache, actorDeviceId, targetId);
-                if (!authorized)
+                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(targetDeviceId);
+                if (!targetAuthChain.HasValue)
                 {
+                    Events.AuthorizationFail_NoAuthChain(targetDeviceId);
                     await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
-                Events.Authorized(nameof(this.DeleteModuleOnBehalfOfAsync), actorDeviceId, Constants.EdgeHubModuleId, targetId, authChain);
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 RegistryApiHttpResult result = await this.apiClient.DeleteModuleAsync(
                     edgeDeviceId,
-                    new DeleteModuleOnBehalfOfData($"{AuthChainHelpers.GetOriginEdgeAuthChain(authChain)}", requestData.ModuleId));
+                    new DeleteModuleOnBehalfOfData($"{targetAuthChain.OrDefault()}", requestData.ModuleId));
                 await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.DeleteModuleOnBehalfOfAsync), edgeDeviceId, targetId, requestData.AuthChain, result);
+                Events.CompleteRequest(nameof(this.DeleteModuleOnBehalfOfAsync), edgeDeviceId, targetAuthChain.OrDefault(), result);
             }
             catch (Exception ex)
             {
@@ -511,10 +498,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
         }
 
-        async Task<bool> AuthenticateAsync(string deviceId, Option<string> moduleId)
+        async Task<bool> AuthenticateAsync(string deviceId, Option<string> moduleId, Option<string> authChain)
         {
             IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-            HttpAuthResult authResult = await authenticator.AuthenticateAsync(deviceId, moduleId, this.HttpContext);
+            HttpAuthResult authResult = await authenticator.AuthenticateAsync(deviceId, moduleId, authChain, this.HttpContext);
 
             if (authResult.Authenticated)
             {
@@ -524,29 +511,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             Events.AuthenticateFail(deviceId, moduleId.GetOrElse(string.Empty));
             return false;
-        }
-
-        async Task<(bool, string)> AuthorizeActorAsync(IDeviceScopeIdentitiesCache identitiesCache, string actorDeviceId, string targetId)
-        {
-            // Actor device is claiming to be our child, and that the target device is its child.
-            // So we should have an authchain already cached for the target device.
-            Option<string> targetAuthChainOption = await identitiesCache.GetAuthChain(targetId);
-
-            if (!targetAuthChainOption.HasValue)
-            {
-                Events.AuthorizationFail_NoAuthChain(targetId);
-                return (false, string.Empty);
-            }
-
-            // Validate the target auth-chain
-            string targetAuthChain = targetAuthChainOption.Expect(() => new InvalidOperationException());
-            if (!AuthChainHelpers.ValidateAuthChain(actorDeviceId, targetId, targetAuthChain))
-            {
-                Events.AuthorizationFail_InvalidAuthChain(actorDeviceId, targetId, targetAuthChain);
-                return (false, string.Empty);
-            }
-
-            return (true, targetAuthChain);
         }
 
         async Task SendResponseAsync(HttpStatusCode status, string jsonContent = "")
@@ -629,7 +593,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             {
                 Log.LogInformation(
                     (int)EventIds.ReceivedRequest,
-                    $"Received request in {source}: deviceId/moduleId={deviceId}/{moduleId}");
+                    $"Received request in {source}: deviceId={deviceId}, moduleId={moduleId}");
             }
 
             public static void ReceivedOnBehalfOfRequest(string source, string actorDeviceId, string additionalInfo)
@@ -643,19 +607,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             {
                 Log.LogInformation(
                     (int)EventIds.Authenticated,
-                    $"Authenticated: deviceId/moduleId={deviceId}/{moduleId}");
+                    $"Authenticated: deviceId={deviceId}, moduleId={moduleId}");
             }
 
             public static void AuthenticateFail(string deviceId, string moduleId = "")
             {
-                Log.LogError((int)EventIds.AuthenticateFail, $"AuthentifcateFail: deviceId/moduleId={deviceId}/{moduleId}");
-            }
-
-            public static void Authorized(string source, string deviceId, string moduleId, string targetDeviceId, string authChain)
-            {
-                Log.LogInformation(
-                    (int)EventIds.Authorized,
-                    $"Authorized in {source}: deviceId/moduleId={deviceId}/{moduleId}, targetDeviceId={targetDeviceId}, authChain={authChain}");
+                Log.LogError((int)EventIds.AuthenticateFail, $"AuthentifcateFail: deviceId={deviceId}, moduleId={moduleId}");
             }
 
             public static void AuthorizationFail_NoAuthChain(string targetId)
@@ -663,16 +620,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 Log.LogError((int)EventIds.AuthorizationFail_NoAuthChain, $"No auth chain for target identity: {targetId}");
             }
 
-            public static void AuthorizationFail_InvalidAuthChain(string actorId, string targetId, string authChain)
-            {
-                Log.LogError((int)EventIds.AuthorizationFail_InvalidAuthChain, $"Invalid auth chain, actor: {actorId}, target: {targetId}, auth chain: {authChain}");
-            }
-
-            public static void CompleteRequest(string source, string deviceId, string targetId, string authChain, RegistryApiHttpResult result)
+            public static void CompleteRequest(string source, string deviceId, string authChain, RegistryApiHttpResult result)
             {
                 Log.LogInformation(
                     (int)EventIds.Authenticated,
-                    $"CompleteRequest in {source}: deviceId={deviceId}, targetId={targetId}, authChain={authChain} {Environment.NewLine} {result.StatusCode}:{result.JsonContent}");
+                    $"CompleteRequest in {source}: deviceId={deviceId}, authChain={authChain} {Environment.NewLine} {result.StatusCode}:{result.JsonContent}");
             }
         }
     }

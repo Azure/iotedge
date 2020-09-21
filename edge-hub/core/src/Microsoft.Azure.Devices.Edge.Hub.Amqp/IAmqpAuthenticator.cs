@@ -6,6 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     public interface IAmqpAuthenticator
     {
-        Task<bool> AuthenticateAsync(string id, Option<string> modelId);
+        Task<bool> AuthenticateAsync(string id, Option<string> modelId, Option<string> authChain);
     }
 }

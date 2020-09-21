@@ -68,11 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return isAuthenticated;
         }
 
-        protected abstract (Option<string> deviceId, Option<string> moduleId) GetActorId(T credentials);
-
         protected abstract bool AreInputCredentialsValid(T credentials);
 
-        protected abstract bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, T credentials, Option<string> authChain);
+        protected abstract bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, T credentials);
 
         async Task<(bool isAuthenticated, bool shouldFallback)> AuthenticateInternalAsync(T tCredentials, bool reauthenticating)
         {
@@ -87,35 +85,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 bool syncServiceIdentity = this.syncServiceIdentityOnFailure && !reauthenticating;
                 bool isAuthenticated = false;
                 bool valueFound = false;
-                string actorId = tCredentials.Identity.Id;
 
-                // Try to get the actorId from the credentials
-                (Option<string> actorDeviceId, Option<string> actorModuleId) = this.GetActorId(tCredentials);
-                if (actorDeviceId.HasValue)
-                {
-                    actorId = actorDeviceId.OrDefault() + actorModuleId.Map(id => "/" + id).GetOrElse(string.Empty);
-                }
+                // Try to get the actor from the client auth chain, this will only be valid for OnBehalfOf authentication
+                Option<string> onBehalfOfActorDeviceId = AuthChainHelpers.GetActorDeviceId(tCredentials.AuthChain);
 
                 if (this.nestedEdgeEnabled &&
-                    actorModuleId.Contains(Constants.EdgeHubModuleId) &&
-                    actorId != tCredentials.Identity.Id)
+                    onBehalfOfActorDeviceId.HasValue)
                 {
                     // OnBehalfOf means an EdgeHub is trying to use its own auth to
                     // connect as a child device or module. So if acting EdgeHub is
                     // different than the target identity, then we know we're
                     // processing an OnBehalfOf authentication.
-                    (isAuthenticated, valueFound) = await this.AuthenticateWithAuthChain(tCredentials, actorId, syncServiceIdentity);
+                    (isAuthenticated, valueFound) = await this.AuthenticateWithAuthChain(tCredentials, onBehalfOfActorDeviceId.OrDefault(), syncServiceIdentity);
                 }
                 else
                 {
                     // Default scenario where the credential is for the target identity
-                    (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, tCredentials.Identity.Id, syncServiceIdentity, Option.None<string>());
+                    (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, tCredentials.Identity.Id, syncServiceIdentity);
 
                     if (!isAuthenticated && this.allowDeviceAuthForModule && tCredentials.Identity is IModuleIdentity moduleIdentity)
                     {
                         // The module could have used the Device key to sign its token
                         Events.AuthenticatingWithDeviceIdentity(moduleIdentity);
-                        (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId, syncServiceIdentity, Option.None<string>());
+                        (isAuthenticated, valueFound) = await this.AuthenticateWithServiceIdentity(tCredentials, moduleIdentity.DeviceId, syncServiceIdentity);
                     }
                 }
 
@@ -131,24 +123,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithAuthChain(T credentials, string actorEdgeHubId, bool syncServiceIdentity)
+        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithAuthChain(T credentials, string actorDeviceId, bool syncServiceIdentity)
         {
+            // The auth target is the first element of the authchain
+            Option<string> authTargetOption = AuthChainHelpers.GetAuthTarget(credentials.AuthChain);
+            string authTarget = authTargetOption.Expect(() => new InvalidOperationException("Credentials should always have a valid auth-chain for OnBehalfOf authentication"));
+
             // For nested Edge, we need to check that we have
             // a valid authchain for the target identity
-            Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(credentials.Identity.Id);
+            Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(authTarget);
             if (!authChain.HasValue)
             {
-                Events.NoAuthChain(credentials.Identity);
+                Events.NoAuthChain(authTarget);
                 return (false, false);
             }
 
-            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, syncServiceIdentity, authChain);
+            // Check that the actor is authorized to connect OnBehalfOf of the target
+            if (!AuthChainHelpers.ValidateAuthChain(actorDeviceId, authTarget, authChain.OrDefault()))
+            {
+                // We found the target identity in our cache, but can't proceed with auth
+                Events.UnauthorizedAuthChain(actorDeviceId, authTarget, authChain.OrDefault());
+                return (false, true);
+            }
+
+            // Check credentials against the acting EdgeHub
+            string actorEdgeHubId = actorDeviceId + $"/{Constants.EdgeHubModuleId}";
+            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, syncServiceIdentity);
         }
 
-        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity, Option<string> authChain)
+        async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity)
         {
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
-            (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, authChain), true)).GetOrElse((false, false));
+            (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials), true)).GetOrElse((false, false));
 
             if (!isAuthenticated && (!serviceIdentityFound || syncServiceIdentity))
             {
@@ -168,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
                 }
 
-                (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials, authChain), true)).GetOrElse((false, false));
+                (isAuthenticated, serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials), true)).GetOrElse((false, false));
             }
 
             return (isAuthenticated, serviceIdentityFound);
@@ -201,9 +207,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.ServiceIdentityNotFound, $"Service identity for {identity.Id} not found. Using underlying authenticator to authenticate");
             }
 
-            public static void NoAuthChain(IIdentity identity)
+            public static void NoAuthChain(string id)
             {
-                Log.LogDebug((int)EventIds.NoAuthChain, $"Could not get valid auth-chain for service identity {identity.Id}");
+                Log.LogDebug((int)EventIds.NoAuthChain, $"Could not get valid auth-chain for service identity {id}");
+            }
+
+            public static void UnauthorizedAuthChain(string actorId, string targetId, string authChain)
+            {
+                Log.LogDebug((int)EventIds.NoAuthChain, $"{actorId} not authorized to act OnBehalfOf {targetId}, auth-chain: {authChain}");
             }
 
             public static void AuthenticatedInScope(IIdentity identity, bool isAuthenticated)

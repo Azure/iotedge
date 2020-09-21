@@ -114,6 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     storageBackupPath = Option.Some(GetOrCreateDirectoryPath(configuration.GetValue<string>("BackupFolder"), EdgeAgentStorageBackupFolder));
                 }
 
+                backupConfigFilePath = GetFullBackupFilePath(storagePath, backupConfigFilePath);
+
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
@@ -449,6 +451,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             logger.LogInformation($"Local config path: {localConfigPath}");
             return localConfigPath;
+        }
+
+        static string GetFullBackupFilePath(string storageFolder, string backupFilePath)
+        {
+            if (Path.IsPathRooted(backupFilePath))
+            {
+                return backupFilePath;
+            }
+
+            return Path.Join(storageFolder, backupFilePath);
         }
 
         static PortMapServiceType GetDefaultServiceType(IConfiguration configuration) =>
