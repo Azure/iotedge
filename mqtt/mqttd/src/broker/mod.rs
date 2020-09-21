@@ -51,18 +51,26 @@ where
 
     // start broker
     // TODO REVIEW: need to tokio spawn
-    bootstrap::start_server(config, broker, shutdown_signal)
+    info!("starting server...");
+    let state = bootstrap::start_server(config, broker, shutdown_signal)
         .await
         .unwrap();
 
     // start sidecars
-    bootstrap::start_sidecars(broker_handle, system_address)
-        .await
-        .unwrap();
+    let (sidecar_shutdown, sidecar_join_handles) =
+        bootstrap::start_sidecars(broker_handle, system_address)
+            .await
+            .unwrap();
 
     // combine future for all sidecars
     // wait on future for sidecars or broker
     // if one of them exits then shut the other down
+
+    info!("persisting state before exiting...");
+    persistor.store(state).await?;
+    info!("state persisted.");
+    info!("exiting... goodbye");
+
     Ok(())
 }
 
