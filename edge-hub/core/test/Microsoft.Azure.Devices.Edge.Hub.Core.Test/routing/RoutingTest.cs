@@ -379,7 +379,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             await device1.UpdateReportedProperties(message);
             await Task.Delay(GetSleepTime());
 
-            Assert.True(iotHub.HasReceivedMessageFromModule(edgeDeviceId, edgeHubModuleId));
+            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, edgeHubModuleId));
         }
 
         [Fact(Skip = "Flaky test, bug #2494150")]
@@ -400,7 +400,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage message = GetReportedPropertiesMessage();
             await device1.UpdateReportedProperties(message);
             await Task.Delay(GetSleepTime());
-            Assert.True(iotHub.HasReceivedTwinChangeNotification());
+            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, edgeHubModuleId));
             Assert.True(module1.HasReceivedTwinChangeNotification());
         }
 
@@ -422,7 +422,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage message = GetReportedPropertiesMessage();
             await module2.UpdateReportedProperties(message);
             await Task.Delay(GetSleepTime());
-            Assert.True(iotHub.HasReceivedTwinChangeNotification());
+            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, edgeHubModuleId));
             Assert.True(module1.HasReceivedTwinChangeNotification());
         }
 
@@ -523,14 +523,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 m =>
                     m.SystemProperties[SystemProperties.MessageId] == message.SystemProperties[SystemProperties.MessageId]);
 
-            public bool HasReceivedTwinChangeNotification() => this.ReceivedMessages.Any(
+            public bool HasReceivedTwinChangeNotification(string edgeDeviceId, string edgeModuleId) => this.ReceivedMessages.Any(
                 m =>
-                    m.SystemProperties[SystemProperties.MessageType] == Constants.TwinChangeNotificationMessageType);
-
-            public bool HasReceivedMessageFromModule(string deviceId, string moduleId) => this.ReceivedMessages.Any(
-                m =>
-                    m.SystemProperties[SystemProperties.ConnectionDeviceId] == deviceId
-                        && m.SystemProperties[SystemProperties.ConnectionModuleId] == moduleId);
+                    m.SystemProperties[SystemProperties.MessageType] == Constants.TwinChangeNotificationMessageType
+                    && m.SystemProperties[SystemProperties.ConnectionDeviceId] == edgeDeviceId
+                    && m.SystemProperties[SystemProperties.ConnectionModuleId] == edgeModuleId);
         }
 
         class TestDevice
