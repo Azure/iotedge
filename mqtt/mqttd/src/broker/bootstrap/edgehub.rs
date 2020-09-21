@@ -101,6 +101,7 @@ where
     Ok(state)
 }
 
+// TODO REVIEW: ensure logging in place for when things start
 pub async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,

@@ -11,11 +11,7 @@ use mqtt_broker::{
     SystemEvent, VersionedFileFormat,
 };
 
-pub async fn snapshot(broker_handle: BrokerHandle, snapshot_handle: StateSnapshotHandle) {
-    imp::snapshot(broker_handle, snapshot_handle).await;
-}
-
-async fn start_snapshotter(
+pub async fn start_snapshotter(
     broker_handle: BrokerHandle,
     persistor: FilePersistor<VersionedFileFormat>,
     snapshot_interval: Duration,
@@ -37,7 +33,7 @@ async fn start_snapshotter(
     tokio::spawn(tick);
 
     // Signal the snapshotter
-    let snapshot = snapshot(broker_handle, snapshot_handle);
+    let snapshot = imp::snapshot(broker_handle, snapshot_handle);
     tokio::spawn(snapshot);
 
     (shutdown_handle, join_handle)
