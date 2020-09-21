@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly AuthAgentProtocolHeadConfig config;
         readonly object guard = new object();
         readonly AsyncManualResetEvent startSignal = new AsyncManualResetEvent(false);
-        readonly CancellationTokenSource startSignalCancellationToken = new CancellationTokenSource();
+        readonly CancellationTokenSource lifeCycleSignal = new CancellationTokenSource();
 
         Option<IWebHost> host;
 
@@ -100,7 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 this.CloseAsync(CancellationToken.None).Wait();
             }
-            this.startSignalCancellationToken.Cancel();
+
+            this.lifeCycleSignal.Cancel();
         }
 
         static IWebHost CreateWebHostBuilder(
@@ -124,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .Build();
         }
 
-        public async Task WaitForStartAsync() => await this.startSignal.WaitAsync(startSignalCancellationToken.Token);
+        public async Task WaitForStartAsync() => await this.startSignal.WaitAsync(this.lifeCycleSignal.Token);
 
         static class Events
         {

@@ -46,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 brokerServiceIdentities.Add(new BrokerServiceIdentity(id, await deviceScopeIdentitiesCache.GetAuthChain(id)));
             }
+
             return brokerServiceIdentities;
         }
     }
