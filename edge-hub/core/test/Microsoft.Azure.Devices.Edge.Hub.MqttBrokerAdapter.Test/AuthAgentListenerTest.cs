@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     [Integration]
     public class AuthAgentHeadTest
     {
-        static readonly TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
+        static readonly TimeSpan HalfSecond = TimeSpan.FromMilliseconds(500);
 
         const string HOST = "localhost";
         const int PORT = 7120;
@@ -287,10 +287,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             using var sut = CreateAuthAgentProtocolHeadAcceptEverything();
             var task = sut.WaitForStartAsync();
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             Assert.False(task.IsCompleted);
             await sut.StartAsync();
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             Assert.True(task.IsCompleted);
         }
 
@@ -299,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             using var sut = CreateAuthAgentProtocolHeadAcceptEverything();
             var task = sut.WaitForStartAsync();
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             Assert.False(task.IsCompleted);
             sut.Dispose();
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await task);

@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class DeviceScopeIdentitiesCacheTest
     {
-        static readonly TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
+        static readonly TimeSpan HalfSecond = TimeSpan.FromMilliseconds(500);
 
         [Fact]
         public async Task InitializeFromStoreTest()
@@ -921,7 +921,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var task = deviceScopeIdentitiesCache.WaitForIntialialCachingCompleteAsync();
 
             // Assert
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             Assert.True(task.IsCompleted);
 
             blocker.Set();
@@ -950,14 +950,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var task = deviceScopeIdentitiesCache.WaitForIntialialCachingCompleteAsync();
 
             // Assert
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             Assert.False(task.IsCompleted);
 
             // Act
             blocker.Set();
 
             // Assert
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             Assert.True(task.IsCompleted);
         }
 
@@ -984,7 +984,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var task = deviceScopeIdentitiesCache.WaitForIntialialCachingCompleteAsync();
 
             // Assert
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             Assert.False(task.IsCompleted);
 
             // Act
