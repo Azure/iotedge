@@ -817,7 +817,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity.OrDefault()));
         }
 
-        [Fact(Skip = "Consistently flakey test - bug logged")]
+        [Fact]
         public async Task RefreshCacheNegativeCachingTest()
         {
             // Arrange
