@@ -76,21 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         }
 
         [Fact]
-        public void GetDevicesAndModulesInTargetDeviceScope_UnauthorizedActorTest()
-        {
-            string targetEdgeId = "edge2";
-            var resultIdentities = new List<ServiceIdentity>();
-            var authChainMapping = new Dictionary<string, string>();
-            authChainMapping.Add(targetEdgeId, targetEdgeId + ";edge1;edgeroot");
-            var controller = MakeController(targetEdgeId, resultIdentities, authChainMapping);
-
-            var request = new NestedScopeRequest(0, string.Empty, "edge2;edge1");
-            controller.GetDevicesAndModulesInTargetDeviceScopeAsync("edge1", "notEdgeHub", request).Wait();
-
-            Assert.Equal((int)HttpStatusCode.Unauthorized, controller.HttpContext.Response.StatusCode);
-        }
-
-        [Fact]
         public async Task GetModuleOnBehalfOf()
         {
             // Setup ServiceIdentity results
