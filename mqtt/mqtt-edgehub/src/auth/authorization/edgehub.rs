@@ -153,15 +153,14 @@ impl EdgeHubAuthorizer {
     }
 
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
-        let on_behalf_of_id = match EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
-            Some(id) => id,
-            None => {
-                // If there is no on_behalf_of_id, we are dealing with a legacy topic
-                // The client_id must still be in the identities cache
-                return self
-                    .service_identities_cache
-                    .contains_key(client_id.as_str());
-            }
+        let on_behalf_of_id = if let Some(id) = EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
+            id
+        } else {
+            // If there is no on_behalf_of_id, we are dealing with a legacy topic
+            // The client_id must still be in the identities cache
+            return self
+                .service_identities_cache
+                .contains_key(client_id.as_str());
         };
         if client_id.as_str() == on_behalf_of_id {
             self.service_identities_cache
@@ -204,7 +203,7 @@ fn is_iothub_topic(topic: &str) -> bool {
 }
 
 fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
-    let client_id_parts = client_id.as_str().split("/").collect::<Vec<&str>>();
+    let client_id_parts = client_id.as_str().split('/').collect::<Vec<&str>>();
     let x = match client_id_parts.len() {
         1 => client_id_parts[0].to_string(),
         2 => format!("{}/modules/{}", client_id_parts[0], client_id_parts[1]),
