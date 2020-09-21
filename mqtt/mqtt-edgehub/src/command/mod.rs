@@ -4,7 +4,7 @@ mod handler;
 
 pub use authorized_identities::AuthorizedIdentities;
 pub use disconnect::Disconnect;
-pub use handler::{CommandHandler, ShutdownHandle};
+pub use handler::{CommandHandler, CommandHandlerError, ShutdownHandle};
 
 use std::error::Error as StdError;
 
