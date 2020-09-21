@@ -885,7 +885,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity.OrDefault()));
 
             // Wait for delay to expire and try again
-            await Task.Delay(TimeSpan.FromSeconds(refreshDelaySec));
+            await Task.Delay(TimeSpan.FromSeconds(refreshDelaySec + 1));
             deviceScopeIdentitiesCache.InitiateCacheRefresh();
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromMinutes(1));
             receivedServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(id1);
