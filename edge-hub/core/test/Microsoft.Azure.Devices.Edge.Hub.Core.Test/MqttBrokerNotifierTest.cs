@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class MqttBrokerNotifierTest
     {
-        static readonly TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
+        static readonly TimeSpan HalfSecond = TimeSpan.FromMilliseconds(500);
 
         [Fact]
         public Task AuthAgentProtocolHeadThenBrokerConnectThenIdentitiesCache() => this.MqttBrokerNotifierWithVariousSignalSequenceAsync(0, 1, 2);
@@ -40,19 +40,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         async Task MqttBrokerNotifierWithVariousSignalSequenceAsync(int firstSignalIndex, int secondSignalIndex, int thirdSignalIndex)
         {
             (var authAgentProtocolHead, var mqttBrokerConnectorMock, var signals) = this.TestSetup();
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             mqttBrokerConnectorMock.Verify(m => m.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
 
             signals[firstSignalIndex].Set();
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             mqttBrokerConnectorMock.Verify(m => m.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
 
             signals[secondSignalIndex].Set();
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             mqttBrokerConnectorMock.Verify(m => m.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
 
             signals[thirdSignalIndex].Set();
-            await Task.Delay(OneHundredMilliSeconds);
+            await Task.Delay(HalfSecond);
             mqttBrokerConnectorMock.Verify(m => m.SendAsync("$ehc/ready", It.Is<byte[]>(val => Encoding.UTF8.GetBytes("\"EdgeHub is ready to serve.\"").SequenceEqual(val))), Times.Once());
             await authAgentProtocolHead.CloseAsync(CancellationToken.None);
         }
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var sysIdProvider = Mock.Of<ISystemComponentIdProvider>();
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).Returns(Task.FromResult(true));
             Mock.Get(sysIdProvider).Setup(a => a.EdgeHubBridgeId).Returns("testdev/$edgeHub/$bridge");
-            return new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, new AuthAgentProtocolHeadConfig(7120, "/authenticate/"));
+            return new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, new AuthAgentProtocolHeadConfig(7123, "/authenticate/"));
         }
     }
 }
