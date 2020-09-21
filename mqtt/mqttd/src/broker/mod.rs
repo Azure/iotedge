@@ -17,10 +17,20 @@ use mqtt_broker::{
     StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
+// TODO REVIEW: How to shut the broker down?
+//              Need to poke around in broker shutdown logic.
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
 {
+    /*
+        create persistor and load state
+        get shutdown signal
+        start the server
+        start the sidecars
+        wait on either the server or sidecars to exit, on exit shut everything down and Err if needed
+    */
+
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
@@ -33,29 +43,35 @@ where
     info!("state loaded.");
 
     let broker = bootstrap::broker(config.broker(), state).await?;
+    let broker_handle = broker.handle();
+    let system_address = config.listener().system().addr().to_string();
 
-    info!("starting snapshotter...");
-    let snapshot_interval = persistence_config.time_interval();
-    let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
-        start_snapshotter(broker.handle(), persistor, snapshot_interval).await;
+    let shutdown_signal = shutdown::shutdown();
+    pin_mut!(shutdown_signal);
 
-    let shutdown = shutdown::shutdown();
-    pin_mut!(shutdown);
+    // start broker
+    // TODO REVIEW: need to tokio spawn
+    bootstrap::start_server(config, broker, shutdown_signal)
+        .await
+        .unwrap();
 
-    info!("starting server...");
-    let state = bootstrap::start_server(config, broker, shutdown).await?;
+    // start sidecars
+    bootstrap::start_sidecars(broker_handle, system_address)
+        .await
+        .unwrap();
 
-    snapshotter_shutdown_handle.shutdown().await?;
-    let mut persistor = snapshotter_join_handle.await?;
-    info!("state snapshotter shutdown.");
-
-    info!("persisting state before exiting...");
-    persistor.store(state).await?;
-    info!("state persisted.");
-    info!("exiting... goodbye");
-
+    // combine future for all sidecars
+    // wait on future for sidecars or broker
+    // if one of them exits then shut the other down
     Ok(())
 }
+
+// if let Err(e) = command_handler_shutdown_handle.shutdown().await {
+//     error!(message = "failed shutting down command handler", error = %e);
+// }
+// if let Err(e) = command_handler_join_handle.await {
+//     error!(message = "failed waiting for command handler shutdown", error = %e);
+// }
 
 async fn start_snapshotter(
     broker_handle: BrokerHandle,

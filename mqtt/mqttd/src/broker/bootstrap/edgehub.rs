@@ -1,5 +1,4 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::fs;
 use std::{
     env,
     future::Future,
@@ -19,8 +18,8 @@ use tracing::{error, info, warn};
 use mqtt_bridge::BridgeController;
 use mqtt_broker::BrokerHandle;
 use mqtt_broker::{
-    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, FilePersistor, Persist,
-    Server, ServerCertificate, VersionedFileFormat,
+    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server,
+    ServerCertificate,
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
@@ -31,49 +30,7 @@ use mqtt_edgehub::{
     settings::Settings,
 };
 
-use crate::broker::shutdown;
-
-pub async fn run(config: Settings) -> Result<()> {
-    /*
-        create persistor and load state
-        get shutdown signal
-        start the server
-        start the sidecars
-        wait on either the server or sidecars to exit, on exit shut everything down and Err if needed
-    */
-
-    info!("loading state...");
-    let persistence_config = config.broker().persistence();
-    let state_dir = persistence_config.file_path();
-
-    fs::create_dir_all(state_dir.clone())?;
-    let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());
-    let state = persistor.load().await?;
-    info!("state loaded.");
-
-    let broker = broker(config.broker(), state).await?;
-    let broker_handle = broker.handle();
-    let system_address = config.listener().system().addr().to_string();
-
-    let shutdown_signal = shutdown::shutdown();
-    pin_mut!(shutdown_signal);
-
-    // start broker
-    // TODO REVIEW: need to tokio spawn
-    start_server(config, broker, shutdown_signal).await.unwrap();
-
-    // start sidecars
-    start_sidecars(broker_handle, system_address).await.unwrap();
-
-    // combine future for all sidecars
-    // wait on future for sidecars or broker
-    // if one of them exits then shut the other down
-    Ok(())
-}
-
-// TODO REVIEW: How to shut the broker down?
-//              Need to poke around in broker shutdown logic.
-async fn start_server<Z, F>(
+pub async fn start_server<Z, F>(
     config: Settings,
     broker: Broker<Z>,
     shutdown_signal: F,
@@ -82,8 +39,6 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()> + Unpin,
 {
-    let broker_handle = broker.handle();
-
     let mut server =
         Server::from_broker(broker).with_packet_processor(MakeEdgeHubPacketProcessor::default());
 
@@ -145,7 +100,7 @@ where
     Ok(state)
 }
 
-async fn start_sidecars(
+pub async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
 ) -> Result<(SidecarShutdownHandle, Vec<JoinHandle<()>>)> {
@@ -161,13 +116,6 @@ async fn start_sidecars(
     let command_handler_shutdown = command_handler.shutdown_handle()?;
 
     let command_handler_join_handle = tokio::spawn(command_handler.run());
-
-    // if let Err(e) = command_handler_shutdown_handle.shutdown().await {
-    //     error!(message = "failed shutting down command handler", error = %e);
-    // }
-    // if let Err(e) = command_handler_join_handle.await {
-    //     error!(message = "failed waiting for command handler shutdown", error = %e);
-    // }
     let join_handles = vec![command_handler_join_handle];
 
     Ok((
