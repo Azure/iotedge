@@ -380,6 +380,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)
         {
+            if (this.lifeCycleSignal.IsCancellationRequested)
+            {
+                return;
+            }
+
             Option<ServiceIdentity> existing = await this.serviceIdentityHierarchy.Get(serviceIdentity.Id);
             bool hasUpdated = existing.HasValue && !existing.Contains(serviceIdentity);
 

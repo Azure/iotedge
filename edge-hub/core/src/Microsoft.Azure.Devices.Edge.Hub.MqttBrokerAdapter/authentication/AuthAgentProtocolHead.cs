@@ -76,7 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             Events.Closing();
             Option<IWebHost> hostToStop;
-            this.startSignal.Reset();
             lock (this.guard)
             {
                 hostToStop = this.host;
@@ -91,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     throw new InvalidOperationException("Cannot stop AuthAgentProtocolHead when not running");
                 });
 
+            this.startSignal.Reset();
             Events.Closed();
         }
 
@@ -140,9 +140,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Closed,
                 ClosedWhenNotRunning,
                 StartedWhenAlreadyRunning,
-                NotifyingBroker,
-                NotifiedBroker,
-                NotifyBrokerFailed
             }
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting AUTH head");
@@ -151,9 +148,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void Closed() => Log.LogInformation((int)EventIds.Closed, "Closed AUTH head");
             public static void ClosedWhenNotRunning() => Log.LogInformation((int)EventIds.ClosedWhenNotRunning, "Closed AUTH head when it was not running");
             public static void StartedWhenAlreadyRunning() => Log.LogWarning((int)EventIds.StartedWhenAlreadyRunning, "Started AUTH head when it was already running");
-            public static void NotifyingBroker() => Log.LogInformation((int)EventIds.NotifyingBroker, "Notifying broker auth agent started.");
-            public static void NotifiedBroker() => Log.LogInformation((int)EventIds.NotifiedBroker, "Notified broker auth agent started.");
-            public static void NotifyBrokerFailed() => Log.LogInformation((int)EventIds.NotifyBrokerFailed, "Failed to notify broker auth agent started.");
         }
     }
 }

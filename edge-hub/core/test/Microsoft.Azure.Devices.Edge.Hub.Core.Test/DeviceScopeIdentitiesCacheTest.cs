@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si2.Equals(receivedServiceIdentity2.OrDefault()));
         }
 
-        [Fact(Skip = "Consistently flakey test - bug logged")]
+        [Fact]
         public async Task RefreshCacheTest()
         {
             // Arrange
@@ -750,7 +750,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Contains(si1_updated.Id, entireCache);
         }
 
-        [Fact(Skip = "Flakey in pipeline but passes locally")]
+        [Fact]
         public async Task RefreshIdentityNegativeCachingTest()
         {
             // Arrange
@@ -801,7 +801,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_initial.Equals(receivedServiceIdentity.OrDefault()));
 
             // Wait for delay to expire and try again
-            await Task.Delay(TimeSpan.FromSeconds(refreshDelaySec));
+            await Task.Delay(TimeSpan.FromSeconds(refreshDelaySec + 1));
             await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
             receivedServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(id1);
 
