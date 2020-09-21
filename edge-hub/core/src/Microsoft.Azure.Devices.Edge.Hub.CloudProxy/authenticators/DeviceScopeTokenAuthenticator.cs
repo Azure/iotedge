@@ -31,19 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             this.edgeHubHostName = Preconditions.CheckNotNull(edgeHubHostName, nameof(edgeHubHostName));
         }
 
-        protected override (Option<string> deviceId, Option<string> moduleId) GetActorId(ITokenCredentials credentials)
-        {
-            // Parse the deviceId and moduleId out of the token's audience
-            SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(this.iothubHostName, credentials.Token);
-            (string hostName, string deviceId, Option<string> moduleId) = this.ParseAudience(sharedAccessSignature.Audience);
-            return (Option.Some(deviceId), moduleId);
-        }
-
         protected override bool AreInputCredentialsValid(ITokenCredentials credentials) => this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature _);
 
-        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ITokenCredentials credentials, Option<string> authChain) =>
+        protected override bool ValidateWithServiceIdentity(ServiceIdentity serviceIdentity, ITokenCredentials credentials) =>
             this.TryGetSharedAccessSignature(credentials.Token, credentials.Identity, out SharedAccessSignature sharedAccessSignature)
-                ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity, authChain)
+                ? this.ValidateCredentials(sharedAccessSignature, serviceIdentity, credentials.Identity)
                 : false;
 
         internal (string hostName, string deviceId, Option<string> moduleId) ParseAudience(string audience)
@@ -77,22 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             return (hostName, deviceId, moduleId);
         }
 
-        internal bool ValidateAuthChain(string actorDeviceId, string targetId, string authChain)
-        {
-            if (AuthChainHelpers.ValidateAuthChain(actorDeviceId, targetId, authChain))
-            {
-                return true;
-            }
-            else
-            {
-                Events.InvalidAuthChain(targetId, authChain);
-                return false;
-            }
-        }
-
         internal bool ValidateAudienceIds(string audienceDeviceId, Option<string> audienceModuleId, IIdentity identity)
         {
-            string audienceId = audienceDeviceId + audienceModuleId.Map(id => "/" + id).GetOrElse(string.Empty);
+            string audienceId = audienceModuleId.Map(m => $"{audienceDeviceId}/{m}").GetOrElse(audienceDeviceId);
 
             if (!audienceModuleId.HasValue)
             {
@@ -133,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             return true;
         }
 
-        internal bool ValidateAudience(string audience, IIdentity identity, Option<string> authChain)
+        internal bool ValidateAudience(string audience, IIdentity identity)
         {
             string hostName;
             string deviceId;
@@ -149,21 +128,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            if (authChain.HasValue)
+            // We need to the check the audience against the target identity
+            if (!this.ValidateAudienceIds(deviceId, moduleId, identity))
             {
-                // OnBehalfOf scenario, where we need to check the audience against the authchain
-                if (!this.ValidateAuthChain(deviceId, identity.Id, authChain.Expect(() => new InvalidOperationException())))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                // Default scenario, we just need to the check the audience against the target identity
-                if (!this.ValidateAudienceIds(deviceId, moduleId, identity))
-                {
-                    return false;
-                }
+                return false;
             }
 
             if (string.IsNullOrWhiteSpace(hostName) ||
@@ -191,9 +159,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             }
         }
 
-        bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity identity, Option<string> authChain) =>
+        bool ValidateCredentials(SharedAccessSignature sharedAccessSignature, ServiceIdentity serviceIdentity, IIdentity identity) =>
             this.ValidateTokenWithSecurityIdentity(sharedAccessSignature, serviceIdentity) &&
-            this.ValidateAudience(sharedAccessSignature.Audience, identity, authChain) &&
+            this.ValidateAudience(sharedAccessSignature.Audience, identity) &&
             this.ValidateExpiry(sharedAccessSignature, identity);
 
         bool ValidateExpiry(SharedAccessSignature sharedAccessSignature, IIdentity identity)
@@ -253,7 +221,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             {
                 InvalidHostName = IdStart,
                 InvalidAudience,
-                InvalidAuthChain,
                 IdMismatch,
                 KeysMismatch,
                 InvalidServiceIdentityType,
@@ -270,11 +237,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             public static void InvalidAudience(string audience, IIdentity identity)
             {
                 Log.LogWarning((int)EventIds.InvalidAudience, $"Error authenticating token for {identity.Id} because the audience {audience} is invalid.");
-            }
-
-            public static void InvalidAuthChain(string id, string authChain)
-            {
-                Log.LogWarning((int)EventIds.InvalidAuthChain, $"Error authenticating token for {id} because the auth-chain {authChain} is invalid.");
             }
 
             public static void IdMismatch(string audienceId, IIdentity identity, string deviceId)

@@ -18,8 +18,7 @@ const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
 const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
-const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_NOT_ROOT,IOTEDGE_PARENTHOSTNAME";
-const TWIN_PROXY_CONFIG_KEY: &str = "nginx_config";
+const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_ROOT,IOTEDGE_PARENTHOSTNAME";
 
 const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
 
@@ -145,7 +144,7 @@ fn dereference_env_variable() {
 }
 
 fn save_raw_config(twin: &TwinProperties) -> Result<()> {
-    let json = twin.properties.get_key_value(TWIN_PROXY_CONFIG_KEY);
+    let json = twin.properties.get_key_value(PROXY_CONFIG_TAG);
 
     //Get value associated with the key and extract is as a string.
     let str = (*(json
@@ -219,7 +218,7 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let str = re.replace_all(&str, "").to_string();
 
     //Or not 1. This allows usage of if ... else ....
-    let re = Regex::new(r"#if_tag ![^0]((.|\n)*?)#endif_tag [^0].*\n")
+    let re = Regex::new(r"#if_tag ![^0]((.|\n)*?)#endif_tag [^0].*?\n")
         .context("Failed to remove text between #if_tag 0 tags ")?;
     let str = re.replace_all(&str, "").to_string();
 
@@ -285,7 +284,7 @@ mod tests {
     #[test]
     fn env_var_tests() {
         //unset all variables
-        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, PROXY_CONFIG_DEFAULT_VARS_LIST);
+        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "NGINX_DEFAULT_PORT,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_HAS_BLOB_MODULE,GATEWAY_HOSTNAME,NGINX_NOT_ROOT");
         let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
         for key in vars_list {
             std::env::remove_var(key);
