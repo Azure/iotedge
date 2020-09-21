@@ -56,6 +56,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
             Assert.Empty(parsedMetrics);
         }
 
+        [Fact]
+        public void TestParsesZero()
+        {
+            int n = 10;
+
+            /* test data */
+            (string name, string module, double value)[] fakeScrape = Enumerable.Range(1, n).SelectMany(i => Enumerable.Range(100, n).Select(j => ($"metric_{i}", $"module_{j}", 0.0))).ToArray();
+            DateTime dateTime = DateTime.UtcNow;
+
+            Metric[] parsedMetrics = PrometheusMetricsParser.ParseMetrics(dateTime, this.GenerateFakeScrape(fakeScrape)).ToArray();
+            Assert.NotEmpty(parsedMetrics);
+
+            foreach (var metric in parsedMetrics)
+            {
+                Assert.Equal(0, metric.Value);
+            }
+        }
+
         private string GenerateFakeScrape(IEnumerable<(string name, string module, double value)> data)
         {
             string dataPoints = string.Join("\n", data.Select(d => $@"
