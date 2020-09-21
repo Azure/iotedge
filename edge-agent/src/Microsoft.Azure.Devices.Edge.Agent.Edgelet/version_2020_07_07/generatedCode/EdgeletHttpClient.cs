@@ -1775,6 +1775,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
         [Newtonsoft.Json.JsonProperty("version", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Version { get; set; }
 
+        [Newtonsoft.Json.JsonProperty("provisioning", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public ProvisioningInfo Provisioning { get; set; }
+
         [Newtonsoft.Json.JsonProperty("server_version", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string Server_version { get; set; }
 
@@ -1786,8 +1789,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07.Generate
 
         [Newtonsoft.Json.JsonProperty("cpus", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public int? Cpus { get; set; }
+    }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.1.23.0 (Newtonsoft.Json v11.0.0.0)")]
+    public partial class ProvisioningInfo
+    {
+        [Newtonsoft.Json.JsonProperty("type", Required = Newtonsoft.Json.Required.Always)]
+        public string Type { get; set; }
 
+        [Newtonsoft.Json.JsonProperty("dynamicReprovisioning", Required = Newtonsoft.Json.Required.Always)]
+        public bool DynamicReprovisioning { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("alwaysReprovisionOnStartup", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public bool? AlwaysReprovisionOnStartup { get; set; }
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.1.23.0 (Newtonsoft.Json v11.0.0.0)")]
