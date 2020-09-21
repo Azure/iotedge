@@ -8,12 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public class X509CertCredentials : ICertificateCredentials
     {
-        public X509CertCredentials(IIdentity identity, string productInfo, Option<string> modelId, X509Certificate2 clientCertificate, IList<X509Certificate2> clientCertificateChain)
+        public X509CertCredentials(IIdentity identity, string productInfo, Option<string> modelId, Option<string> authChain, X509Certificate2 clientCertificate, IList<X509Certificate2> clientCertificateChain)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.AuthenticationType = AuthenticationType.X509Cert;
             this.ProductInfo = productInfo ?? string.Empty;
             this.ModelId = modelId;
+            this.AuthChain = authChain;
             this.ClientCertificate = Preconditions.CheckNotNull(clientCertificate, nameof(clientCertificate));
             this.ClientCertificateChain = Preconditions.CheckNotNull(clientCertificateChain, nameof(clientCertificateChain)).ToList();
         }
@@ -24,7 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
         public string ProductInfo { get; }
 
-        public Option<string> ModelId { get; set; }
+        public Option<string> ModelId { get; }
+
+        public Option<string> AuthChain { get; }
 
         public X509Certificate2 ClientCertificate { get; }
 
