@@ -10,13 +10,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Routing.Core.Query.Builtins;
     using Moq;
+    using Nito.AsyncEx;
     using Xunit;
 
     [Unit]
     public class DeviceScopeIdentitiesCacheTest
     {
+        readonly static TimeSpan OneHundredMilliSeconds = TimeSpan.FromMilliseconds(100);
+
         [Fact]
         public async Task InitializeFromStoreTest()
         {
@@ -891,6 +893,109 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Should be updated now
             Assert.True(si1_updated.Equals(receivedServiceIdentity.OrDefault()));
         }
+
+        [Fact]
+        public async Task WaitForIntialialCachingCompleteWithInitialCacheTest()
+        {
+            // Arrange
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+
+            var sih = new Mock<IServiceIdentityHierarchy>();
+            var blocker = new AsyncManualResetEvent(false);
+            sih.Setup(s => s.GetAllIds()).Returns(async () =>
+            {
+                await blocker.WaitAsync();
+                return new string[0];
+            });
+
+            var store = GetEntityStore("cache");
+            var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
+            var si = new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            var storedSi = new DeviceScopeIdentitiesCache.StoredServiceIdentity(si);
+            await store.Put(si.Id, storedSi.ToJson());
+
+            // Act
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(sih.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+            var task = deviceScopeIdentitiesCache.WaitForIntialialCachingCompleteAsync();
+
+            // Assert
+            await Task.Delay(OneHundredMilliSeconds);
+            Assert.True(task.IsCompleted);
+
+            blocker.Set();
+        }
+
+        [Fact]
+        public async Task WaitForIntialialCachingCompleteWithoutInitialCacheTest()
+        {
+            // Arrange
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+
+            var sih = new Mock<IServiceIdentityHierarchy>();
+            var blocker = new AsyncManualResetEvent(false);
+            sih.Setup(s => s.GetAllIds()).Returns(async () =>
+            {
+                await blocker.WaitAsync();
+                return new string[0];
+            });
+
+            var store = GetEntityStore("cache");
+
+            // Act
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(sih.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+            var task = deviceScopeIdentitiesCache.WaitForIntialialCachingCompleteAsync();
+
+            // Assert
+            await Task.Delay(OneHundredMilliSeconds);
+            Assert.False(task.IsCompleted);
+
+            // Act
+            blocker.Set();
+
+            // Assert
+            await Task.Delay(OneHundredMilliSeconds);
+            Assert.True(task.IsCompleted);
+        }
+
+        [Fact]
+        public async Task DisposeWhileWaitForIntialialCachingCompleteTest()
+        {
+            // Arrange
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+
+            var sih = new Mock<IServiceIdentityHierarchy>();
+            var blocker = new AsyncManualResetEvent(false);
+            sih.Setup(s => s.GetAllIds()).Returns(async () =>
+            {
+                await blocker.WaitAsync();
+                return new string[0];
+            });
+
+            var store = GetEntityStore("cache");
+
+            // Act
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(sih.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+            var task = deviceScopeIdentitiesCache.WaitForIntialialCachingCompleteAsync();
+
+            // Assert
+            await Task.Delay(OneHundredMilliSeconds);
+            Assert.False(task.IsCompleted);
+
+            // Act
+            deviceScopeIdentitiesCache.Dispose();
+
+            // Assert
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await task);
+
+            blocker.Set();
+        }
+
 
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
 

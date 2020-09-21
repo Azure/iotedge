@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
@@ -14,20 +13,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
+    using Nito.AsyncEx;
 
     public class AuthAgentProtocolHead : IProtocolHead
     {
-        static readonly IEnumerable<Message> AuthAgentProtocolHeadStartedNotification = new[] { new Message("$internal/edgehubcore", "\"AuthAgentProtocolHead started.\"") };
-
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly AuthAgentProtocolHeadConfig config;
         readonly object guard = new object();
-        readonly NotificationHandler<bool> notificationHandler;
+        readonly AsyncManualResetEvent startSignal = new AsyncManualResetEvent(false);
+        readonly CancellationTokenSource startSignalCancellationToken = new CancellationTokenSource();
 
-        volatile bool started;
         Option<IWebHost> host;
 
         public string Name => "AUTH";
@@ -37,16 +35,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     IUsernameParser usernameParser,
                     IClientCredentialsFactory clientCredentialsFactory,
                     ISystemComponentIdProvider systemComponentIdProvider,
-                    AuthAgentProtocolHeadConfig config,
-                    IMqttBrokerConnector mqttBrokerConnector)
+                    AuthAgentProtocolHeadConfig config)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.config = Preconditions.CheckNotNull(config);
-            this.notificationHandler = new NotificationHandler<bool>(this.ConvertNotificationToMessagesAsync, storedNotificationRetriever: this.ConvertStoredNotificationsToMessagesAsync);
-            this.notificationHandler.SetConnector(mqttBrokerConnector);
         }
 
         public async Task StartAsync()
@@ -73,16 +68,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             await this.host.Expect(() => new Exception("No AUTH host instance found to start"))
                            .StartAsync();
-            this.started = true;
-            await this.notificationHandler.NotifyAsync(true);
+            this.startSignal.Set();
             Events.Started();
         }
 
         public async Task CloseAsync(CancellationToken token)
         {
             Events.Closing();
-            this.started = false;
             Option<IWebHost> hostToStop;
+            this.startSignal.Reset();
             lock (this.guard)
             {
                 hostToStop = this.host;
@@ -106,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 this.CloseAsync(CancellationToken.None).Wait();
             }
+            this.startSignalCancellationToken.Cancel();
         }
 
         static IWebHost CreateWebHostBuilder(
@@ -129,9 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .Build();
         }
 
-        Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync() => Task.FromResult(this.started ? AuthAgentProtocolHeadStartedNotification : new Message[0]);
-
-        Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(bool _) => Task.FromResult(AuthAgentProtocolHeadStartedNotification);
+        public async Task WaitForStartAsync() => await this.startSignal.WaitAsync(startSignalCancellationToken.Token);
 
         static class Events
         {

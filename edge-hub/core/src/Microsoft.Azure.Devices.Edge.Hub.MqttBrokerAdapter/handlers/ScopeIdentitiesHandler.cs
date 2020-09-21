@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task<IEnumerable<Message>> RetrieveDeviceScopeIdentitiesCacheAsync()
         {
-            var deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheGetter;
+            var deviceScopeIdentitiesCache = await this.deviceScopeIdentitiesCacheGetter;
             deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += async (sender, serviceIdentities) => await this.notificationHandler.NotifyAsync(serviceIdentities);
 
             var brokerServiceIdentities = await deviceScopeIdentitiesCache.GetAllIds();
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task<IList<BrokerServiceIdentity>> ConvertIdsToBrokerServiceIdentitiesAsync(IList<string> ids)
         {
-            var deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheGetter;
+            var deviceScopeIdentitiesCache = await this.deviceScopeIdentitiesCacheGetter;
             IList<BrokerServiceIdentity> brokerServiceIdentities = new List<BrokerServiceIdentity>();
             foreach (string id in ids)
             {

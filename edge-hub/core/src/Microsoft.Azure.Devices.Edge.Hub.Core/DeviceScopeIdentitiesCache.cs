@@ -26,6 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly AsyncManualResetEvent refreshCacheSignal = new AsyncManualResetEvent(false);
         readonly AsyncManualResetEvent refreshCacheCompleteSignal = new AsyncManualResetEvent(false);
         readonly object refreshCacheLock = new object();
+        readonly AsyncManualResetEvent initialCachedSignal = new AsyncManualResetEvent(false);
+        readonly CancellationTokenSource lifeCycleSignal = new CancellationTokenSource();
 
         Task refreshCacheTask;
         DateTime cacheLastRefreshTime;
@@ -56,6 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             // Kick off the initial refresh after we processed all the stored identities
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, this.periodicRefreshRate);
+
+            if (initialCache.Any())
+            {
+                this.initialCachedSignal.Set();
+            }
         }
 
         public event EventHandler<string> ServiceIdentityRemoved;
@@ -159,6 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
                     }
+
                 }
                 else
                 {
@@ -206,8 +214,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             this.encryptedStore?.Dispose();
             this.refreshCacheTimer?.Dispose();
-            this.refreshCacheTask?.Dispose();
+            this.lifeCycleSignal.Cancel();
         }
+
+        public async Task WaitForIntialialCachingCompleteAsync() => await this.initialCachedSignal.WaitAsync(lifeCycleSignal.Token);
 
         internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string targetId, string onBehalfOfDevice)
         {
@@ -268,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task RefreshCache()
         {
-            while (true)
+            while (!this.lifeCycleSignal.IsCancellationRequested)
             {
                 var currentCacheIds = new List<string>();
 
@@ -276,11 +286,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Events.StartingRefreshCycle();
                     IServiceIdentitiesIterator iterator = this.serviceProxy.GetServiceIdentitiesIterator();
-                    while (iterator.HasNext)
+                    while (iterator.HasNext && !this.lifeCycleSignal.IsCancellationRequested)
                     {
                         IEnumerable<ServiceIdentity> batch = await iterator.GetNext();
                         foreach (ServiceIdentity serviceIdentity in batch)
                         {
+                            if (this.lifeCycleSignal.IsCancellationRequested)
+                            {
+                                return;
+                            }
+
                             try
                             {
                                 await this.HandleNewServiceIdentity(serviceIdentity);
@@ -305,6 +320,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 Events.DoneRefreshCycle(this.periodicRefreshRate);
                 this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
+
+                this.initialCachedSignal.Set();
 
                 lock (this.refreshCacheLock)
                 {
@@ -342,6 +359,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task HandleNoServiceIdentity(string id)
         {
+            if (this.lifeCycleSignal.IsCancellationRequested)
+            {
+                return;
+            }
+
             Option<ServiceIdentity> identity = await this.serviceIdentityHierarchy.Get(id);
             bool hasValidServiceIdentity = identity.Filter(s => s.Status == ServiceIdentityStatus.Enabled).HasValue;
 

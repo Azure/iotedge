@@ -60,5 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RefreshServiceIdentityOnBehalfOf(string refreshTarget, string onBehalfOfDevice) => Task.CompletedTask;
 
         public Task RefreshAuthChain(string authChain) => Task.CompletedTask;
+
+        public Task WaitForIntialialCachingCompleteAsync() => Task.CompletedTask;
     }
 }

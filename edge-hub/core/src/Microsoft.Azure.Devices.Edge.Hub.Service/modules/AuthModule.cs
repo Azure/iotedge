@@ -33,17 +33,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var usernameParser = c.Resolve<IUsernameParser>();
                             var identityFactory = c.Resolve<IClientCredentialsFactory>();
                             var systemIdProvider = c.Resolve<ISystemComponentIdProvider>();
-                            var mqttBrokerConnector = c.Resolve<IMqttBrokerConnector>();
 
                             var port = this.config.GetValue("port", defaultPort);
                             var baseUrl = this.config.GetValue("baseUrl", defaultBaseUrl);
 
                             var config = new AuthAgentProtocolHeadConfig(port, baseUrl);
 
-                            return new AuthAgentProtocolHead(auth, usernameParser, identityFactory, systemIdProvider, config, mqttBrokerConnector);
+                            return new AuthAgentProtocolHead(auth, usernameParser, identityFactory, systemIdProvider, config);
                         })
                     .As<Task<AuthAgentProtocolHead>>()
                     .SingleInstance();
+
+            builder.RegisterType<MqttBrokerNotifier>()
+                .AsSelf().SingleInstance();
 
             base.Load(builder);
         }
