@@ -37,7 +37,7 @@ pub async fn start_server<Z, F>(
 ) -> Result<BrokerSnapshot>
 where
     Z: Authorizer + Send + 'static,
-    F: Future<Output = ()> + Unpin,
+    F: Future<Output = ()>,
 {
     let mut server =
         Server::from_broker(broker).with_packet_processor(MakeEdgeHubPacketProcessor::default());
@@ -85,6 +85,7 @@ where
     };
 
     // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
+    pin_mut!(shutdown_signal);
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 

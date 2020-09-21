@@ -8,7 +8,6 @@ use anyhow::{Context, Result};
 use futures_util::future::select;
 use futures_util::future::select_all;
 use futures_util::future::Either;
-use futures_util::pin_mut;
 use tokio::{
     task::JoinHandle,
     time::{Duration, Instant},
@@ -26,14 +25,6 @@ pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
 {
-    /*
-        create persistor and load state
-        get shutdown signal
-        start the server
-        start the sidecars
-        wait on either the server or sidecars to exit, on exit shut everything down and Err if needed
-    */
-
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
 
     info!("loading state...");
@@ -50,11 +41,11 @@ where
     let system_address = config.listener().system().addr().to_string();
 
     let shutdown_signal = shutdown::shutdown();
-    pin_mut!(shutdown_signal);
 
     // start broker
     info!("starting server...");
-    let server_join_handle = tokio::spawn(bootstrap::start_server(config, broker, shutdown_signal));
+    let server_join_handle =
+        tokio::spawn(async move { bootstrap::start_server(config, broker, shutdown_signal).await });
 
     // start sidecars
     let (sidecar_shutdown, sidecar_join_handles) =
@@ -72,6 +63,7 @@ where
 
             sidecar_shutdown.shutdown().await?;
             let (completed_join_handle, _, other_handles) = sidecar_join_handle.await;
+            completed_join_handle?;
             for handle in other_handles {
                 handle.await?;
             }
@@ -80,12 +72,13 @@ where
         }
         Either::Right((sidecar_join_handle, server_join_handle)) => {
             let (completed_join_handle, _, other_handles) = sidecar_join_handle;
+            completed_join_handle?;
             for handle in other_handles {
                 handle.await?;
             }
 
             sidecar_shutdown.shutdown().await?;
-            broker_handle.send(Message::System(SystemEvent::Shutdown));
+            broker_handle.send(Message::System(SystemEvent::Shutdown))?;
             let state = server_join_handle.await??;
 
             state
