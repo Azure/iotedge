@@ -74,6 +74,15 @@ impl Session {
         }
     }
 
+    pub fn client_info_omit_offline_sessions(&self) -> Option<&ClientInfo> {
+        match self {
+            Self::Transient(connected) => Some(connected.client_info()),
+            Self::Persistent(connected) => Some(connected.client_info()),
+            Self::Disconnecting(disconnecting) => Some(disconnecting.client_info()),
+            _ => None,
+        }
+    }
+
     pub fn into_will(self) -> Option<proto::Publication> {
         match self {
             Self::Transient(connected) => connected.into_will(),

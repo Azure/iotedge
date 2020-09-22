@@ -11,7 +11,7 @@ use mqtt_broker::{
 #[derive(Debug, Default)]
 pub struct EdgeHubAuthorizer {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
-    service_identities_cache: HashMap<String, ServiceIdentity>,
+    service_identities_cache: HashMap<ClientId, ServiceIdentity>,
 }
 
 impl EdgeHubAuthorizer {
@@ -131,42 +131,26 @@ impl EdgeHubAuthorizer {
         let topic_parts = topic.split('/').collect::<Vec<&str>>();
         let device_id = topic_parts.get(2);
         let module_id = match topic_parts.get(3) {
-            Some(s) => {
-                if *s == "modules" {
-                    topic_parts.get(4)
-                } else {
-                    None
-                }
-            }
-            None => None,
+            Some(s) if *s == "modules" => topic_parts.get(4),
+            _ => None,
         };
-        match module_id {
-            Some(mid) => match device_id {
-                Some(did) => Some(format!("{}/{}", did, mid)),
-                None => None,
-            },
-            None => match device_id {
-                Some(id) => Some((*id).to_string()),
-                None => None,
-            },
+
+        match (device_id, module_id) {
+            (Some(did), Some(mid)) => Some(format!("{}/{}", did, mid)),
+            (Some(did), None) => Some((*did).to_string()),
+            _ => None,
         }
     }
 
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
-        let on_behalf_of_id = if let Some(id) = EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
-            id
-        } else {
-            // If there is no on_behalf_of_id, we are dealing with a legacy topic
-            // The client_id must still be in the identities cache
-            return self
+        if let Some(on_behalf_of_id) = EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
+            if client_id.as_str() == on_behalf_of_id {
+                return self.service_identities_cache.contains_key(client_id);
+            }
+            match self
                 .service_identities_cache
-                .contains_key(client_id.as_str());
-        };
-        if client_id.as_str() == on_behalf_of_id {
-            self.service_identities_cache
-                .contains_key(client_id.as_str())
-        } else {
-            match self.service_identities_cache.get(&on_behalf_of_id) {
+                .get(&ClientId::from(on_behalf_of_id))
+            {
                 Some(service_identity) => {
                     match service_identity.auth_chain() {
                         Some(auth_chain) => {
@@ -178,6 +162,10 @@ impl EdgeHubAuthorizer {
                 }
                 None => false,
             }
+        } else {
+            // If there is no on_behalf_of_id, we are dealing with a legacy topic
+            // The client_id must still be in the identities cache
+            self.service_identities_cache.contains_key(client_id)
         }
     }
 }
@@ -260,11 +248,11 @@ impl Authorizer for EdgeHubAuthorizer {
                 "service identities update received. Service identities: {:?}",
                 service_identities
             );
-            let mut service_identity_map: HashMap<String, ServiceIdentity> = HashMap::new();
-            for id in service_identities {
-                service_identity_map.insert(id.identity(), id.clone());
-            }
-            self.service_identities_cache = service_identity_map;
+
+            self.service_identities_cache = service_identities
+                .iter()
+                .map(|id| (ClientId::from(id.identity()), id.clone()))
+                .collect();
         }
         Ok(())
     }

@@ -88,7 +88,7 @@ where
                         }
                         SystemEvent::AuthorizationUpdate(update) => {
                             if let Err(e) = self.authorizer.update(update) {
-                                warn!(message = "an error occurred while updating authorization info", error = %e);
+                                error!(message = "an error occurred while updating authorization info", error = %e);
                                 break;
                             }
                             if let Err(e) = self.reevaluate_subscriptions() {
@@ -104,42 +104,55 @@ where
         Ok(self.snapshot())
     }
 
-    fn reevaluate_subscriptions(&mut self) -> Result<(), Error> {
-        let mut client_ids_to_remove: Vec<ClientId> = Vec::new();
-        for (client_id, session) in &self.sessions {
-            for sub in session
-                .subscriptions()
-                .into_iter()
-                .flat_map(std::collections::HashMap::values)
-            {
-                let client_info = session.client_info()?.clone();
-                let sub_topic_filter = sub.filter().clone().to_string();
+    fn prepare_activities(&self, client_id: &ClientId, session: &Session) -> Vec<Activity> {
+        let mut activities = Vec::new();
+        for sub in session
+            .subscriptions()
+            .into_iter()
+            .flat_map(HashMap::values)
+        {
+            if let Some(client_info) = session.client_info_omit_offline_sessions() {
+                let sub_topic_filter = sub.filter().to_string();
                 let operation = Operation::new_subscribe(proto::SubscribeTo {
                     topic_filter: sub_topic_filter.clone(),
                     qos: *sub.max_qos(),
                 });
-                let activity = Activity::new(client_id.clone(), client_info, operation);
-                match self.authorizer.authorize(activity) {
-                    Ok(Authorization::Allowed) => (),
+                activities.push(Activity::new(
+                    client_id.clone(),
+                    client_info.clone(),
+                    operation,
+                ));
+            }
+        }
+        activities
+    }
+
+    fn reevaluate_subscriptions(&mut self) -> Result<(), Error> {
+        let disconnecting: Vec<ClientId> = self
+            .sessions
+            .iter()
+            .map(|(client_id, session)| self.prepare_activities(client_id, session))
+            .flatten()
+            .filter_map(
+                |activity: Activity| match self.authorizer.authorize(activity.clone()) {
+                    Ok(Authorization::Allowed) => None,
                     Ok(Authorization::Forbidden(reason)) => {
                         debug!(
-                            "client {} not allowed to subscribe to topic {}. {}",
-                            client_id,
-                            sub_topic_filter.clone(),
+                            "client {} not allowed to subscribe to topic. {}",
+                            activity.client_id(),
                             reason
                         );
-                        client_ids_to_remove.push(client_id.clone());
-                        break;
+                        Some(activity.client_id().clone())
                     }
                     Err(e) => {
                         warn!(message="error authorizing client subscription: {}", error = %e);
-                        client_ids_to_remove.push(client_id.clone());
-                        break;
+                        Some(activity.client_id().clone())
                     }
-                }
-            }
-        }
-        for client_id in client_ids_to_remove {
+                },
+            )
+            .collect();
+
+        for client_id in disconnecting {
             if let Err(x) = self.process_drop_connection(&client_id) {
                 warn!(
                     "error dropping connection for client {}. Reason {}",
