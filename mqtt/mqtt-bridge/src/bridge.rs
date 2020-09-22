@@ -8,9 +8,9 @@ use tracing::{debug, info, warn};
 use crate::{
     client::{ClientConnectError, EventHandler, MqttClient},
     persist::PersistError,
-    persist::Persistor,
+    persist::PublicationStore,
     persist::StreamWakeableState,
-    persist::WakingMap,
+    persist::WakingMemoryStore,
     settings::{ConnectionSettings, Credentials, Topic},
 };
 
@@ -121,7 +121,7 @@ impl Bridge {
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
-        let persistor = Persistor::new_memory(BATCH_SIZE);
+        let persistor = PublicationStore::new_memory(BATCH_SIZE);
         let mut client = MqttClient::new(
             address,
             keep_alive,
@@ -172,14 +172,14 @@ where
     S: StreamWakeableState,
 {
     topic_mappers: Vec<TopicMapper>,
-    inner: Persistor<S>,
+    inner: PublicationStore<S>,
 }
 
 impl<S> MessageHandler<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(persistor: Persistor<S>, topic_mappers: Vec<TopicMapper>) -> Self {
+    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
             inner: persistor,
@@ -212,7 +212,7 @@ where
 
 // TODO: implement for generic T where T: Persist
 #[async_trait]
-impl EventHandler for MessageHandler<WakingMap> {
+impl EventHandler for MessageHandler<WakingMemoryStore> {
     type Error = BridgeError;
 
     async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
@@ -273,7 +273,7 @@ mod tests {
 
     use crate::bridge::{Bridge, MessageHandler, TopicMapper};
     use crate::client::EventHandler;
-    use crate::persist::Persistor;
+    use crate::persist::PublicationStore;
     use crate::settings::Settings;
 
     #[tokio::test]
@@ -321,7 +321,7 @@ mod tests {
             })
             .collect();
 
-        let persistor = Persistor::new_memory(batch_size);
+        let persistor = PublicationStore::new_memory(batch_size);
         let mut handler = MessageHandler::new(persistor, topics);
 
         let pub1 = ReceivedPublication {
@@ -365,7 +365,7 @@ mod tests {
             })
             .collect();
 
-        let persistor = Persistor::new_memory(batch_size);
+        let persistor = PublicationStore::new_memory(batch_size);
         let mut handler = MessageHandler::new(persistor, topics);
 
         let pub1 = ReceivedPublication {
@@ -409,7 +409,7 @@ mod tests {
             })
             .collect();
 
-        let persistor = Persistor::new_memory(batch_size);
+        let persistor = PublicationStore::new_memory(batch_size);
         let mut handler = MessageHandler::new(persistor, topics);
 
         let pub1 = ReceivedPublication {
@@ -453,7 +453,7 @@ mod tests {
             })
             .collect();
 
-        let persistor = Persistor::new_memory(batch_size);
+        let persistor = PublicationStore::new_memory(batch_size);
         let mut handler = MessageHandler::new(persistor, topics);
 
         let pub1 = ReceivedPublication {

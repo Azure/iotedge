@@ -7,9 +7,9 @@ mod loader;
 mod persistor;
 mod waking_state;
 pub use loader::MessageLoader;
-pub use persistor::Persistor;
-pub use waking_state::waking_map::WakingMap;
-pub use waking_state::waking_store::WakingStore;
+pub use persistor::PublicationStore;
+pub use waking_state::memory::WakingMemoryStore;
+pub use waking_state::rocksdb::WakingRocksDBStore;
 pub use waking_state::StreamWakeableState;
 
 /// Keys used in persistence.
@@ -28,7 +28,7 @@ pub enum PersistError {
     Deserialization(#[source] Box<ErrorKind>),
 
     #[error("Failed to get rocksdb column family")]
-    GetColumnFamily(),
+    GetColumnFamily,
 
     #[error("Failed to serialize on database insert")]
     Insertion(#[source] Error),
@@ -37,7 +37,7 @@ pub enum PersistError {
     Removal(#[source] Error),
 
     #[error("Attempted to remove entry which does not exist")]
-    RemovalForMissing(),
+    RemovalForMissing,
 
     #[error("Failed to serialize on database insert")]
     Serialization(#[source] Box<ErrorKind>),

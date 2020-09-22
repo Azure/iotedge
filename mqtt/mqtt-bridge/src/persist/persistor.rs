@@ -9,31 +9,34 @@ use rocksdb::DB;
 use tracing::debug;
 
 use crate::persist::{
-    loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMap,
-    WakingStore,
+    loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
+    WakingRocksDBStore,
 };
 
 /// Persistence implementation used for the bridge
-pub struct Persistor<S: StreamWakeableState> {
+pub struct PublicationStore<S: StreamWakeableState> {
     state: Arc<Mutex<S>>,
     offset: u32,
     loader: Arc<Mutex<MessageLoader<S>>>,
 }
 
-impl Persistor<WakingMap> {
-    pub fn new_memory(batch_size: usize) -> Persistor<WakingMap> {
-        Self::new(WakingMap::new(), batch_size)
+impl PublicationStore<WakingMemoryStore> {
+    pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
+        Self::new(WakingMemoryStore::new(), batch_size)
     }
 }
 
-impl Persistor<WakingStore> {
-    pub fn new_disk(db: DB, batch_size: usize) -> Result<Persistor<WakingStore>, PersistError> {
-        let waking_store = WakingStore::new(db)?;
+impl PublicationStore<WakingRocksDBStore> {
+    pub fn new_disk(
+        db: DB,
+        batch_size: usize,
+    ) -> Result<PublicationStore<WakingRocksDBStore>, PersistError> {
+        let waking_store = WakingRocksDBStore::new(db)?;
         Ok(Self::new(waking_store, batch_size))
     }
 }
 
-impl<S: StreamWakeableState> Persistor<S> {
+impl<S: StreamWakeableState> PublicationStore<S> {
     pub fn new(state: S, batch_size: usize) -> Self {
         let state = Arc::new(Mutex::new(state));
         let loader = MessageLoader::new(Arc::clone(&state), batch_size);
@@ -85,14 +88,14 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
-    use crate::persist::{persistor::Persistor, Key, WakingMap};
+    use crate::persist::{persistor::PublicationStore, Key, WakingMemoryStore};
 
     #[tokio::test]
     async fn insert() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let batch_size: usize = 5;
-        let mut persistence = Persistor::new(state, batch_size);
+        let mut persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -130,9 +133,9 @@ mod tests {
     #[tokio::test]
     async fn remove() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = Persistor::new(state, batch_size);
+        let mut persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -171,9 +174,9 @@ mod tests {
     #[tokio::test]
     async fn remove_key_inserted_but_not_retrieved() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = Persistor::new(state, batch_size);
+        let mut persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -193,9 +196,9 @@ mod tests {
     #[tokio::test]
     async fn remove_key_dne() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = Persistor::new(state, batch_size);
+        let mut persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -208,9 +211,9 @@ mod tests {
     #[tokio::test]
     async fn get_loader() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = Persistor::new(state, batch_size);
+        let mut persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };

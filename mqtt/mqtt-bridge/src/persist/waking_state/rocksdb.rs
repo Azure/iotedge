@@ -11,14 +11,14 @@ use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
 /// When elements are retrieved they are added to the in flight collection, but kept in the original db store.
 /// Only when elements are removed from the in-flight collection they will be removed from the store.
-pub struct WakingStore {
+pub struct WakingRocksDBStore {
     db: DB,
     in_flight: HashMap<Key, Publication>,
     waker: Option<Waker>,
     column_family: String,
 }
 
-impl WakingStore {
+impl WakingRocksDBStore {
     pub fn new(mut db: DB) -> Result<Self, PersistError> {
         let column_family = Uuid::new_v4().to_string();
         db.create_cf(column_family.clone(), &Options::default())
@@ -33,7 +33,7 @@ impl WakingStore {
     }
 }
 
-impl StreamWakeableState for WakingStore {
+impl StreamWakeableState for WakingRocksDBStore {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
         let publication_bytes = bincode::serialize(&value).map_err(PersistError::Serialization)?;
@@ -41,7 +41,7 @@ impl StreamWakeableState for WakingStore {
         let column_family = self
             .db
             .cf_handle(&self.column_family)
-            .ok_or(PersistError::GetColumnFamily())?;
+            .ok_or(PersistError::GetColumnFamily)?;
         self.db
             .put_cf(column_family, key_bytes, publication_bytes)
             .map_err(PersistError::Insertion)?;
@@ -58,7 +58,7 @@ impl StreamWakeableState for WakingStore {
         let column_family = self
             .db
             .cf_handle(&self.column_family)
-            .ok_or(PersistError::GetColumnFamily())?;
+            .ok_or(PersistError::GetColumnFamily)?;
         let iter = self.db.iterator_cf(column_family, IteratorMode::Start);
 
         let mut output = vec![];
@@ -91,7 +91,7 @@ impl StreamWakeableState for WakingStore {
         let column_family = self
             .db
             .cf_handle(&self.column_family)
-            .ok_or(PersistError::GetColumnFamily())?;
+            .ok_or(PersistError::GetColumnFamily)?;
 
         self.db
             .delete_cf(column_family, key_bytes)
@@ -99,7 +99,7 @@ impl StreamWakeableState for WakingStore {
         let removed = self
             .in_flight
             .remove(key)
-            .ok_or(PersistError::RemovalForMissing())?;
+            .ok_or(PersistError::RemovalForMissing)?;
         Ok(removed)
     }
 

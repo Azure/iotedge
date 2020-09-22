@@ -7,9 +7,8 @@ use mqtt3::proto::Publication;
 
 use crate::persist::{Key, PersistError};
 
-pub mod waking_map;
-pub mod waking_store;
-
+pub mod memory;
+pub mod rocksdb;
 /// Responsible for waking waiting streams when new elements are added.
 ///
 /// Exposes a get method for retrieving a count of elements in order of insertion.
@@ -38,11 +37,12 @@ mod tests {
     use tokio::sync::Notify;
     use uuid::Uuid;
 
-    use crate::persist::{waking_state::StreamWakeableState, Key, WakingMap, WakingStore};
-
+    use crate::persist::{
+        waking_state::StreamWakeableState, Key, WakingMemoryStore, WakingRocksDBStore,
+    };
     const STORAGE_DIR: &str = "unit-tests/persistence/";
 
-    #[test_case(WakingMap::new())]
+    #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
     fn insert(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
@@ -60,7 +60,7 @@ mod tests {
         assert_eq!(pub1, extracted_message);
     }
 
-    #[test_case(WakingMap::new())]
+    #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
     fn get_over_quantity(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
@@ -81,7 +81,7 @@ mod tests {
         assert_eq!(pub1, extracted_message);
     }
 
-    #[test_case(WakingMap::new())]
+    #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
     fn in_flight(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
@@ -98,7 +98,7 @@ mod tests {
         assert_eq!(removed, pub1);
     }
 
-    #[test_case(WakingMap::new())]
+    #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
     fn remove_in_flight_dne(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
@@ -106,7 +106,7 @@ mod tests {
         assert_matches!(bad_removal, Err(_));
     }
 
-    #[test_case(WakingMap::new())]
+    #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
     fn remove_in_flight_inserted_but_not_yet_retrieved(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
@@ -122,7 +122,7 @@ mod tests {
         assert_matches!(bad_removal, Err(_));
     }
 
-    #[test_case(WakingMap::new())]
+    #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
     async fn insert_wakes_stream(state: impl StreamWakeableState + Send + 'static) {
         // setup data
@@ -188,13 +188,13 @@ mod tests {
         }
     }
 
-    pub fn init_rocksdb_test_store() -> WakingStore {
+    pub fn init_rocksdb_test_store() -> WakingRocksDBStore {
         let mut storage_dir = STORAGE_DIR.to_string();
         let uuid = Uuid::new_v4().to_string();
         storage_dir.push_str(&uuid);
         let path = Path::new(&storage_dir);
 
         let db = DB::open_default(path).unwrap();
-        WakingStore::new(db).unwrap()
+        WakingRocksDBStore::new(db).unwrap()
     }
 }

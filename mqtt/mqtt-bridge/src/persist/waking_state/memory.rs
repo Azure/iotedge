@@ -7,18 +7,18 @@ use mqtt3::proto::Publication;
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
 /// When elements are retrieved they are moved to the in flight collection.
-pub struct WakingMap {
+pub struct WakingMemoryStore {
     queue: VecDeque<(Key, Publication)>,
     in_flight: HashMap<Key, Publication>,
     waker: Option<Waker>,
 }
 
-impl WakingMap {
+impl WakingMemoryStore {
     pub fn new() -> Self {
         let queue: VecDeque<(Key, Publication)> = VecDeque::new();
         let in_flight = HashMap::new();
 
-        WakingMap {
+        WakingMemoryStore {
             queue,
             in_flight,
             waker: None,
@@ -26,7 +26,7 @@ impl WakingMap {
     }
 }
 
-impl StreamWakeableState for WakingMap {
+impl StreamWakeableState for WakingMemoryStore {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
         self.queue.push_back((key, value));
 
@@ -48,7 +48,7 @@ impl StreamWakeableState for WakingMap {
     fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError> {
         self.in_flight
             .remove(key)
-            .ok_or(PersistError::RemovalForMissing())
+            .ok_or(PersistError::RemovalForMissing)
     }
 
     fn set_waker(&mut self, waker: &Waker) {
