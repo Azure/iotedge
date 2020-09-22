@@ -3,11 +3,13 @@ use rocksdb::Error;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+// TODO REVIEW: don't pub mod
 pub mod loader;
 pub mod persistor;
 mod waking_state;
 pub use waking_state::waking_map::WakingMap;
 pub use waking_state::waking_store::WakingStore;
+pub use waking_state::StreamWakeableState;
 
 /// Keys used in persistence.
 /// Ordered by offset

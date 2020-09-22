@@ -21,20 +21,20 @@ pub struct Persistor<S: StreamWakeableState> {
 }
 
 impl Persistor<WakingMap> {
-    fn new_memory(batch_size: usize) -> Persistor<WakingMap> {
+    pub fn new_memory(batch_size: usize) -> Persistor<WakingMap> {
         Self::new(WakingMap::new(), batch_size)
     }
 }
 
 impl Persistor<WakingStore> {
-    fn new_disk(db: DB, batch_size: usize) -> Result<Persistor<WakingStore>, PersistError> {
+    pub fn new_disk(db: DB, batch_size: usize) -> Result<Persistor<WakingStore>, PersistError> {
         let waking_store = WakingStore::new(db)?;
         Ok(Self::new(waking_store, batch_size))
     }
 }
 
 impl<S: StreamWakeableState> Persistor<S> {
-    fn new(state: S, batch_size: usize) -> Self {
+    pub fn new(state: S, batch_size: usize) -> Self {
         let state = Arc::new(Mutex::new(state));
         let loader = MessageLoader::new(Arc::clone(&state), batch_size);
         let loader = Arc::new(Mutex::new(loader));
@@ -47,7 +47,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         }
     }
 
-    fn push(&mut self, message: Publication) -> Result<Key, PersistError> {
+    pub fn push(&mut self, message: Publication) -> Result<Key, PersistError> {
         debug!(
             "persisting publication on topic {} with offset {}",
             message.topic_name, self.offset
@@ -63,7 +63,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         Ok(key)
     }
 
-    fn remove(&mut self, key: &Key) -> Result<Publication, PersistError> {
+    pub fn remove(&mut self, key: &Key) -> Result<Publication, PersistError> {
         debug!(
             "removing publication with offset {} from in-flight collection",
             self.offset
@@ -73,7 +73,7 @@ impl<S: StreamWakeableState> Persistor<S> {
         state_lock.remove_in_flight(&key)
     }
 
-    fn loader(&mut self) -> Arc<Mutex<MessageLoader<S>>> {
+    pub fn loader(&mut self) -> Arc<Mutex<MessageLoader<S>>> {
         Arc::clone(&self.loader)
     }
 }
