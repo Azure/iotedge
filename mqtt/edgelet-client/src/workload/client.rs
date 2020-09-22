@@ -4,11 +4,16 @@ use bytes::buf::{Buf, BufExt};
 use chrono::{DateTime, Utc};
 use http::{Request, StatusCode, Uri};
 use hyper::{body, Body, Client};
+use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
 
 use crate::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, IdentityCertificateRequest, Scheme,
     ServerCertificateRequest, SignRequest, SignResponse, TrustBundleResponse,
 };
+
+define_encode_set! {
+    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '$' }
+}
 
 #[derive(Debug)]
 pub struct WorkloadClient {
@@ -98,13 +103,15 @@ impl WorkloadClient {
         data: &str,
     ) -> Result<SignResponse, WorkloadError> {
         let path = format!(
-            "/modules/{}/genid/{}/sign?api-version=2019-01-30",
-            module_id, generation_id
+            "/modules/{name}/genid/{genid}/sign?api-version=2019-01-30",
+            name = percent_encode(module_id.as_bytes(), IOTHUB_ENCODE_SET),
+            genid = percent_encode(generation_id.as_bytes(), PATH_SEGMENT_ENCODE_SET),
         );
+
         let uri =
             make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequestUrl(e))?;
 
-        let req = SignRequest::new(data.to_string());
+        let req = SignRequest::new(base64::encode(data.to_string()));
         let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
         let req = Request::post(uri)
             .body(Body::from(body))
@@ -291,16 +298,24 @@ mod tests {
     async fn it_signs_request() {
         let res = json!( { "digest": "signed-digest" } );
 
+        let body = format!(
+            "{}{}{}",
+            "{\"keyId\":\"primary\",\"algo\":\"HMACSHA256\",\"data\":\"",
+            base64::encode("digest"),
+            "\"}"
+        );
+
         let _m = mock(
             "POST",
-            "/modules/broker/genid/12345678/sign?api-version=2019-01-30",
+            "/modules/%24edgeHub/genid/12345678/sign?api-version=2019-01-30",
         )
+        .match_body(body.as_ref())
         .with_status(200)
         .with_body(serde_json::to_string(&res).unwrap())
         .create();
 
         let client = workload(&mockito::server_url()).expect("client");
-        let res = client.sign("broker", "12345678", "digest").await.unwrap();
+        let res = client.sign("$edgeHub", "12345678", "digest").await.unwrap();
 
         assert_eq!(res.digest(), "signed-digest");
     }

@@ -12,8 +12,10 @@
 )]
 
 mod bridge;
+mod client;
 pub mod controller;
 mod persist;
 mod settings;
+mod token_source;
 
 pub use crate::controller::BridgeController;
