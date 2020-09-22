@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
             }
         }
 
-        // Note this requires the prometheous-net library to have been initilized using App.UseMetricServer()
+        // Note this requires the prometheus-net library to have been initilized using App.UseMetricServer()
         public static void InitWithAspNet(IMetricsProvider metricsProvider, ILogger logger)
         {
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));

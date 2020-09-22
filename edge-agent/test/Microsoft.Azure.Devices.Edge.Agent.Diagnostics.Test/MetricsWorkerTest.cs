@@ -39,13 +39,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
             // all values are stored
-            testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
+            testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(1, scraper.Invocations.Count);
             Assert.Equal(1, storage.Invocations.Count);
             Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
 
-            testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
+            testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(2, scraper.Invocations.Count);
             Assert.Equal(2, storage.Invocations.Count);
@@ -244,7 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).Returns(async () =>
             {
                 await scrapeTaskSource.Task;
-                return this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)).ToArray());
+                return this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)).ToArray());
             });
 
             var storage = new Mock<IMetricsStorage>();
@@ -356,7 +356,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             }
         }
 
-        private IEnumerable<Metric> PrometheousMetrics(IEnumerable<(string name, double value)> modules)
+        private IEnumerable<Metric> PrometheusMetrics(IEnumerable<(string name, double value)> modules)
         {
             string dataPoints = string.Join("\n", modules.Select(module => $@"
 edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0"",{MetricsConstants.MsTelemetry}=""True""}} {module.value}
