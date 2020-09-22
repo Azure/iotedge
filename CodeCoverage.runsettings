@@ -64,7 +64,7 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*leafdevice\..*</ModulePath>
                 <ModulePath>.*load-gen\..*</ModulePath>
                 <ModulePath>.*metricscollector\..*</ModulePath>
-                <ModulePath>.*metricsvalidator\..*</ModulePath>
+                <ModulePath>.*numberlogger\..*</ModulePath>
                 <ModulePath>.*modulerestarter\..*</ModulePath>
                 <ModulePath>.*networkcontroller\..*</ModulePath>
                 <ModulePath>.*relayer\..*</ModulePath>
