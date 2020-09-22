@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iothubHostName, routerConfig, endpointExecutorFactory);
                 IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
                 var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
-                IEdgeHub edgeHub = new RoutingEdgeHub(router, new RoutingMessageConverter(), connectionManager, twinManager, edgeDeviceId, invokeMethodHandler, subscriptionProcessor, Mock.Of<IDeviceScopeIdentitiesCache>());
+                IEdgeHub edgeHub = new RoutingEdgeHub(router, new RoutingMessageConverter(), connectionManager, twinManager, edgeDeviceId, "$edgeHub", invokeMethodHandler, subscriptionProcessor, Mock.Of<IDeviceScopeIdentitiesCache>());
                 cloudConnectionProvider.BindEdgeHub(edgeHub);
 
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
