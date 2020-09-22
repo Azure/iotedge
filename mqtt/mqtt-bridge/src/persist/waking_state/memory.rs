@@ -1,5 +1,3 @@
-#![allow(dead_code)] // TODO remove when ready
-
 use std::{
     cmp::min,
     collections::{HashMap, VecDeque},

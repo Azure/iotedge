@@ -1,5 +1,3 @@
-#![allow(dead_code)] // TODO remove when ready
-
 use std::collections::VecDeque;
 use std::task::Waker;
 
@@ -26,7 +24,7 @@ pub trait StreamWakeableState {
 
 #[cfg(test)]
 mod tests {
-    use std::{path::Path, pin::Pin, sync::Arc, task::Context, task::Poll};
+    use std::{pin::Pin, sync::Arc, task::Context, task::Poll};
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt};
@@ -34,14 +32,13 @@ mod tests {
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
     use rocksdb::DB;
+    use tempfile::TempDir;
     use test_case::test_case;
     use tokio::sync::Notify;
-    use uuid::Uuid;
 
     use crate::persist::{
         waking_state::StreamWakeableState, Key, WakingMemoryStore, WakingRocksDBStore,
     };
-    const STORAGE_DIR: &str = "unit-tests/persistence/";
 
     #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
@@ -190,10 +187,8 @@ mod tests {
     }
 
     pub fn init_rocksdb_test_store() -> WakingRocksDBStore {
-        let mut storage_dir = STORAGE_DIR.to_string();
-        let uuid = Uuid::new_v4().to_string();
-        storage_dir.push_str(&uuid);
-        let path = Path::new(&storage_dir);
+        let tmp_dir = TempDir::new().unwrap();
+        let path = tmp_dir.path().to_owned();
 
         let db = DB::open_default(path).unwrap();
         WakingRocksDBStore::new(db).unwrap()
