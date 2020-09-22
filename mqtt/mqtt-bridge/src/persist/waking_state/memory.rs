@@ -1,6 +1,10 @@
 #![allow(dead_code)] // TODO remove when ready
 
-use std::{cmp::min, collections::HashMap, collections::VecDeque, task::Waker};
+use std::{
+    cmp::min,
+    collections::{HashMap, VecDeque},
+    task::Waker,
+};
 
 use mqtt3::proto::Publication;
 
@@ -15,12 +19,9 @@ pub struct WakingMemoryStore {
 
 impl WakingMemoryStore {
     pub fn new() -> Self {
-        let queue: VecDeque<(Key, Publication)> = VecDeque::new();
-        let in_flight = HashMap::new();
-
         WakingMemoryStore {
-            queue,
-            in_flight,
+            queue: VecDeque::new(),
+            in_flight: HashMap::new(),
             waker: None,
         }
     }
@@ -37,9 +38,9 @@ impl StreamWakeableState for WakingMemoryStore {
         Ok(())
     }
 
-    fn batch(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, PersistError> {
+    fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let count = min(count, self.queue.len());
-        let output: Vec<_> = self.queue.drain(..count).collect();
+        let output: VecDeque<_> = self.queue.drain(..count).collect();
         self.in_flight.extend(output.clone().into_iter());
 
         Ok(output)

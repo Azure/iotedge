@@ -39,11 +39,7 @@ impl<S: StreamWakeableState> MessageLoader<S> {
 
     fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let mut state_lock = self.state.lock();
-        let batch: VecDeque<_> = state_lock
-            .batch(self.batch_size)?
-            .iter()
-            .map(|(key, publication)| (key.clone(), publication.clone()))
-            .collect();
+        let batch: VecDeque<_> = state_lock.batch(self.batch_size)?;
 
         Ok(batch)
     }

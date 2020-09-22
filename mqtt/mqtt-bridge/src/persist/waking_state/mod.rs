@@ -1,5 +1,6 @@
 #![allow(dead_code)] // TODO remove when ready
 
+use std::collections::VecDeque;
 use std::task::Waker;
 
 use async_trait::async_trait;
@@ -16,7 +17,7 @@ pub mod rocksdb;
 pub trait StreamWakeableState {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError>;
 
-    fn batch(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, PersistError>;
+    fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError>;
 
     fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError>;
 

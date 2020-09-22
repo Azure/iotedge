@@ -1,6 +1,9 @@
 #![allow(dead_code)] // TODO remove when ready
 
-use std::{collections::hash_map::Entry, collections::HashMap, task::Waker};
+use std::{
+    collections::{hash_map::Entry, HashMap, VecDeque},
+    task::Waker,
+};
 
 use bincode::{self};
 use mqtt3::proto::Publication;
@@ -54,14 +57,14 @@ impl StreamWakeableState for WakingRocksDBStore {
     }
 
     /// Get count elements of store, exluding those that are already in in-flight
-    fn batch(&mut self, count: usize) -> Result<Vec<(Key, Publication)>, PersistError> {
+    fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let column_family = self
             .db
             .cf_handle(&self.column_family)
             .ok_or(PersistError::GetColumnFamily)?;
         let iter = self.db.iterator_cf(column_family, IteratorMode::Start);
 
-        let mut output = vec![];
+        let mut output = VecDeque::new();
         for (iterations, extracted) in iter.enumerate() {
             let (key, publication) = bincode::deserialize(&*extracted.0)
                 .map_err(PersistError::Deserialization)
@@ -73,7 +76,7 @@ impl StreamWakeableState for WakingRocksDBStore {
 
             if let Entry::Vacant(o) = self.in_flight.entry(key.clone()) {
                 o.insert(publication.clone());
-                output.push((key.clone(), publication.clone()));
+                output.push_back((key.clone(), publication.clone()));
                 self.in_flight.insert(key, publication);
             }
 
