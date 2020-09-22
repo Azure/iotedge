@@ -1,4 +1,4 @@
-Copyright(c) Microsoft.All rights reserved.
+// Copyright(c) Microsoft.All rights reserved.
 
  namespace Microsoft.Azure.Devices.Edge.Test
 {
@@ -40,17 +40,17 @@ Copyright(c) Microsoft.All rights reserved.
                     LogEventLevel consoleLevel = Context.Current.Verbose
                                    ? LogEventLevel.Verbose
                                    : LogEventLevel.Information;
-                               var loggerConfig = new LoggerConfiguration()
+                    var loggerConfig = new LoggerConfiguration()
                                    .MinimumLevel.Verbose()
                                    .WriteTo.NUnit(consoleLevel);
-                               Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
-                               Log.Logger = loggerConfig.CreateLogger();
+                    Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
+                    Log.Logger = loggerConfig.CreateLogger();
 
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
-                               await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
+                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
 
-                               await this.daemon.ConfigureAsync(
+                    await this.daemon.ConfigureAsync(
                                            config =>
                                            {
                                        var msgBuilder = new StringBuilder();

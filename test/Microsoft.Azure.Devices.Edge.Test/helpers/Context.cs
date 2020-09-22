@@ -165,6 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> NumberLoggerImage { get; }
 
+        public Option<string> MetricsValidatorImage { get; }
+
         public Option<string> TestResultCoordinatorImage { get; }
 
         public Option<string> LoadGenImage { get; }
