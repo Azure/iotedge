@@ -376,8 +376,13 @@ where
     }
 
     fn write_check(mut self) -> Result<Self, Error> {
-        let iotedge = env::args().next().unwrap();
         self.print_verbose("Calling iotedge check");
+
+        let mut iotedge = env::args().next().unwrap();
+        if iotedge.contains("iotedged") {
+            self.print_verbose("Calling iotedge check from edgelet, using iotedge from path");
+            iotedge = "iotedge".to_string();
+        }
 
         let mut check = ShellCommand::new(iotedge);
         check.arg("check").args(&["-o", "json"]);
@@ -395,6 +400,10 @@ where
 
         self.zip_writer
             .write_all(&check.stdout)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        self.zip_writer
+            .write_all(&check.stderr)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.print_verbose("Wrote check output to file");
