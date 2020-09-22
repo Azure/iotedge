@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
             string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count)));
-            ModuleLogsResponse response = JsonConvert.DeserializeObject<ModuleLogsResponse>(result.GetPayloadAsJson());
+            LogResponse response = JsonConvert.DeserializeObject<LogResponse>(result.GetPayloadAsJson());
             Assert.AreEqual("logs", response.Payload);
         }
 
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
             string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count)));
-            ModuleLogsResponse response = JsonConvert.DeserializeObject<ModuleLogsResponse>(result.GetPayloadAsJson());
+            LogResponse response = JsonConvert.DeserializeObject<LogResponse>(result.GetPayloadAsJson());
             Assert.AreEqual("logs", response.Payload);
         }
 
@@ -135,6 +135,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // BlobServiceClient blobServiceClient = new BlobServiceClient(sasUrl);
             // string expected = string.Join('\n', Enumerable.Range(0, count));
+        }
+
+        class LogResponse
+        {
+            [JsonProperty("payload")]
+            public string Payload { get; set; }
         }
     }
 }
