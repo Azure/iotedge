@@ -1,3 +1,5 @@
+use std::error::Error as StdError;
+
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::Deserialize;
@@ -28,7 +30,7 @@ impl PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter>
     /// Call to this method does not parse or validate the json, all heavy work
     /// is done in `build` method.
     pub fn from_json(
-        json: &str,
+        json: impl Into<String>,
     ) -> PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter> {
         PolicyBuilder {
             json: json.into(),
@@ -40,11 +42,12 @@ impl PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter>
     }
 }
 
-impl<V, M, S> PolicyBuilder<V, M, S>
+impl<V, M, S, E> PolicyBuilder<V, M, S>
 where
-    V: PolicyValidator,
+    V: PolicyValidator<Error = E>,
     M: ResourceMatcher,
     S: Substituter,
+    E: StdError + Sync + Into<Box<dyn StdError>> + 'static,
 {
     /// Specifies the `PolicyValidator` to validate the policy definition.
     pub fn with_validator<V1>(self, validator: V1) -> PolicyBuilder<V1, M, S> {
@@ -93,8 +96,7 @@ where
     ///
     /// Any validation errors are collected and returned as `Error::ValidationSummary`.
     pub fn build(self) -> Result<Policy<M, S>> {
-        let mut definition: PolicyDefinition =
-            serde_json::from_str(&self.json).map_err(Error::Deserializing)?;
+        let mut definition: PolicyDefinition = PolicyDefinition::from_json(&self.json)?;
 
         for (order, mut statement) in definition.statements.iter_mut().enumerate() {
             statement.order = order;
@@ -119,7 +121,10 @@ where
     }
 
     fn validate(&self, definition: &PolicyDefinition) -> Result<()> {
-        self.validator.validate(definition)
+        if let Err(e) = self.validator.validate(definition) {
+            return Err(Error::Validation(e.into()));
+        }
+        Ok(())
     }
 }
 
@@ -220,6 +225,13 @@ pub struct PolicyDefinition {
 }
 
 impl PolicyDefinition {
+    pub fn from_json(json: &str) -> Result<Self> {
+        let definition: PolicyDefinition =
+            serde_json::from_str(json).map_err(Error::Deserializing)?;
+
+        Ok(definition)
+    }
+
     pub fn schema_version(&self) -> &str {
         &self.schema_version
     }
@@ -280,9 +292,16 @@ pub enum Effect {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::core::{tests::build_policy, Effect as CoreEffect, EffectOrd};
+    use std::result::Result as StdResult;
+
     use matches::assert_matches;
+
+    use crate::{
+        core::{tests::build_policy, Effect as CoreEffect, EffectOrd},
+        validator::ValidatorError,
+    };
+
+    use super::*;
 
     #[test]
     fn test_basic_definition() {
@@ -292,7 +311,7 @@ mod tests {
                 {
                     "effect": "allow",
                     "identities": [
-                        "contoso.azure-devices.net/monitor_a"
+                        "actor_a"
                     ],
                     "operations": [
                         "read"
@@ -304,7 +323,7 @@ mod tests {
                 {
                     "effect": "allow",
                     "identities": [
-                        "actor_a"
+                        "actor_b"
                     ],
                     "operations": [
                         "write"
@@ -687,17 +706,17 @@ mod tests {
             .with_default_decision(Decision::Denied)
             .build();
 
-        assert_matches!(result, Err(Error::ValidationSummary(errors)) if errors.len() == 1 );
+        assert_matches!(result, Err(Error::Validation(_)));
     }
 
     #[derive(Debug)]
     struct FailAllValidator;
 
     impl PolicyValidator for FailAllValidator {
-        fn validate(&self, _definition: &PolicyDefinition) -> Result<()> {
-            Err(Error::ValidationSummary(vec![Error::Validation(
-                "Unable to parse policy definition".to_string(),
-            )]))
+        type Error = ValidatorError;
+
+        fn validate(&self, _definition: &PolicyDefinition) -> StdResult<(), Self::Error> {
+            Err(ValidatorError::ValidationSummary(vec!["error".to_string()]))
         }
     }
 }
