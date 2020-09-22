@@ -7,7 +7,7 @@ use std::{
 
 use bincode::{self};
 use mqtt3::proto::Publication;
-use rocksdb::{IteratorMode, Options, DB};
+use rocksdb::{ColumnFamily, IteratorMode, Options, DB};
 use uuid::Uuid;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
@@ -34,6 +34,13 @@ impl WakingRocksDBStore {
             column_family,
         })
     }
+
+    fn column_family(&self) -> Result<&ColumnFamily, PersistError> {
+        Ok(self
+            .db
+            .cf_handle(&self.column_family)
+            .ok_or(PersistError::GetColumnFamily)?)
+    }
 }
 
 impl StreamWakeableState for WakingRocksDBStore {
@@ -41,10 +48,7 @@ impl StreamWakeableState for WakingRocksDBStore {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
         let publication_bytes = bincode::serialize(&value).map_err(PersistError::Serialization)?;
 
-        let column_family = self
-            .db
-            .cf_handle(&self.column_family)
-            .ok_or(PersistError::GetColumnFamily)?;
+        let column_family = self.column_family()?;
         self.db
             .put_cf(column_family, key_bytes, publication_bytes)
             .map_err(PersistError::Insertion)?;
@@ -58,10 +62,7 @@ impl StreamWakeableState for WakingRocksDBStore {
 
     /// Get count elements of store, exluding those that are already in in-flight
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-        let column_family = self
-            .db
-            .cf_handle(&self.column_family)
-            .ok_or(PersistError::GetColumnFamily)?;
+        let column_family = self.column_family()?;
         let iter = self.db.iterator_cf(column_family, IteratorMode::Start);
 
         let mut output = VecDeque::new();
@@ -91,10 +92,7 @@ impl StreamWakeableState for WakingRocksDBStore {
     fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError> {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
 
-        let column_family = self
-            .db
-            .cf_handle(&self.column_family)
-            .ok_or(PersistError::GetColumnFamily)?;
+        let column_family = self.column_family()?;
 
         self.db
             .delete_cf(column_family, key_bytes)
