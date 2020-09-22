@@ -10,7 +10,7 @@ pub enum Error {
     #[error("An error occurred deserializing policy definition.")]
     Deserializing(#[source] serde_json::Error),
 
-    #[error("{0}")]
+    #[error("An error occurred validating policy definition: {0}")]
     Validation(#[source] Box<dyn std::error::Error>),
 
     #[error("An error occurred constructing the request: {0}.")]
