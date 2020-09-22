@@ -11,12 +11,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class MetricsStorage : IMetricsStorage
     {
         readonly ISequentialStore<IEnumerable<Metric>> dataStore;
         readonly TimeSpan maxMetricAge;
         readonly HashSet<long> offsetsReturned = new HashSet<long>();
+
+        static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsStorage>();
 
         public MetricsStorage(ISequentialStore<IEnumerable<Metric>> sequentialStore, TimeSpan maxMetricAge)
         {
@@ -38,15 +41,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
         async IAsyncEnumerable<Metric> GetAllMetricsInternal([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             HashSet<long> maxAgeEntriesToRemove = new HashSet<long>();
+            DateTime cutoff = DateTime.UtcNow - this.maxMetricAge;
 
             foreach ((long offset, IEnumerable<Metric> metrics) in await this.dataStore.GetBatch(0, 1000, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 // This makes the assumption that metrics are stored in batches with matching timestamps.
                 // This is the case b/c the metrics are stored immediately after being scraped.
-                if (metrics.First().TimeGeneratedUtc < DateTime.UtcNow - this.maxMetricAge)
+                if (metrics.First().TimeGeneratedUtc < cutoff)
                 {
-                    // TODO: log removed
+                    Log.LogInformation($"Deleted internal telemetry from {metrics.First().TimeGeneratedUtc} because it exceeded the max age of {this.maxMetricAge}");
                     maxAgeEntriesToRemove.Add(offset);
                 }
                 else
