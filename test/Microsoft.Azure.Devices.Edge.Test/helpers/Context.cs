@@ -99,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TempFilterFuncImage = Option.Maybe(Get("tempFilterFuncImage"));
             this.TempFilterImage = Option.Maybe(Get("tempFilterImage"));
             this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
+            this.NumberLoggerImage = Option.Maybe(Get("numberLoggerImage"));
             this.MetricsValidatorImage = Option.Maybe(Get("metricsValidatorImage"));
             this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
@@ -162,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> TempSensorImage { get; }
 
-        public Option<string> MetricsValidatorImage { get; }
+        public Option<string> NumberLoggerImage { get; }
 
         public Option<string> TestResultCoordinatorImage { get; }
 
