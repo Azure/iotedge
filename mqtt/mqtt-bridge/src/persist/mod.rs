@@ -5,17 +5,17 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
-mod memory;
+pub mod memory;
 
 /// Persistence used in bridge.
 /// Elements are added, then can be removed once retrieved by the loader
 /// If one attempts to remove added elements before reading via the loader remove returns None
 #[async_trait]
-trait Persist<'a> {
+pub trait Persist<'a> {
     type Loader: Stream;
     type Error: Error;
 
-    async fn new(batch_size: usize) -> Self;
+    fn new(batch_size: usize) -> Self;
 
     async fn push(&mut self, message: Publication) -> Result<Key, Self::Error>;
 
