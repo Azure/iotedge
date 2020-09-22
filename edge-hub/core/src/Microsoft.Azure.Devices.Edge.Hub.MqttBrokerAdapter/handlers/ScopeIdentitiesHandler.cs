@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector) => this.notificationHandler.SetConnector(connector);
 
-        async Task<IEnumerable<Message>> RetrieveDeviceScopeIdentitiesCacheAsync()
+        async Task<IEnumerable<BrokerMessage>> RetrieveDeviceScopeIdentitiesCacheAsync()
         {
             var deviceScopeIdentitiesCache = await this.deviceScopeIdentitiesCacheGetter;
             deviceScopeIdentitiesCache.ServiceIdentitiesUpdated += async (sender, serviceIdentities) => await this.notificationHandler.NotifyAsync(serviceIdentities);
@@ -32,10 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return await this.ConvertNotificationToMessagesAsync(brokerServiceIdentities);
         }
 
-        async Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(IList<string> notification)
+        async Task<IEnumerable<BrokerMessage>> ConvertNotificationToMessagesAsync(IList<string> notification)
         {
             IList<BrokerServiceIdentity> brokerServiceIdentities = await this.ConvertIdsToBrokerServiceIdentitiesAsync(notification);
-            return brokerServiceIdentities.Count == 0 ? new Message[0] : new[] { new Message(Topic, JsonConvert.SerializeObject(brokerServiceIdentities)) };
+            return brokerServiceIdentities.Count == 0 ? new BrokerMessage[0] : new[] { new BrokerMessage(Topic, JsonConvert.SerializeObject(brokerServiceIdentities)) };
         }
 
         async Task<IList<BrokerServiceIdentity>> ConvertIdsToBrokerServiceIdentitiesAsync(IList<string> ids)

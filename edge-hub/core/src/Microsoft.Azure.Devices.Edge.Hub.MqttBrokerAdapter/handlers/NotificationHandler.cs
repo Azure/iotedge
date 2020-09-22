@@ -14,16 +14,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         readonly AsyncLock stateLock = new AsyncLock(1);
         readonly Func<T, Task> notificationStorer;
-        readonly Func<T, Task<IEnumerable<Message>>> notificationConvertor;
-        readonly Func<Task<IEnumerable<Message>>> storedNotificationRetriever;
+        readonly Func<T, Task<IEnumerable<BrokerMessage>>> notificationConvertor;
+        readonly Func<Task<IEnumerable<BrokerMessage>>> storedNotificationRetriever;
 
         IMqttBrokerConnector connector;
         bool connected;
 
         public NotificationHandler(
-            Func<T, Task<IEnumerable<Message>>> notificationConvertor,
+            Func<T, Task<IEnumerable<BrokerMessage>>> notificationConvertor,
             Func<T, Task> notificationStorer = null,
-            Func<Task<IEnumerable<Message>>> storedNotificationRetriever = null)
+            Func<Task<IEnumerable<BrokerMessage>>> storedNotificationRetriever = null)
         {
             this.notificationConvertor = Preconditions.CheckNotNull(notificationConvertor);
             this.notificationStorer = notificationStorer;
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        async Task SendMessagesAsync(IEnumerable<Message> messages)
+        async Task SendMessagesAsync(IEnumerable<BrokerMessage> messages)
         {
             if (messages != null)
             {
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        async Task SendMessageAsync(Message message)
+        async Task SendMessageAsync(BrokerMessage message)
         {
             Events<T>.SendingNotification(message);
             try
@@ -108,12 +108,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         }
     }
 
-    public class Message
+    public class BrokerMessage
     {
         public string Topic { get; }
         public string Payload { get; }
 
-        public Message(string topic, string payload)
+        public BrokerMessage(string topic, string payload)
         {
             this.Topic = topic;
             this.Payload = payload;
@@ -135,13 +135,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             NotificationDiscarded
         }
 
-        internal static void SendingNotification(Message message) => Log.LogDebug((int)EventIds.SendingNotification, $"Publishing notification: [topic={message.Topic}, payload={message.Payload}] to mqtt broker.");
+        internal static void SendingNotification(BrokerMessage message) => Log.LogDebug((int)EventIds.SendingNotification, $"Publishing notification: [topic={message.Topic}, payload={message.Payload}] to mqtt broker.");
 
-        internal static void NotificationSent(Message message) => Log.LogDebug((int)EventIds.NotificationSent, $"Published notification: [topic={message.Topic}, payload={message.Payload}] to mqtt broker.");
+        internal static void NotificationSent(BrokerMessage message) => Log.LogDebug((int)EventIds.NotificationSent, $"Published notification: [topic={message.Topic}, payload={message.Payload}] to mqtt broker.");
 
-        internal static void SendingNotificationError(Message message, Exception ex) => Log.LogError((int)EventIds.ErrorSendingNotification, ex, $"Publishing notification failed: [topic={message.Topic}, payload={message.Payload}] to mqtt broker.");
+        internal static void SendingNotificationError(BrokerMessage message, Exception ex) => Log.LogError((int)EventIds.ErrorSendingNotification, ex, $"Publishing notification failed: [topic={message.Topic}, payload={message.Payload}] to mqtt broker.");
 
-        internal static void NotificationNotDelivered(Message message) => Log.LogError((int)EventIds.ErrorSendingNotification, $"Publishing notification failed: [topic={message.Topic}, payload={message.Payload}] to mqtt broker is not delivered.");
+        internal static void NotificationNotDelivered(BrokerMessage message) => Log.LogError((int)EventIds.ErrorSendingNotification, $"Publishing notification failed: [topic={message.Topic}, payload={message.Payload}] to mqtt broker is not delivered.");
 
         internal static void StoringNotification() => Log.LogDebug((int)EventIds.StoringNotification, "Storing notification while not connected to mqtt broker.");
 

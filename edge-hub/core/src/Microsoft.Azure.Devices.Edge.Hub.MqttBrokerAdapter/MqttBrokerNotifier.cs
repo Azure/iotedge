@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class MqttBrokerNotifier
     {
-        static readonly IEnumerable<Message> EdgeHubReadyNotification = new[] { new Message("$ehc/ready", "\"EdgeHub is ready to serve.\"") };
-        static readonly IEnumerable<Message> EmptyNotification = new Message[0];
+        static readonly IEnumerable<BrokerMessage> EdgeHubReadyNotification = new[] { new BrokerMessage("$ehc/ready", "\"EdgeHub is ready to serve.\"") };
+        static readonly IEnumerable<BrokerMessage> EmptyNotification = new BrokerMessage[0];
         readonly NotificationHandler<bool> notificationHandler;
         readonly Task<IDeviceScopeIdentitiesCache> deviceScopeIdentitiesCacheSupplier;
         readonly Task<AuthAgentProtocolHead> authAgentProtocolHeadSupplier;
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             this.notificationHandler.SetConnector(mqttBrokerConnector);
         }
 
-        async Task<IEnumerable<Message>> ConvertStoredNotificationsToMessagesAsync()
+        async Task<IEnumerable<BrokerMessage>> ConvertStoredNotificationsToMessagesAsync()
         {
             var authAgentProtocolHead = await this.authAgentProtocolHeadSupplier;
             var deviceScopeIdentitiesCache = await this.deviceScopeIdentitiesCacheSupplier;
@@ -30,6 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return EdgeHubReadyNotification;
         }
 
-        Task<IEnumerable<Message>> ConvertNotificationToMessagesAsync(bool _) => Task.FromResult(EmptyNotification);
+        Task<IEnumerable<BrokerMessage>> ConvertNotificationToMessagesAsync(bool _) => Task.FromResult(EmptyNotification);
     }
 }
