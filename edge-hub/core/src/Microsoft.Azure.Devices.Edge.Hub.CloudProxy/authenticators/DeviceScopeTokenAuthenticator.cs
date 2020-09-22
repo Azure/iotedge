@@ -73,15 +73,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
         {
             string audienceId = audienceModuleId.Map(m => $"{audienceDeviceId}/{m}").GetOrElse(audienceDeviceId);
 
+            // Token is for a device
+            // According to https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-security#security-token-structure
+            // URL-encoded-resourceURI should be in lowercase.
             if (!audienceModuleId.HasValue)
             {
-                // Token is for a device
-                if (identity is IDeviceIdentity deviceIdentity && deviceIdentity.DeviceId != audienceDeviceId)
+                if (identity is IDeviceIdentity deviceIdentity && !string.Equals(deviceIdentity.DeviceId, audienceDeviceId, StringComparison.OrdinalIgnoreCase))
                 {
                     Events.IdMismatch(audienceId, identity, deviceIdentity.DeviceId);
                     return false;
                 }
-                else if (identity is IModuleIdentity moduleIdentity && moduleIdentity.DeviceId != audienceDeviceId)
+                else if (identity is IModuleIdentity moduleIdentity && !string.Equals(moduleIdentity.DeviceId, audienceDeviceId, StringComparison.OrdinalIgnoreCase))
                 {
                     Events.IdMismatch(audienceId, identity, moduleIdentity.DeviceId);
                     return false;
@@ -97,12 +99,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                     Events.InvalidAudience(audienceId, identity);
                     return false;
                 }
-                else if (moduleIdentity.DeviceId != audienceDeviceId)
+                else if (!string.Equals(moduleIdentity.DeviceId, audienceDeviceId, StringComparison.OrdinalIgnoreCase))
                 {
                     Events.IdMismatch(audienceId, identity, moduleIdentity.DeviceId);
                     return false;
                 }
-                else if (moduleIdentity.ModuleId != moduleId)
+                else if (!string.Equals(moduleIdentity.ModuleId, moduleId, StringComparison.OrdinalIgnoreCase))
                 {
                     Events.IdMismatch(audienceId, identity, moduleIdentity.ModuleId);
                     return false;
