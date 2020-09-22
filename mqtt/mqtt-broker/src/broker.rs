@@ -104,7 +104,7 @@ where
         Ok(self.snapshot())
     }
 
-    fn prepare_activities(&self, client_id: &ClientId, session: &Session) -> Vec<Activity> {
+    fn prepare_activities(client_id: &ClientId, session: &Session) -> Vec<Activity> {
         let mut activities = Vec::new();
         for sub in session
             .subscriptions()
@@ -115,7 +115,7 @@ where
                 let sub_topic_filter = sub.filter().to_string();
                 let operation = Operation::new_subscribe(proto::SubscribeTo {
                     topic_filter: sub_topic_filter.clone(),
-                    qos: sub.max_qos().clone(),
+                    qos: *sub.max_qos(),
                 });
                 activities.push(Activity::new(
                     client_id.clone(),
@@ -131,8 +131,7 @@ where
         let disconnecting: Vec<ClientId> = self
             .sessions
             .iter()
-            .map(|(client_id, session)| self.prepare_activities(client_id, session))
-            .flatten()
+            .flat_map(|(client_id, session)| Self::prepare_activities(client_id, session))
             .filter_map(
                 |activity: Activity| match self.authorizer.authorize(activity.clone()) {
                     Ok(Authorization::Allowed) => None,
