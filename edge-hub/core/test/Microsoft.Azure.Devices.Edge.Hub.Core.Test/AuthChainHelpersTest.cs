@@ -43,9 +43,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Theory]
-        [InlineData("device1/$edgeHub;device1;device2", true, "device1")]
+        [InlineData("device1;device2;device3", true, "device1")]
+        [InlineData("device1;device2", true, "device1")]
         [InlineData("longdevicename", true, "longdevicename")]
+        [InlineData("device1/$edgeHub;device1;device2", false, null)]
+        [InlineData("   ", false, null)]
         [InlineData("", false, null)]
+        [InlineData(null, false, null)]
         public void TryGetTargetDeviceId_Success(string authChain, bool expected, string expectedTargetDeviceId)
         {
             bool actual = AuthChainHelpers.TryGetTargetDeviceId(authChain, out string actualTargetDeviceId);
