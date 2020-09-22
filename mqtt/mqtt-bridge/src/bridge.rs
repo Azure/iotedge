@@ -7,8 +7,8 @@ use tracing::{debug, info, warn};
 
 use crate::{
     client::{ClientConnectError, EventHandler, MqttClient},
-    persist::persistor::Persistor,
     persist::PersistError,
+    persist::Persistor,
     persist::StreamWakeableState,
     persist::WakingMap,
     settings::{ConnectionSettings, Credentials, Topic},
@@ -273,7 +273,7 @@ mod tests {
 
     use crate::bridge::{Bridge, MessageHandler, TopicMapper};
     use crate::client::EventHandler;
-    use crate::persist::persistor::Persistor;
+    use crate::persist::Persistor;
     use crate::settings::Settings;
 
     #[tokio::test]
