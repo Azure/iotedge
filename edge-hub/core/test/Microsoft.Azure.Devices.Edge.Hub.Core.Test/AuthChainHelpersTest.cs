@@ -59,11 +59,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Assert.Equal(expectedTargetDeviceId, actualTargetDeviceId);
             }
         }
-
-        [Fact]
-        public void TryGetTargetDeviceId_Fail()
-        {
-            Assert.Throws<ArgumentNullException>(() => AuthChainHelpers.TryGetTargetDeviceId(null, out string _));
-        }
     }
 }
