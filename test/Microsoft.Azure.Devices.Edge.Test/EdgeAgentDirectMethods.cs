@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count)));
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
-            Assert.AreEqual("logs", response.Payload);
+            Assert.AreEqual(expected, response.Payload);
         }
 
         [Test]
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count)));
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
-            Assert.AreEqual("logs", response.Payload);
+            Assert.AreEqual(expected, response.Payload);
         }
 
         [Test]
