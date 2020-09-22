@@ -18,7 +18,7 @@ pub struct InMemoryMessageLoader {
 }
 
 impl InMemoryMessageLoader {
-    pub async fn new(state: Arc<Mutex<WakingMap>>, batch_size: usize) -> Self {
+    pub fn new(state: &Arc<Mutex<WakingMap>>, batch_size: usize) -> Self {
         let batch: IntoIter<(Key, Publication)> = Vec::new().into_iter();
 
         InMemoryMessageLoader {
@@ -187,7 +187,7 @@ mod tests {
 
         // get loader
         let batch_size = 5;
-        let mut loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size).await;
+        let mut loader = InMemoryMessageLoader::new(&Arc::clone(&state), batch_size);
 
         // make sure same publications come out in correct order
         let extracted1 = loader.next().await.unwrap();
@@ -228,7 +228,7 @@ mod tests {
 
         // get loader
         let batch_size = 5;
-        let mut loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size).await;
+        let mut loader = InMemoryMessageLoader::new(&Arc::clone(&state), batch_size);
 
         // process inserted messages
         loader.next().await.unwrap();
@@ -307,7 +307,7 @@ mod tests {
 
         // get loader
         let batch_size = 5;
-        let mut loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size).await;
+        let mut loader = InMemoryMessageLoader::new(&Arc::clone(&state), batch_size);
 
         // async function that waits for a message to enter the state
         let key_copy = key1.clone();

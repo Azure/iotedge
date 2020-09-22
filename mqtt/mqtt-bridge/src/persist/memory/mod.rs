@@ -10,11 +10,11 @@ use crate::persist::{
     memory::loader::InMemoryMessageLoader, memory::waking_map::WakingMap, Key, Persist,
 };
 
-mod loader;
+pub mod loader;
 mod waking_map;
 
 /// In memory persistence implementation used for the bridge
-struct InMemoryPersist {
+pub struct InMemoryPersist {
     state: Arc<Mutex<WakingMap>>,
     offset: u32,
     loader: Arc<Mutex<InMemoryMessageLoader>>,
@@ -25,11 +25,11 @@ impl<'a> Persist<'a> for InMemoryPersist {
     type Loader = InMemoryMessageLoader;
     type Error = Error;
 
-    async fn new(batch_size: usize) -> Self {
+    fn new(batch_size: usize) -> Self {
         let state = WakingMap::new();
         let state = Arc::new(Mutex::new(state));
 
-        let loader = InMemoryMessageLoader::new(Arc::clone(&state), batch_size).await;
+        let loader = InMemoryMessageLoader::new(&Arc::clone(&state), batch_size);
         let loader = Arc::new(Mutex::new(loader));
 
         let offset = 0;
@@ -84,7 +84,7 @@ mod tests {
     async fn insert() {
         // setup state
         let batch_size: usize = 5;
-        let mut persistence = InMemoryPersist::new(batch_size).await;
+        let mut persistence = InMemoryPersist::new(batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -123,7 +123,7 @@ mod tests {
     async fn remove() {
         // setup state
         let batch_size: usize = 1;
-        let mut persistence = InMemoryPersist::new(batch_size).await;
+        let mut persistence = InMemoryPersist::new(batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -162,7 +162,7 @@ mod tests {
     async fn remove_key_that_dne() {
         // setup state
         let batch_size: usize = 1;
-        let mut persistence = InMemoryPersist::new(batch_size).await;
+        let mut persistence = InMemoryPersist::new(batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -176,7 +176,7 @@ mod tests {
     async fn get_loader() {
         // setup state
         let batch_size: usize = 1;
-        let mut persistence = InMemoryPersist::new(batch_size).await;
+        let mut persistence = InMemoryPersist::new(batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
