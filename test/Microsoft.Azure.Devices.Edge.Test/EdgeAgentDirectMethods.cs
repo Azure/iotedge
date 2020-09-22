@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
-            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count)));
+            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count))) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
             Assert.AreEqual(expected, response.Payload);
         }
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
-            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count)));
+            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count))) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
             Assert.AreEqual(expected, response.Payload);
         }
