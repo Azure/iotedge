@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             Events.ReceivedScopeRequest(actorDeviceId, actorModuleId, request);
 
-            if (!this.TryGetTargetDeviceId(request.AuthChain, out string targetDeviceId))
+            if (!AuthChainHelpers.TryGetTargetDeviceId(request.AuthChain, out string targetDeviceId))
             {
                 return new EdgeHubScopeResultError(HttpStatusCode.BadRequest, Events.InvalidRequestAuthchain(request.AuthChain));
             }
@@ -185,28 +185,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             });
 
             return needToRefresh;
-        }
-
-        bool TryGetTargetDeviceId(string authChain, out string targetDeviceId)
-        {
-            targetDeviceId = string.Empty;
-
-            // The target device is the first ID in the provided authchain,
-            // which could be a module ID of the format "deviceId/moduleId".
-            var actorAuthChainIds = authChain.Split(';', StringSplitOptions.RemoveEmptyEntries);
-
-            if (actorAuthChainIds.Length > 0)
-            {
-                var ids = actorAuthChainIds[0].Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-                if (ids.Length > 0)
-                {
-                    targetDeviceId = ids[0];
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         async Task SendResponse(HttpStatusCode status, string responseJson)

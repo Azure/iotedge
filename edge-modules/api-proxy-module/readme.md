@@ -106,16 +106,42 @@ Result after parsing
 ```
 
 
-### Setup for pulling container images
-There are several different kinds of configurations:
-- With local registry at the root: 
-    - Config for root device:
-![](images/set_env_var_local_registry.png)
-    - Config for other devices:
-![](images/set_env_var_no_local_registry.png)
+### Example of setup to pull container images & upload blob when modules
 
+This section describe a possible configuration that uses the docker registry module (https://hub.docker.com/_/registry) and azure blob storage (https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-blob) to Download images and upload data.  
+
+We distinguish two kinds of configuration:
+#### Modules located at the root
 Make sure to remove port 443 that is opened by edgehub or use another port that is available on the image.
-To open port 443 for the API proxy the options should be set as the following:
-![](api-proxy-create-options.png)
 
-The edgedevices inside the layers will
+| *Environment variables for root IoT edge* |
+|:--:|
+| ![](images/set_env_var_local_registry.png) | 
+ 
+| *Port bindings for root IoT edge* |
+|:--:|
+| ![](images/set_env_var_local_registry2.png) | 
+
+| *Environment variables for below root IoT edge* |
+|:--:|
+| ![](images/set_env_var_no_local_registry.png) | 
+ 
+| *Port bindings for below root IoT edge* |
+|:--:|
+| ![](images/set_env_var_no_local_registry2.png) | 
+
+| *Image selection for below root IoT edge* |
+|:--:|
+| ![](images/set_env_var_no_local_registry3.png) | 
+
+# Replacing completely the API-proxy-module configuration
+The template provided is mainly for prototyping and ease of use. More avdanced applications will need more customization options. To that effect, it is possible to:
+1. Replace the default configuration in real time:  
+    a. Create your own configuration  
+    b. Copy the text and convert it to base64  
+    c. Past it as a desired property inside the API-PROXY twin:
+
+![](images/change_config.png)  
+
+2. Replace the default configuration when nginx starts up:
+This is possile by generating a new API proxy image and replacing the configuration: edge-modules\api-proxy-module\templates\nginx_default_config.conf

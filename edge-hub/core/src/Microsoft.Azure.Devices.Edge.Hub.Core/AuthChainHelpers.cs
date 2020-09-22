@@ -85,5 +85,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             return true;
         }
+
+        public static bool TryGetTargetDeviceId(string authChain, out string targetDeviceId)
+        {
+            targetDeviceId = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(authChain))
+            {
+                return false;
+            }
+
+            // The target device is the first Identity in the provided authchain, which is a device identity.
+            var actorAuthChainIds = authChain.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (actorAuthChainIds.Length > 0)
+            {
+                var ids = actorAuthChainIds[0].Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (ids.Length == 1)
+                {
+                    targetDeviceId = ids[0];
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }
