@@ -115,7 +115,7 @@ where
                 let sub_topic_filter = sub.filter().to_string();
                 let operation = Operation::new_subscribe(proto::SubscribeTo {
                     topic_filter: sub_topic_filter.clone(),
-                    qos: *sub.max_qos(),
+                    qos: sub.max_qos().clone(),
                 });
                 activities.push(Activity::new(
                     client_id.clone(),
