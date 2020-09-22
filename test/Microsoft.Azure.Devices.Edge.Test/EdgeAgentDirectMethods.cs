@@ -60,6 +60,39 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        public async Task TestRestartModule()
+        {
+            string moduleName = "NumberLogger";
+            int count = 10;
+
+            CancellationToken token = this.TestToken;
+
+            string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
+            await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(moduleName, numberLoggerImage)
+                        .WithEnvironment(new[] { ("Count", count.ToString()) });
+                }, token);
+
+            // restart module
+            var restartRequest = new RestartRequest("1.0", moduleName);
+            var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("RestartModule", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(restartRequest)), token);
+
+            Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
+            Assert.AreEqual("null", result.GetPayloadAsJson());
+
+            // check it restarted
+            var logsRequest = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
+            result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(logsRequest)), token);
+
+            string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, count)));
+
+            Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
+            Assert.AreEqual("logs", result.GetPayloadAsJson());
+        }
+
+        [Test]
         public async Task TestUploadModuleLogs()
         {
             string moduleName = "NumberLogger";
