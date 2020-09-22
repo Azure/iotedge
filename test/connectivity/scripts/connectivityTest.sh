@@ -347,6 +347,11 @@ function run_connectivity_test() {
     if [[ ! -z "$PARENT_HOSTNAME" ]]; then
         echo "Parent hostname=$PARENT_HOSTNAME"
     fi
+    
+    PARENT_EDEG_DEVICE=$(printenv E2E_parentEdgeDevice)
+    if [[ ! -z "$PARENT_EDEG_DEVICE" ]]; then
+        echo "Parent Edge Device=$PARENT_EDEG_DEVICE"
+    fi
 
     "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
@@ -358,6 +363,7 @@ function run_connectivity_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         --parent-hostname "$PARENT_HOSTNAME" \
+        --parent-edge-device "$PARENT_EDEG_DEVICE" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
