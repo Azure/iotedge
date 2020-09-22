@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         /// <summary>
         /// Initializes a new instance of the <see cref="MetricsScraper"/> class.
         /// </summary>
-        /// <param name="endpoints">List of endpoints to scrape from. Endpoints must expose metrics in the prometheous format.
+        /// <param name="endpoints">List of endpoints to scrape from. Endpoints must expose metrics in the prometheus format.
         /// Endpoints should be in the form "http://edgeHub:9600/metrics".</param>
         /// <param name="systemTime">Source for current time.</param>
         public MetricsScraper(IList<string> endpoints, ISystemTime systemTime = null)
