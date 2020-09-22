@@ -11,6 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
         string ProductInfo { get; }
 
-        Option<string> ModelId { get; set; }
+        Option<string> ModelId { get; }
+
+        Option<string> AuthChain { get; }
     }
 }
