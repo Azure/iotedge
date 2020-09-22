@@ -121,10 +121,9 @@ where
     }
 
     fn validate(&self, definition: &PolicyDefinition) -> Result<()> {
-        if let Err(e) = self.validator.validate(definition) {
-            return Err(Error::Validation(e.into()));
-        }
-        Ok(())
+        self.validator
+            .validate(definition)
+            .map_err(|e| Error::Validation(e.into()))
     }
 }
 
