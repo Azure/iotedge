@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identityProvider = new IdentityProvider("hub");
             var systemComponentIdProvider = new SystemComponentIdProvider(
                                                     new TokenCredentials(
-                                                            new ModuleIdentity("hub", "device1", "$edgeHub"), "token", "prodinfo", Option.Some<string>("x"), false));
+                                                            new ModuleIdentity("hub", "device1", "$edgeHub"), "token", "prodinfo", Option.Some("x"), Option.None<string>(), false));
 
             var identity = identityProvider.Create("device_test");
 

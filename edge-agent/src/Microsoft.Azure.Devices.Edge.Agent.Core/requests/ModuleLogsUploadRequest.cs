@@ -16,12 +16,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             LogsContentEncoding encoding,
             LogsContentType contentType,
             string sasUrl)
+            : this(schemaVersion, items, encoding, contentType, sasUrl, new NestedEdgeParentUriParser())
+        {
+        }
+
+        public ModuleLogsUploadRequest(
+            string schemaVersion,
+            List<LogRequestItem> items,
+            LogsContentEncoding encoding,
+            LogsContentType contentType,
+            string sasUrl,
+            INestedEdgeParentUriParser parser)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Encoding = encoding;
             this.ContentType = contentType;
-            this.SasUrl = Preconditions.CheckNotNull(sasUrl, nameof(sasUrl));
             this.Items = Preconditions.CheckNotNull(items, nameof(items));
+
+            this.SasUrl = Preconditions.CheckNotNull(sasUrl, nameof(sasUrl));
+            Option<string> url = parser.ParseURI(this.SasUrl);
+            this.SasUrl = url.GetOrElse(this.SasUrl);
         }
 
         [JsonConstructor]

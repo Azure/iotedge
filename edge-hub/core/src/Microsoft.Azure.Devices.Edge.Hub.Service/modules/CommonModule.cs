@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -314,6 +315,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     })
                 .As<Task<IDeviceScopeIdentitiesCache>>()
                 .AutoActivate()
+                .SingleInstance();
+
+            // IRegistryApiClient
+            builder.Register(
+                    c =>
+                    {
+                        string upstreamHostname = this.gatewayHostName.GetOrElse(this.iothubHostName);
+                        var proxy = c.Resolve<Option<IWebProxy>>();
+                        var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
+                        return new RegistryOnBehalfOfApiClient(upstreamHostname, proxy, edgeHubTokenProvider);
+                    })
+                .As<IRegistryOnBehalfOfApiClient>()
                 .SingleInstance();
 
             // Task<ICredentialsCache>

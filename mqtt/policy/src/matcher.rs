@@ -10,6 +10,7 @@ pub trait ResourceMatcher {
     fn do_match(&self, context: &Request<Self::Context>, input: &str, policy: &str) -> bool;
 }
 
+/// Default matcher uses equality check for resource matching.
 #[derive(Debug)]
 pub struct DefaultResourceMatcher;
 

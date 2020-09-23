@@ -21,5 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
         public static readonly AmqpSymbol ChannelCorrelationId = AmqpConstants.Vendor + ":channel-correlation-id";
         public static readonly AmqpSymbol GatewayReconnect = AmqpConstants.Vendor + ":gateway-reconnect";
         public static readonly AmqpSymbol ModelId = AmqpConstants.Vendor + ":model-id";
+        public static readonly AmqpSymbol AuthChain = AmqpConstants.Vendor + ":auth-chain";
     }
 }

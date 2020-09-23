@@ -1,0 +1,44 @@
+# Configures the provisioning mode
+provisioning:
+  source: "manual"
+  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+agent:
+  name: "edgeAgent"
+  type: "docker"
+  env:
+    abc: "value1"
+    acd: "value2"
+  config:
+    image: "microsoft/azureiotedge-agent:1.0"
+    auth: {}
+hostname: "localhost"
+
+watchdog:
+  max_retries: 3
+
+certificates:
+  auto_generated_ca_lifetime_days: 1
+
+# Sets the connection uris for clients
+connect:
+  workload_uri: "http://localhost:8081"
+  management_uri: "http://localhost:8080"
+
+# Sets the uris to listen on
+# These can be different than the connect uris.
+# For instance, when using the fd:// scheme for systemd
+listen:
+  workload_uri: "http://0.0.0.0:8081"
+  management_uri: "http://0.0.0.0:8080"
+homedir: "/tmp"
+moby_runtime:
+  uri: "http://localhost:2375"
+  network: "azure-iot-edge"
+  content_trust :
+    ca_certs: 
+      'contoso1.azurcr.io' : "/path/to/root_ca_contoso1.crt"
+      'contoso2.azurcr.io' : "/path/to/root_ca_contoso2.crt"
+      "" : "/path/to/root_ca_contoso3.crt"
+      'contoso4.azurcr.io' : "/path/to/root_ca_contoso4.crt"
+      'contoso4.azurcr.io' : "/path/to/root_ca_contoso4_replaced.crt"
+      'contoso5.azurcr.io' : ""

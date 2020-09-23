@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var deviceListener = new Mock<IDeviceListener>();
             var connectionHandler = Mock.Of<IConnectionHandler>(c => c.GetDeviceListener() == Task.FromResult(deviceListener.Object));
             var amqpAuthenticator = new Mock<IAmqpAuthenticator>();
-            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1", Option.None<string>())).ReturnsAsync(true);
+            amqpAuthenticator.Setup(c => c.AuthenticateAsync("d1", Option.None<string>(), Option.None<string>())).ReturnsAsync(true);
             Mock<ICbsNode> cbsNodeMock = amqpAuthenticator.As<ICbsNode>();
             ICbsNode cbsNode = cbsNodeMock.Object;
             var amqpConnection = Mock.Of<IAmqpConnection>(

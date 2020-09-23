@@ -371,6 +371,7 @@ function Initialize-IoTEdge {
     Set-Hostname
     if ($ContainerOs -eq 'Linux') {
         Set-ListenConnectUriForLinuxContainers
+        Disable-IoTEdgeMoby
     }
     else {
         Set-CorrectProgramData
@@ -989,7 +990,7 @@ function Install-Packages(
     $restartNeeded = $false
 
     if (-not $Update) {
-        if (-not (Test-IotCore)) {
+        if ((-not (Test-IotCore)) -and ($ContainerOs -eq 'Windows')) {
             $result = Get-WindowsOptionalFeature -Online -FeatureName 'Containers'
             if ($result -and ($result.State -ne 'Enabled')) {
                 $result = Enable-WindowsOptionalFeature -FeatureName 'Containers' -Online -NoRestart
@@ -1961,6 +1962,12 @@ function Set-ListenConnectUriForLinuxContainers {
 
     Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "${listenAddress}:15580" 
     $env:IOTEDGE_HOST = "${listenAddress}:15580"
+}
+
+function Disable-IoTEdgeMoby {
+    Invoke-Native 'sc config iotedge depend= ""' 
+    Invoke-Native 'sc config iotedge-moby start= disabled' 
+    Stop-Service iotedge-moby
 }
 
 function Set-CorrectProgramData {
