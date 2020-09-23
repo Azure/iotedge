@@ -72,7 +72,6 @@ impl Authorizer for AllowAll {
 }
 
 /// Describes a client activity to authorized.
-#[derive(Clone)]
 pub struct Activity {
     client_id: ClientId,
     client_info: ClientInfo,

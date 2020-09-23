@@ -123,12 +123,12 @@ impl EdgeHubAuthorizer {
             .any(|allowed_topic| topic.starts_with(allowed_topic))
     }
 
-    fn get_on_behalf_of_id(topic: &str) -> Option<String> {
+    fn get_on_behalf_of_id(topic: &str) -> Option<ClientId> {
         // topics without the new topic format cannot have on_behalf_of_ids
         if !topic.starts_with("$iothub/clients") {
             return None;
         }
-        let topic_parts = topic.split('/').collect::<Vec<&str>>();
+        let topic_parts = topic.split('/').collect::<Vec<_>>();
         let device_id = topic_parts.get(2);
         let module_id = match topic_parts.get(3) {
             Some(s) if *s == "modules" => topic_parts.get(4),
@@ -136,36 +136,29 @@ impl EdgeHubAuthorizer {
         };
 
         match (device_id, module_id) {
-            (Some(did), Some(mid)) => Some(format!("{}/{}", did, mid)),
-            (Some(did), None) => Some((*did).to_string()),
+            (Some(device_id), Some(module_id)) => {
+                Some(format!("{}/{}", device_id, module_id).into())
+            }
+            (Some(device_id), None) => Some((*device_id).into()),
             _ => None,
         }
     }
 
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
-        if let Some(on_behalf_of_id) = EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
-            if client_id.as_str() == on_behalf_of_id {
-                return self.service_identities_cache.contains_key(client_id);
+        match EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
+            Some(on_behalf_of_id) if client_id == &on_behalf_of_id => {
+                self.service_identities_cache.contains_key(client_id)
             }
-            match self
+            Some(on_behalf_of_id) => self
                 .service_identities_cache
-                .get(&ClientId::from(on_behalf_of_id))
-            {
-                Some(service_identity) => {
-                    match service_identity.auth_chain() {
-                        Some(auth_chain) => {
-                            // if auth_chain for on_behalf_of_id contains client_id, then on_behalf_of_id is a descendant of client_id
-                            auth_chain.contains(client_id.as_str())
-                        }
-                        None => false,
-                    }
-                }
-                None => false,
+                .get(&on_behalf_of_id)
+                .and_then(ServiceIdentity::auth_chain)
+                .map_or(false, |auth_chain| auth_chain.contains(client_id.as_str())),
+            None => {
+                // If there is no on_behalf_of_id, we are dealing with a legacy topic
+                // The client_id must still be in the identities cache
+                self.service_identities_cache.contains_key(client_id)
             }
-        } else {
-            // If there is no on_behalf_of_id, we are dealing with a legacy topic
-            // The client_id must still be in the identities cache
-            self.service_identities_cache.contains_key(client_id)
         }
     }
 }
@@ -268,11 +261,11 @@ pub struct ServiceIdentity {
 }
 
 impl ServiceIdentity {
-    pub fn identity(&self) -> String {
-        self.identity.clone()
+    pub fn identity(&self) -> &str {
+        &self.identity
     }
-    pub fn auth_chain(&self) -> Option<String> {
-        self.auth_chain.clone()
+    pub fn auth_chain(&self) -> Option<&str> {
+        self.auth_chain.as_deref()
     }
 }
 

@@ -104,23 +104,22 @@ where
         Ok(self.snapshot())
     }
 
-    fn prepare_activities(client_id: &ClientId, session: &Session) -> Vec<Activity> {
+    fn prepare_activities(client_id: &ClientId, session: &Session) -> Vec<(ClientId, Activity)> {
         let mut activities = Vec::new();
         for sub in session
             .subscriptions()
             .into_iter()
             .flat_map(HashMap::values)
         {
-            if let Some(client_info) = session.client_info_omit_offline_sessions() {
+            if let Ok(client_info) = session.client_info() {
                 let sub_topic_filter = sub.filter().to_string();
                 let operation = Operation::new_subscribe(proto::SubscribeTo {
                     topic_filter: sub_topic_filter.clone(),
                     qos: *sub.max_qos(),
                 });
-                activities.push(Activity::new(
+                activities.push((
                     client_id.clone(),
-                    client_info.clone(),
-                    operation,
+                    Activity::new(client_id.clone(), client_info.clone(), operation),
                 ));
             }
         }
@@ -133,19 +132,18 @@ where
             .iter()
             .flat_map(|(client_id, session)| Self::prepare_activities(client_id, session))
             .filter_map(
-                |activity: Activity| match self.authorizer.authorize(activity.clone()) {
+                |(client_id, activity)| match self.authorizer.authorize(activity) {
                     Ok(Authorization::Allowed) => None,
                     Ok(Authorization::Forbidden(reason)) => {
                         debug!(
                             "client {} not allowed to subscribe to topic. {}",
-                            activity.client_id(),
-                            reason
+                            client_id, reason
                         );
-                        Some(activity.client_id().clone())
+                        Some(client_id)
                     }
                     Err(e) => {
                         warn!(message="error authorizing client subscription: {}", error = %e);
-                        Some(activity.client_id().clone())
+                        Some(client_id)
                     }
                 },
             )
