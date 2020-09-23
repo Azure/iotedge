@@ -4,17 +4,26 @@
     "moduleid": "mymodule",
     "modulegenerationid": "321",
     "workloaduri": "uri",
+    "iothubhostname": "iothub",
     "upstream": {
         "subscriptions": [
             {
                 "pattern": "temp/#",
-                "remote": "floor/kitchen/"
+                "remote": "floor/kitchen"
             }
         ],
         "forwards": [
             {
-                "pattern": "some",
+                "local": "local",
+                "pattern": "floor/#",
                 "remote": "remote"
+            },
+            {
+                "pattern": "temp/#",
+                "remote": "floor/kitchen"
+            },
+            {
+                "pattern": "pattern/#"
             }
         ]
     },
@@ -30,7 +39,7 @@
             "subscriptions": [
                 {
                     "pattern": "temp/#",
-                    "remote": "floor/kitchen/"
+                    "remote": "floor/kitchen"
                 }
             ],
             "forwards": [

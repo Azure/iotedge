@@ -343,9 +343,14 @@ function run_connectivity_test() {
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-    PARENT_HOSTNAME=$(printenv E2E_PARENT_HOSTNAME)
+    PARENT_HOSTNAME=$(printenv E2E_parentHostname)
     if [[ ! -z "$PARENT_HOSTNAME" ]]; then
         echo "Parent hostname=$PARENT_HOSTNAME"
+    fi
+    
+    PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
+    if [[ ! -z "$PARENT_EDGE_DEVICE" ]]; then
+        echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
     fi
 
     "$quickstart_working_folder/IotEdgeQuickstart" \
@@ -358,6 +363,7 @@ function run_connectivity_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         --parent-hostname "$PARENT_HOSTNAME" \
+        --parent-edge-device "$PARENT_EDGE_DEVICE" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
