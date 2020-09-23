@@ -73,8 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 return Option.None<(string, string, string)>();
             }
 
-            //BEARWASHERE -- Create a function to validate that both nestedEdge params are both either set or not-set
-
             string defaultId =
                 $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
@@ -111,6 +109,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.Verbose = context.GetValue<bool>("verbose");
             this.ParentHostname = Option.Maybe(Get("parentHostname"));
             this.ParentEdgeDevice = Option.Maybe(Get("parentEdgeDevice"));
+
+            Preconditions.CheckArgument(
+                !(this.ParentHostname.HasValue ^ this.ParentEdgeDevice.HasValue),
+                $"Both {nameof(this.ParentHostname)} and {nameof(this.ParentEdgeDevice)} are required to be both specified or both unspecified for a nested edge scenario" );
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -183,6 +185,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> ParentHostname { get; }
 
-        public string ParentEdgeDevice { get; }
+        public Option<string> ParentEdgeDevice { get; }
     }
 }

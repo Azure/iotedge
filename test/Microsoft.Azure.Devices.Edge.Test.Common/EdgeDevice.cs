@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
-            string parentEdgeDevice,
+            Option<string> parentEdgeDevice,
             CancellationToken token)
         {
             if (authType == AuthenticationType.SelfSigned && x509Thumbprint == null)
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
-            string parentEdgeDevice,
+            Option<string> parentEdgeDevice,
             CancellationToken token)
         {
             Option<EdgeDevice> device = await GetIdentityAsync(deviceId, iotHub, token);
