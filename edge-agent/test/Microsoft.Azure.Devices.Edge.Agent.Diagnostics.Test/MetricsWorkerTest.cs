@@ -16,13 +16,13 @@
 //     using Moq;
 //     using Xunit;
 
-//     [Unit]
+// [Unit]
 //     public class MetricsWorkerTest : IDisposable
 //     {
 //         TempDirectory tempDirectory = new TempDirectory();
 //         Random rand = new Random();
 
-//         [Fact]
+// [Fact]
 //         public async Task TestScraping()
 //         {
 //             /* Setup mocks */
@@ -30,29 +30,29 @@
 //             var scraper = new Mock<IMetricsScraper>();
 //             scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).ReturnsAsync(() => testData);
 
-//             var storage = new Mock<IMetricsStorage>();
+// var storage = new Mock<IMetricsStorage>();
 //             IEnumerable<Metric> storedValues = Enumerable.Empty<Metric>();
 //             storage.Setup(s => s.StoreMetricsAsync(It.IsAny<IEnumerable<Metric>>())).Callback((Action<IEnumerable<Metric>>)(data => storedValues = data)).Returns(Task.CompletedTask);
 
-//             var uploader = new Mock<IMetricsPublisher>();
+// var uploader = new Mock<IMetricsPublisher>();
 
-//             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+// MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
-//             // all values are stored
+// // all values are stored
 //             testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
 //             await worker.Scrape(CancellationToken.None);
 //             Assert.Equal(1, scraper.Invocations.Count);
 //             Assert.Equal(1, storage.Invocations.Count);
 //             Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
 
-//             testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
+// testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
 //             await worker.Scrape(CancellationToken.None);
 //             Assert.Equal(2, scraper.Invocations.Count);
 //             Assert.Equal(2, storage.Invocations.Count);
 //             Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
 //         }
 
-//         [Fact]
+// [Fact]
 //         public async Task TestTagHashing()
 //         {
 //             /* Setup mocks */
@@ -60,15 +60,15 @@
 //             var scraper = new Mock<IMetricsScraper>();
 //             scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).ReturnsAsync(() => testData);
 
-//             var storage = new Mock<IMetricsStorage>();
+// var storage = new Mock<IMetricsStorage>();
 //             IEnumerable<Metric> storedValues = Enumerable.Empty<Metric>();
 //             storage.Setup(s => s.StoreMetricsAsync(It.IsAny<IEnumerable<Metric>>())).Callback((Action<IEnumerable<Metric>>)(data => storedValues = data)).Returns(Task.CompletedTask);
 
-//             var uploader = new Mock<IMetricsPublisher>();
+// var uploader = new Mock<IMetricsPublisher>();
 
-//             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+// MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
-//             // test id hash
+// // test id hash
 //             var tags = new Dictionary<string, string>
 //             {
 //                 { "ms_telemetry", true.ToString() },
@@ -78,10 +78,10 @@
 //             testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
 //             await worker.Scrape(CancellationToken.None);
 
-//             Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+// Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
 //             Assert.Contains(new KeyValuePair<string, string>("id", "device/Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
 
-//             // test id not hash edgeAgent
+// // test id not hash edgeAgent
 //             tags = new Dictionary<string, string>
 //             {
 //                 { "ms_telemetry", true.ToString() },
@@ -91,10 +91,10 @@
 //             testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
 //             await worker.Scrape(CancellationToken.None);
 
-//             Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+// Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
 //             Assert.Contains(new KeyValuePair<string, string>("id", "device/$edgeAgent"), storedValues.Single().Tags);
 
-//             // test module_name hash
+// // test module_name hash
 //             tags = new Dictionary<string, string>
 //             {
 //                 { "ms_telemetry", true.ToString() },
@@ -104,10 +104,10 @@
 //             testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
 //             await worker.Scrape(CancellationToken.None);
 
-//             Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+// Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
 //             Assert.Contains(new KeyValuePair<string, string>("module_name", "rPbHx4uTZz/x2x8rSxfPxL4egT61y7B1dlsSgWpHh6s="), storedValues.Single().Tags);
 
-//             // test module name not hash edgeAgent
+// // test module name not hash edgeAgent
 //             tags = new Dictionary<string, string>
 //             {
 //                 { "ms_telemetry", true.ToString() },
@@ -117,10 +117,10 @@
 //             testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
 //             await worker.Scrape(CancellationToken.None);
 
-//             Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+// Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
 //             Assert.Contains(new KeyValuePair<string, string>("module_name", "$edgeAgent"), storedValues.Single().Tags);
 
-//             // test to from hash
+// // test to from hash
 //             tags = new Dictionary<string, string>
 //             {
 //                 { "ms_telemetry", true.ToString() },
@@ -133,14 +133,14 @@
 //             testData = new Metric[] { new Metric(DateTime.UtcNow, "test_metric", 0, tags) };
 //             await worker.Scrape(CancellationToken.None);
 
-//             Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
+// Assert.Contains(new KeyValuePair<string, string>("not_hashed", "1"), storedValues.Single().Tags);
 //             Assert.Contains(new KeyValuePair<string, string>("to", "Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
 //             Assert.Contains(new KeyValuePair<string, string>("from", "t+TD1s4uqQrTHY7Xe/lJqasX1biQ9yK4ev5ZnScMcpk="), storedValues.Single().Tags);
 //             Assert.Contains(new KeyValuePair<string, string>("to_route_input", "Ut4Ug5Wg2qMCvwtG08RIi0k10DkoNMqQ7AmTUKy/pMs="), storedValues.Single().Tags);
 //             Assert.Contains(new KeyValuePair<string, string>("from_route_output", "t+TD1s4uqQrTHY7Xe/lJqasX1biQ9yK4ev5ZnScMcpk="), storedValues.Single().Tags);
 //         }
 
-//         [Fact]
+// [Fact]
 //         public async Task TestBasicUploading()
 //         {
 //             /* Setup mocks */
@@ -148,7 +148,7 @@
 //             var storage = new Mock<IMetricsStorage>();
 //             storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(Enumerable.Empty<Metric>());
 
-//             TaskCompletionSource<object> uploadStarted = new TaskCompletionSource<object>();
+// TaskCompletionSource<object> uploadStarted = new TaskCompletionSource<object>();
 //             TaskCompletionSource<bool> finishUpload = new TaskCompletionSource<bool>();
 //             var uploader = new Mock<IMetricsPublisher>();
 //             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
@@ -158,9 +158,9 @@
 //                 uploadStarted.SetResult(null);
 //             })).Returns(finishUpload.Task);
 
-//             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+// MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
-//             /* test */
+// /* test */
 //             Task workerTask = worker.Upload(CancellationToken.None);
 //             await uploadStarted.Task;
 //             uploadedData.ToList();
@@ -172,24 +172,24 @@
 //             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
 //         }
 
-//         [Fact]
+// [Fact]
 //         public async Task TestUploadContent()
 //         {
 //             /* test data */
 //             var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, new Dictionary<string, string> { { "id", $"{i}" } })).ToList();
 
-//             /* Setup mocks */
+// /* Setup mocks */
 //             var scraper = new Mock<IMetricsScraper>();
 
-//             var storage = new Mock<IMetricsStorage>();
+// var storage = new Mock<IMetricsStorage>();
 //             storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(metrics);
 //             var uploader = new Mock<IMetricsPublisher>();
 //             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
 //             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).ReturnsAsync(true);
 
-//             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+// MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
-//             /* test */
+// /* test */
 //             await worker.Upload(CancellationToken.None);
 //             TestUtilities.OrderlessCompare(metrics, uploadedData);
 //             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
@@ -197,7 +197,7 @@
 //             Assert.Single(uploader.Invocations);
 //         }
 
-//         [Fact]
+// [Fact]
 //         public async Task TestUploadIsLazy()
 //         {
 //             /* test data */
@@ -208,19 +208,19 @@
 //                 return Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "1", 3, new Dictionary<string, string> { { "id", $"{i}" } }));
 //             }
 
-//             /* Setup mocks */
+// /* Setup mocks */
 //             var scraper = new Mock<IMetricsScraper>();
 
-//             var storage = new Mock<IMetricsStorage>();
+// var storage = new Mock<IMetricsStorage>();
 //             storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(Metrics);
 
-//             var uploader = new Mock<IMetricsPublisher>();
+// var uploader = new Mock<IMetricsPublisher>();
 //             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
 //             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).ReturnsAsync(true);
 
-//             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+// MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
-//             /* test */
+// /* test */
 //             await worker.Upload(CancellationToken.None);
 //             int numMetrics = 0;
 //             foreach (Metric metric in uploadedData)
@@ -228,69 +228,69 @@
 //                 Assert.Equal(numMetrics++ / 10 + 1, metricsCalls);
 //             }
 
-//             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
+// Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
 //             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
 //             Assert.Single(uploader.Invocations);
 //         }
 
-//         [Fact]
+// [Fact]
 //         public async Task TestNoOverlap()
 //         {
 //             /* Setup mocks */
 //             TaskCompletionSource<bool> scrapeTaskSource = new TaskCompletionSource<bool>();
 //             TaskCompletionSource<bool> uploadTaskSource = new TaskCompletionSource<bool>();
 
-//             var scraper = new Mock<IMetricsScraper>();
+// var scraper = new Mock<IMetricsScraper>();
 //             scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).Returns(async () =>
 //             {
 //                 await scrapeTaskSource.Task;
 //                 return this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)).ToArray());
 //             });
 
-//             var storage = new Mock<IMetricsStorage>();
+// var storage = new Mock<IMetricsStorage>();
 
-//             var uploader = new Mock<IMetricsPublisher>();
+// var uploader = new Mock<IMetricsPublisher>();
 //             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Returns(async () => await uploadTaskSource.Task);
 
-//             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+// MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
-//             /* test scraper first */
+// /* test scraper first */
 //             var scrapeTask = worker.Scrape(CancellationToken.None);
 //             await Task.Delay(1);
 //             var uploadTask = worker.Upload(CancellationToken.None);
 //             await Task.Delay(1);
 
-//             uploadTaskSource.SetResult(true);
+// uploadTaskSource.SetResult(true);
 //             await Task.Delay(1);
 
-//             Assert.False(scrapeTask.IsCompleted);
+// Assert.False(scrapeTask.IsCompleted);
 //             Assert.False(uploadTask.IsCompleted);
 //             scrapeTaskSource.SetResult(true);
 //             await Task.Delay(1);
 
-//             await Task.WhenAll(scrapeTask, uploadTask);
+// await Task.WhenAll(scrapeTask, uploadTask);
 
-//             /* test uploader first */
+// /* test uploader first */
 //             scrapeTaskSource = new TaskCompletionSource<bool>();
 //             uploadTaskSource = new TaskCompletionSource<bool>();
 
-//             uploadTask = worker.Upload(CancellationToken.None);
+// uploadTask = worker.Upload(CancellationToken.None);
 //             await Task.Delay(1);
 //             scrapeTask = worker.Scrape(CancellationToken.None);
 //             await Task.Delay(1);
 
-//             scrapeTaskSource.SetResult(true);
+// scrapeTaskSource.SetResult(true);
 //             await Task.Delay(1);
 
-//             Assert.False(scrapeTask.IsCompleted);
+// Assert.False(scrapeTask.IsCompleted);
 //             Assert.False(uploadTask.IsCompleted);
 //             uploadTaskSource.SetResult(true);
 //             await Task.Delay(1);
 
-//             await Task.WhenAll(scrapeTask, uploadTask);
+// await Task.WhenAll(scrapeTask, uploadTask);
 //         }
 
-//         [Fact]
+// [Fact]
 //         public async Task TestRetry()
 //         {
 //             int targetRetries = 10;
@@ -299,21 +299,21 @@
 //             var storage = new Mock<IMetricsStorage>();
 //             storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(Enumerable.Empty<Metric>());
 
-//             var uploader = new Mock<IMetricsPublisher>();
+// var uploader = new Mock<IMetricsPublisher>();
 //             int actualRetries = 0;
 //             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => ++actualRetries == targetRetries);
 
-//             MetricsWorker.RetryStrategy = new FakeRetryStrategy();
+// MetricsWorker.RetryStrategy = new FakeRetryStrategy();
 //             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
-//             /* test */
+// /* test */
 //             await worker.Upload(CancellationToken.None);
 //             Assert.Equal(targetRetries, actualRetries);
 //             Assert.Equal(targetRetries, uploader.Invocations.Count);
 //             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
 //         }
 
-//         [Fact]
+// [Fact]
 //         public async Task TestRetryFail()
 //         {
 //             int maxRetries = 5;
@@ -322,41 +322,41 @@
 //             var storage = new Mock<IMetricsStorage>();
 //             storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(Enumerable.Empty<Metric>());
 
-//             var uploader = new Mock<IMetricsPublisher>();
+// var uploader = new Mock<IMetricsPublisher>();
 //             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
-//             MetricsWorker.RetryStrategy = new FakeRetryStrategy(maxRetries);
+// MetricsWorker.RetryStrategy = new FakeRetryStrategy(maxRetries);
 //             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
-//             /* test */
+// /* test */
 //             await worker.Upload(CancellationToken.None);
 //             Assert.Equal(maxRetries + 1, uploader.Invocations.Count); // It tries once, then retries maxRetryTimes.
 //             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
 //         }
 
-//         class FakeRetryStrategy : RetryStrategy
+// class FakeRetryStrategy : RetryStrategy
 //         {
 //             int maxRetries;
 
-//             public FakeRetryStrategy(int maxRetries = int.MaxValue)
+// public FakeRetryStrategy(int maxRetries = int.MaxValue)
 //                 : base(true)
 //             {
 //                 this.maxRetries = maxRetries;
 //             }
 
-//             public override ShouldRetry GetShouldRetry()
+// public override ShouldRetry GetShouldRetry()
 //             {
 //                 return this.ShouldRetry;
 //             }
 
-//             bool ShouldRetry(int i, Exception ex, out TimeSpan delay)
+// bool ShouldRetry(int i, Exception ex, out TimeSpan delay)
 //             {
 //                 delay = TimeSpan.Zero;
 //                 return i < this.maxRetries;
 //             }
 //         }
 
-//         private IEnumerable<Metric> PrometheusMetrics(IEnumerable<(string name, double value)> modules)
+// private IEnumerable<Metric> PrometheusMetrics(IEnumerable<(string name, double value)> modules)
 //         {
 //             string dataPoints = string.Join("\n", modules.Select(module => $@"
 // edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0"",{MetricsConstants.MsTelemetry}=""True""}} {module.value}
@@ -367,10 +367,10 @@
 // {dataPoints}
 // ";
 
-//             return PrometheusMetricsParser.ParseMetrics(DateTime.UtcNow, metricsString);
+// return PrometheusMetricsParser.ParseMetrics(DateTime.UtcNow, metricsString);
 //         }
 
-//         public void Dispose()
+// public void Dispose()
 //         {
 //             this.tempDirectory.Dispose();
 //         }
