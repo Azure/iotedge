@@ -36,8 +36,10 @@ impl TokenSource for SasTokenSource {
                 let audience = format!(
                     "{}/devices/{}/modules/{}",
                     provider_settings.iothub_hostname(),
-                    provider_settings.device_id(),
-                    provider_settings.module_id()
+                    percent_encode(provider_settings.device_id().as_bytes(), IOTHUB_ENCODE_SET)
+                        .to_string(),
+                    percent_encode(provider_settings.module_id().as_bytes(), IOTHUB_ENCODE_SET)
+                        .to_string()
                 );
                 let resource_uri =
                     percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET)
