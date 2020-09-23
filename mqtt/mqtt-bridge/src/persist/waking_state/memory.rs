@@ -45,9 +45,9 @@ impl StreamWakeableState for WakingMemoryStore {
         Ok(output)
     }
 
-    fn remove(&mut self, key: &Key) -> Result<Publication, PersistError> {
+    fn remove(&mut self, key: Key) -> Result<Publication, PersistError> {
         self.loaded
-            .remove(key)
+            .remove(&key)
             .ok_or(PersistError::RemovalForMissing)
     }
 

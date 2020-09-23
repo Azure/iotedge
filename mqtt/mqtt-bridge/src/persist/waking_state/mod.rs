@@ -22,7 +22,7 @@ pub trait StreamWakeableState {
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError>;
 
     // This remove should error if the given element has not yet been returned by batch.
-    fn remove(&mut self, key: &Key) -> Result<Publication, PersistError>;
+    fn remove(&mut self, key: Key) -> Result<Publication, PersistError>;
 
     fn set_waker(&mut self, waker: &Waker);
 }
@@ -118,8 +118,8 @@ mod tests {
         assert_eq!(key2, Key { offset: 1 });
 
         // remove some
-        state_lock.lock().remove(&key1).unwrap();
-        state_lock.lock().remove(&key2).unwrap();
+        state_lock.lock().remove(key1).unwrap();
+        state_lock.lock().remove(key2).unwrap();
 
         // check that the ordering is maintained
         for count in 2..num_elements {
@@ -192,9 +192,9 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1.clone(), pub1.clone()).unwrap();
+        state.insert(key1, pub1.clone()).unwrap();
         state.batch(1).unwrap();
-        let removed = state.remove(&key1).unwrap();
+        let removed = state.remove(key1).unwrap();
         assert_eq!(removed, pub1);
 
         let empty_batch = state.batch(1).unwrap();
@@ -205,7 +205,7 @@ mod tests {
     #[test_case(init_rocksdb_test_store())]
     fn remove_loaded_dne(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
-        let bad_removal = state.remove(&key1);
+        let bad_removal = state.remove(key1);
         assert_matches!(bad_removal, Err(_));
     }
 
@@ -220,8 +220,8 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1.clone(), pub1).unwrap();
-        let bad_removal = state.remove(&key1);
+        state.insert(key1, pub1).unwrap();
+        let bad_removal = state.remove(key1);
         assert_matches!(bad_removal, Err(_));
     }
 
@@ -245,13 +245,13 @@ mod tests {
         };
 
         // insert elements and extract
-        state.insert(key1.clone(), pub1.clone()).unwrap();
-        state.insert(key2.clone(), pub2.clone()).unwrap();
+        state.insert(key1, pub1.clone()).unwrap();
+        state.insert(key2, pub2.clone()).unwrap();
         state.batch(2).unwrap();
 
         // remove out of order and verify
-        let extracted_pub2 = state.remove(&key2).unwrap();
-        let extracted_pub1 = state.remove(&key1).unwrap();
+        let extracted_pub2 = state.remove(key2).unwrap();
+        let extracted_pub1 = state.remove(key1).unwrap();
         assert_eq!(extracted_pub2, pub2);
         assert_eq!(extracted_pub1, pub1);
     }

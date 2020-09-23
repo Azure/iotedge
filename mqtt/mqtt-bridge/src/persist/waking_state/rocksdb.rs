@@ -37,7 +37,7 @@ impl WakingRocksDBStore {
 
 impl StreamWakeableState for WakingRocksDBStore {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
-        self.db.insert(&key, &value)?;
+        self.db.insert(key, &value)?;
         if let Some(waker) = self.waker.take() {
             waker.wake();
         }
@@ -54,10 +54,10 @@ impl StreamWakeableState for WakingRocksDBStore {
         Ok(iter.collect())
     }
 
-    fn remove(&mut self, key: &Key) -> Result<Publication, PersistError> {
+    fn remove(&mut self, key: Key) -> Result<Publication, PersistError> {
         let removed = self
             .loaded
-            .remove(key)
+            .remove(&key)
             .ok_or(PersistError::RemovalForMissing)?;
         self.db.remove(key)?;
         Ok(removed)
@@ -82,7 +82,7 @@ impl RocksDbWrapper {
         Ok(Self { db, column_family })
     }
 
-    fn insert(&self, key: &Key, publication: &Publication) -> Result<(), PersistError> {
+    fn insert(&self, key: Key, publication: &Publication) -> Result<(), PersistError> {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
         let publication_bytes =
             bincode::serialize(&publication).map_err(PersistError::Serialization)?;
@@ -127,7 +127,7 @@ impl RocksDbWrapper {
         Ok(output.into_iter())
     }
 
-    fn remove(&self, key: &Key) -> Result<(), PersistError> {
+    fn remove(&self, key: Key) -> Result<(), PersistError> {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
 
         let column_family = self.column_family()?;

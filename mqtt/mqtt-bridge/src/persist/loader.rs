@@ -48,7 +48,7 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if let Some(item) = self.batch.pop_front() {
-            return Poll::Ready(Some((item.0.clone(), item.1)));
+            return Poll::Ready(Some((item.0, item.1)));
         }
 
         // TODO REVIEW: Need some loud error here
@@ -62,7 +62,7 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
                 state_lock.set_waker(cx.waker());
                 Poll::Pending
             },
-            |item| Poll::Ready(Some((item.0.clone(), item.1))),
+            |item| Poll::Ready(Some((item.0, item.1))),
         )
     }
 }
@@ -107,7 +107,7 @@ mod tests {
 
         // insert elements
         let mut state_lock = state.lock();
-        state_lock.insert(key1.clone(), pub1.clone()).unwrap();
+        state_lock.insert(key1, pub1.clone()).unwrap();
         state_lock.insert(key2, pub2).unwrap();
         drop(state_lock);
 
@@ -119,7 +119,7 @@ mod tests {
         // verify
         assert_eq!(elements.len(), 1);
         let extracted = elements.pop_front().unwrap();
-        assert_eq!((extracted.0.clone(), extracted.1), (key1, pub1));
+        assert_eq!((extracted.0, extracted.1), (key1, pub1));
     }
 
     #[tokio::test]
@@ -146,8 +146,8 @@ mod tests {
 
         // insert elements
         let mut state_lock = state.lock();
-        state_lock.insert(key1.clone(), pub1.clone()).unwrap();
-        state_lock.insert(key2.clone(), pub2.clone()).unwrap();
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
         drop(state_lock);
 
         // get batch size elements
@@ -159,8 +159,8 @@ mod tests {
         assert_eq!(elements.len(), 2);
         let extracted1 = elements.pop_front().unwrap();
         let extracted2 = elements.pop_front().unwrap();
-        assert_eq!((extracted1.0.clone(), extracted1.1), (key1, pub1));
-        assert_eq!((extracted2.0.clone(), extracted2.1), (key2, pub2));
+        assert_eq!((extracted1.0, extracted1.1), (key1, pub1));
+        assert_eq!((extracted2.0, extracted2.1), (key2, pub2));
     }
 
     #[tokio::test]
@@ -222,8 +222,8 @@ mod tests {
 
         // insert some elements
         let mut state_lock = state.lock();
-        state_lock.insert(key1.clone(), pub1.clone()).unwrap();
-        state_lock.insert(key2.clone(), pub2.clone()).unwrap();
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
         drop(state_lock);
 
         // get loader
@@ -263,8 +263,8 @@ mod tests {
 
         // insert some elements
         let mut state_lock = state.lock();
-        state_lock.insert(key1.clone(), pub1.clone()).unwrap();
-        state_lock.insert(key2.clone(), pub2.clone()).unwrap();
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
         drop(state_lock);
 
         // get loader
@@ -277,8 +277,8 @@ mod tests {
 
         // remove inserted elements
         let mut state_lock = state.lock();
-        state_lock.remove(&key1).unwrap();
-        state_lock.remove(&key2).unwrap();
+        state_lock.remove(key1).unwrap();
+        state_lock.remove(key2).unwrap();
         drop(state_lock);
 
         // insert new elements
@@ -290,7 +290,7 @@ mod tests {
             payload: Bytes::new(),
         };
         let mut state_lock = state.lock();
-        state_lock.insert(key3.clone(), pub3.clone()).unwrap();
+        state_lock.insert(key3, pub3.clone()).unwrap();
         drop(state_lock);
 
         // verify new elements are there
@@ -319,7 +319,7 @@ mod tests {
         let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
 
         // async function that waits for a message to enter the state
-        let key_copy = key1.clone();
+        let key_copy = key1;
         let pub_copy = pub1.clone();
         let poll_stream = async move {
             let maybe_extracted = loader.next().await;
