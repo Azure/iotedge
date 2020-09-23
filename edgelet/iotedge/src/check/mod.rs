@@ -620,11 +620,6 @@ struct CheckOutputSerializable {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-    use std::io::{BufRead, BufReader, Write};
-
-    use tempfile::tempdir;
-
     use super::{
         Check, CheckResult, Checker, ContainerEngineIsMoby, Hostname, WellFormedConfig,
         WellFormedConnectionString,
@@ -861,6 +856,10 @@ mod tests {
     // This test inexplicably fails in the ci pipeline due to file read errors.
     // It has been tested on ubuntu 18.04, raspbian buster and windows.
     // It is disabled until the test pipeline issue is resolved.
+    // use std::fs::File;
+    // use std::io::{BufRead, BufReader, Write};
+
+    // use tempfile::tempdir;
     // #[test]
     // fn settings_connection_string_dps_config_file() {
     //     let mut runtime = tokio::runtime::Runtime::new().unwrap();
