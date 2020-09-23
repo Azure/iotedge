@@ -27,6 +27,15 @@ pub enum AuthId {
     Identity(Identity),
 }
 
+impl AuthId {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AuthId::Anonymous => "*",
+            AuthId::Identity(identity) => identity.as_str(),
+        }
+    }
+}
+
 impl Display for AuthId {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {

@@ -117,19 +117,19 @@ fn is_connect_op(statement: &Statement) -> bool {
 
 lazy_static! {
     static ref VALID_IDENTITY_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
-        "{{iot:identity}}".into(),
-        "{{iot:device_id}}".into(),
-        "{{iot:module_id}}".into(),
-        "{{mqtt:client_id}}".into(),
-        "{{iot:this_device_id}}".into(),
+        crate::IDENTITY_VAR.into(),
+        crate::DEVICE_ID_VAR.into(),
+        crate::MODULE_ID_VAR.into(),
+        crate::CLIENT_ID_VAR.into(),
+        crate::EDGEHUB_ID_VAR.into(),
     ]);
     static ref VALID_RESOURCE_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
-        "{{iot:identity}}".into(),
-        "{{iot:device_id}}".into(),
-        "{{iot:module_id}}".into(),
-        "{{mqtt:client_id}}".into(),
-        "{{iot:this_device_id}}".into(),
-        "{{mqtt:topic}}".into(),
+        crate::IDENTITY_VAR.into(),
+        crate::DEVICE_ID_VAR.into(),
+        crate::MODULE_ID_VAR.into(),
+        crate::CLIENT_ID_VAR.into(),
+        crate::EDGEHUB_ID_VAR.into(),
+        crate::TOPIC_VAR.into(),
     ]);
 }
 
@@ -166,6 +166,8 @@ mod tests {
                         "contoso.azure-devices.net/monitor_a"
                     ],
                     "operations": [
+                        "mqtt:connect",
+                        "mqtt:subscribe",
                         "mqtt:publish"
                     ],
                     "resources": [
@@ -318,5 +320,25 @@ mod tests {
                 Error::InvalidResourceVariable("{{invalid_res}}".into())
             ]
         );
+    }
+
+    #[test]
+    fn empty_resource_for_connect() {
+        let json = r#"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "contoso.azure-devices.net/monitor_a"
+                    ],
+                    "operations": [
+                        "mqtt:connect"
+                    ] 
+                }
+            ]
+        }"#;
+
+        assert!(MqttValidator.validate(&build_definition(json)).is_ok());
     }
 }
