@@ -67,6 +67,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 props.Add(parentHostname);
                             });
 
+                            Context.Current.ParentEdgeDevice.ForEach(parentEdgeDevice =>
+                            {
+                                config.SetParentEdgeDevice(parentEdgeDevice);
+                                msgBuilder.AppendLine(", parent edge device '{parentEdgeDevice}'");
+                                props.Add(parentEdgeDevice);
+                            });
+
+
                             Context.Current.Proxy.ForEach(proxy =>
                             {
                                 config.AddHttpsProxy(proxy);
