@@ -68,6 +68,7 @@ impl StreamWakeableState for WakingRocksDBStore {
     }
 }
 
+/// Wrapper around rocksdb database to abstract away serialization/deserialization
 struct RocksDbWrapper {
     db: DB,
     column_family: String,
