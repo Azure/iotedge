@@ -46,7 +46,7 @@ impl StreamWakeableState for WakingRocksDBStore {
         Ok(())
     }
 
-    /// Get count elements of store, excluding those that are already in in-flight
+    /// Get count elements of store, excluding those that have already been loaded
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let iter = self.db.iter_except(count, &self.loaded)?;
 

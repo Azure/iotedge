@@ -8,7 +8,7 @@ use mqtt3::proto::Publication;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
-/// When elements are retrieved they are moved to the in flight collection.
+/// When elements are retrieved they are moved to the loaded collection.
 pub struct WakingMemoryStore {
     queue: VecDeque<(Key, Publication)>,
     loaded: HashMap<Key, Publication>,
