@@ -2,8 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 {
     using System;
-    using System.Threading;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
