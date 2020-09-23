@@ -150,6 +150,11 @@ mod tests {
         "test_device_client_id", 
         "{{invalid}}"; 
         "invalid variable")]
+    #[test_case("{{{}bad}}}", 
+        "test_device_auth_id", 
+        "test_device_client_id", 
+        "{{{}bad}}}"; 
+        "bad variable")]
     fn visit_identity_test(input: &str, auth_id: &str, client_id: &str, expected: &str) {
         let request = Request::with_context(
             "some_identity",
@@ -232,6 +237,11 @@ mod tests {
         "test_device_client_id", 
         "{{invalid}}"; 
         "invalid variable")]
+    #[test_case("{{{}bad}}}", 
+        "test_device_auth_id", 
+        "test_device_client_id", 
+        "{{{}bad}}}"; 
+        "bad variable")]
     fn visit_resource_test(input: &str, auth_id: &str, client_id: &str, expected: &str) {
         let request = Request::with_context(
             "some_identity",
