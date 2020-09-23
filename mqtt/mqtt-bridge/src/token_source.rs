@@ -55,10 +55,12 @@ impl TokenSource for SasTokenSource {
                     .await
                     .map_err(TokenSourceError::Sign)?;
                 let signature = signature.digest();
-                UrlSerializer::new(format!("sr={}", resource_uri))
+                let token = UrlSerializer::new(format!("sr={}", resource_uri))
                     .append_pair("sig", &signature)
                     .append_pair("se", &expiry)
-                    .finish()
+                    .finish();
+
+                format!("SharedAccessSignature {}", token).to_owned()
             }
             Credentials::PlainText(creds) => creds.password().into(),
             Credentials::Anonymous(_) => "".into(),
