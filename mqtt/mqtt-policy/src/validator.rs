@@ -112,6 +112,7 @@ fn visit_resource(value: &str) -> Result<(), Error> {
 }
 
 fn is_connect_op(statement: &Statement) -> bool {
+    // check that there is exactly one operation and it is mqtt:connect.
     statement.operations().len() == 1 && statement.operations()[0] == "mqtt:connect"
 }
 

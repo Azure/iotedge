@@ -38,10 +38,7 @@ impl AuthId {
 
 impl Display for AuthId {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            Self::Anonymous => write!(f, "*"),
-            Self::Identity(identity) => write!(f, "{}", identity),
-        }
+        write!(f, "{}", self.as_str())
     }
 }
 
