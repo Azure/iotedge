@@ -109,7 +109,6 @@ impl Activity {
 }
 
 /// Describes a client operation to be authorized.
-#[derive(Clone)]
 pub enum Operation {
     Connect(Connect),
     Publish(Publish),
@@ -134,7 +133,6 @@ impl Operation {
 }
 
 /// Represents a client attempt to connect to the broker.
-#[derive(Clone)]
 pub struct Connect {
     will: Option<Publication>,
 }
@@ -154,7 +152,6 @@ impl From<proto::Connect> for Connect {
 }
 
 /// Represents a publication description without payload to be used for authorization.
-#[derive(Clone)]
 pub struct Publication {
     topic_name: String,
     qos: proto::QoS,
@@ -186,7 +183,6 @@ impl From<proto::Publication> for Publication {
 }
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
-#[derive(Clone)]
 pub struct Publish {
     publication: Publication,
 }
@@ -214,7 +210,6 @@ impl From<proto::Publish> for Publish {
 }
 
 /// Represents a client attempt to subscribe to a specified MQTT topic in order to received messages.
-#[derive(Clone)]
 pub struct Subscribe {
     topic_filter: String,
     qos: proto::QoS,
