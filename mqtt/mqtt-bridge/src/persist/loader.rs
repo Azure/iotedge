@@ -51,7 +51,7 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
             return Poll::Ready(Some((item.0.clone(), item.1)));
         }
 
-        // TODO REVIEW: Need some load error here
+        // TODO REVIEW: Need some loud error here
         let mut_self = self.get_mut();
         if let Ok(batch) = mut_self.next_batch() {
             mut_self.batch = batch;
