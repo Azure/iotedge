@@ -37,7 +37,8 @@ mod tests {
     use tokio::sync::Notify;
 
     use crate::persist::{
-        waking_state::StreamWakeableState, Key, WakingMemoryStore, WakingRocksDBStore,
+        loader::MessageLoader, waking_state::StreamWakeableState, Key, WakingMemoryStore,
+        WakingRocksDBStore,
     };
 
     #[test_case(WakingMemoryStore::new())]
@@ -45,7 +46,7 @@ mod tests {
     fn insert(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -60,10 +61,76 @@ mod tests {
 
     #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
-    fn get_over_quantity(mut state: impl StreamWakeableState) {
+    fn ordering_maintained_across_insert(mut state: impl StreamWakeableState) {
+        // insert a bunch of elements
+        let num_elements = 10 as usize;
+        for i in 0..num_elements {
+            #[allow(clippy::cast_possible_truncation)]
+            let key = Key { offset: i as u32 };
+            let publication = Publication {
+                topic_name: i.to_string(),
+                qos: QoS::ExactlyOnce,
+                retain: true,
+                payload: Bytes::new(),
+            };
+
+            state.insert(key, publication).unwrap();
+        }
+
+        // verify they came back in the correct order
+        let mut elements = state.batch(num_elements).unwrap();
+        for count in 0..num_elements {
+            #[allow(clippy::cast_possible_truncation)]
+            let num_elements = count as u32;
+            assert_eq!(elements.pop_front().unwrap().0.offset, num_elements)
+        }
+    }
+
+    #[test_case(WakingMemoryStore::new())]
+    #[test_case(init_rocksdb_test_store())]
+    async fn ordering_maintained_across_removal(mut state: impl StreamWakeableState) {
+        // insert a bunch of elements
+        let num_elements = 10 as usize;
+        for i in 0..num_elements {
+            #[allow(clippy::cast_possible_truncation)]
+            let key = Key { offset: i as u32 };
+            let publication = Publication {
+                topic_name: i.to_string(),
+                qos: QoS::ExactlyOnce,
+                retain: true,
+                payload: Bytes::new(),
+            };
+
+            state.insert(key, publication).unwrap();
+        }
+
+        // extract some, check that they are in order
+        let state_lock = Arc::new(Mutex::new(state));
+        let mut loader = MessageLoader::new(state_lock.clone(), num_elements);
+        let (key1, _) = loader.next().await.unwrap();
+        let (key2, _) = loader.next().await.unwrap();
+        assert_eq!(key1, Key { offset: 0 });
+        assert_eq!(key2, Key { offset: 1 });
+
+        // remove some
+        state_lock.lock().remove_in_flight(&key1).unwrap();
+        state_lock.lock().remove_in_flight(&key2).unwrap();
+
+        // check that the ordering is maintained
+        for count in 2..num_elements {
+            #[allow(clippy::cast_possible_truncation)]
+            let num_elements = count as u32;
+            let extracted_offset = loader.next().await.unwrap().0.offset;
+            assert_eq!(extracted_offset, num_elements)
+        }
+    }
+
+    #[test_case(WakingMemoryStore::new())]
+    #[test_case(init_rocksdb_test_store())]
+    fn larger_batch_size_respected(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -81,10 +148,40 @@ mod tests {
 
     #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
+    fn smaller_batch_size_respected(mut state: impl StreamWakeableState) {
+        let key1 = Key { offset: 0 };
+        let pub1 = Publication {
+            topic_name: "1".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let key2 = Key { offset: 1 };
+        let pub2 = Publication {
+            topic_name: "2".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        state.insert(key1, pub1.clone()).unwrap();
+        state.insert(key2, pub2.clone()).unwrap();
+
+        let smaller_batch_size = 1;
+        let current_state = state.batch(smaller_batch_size).unwrap();
+        assert_eq!(current_state.len(), 1);
+
+        let extracted_message = current_state.get(0).unwrap().1.clone();
+        assert_eq!(pub1, extracted_message);
+    }
+
+    #[test_case(WakingMemoryStore::new())]
+    #[test_case(init_rocksdb_test_store())]
     fn in_flight(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -109,7 +206,7 @@ mod tests {
     fn remove_in_flight_inserted_but_not_yet_retrieved(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -128,7 +225,7 @@ mod tests {
 
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),

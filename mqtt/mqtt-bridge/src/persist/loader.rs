@@ -92,14 +92,14 @@ mod tests {
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
         let key2 = Key { offset: 1 };
         let pub2 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -131,14 +131,14 @@ mod tests {
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
         let key2 = Key { offset: 1 };
         let pub2 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -171,12 +171,12 @@ mod tests {
 
         // add many elements
         let mut state_lock = state.lock();
-        let num_elements = 50 as usize;
+        let num_elements = 10 as usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u32 };
             let publication = Publication {
-                topic_name: "test".to_string(),
+                topic_name: i.to_string(),
                 qos: QoS::ExactlyOnce,
                 retain: true,
                 payload: Bytes::new(),
@@ -207,14 +207,14 @@ mod tests {
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
         let key2 = Key { offset: 1 };
         let pub2 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -248,14 +248,14 @@ mod tests {
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
         let key2 = Key { offset: 1 };
         let pub2 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -308,7 +308,7 @@ mod tests {
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),

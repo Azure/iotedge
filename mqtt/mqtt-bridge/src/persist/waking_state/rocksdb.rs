@@ -55,11 +55,11 @@ impl StreamWakeableState for WakingRocksDBStore {
     }
 
     fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError> {
-        self.db.remove(key)?;
         let removed = self
             .in_flight
             .remove(key)
             .ok_or(PersistError::RemovalForMissing)?;
+        self.db.remove(key)?;
         Ok(removed)
     }
 
