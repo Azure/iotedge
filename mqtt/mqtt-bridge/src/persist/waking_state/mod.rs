@@ -327,6 +327,6 @@ mod tests {
         let path = tmp_dir.path().to_owned();
 
         let db = DB::open_default(path).unwrap();
-        WakingRocksDBStore::new(db).unwrap()
+        WakingRocksDBStore::new(db, "test_cf".to_string()).unwrap()
     }
 }

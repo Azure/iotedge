@@ -28,9 +28,10 @@ impl PublicationStore<WakingMemoryStore> {
 impl PublicationStore<WakingRocksDBStore> {
     pub fn new_disk(
         db: DB,
+        column_family: String,
         batch_size: usize,
     ) -> Result<PublicationStore<WakingRocksDBStore>, PersistError> {
-        let waking_store = WakingRocksDBStore::new(db)?;
+        let waking_store = WakingRocksDBStore::new(db, column_family)?;
         Ok(Self::new(waking_store, batch_size))
     }
 }

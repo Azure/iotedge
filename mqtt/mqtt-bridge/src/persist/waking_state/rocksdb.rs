@@ -7,7 +7,6 @@ use std::{
 use bincode::{self};
 use mqtt3::proto::Publication;
 use rocksdb::{ColumnFamily, IteratorMode, Options, DB};
-use uuid::Uuid;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
@@ -25,8 +24,8 @@ pub struct WakingRocksDBStore {
 }
 
 impl WakingRocksDBStore {
-    pub fn new(db: DB) -> Result<Self, PersistError> {
-        let db = RocksDbWrapper::new(db)?;
+    pub fn new(db: DB, column_family: String) -> Result<Self, PersistError> {
+        let db = RocksDbWrapper::new(db, column_family)?;
 
         Ok(Self {
             db,
@@ -76,8 +75,7 @@ struct RocksDbWrapper {
 }
 
 impl RocksDbWrapper {
-    fn new(mut db: DB) -> Result<Self, PersistError> {
-        let column_family = Uuid::new_v4().to_string();
+    fn new(mut db: DB, column_family: String) -> Result<Self, PersistError> {
         db.create_cf(column_family.clone(), &Options::default())
             .map_err(PersistError::CreateColumnFamily)?;
 
