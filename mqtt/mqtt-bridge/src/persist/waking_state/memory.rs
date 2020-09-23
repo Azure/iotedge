@@ -11,7 +11,7 @@ use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 /// When elements are retrieved they are moved to the in flight collection.
 pub struct WakingMemoryStore {
     queue: VecDeque<(Key, Publication)>,
-    in_flight: HashMap<Key, Publication>,
+    loaded: HashMap<Key, Publication>,
     waker: Option<Waker>,
 }
 
@@ -19,7 +19,7 @@ impl WakingMemoryStore {
     pub fn new() -> Self {
         WakingMemoryStore {
             queue: VecDeque::new(),
-            in_flight: HashMap::new(),
+            loaded: HashMap::new(),
             waker: None,
         }
     }
@@ -39,13 +39,14 @@ impl StreamWakeableState for WakingMemoryStore {
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let count = min(count, self.queue.len());
         let output: VecDeque<_> = self.queue.drain(..count).collect();
-        self.in_flight.extend(output.clone().into_iter());
+
+        self.loaded.extend(output.clone().into_iter());
 
         Ok(output)
     }
 
-    fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError> {
-        self.in_flight
+    fn remove(&mut self, key: &Key) -> Result<Publication, PersistError> {
+        self.loaded
             .remove(key)
             .ok_or(PersistError::RemovalForMissing)
     }

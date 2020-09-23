@@ -33,7 +33,7 @@ pub enum PersistError {
     #[error("Failed to serialize on database insert")]
     Insertion(#[source] Error),
 
-    #[error("Failed to remove element from persistent store. Element either does not exist or is not in-flight.")]
+    #[error("Failed to remove element from persistent store. Element either does not exist or is not yet loaded.")]
     Removal(#[source] Error),
 
     #[error("Attempted to remove entry which does not exist")]

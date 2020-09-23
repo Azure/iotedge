@@ -277,8 +277,8 @@ mod tests {
 
         // remove inserted elements
         let mut state_lock = state.lock();
-        state_lock.remove_in_flight(&key1).unwrap();
-        state_lock.remove_in_flight(&key2).unwrap();
+        state_lock.remove(&key1).unwrap();
+        state_lock.remove(&key2).unwrap();
         drop(state_lock);
 
         // insert new elements

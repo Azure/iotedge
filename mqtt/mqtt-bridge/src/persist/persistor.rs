@@ -72,7 +72,7 @@ impl<S: StreamWakeableState> PublicationStore<S> {
         );
 
         let mut state_lock = self.state.lock();
-        state_lock.remove_in_flight(&key)
+        state_lock.remove(&key)
     }
 
     pub fn loader(&mut self) -> Arc<Mutex<MessageLoader<S>>> {

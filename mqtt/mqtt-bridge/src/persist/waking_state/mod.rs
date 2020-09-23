@@ -9,15 +9,20 @@ use crate::persist::{Key, PersistError};
 pub mod memory;
 pub mod rocksdb;
 /// Responsible for waking waiting streams when new elements are added.
-///
 /// Exposes a get method for retrieving a count of elements in order of insertion.
+///
+/// This trait is intended to be the shared state between a message store and a message loader abstraction.
+///
+/// All implementations of this trait should have the same behavior with respect to errors.
+/// Thus all implementations will share the below test suite.
 #[async_trait]
 pub trait StreamWakeableState {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError>;
 
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError>;
 
-    fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError>;
+    // This remove should error if the given element has not yet been returned by batch.
+    fn remove(&mut self, key: &Key) -> Result<Publication, PersistError>;
 
     fn set_waker(&mut self, waker: &Waker);
 }
@@ -113,8 +118,8 @@ mod tests {
         assert_eq!(key2, Key { offset: 1 });
 
         // remove some
-        state_lock.lock().remove_in_flight(&key1).unwrap();
-        state_lock.lock().remove_in_flight(&key2).unwrap();
+        state_lock.lock().remove(&key1).unwrap();
+        state_lock.lock().remove(&key2).unwrap();
 
         // check that the ordering is maintained
         for count in 2..num_elements {
@@ -178,7 +183,7 @@ mod tests {
 
     #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
-    async fn in_flight(mut state: impl StreamWakeableState) {
+    async fn remove_loaded(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -188,27 +193,25 @@ mod tests {
         };
 
         state.insert(key1.clone(), pub1.clone()).unwrap();
-
-        let state_lock = Arc::new(Mutex::new(state));
-        let mut loader = MessageLoader::new(state_lock.clone(), 1);
-        let (key1, _) = loader.next().await.unwrap();
-        assert_eq!(key1, Key { offset: 0 });
-
-        let removed = state_lock.lock().remove_in_flight(&key1).unwrap();
+        state.batch(1).unwrap();
+        let removed = state.remove(&key1).unwrap();
         assert_eq!(removed, pub1);
+
+        let empty_batch = state.batch(1).unwrap();
+        assert_eq!(empty_batch.len(), 0);
     }
 
     #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
-    fn remove_in_flight_dne(mut state: impl StreamWakeableState) {
+    fn remove_loaded_dne(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
-        let bad_removal = state.remove_in_flight(&key1);
+        let bad_removal = state.remove(&key1);
         assert_matches!(bad_removal, Err(_));
     }
 
     #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
-    fn remove_in_flight_inserted_but_not_yet_retrieved(mut state: impl StreamWakeableState) {
+    fn remove_loaded_inserted_but_not_yet_retrieved(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -218,13 +221,13 @@ mod tests {
         };
 
         state.insert(key1.clone(), pub1).unwrap();
-        let bad_removal = state.remove_in_flight(&key1);
+        let bad_removal = state.remove(&key1);
         assert_matches!(bad_removal, Err(_));
     }
 
     #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
-    async fn remove_in_flight_out_of_order(mut state: impl StreamWakeableState) {
+    async fn remove_loaded_out_of_order(mut state: impl StreamWakeableState) {
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -244,17 +247,11 @@ mod tests {
         // insert elements and extract
         state.insert(key1.clone(), pub1.clone()).unwrap();
         state.insert(key2.clone(), pub2.clone()).unwrap();
+        state.batch(2).unwrap();
 
-        let state_lock = Arc::new(Mutex::new(state));
-        let mut loader = MessageLoader::new(state_lock.clone(), 1);
-        let (key1, _) = loader.next().await.unwrap();
-        let (key2, _) = loader.next().await.unwrap();
-        assert_eq!(key1, Key { offset: 0 });
-        assert_eq!(key2, Key { offset: 1 });
-
-        let extracted_pub2 = state_lock.lock().remove_in_flight(&key2).unwrap();
-        let extracted_pub1 = state_lock.lock().remove_in_flight(&key1).unwrap();
-
+        // remove out of order and verify
+        let extracted_pub2 = state.remove(&key2).unwrap();
+        let extracted_pub1 = state.remove(&key1).unwrap();
         assert_eq!(extracted_pub2, pub2);
         assert_eq!(extracted_pub1, pub1);
     }

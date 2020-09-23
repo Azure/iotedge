@@ -11,11 +11,16 @@ use uuid::Uuid;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
-/// When elements are retrieved they are added to the in flight collection, but kept in the original db store.
-/// Only when elements are removed from the in-flight collection they will be removed from the store.
+/// The concept of maintaining a collection of loaded messages will prevent duplicates from being returned by batch().
+///
+/// When elements are retrieved they are added to the loaded collection, but kept in the original db store.
+/// Only when elements are removed from the loaded collection they will be removed from the store.
+///
+/// If there is a crash then you lose state of what messages have been loaded, but the messages are still in the db.  
+/// This is desirable since these messages are not guaranteed to be sent and thus should be given to the new loader and sent.
 pub struct WakingRocksDBStore {
     db: RocksDbWrapper,
-    in_flight: HashMap<Key, Publication>,
+    loaded: HashMap<Key, Publication>,
     waker: Option<Waker>,
 }
 
@@ -25,7 +30,7 @@ impl WakingRocksDBStore {
 
         Ok(Self {
             db,
-            in_flight: HashMap::new(),
+            loaded: HashMap::new(),
             waker: None,
         })
     }
@@ -43,18 +48,16 @@ impl StreamWakeableState for WakingRocksDBStore {
 
     /// Get count elements of store, exluding those that are already in in-flight
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-        let iter = self
-            .db
-            .iter_except(count, &self.in_flight.keys().collect())?;
+        let iter = self.db.iter_except(count, &self.loaded.keys().collect())?;
 
-        self.in_flight.extend(iter.clone());
+        self.loaded.extend(iter.clone());
 
         Ok(iter.collect())
     }
 
-    fn remove_in_flight(&mut self, key: &Key) -> Result<Publication, PersistError> {
+    fn remove(&mut self, key: &Key) -> Result<Publication, PersistError> {
         let removed = self
-            .in_flight
+            .loaded
             .remove(key)
             .ok_or(PersistError::RemovalForMissing)?;
         self.db.remove(key)?;
