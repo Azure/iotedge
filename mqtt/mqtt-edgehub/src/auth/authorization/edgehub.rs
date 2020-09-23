@@ -250,7 +250,7 @@ impl Authorizer for EdgeHubAuthorizer {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ServiceIdentity {
     #[serde(rename = "Identity")]
     identity: String,
