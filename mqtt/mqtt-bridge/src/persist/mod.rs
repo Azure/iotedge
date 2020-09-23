@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 mod loader;
-mod persistor;
+mod publication_store;
 mod waking_state;
 pub use loader::MessageLoader;
-pub use persistor::PublicationStore;
+pub use publication_store::PublicationStore;
 pub use waking_state::{
     memory::WakingMemoryStore, rocksdb::WakingRocksDBStore, StreamWakeableState,
 };
