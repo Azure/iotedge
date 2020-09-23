@@ -8,9 +8,9 @@ mod persistor;
 mod waking_state;
 pub use loader::MessageLoader;
 pub use persistor::PublicationStore;
-pub use waking_state::memory::WakingMemoryStore;
-pub use waking_state::rocksdb::WakingRocksDBStore;
-pub use waking_state::StreamWakeableState;
+pub use waking_state::{
+    memory::WakingMemoryStore, rocksdb::WakingRocksDBStore, StreamWakeableState,
+};
 
 /// Keys used in persistence.
 /// Ordered by offset
