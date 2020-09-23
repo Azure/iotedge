@@ -33,7 +33,7 @@ impl WakingRocksDBStore {
 
 impl StreamWakeableState for WakingRocksDBStore {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
-        self.db.insert(key, value)?;
+        self.db.insert(&key, &value)?;
         if let Some(waker) = self.waker.take() {
             waker.wake();
         }
@@ -45,7 +45,7 @@ impl StreamWakeableState for WakingRocksDBStore {
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let iter = self
             .db
-            .iter_except(count, self.in_flight.keys().collect())?;
+            .iter_except(count, &self.in_flight.keys().collect())?;
 
         self.in_flight.extend(iter.clone());
 
@@ -81,7 +81,7 @@ impl RocksDbWrapper {
         Ok(Self { db, column_family })
     }
 
-    pub fn insert(&self, key: Key, publication: Publication) -> Result<(), PersistError> {
+    pub fn insert(&self, key: &Key, publication: &Publication) -> Result<(), PersistError> {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
         let publication_bytes =
             bincode::serialize(&publication).map_err(PersistError::Serialization)?;
@@ -97,7 +97,7 @@ impl RocksDbWrapper {
     pub fn iter_except(
         &self,
         count: usize,
-        exclude: HashSet<&Key>,
+        exclude: &HashSet<&Key>,
     ) -> Result<IntoIter<(Key, Publication)>, PersistError> {
         let column_family = self.column_family()?;
         let iter = self.db.iterator_cf(column_family, IteratorMode::Start);

@@ -166,7 +166,7 @@ mod tests {
         };
 
         state.insert(key1, pub1.clone()).unwrap();
-        state.insert(key2, pub2.clone()).unwrap();
+        state.insert(key2, pub2).unwrap();
 
         let smaller_batch_size = 1;
         let current_state = state.batch(smaller_batch_size).unwrap();
