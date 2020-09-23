@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
+            string parentEdgeDevice,
             CancellationToken token)
         {
             if (authType == AuthenticationType.SelfSigned && x509Thumbprint == null)
@@ -45,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return Profiler.Run(
                 async () =>
                 {
-                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, authType, x509Thumbprint, token);
+                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, authType, x509Thumbprint, parentEdgeDevice, token);
                     return new EdgeDevice(device, true, iotHub);
                 },
                 "Created edge device '{Device}' on hub '{IotHub}'",
@@ -80,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
+            string parentEdgeDevice,
             CancellationToken token)
         {
             Option<EdgeDevice> device = await GetIdentityAsync(deviceId, iotHub, token);
@@ -92,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         iotHub.Hostname);
                     return Task.FromResult(d);
                 },
-                () => CreateIdentityAsync(deviceId, iotHub, authType, x509Thumbprint, token));
+                () => CreateIdentityAsync(deviceId, iotHub, authType, x509Thumbprint, parentEdgeDevice, token));
         }
 
         public Task DeleteIdentityAsync(CancellationToken token) =>

@@ -73,6 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 return Option.None<(string, string, string)>();
             }
 
+            //BEARWASHERE -- Create a function to validate that both nestedEdge params are both either set or not-set
+
             string defaultId =
                 $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
@@ -181,6 +183,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> ParentHostname { get; }
 
-        public Option<string> ParentEdgeDevice { get; }
+        public string ParentEdgeDevice { get; }
     }
 }

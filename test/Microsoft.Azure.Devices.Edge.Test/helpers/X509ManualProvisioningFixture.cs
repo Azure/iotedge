@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             this.iotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
+                            Context.Current.ParentEdgeDevice,
                             token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);

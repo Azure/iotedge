@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     this.iotHub,
                     AuthenticationType.Sas,
                     null,
+                    Context.Current.ParentEdgeDevice,
                     token);
 
                 Context.Current.DeleteList.TryAdd(device.Id, device);

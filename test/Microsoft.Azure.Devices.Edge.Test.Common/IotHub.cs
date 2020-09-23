@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return await this.RegistryManager.AddDeviceAsync(device, token);
         }
 
-        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
+        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, string parentEdgeDevice, CancellationToken token)
         {
             Device edge = new Device(deviceId)
             {
@@ -97,7 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Capabilities = new DeviceCapabilities()
                 {
                     IotEdge = true
-                }
+                },
+                ParentScopes = new[] { parentEdgeDevice }
             };
 
             return this.CreateDeviceIdentityAsync(edge, token);
