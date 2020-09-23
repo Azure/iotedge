@@ -37,6 +37,7 @@ impl ShutdownHandle {
     }
 }
 
+#[derive(Clone)]
 enum BridgeIoSource {
     Tcp(TcpConnection<SasTokenSource>),
     Tls(TcpConnection<SasTokenSource>),
@@ -46,6 +47,7 @@ trait BridgeIo: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
 impl<I> BridgeIo for I where I: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
+#[derive(Clone)]
 pub struct TcpConnection<T>
 where
     T: TokenSource + Clone + Send + Sync + 'static,
@@ -103,6 +105,9 @@ impl IoSource for BridgeIoSource {
                         None
                     };
 
+                    // TODO: remove this log!!!
+                    debug!("Password {:?}", password);
+
                     let host =
                         port.map_or(address.clone(), |p| format!("{}:{}", address.clone(), p));
 
@@ -145,8 +150,6 @@ impl IoSource for BridgeIoSource {
                         None
                     };
 
-                    debug!("Trust bundle {:?}", server_root_certificate);
-
                     let password: Option<String> = if let Some(ts) = token_source {
                         ts.get(&expiry)
                             .await
@@ -159,6 +162,9 @@ impl IoSource for BridgeIoSource {
                         None
                     };
 
+                    // TODO: remove this log!!!
+                    debug!("Password {:?}", password);
+
                     let mut builder = TlsConnector::builder();
 
                     if let Some(trust_bundle) = server_root_certificate {
@@ -166,9 +172,8 @@ impl IoSource for BridgeIoSource {
                             .unwrap()
                             .into_iter()
                             .map(|cert| Certificate::from_der(&cert.to_der().unwrap()).unwrap());
-                        debug!("{}", certs.len());
+                        
                         for cert in certs {
-                            debug!("found cert");
                             builder.add_root_certificate(cert);
                         }
                     }
@@ -202,6 +207,10 @@ pub struct MqttClient<T>
 where
     T: EventHandler,
 {
+    client_id: String,
+    username: Option<String>,
+    io_source: BridgeIoSource,
+    keep_alive: Duration,
     client: Client<BridgeIoSource>,
     event_handler: T,
 }
@@ -236,37 +245,36 @@ impl<T: EventHandler> MqttClient<T> {
             Credentials::Anonymous(client_id) => (client_id.into(), None, None),
         };
 
-        let client = if !secure {
-            Client::new(
-                Some(client_id),
-                username,
+        let io_source = if !secure {
+            BridgeIoSource::Tcp(TcpConnection::<SasTokenSource>::new(
+                address.to_owned(),
+                port,
+                token_source,
                 None,
-                BridgeIoSource::Tcp(TcpConnection::<SasTokenSource>::new(
-                    address.to_owned(),
-                    port,
-                    token_source,
-                    None,
-                )),
-                DEFAULT_MAX_RECONNECT,
-                keep_alive,
-            )
+            ))
         } else {
-            Client::new(
-                Some(client_id),
-                username,
-                None,
-                BridgeIoSource::Tls(TcpConnection::<SasTokenSource>::new(
-                    address.to_owned(),
-                    port,
-                    token_source,
-                    Some(TrustBundleSource::new(connection_credentials.clone())),
-                )),
-                DEFAULT_MAX_RECONNECT,
-                keep_alive,
-            )
+            BridgeIoSource::Tls(TcpConnection::<SasTokenSource>::new(
+                address.to_owned(),
+                port,
+                token_source,
+                Some(TrustBundleSource::new(connection_credentials.clone())),
+            ))
         };
 
+        let client = Client::new(
+            Some(client_id.clone()),
+            username.clone(),
+            None,
+            io_source.clone(),
+            DEFAULT_MAX_RECONNECT,
+            keep_alive,
+        );
+
         Self {
+            client_id,
+            username,
+            io_source: io_source.clone(),
+            keep_alive,
             client,
             event_handler,
         }
@@ -283,6 +291,14 @@ impl<T: EventHandler> MqttClient<T> {
     pub async fn handle_events(mut self) -> Result<(), ClientConnectError> {
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
+            // self.client = Client::new(
+            //     Some(self.client_id),
+            //     self.username,
+            //     None,
+            //     self.io_source,
+            //     DEFAULT_MAX_RECONNECT,
+            //     self.keep_alive,
+            // );
             None
         }) {
             debug!("handle event {:?}", event);
