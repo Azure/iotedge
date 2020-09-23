@@ -16,7 +16,7 @@ use serde_derive::Serialize;
 use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::error::{Error, ErrorKind, Result};
-use crate::settings::RuntimeSettings;
+use crate::settings::{Provisioning, RuntimeSettings};
 use crate::GetTrustBundle;
 
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
@@ -366,10 +366,31 @@ pub struct SystemInfo {
     pub architecture: String,
     /// iotedge version string
     pub version: &'static str,
+    pub provisioning: ProvisioningInfo,
     pub server_version: String,
     pub kernel_version: String,
     pub operating_system: String,
     pub cpus: i32,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct ProvisioningInfo {
+    /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
+    pub r#type: String,
+    #[serde(rename = "dynamicReprovisioning")]
+    pub dynamic_reprovisioning: bool,
+    #[serde(rename = "alwaysReprovisionOnStartup")]
+    pub always_reprovision_on_startup: bool,
+}
+
+impl ProvisioningInfo {
+    pub fn new(provisioning: &Provisioning) -> Self {
+        ProvisioningInfo {
+            r#type: provisioning.provisioning_type().to_string(),
+            dynamic_reprovisioning: provisioning.dynamic_reprovisioning(),
+            always_reprovision_on_startup: provisioning.always_reprovision_on_startup(),
+        }
+    }
 }
 
 #[derive(Debug, serde_derive::Serialize)]

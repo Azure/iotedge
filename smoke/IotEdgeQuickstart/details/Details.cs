@@ -123,6 +123,10 @@ namespace IotEdgeQuickstart.Details
 
         readonly string hostname;
 
+        readonly Option<string> parentHostname;
+
+        readonly Option<string> parentEdgeDevice;
+
         readonly string deviceCaCert;
 
         readonly string deviceCaPk;
@@ -151,6 +155,8 @@ namespace IotEdgeQuickstart.Details
             string imageTag,
             string deviceId,
             string hostname,
+            Option<string> parentHostname,
+            Option<string> parentEdgeDevice,
             Option<string> deploymentFileName,
             Option<string> twinTestFileName,
             string deviceCaCert,
@@ -189,6 +195,8 @@ namespace IotEdgeQuickstart.Details
             this.imageTag = imageTag;
             this.deviceId = deviceId;
             this.hostname = hostname;
+            this.parentHostname = parentHostname;
+            this.parentEdgeDevice = parentEdgeDevice;
             this.DeploymentFileName = deploymentFileName;
             this.TwinTestFileName = twinTestFileName;
             this.deviceCaCert = deviceCaCert;
@@ -273,7 +281,7 @@ namespace IotEdgeQuickstart.Details
                 agentImage = Option.Some<string>(this.EdgeAgentImage());
             }
 
-            return this.bootstrapper.Configure(method, agentImage, this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
+            return this.bootstrapper.Configure(method, agentImage, this.hostname, this.parentHostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper()
@@ -516,6 +524,8 @@ namespace IotEdgeQuickstart.Details
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
                 Capabilities = new DeviceCapabilities() { IotEdge = true }
             };
+
+            this.parentEdgeDevice.ForEach(p => device.ParentScopes = new[] { p });
 
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
