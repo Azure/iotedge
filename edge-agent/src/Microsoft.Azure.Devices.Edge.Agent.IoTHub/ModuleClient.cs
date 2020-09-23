@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -109,12 +110,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task SendEventAsync(Message message)
+        public async Task SendEventBatchAsync(IEnumerable<Message> messages)
         {
             try
             {
                 this.inactivityTimer.Reset();
-                await this.inner.SendEventAsync(message);
+                await this.inner.SendEventBatchAsync(messages);
             }
             catch (Exception e)
             {
