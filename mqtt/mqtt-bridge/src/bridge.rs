@@ -7,10 +7,7 @@ use tracing::{debug, info, warn};
 
 use crate::{
     client::{ClientConnectError, EventHandler, MqttClient},
-    persist::PersistError,
-    persist::PublicationStore,
-    persist::StreamWakeableState,
-    persist::WakingMemoryStore,
+    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
     settings::{ConnectionSettings, Credentials, Topic},
 };
 
