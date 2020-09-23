@@ -1,5 +1,5 @@
 use std::{
-    collections::{hash_set::HashSet, HashMap, VecDeque},
+    collections::{HashMap, VecDeque},
     task::Waker,
     vec::IntoIter,
 };
@@ -46,9 +46,9 @@ impl StreamWakeableState for WakingRocksDBStore {
         Ok(())
     }
 
-    /// Get count elements of store, exluding those that are already in in-flight
+    /// Get count elements of store, excluding those that are already in in-flight
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-        let iter = self.db.iter_except(count, &self.loaded.keys().collect())?;
+        let iter = self.db.iter_except(count, &self.loaded)?;
 
         self.loaded.extend(iter.clone());
 
@@ -76,7 +76,7 @@ struct RocksDbWrapper {
 }
 
 impl RocksDbWrapper {
-    pub fn new(mut db: DB) -> Result<Self, PersistError> {
+    fn new(mut db: DB) -> Result<Self, PersistError> {
         let column_family = Uuid::new_v4().to_string();
         db.create_cf(column_family.clone(), &Options::default())
             .map_err(PersistError::CreateColumnFamily)?;
@@ -84,7 +84,7 @@ impl RocksDbWrapper {
         Ok(Self { db, column_family })
     }
 
-    pub fn insert(&self, key: &Key, publication: &Publication) -> Result<(), PersistError> {
+    fn insert(&self, key: &Key, publication: &Publication) -> Result<(), PersistError> {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
         let publication_bytes =
             bincode::serialize(&publication).map_err(PersistError::Serialization)?;
@@ -97,10 +97,10 @@ impl RocksDbWrapper {
         Ok(())
     }
 
-    pub fn iter_except(
+    fn iter_except(
         &self,
         count: usize,
-        exclude: &HashSet<&Key>,
+        exclude: &HashMap<Key, Publication>,
     ) -> Result<IntoIter<(Key, Publication)>, PersistError> {
         let column_family = self.column_family()?;
         let iter = self.db.iterator_cf(column_family, IteratorMode::Start);
@@ -116,8 +116,8 @@ impl RocksDbWrapper {
                         .map(|publication: Publication| (key, publication))
                 })?;
 
-            if !exclude.contains(&key) {
-                output.push((key.clone(), publication.clone()));
+            if !exclude.contains_key(&key) {
+                output.push((key, publication));
                 iterations += 1;
             }
 
@@ -129,7 +129,7 @@ impl RocksDbWrapper {
         Ok(output.into_iter())
     }
 
-    pub fn remove(&self, key: &Key) -> Result<(), PersistError> {
+    fn remove(&self, key: &Key) -> Result<(), PersistError> {
         let key_bytes = bincode::serialize(&key).map_err(PersistError::Serialization)?;
 
         let column_family = self.column_family()?;

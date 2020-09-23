@@ -14,7 +14,7 @@ pub use waking_state::{
 
 /// Keys used in persistence.
 /// Ordered by offset
-#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Deserialize, Serialize)]
+#[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Deserialize, Serialize, Copy)]
 pub struct Key {
     offset: u32,
 }
@@ -41,21 +41,4 @@ pub enum PersistError {
 
     #[error("Failed to serialize on database insert")]
     Serialization(#[source] Box<ErrorKind>),
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::persist::Key;
-
-    #[test]
-    fn key_offset_ordering() {
-        // ordered by offset
-        let key1 = Key { offset: 0 };
-        let key2 = Key { offset: 1 };
-        let key3 = Key { offset: 1 };
-        assert!(key2 > key1);
-        assert!(key2 != key1);
-        assert!(key1 < key2);
-        assert!(key2 == key3);
-    }
 }
