@@ -176,7 +176,7 @@ impl Authorizer for EdgeHubAuthorizer {
         Ok(auth)
     }
 
-    fn update(&self, update: Box<dyn Any>) -> Result<(), Self::Error> {
+    fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
         let identities = update.as_ref();
         if let Some(service_identities) = identities.downcast_ref::<ServiceIdentity>() {
             debug!("{:?}", service_identities);
