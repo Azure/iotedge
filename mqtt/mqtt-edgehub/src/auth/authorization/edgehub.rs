@@ -235,16 +235,15 @@ impl Authorizer for EdgeHubAuthorizer {
     }
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
-        let identities = update.as_ref();
-        if let Some(service_identities) = identities.downcast_ref::<Vec<ServiceIdentity>>() {
+        if let Ok(service_identities) = update.downcast::<Vec<ServiceIdentity>>() {
             debug!(
                 "service identities update received. Service identities: {:?}",
                 service_identities
             );
 
             self.service_identities_cache = service_identities
-                .iter()
-                .map(|id| (ClientId::from(id.identity()), id.clone()))
+                .into_iter()
+                .map(|id| (id.identity().into(), id))
                 .collect();
         }
         Ok(())

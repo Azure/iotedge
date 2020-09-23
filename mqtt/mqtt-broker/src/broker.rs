@@ -91,9 +91,7 @@ where
                                 error!(message = "an error occurred while updating authorization info", error = %e);
                                 break;
                             }
-                            if let Err(e) = self.reevaluate_subscriptions() {
-                                warn!(message = "an error occurred while reevaluating authorization info", error = %e);
-                            }
+                            self.reevaluate_subscriptions();
                         }
                     }
                 }
@@ -126,7 +124,7 @@ where
         activities
     }
 
-    fn reevaluate_subscriptions(&mut self) -> Result<(), Error> {
+    fn reevaluate_subscriptions(&mut self) {
         let disconnecting: Vec<ClientId> = self
             .sessions
             .iter()
@@ -157,7 +155,6 @@ where
                 );
             }
         }
-        Ok(())
     }
 
     fn snapshot(&self) -> BrokerSnapshot {
