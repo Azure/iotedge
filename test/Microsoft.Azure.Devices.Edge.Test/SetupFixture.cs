@@ -74,7 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 props.Add(parentEdgeDevice);
                             });
 
-
                             Context.Current.Proxy.ForEach(proxy =>
                             {
                                 config.AddHttpsProxy(proxy);
