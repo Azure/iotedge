@@ -178,7 +178,7 @@ mod tests {
 
     #[test_case(WakingMemoryStore::new())]
     #[test_case(init_rocksdb_test_store())]
-    fn in_flight(mut state: impl StreamWakeableState) {
+    async fn in_flight(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -188,8 +188,13 @@ mod tests {
         };
 
         state.insert(key1.clone(), pub1.clone()).unwrap();
-        state.batch(1).unwrap();
-        let removed = state.remove_in_flight(&key1).unwrap();
+
+        let state_lock = Arc::new(Mutex::new(state));
+        let mut loader = MessageLoader::new(state_lock.clone(), 1);
+        let (key1, _) = loader.next().await.unwrap();
+        assert_eq!(key1, Key { offset: 0 });
+
+        let removed = state_lock.lock().remove_in_flight(&key1).unwrap();
         assert_eq!(removed, pub1);
     }
 
@@ -215,6 +220,43 @@ mod tests {
         state.insert(key1.clone(), pub1).unwrap();
         let bad_removal = state.remove_in_flight(&key1);
         assert_matches!(bad_removal, Err(_));
+    }
+
+    #[test_case(WakingMemoryStore::new())]
+    #[test_case(init_rocksdb_test_store())]
+    async fn remove_in_flight_out_of_order(mut state: impl StreamWakeableState) {
+        // setup data
+        let key1 = Key { offset: 0 };
+        let pub1 = Publication {
+            topic_name: "1".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+        let key2 = Key { offset: 1 };
+        let pub2 = Publication {
+            topic_name: "2".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        // insert elements and extract
+        state.insert(key1.clone(), pub1.clone()).unwrap();
+        state.insert(key2.clone(), pub2.clone()).unwrap();
+
+        let state_lock = Arc::new(Mutex::new(state));
+        let mut loader = MessageLoader::new(state_lock.clone(), 1);
+        let (key1, _) = loader.next().await.unwrap();
+        let (key2, _) = loader.next().await.unwrap();
+        assert_eq!(key1, Key { offset: 0 });
+        assert_eq!(key2, Key { offset: 1 });
+
+        let extracted_pub2 = state_lock.lock().remove_in_flight(&key2).unwrap();
+        let extracted_pub1 = state_lock.lock().remove_in_flight(&key1).unwrap();
+
+        assert_eq!(extracted_pub2, pub2);
+        assert_eq!(extracted_pub1, pub1);
     }
 
     #[test_case(WakingMemoryStore::new())]
