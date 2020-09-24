@@ -525,7 +525,11 @@ namespace IotEdgeQuickstart.Details
                 Capabilities = new DeviceCapabilities() { IotEdge = true }
             };
 
-            this.parentEdgeDevice.ForEach(p => device.ParentScopes = new[] { p });
+            await this.parentEdgeDevice.ForEachAsync(async p =>
+            {
+                var parentDevice = await rm.GetDeviceAsync(p);
+                device.ParentScopes = new[] { parentDevice.Scope };
+            });
 
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
