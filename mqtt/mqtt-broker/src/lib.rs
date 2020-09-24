@@ -36,6 +36,7 @@ use std::{
     sync::Arc,
 };
 
+use proto::Publication;
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
 
@@ -44,8 +45,8 @@ use mqtt3::proto;
 pub use crate::auth::{AuthId, Identity};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
 pub use crate::connection::{
-    ConnectionHandle, IncomingPacketProcessor, MakeIncomingPacketProcessor,
-    MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, OutgoingPacketProcessor, PacketAction,
+    ConnectionHandle, IncomingPacketProcessor, MakeMqttPacketProcessor, MakePacketProcessor,
+    OutgoingPacketProcessor, PacketAction,
 };
 pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{
@@ -241,6 +242,7 @@ pub enum SystemEvent {
     StateSnapshot(StateSnapshotHandle),
     ForceClientDisconnect(ClientId),
     AuthorizationUpdate(Box<dyn Any + Send + Sync>),
+    Publish(Publication),
 }
 
 #[derive(Debug)]

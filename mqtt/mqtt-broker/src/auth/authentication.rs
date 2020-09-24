@@ -30,7 +30,7 @@ impl From<String> for Certificate {
 #[async_trait]
 pub trait Authenticator {
     /// Authentication error.
-    type Error: std::fmt::Display; //: Deref<Target = dyn StdError>;
+    type Error: std::fmt::Display;
 
     /// Authenticates a MQTT client with given credentials.
     ///
@@ -125,7 +125,6 @@ where
 impl<F, E> Authenticator for F
 where
     F: Fn(AuthenticationContext) -> Result<Option<AuthId>, E> + Sync,
-    // E: Deref<Target = dyn StdError> + 'static,
     E: StdError + 'static,
 {
     type Error = E;

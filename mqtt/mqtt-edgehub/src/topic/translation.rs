@@ -40,11 +40,16 @@ pub fn translate_incoming_unsubscribe(client_id: &ClientId, unsubscribe: &mut pr
 }
 
 pub fn translate_incoming_publish(client_id: &ClientId, publish: &mut proto::Publish) {
+    dbg!(&publish.topic_name);
     if let Some(new_topic) = TRANSLATE_D2C.to_internal(&publish.topic_name, client_id) {
         debug!(
             "Translating incoming publication {} to {}",
             publish.topic_name, new_topic
         );
+        dbg!(format!(
+            "Translating incoming publication {} to {}",
+            publish.topic_name, new_topic
+        ));
         publish.topic_name = new_topic;
     }
 }
@@ -262,11 +267,11 @@ translate_c2d! {
     // Module-to-Module inputs
     module_to_module_inputs {
         to_internal {
-            format!("devices/{}/modules/{}/#", DEVICE_ID, MODULE_ID),
-            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/inputs/#", &captures["device_id"], &captures["module_id"])}
+            format!("devices/{}/modules/{}/inputs/(?P<path>.+)", DEVICE_ID, MODULE_ID),
+            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/inputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
         },
         to_external {
-            format!("\\$edgehub/{}/{}/inputs/(?P<path>.*)", DEVICE_ID, MODULE_ID),
+            format!("\\$edgehub/{}/{}/inputs/(?P<path>.+)", DEVICE_ID, MODULE_ID),
             {|captures: regex::Captures<'_>| format!("devices/{}/modules/{}/inputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
         }
     }
@@ -507,14 +512,19 @@ mod tests {
 
         // M2M subscription
         assert_eq!(
-            c2d.to_internal("devices/device_1/modules/module_a/#", &client_id),
+            c2d.to_internal("devices/device_1/modules/module_a/inputs/#", &client_id),
             Some("$edgehub/device_1/module_a/inputs/#".to_owned())
+        );
+        assert_eq!(
+            c2d.to_internal("devices/device_1/modules/module_a/inputs/telemetry/?rid=1", &client_id),
+            Some("$edgehub/device_1/module_a/inputs/telemetry/?rid=1".to_owned())
         );
 
         // M2M incoming
         assert_eq!(
             c2d.to_external("$edgehub/device_1/module_a/inputs/route_1/%24.cdid=device_1&%24.cmid=module_a"),
             Some("devices/device_1/modules/module_a/inputs/route_1/%24.cdid=device_1&%24.cmid=module_a".to_owned())
+                 
         );
     }
 }

@@ -52,9 +52,31 @@ pub trait MakeOutgoingPacketProcessor {
     fn make_outgoing(&self, client_id: &ClientId) -> Self::Processor;
 }
 
+/// A trait to make a new instances of both incoming and outgoing packet processors.
+pub trait MakePacketProcessor {
+    type OutgoingProcessor: OutgoingPacketProcessor + Send;
+    type IncomingProcessor: IncomingPacketProcessor + Send;
+
+    /// Creates a new instances of packet processors.
+    fn make(&self, client_id: &ClientId) -> (Self::OutgoingProcessor, Self::IncomingProcessor);
+}
+
 /// Makes a new instance of default MQTT packet processor.
 #[derive(Debug, Clone)]
 pub struct MakeMqttPacketProcessor;
+
+impl MakePacketProcessor for MakeMqttPacketProcessor {
+    type OutgoingProcessor = MqttOutgoingPacketProcessor;
+
+    type IncomingProcessor = MqttIncomingPacketProcessor;
+
+    fn make(&self, client_id: &ClientId) -> (Self::OutgoingProcessor, Self::IncomingProcessor) {
+        (
+            Self::OutgoingProcessor::new(client_id.clone()),
+            Self::IncomingProcessor::new(client_id.clone(), 10),
+        )
+    }
+}
 
 impl MakeIncomingPacketProcessor for MakeMqttPacketProcessor {
     type Processor = MqttIncomingPacketProcessor;
