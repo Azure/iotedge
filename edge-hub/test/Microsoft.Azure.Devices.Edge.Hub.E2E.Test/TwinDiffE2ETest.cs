@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
 
@@ -15,6 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     public class TwinDiffE2ETest
     {
         const string DeviceNamePrefix = "E2E_twin_";
+
+        // BEARWASHERE
+        ILogger log = Logger.Factory.CreateLogger<TwinDiffE2ETest>();
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
@@ -71,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         ["102"] = "value"
                     };
 
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch, true);
 
                     Assert.True(
                         JToken.DeepEquals(
@@ -399,7 +404,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             DeviceClient deviceClient,
             string deviceName,
             RegistryManager rm,
-            Twin twinPatch)
+            Twin twinPatch,
+            bool isLogging = false)
         {
             var receivedDesiredProperties = new TwinCollection();
             bool desiredPropertiesUpdateCallbackTriggered = false;
@@ -408,6 +414,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 receivedDesiredProperties = desiredproperties;
                 desiredPropertiesUpdateCallbackTriggered = true;
+
                 return Task.CompletedTask;
             }
 
@@ -432,6 +439,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string mergedJson = JsonEx.Merge(originalCloudTwin.Properties.Desired, receivedDesiredProperties, true);
             var localMergedTwinProperties = new TwinCollection(mergedJson);
+
+            // BEARWASHERE
+            if (isLogging)
+            {
+                this.log.LogInformation($"BEARA - receivedDesiredProperties = {JsonConvert.SerializeObject(receivedDesiredProperties)}");
+                this.log.LogInformation($"BEARA - originalCloudTwin.Properties.Desired = {JsonConvert.SerializeObject(originalCloudTwin.Properties.Desired)}");
+                this.log.LogInformation($"BEARA - mergedJson = {JsonConvert.SerializeObject(mergedJson)}");
+                this.log.LogInformation($"BEARA - localMergedTwinProperties = {JsonConvert.SerializeObject(localMergedTwinProperties)}");
+            }
 
             return (localMergedTwinProperties, updatedCloudTwin.Properties.Desired);
         }
