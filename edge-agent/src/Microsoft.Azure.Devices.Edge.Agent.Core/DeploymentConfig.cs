@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     public class DeploymentConfig : IEquatable<DeploymentConfig>
     {
         public static DeploymentConfig Empty = new DeploymentConfig(
-            "1.1.0",
+            "1.0",
             UnknownRuntimeInfo.Instance,
             new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance),
             ImmutableDictionary<string, IModule>.Empty);
