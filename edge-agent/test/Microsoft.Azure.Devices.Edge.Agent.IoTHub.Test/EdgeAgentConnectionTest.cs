@@ -374,13 +374,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 // BEARWASHERE
                 deploymentConfigInfo.ForEach(p =>
-                    this.log.LogInformation($"BEARW - deploymentConfigInfo = {p.ToString()}"));
+                    this.log.LogInformation($"BEARW - deploymentConfigInfo = {JsonConvert.SerializeObject(p)}"));
 
                 Assert.True(deploymentConfigInfo.HasValue);
                 DeploymentConfig deploymentConfig = deploymentConfigInfo.OrDefault().DeploymentConfig;
 
                 // BEARWASHERE
-                this.log.LogInformation($"BEARW - deploymentConfig = {deploymentConfig.ToString()}");
+                this.log.LogInformation($"BEARW - deploymentConfig = {JsonConvert.SerializeObject(deploymentConfig)}");
 
                 Assert.NotNull(deploymentConfig);
                 Assert.NotNull(deploymentConfig.Modules);
@@ -459,13 +459,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 // BEARWASHERE
                 deploymentConfigInfo.ForEach(p =>
-                    this.log.LogInformation($"BEARW - EdgeAgentConnectionBaseAddOnConfigurationTest - deploymentConfigInfo = {p.ToString()}"));
+                    this.log.LogInformation($"BEARW - EdgeAgentConnectionBaseAddOnConfigurationTest - deploymentConfigInfo = {JsonConvert.SerializeObject(p)}"));
 
                 Assert.True(deploymentConfigInfo.HasValue);
                 DeploymentConfig deploymentConfig = deploymentConfigInfo.OrDefault().DeploymentConfig;
 
                 // BEARWASHERE
-                this.log.LogInformation($"BEARW - deploymentConfig = {deploymentConfig.ToString()}");
+                this.log.LogInformation($"BEARW - deploymentConfig = {JsonConvert.SerializeObject(deploymentConfig)}");
 
                 Assert.NotNull(deploymentConfig);
                 Assert.NotNull(deploymentConfig.Modules);
