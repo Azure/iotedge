@@ -1,4 +1,4 @@
-use std::{convert::Infallible, error::Error as StdError, net::SocketAddr};
+use std::{convert::Infallible, error::Error as StdError, fmt::Display, net::SocketAddr};
 
 use async_trait::async_trait;
 
@@ -30,7 +30,7 @@ impl From<String> for Certificate {
 #[async_trait]
 pub trait Authenticator {
     /// Authentication error.
-    type Error: std::fmt::Display;
+    type Error: Display;
 
     /// Authenticates a MQTT client with given credentials.
     ///

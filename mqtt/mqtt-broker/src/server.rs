@@ -304,7 +304,7 @@ impl Listener {
                                 let span = inner_span.clone();
                                 let authenticator = authenticator.clone();
                                 let make_processor = make_processor.clone();
-                                
+
                                 tokio::spawn(async move {
                                     if let Err(e) =
                                         connection::process(stream, peer, broker_handle, &*authenticator, make_processor)
