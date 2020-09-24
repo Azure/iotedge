@@ -72,6 +72,7 @@ impl Authorizer for AllowAll {
 }
 
 /// Describes a client activity to authorized.
+#[derive(Debug)]
 pub struct Activity {
     client_id: ClientId,
     client_info: ClientInfo,
@@ -109,6 +110,7 @@ impl Activity {
 }
 
 /// Describes a client operation to be authorized.
+#[derive(Debug)]
 pub enum Operation {
     Connect(Connect),
     Publish(Publish),
@@ -133,6 +135,7 @@ impl Operation {
 }
 
 /// Represents a client attempt to connect to the broker.
+#[derive(Debug)]
 pub struct Connect {
     will: Option<Publication>,
 }
@@ -152,6 +155,7 @@ impl From<proto::Connect> for Connect {
 }
 
 /// Represents a publication description without payload to be used for authorization.
+#[derive(Debug)]
 pub struct Publication {
     topic_name: String,
     qos: proto::QoS,
@@ -183,6 +187,7 @@ impl From<proto::Publication> for Publication {
 }
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
+#[derive(Debug)]
 pub struct Publish {
     publication: Publication,
 }
@@ -210,6 +215,7 @@ impl From<proto::Publish> for Publish {
 }
 
 /// Represents a client attempt to subscribe to a specified MQTT topic in order to received messages.
+#[derive(Clone, Debug)]
 pub struct Subscribe {
     topic_filter: String,
     qos: proto::QoS,
