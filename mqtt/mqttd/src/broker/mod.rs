@@ -46,9 +46,7 @@ where
     // start sidecars
     info!("starting sidecars...");
     let (sidecar_shutdown, sidecar_join_handles) =
-        bootstrap::start_sidecars(broker_handle.clone(), system_address)
-            .await
-            .unwrap();
+        bootstrap::start_sidecars(broker_handle.clone(), system_address).await?;
 
     // combine future for all sidecars
     // wait on future for sidecars or broker
