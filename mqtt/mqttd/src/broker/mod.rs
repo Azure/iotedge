@@ -17,7 +17,7 @@ where
     P: AsRef<Path>,
 {
     let settings = bootstrap::config(config_path).context(LoadConfigurationError)?;
-    let system_address = settings.listener().system().addr().to_string();
+    let listener_settings = settings.listener().clone();
 
     info!("loading state...");
     let persistence_config = settings.broker().persistence();
@@ -46,7 +46,7 @@ where
     // start sidecars
     info!("starting sidecars...");
     let (sidecars_shutdown, sidecar_join_handles) =
-        bootstrap::start_sidecars(broker_handle.clone(), system_address).await?;
+        bootstrap::start_sidecars(broker_handle.clone(), listener_settings).await?;
 
     // combine future for all sidecars
     // wait on future for sidecars or broker

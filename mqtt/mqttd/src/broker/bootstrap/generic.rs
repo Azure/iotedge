@@ -1,17 +1,21 @@
+#![allow(unused_variables)] // TODO remove when ready
 use std::{
     future::Future,
     path::{Path, PathBuf},
 };
 
 use anyhow::{Context, Result};
+use futures_util::pin_mut;
+use thiserror::Error;
+use tokio::task::JoinHandle;
 use tracing::info;
 
 use mqtt_broker::{
     auth::{authenticate_fn_ok, AllowAll, Authorizer},
     settings::BrokerConfig,
-    AuthId, Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
+    AuthId, Broker, BrokerBuilder, BrokerHandle, BrokerSnapshot, Error, Server, ServerCertificate,
 };
-use mqtt_generic::settings::{CertificateConfig, Settings};
+use mqtt_generic::settings::{CertificateConfig, ListenerConfig, Settings};
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
 where
@@ -48,7 +52,7 @@ pub async fn start_server<Z, F>(
 ) -> Result<BrokerSnapshot>
 where
     Z: Authorizer + Send + 'static,
-    F: Future<Output = ()> + Unpin,
+    F: Future<Output = ()>,
 {
     let mut server = Server::from_broker(broker);
 
@@ -63,8 +67,31 @@ where
         server.with_tls(tls.addr(), identity, authenticator, None)?;
     }
 
+    pin_mut!(shutdown_signal);
     let state = server.serve(shutdown_signal).await?;
     Ok(state)
+}
+
+// There are currently no sidecars for the generic feature flag, so this is empty
+#[derive(Debug, Error)]
+pub enum SidecarError {}
+
+// There are currently no sidecars for the generic feature flag, so this is a no-op
+pub struct SidecarShutdownHandle {}
+impl SidecarShutdownHandle {
+    pub async fn shutdown(self) -> Result<(), SidecarError> {
+        info!("not starting any sidecars for generic feature flag");
+        Ok(())
+    }
+}
+
+pub async fn start_sidecars(
+    broker_handle: BrokerHandle,
+    listener_settings: ListenerConfig,
+) -> Result<(SidecarShutdownHandle, Vec<JoinHandle<()>>)> {
+    let sidecars_shutdown = SidecarShutdownHandle {};
+    let join_handles: Vec<JoinHandle<()>> = Vec::new();
+    Ok((sidecars_shutdown, join_handles))
 }
 
 fn load_server_certificate(config: &CertificateConfig) -> Result<ServerCertificate> {

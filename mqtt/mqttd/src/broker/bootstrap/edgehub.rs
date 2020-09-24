@@ -102,6 +102,25 @@ where
     Ok(state)
 }
 
+#[derive(Debug, Error)]
+pub enum SidecarError {
+    #[error("Failed to shutdown command handler")]
+    CommandHandlerShutdown(#[from] CommandHandlerError),
+}
+
+pub struct SidecarShutdownHandle {
+    command_handler_shutdown: ShutdownHandle,
+}
+
+impl SidecarShutdownHandle {
+    pub async fn shutdown(self) -> Result<(), SidecarError> {
+        self.command_handler_shutdown
+            .shutdown()
+            .await
+            .map_err(SidecarError::CommandHandlerShutdown)
+    }
+}
+
 pub async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
@@ -130,25 +149,6 @@ pub async fn start_sidecars(
         },
         join_handles,
     ))
-}
-
-pub struct SidecarShutdownHandle {
-    command_handler_shutdown: ShutdownHandle,
-}
-
-impl SidecarShutdownHandle {
-    pub async fn shutdown(self) -> Result<(), SidecarError> {
-        self.command_handler_shutdown
-            .shutdown()
-            .await
-            .map_err(SidecarError::CommandHandlerShutdown)
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum SidecarError {
-    #[error("Failed to shutdown command handler")]
-    CommandHandlerShutdown(#[from] CommandHandlerError),
 }
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
