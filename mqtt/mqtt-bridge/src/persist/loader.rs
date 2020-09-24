@@ -51,11 +51,14 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
             return Poll::Ready(Some((item.0, item.1)));
         }
 
-        // TODO REVIEW: Need some loud error here
+        // Since poll_next does not return a Result type, we cannot percolate error all the way up
+        // We need to fail fast and loud in the case this rocksdb retrieval errors
+        // If error, either someone forged the database or we have a database schema change
         let mut_self = self.get_mut();
-        if let Ok(batch) = mut_self.next_batch() {
-            mut_self.batch = batch;
-        }
+        mut_self.batch = mut_self
+            .next_batch()
+            .expect("failed retrieval from rocksdb");
+
         mut_self.batch.pop_front().map_or_else(
             || {
                 let mut state_lock = mut_self.state.lock();
