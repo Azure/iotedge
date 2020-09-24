@@ -7,7 +7,6 @@ use serde::Deserialize;
 use tracing::debug;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
-pub const ENVIRONMENT_PREFIX: &str = "iotedge";
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
 const EXPECTED_UPSTREAM_PROTOCOL: &str = "mqtt";
 
@@ -25,7 +24,7 @@ impl Settings {
         let mut config = Config::new();
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(Environment::new())?; //(ENVIRONMENT_PREFIX))?;
+        config.merge(Environment::new())?;
 
         config.try_into()
     }
@@ -38,7 +37,7 @@ impl Settings {
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(File::from(path.as_ref()))?;
-        config.merge(Environment::new())?; //with_prefix(ENVIRONMENT_PREFIX))?;
+        config.merge(Environment::new())?;
 
         config.try_into()
     }
