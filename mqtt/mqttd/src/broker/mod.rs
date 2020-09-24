@@ -45,7 +45,7 @@ where
 
     // start sidecars
     info!("starting sidecars...");
-    let (sidecar_shutdown, sidecar_join_handles) =
+    let (sidecars_shutdown, sidecar_join_handles) =
         bootstrap::start_sidecars(broker_handle.clone(), system_address).await?;
 
     // combine future for all sidecars
@@ -53,11 +53,11 @@ where
     // if one of them exits then shut the other down
     let sidecars_fut = select_all(sidecar_join_handles);
     let state = match select(server_join_handle, sidecars_fut).await {
-        Either::Left((server_join_handle, sidecar_join_handle)) => {
+        Either::Left((server_join_handle, sidecars_join_handle)) => {
             let state = server_join_handle??;
 
-            sidecar_shutdown.shutdown().await?;
-            let (completed_join_handle, _, other_handles) = sidecar_join_handle.await;
+            sidecars_shutdown.shutdown().await?;
+            let (completed_join_handle, _, other_handles) = sidecars_join_handle.await;
             completed_join_handle?;
             for handle in other_handles {
                 handle.await?;
@@ -65,14 +65,14 @@ where
 
             state
         }
-        Either::Right((sidecar_join_handle, server_join_handle)) => {
-            let (completed_join_handle, _, other_handles) = sidecar_join_handle;
+        Either::Right((sidecars_join_handle, server_join_handle)) => {
+            let (completed_join_handle, _, other_handles) = sidecars_join_handle;
             completed_join_handle?;
             for handle in other_handles {
                 handle.await?;
             }
 
-            sidecar_shutdown.shutdown().await?;
+            sidecars_shutdown.shutdown().await?;
             broker_handle.send(Message::System(SystemEvent::Shutdown))?;
             let state = server_join_handle.await??;
 
