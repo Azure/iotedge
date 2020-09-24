@@ -1,4 +1,3 @@
-#![allow(dead_code)] // TODO remove when ready
 use tokio::{
     task::JoinHandle,
     time::{Duration, Instant},
