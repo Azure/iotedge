@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
         readonly bool nestedEdgeEnabled;
+        readonly bool isLegacyUpstream;
 
         public RoutingModule(
             string iotHubName,
@@ -89,7 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool checkEntireQueueOnCleanup,
             ExperimentalFeatures experimentalFeatures,
             bool closeCloudConnectionOnDeviceDisconnect,
-            bool nestedEdgeEnabled)
+            bool nestedEdgeEnabled,
+            bool isLegacyUpstream)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.gatewayHostname = gatewayHostname;
@@ -121,6 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.nestedEdgeEnabled = nestedEdgeEnabled;
+            this.isLegacyUpstream = isLegacyUpstream;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -214,40 +217,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IClientProvider>()
                 .SingleInstance();
 
-            // Task<ICloudConnectionProvider>
-            builder.Register(
-                    async c =>
-                    {
-                        var metadataStore = await c.Resolve<Task<IMetadataStore>>();
-                        var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                        var clientProvider = c.Resolve<IClientProvider>();
-                        var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
-                        var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
-                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                        var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                        var proxy = c.Resolve<Option<IWebProxy>>();
-                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
-                        ICredentialsCache credentialsCache = await credentialsCacheTask;
-                        ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
-                            messageConverterProvider,
-                            this.connectionPoolSize,
-                            clientProvider,
-                            this.upstreamProtocol,
-                            tokenProvider,
-                            deviceScopeIdentitiesCache,
-                            credentialsCache,
-                            edgeHubCredentials.Identity,
-                            this.cloudConnectionIdleTimeout,
-                            this.closeCloudConnectionOnIdleTimeout,
-                            this.operationTimeout,
-                            this.useServerHeartbeat,
-                            proxy,
-                            metadataStore,
-                            this.nestedEdgeEnabled);
-                        return cloudConnectionProvider;
-                    })
-                .As<Task<ICloudConnectionProvider>>()
-                .SingleInstance();
+            if (this.isLegacyUpstream)
+            {
+                // Task<ICloudConnectionProvider>
+                builder.Register(
+                        async c =>
+                        {
+                            var metadataStore = await c.Resolve<Task<IMetadataStore>>();
+                            var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                            var clientProvider = c.Resolve<IClientProvider>();
+                            var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
+                            var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                            var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                            var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                            var proxy = c.Resolve<Option<IWebProxy>>();
+                            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                            ICredentialsCache credentialsCache = await credentialsCacheTask;
+                            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                                messageConverterProvider,
+                                this.connectionPoolSize,
+                                clientProvider,
+                                this.upstreamProtocol,
+                                tokenProvider,
+                                deviceScopeIdentitiesCache,
+                                credentialsCache,
+                                edgeHubCredentials.Identity,
+                                this.cloudConnectionIdleTimeout,
+                                this.closeCloudConnectionOnIdleTimeout,
+                                this.operationTimeout,
+                                this.useServerHeartbeat,
+                                proxy,
+                                metadataStore,
+                                this.nestedEdgeEnabled);
+                            return cloudConnectionProvider;
+                        })
+                    .As<Task<ICloudConnectionProvider>>()
+                    .SingleInstance();
+            }
+            else
+            {
+
+            }
 
             // IIdentityProvider
             builder.Register(_ => new IdentityProvider(this.iotHubName))

@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
-            await action(listener, rid.Value);
+            _ = action(listener, rid.Value);
 
             return true;
         }
