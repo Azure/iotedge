@@ -57,7 +57,7 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
         let mut_self = self.get_mut();
         mut_self.batch = mut_self
             .next_batch()
-            .expect("failed retrieval from rocksdb");
+            .expect("Failed retrieval from rocksdb. Either someone is forging the database or there was a database schema change.");
 
         mut_self.batch.pop_front().map_or_else(
             || {
@@ -86,8 +86,8 @@ mod tests {
         WakingMemoryStore,
     };
 
-    #[tokio::test]
-    async fn smaller_batch_size_respected() {
+    #[test]
+    fn smaller_batch_size_respected() {
         // setup state
         let state = WakingMemoryStore::new();
         let state = Arc::new(Mutex::new(state));
@@ -125,8 +125,8 @@ mod tests {
         assert_eq!((extracted.0, extracted.1), (key1, pub1));
     }
 
-    #[tokio::test]
-    async fn larger_batch_size_respected() {
+    #[test]
+    fn larger_batch_size_respected() {
         // setup state
         let state = WakingMemoryStore::new();
         let state = Arc::new(Mutex::new(state));
@@ -166,8 +166,8 @@ mod tests {
         assert_eq!((extracted2.0, extracted2.1), (key2, pub2));
     }
 
-    #[tokio::test]
-    async fn ordering_maintained_across_inserts() {
+    #[test]
+    fn ordering_maintained_across_inserts() {
         // setup state
         let state = WakingMemoryStore::new();
         let state = Arc::new(Mutex::new(state));
