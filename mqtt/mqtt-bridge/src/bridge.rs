@@ -24,8 +24,8 @@ pub struct Bridge {
     connection_settings: ConnectionSettings,
     forwards: HashMap<String, Topic>,
     subscriptions: HashMap<String, Topic>,
-    outgoing_persist: PublicationStore<WakingMemoryStore>,
-    incoming_persist: PublicationStore<WakingMemoryStore>,
+    outgoing_persist: Arc<Mutex<PublicationStore<WakingMemoryStore>>>,
+    incoming_persist: Arc<Mutex<PublicationStore<WakingMemoryStore>>>,
 }
 
 impl Bridge {
@@ -46,8 +46,8 @@ impl Bridge {
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
-        let incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let outgoing_persist = Arc::new(Mutex::new(PublicationStore::new_memory(BATCH_SIZE)));
+        let incoming_persist = Arc::new(Mutex::new(PublicationStore::new_memory(BATCH_SIZE)));
 
         Bridge {
             system_address,
@@ -69,32 +69,25 @@ impl Bridge {
         (key, topic.clone())
     }
 
-    pub async fn start(self) -> Result<(), BridgeError> {
+    pub async fn start(&self) -> Result<(), BridgeError> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
-        // let outgoing_persist = &mut self.outgoing_persist;
-        // let incoming_persist = &mut self.incoming_persist;
-        // let incoming_loader = incoming_persist.loader();
-        // let outgoing_loader = outgoing_persist.loader();
+        self.connect_to_local().await?;
+        self.connect_to_remote().await?;
 
-        let mut outgoing_persist = self.outgoing_persist;
-        let mut incoming_persist = self.incoming_persist;
-        let incoming_loader = incoming_persist.loader();
-        let outgoing_loader = outgoing_persist.loader();
+        Ok(())
+    }
 
-        // self.connect_to_local(outgoing_persist, incoming_loader)
-        //     .await?;
-        // self.connect_to_remote(incoming_persist, outgoing_loader)
-        //     .await?;
-
+    async fn connect_to_remote(&self) -> Result<(), BridgeError> {
         info!(
             "connecting to remote broker {}",
             self.connection_settings.address()
         );
+
         connect(
             self.subscriptions.clone(),
-            incoming_persist,
-            outgoing_loader,
+            self.incoming_persist.clone(),
+            self.outgoing_persist.lock().loader(),
             self.connection_settings.address(),
             Some(self.connection_settings.port().to_owned()),
             self.connection_settings.keep_alive(),
@@ -102,8 +95,10 @@ impl Bridge {
             self.connection_settings.credentials(),
             true,
         )
-        .await?;
+        .await
+    }
 
+    async fn connect_to_local(&self) -> Result<(), BridgeError> {
         let client_id = format!(
             "{}/$edgeHub/$bridge/{}",
             self.device_id,
@@ -116,8 +111,8 @@ impl Bridge {
 
         connect(
             self.forwards.clone(),
-            outgoing_persist,
-            incoming_loader,
+            self.outgoing_persist.clone(),
+            self.incoming_persist.lock().loader(),
             self.system_address.as_str(),
             None,
             self.connection_settings.keep_alive(),
@@ -125,68 +120,13 @@ impl Bridge {
             &Credentials::Anonymous(client_id),
             false,
         )
-        .await?;
-
-        Ok(())
+        .await
     }
-
-    // async fn connect_to_remote(
-    //     &self,
-    //     incoming_persist: PublicationStore<WakingMemoryStore>,
-    //     outgoing_loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-    // ) -> Result<(), BridgeError> {
-    //     info!(
-    //         "connecting to remote broker {}",
-    //         self.connection_settings.address()
-    //     );
-
-    //     self.connect(
-    //         self.subscriptions.clone(),
-    //         incoming_persist,
-    //         outgoing_loader,
-    //         self.connection_settings.address(),
-    //         Some(self.connection_settings.port().to_owned()),
-    //         self.connection_settings.keep_alive(),
-    //         self.connection_settings.clean_session(),
-    //         self.connection_settings.credentials(),
-    //         true,
-    //     )
-    //     .await
-    // }
-
-    // async fn connect_to_local(
-    //     &self,
-    //     outgoing_persist: PublicationStore<WakingMemoryStore>,
-    //     incoming_loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-    // ) -> Result<(), BridgeError> {
-    //     let client_id = format!(
-    //         "{}/$edgeHub/$bridge/{}",
-    //         self.device_id,
-    //         self.connection_settings.name()
-    //     );
-    //     info!(
-    //         "connecting to local broker {}, clientid {}",
-    //         self.system_address, client_id
-    //     );
-
-    //     self.connect(
-    //         self.forwards.clone(),
-    //         outgoing_persist,
-    //         incoming_loader,
-    //         self.system_address.as_str(),
-    //         None,
-    //         self.connection_settings.keep_alive(),
-    //         self.connection_settings.clean_session(),
-    //         &Credentials::Anonymous(client_id),
-    //         false,
-    //     )
-    //     .await
-    // }
 }
 
 async fn connect(
     mut topics: HashMap<String, Topic>,
-    persistor: PublicationStore<WakingMemoryStore>,
+    persistor: Arc<Mutex<PublicationStore<WakingMemoryStore>>>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
     address: &str,
     port: Option<String>,
@@ -249,19 +189,23 @@ impl TryFrom<Topic> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
+// TODO PRE: make inner a locked version of the publication store
 struct MessageHandler<S>
 where
     S: StreamWakeableState,
 {
     topic_mappers: Vec<TopicMapper>,
-    inner: PublicationStore<S>,
+    inner: Arc<Mutex<PublicationStore<S>>>,
 }
 
 impl<S> MessageHandler<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
+    pub fn new(
+        persistor: Arc<Mutex<PublicationStore<S>>>,
+        topic_mappers: Vec<TopicMapper>,
+    ) -> Self {
         Self {
             topic_mappers,
             inner: persistor,
