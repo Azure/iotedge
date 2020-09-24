@@ -8,7 +8,8 @@ use mqtt_broker::{
     BrokerHandle, ClientId, Error, IncomingPacketProcessor, MakePacketProcessor, Message,
     OutgoingPacketProcessor, PacketAction, SystemEvent,
 };
-use proto::Publication;
+use parking_lot::Mutex;
+use proto::{PacketIdentifier, Publication};
 use regex::Regex;
 
 use crate::topic::translation::{
@@ -18,12 +19,12 @@ use crate::topic::translation::{
 
 /// MQTT packet processor wrapper. It identifies `IoTHub` topics and converts
 /// them into a format internal for Broker-EdgeHub communication.
-pub struct TranslateTopicProcessor<P> {
+pub struct TranslateTopic<P> {
     client_id: ClientId,
     inner: P,
 }
 
-impl<P> TranslateTopicProcessor<P> {
+impl<P> TranslateTopic<P> {
     pub fn new(client_id: impl Into<ClientId>, inner: P) -> Self {
         Self {
             client_id: client_id.into(),
@@ -33,7 +34,7 @@ impl<P> TranslateTopicProcessor<P> {
 }
 
 #[async_trait]
-impl<P> IncomingPacketProcessor for TranslateTopicProcessor<P>
+impl<P> IncomingPacketProcessor for TranslateTopic<P>
 where
     P: IncomingPacketProcessor + Send,
 {
@@ -58,7 +59,7 @@ where
 }
 
 #[async_trait]
-impl<P> OutgoingPacketProcessor for TranslateTopicProcessor<P>
+impl<P> OutgoingPacketProcessor for TranslateTopic<P>
 where
     P: OutgoingPacketProcessor + Send,
 {
@@ -83,20 +84,42 @@ where
     }
 }
 
-pub struct PublishDeliveryConfirmationProcessor<O, I> {
-    outgoing_inner: O,
-    incoming_inner: I,
+// struct PublicationDeliveryInner<O, I> {
+//     outgoing_inner: O,
+//     incoming_inner: I,
+//     broker_handle: BrokerHandle,
+//     waited_to_be_acked: HashMap<mqtt3::proto::PacketIdentifier, String>,
+// }
+
+// pub struct PublicationDelivery<O, I>(Arc<RefCell<PublicationDeliveryInner<O, I>>>);
+
+// impl<O, I> PublicationDelivery<O, I> {
+//     pub fn new(broker_handle: BrokerHandle, outgoing_inner: O, incoming_inner: I) -> Self {
+//         let inner = PublicationDeliveryInner {
+//             outgoing_inner,
+//             incoming_inner,
+//             broker_handle,
+//             waited_to_be_acked: HashMap::new(),
+//         };
+//         Self(Arc::new(RefCell::new(inner)))
+//     }
+
+pub struct PublicationDelivery<P> {
+    inner: P,
     broker_handle: BrokerHandle,
-    waited_to_be_acked: HashMap<mqtt3::proto::PacketIdentifier, String>,
+    waited_to_be_acked: Arc<Mutex<HashMap<PacketIdentifier, String>>>,
 }
 
-impl<O, I> PublishDeliveryConfirmationProcessor<O, I> {
-    pub fn new(broker_handle: BrokerHandle, outgoing_inner: O, incoming_inner: I) -> Self {
+impl<P> PublicationDelivery<P> {
+    pub fn new(
+        broker_handle: BrokerHandle,
+        inner: P,
+        waited_to_be_acked: Arc<Mutex<HashMap<PacketIdentifier, String>>>,
+    ) -> Self {
         Self {
-            outgoing_inner,
-            incoming_inner,
+            inner,
             broker_handle,
-            waited_to_be_acked: HashMap::new(),
+            waited_to_be_acked,
         }
     }
 
@@ -112,7 +135,7 @@ impl<O, I> PublishDeliveryConfirmationProcessor<O, I> {
             _ => return Ok(None),
         };
 
-        let publication = match self.waited_to_be_acked.remove(&packet_identifier) {
+        let publication = match self.waited_to_be_acked.lock().remove(&packet_identifier) {
             Some(topic_name) => Some(Publication {
                 topic_name: DELIVERY_TOPIC.into(),
                 qos: proto::QoS::AtLeastOnce,
@@ -128,6 +151,7 @@ impl<O, I> PublishDeliveryConfirmationProcessor<O, I> {
     fn store_packet_info(&mut self, packet: &Packet) {
         if let Some((packet_identifier, topic_name)) = match_m2m_publish(packet) {
             self.waited_to_be_acked
+                .lock()
                 .insert(packet_identifier, topic_name);
         }
     }
@@ -201,36 +225,33 @@ fn match_m2m_publish(packet: &Packet) -> Option<(proto::PacketIdentifier, String
 // }
 
 #[async_trait]
-impl<O, I> IncomingPacketProcessor for PublishDeliveryConfirmationProcessor<O, I>
+impl<P> IncomingPacketProcessor for PublicationDelivery<P>
 where
-    O: Send,
-    I: IncomingPacketProcessor + Send,
+    P: IncomingPacketProcessor + Send,
 {
     async fn process(&mut self, packet: Packet) -> Result<PacketAction<Message, Message>, Error> {
         if let Some(confirmation) = self
             .prepare_confirmation(&packet)
             .map_err(|e| Error::PacketProcessing(e.into()))?
         {
-            dbg!(&confirmation);
             let message = Message::System(SystemEvent::Publish(confirmation));
             self.broker_handle.send(message)?
         }
 
-        self.incoming_inner.process(packet).await
+        self.inner.process(packet).await
     }
 }
 
 #[async_trait]
-impl<O, I> OutgoingPacketProcessor for PublishDeliveryConfirmationProcessor<O, I>
+impl<P> OutgoingPacketProcessor for PublicationDelivery<P>
 where
-    O: OutgoingPacketProcessor + Send,
-    I: Send,
+    P: OutgoingPacketProcessor + Send,
 {
     async fn process(
         &mut self,
         message: Message,
     ) -> PacketAction<Option<(Packet, Option<Message>)>, ()> {
-        let action = self.outgoing_inner.process(message).await;
+        let action = self.inner.process(message).await;
 
         if let PacketAction::Continue(Some((packet, _))) = &action {
             self.store_packet_info(&packet);
@@ -260,25 +281,27 @@ impl<P> MakePacketProcessor for MakeEdgeHubPacketProcessor<P>
 where
     P: MakePacketProcessor,
 {
-    type OutgoingProcessor = TranslateTopicProcessor<
-        Arc<PublishDeliveryConfirmationProcessor<P::OutgoingProcessor, P::IncomingProcessor>>,
-    >;
+    type OutgoingProcessor = TranslateTopic<PublicationDelivery<P::OutgoingProcessor>>;
 
-    type IncomingProcessor = TranslateTopicProcessor<
-        Arc<PublishDeliveryConfirmationProcessor<P::OutgoingProcessor, P::IncomingProcessor>>,
-    >;
+    type IncomingProcessor = TranslateTopic<PublicationDelivery<P::IncomingProcessor>>;
 
     fn make(&self, client_id: &ClientId) -> (Self::OutgoingProcessor, Self::IncomingProcessor) {
+        let waited_to_be_acked = Arc::new(Mutex::new(HashMap::new()));
+
         let (outgoing_inner, incoming_inner) = self.inner.make(client_id);
 
-        let inner = PublishDeliveryConfirmationProcessor::new(
+        let inner = PublicationDelivery::new(
             self.broker_handle.clone(),
             outgoing_inner,
-            incoming_inner,
+            waited_to_be_acked.clone(),
         );
-        let inner = Arc::new(inner);
+        let outgoing = Self::OutgoingProcessor::new(client_id.clone(), inner);
 
-        let outgoing = Self::OutgoingProcessor::new(client_id.clone(), inner.clone());
+        let inner = PublicationDelivery::new(
+            self.broker_handle.clone(),
+            incoming_inner,
+            waited_to_be_acked,
+        );
         let incoming = Self::IncomingProcessor::new(client_id.clone(), inner);
 
         (outgoing, incoming)

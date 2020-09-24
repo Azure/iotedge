@@ -36,22 +36,6 @@ pub trait OutgoingPacketProcessor {
     ) -> PacketAction<Option<(Packet, Option<Message>)>, ()>;
 }
 
-/// A trait to make a new instance of incoming packet processor.
-pub trait MakeIncomingPacketProcessor {
-    type Processor: IncomingPacketProcessor + Send + Sync;
-
-    /// Creates a new instance of incoming packet processor.
-    fn make_incoming(&self, client_id: &ClientId) -> Self::Processor;
-}
-
-/// A trait to make a new instance of outgoing packet processor.
-pub trait MakeOutgoingPacketProcessor {
-    type Processor: OutgoingPacketProcessor + Send + Sync;
-
-    /// Creates a new instance of outgoing packet processor.
-    fn make_outgoing(&self, client_id: &ClientId) -> Self::Processor;
-}
-
 /// A trait to make a new instances of both incoming and outgoing packet processors.
 pub trait MakePacketProcessor {
     type OutgoingProcessor: OutgoingPacketProcessor + Send;
@@ -75,22 +59,6 @@ impl MakePacketProcessor for MakeMqttPacketProcessor {
             Self::OutgoingProcessor::new(client_id.clone()),
             Self::IncomingProcessor::new(client_id.clone(), 10),
         )
-    }
-}
-
-impl MakeIncomingPacketProcessor for MakeMqttPacketProcessor {
-    type Processor = MqttIncomingPacketProcessor;
-
-    fn make_incoming(&self, client_id: &ClientId) -> Self::Processor {
-        Self::Processor::new(client_id.clone(), 10)
-    }
-}
-
-impl MakeOutgoingPacketProcessor for MakeMqttPacketProcessor {
-    type Processor = MqttOutgoingPacketProcessor;
-
-    fn make_outgoing(&self, client_id: &ClientId) -> Self::Processor {
-        Self::Processor::new(client_id.clone())
     }
 }
 

@@ -120,7 +120,7 @@ where
             let span = info_span!("connection", client_id=%client_id, remote_addr=%remote_addr, connection=%connection_handle);
 
             // async block to attach instrumentation context
-            async {
+            async move{
                 info!("new client connection");
                 debug!("received CONNECT: {:?}", connect);
 
@@ -169,15 +169,15 @@ where
                 broker_handle.send(message)?;
 
                 let (outgoing, incoming) = codec.split();
-                let (mut outgoing_processor, mut incoming_processor) = make_processor.make(&client_id);
-                
+                let (outgoing_processor, incoming_processor) = make_processor.make(&client_id);
+
                 // prepare processing incoming packets
                 let incoming_task =
-                    incoming_task(client_id.clone(), incoming, broker_handle.clone(), &mut incoming_processor);
+                    incoming_task(client_id.clone(), incoming, broker_handle.clone(),incoming_processor);
                 pin_mut!(incoming_task);
 
                 // prepare processing outgoing packets
-                let outgoing_task = outgoing_task(events, outgoing, broker_handle.clone(), &mut outgoing_processor);
+                let outgoing_task = outgoing_task(events, outgoing, broker_handle.clone(), outgoing_processor);
                 pin_mut!(outgoing_task);
 
                 match select(incoming_task, outgoing_task).await {
@@ -251,7 +251,7 @@ async fn incoming_task<S, P>(
     client_id: ClientId,
     mut incoming: S,
     mut broker: BrokerHandle,
-    processor: &mut P,
+    mut processor: P,
 ) -> Result<(), Error>
 where
     S: Stream<Item = Result<Packet, DecodeError>> + Unpin,
@@ -287,7 +287,7 @@ async fn outgoing_task<S, P>(
     mut messages: UnboundedReceiver<Message>,
     mut outgoing: S,
     mut broker: BrokerHandle,
-    processor: &mut P,
+    mut processor: P,
 ) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
     S: Sink<Packet, Error = proto::EncodeError> + Unpin,

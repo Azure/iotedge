@@ -40,7 +40,6 @@ pub fn translate_incoming_unsubscribe(client_id: &ClientId, unsubscribe: &mut pr
 }
 
 pub fn translate_incoming_publish(client_id: &ClientId, publish: &mut proto::Publish) {
-    dbg!(&publish.topic_name);
     if let Some(new_topic) = TRANSLATE_D2C.to_internal(&publish.topic_name, client_id) {
         debug!(
             "Translating incoming publication {} to {}",
@@ -516,7 +515,10 @@ mod tests {
             Some("$edgehub/device_1/module_a/inputs/#".to_owned())
         );
         assert_eq!(
-            c2d.to_internal("devices/device_1/modules/module_a/inputs/telemetry/?rid=1", &client_id),
+            c2d.to_internal(
+                "devices/device_1/modules/module_a/inputs/telemetry/?rid=1",
+                &client_id
+            ),
             Some("$edgehub/device_1/module_a/inputs/telemetry/?rid=1".to_owned())
         );
 
@@ -524,7 +526,6 @@ mod tests {
         assert_eq!(
             c2d.to_external("$edgehub/device_1/module_a/inputs/route_1/%24.cdid=device_1&%24.cmid=module_a"),
             Some("devices/device_1/modules/module_a/inputs/route_1/%24.cdid=device_1&%24.cmid=module_a".to_owned())
-                 
         );
     }
 }

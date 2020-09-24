@@ -63,8 +63,6 @@ async fn it_sends_delivery_confirmation_for_m2m_messages() {
         })
     );
 
-    dbg!("pub input");
-
     assert_eq!(
         edgehub.publications().next().await,
         Some(ReceivedPublication {
@@ -72,7 +70,7 @@ async fn it_sends_delivery_confirmation_for_m2m_messages() {
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
-            payload: "\"devices/device-1/modules/module-1/inputs/?rid=1\"".into()
+            payload: "\"$edgehub/device-1/module-1/inputs/telemetry/?rid=1\"".into()
         })
     );
 

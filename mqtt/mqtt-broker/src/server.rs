@@ -40,7 +40,7 @@ where
 impl<Z, P> Server<Z, P>
 where
     Z: Authorizer + Send + 'static,
-    P: MakePacketProcessor + Clone + Send + Sync + 'static,
+    P: MakePacketProcessor + Clone + Send + 'static,
 {
     pub fn with_tcp<A, N, E>(
         &mut self,
@@ -259,7 +259,7 @@ impl Listener {
     async fn run<F, P>(self, shutdown_signal: F, make_processor: P) -> Result<(), Error>
     where
         F: Future<Output = ()> + Unpin,
-        P: MakePacketProcessor + Clone + Send + Sync + 'static,
+        P: MakePacketProcessor + Clone + Send + 'static,
     {
         let Self {
             transport,
@@ -304,6 +304,7 @@ impl Listener {
                                 let span = inner_span.clone();
                                 let authenticator = authenticator.clone();
                                 let make_processor = make_processor.clone();
+                                
                                 tokio::spawn(async move {
                                     if let Err(e) =
                                         connection::process(stream, peer, broker_handle, &*authenticator, make_processor)
