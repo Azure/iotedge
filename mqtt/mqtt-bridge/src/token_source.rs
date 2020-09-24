@@ -71,7 +71,7 @@ impl TokenSource for SasTokenSource {
                     .append_pair("se", &expiry)
                     .finish();
 
-                Some(format!("SharedAccessSignature {}", token).to_owned())
+                Some(format!("SharedAccessSignature {}", token))
             }
             Credentials::PlainText(creds) => Some(creds.password().into()),
             Credentials::Anonymous(_) => None,

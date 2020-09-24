@@ -83,6 +83,7 @@ where
 impl IoSource for BridgeIoSource {
     type Io = Pin<Box<dyn BridgeIo>>;
     type Error = Error;
+    #[allow(clippy::type_complexity)]
     type Future = BoxFuture<'static, Result<(Self::Io, Option<String>), Error>>;
 
     fn connect(&mut self) -> Self::Future {
@@ -261,7 +262,7 @@ impl<T: EventHandler> MqttClient<T> {
         Self {
             client_id,
             username,
-            io_source: io_source.clone(),
+            io_source,
             keep_alive,
             client,
             event_handler,
@@ -327,9 +328,8 @@ impl<T: EventHandler> MqttClient<T> {
                             subacks.remove(&sub);
                             error!("subscription rejected by server {}", sub);
                         }
-                        _ => {
-                            error!("unexpected subscription event");
-                        }
+
+                        SubscriptionUpdateEvent::Unsubscribe(_) => {}
                     }
                 }
             }

@@ -1,6 +1,4 @@
-use std::{
-    collections::HashMap, convert::TryFrom, convert::TryInto, marker::PhantomData, time::Duration,
-};
+use std::{collections::HashMap, convert::TryFrom, convert::TryInto, marker::PhantomData};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
@@ -79,8 +77,6 @@ impl Bridge {
             self.subscriptions.clone(),
             self.connection_settings.address(),
             Some(self.connection_settings.port().to_owned()),
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
             self.connection_settings.credentials(),
             true,
         )
@@ -102,8 +98,6 @@ impl Bridge {
             self.forwards.clone(),
             self.system_address.as_str(),
             None,
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
             &Credentials::Anonymous(client_id),
             false,
         )
@@ -115,8 +109,6 @@ impl Bridge {
         mut topics: HashMap<String, Topic>,
         address: &str,
         port: Option<String>,
-        keep_alive: Duration,
-        clean_session: bool,
         credentials: &Credentials,
         secure: bool,
     ) -> Result<(), BridgeError> {
@@ -129,8 +121,8 @@ impl Bridge {
         let mut client = MqttClient::new(
             address,
             port,
-            keep_alive,
-            clean_session,
+            self.connection_settings.keep_alive(),
+            self.connection_settings.clean_session(),
             MessageHandler::new(topic_filters, BATCH_SIZE),
             credentials,
             secure,
