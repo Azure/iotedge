@@ -291,6 +291,52 @@ impl<T: EventHandler> MqttClient<T> {
         Ok(())
     }
 
+    // TODO PRE: upstream pump
+    /*
+    OPTION A: semaphore
+    impl Bridge {
+        fn run() {
+            let store = PublicationStore::disk();
+            let loader = store.loader();
+            let inflight = tokio::sync::Semaphore::new(MAX_INFLIGHT);
+            loop {
+                let permit = inflight.acquire().await;
+
+                let fut = async {
+                    let (k,p) = loader.next().await;
+                    client.publish(p).await;
+                    store.remove(k);
+                    drop(permit)
+                }
+                tokio::spawn(fut);
+            }
+        }
+    }
+
+    OPTION B: semaphore
+    impl Bridge {
+        fn run() {
+            let store = PublicationStore::disk();
+            let loader = store.loader();
+            let senders = FutureUnordered::new();
+            loop {
+                if senders.len() < MAX_INFLIGHT {
+                    let fut = async {
+                        let (k,p) = loader.next().await;
+                        client.publish(p).await;
+                        store.remove(k);
+                    };
+                    senders.push(fut);
+                } else {
+                    senders.next().await;
+                }
+            }
+        }
+    }
+    */
+    // pub async fn upstream_pump(mut self) -> Result<(), ClientConnectError> {
+    // }
+
     pub async fn subscribe(&mut self, topics: Vec<String>) -> Result<(), ClientConnectError> {
         debug!("subscribing to topics");
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
