@@ -1,25 +1,31 @@
-use std::{collections::HashMap, convert::TryFrom, convert::TryInto, time::Duration};
+use std::{collections::HashMap, convert::TryFrom, convert::TryInto, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
 use mqtt_broker::TopicFilter;
+use parking_lot::Mutex;
 use tracing::{debug, info, warn};
 
 use crate::{
     client::{ClientConnectError, EventHandler, MqttClient},
-    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    persist::{
+        MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
+    },
     settings::{ConnectionSettings, Credentials, Topic},
 };
 
 const BATCH_SIZE: usize = 10;
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
+// TODO PRE: make persistence generic
 pub struct Bridge {
     system_address: String,
     device_id: String,
     connection_settings: ConnectionSettings,
     forwards: HashMap<String, Topic>,
     subscriptions: HashMap<String, Topic>,
+    outgoing_persist: PublicationStore<WakingMemoryStore>,
+    incoming_persist: PublicationStore<WakingMemoryStore>,
 }
 
 impl Bridge {
@@ -40,12 +46,17 @@ impl Bridge {
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
+        let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
+
         Bridge {
             system_address,
             device_id,
             connection_settings,
             forwards,
             subscriptions,
+            outgoing_persist,
+            incoming_persist,
         }
     }
 
@@ -58,23 +69,32 @@ impl Bridge {
         (key, topic.clone())
     }
 
-    pub async fn start(&self) -> Result<(), BridgeError> {
+    pub async fn start(self) -> Result<(), BridgeError> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
-        self.connect_to_local().await?;
-        self.connect_to_remote().await?;
+        // let outgoing_persist = &mut self.outgoing_persist;
+        // let incoming_persist = &mut self.incoming_persist;
+        // let incoming_loader = incoming_persist.loader();
+        // let outgoing_loader = outgoing_persist.loader();
 
-        Ok(())
-    }
+        let mut outgoing_persist = self.outgoing_persist;
+        let mut incoming_persist = self.incoming_persist;
+        let incoming_loader = incoming_persist.loader();
+        let outgoing_loader = outgoing_persist.loader();
 
-    async fn connect_to_remote(&self) -> Result<(), BridgeError> {
+        // self.connect_to_local(outgoing_persist, incoming_loader)
+        //     .await?;
+        // self.connect_to_remote(incoming_persist, outgoing_loader)
+        //     .await?;
+
         info!(
             "connecting to remote broker {}",
             self.connection_settings.address()
         );
-
-        self.connect(
+        connect(
             self.subscriptions.clone(),
+            incoming_persist,
+            outgoing_loader,
             self.connection_settings.address(),
             Some(self.connection_settings.port().to_owned()),
             self.connection_settings.keep_alive(),
@@ -82,10 +102,8 @@ impl Bridge {
             self.connection_settings.credentials(),
             true,
         )
-        .await
-    }
+        .await?;
 
-    async fn connect_to_local(&self) -> Result<(), BridgeError> {
         let client_id = format!(
             "{}/$edgeHub/$bridge/{}",
             self.device_id,
@@ -96,8 +114,10 @@ impl Bridge {
             self.system_address, client_id
         );
 
-        self.connect(
+        connect(
             self.forwards.clone(),
+            outgoing_persist,
+            incoming_loader,
             self.system_address.as_str(),
             None,
             self.connection_settings.keep_alive(),
@@ -105,48 +125,105 @@ impl Bridge {
             &Credentials::Anonymous(client_id),
             false,
         )
-        .await
-    }
-
-    async fn connect(
-        &self,
-        mut topics: HashMap<String, Topic>,
-        address: &str,
-        port: Option<String>,
-        keep_alive: Duration,
-        clean_session: bool,
-        credentials: &Credentials,
-        secure: bool,
-    ) -> Result<(), BridgeError> {
-        let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
-        let topic_filters = topics
-            .into_iter()
-            .map(|topic| topic.try_into())
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let persistor = PublicationStore::new_memory(BATCH_SIZE);
-        let mut client = MqttClient::new(
-            address,
-            port,
-            keep_alive,
-            clean_session,
-            MessageHandler::new(persistor, topic_filters),
-            credentials,
-            secure,
-        );
-
-        debug!("subscribe to remote {:?}", subscriptions);
-
-        client
-            .subscribe(subscriptions)
-            .await
-            .map_err(BridgeError::Subscribe)?;
-
-        //TODO: handle this with shutdown
-        let _events_task = tokio::spawn(client.handle_events());
+        .await?;
 
         Ok(())
     }
+
+    // async fn connect_to_remote(
+    //     &self,
+    //     incoming_persist: PublicationStore<WakingMemoryStore>,
+    //     outgoing_loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+    // ) -> Result<(), BridgeError> {
+    //     info!(
+    //         "connecting to remote broker {}",
+    //         self.connection_settings.address()
+    //     );
+
+    //     self.connect(
+    //         self.subscriptions.clone(),
+    //         incoming_persist,
+    //         outgoing_loader,
+    //         self.connection_settings.address(),
+    //         Some(self.connection_settings.port().to_owned()),
+    //         self.connection_settings.keep_alive(),
+    //         self.connection_settings.clean_session(),
+    //         self.connection_settings.credentials(),
+    //         true,
+    //     )
+    //     .await
+    // }
+
+    // async fn connect_to_local(
+    //     &self,
+    //     outgoing_persist: PublicationStore<WakingMemoryStore>,
+    //     incoming_loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+    // ) -> Result<(), BridgeError> {
+    //     let client_id = format!(
+    //         "{}/$edgeHub/$bridge/{}",
+    //         self.device_id,
+    //         self.connection_settings.name()
+    //     );
+    //     info!(
+    //         "connecting to local broker {}, clientid {}",
+    //         self.system_address, client_id
+    //     );
+
+    //     self.connect(
+    //         self.forwards.clone(),
+    //         outgoing_persist,
+    //         incoming_loader,
+    //         self.system_address.as_str(),
+    //         None,
+    //         self.connection_settings.keep_alive(),
+    //         self.connection_settings.clean_session(),
+    //         &Credentials::Anonymous(client_id),
+    //         false,
+    //     )
+    //     .await
+    // }
+}
+
+async fn connect(
+    mut topics: HashMap<String, Topic>,
+    persistor: PublicationStore<WakingMemoryStore>,
+    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+    address: &str,
+    port: Option<String>,
+    keep_alive: Duration,
+    clean_session: bool,
+    credentials: &Credentials,
+    secure: bool,
+) -> Result<(), BridgeError> {
+    let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
+    let topic_filters = topics
+        .into_iter()
+        .map(|topic| topic.try_into())
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut client = MqttClient::new(
+        address,
+        port,
+        keep_alive,
+        clean_session,
+        MessageHandler::new(persistor, topic_filters),
+        credentials,
+        secure,
+    );
+
+    debug!("subscribe to remote {:?}", subscriptions);
+
+    client
+        .subscribe(subscriptions)
+        .await
+        .map_err(BridgeError::Subscribe)?;
+
+    //TODO: handle this with shutdown
+    let _events_task = tokio::spawn(client.handle_events());
+
+    // TODO PRE: start new thread where client starts pump
+
+    Ok(())
 }
 
 #[derive(Clone)]
