@@ -1,6 +1,6 @@
 use std::{
     cmp::min,
-    collections::{HashMap, VecDeque},
+    collections::{HashSet, VecDeque},
     task::Waker,
 };
 
@@ -11,7 +11,7 @@ use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 /// When elements are retrieved they are moved to the loaded collection.
 pub struct WakingMemoryStore {
     queue: VecDeque<(Key, Publication)>,
-    loaded: HashMap<Key, Publication>,
+    loaded: HashSet<Key>,
     waker: Option<Waker>,
 }
 
@@ -19,7 +19,7 @@ impl WakingMemoryStore {
     pub fn new() -> Self {
         WakingMemoryStore {
             queue: VecDeque::new(),
-            loaded: HashMap::new(),
+            loaded: HashSet::new(),
             waker: None,
         }
     }
@@ -40,15 +40,19 @@ impl StreamWakeableState for WakingMemoryStore {
         let count = min(count, self.queue.len());
         let output: VecDeque<_> = self.queue.drain(..count).collect();
 
-        self.loaded.extend(output.clone().into_iter());
+        for (key, _) in output.iter() {
+            self.loaded.insert(key.clone());
+        }
 
         Ok(output)
     }
 
-    fn remove(&mut self, key: Key) -> Result<Publication, PersistError> {
-        self.loaded
-            .remove(&key)
-            .ok_or(PersistError::RemovalForMissing)
+    fn remove(&mut self, key: Key) -> Result<(), PersistError> {
+        if self.loaded.remove(&key) {
+            Ok(())
+        } else {
+            Err(PersistError::RemovalForMissing)
+        }
     }
 
     fn set_waker(&mut self, waker: &Waker) {

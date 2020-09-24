@@ -66,11 +66,12 @@ impl<S: StreamWakeableState> PublicationStore<S> {
         Ok(key)
     }
 
-    pub fn remove(&mut self, key: Key) -> Result<Publication, PersistError> {
+    pub fn remove(&mut self, key: Key) -> Result<(), PersistError> {
         debug!("removing publication with offset {}", self.offset);
 
         let mut state_lock = self.state.lock();
-        state_lock.remove(key)
+        state_lock.remove(key)?;
+        Ok(())
     }
 
     pub fn loader(&mut self) -> Arc<Mutex<MessageLoader<S>>> {
@@ -159,8 +160,7 @@ mod tests {
 
         // process first message, forcing loader to get new batch on the next read
         loader.next().await.unwrap();
-        let removed = persistence.remove(key1).unwrap();
-        assert_eq!(removed, pub1);
+        assert_matches!(persistence.remove(key1), Ok(_));
 
         // add a second message and verify this is returned by loader
         persistence.push(pub2.clone()).unwrap();

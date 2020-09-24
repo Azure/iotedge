@@ -19,10 +19,11 @@ pub mod rocksdb;
 pub trait StreamWakeableState {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError>;
 
+    /// Get count elements of store, excluding those that have already been loaded
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError>;
 
     // This remove should error if the given element has not yet been returned by batch.
-    fn remove(&mut self, key: Key) -> Result<Publication, PersistError>;
+    fn remove(&mut self, key: Key) -> Result<(), PersistError>;
 
     fn set_waker(&mut self, waker: &Waker);
 }
@@ -194,8 +195,7 @@ mod tests {
 
         state.insert(key1, pub1.clone()).unwrap();
         state.batch(1).unwrap();
-        let removed = state.remove(key1).unwrap();
-        assert_eq!(removed, pub1);
+        assert_matches!(state.remove(key1), Ok(_));
 
         let empty_batch = state.batch(1).unwrap();
         assert_eq!(empty_batch.len(), 0);
@@ -250,10 +250,7 @@ mod tests {
         state.batch(2).unwrap();
 
         // remove out of order and verify
-        let extracted_pub2 = state.remove(key2).unwrap();
-        let extracted_pub1 = state.remove(key1).unwrap();
-        assert_eq!(extracted_pub2, pub2);
-        assert_eq!(extracted_pub1, pub1);
+        assert_matches!(state.remove(key2), Ok(_))
     }
 
     #[test_case(WakingMemoryStore::new())]

@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashSet, VecDeque},
     task::Waker,
     vec::IntoIter,
 };
@@ -19,7 +19,7 @@ use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 /// This is desirable since these messages are not guaranteed to be sent and thus should be given to the new loader and sent.
 pub struct WakingRocksDBStore {
     db: RocksDbWrapper,
-    loaded: HashMap<Key, Publication>,
+    loaded: HashSet<Key>,
     waker: Option<Waker>,
 }
 
@@ -29,7 +29,7 @@ impl WakingRocksDBStore {
 
         Ok(Self {
             db,
-            loaded: HashMap::new(),
+            loaded: HashSet::new(),
             waker: None,
         })
     }
@@ -45,22 +45,22 @@ impl StreamWakeableState for WakingRocksDBStore {
         Ok(())
     }
 
-    /// Get count elements of store, excluding those that have already been loaded
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-        let iter = self.db.iter_except(count, &self.loaded)?;
+        let output: VecDeque<_> = self.db.iter_except(count, &self.loaded)?.collect();
 
-        self.loaded.extend(iter.clone());
+        for (key, _) in output.iter() {
+            self.loaded.insert(key.clone());
+        }
 
-        Ok(iter.collect())
+        Ok(output)
     }
 
-    fn remove(&mut self, key: Key) -> Result<Publication, PersistError> {
-        let removed = self
-            .loaded
-            .remove(&key)
-            .ok_or(PersistError::RemovalForMissing)?;
+    fn remove(&mut self, key: Key) -> Result<(), PersistError> {
+        if !self.loaded.remove(&key) {
+            return Err(PersistError::RemovalForMissing);
+        }
         self.db.remove(key)?;
-        Ok(removed)
+        Ok(())
     }
 
     fn set_waker(&mut self, waker: &Waker) {
@@ -98,7 +98,7 @@ impl RocksDbWrapper {
     fn iter_except(
         &self,
         count: usize,
-        exclude: &HashMap<Key, Publication>,
+        exclude: &HashSet<Key>,
     ) -> Result<IntoIter<(Key, Publication)>, PersistError> {
         let column_family = self.column_family()?;
         let iter = self.db.iterator_cf(column_family, IteratorMode::Start);
@@ -114,7 +114,7 @@ impl RocksDbWrapper {
                         .map(|publication: Publication| (key, publication))
                 })?;
 
-            if !exclude.contains_key(&key) {
+            if !exclude.contains(&key) {
                 output.push((key, publication));
                 iterations += 1;
             }
