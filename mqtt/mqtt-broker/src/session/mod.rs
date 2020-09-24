@@ -266,7 +266,7 @@ mod tests {
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
         let client_info = ClientInfo::new(socket, auth_id.clone());
         let state = SessionState::new(client_id, client_info, default_config());
-        let mut session = Session::new_transient(auth_id.clone(), req1, state);
+        let mut session = Session::new_transient(auth_id, req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
             qos: proto::QoS::AtMostOnce,

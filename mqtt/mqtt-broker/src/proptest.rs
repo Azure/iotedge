@@ -114,6 +114,15 @@ prop_compose! {
     }
 }
 
+prop_compose! {
+    pub fn arb_client_info()(
+        auth_id in arb_auth_id(),
+        socket in arb_socket()
+    ) -> ClientInfo {
+        ClientInfo::new(socket, auth_id)
+    }
+}
+
 pub fn arb_topic_filter_weighted() -> impl Strategy<Value = String> {
     let max = 10;
     prop_oneof![
@@ -140,6 +149,14 @@ pub fn arb_client_id() -> impl Strategy<Value = proto::ClientId> {
 pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
     // TODO: Add in # and + once the broker can handle them
     "[a-zA-Z0-9_()!@%,'=\\*\\$\\?\\-]{1,23}".prop_map(Into::into)
+}
+
+pub fn arb_auth_id() -> impl Strategy<Value = AuthId> {
+    "[a-zA-Z0-9]{1,23}".prop_map(AuthId::from)
+}
+
+pub fn arb_socket() -> impl Strategy<Value = SocketAddr> {
+    SocketAddr::arbitrary()
 }
 
 pub fn arb_client_id_weighted() -> impl Strategy<Value = proto::ClientId> {
