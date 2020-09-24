@@ -9,7 +9,7 @@ use mqtt3::proto::Publication;
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
 /// When elements are retrieved they are moved to the loaded collection.
-/// This loaded collection is necessary so it behaves the same as other StreamWakeableState implementations
+/// This loaded collection is necessary so it behaves the same as other `StreamWakeableState` implementations
 pub struct WakingMemoryStore {
     queue: VecDeque<(Key, Publication)>,
     loaded: HashSet<Key>,
@@ -41,8 +41,8 @@ impl StreamWakeableState for WakingMemoryStore {
         let count = min(count, self.queue.len());
         let output: VecDeque<_> = self.queue.drain(..count).collect();
 
-        for (key, _) in output.iter() {
-            self.loaded.insert(key.clone());
+        for (key, _) in &output {
+            self.loaded.insert(*key);
         }
 
         Ok(output)

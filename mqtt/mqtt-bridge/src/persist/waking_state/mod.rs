@@ -193,7 +193,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1, pub1.clone()).unwrap();
+        state.insert(key1, pub1).unwrap();
         state.batch(1).unwrap();
         assert_matches!(state.remove(key1), Ok(_));
 
@@ -245,8 +245,8 @@ mod tests {
         };
 
         // insert elements and extract
-        state.insert(key1, pub1.clone()).unwrap();
-        state.insert(key2, pub2.clone()).unwrap();
+        state.insert(key1, pub1).unwrap();
+        state.insert(key2, pub2).unwrap();
         state.batch(2).unwrap();
 
         // remove out of order and verify

@@ -48,8 +48,8 @@ impl StreamWakeableState for WakingRocksDBStore {
     fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let output: VecDeque<_> = self.db.iter_except(count, &self.loaded)?.collect();
 
-        for (key, _) in output.iter() {
-            self.loaded.insert(key.clone());
+        for (key, _) in &output {
+            self.loaded.insert(*key);
         }
 
         Ok(output)
