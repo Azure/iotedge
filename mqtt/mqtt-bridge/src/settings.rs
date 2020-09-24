@@ -4,10 +4,12 @@ use std::{path::Path, time::Duration, vec::Vec};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
+use tracing::debug;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 pub const ENVIRONMENT_PREFIX: &str = "iotedge";
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
+const EXPECTED_UPSTREAM_PROTOCOL: &str = "mqtt";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
@@ -23,7 +25,7 @@ impl Settings {
         let mut config = Config::new();
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(Environment::with_prefix(ENVIRONMENT_PREFIX))?;
+        config.merge(Environment::new())?; //(ENVIRONMENT_PREFIX))?;
 
         config.try_into()
     }
@@ -36,7 +38,7 @@ impl Settings {
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(File::from(path.as_ref()))?;
-        config.merge(Environment::with_prefix(ENVIRONMENT_PREFIX))?;
+        config.merge(Environment::new())?; //with_prefix(ENVIRONMENT_PREFIX))?;
 
         config.try_into()
     }
@@ -78,16 +80,29 @@ impl<'de> serde::Deserialize<'de> for Settings {
             messages,
         } = serde::Deserialize::deserialize(deserializer)?;
 
-        let upstream_connection_settings = nested_bridge.map(|nested_bridge| ConnectionSettings {
-            name: "upstream".into(),
-            address: nested_bridge.gateway_hostname.clone(),
-            port: DEFAULT_UPSTREAM_PORT.to_owned(),
-            subscriptions: upstream.subscriptions,
-            forwards: upstream.forwards,
-            credentials: Credentials::Provider(nested_bridge),
-            clean_session: upstream.clean_session,
-            keep_alive: upstream.keep_alive,
-        });
+        let upstream_connection_settings = nested_bridge
+            .filter(|nested_bridge| {
+                nested_bridge.upstream_protocol().map_or_else(
+                    || {
+                        debug!("upstream protocol not set.");
+                        false
+                    },
+                    |p| {
+                        debug!("upstream protocol {}", p);
+                        p.to_lowercase() == EXPECTED_UPSTREAM_PROTOCOL
+                    },
+                )
+            })
+            .map(|nested_bridge| ConnectionSettings {
+                name: "upstream".into(),
+                address: nested_bridge.gateway_hostname.clone(),
+                port: DEFAULT_UPSTREAM_PORT.to_owned(),
+                subscriptions: upstream.subscriptions,
+                forwards: upstream.forwards,
+                credentials: Credentials::Provider(nested_bridge),
+                clean_session: upstream.clean_session,
+                keep_alive: upstream.keep_alive,
+            });
 
         Ok(Settings {
             upstream: upstream_connection_settings,
@@ -185,26 +200,33 @@ impl AuthenticationSettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
-    #[serde(rename = "iothubhostname")]
+    #[serde(rename = "upstreamprotocol")]
+    upstream_protocol: Option<String>,
+
+    #[serde(rename = "iotedge_iothubhostname")]
     iothub_hostname: String,
 
-    #[serde(rename = "gatewayhostname")]
+    #[serde(rename = "iotedge_gatewayhostname")]
     gateway_hostname: String,
 
-    #[serde(rename = "deviceid")]
+    #[serde(rename = "iotedge_deviceid")]
     device_id: String,
 
-    #[serde(rename = "moduleid")]
+    #[serde(rename = "iotedge_moduleid")]
     module_id: String,
 
-    #[serde(rename = "modulegenerationid")]
+    #[serde(rename = "iotedge_modulegenerationid")]
     generation_id: String,
 
-    #[serde(rename = "workloaduri")]
+    #[serde(rename = "iotedge_workloaduri")]
     workload_uri: String,
 }
 
 impl CredentialProviderSettings {
+    pub fn upstream_protocol(&self) -> Option<&str> {
+        self.upstream_protocol.as_ref().map(AsRef::as_ref)
+    }
+
     pub fn iothub_hostname(&self) -> &str {
         &self.iothub_hostname
     }
@@ -351,6 +373,21 @@ mod tests {
         it_overrides_settings_from_env(|| Settings::from_file("tests/config.json"));
     }
 
+    #[test]
+    #[serial(env_settings)]
+    fn from_env_no_upstream_protcol() {
+        let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "upstream");
+        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
+        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
+        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
+        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
+        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
+
+        let settings = Settings::new().unwrap();
+
+        assert_eq!(settings.upstream(), None);
+    }
+
     fn it_overrides_settings_from_env<F>(make_settings: F)
     where
         F: FnOnce() -> Result<Settings, ConfigError>,
@@ -361,6 +398,7 @@ mod tests {
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
+        let _iupstream_protocl = env::set_var("UpstreamProtocol", "mqtt");
 
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();
