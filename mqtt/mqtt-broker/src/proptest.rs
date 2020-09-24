@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{net::IpAddr, net::Ipv4Addr, net::SocketAddr, time::Duration};
 
 use bytes::Bytes;
 use mqtt3::proto;
@@ -11,7 +11,8 @@ use proptest::{
 
 use crate::{
     session::identifiers::{IdentifiersInUse, PacketIdentifiers},
-    BrokerSnapshot, ClientId, Publish, Segment, SessionSnapshot, Subscription, TopicFilter,
+    AuthId, BrokerSnapshot, ClientId, ClientInfo, Publish, Segment, SessionSnapshot, Subscription,
+    TopicFilter,
 };
 
 prop_compose! {
@@ -53,6 +54,7 @@ prop_compose! {
     ) -> SessionSnapshot {
         SessionSnapshot::from_parts(
             client_id,
+            ClientInfo::new(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080), AuthId::from("authId")),
             subscriptions,
             waiting_to_be_sent,
         )

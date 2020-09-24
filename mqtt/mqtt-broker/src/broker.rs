@@ -701,6 +701,7 @@ where
 
     fn open_session(&mut self, auth_id: AuthId, connreq: ConnReq) -> Result<OpenSession, Error> {
         let client_id = connreq.client_id().clone();
+        let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
 
         let session = match self.sessions.remove(&client_id) {
             Some(Session::Transient(current_connected)) => {
@@ -725,8 +726,11 @@ where
                         }
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let state =
-                            SessionState::new(client_id.clone(), self.config.session().clone());
+                        let state = SessionState::new(
+                            client_id.clone(),
+                            client_info,
+                            self.config.session().clone(),
+                        );
                         let new_session = Session::new_transient(auth_id, connreq, state);
                         (new_session, vec![], false)
                     };
@@ -749,11 +753,19 @@ where
                     connreq.connect().client_id
                 {
                     info!("creating new persistent session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
+                    let state = SessionState::new(
+                        client_id.clone(),
+                        client_info,
+                        self.config.session().clone(),
+                    );
                     Session::new_persistent(auth_id, connreq, state)
                 } else {
                     info!("creating new transient session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
+                    let state = SessionState::new(
+                        client_id.clone(),
+                        client_info,
+                        self.config.session().clone(),
+                    );
                     Session::new_transient(auth_id, connreq, state)
                 };
 
@@ -807,6 +819,7 @@ where
             );
 
             let client_id = connreq.client_id().clone();
+            let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
             let (state, client_info_, _will, handle) = current_connected.into_parts();
             let old_session =
                 Session::new_disconnecting(client_id.clone(), client_info_, None, handle);
@@ -820,7 +833,11 @@ where
                     (new_session, true)
                 } else {
                     info!("cleaning session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
+                    let state = SessionState::new(
+                        client_id.clone(),
+                        client_info,
+                        self.config.session().clone(),
+                    );
                     let new_session = Session::new_transient(auth_id, connreq, state);
                     (new_session, false)
                 };

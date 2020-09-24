@@ -5,7 +5,7 @@ use tracing::{info, warn};
 
 use mqtt3::proto::{self, Publication};
 
-use crate::{persist::Persist, ClientId, Error, Subscription};
+use crate::{persist::Persist, ClientId, ClientInfo, Error, Subscription};
 
 /// Used for persisting/loading broker state.
 #[derive(Clone, Default, Debug, PartialEq)]
@@ -28,6 +28,7 @@ impl BrokerSnapshot {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SessionSnapshot {
     client_id: ClientId,
+    client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
     waiting_to_be_sent: VecDeque<Publication>,
 }
@@ -35,11 +36,13 @@ pub struct SessionSnapshot {
 impl SessionSnapshot {
     pub fn from_parts(
         client_id: ClientId,
+        client_info: ClientInfo,
         subscriptions: HashMap<String, Subscription>,
         waiting_to_be_sent: VecDeque<Publication>,
     ) -> Self {
         Self {
             client_id,
+            client_info,
             subscriptions,
             waiting_to_be_sent,
         }
@@ -49,10 +52,16 @@ impl SessionSnapshot {
         self,
     ) -> (
         ClientId,
+        ClientInfo,
         HashMap<String, Subscription>,
         VecDeque<proto::Publication>,
     ) {
-        (self.client_id, self.subscriptions, self.waiting_to_be_sent)
+        (
+            self.client_id,
+            self.client_info,
+            self.subscriptions,
+            self.waiting_to_be_sent,
+        )
     }
 }
 

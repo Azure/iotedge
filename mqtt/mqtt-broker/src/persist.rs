@@ -21,7 +21,7 @@ use tracing::{debug, info, info_span};
 
 use mqtt3::proto::Publication;
 
-use crate::{subscription::Subscription, BrokerSnapshot, ClientId, SessionSnapshot};
+use crate::{subscription::Subscription, BrokerSnapshot, ClientId, ClientInfo, SessionSnapshot};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -195,7 +195,8 @@ impl From<BrokerSnapshot> for ConsolidatedState {
         let sessions = sessions
             .into_iter()
             .map(|session| {
-                let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
+                let (client_id, client_info, subscriptions, waiting_to_be_sent) =
+                    session.into_parts();
 
                 #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
                 let waiting_to_be_sent = waiting_to_be_sent
@@ -205,6 +206,7 @@ impl From<BrokerSnapshot> for ConsolidatedState {
 
                 ConsolidatedSession {
                     client_id,
+                    client_info,
                     subscriptions,
                     waiting_to_be_sent,
                 }
@@ -259,6 +261,7 @@ impl From<ConsolidatedState> for BrokerSnapshot {
                     .collect();
                 SessionSnapshot::from_parts(
                     session.client_id,
+                    session.client_info,
                     session.subscriptions,
                     waiting_to_be_sent,
                 )
@@ -272,6 +275,7 @@ impl From<ConsolidatedState> for BrokerSnapshot {
 #[derive(Deserialize, Serialize)]
 struct ConsolidatedSession {
     client_id: ClientId,
+    client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
     waiting_to_be_sent: Vec<SimplifiedPublication>,
 }

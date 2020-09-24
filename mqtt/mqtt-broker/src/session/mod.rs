@@ -206,7 +206,7 @@ impl Session {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{net::IpAddr, net::Ipv4Addr, net::SocketAddr, time::Duration};
 
     use matches::assert_matches;
     use tokio::sync::mpsc;
@@ -216,8 +216,8 @@ mod tests {
 
     use super::{Session, SessionState};
     use crate::{
-        auth::AuthId, settings::QueueFullAction, tests::peer_addr, Auth, ClientId, ConnReq,
-        ConnectionHandle, Error, SessionConfig,
+        auth::AuthId, settings::QueueFullAction, tests::peer_addr, Auth, ClientId, ClientInfo,
+        ConnReq, ConnectionHandle, Error, SessionConfig,
     };
 
     fn connection_handle() -> ConnectionHandle {
@@ -262,9 +262,11 @@ mod tests {
             Auth::Unknown,
             handle1,
         );
-        let auth_id = "auth-id1".into();
-        let state = SessionState::new(client_id, default_config());
-        let mut session = Session::new_transient(auth_id, req1, state);
+        let auth_id: AuthId = "auth-id1".into();
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(socket, auth_id.clone());
+        let state = SessionState::new(client_id, client_info, default_config());
+        let mut session = Session::new_transient(auth_id.clone(), req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
             qos: proto::QoS::AtMostOnce,
@@ -310,6 +312,8 @@ mod tests {
     fn test_subscribe_to_with_invalid_topic() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
         let req1 = ConnReq::new(
@@ -320,7 +324,7 @@ mod tests {
             handle1,
         );
         let auth_id = "auth-id1".into();
-        let state = SessionState::new(client_id, default_config());
+        let state = SessionState::new(client_id, client_info, default_config());
         let mut session = Session::new_transient(auth_id, req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/#/#".to_string(),
@@ -337,6 +341,8 @@ mod tests {
     fn test_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
         let req1 = ConnReq::new(
@@ -347,7 +353,7 @@ mod tests {
             handle1,
         );
         let auth_id = AuthId::Anonymous;
-        let state = SessionState::new(client_id, default_config());
+        let state = SessionState::new(client_id, client_info, default_config());
         let mut session = Session::new_transient(auth_id, req1, state);
 
         let subscribe_to = proto::SubscribeTo {
@@ -398,7 +404,10 @@ mod tests {
     fn test_offline_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id, default_config()));
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let mut session =
+            Session::new_offline(SessionState::new(client_id, client_info, default_config()));
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -412,7 +421,10 @@ mod tests {
     fn test_offline_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id, default_config()));
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let mut session =
+            Session::new_offline(SessionState::new(client_id, client_info, default_config()));
 
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),
