@@ -1127,6 +1127,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "mqtt-policy"
+version = "0.1.0"
+dependencies = [
+ "assert_matches",
+ "bytes",
+ "lazy_static",
+ "mqtt-broker",
+ "mqtt3",
+ "policy",
+ "test-case",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "mqtt3"
 version = "0.1.0"
 dependencies = [
