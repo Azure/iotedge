@@ -89,6 +89,10 @@ impl SessionState {
         &self.client_id
     }
 
+    pub fn client_info(&self) -> &ClientInfo {
+        &self.client_info
+    }
+
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
         &self.subscriptions
     }

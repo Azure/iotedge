@@ -56,15 +56,8 @@ impl ConnectedSession {
         self.will
     }
 
-    pub fn into_parts(
-        self,
-    ) -> (
-        SessionState,
-        ClientInfo,
-        Option<proto::Publication>,
-        ConnectionHandle,
-    ) {
-        (self.state, self.client_info, self.will, self.handle)
+    pub fn into_parts(self) -> (SessionState, Option<proto::Publication>, ConnectionHandle) {
+        (self.state, self.will, self.handle)
     }
 
     pub fn handle_publish(

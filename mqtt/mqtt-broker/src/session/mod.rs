@@ -65,12 +65,12 @@ impl Session {
         }
     }
 
-    pub fn client_info(&self) -> Result<&ClientInfo, Error> {
+    pub fn client_info(&self) -> &ClientInfo {
         match self {
-            Self::Transient(connected) => Ok(connected.client_info()),
-            Self::Persistent(connected) => Ok(connected.client_info()),
-            Self::Offline(_offline) => Err(Error::SessionOffline),
-            Self::Disconnecting(disconnecting) => Ok(disconnecting.client_info()),
+            Self::Transient(connected) => connected.client_info(),
+            Self::Persistent(connected) => connected.client_info(),
+            Self::Offline(offline) => offline.client_info(),
+            Self::Disconnecting(disconnecting) => disconnecting.client_info(),
         }
     }
 

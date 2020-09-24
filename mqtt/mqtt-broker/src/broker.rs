@@ -109,17 +109,16 @@ where
             .into_iter()
             .flat_map(HashMap::values)
         {
-            if let Ok(client_info) = session.client_info() {
-                let sub_topic_filter = sub.filter().to_string();
-                let operation = Operation::new_subscribe(proto::SubscribeTo {
-                    topic_filter: sub_topic_filter.clone(),
-                    qos: *sub.max_qos(),
-                });
-                activities.push((
-                    client_id.clone(),
-                    Activity::new(client_id.clone(), client_info.clone(), operation),
-                ));
-            }
+            let client_info = session.client_info();
+            let sub_topic_filter = sub.filter().to_string();
+            let operation = Operation::new_subscribe(proto::SubscribeTo {
+                topic_filter: sub_topic_filter.clone(),
+                qos: *sub.max_qos(),
+            });
+            activities.push((
+                client_id.clone(),
+                Activity::new(client_id.clone(), client_info.clone(), operation),
+            ));
         }
         activities
     }
@@ -557,7 +556,7 @@ where
     ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(client_id) {
-            let client_info = session.client_info()?.clone();
+            let client_info = session.client_info().clone();
             let activity = Activity::new(client_id.clone(), client_info, operation);
             match self.authorizer.authorize(activity) {
                 Ok(Authorization::Allowed) => {
@@ -819,10 +818,13 @@ where
             );
 
             let client_id = connreq.client_id().clone();
-            let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
-            let (state, client_info_, _will, handle) = current_connected.into_parts();
-            let old_session =
-                Session::new_disconnecting(client_id.clone(), client_info_, None, handle);
+            let (state, _will, handle) = current_connected.into_parts();
+            let old_session = Session::new_disconnecting(
+                client_id.clone(),
+                state.client_info().clone(),
+                None,
+                handle,
+            );
             let (new_session, session_present) =
                 if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                     debug!(
@@ -835,7 +837,7 @@ where
                     info!("cleaning session for {}", client_id);
                     let state = SessionState::new(
                         client_id.clone(),
-                        client_info,
+                        state.client_info().clone(),
                         self.config.session().clone(),
                     );
                     let new_session = Session::new_transient(auth_id, connreq, state);
@@ -862,10 +864,10 @@ where
                     StateChange::new_subscription_change(client_id, None).try_into()?,
                 )?;
 
-                let (_state, client_info, will, handle) = connected.into_parts();
+                let (state, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
                     client_id.clone(),
-                    client_info,
+                    state.client_info().clone(),
                     will,
                     handle,
                 ))
@@ -878,12 +880,12 @@ where
                 info!("moving persistent session to offline for {}", client_id);
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
 
-                let (state, client_info, will, handle) = connected.into_parts();
-                let new_session = Session::new_offline(state);
+                let (state, will, handle) = connected.into_parts();
+                let new_session = Session::new_offline(state.clone());
                 self.sessions.insert(client_id.clone(), new_session);
                 Some(Session::new_disconnecting(
                     client_id.clone(),
-                    client_info,
+                    state.client_info().clone(),
                     will,
                     handle,
                 ))
@@ -954,7 +956,7 @@ where
     Z: Authorizer,
 {
     let client_id = session.client_id().clone();
-    let client_info = session.client_info()?.clone();
+    let client_info = session.client_info().clone();
 
     let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
     let mut acks = Vec::with_capacity(subscribe.subscribe_to.len());
