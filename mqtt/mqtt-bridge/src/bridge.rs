@@ -207,7 +207,7 @@ where
     }
 }
 
-// TODO: implement for generic T where T: Persist
+// TODO: implement for generic
 #[async_trait]
 impl EventHandler for MessageHandler<WakingMemoryStore> {
     type Error = BridgeError;
