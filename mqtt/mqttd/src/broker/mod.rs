@@ -5,9 +5,7 @@ mod snapshot;
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
-use futures_util::future::select;
-use futures_util::future::select_all;
-use futures_util::future::Either;
+use futures_util::future::{select, select_all, Either};
 use tracing::info;
 
 use mqtt_broker::{FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat};

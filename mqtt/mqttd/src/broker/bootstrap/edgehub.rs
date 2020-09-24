@@ -1,4 +1,3 @@
-#![allow(dead_code)] // TODO remove when ready
 use std::{
     env,
     future::Future,
@@ -29,6 +28,8 @@ use mqtt_edgehub::{
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
+
+const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
 pub async fn start_server<Z, F>(
     config: Settings,
@@ -101,15 +102,11 @@ where
     Ok(state)
 }
 
-// TODO REVIEW: ensure logging in place for when things start
 pub async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
 ) -> Result<(SidecarShutdownHandle, Vec<JoinHandle<()>>)> {
-    let mut bridge_controller = BridgeController::new();
-    let bridge = bridge_controller.start();
-    bridge.await?;
-
+    info!("initializing command handler...");
     let device_id = env::var(DEVICE_ID_ENV)?;
     let mut command_handler = CommandHandler::new(system_address, device_id.as_str());
     command_handler.add_command(Disconnect::new(&broker_handle));
@@ -117,8 +114,14 @@ pub async fn start_sidecars(
     command_handler.init().await?;
     let command_handler_shutdown = command_handler.shutdown_handle()?;
 
+    info!("running command handler...");
     let command_handler_join_handle = tokio::spawn(command_handler.run());
     let join_handles = vec![command_handler_join_handle];
+
+    info!("running bridge...");
+    let mut bridge_controller = BridgeController::new();
+    let bridge = bridge_controller.start();
+    bridge.await?;
 
     Ok((
         SidecarShutdownHandle {
@@ -146,8 +149,6 @@ pub enum SidecarError {
     #[error("Failed to shutdown command handler")]
     CommandHandlerShutdown(#[from] CommandHandlerError),
 }
-
-const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
 where
