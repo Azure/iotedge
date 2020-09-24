@@ -76,6 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 }, token);
+            await Task.Delay(10000);
 
             // restart module
             var restartRequest = new RestartRequest("1.0", moduleName);
@@ -83,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
             Assert.AreEqual("null", result.GetPayloadAsJson());
+            await Task.Delay(10000);
 
             // check it restarted
             var logsRequest = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
@@ -111,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 }, token);
+            await Task.Delay(10000);
 
             var request = new ModuleLogsUploadRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text, sasUrl);
 
