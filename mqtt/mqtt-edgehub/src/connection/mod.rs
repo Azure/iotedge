@@ -6,7 +6,7 @@ use translate::TranslateTopic;
 
 use std::{collections::HashMap, sync::Arc};
 
-use mqtt_broker::{BrokerHandle, ClientId, MakePacketProcessor};
+use mqtt_broker::{BrokerHandle, ClientId, MakeMqttPacketProcessor, MakePacketProcessor};
 use parking_lot::Mutex;
 
 /// Creates a wrapper around default MQTT packet processor.
@@ -14,6 +14,12 @@ use parking_lot::Mutex;
 pub struct MakeEdgeHubPacketProcessor<P> {
     broker_handle: BrokerHandle,
     inner: P,
+}
+
+impl MakeEdgeHubPacketProcessor<MakeMqttPacketProcessor> {
+    pub fn new_default(broker_handle: BrokerHandle) -> Self {
+        Self::new(broker_handle, MakeMqttPacketProcessor)
+    }
 }
 
 impl<P> MakeEdgeHubPacketProcessor<P> {

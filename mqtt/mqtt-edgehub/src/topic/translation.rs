@@ -45,10 +45,6 @@ pub fn translate_incoming_publish(client_id: &ClientId, publish: &mut proto::Pub
             "Translating incoming publication {} to {}",
             publish.topic_name, new_topic
         );
-        dbg!(format!(
-            "Translating incoming publication {} to {}",
-            publish.topic_name, new_topic
-        ));
         publish.topic_name = new_topic;
     }
 }

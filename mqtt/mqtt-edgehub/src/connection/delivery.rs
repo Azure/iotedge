@@ -17,6 +17,9 @@ pub struct PublicationDelivery<P> {
     waited_to_be_acked: Arc<Mutex<HashMap<PacketIdentifier, String>>>,
 }
 
+/// MQTT packet processor wrapper. It identifies `IoTHub` M2M outgoing publishes,
+/// saves PACKETID to send a confirmation packet back to sender on special topic
+/// "$edgehub/delivery".
 impl<P> PublicationDelivery<P> {
     pub fn new(
         broker_handle: BrokerHandle,
