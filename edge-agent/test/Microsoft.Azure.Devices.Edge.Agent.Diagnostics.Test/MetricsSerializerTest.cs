@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         readonly Random rand = new Random();
 
         [Fact]
+        [Unit]
         public void TestSingleMetricSerializes()
         {
             Metric testMetric = new Metric(DateTime.UtcNow, this.metrics[0].name, this.rand.NextDouble() * 50, this.metrics[0].tags);
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
+        [Unit]
         public void TestSingleMetricSeriesSerializes()
         {
             Metric[] testMetrics = this.GenerateSeries(this.metrics[0].name, this.metrics[0].tags).ToArray();
@@ -38,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
+        [Unit]
         public void TestMetricsSeriesSerializes()
         {
             Metric[] testMetrics = this.metrics.SelectMany(m => this.GenerateSeries(m.name, m.tags, this.rand.Next(10, 20))).ToArray();
@@ -49,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
+        [Unit]
         public void TestRawValuesSerialize()
         {
             var time = DateTime.UtcNow;
@@ -61,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
+        [Unit]
         public void TestInvalidDataThrows()
         {
             // Gibberish

@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
         }
 
         [Fact]
+        [Unit]
         public async Task BasicFunctionality()
         {
             var uploader = new EdgeRuntimeDiagnosticsUpload(this.mockConnection);
@@ -47,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
         }
 
         [Fact]
+        [Unit]
         public async Task SendsMultipleMetrics()
         {
             var uploader = new EdgeRuntimeDiagnosticsUpload(this.mockConnection);
@@ -59,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
         }
 
         [Fact]
+        [Unit]
         public async Task BatchesMetrics()
         {
             var uploader = new EdgeRuntimeDiagnosticsUpload(this.mockConnection);

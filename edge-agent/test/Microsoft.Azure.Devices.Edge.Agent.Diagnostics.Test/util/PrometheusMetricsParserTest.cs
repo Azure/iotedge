@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         private static readonly DateTime testTime = DateTime.UnixEpoch;
 
         [Fact]
+        [Unit]
         public void TestParsesBasicMetrics()
         {
             int n = 10;
@@ -41,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
+        [Unit]
         public void TestParsesNumberValuesOnly()
         {
             DateTime dateTime = DateTime.UtcNow;
@@ -73,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
+        [Unit]
         public void TestParsesZero()
         {
             int n = 10;
@@ -91,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
+        [Unit]
         public void TestEscapedQuotesInLabelValues()
         {
             IEnumerable<Metric> metrics = PrometheusMetricsParser.ParseMetrics(testTime, "metricname{edge_device=\"any number of quotes should be fine \\\"\\\"\\\"\\\"\\\"\"} 0");
@@ -123,6 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
+        [Unit]
         public void TestExponentialNotation()
         {
             IEnumerable<Metric> metrics = PrometheusMetricsParser.ParseMetrics(testTime, "edgeAgent_metadata{} -1E-06");
@@ -187,6 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
+        [Unit]
         public void TestNaN()
         {
             IEnumerable<Metric> metrics = PrometheusMetricsParser.ParseMetrics(testTime, @"edgeAgent_command_latency_seconds{iothub=""somevalue.net""} NaN");
