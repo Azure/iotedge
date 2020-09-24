@@ -11,6 +11,7 @@ use mqtt_broker::{
 #[derive(Debug, Default)]
 pub struct EdgeHubAuthorizer {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
+    service_identities_cache: HashMap<ClientId, ServiceIdentity>,
 }
 
 impl EdgeHubAuthorizer {
@@ -93,7 +94,9 @@ impl EdgeHubAuthorizer {
             ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == client_id => {
-                if self.is_iothub_topic_allowed(client_id, topic) {
+                if self.is_iothub_topic_allowed(client_id, topic)
+                    && self.check_authorized_cache(client_id, topic)
+                {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden(
@@ -119,6 +122,45 @@ impl EdgeHubAuthorizer {
             .iter()
             .any(|allowed_topic| topic.starts_with(allowed_topic))
     }
+
+    fn get_on_behalf_of_id(topic: &str) -> Option<ClientId> {
+        // topics without the new topic format cannot have on_behalf_of_ids
+        if !topic.starts_with("$iothub/clients") {
+            return None;
+        }
+        let topic_parts = topic.split('/').collect::<Vec<_>>();
+        let device_id = topic_parts.get(2);
+        let module_id = match topic_parts.get(3) {
+            Some(s) if *s == "modules" => topic_parts.get(4),
+            _ => None,
+        };
+
+        match (device_id, module_id) {
+            (Some(device_id), Some(module_id)) => {
+                Some(format!("{}/{}", device_id, module_id).into())
+            }
+            (Some(device_id), None) => Some((*device_id).into()),
+            _ => None,
+        }
+    }
+
+    fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
+        match EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
+            Some(on_behalf_of_id) if client_id == &on_behalf_of_id => {
+                self.service_identities_cache.contains_key(client_id)
+            }
+            Some(on_behalf_of_id) => self
+                .service_identities_cache
+                .get(&on_behalf_of_id)
+                .and_then(ServiceIdentity::auth_chain)
+                .map_or(false, |auth_chain| auth_chain.contains(client_id.as_str())),
+            None => {
+                // If there is no on_behalf_of_id, we are dealing with a legacy topic
+                // The client_id must still be in the identities cache
+                self.service_identities_cache.contains_key(client_id)
+            }
+        }
+    }
 }
 
 const FORBIDDEN_TOPIC_FILTER_PREFIXES: [&str; 2] = ["#", "$"];
@@ -142,6 +184,14 @@ fn is_iothub_topic(topic: &str) -> bool {
 }
 
 fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
+    let client_id_parts = client_id.as_str().split('/').collect::<Vec<&str>>();
+    let x = match client_id_parts.len() {
+        1 => client_id_parts[0].to_string(),
+        2 => format!("{}/modules/{}", client_id_parts[0], client_id_parts[1]),
+        _ => {
+            panic!("ClientId cannot have more than deviceId and moduleId");
+        }
+    };
     vec![
         format!("$edgehub/{}/messages/events", client_id),
         format!("$edgehub/{}/messages/c2d/post", client_id),
@@ -153,6 +203,14 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
         format!("$edgehub/{}/methods/res", client_id),
         format!("$edgehub/{}/inputs", client_id),
         format!("$edgehub/{}/outputs", client_id),
+        format!("$iothub/clients/{}/messages/events", x),
+        format!("$iothub/clients/{}/messages/c2d/post", x),
+        format!("$iothub/clients/{}/twin/patch/properties/desired", x),
+        format!("$iothub/clients/{}/twin/patch/properties/reported", x),
+        format!("$iothub/clients/{}/twin/get", x),
+        format!("$iothub/clients/{}/twin/res", x),
+        format!("$iothub/clients/{}/methods/post", x),
+        format!("$iothub/clients/{}/methods/res", x),
     ]
 }
 
@@ -177,10 +235,16 @@ impl Authorizer for EdgeHubAuthorizer {
     }
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
-        let identities = update.as_ref();
-        if let Some(service_identities) = identities.downcast_ref::<ServiceIdentity>() {
-            debug!("{:?}", service_identities);
-            // TODO: fill in update method
+        if let Ok(service_identities) = update.downcast::<Vec<ServiceIdentity>>() {
+            debug!(
+                "service identities update received. Service identities: {:?}",
+                service_identities
+            );
+
+            self.service_identities_cache = service_identities
+                .into_iter()
+                .map(|id| (id.identity().into(), id))
+                .collect();
         }
         Ok(())
     }
@@ -193,6 +257,15 @@ pub struct ServiceIdentity {
 
     #[serde(rename = "AuthChain")]
     auth_chain: Option<String>,
+}
+
+impl ServiceIdentity {
+    pub fn identity(&self) -> &str {
+        &self.identity
+    }
+    pub fn auth_chain(&self) -> Option<&str> {
+        self.auth_chain.as_deref()
+    }
 }
 
 impl fmt::Display for ServiceIdentity {
@@ -208,6 +281,7 @@ impl fmt::Display for ServiceIdentity {
 
 #[cfg(test)]
 mod tests {
+    use crate::auth::EdgeHubAuthorizer;
     use std::time::Duration;
 
     use matches::assert_matches;
@@ -215,11 +289,12 @@ mod tests {
 
     use mqtt3::proto;
     use mqtt_broker::{
-        auth::{Activity, AuthId, Authorization, Authorizer, Operation},
+        auth::Authorizer,
+        auth::{Activity, AuthId, Authorization, Operation},
         ClientInfo,
     };
 
-    use super::EdgeHubAuthorizer;
+    use super::ServiceIdentity;
 
     #[test_case(connect_activity("device-1", "device-1"); "identical auth_id and client_id")]
     fn it_allows_to_connect(activity: Activity) {
@@ -254,6 +329,22 @@ mod tests {
     #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
     #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
     #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
+    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/messages/events"); "iothub telemetry")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/events"); "iothub telemetry with moduleId")]
+    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/messages/c2d/post"); "iothub c2d messages")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/c2d/post"); "iothub c2d messages with moduleId")]
+    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/desired"); "iothub update desired properties")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/desired"); "iothub update desired properties with moduleId")]
+    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/reported"); "iothub update reported properties")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/reported"); "iothub update reported properties with moduleId")]
+    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/get"); "iothub device twin request")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/get"); "iothub module twin request")]
+    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/res"); "iothub device twin response")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/res"); "iothub module twin response")]
+    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/methods/post"); "iothub device DM request")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/post"); "iothub module DM request")]
+    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/methods/res"); "iothub device DM response")]
+    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/res"); "iothub module DM response")]
     fn it_allows_to_subscribe_to(activity: Activity) {
         let authorizer = authorizer();
 
@@ -294,8 +385,24 @@ mod tests {
     #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module twin request")]
     #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
     #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module twin response")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
     #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
+    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/messages/events"); "iothub telemetry")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/events"); "iothub telemetry with moduleId")]
+    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/messages/c2d/post"); "iothub c2d messages")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/c2d/post"); "iothub c2d messages with moduleId")]
+    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/desired"); "iothub update desired properties")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/desired"); "iothub update desired properties with moduleId")]
+    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/reported"); "iothub update reported properties")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/reported"); "iothub update reported properties with moduleId")]
+    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/get"); "iothub device twin request")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/get"); "iothub module twin request")]
+    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/res"); "iothub device twin response")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/res"); "iothub module twin response")]
+    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/methods/post"); "iothub device DM request")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/post"); "iothub module DM request")]
+    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/methods/res"); "iothub device DM response")]
+    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/res"); "iothub module DM response")]
     fn it_allows_to_publish_to(activity: Activity) {
         let authorizer = authorizer();
 
@@ -321,7 +428,18 @@ mod tests {
     }
 
     fn authorizer() -> EdgeHubAuthorizer {
-        EdgeHubAuthorizer::default()
+        let mut authorizer = EdgeHubAuthorizer::default();
+
+        let service_identity = ServiceIdentity {
+            identity: "device-1".to_string(),
+            auth_chain: Some("edgeB;device-1;".to_string()),
+        };
+        let service_identity2 = ServiceIdentity {
+            identity: "device-1/module-a".to_string(),
+            auth_chain: Some("edgeB;device-1/module-a;".to_string()),
+        };
+        let _ = authorizer.update(Box::new(vec![service_identity, service_identity2]));
+        authorizer
     }
 
     fn connect_activity(client_id: &str, auth_id: impl Into<AuthId>) -> Activity {
