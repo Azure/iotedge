@@ -120,8 +120,9 @@ pub async fn start_sidecars(
 
     info!("running bridge...");
     let mut bridge_controller = BridgeController::new();
-    let bridge = bridge_controller.start();
-    bridge.await?;
+    bridge_controller
+        .start(system_address.clone(), device_id.clone().as_str())
+        .await?;
 
     Ok((
         SidecarShutdownHandle {

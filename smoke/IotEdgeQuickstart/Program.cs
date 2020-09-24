@@ -60,6 +60,7 @@ Defaults:
   --clean_up_existing_device            false
   --proxy                               no proxy is used
   --parent-hostname                     no parent hostname is used
+  --parent-edge-device                  no parent edge device is used
 ")]
     [HelpOption]
     class Program
@@ -178,6 +179,9 @@ Defaults:
         [Option("--parent-hostname", Description = "Optional input to specify parent hostname for nested edge scenario")]
         public string ParentHostname { get; } = string.Empty;
 
+        [Option("--parent-edge-device", Description = "Optional input to specify parent edge device id for nested edge scenario")]
+        public string ParentEdgeDevice { get; } = string.Empty;
+
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
@@ -292,6 +296,7 @@ Defaults:
                     this.DeviceId,
                     this.EdgeHostname,
                     string.IsNullOrWhiteSpace(this.ParentHostname) ? Option.None<string>() : Option.Some(this.ParentHostname),
+                    string.IsNullOrWhiteSpace(this.ParentEdgeDevice) ? Option.None<string>() : Option.Some(this.ParentEdgeDevice),
                     this.LeaveRunning,
                     this.NoVerify,
                     this.BypassEdgeInstallation,
