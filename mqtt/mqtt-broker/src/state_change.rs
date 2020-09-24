@@ -109,13 +109,13 @@ mod tests {
     #[test]
     fn test_subscriptions() {
         let expected_id: ClientId = "Session".into();
-        let client_info = &ClientInfo::new(
+        let client_info = ClientInfo::new(
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
             AuthId::from("authId1"),
         );
 
         // Session with no subscriptions
-        let session = make_session(expected_id.as_str(), client_info, Vec::<&str>::new(), true);
+        let session = make_session(expected_id.as_str(), &client_info, Vec::<&str>::new(), true);
         let no_subs = StateChange::new_subscription_change(&expected_id, Some(&session));
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &no_subs {
@@ -127,7 +127,7 @@ mod tests {
         matches_subscription_publication(message, expected_id.as_str(), &[]);
 
         // Session with 1 subscription
-        let session = make_session(expected_id.as_str(), client_info, &["Sub"], true);
+        let session = make_session(expected_id.as_str(), &client_info, &["Sub"], true);
         let one_sub = StateChange::new_subscription_change(&expected_id, Some(&session));
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &one_sub {
@@ -141,7 +141,7 @@ mod tests {
         // Session with many subscriptions
         let session = make_session(
             expected_id.as_str(),
-            client_info,
+            &client_info,
             (1..4).map(|i| format!("Sub{}", i)),
             true,
         );
@@ -174,7 +174,7 @@ mod tests {
     fn test_connections() {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
-        let client_info = &ClientInfo::new(
+        let client_info = ClientInfo::new(
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
             AuthId::from("authId1"),
         );
@@ -194,7 +194,7 @@ mod tests {
                 let id = format!("Session {}", i);
                 let session = make_session(
                     &id,
-                    client_info,
+                    &client_info,
                     (1..i).map(|j| format!("Subscription {}", j)),
                     true,
                 );
@@ -219,7 +219,7 @@ mod tests {
                 let id = format!("Session {}", i);
                 let session = make_session(
                     &id,
-                    client_info,
+                    &client_info,
                     (1..i).map(|j| format!("Subscription {}", j)),
                     true,
                 );
@@ -245,7 +245,7 @@ mod tests {
                 let id = format!("Session {}", i);
                 let session = make_session(
                     &id,
-                    client_info,
+                    &client_info,
                     (1..i).map(|j| format!("Subscription {}", j)),
                     i % 2 == 0, // even sessions are online, odd offline
                 );
@@ -270,7 +270,7 @@ mod tests {
     fn test_sessions() {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
-        let client_info = &ClientInfo::new(
+        let client_info = ClientInfo::new(
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
             AuthId::from("authId1"),
         );
@@ -290,7 +290,7 @@ mod tests {
                 let id = format!("Session {}", i);
                 let session = make_session(
                     &id,
-                    client_info,
+                    &client_info,
                     (1..i).map(|j| format!("Subscription {}", j)),
                     true,
                 );
@@ -315,7 +315,7 @@ mod tests {
                 let id = format!("Session {}", i);
                 let session = make_session(
                     &id,
-                    client_info,
+                    &client_info,
                     (1..i).map(|j| format!("Subscription {}", j)),
                     true,
                 );
@@ -341,7 +341,7 @@ mod tests {
                 let id = format!("Session {}", i);
                 let session = make_session(
                     &id,
-                    client_info,
+                    &client_info,
                     (1..i).map(|j| format!("Subscription {}", j)),
                     i % 2 == 0, // even sessions are online, odd offline
                 );

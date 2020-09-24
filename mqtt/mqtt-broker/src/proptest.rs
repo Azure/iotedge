@@ -1,4 +1,4 @@
-use std::{net::IpAddr, net::Ipv4Addr, net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, time::Duration};
 
 use bytes::Bytes;
 use mqtt3::proto;
@@ -45,6 +45,7 @@ pub(crate) fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse
 prop_compose! {
     pub fn arb_session_snapshot()(
         client_id in arb_clientid(),
+        client_info in arb_client_info(),
         subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
         _packet_identifiers in arb_packet_identifiers(),
         waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
@@ -54,7 +55,7 @@ prop_compose! {
     ) -> SessionSnapshot {
         SessionSnapshot::from_parts(
             client_id,
-            ClientInfo::new(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080), AuthId::from("authId")),
+            client_info,
             subscriptions,
             waiting_to_be_sent,
         )
