@@ -1,72 +1,78 @@
-use std::{pin::Pin, sync::Arc, task::Context, task::Poll, vec::IntoIter};
+use std::{
+    collections::VecDeque,
+    pin::Pin,
+    sync::Arc,
+    task::{Context, Poll},
+};
 
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::Mutex;
 
-use crate::persist::{memory::waking_map::WakingMap, Key};
+use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
 /// Message loader used to extract elements from bridge persistence
+///
 /// This component is responsible for message extraction from the persistence
 /// It works by grabbing a snapshot of the most important messages from the persistence
 /// Then, will return these elements in order
+///
 /// When the batch is exhausted it will grab a new batch
-pub struct InMemoryMessageLoader {
-    state: Arc<Mutex<WakingMap>>,
-    batch: IntoIter<(Key, Publication)>,
+pub struct MessageLoader<S: StreamWakeableState> {
+    state: Arc<Mutex<S>>,
+    batch: VecDeque<(Key, Publication)>,
     batch_size: usize,
 }
 
-impl InMemoryMessageLoader {
-    pub fn new(state: &Arc<Mutex<WakingMap>>, batch_size: usize) -> Self {
-        let batch: IntoIter<(Key, Publication)> = Vec::new().into_iter();
+impl<S: StreamWakeableState> MessageLoader<S> {
+    pub fn new(state: Arc<Mutex<S>>, batch_size: usize) -> Self {
+        let batch = VecDeque::new();
 
-        InMemoryMessageLoader {
-            state: Arc::clone(&state),
+        Self {
+            state,
             batch,
             batch_size,
         }
     }
+
+    fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
+        let mut state_lock = self.state.lock();
+        let batch: VecDeque<_> = state_lock.batch(self.batch_size)?;
+
+        Ok(batch)
+    }
 }
 
-impl Stream for InMemoryMessageLoader {
+impl<S: StreamWakeableState> Stream for MessageLoader<S> {
     type Item = (Key, Publication);
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        if let Some(item) = self.batch.next() {
-            return Poll::Ready(Some((item.0.clone(), item.1)));
+        if let Some(item) = self.batch.pop_front() {
+            return Poll::Ready(Some((item.0, item.1)));
         }
 
+        // Since poll_next does not return a Result type, we cannot percolate error all the way up
+        // We need to fail fast and loud in the case this rocksdb retrieval errors
+        // If error, either someone forged the database or we have a database schema change
         let mut_self = self.get_mut();
-        let mut state_lock = mut_self.state.lock();
+        mut_self.batch = mut_self
+            .next_batch()
+            .expect("failed retrieval from rocksdb");
 
-        mut_self.batch = get_elements(&mut state_lock, mut_self.batch_size);
-        mut_self.batch.next().map_or_else(
+        mut_self.batch.pop_front().map_or_else(
             || {
+                let mut state_lock = mut_self.state.lock();
                 state_lock.set_waker(cx.waker());
                 Poll::Pending
             },
-            |item| Poll::Ready(Some((item.0.clone(), item.1))),
+            |item| Poll::Ready(Some((item.0, item.1))),
         )
     }
 }
 
-fn get_elements(
-    state: &mut MutexGuard<'_, WakingMap>,
-    batch_size: usize,
-) -> IntoIter<(Key, Publication)> {
-    let batch: Vec<_> = state
-        .get(batch_size)
-        .iter()
-        .map(|element| (element.0.clone(), element.1.clone()))
-        .collect();
-
-    batch.into_iter()
-}
-
 #[cfg(test)]
 mod tests {
-    use std::{iter::Iterator, sync::Arc, time::Duration};
+    use std::{sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
@@ -75,28 +81,28 @@ mod tests {
     use tokio::{self, time};
 
     use crate::persist::{
-        memory::loader::{get_elements, InMemoryMessageLoader},
-        memory::waking_map::WakingMap,
-        Key,
+        loader::{Key, MessageLoader},
+        waking_state::StreamWakeableState,
+        WakingMemoryStore,
     };
 
     #[tokio::test]
     async fn smaller_batch_size_respected() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
         let key2 = Key { offset: 1 };
         let pub2 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -104,37 +110,38 @@ mod tests {
 
         // insert elements
         let mut state_lock = state.lock();
-        state_lock.insert(key1.clone(), pub1.clone());
-        state_lock.insert(key2, pub2);
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2).unwrap();
+        drop(state_lock);
 
         // get batch size elements
         let batch_size = 1;
-        let iter = get_elements(&mut state_lock, batch_size);
+        let mut loader = MessageLoader::new(state, batch_size);
+        let mut elements = loader.next_batch().unwrap();
 
         // verify
-        let elements: Vec<_> = iter.collect();
-        let extracted = elements.get(0).unwrap();
         assert_eq!(elements.len(), 1);
-        assert_eq!((extracted.0.clone(), extracted.1.clone()), (key1, pub1));
+        let extracted = elements.pop_front().unwrap();
+        assert_eq!((extracted.0, extracted.1), (key1, pub1));
     }
 
     #[tokio::test]
     async fn larger_batch_size_respected() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
         let key2 = Key { offset: 1 };
         let pub2 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -142,38 +149,75 @@ mod tests {
 
         // insert elements
         let mut state_lock = state.lock();
-        state_lock.insert(key1.clone(), pub1.clone());
-        state_lock.insert(key2.clone(), pub2.clone());
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
+        drop(state_lock);
 
         // get batch size elements
         let batch_size = 5;
-        let elements: Vec<_> = get_elements(&mut state_lock, batch_size).collect();
+        let mut loader = MessageLoader::new(state, batch_size);
+        let mut elements = loader.next_batch().unwrap();
 
         // verify
-        let extracted1 = elements.get(0).unwrap();
-        let extracted2 = elements.get(1).unwrap();
         assert_eq!(elements.len(), 2);
-        assert_eq!((extracted1.0.clone(), extracted1.1.clone()), (key1, pub1));
-        assert_eq!((extracted2.0.clone(), extracted2.1.clone()), (key2, pub2));
+        let extracted1 = elements.pop_front().unwrap();
+        let extracted2 = elements.pop_front().unwrap();
+        assert_eq!((extracted1.0, extracted1.1), (key1, pub1));
+        assert_eq!((extracted2.0, extracted2.1), (key2, pub2));
+    }
+
+    #[tokio::test]
+    async fn ordering_maintained_across_inserts() {
+        // setup state
+        let state = WakingMemoryStore::new();
+        let state = Arc::new(Mutex::new(state));
+
+        // add many elements
+        let mut state_lock = state.lock();
+        let num_elements = 10 as usize;
+        for i in 0..num_elements {
+            #[allow(clippy::cast_possible_truncation)]
+            let key = Key { offset: i as u32 };
+            let publication = Publication {
+                topic_name: i.to_string(),
+                qos: QoS::ExactlyOnce,
+                retain: true,
+                payload: Bytes::new(),
+            };
+
+            state_lock.insert(key, publication).unwrap();
+        }
+        drop(state_lock);
+
+        // verify insertion order
+        let mut loader = MessageLoader::new(state, num_elements);
+        let mut elements = loader.next_batch().unwrap();
+
+        for count in 0..num_elements {
+            #[allow(clippy::cast_possible_truncation)]
+            let num_elements = count as u32;
+
+            assert_eq!(elements.pop_front().unwrap().0.offset, num_elements)
+        }
     }
 
     #[tokio::test]
     async fn retrieve_elements() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
         let key2 = Key { offset: 1 };
         let pub2 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -181,13 +225,13 @@ mod tests {
 
         // insert some elements
         let mut state_lock = state.lock();
-        state_lock.insert(key1.clone(), pub1.clone());
-        state_lock.insert(key2.clone(), pub2.clone());
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
         drop(state_lock);
 
         // get loader
         let batch_size = 5;
-        let mut loader = InMemoryMessageLoader::new(&Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
 
         // make sure same publications come out in correct order
         let extracted1 = loader.next().await.unwrap();
@@ -201,20 +245,20 @@ mod tests {
     #[tokio::test]
     async fn delete_and_retrieve_new_elements() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
         let key2 = Key { offset: 1 };
         let pub2 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -222,13 +266,13 @@ mod tests {
 
         // insert some elements
         let mut state_lock = state.lock();
-        state_lock.insert(key1.clone(), pub1.clone());
-        state_lock.insert(key2.clone(), pub2.clone());
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
         drop(state_lock);
 
         // get loader
         let batch_size = 5;
-        let mut loader = InMemoryMessageLoader::new(&Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
 
         // process inserted messages
         loader.next().await.unwrap();
@@ -236,8 +280,8 @@ mod tests {
 
         // remove inserted elements
         let mut state_lock = state.lock();
-        state_lock.remove_in_flight(&key1).unwrap();
-        state_lock.remove_in_flight(&key2).unwrap();
+        state_lock.remove(key1).unwrap();
+        state_lock.remove(key2).unwrap();
         drop(state_lock);
 
         // insert new elements
@@ -249,7 +293,7 @@ mod tests {
             payload: Bytes::new(),
         };
         let mut state_lock = state.lock();
-        state_lock.insert(key3.clone(), pub3.clone());
+        state_lock.insert(key3, pub3.clone()).unwrap();
         drop(state_lock);
 
         // verify new elements are there
@@ -259,47 +303,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn ordering_maintained_across_inserts() {
-        // setup state
-        let state = WakingMap::new();
-        let state = Arc::new(Mutex::new(state));
-
-        // add many elements
-        let mut state_lock = state.lock();
-        let num_elements = 50 as usize;
-        for i in 0..num_elements {
-            #[allow(clippy::cast_possible_truncation)]
-            let key = Key { offset: i as u32 };
-            let publication = Publication {
-                topic_name: "test".to_string(),
-                qos: QoS::ExactlyOnce,
-                retain: true,
-                payload: Bytes::new(),
-            };
-
-            state_lock.insert(key, publication)
-        }
-
-        // verify insertion order
-        let elements: Vec<_> = get_elements(&mut state_lock, num_elements).collect();
-        for count in 0..num_elements {
-            #[allow(clippy::cast_possible_truncation)]
-            let num_elements = count as u32;
-
-            assert_eq!(elements.get(count).unwrap().0.offset, num_elements)
-        }
-    }
-
-    #[tokio::test]
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state
-        let state = WakingMap::new();
+        let state = WakingMemoryStore::new();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
-            topic_name: "test".to_string(),
+            topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
@@ -307,10 +319,10 @@ mod tests {
 
         // get loader
         let batch_size = 5;
-        let mut loader = InMemoryMessageLoader::new(&Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
 
         // async function that waits for a message to enter the state
-        let key_copy = key1.clone();
+        let key_copy = key1;
         let pub_copy = pub1.clone();
         let poll_stream = async move {
             let maybe_extracted = loader.next().await;
@@ -325,7 +337,7 @@ mod tests {
 
         // add an element to the state
         let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1);
+        state_lock.insert(key1, pub1).unwrap();
         drop(state_lock);
         poll_stream_handle.await.unwrap();
     }
