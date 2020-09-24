@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         const string DockerType = "docker";
         static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(60);
 
-        //BEARWASHERE
+        // BEARWASHERE
         ILogger log = Logger.Factory.CreateLogger<EdgeAgentConnectionTest>();
 
         static async Task CreateConfigurationAsync(RegistryManager registryManager, string configurationId, string targetCondition, int priority)
@@ -372,16 +372,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
 
-                //BEARWASHERE
-                deploymentConfigInfo.ForEach( p => 
-                    log.LogInformation($"BEARW - deploymentConfigInfo = {p.ToString()}")
-                );
+                // BEARWASHERE
+                deploymentConfigInfo.ForEach(p =>
+                    this.log.LogInformation($"BEARW - deploymentConfigInfo = {p.ToString()}"));
 
                 Assert.True(deploymentConfigInfo.HasValue);
                 DeploymentConfig deploymentConfig = deploymentConfigInfo.OrDefault().DeploymentConfig;
 
-                //BEARWASHERE
-                log.LogInformation($"BEARW - deploymentConfig = {deploymentConfig.ToString()}");
+                // BEARWASHERE
+                this.log.LogInformation($"BEARW - deploymentConfig = {deploymentConfig.ToString()}");
 
                 Assert.NotNull(deploymentConfig);
                 Assert.NotNull(deploymentConfig.Modules);
@@ -458,16 +457,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
 
-                //BEARWASHERE
-                deploymentConfigInfo.ForEach( p => 
-                    log.LogInformation($"BEARW - EdgeAgentConnectionBaseAddOnConfigurationTest - deploymentConfigInfo = {p.ToString()}")
-                );
+                // BEARWASHERE
+                deploymentConfigInfo.ForEach(p =>
+                    this.log.LogInformation($"BEARW - EdgeAgentConnectionBaseAddOnConfigurationTest - deploymentConfigInfo = {p.ToString()}"));
 
                 Assert.True(deploymentConfigInfo.HasValue);
                 DeploymentConfig deploymentConfig = deploymentConfigInfo.OrDefault().DeploymentConfig;
 
-                //BEARWASHERE
-                log.LogInformation($"BEARW - deploymentConfig = {deploymentConfig.ToString()}");
+                // BEARWASHERE
+                this.log.LogInformation($"BEARW - deploymentConfig = {deploymentConfig.ToString()}");
 
                 Assert.NotNull(deploymentConfig);
                 Assert.NotNull(deploymentConfig.Modules);
