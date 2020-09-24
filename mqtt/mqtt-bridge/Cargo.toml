@@ -27,7 +27,6 @@ tokio = { version = "0.2", features = ["sync"] }
 tokio-tls = "0.3"
 tracing = "0.1"
 url = "1.7"
-tracing = "0.1"
 
 edgelet-client = { path = "../edgelet-client" }
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
