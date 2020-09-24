@@ -744,6 +744,16 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
+    PARENT_HOSTNAME=$(printenv E2E_parentHostname)
+    if [[ ! -z "$PARENT_HOSTNAME" ]]; then
+        echo "Parent hostname=$PARENT_HOSTNAME"
+    fi
+    
+    PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
+    if [[ ! -z "$PARENT_EDGE_DEVICE" ]]; then
+        echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
+    fi
+    
     local ret=0
     "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
@@ -754,6 +764,8 @@ function run_longhaul_test() {
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
+        --parent-hostname "$PARENT_HOSTNAME" \
+        --parent-edge-device "$PARENT_EDGE_DEVICE" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
