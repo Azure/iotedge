@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return await this.RegistryManager.AddDeviceAsync(device, token);
         }
 
-        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, Option<string> parentEdgeDevice, CancellationToken token)
+        public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, Option<string> parentEdgeDevice, CancellationToken token)
         {
             Device edge = new Device(deviceId)
             {
@@ -100,9 +100,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
             };
 
-            parentEdgeDevice.ForEach(ped => edge.ParentScopes = new[] { ped });
+            await parentEdgeDevice.ForEachAsync(async p =>
+            {
+                var parentDevice = await this.RegistryManager.GetDeviceAsync(p);
+                edge.ParentScopes = new[] { parentDevice.Scope };
+            });
 
-            return this.CreateDeviceIdentityAsync(edge, token);
+            return await this.CreateDeviceIdentityAsync(edge, token);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
