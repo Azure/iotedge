@@ -25,6 +25,7 @@ const DEFAULT_TOKEN_DURATION_MINS: i64 = 60;
 const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(5);
 // TODO: get QOS from topic settings
 const DEFAULT_QOS: proto::QoS = proto::QoS::AtLeastOnce;
+const API_VERSION: &str = "2010-01-01";
 
 #[derive(Debug)]
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
@@ -216,10 +217,11 @@ impl<T: EventHandler> MqttClient<T> {
                 ),
                 //TODO: handle properties that are sent by client in username (modelId, authchain)
                 Some(format!(
-                    "{}/{}/{}/?api-version=2010-01-01",
+                    "{}/{}/{}/?api-version={}",
                     provider_settings.iothub_hostname().to_owned(),
                     provider_settings.device_id().to_owned(),
-                    provider_settings.module_id().to_owned()
+                    provider_settings.module_id().to_owned(),
+                    API_VERSION.to_owned()
                 )),
                 Some(SasTokenSource::new(connection_credentials.clone())),
             ),
@@ -277,15 +279,7 @@ impl<T: EventHandler> MqttClient<T> {
     pub async fn handle_events(mut self) -> Result<(), ClientConnectError> {
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
-            self.client = Client::new(
-                Some(self.client_id.clone()),
-                self.username.clone(),
-                None,
-                self.io_source.clone(),
-                DEFAULT_MAX_RECONNECT,
-                self.keep_alive.clone(),
-            );
-            debug!("Client re-created");
+            // TODO: handle the error and recreat the client/bridge
             None
         }) {
             debug!("handle event {:?}", event);
@@ -331,16 +325,18 @@ impl<T: EventHandler> MqttClient<T> {
                         }
                         SubscriptionUpdateEvent::SubscriptionRejectedByServer(sub) => {
                             subacks.remove(&sub);
-                            error!("SubscriptionRejectedByServer {}", sub);
+                            error!("subscription rejected by server {}", sub);
                         }
-                        _ => {}
+                        _ => {
+                            error!("unexpected subscription event");
+                        }
                     }
                 }
             }
         }
 
         if subacks.is_empty() {
-            debug!("command handler successfully subscribed to disconnect topic");
+            debug!("successfully subscribed to topics");
         } else {
             error!(
                 "failed to receive expected subacks for topics: {0:?}",
