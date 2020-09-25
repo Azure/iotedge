@@ -27,7 +27,7 @@ pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
 #[derive(serde_derive::Serialize)]
 pub(crate) struct HostConnectIotHub {
     port_number: u16,
-    iothub_hostname: Option<String>,
+    hub_hostname: Option<String>,
     proxy: Option<String>,
     #[serde(skip)]
     id: &'static str,
@@ -57,12 +57,24 @@ impl HostConnectIotHub {
         check: &mut Check,
         runtime: &mut tokio::runtime::Runtime,
     ) -> Result<CheckResult, failure::Error> {
-        let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
-            iothub_hostname
+
+        let settings = if let Some(settings) = &check.settings {
+            settings
         } else {
             return Ok(CheckResult::Skipped);
         };
-        self.iothub_hostname = Some(iothub_hostname.clone());
+        
+        let parent_hostname: String;
+        let hub_hostname = if let Some(hub_hostname) = settings.parent_hostname() {
+            parent_hostname = hub_hostname.to_string();
+            &parent_hostname
+        } else if let Some(hub_hostname) = &check.iothub_hostname {
+            hub_hostname
+        } else {
+            return Ok(CheckResult::Skipped);
+        };
+
+        self.hub_hostname = Some(hub_hostname.clone());
 
         self.proxy = check
             .settings
@@ -72,16 +84,16 @@ impl HostConnectIotHub {
         if let Some(proxy) = &self.proxy {
             runtime.block_on(
                 super::host_connect_dps_endpoint::resolve_and_tls_handshake_proxy(
-                    iothub_hostname.clone(),
+                    hub_hostname.clone(),
                     Some(self.port_number),
                     proxy.clone(),
                 ),
             )?;
         } else {
             super::host_connect_dps_endpoint::resolve_and_tls_handshake(
-                &(&**iothub_hostname, self.port_number),
-                iothub_hostname,
-                &format!("{}:{}", iothub_hostname, self.port_number),
+                &(&**hub_hostname, self.port_number),
+                hub_hostname,
+                &format!("{}:{}", hub_hostname, self.port_number),
             )?;
         }
 
@@ -98,7 +110,7 @@ fn make_check(
         id,
         description,
         port_number: upstream_protocol_port.as_port(),
-        iothub_hostname: None,
+        hub_hostname: None,
         proxy: None,
     })
 }

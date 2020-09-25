@@ -51,7 +51,7 @@ pub(crate) fn get_host_container_iothub_tests() -> Vec<Box<dyn Checker>> {
 #[derive(serde_derive::Serialize)]
 pub(crate) struct ContainerConnectIotHub {
     port_number: u16,
-    iothub_hostname: Option<String>,
+    hub_hostname: Option<String>,
     network_name: Option<String>,
     diagnostics_image_name: Option<String>,
     proxy: Option<String>,
@@ -92,12 +92,16 @@ impl ContainerConnectIotHub {
             return Ok(CheckResult::Skipped);
         };
 
-        let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
-            iothub_hostname
+        let parent_hostname: String;
+        let hub_hostname = if let Some(hub_hostname) = settings.parent_hostname() {
+            parent_hostname = hub_hostname.to_string();
+            &parent_hostname
+        } else if let Some(hub_hostname) = &check.iothub_hostname {
+            hub_hostname
         } else {
             return Ok(CheckResult::Skipped);
         };
-        self.iothub_hostname = Some(iothub_hostname.to_owned());
+        self.hub_hostname = Some(hub_hostname.to_owned());
 
         let network_name = settings.moby_runtime().network().name();
         self.network_name = Some(network_name.to_owned());
@@ -109,15 +113,28 @@ impl ContainerConnectIotHub {
         if self.use_container_runtime_network {
             args.extend(&["--network", network_name]);
         }
+        
+        let diagnostics_image_name = if check.diagnostics_image_name.starts_with("/azureiotedge-diagnostics:") {
+            if let Some(hub_hostname) = settings.parent_hostname() {
+                hub_hostname.to_string() + &check.diagnostics_image_name
+            } else if let Some(_) = &check.iothub_hostname {
+                String::from("mcr.microsoft.com")  +  &check.diagnostics_image_name 
+            } else {
+                return Ok(CheckResult::Skipped);
+            }
+        } else {
+            check.diagnostics_image_name.clone()
+        };
 
-        self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
+        self.diagnostics_image_name = Some(diagnostics_image_name.clone());
+
         args.extend(&[
-            &check.diagnostics_image_name,
+            &diagnostics_image_name,
             "dotnet",
             "IotedgeDiagnosticsDotnet.dll",
             "iothub",
             "--hostname",
-            iothub_hostname,
+            hub_hostname,
             "--port",
             &port,
         ]);
@@ -141,7 +158,7 @@ impl ContainerConnectIotHub {
                     } else {
                         "default"
                     },
-                    iothub_hostname,
+                    hub_hostname,
                     port,
                 ))
                 .into());
@@ -162,7 +179,7 @@ fn make_check(
         description,
         port_number: upstream_protocol_port.as_port(),
         use_container_runtime_network,
-        iothub_hostname: None,
+        hub_hostname: None,
         network_name: None,
         diagnostics_image_name: None,
         proxy: None,
