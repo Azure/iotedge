@@ -2,14 +2,14 @@ use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use lazy_static::lazy_static;
-use mqtt_broker::{
-    BrokerHandle, Error, IncomingPacketProcessor, Message, OutgoingPacketProcessor, PacketAction,
-    SystemEvent,
-};
 use parking_lot::Mutex;
 use regex::Regex;
 
 use mqtt3::proto::{self, Packet, PacketIdentifier, Publication};
+use mqtt_broker::{
+    BrokerHandle, Error, IncomingPacketProcessor, Message, OutgoingPacketProcessor, PacketAction,
+    SystemEvent,
+};
 
 pub struct PublicationDelivery<P> {
     inner: P,
@@ -20,6 +20,8 @@ pub struct PublicationDelivery<P> {
 /// MQTT packet processor wrapper. It identifies `IoTHub` M2M outgoing publishes,
 /// saves PACKETID to send a confirmation packet back to sender on special topic
 /// "$edgehub/delivery".
+///
+/// It is used as a back pressure mechanism to avoid M2M message loss.
 impl<P> PublicationDelivery<P> {
     pub fn new(
         broker_handle: BrokerHandle,
@@ -41,7 +43,6 @@ impl<P> PublicationDelivery<P> {
 
         let packet_identifier = match &packet {
             Packet::PubAck(puback) => puback.packet_identifier,
-            Packet::PubRel(pubrel) => pubrel.packet_identifier,
             _ => return Ok(None),
         };
 
@@ -68,12 +69,11 @@ impl<P> PublicationDelivery<P> {
 }
 
 fn match_m2m_publish(packet: &Packet) -> Option<(proto::PacketIdentifier, String)> {
-    const DEVICE_ID: &str = r"(?P<device_id>[^/]+)";
-    const MODULE_ID: &str = r"(?P<module_id>[^/]+)";
+    const ANYTHING_BUT_NOT_SLASH: &str = r"[^/]+";
     lazy_static! {
         static ref M2M_PUBLISH_PATTERN: Regex = Regex::new(&format!(
-            "\\$edgehub/{}/{}/inputs/(?P<path>.+)",
-            DEVICE_ID, MODULE_ID
+            "\\$edgehub/{}/{}/inputs/.+",
+            ANYTHING_BUT_NOT_SLASH, ANYTHING_BUT_NOT_SLASH
         ))
         .expect("failed to create new Regex from pattern");
     }

@@ -238,10 +238,19 @@ pub enum ClientEvent {
 
 #[derive(Debug)]
 pub enum SystemEvent {
+    /// An event for a broker to stop processing incoming event and exit.
     Shutdown,
+
+    /// An event for a broker to make a snapshot of the current broker state
+    /// and send it back to the caller.
     StateSnapshot(StateSnapshotHandle),
-    ForceClientDisconnect(ClientId),
+
+    /// An event for a broker to update authorizer with additional data.
     AuthorizationUpdate(Box<dyn Any + Send + Sync>),
+
+    /// An event for a broker to dispatch a publication by broker itself.
+    /// The main difference is `ClientEvent::Publish` it doesn't require
+    /// ClientId of sender to be passed along with the event.
     Publish(Publication),
 }
 

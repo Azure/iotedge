@@ -79,13 +79,6 @@ where
                                 info!("sent state to snapshotter.");
                             }
                         }
-                        SystemEvent::ForceClientDisconnect(client_id) => {
-                            if let Err(e) = self.process_drop_connection(&client_id) {
-                                warn!(message = "an error occured disconnecting client", error = %e);
-                            } else {
-                                debug!("successfully disconnected client");
-                            }
-                        }
                         SystemEvent::AuthorizationUpdate(update) => {
                             if let Err(e) = self.authorizer.update(update) {
                                 error!(message = "an error occurred while updating authorization info", error = %e);

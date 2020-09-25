@@ -9,11 +9,12 @@ use mqtt_broker_tests_util::{
 use mqtt_edgehub::connection::MakeEdgeHubPacketProcessor;
 
 /// Scenario:
-/// create broker
-/// create command handler
-/// connect client
-/// publish message to disconnect client
-/// verify client disconnected
+/// make a broker with edgehub packet processors
+/// module-1 connected and subscribed to receive M2M messages
+/// edgehub connected and publish a M2M message for module-1
+/// Verify:
+/// modules-1 received a M2M message as in input
+/// edgehub received a publication delivery confirmation
 #[tokio::test]
 async fn it_sends_delivery_confirmation_for_m2m_messages() {
     let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();

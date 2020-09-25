@@ -173,7 +173,7 @@ where
 
                 // prepare processing incoming packets
                 let incoming_task =
-                    incoming_task(client_id.clone(), incoming, broker_handle.clone(),incoming_processor);
+                    incoming_task(client_id.clone(), incoming, broker_handle.clone(), incoming_processor);
                 pin_mut!(incoming_task);
 
                 // prepare processing outgoing packets
