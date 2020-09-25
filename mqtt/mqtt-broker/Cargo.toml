@@ -24,7 +24,7 @@ regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 thiserror = "1.0"
-tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp", "dns"] }
+tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp", "dns", "io-util"] }
 tokio-io-timeout = "0.4"
 tokio-openssl = "0.4"
 tokio-util = { version = "0.2", features = ["codec"] }
