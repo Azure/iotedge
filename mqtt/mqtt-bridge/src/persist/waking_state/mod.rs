@@ -33,7 +33,7 @@ mod tests {
     use std::{pin::Pin, sync::Arc, task::Context, task::Poll};
 
     use bytes::Bytes;
-    use futures_util::stream::{Stream, StreamExt};
+    use futures_util::stream::{Stream, StreamExt, TryStreamExt};
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
@@ -113,8 +113,8 @@ mod tests {
         // extract some, check that they are in order
         let state_lock = Arc::new(Mutex::new(state));
         let mut loader = MessageLoader::new(state_lock.clone(), num_elements);
-        let (key1, _) = loader.next().await.unwrap();
-        let (key2, _) = loader.next().await.unwrap();
+        let (key1, _) = loader.try_next().await.unwrap().unwrap();
+        let (key2, _) = loader.try_next().await.unwrap().unwrap();
         assert_eq!(key1, Key { offset: 0 });
         assert_eq!(key2, Key { offset: 1 });
 
@@ -126,7 +126,7 @@ mod tests {
         for count in 2..num_elements {
             #[allow(clippy::cast_possible_truncation)]
             let num_elements = count as u32;
-            let extracted_offset = loader.next().await.unwrap().0.offset;
+            let extracted_offset = loader.try_next().await.unwrap().unwrap().0.offset;
             assert_eq!(extracted_offset, num_elements)
         }
     }
