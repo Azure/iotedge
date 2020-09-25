@@ -218,16 +218,16 @@ impl Authorizer for EdgeHubAuthorizer {
     type Error = Infallible;
 
     fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
-        let (client_id, client_info, operation) = activity.into_parts();
+        let (client_info, operation) = activity.into_parts();
         let auth = match operation {
             Operation::Connect(connect) => {
-                self.authorize_connect(&client_id, &client_info, &connect)
+                self.authorize_connect(client_info.client_id(), &client_info, &connect)
             }
             Operation::Publish(publish) => {
-                self.authorize_publish(&client_id, &client_info, &publish)
+                self.authorize_publish(client_info.client_id(), &client_info, &publish)
             }
             Operation::Subscribe(subscribe) => {
-                self.authorize_subscribe(&client_id, &client_info, &subscribe)
+                self.authorize_subscribe(client_info.client_id(), &client_info, &subscribe)
             }
         };
 
@@ -484,7 +484,11 @@ mod tests {
     }
 
     fn activity(operation: Operation, client_id: &str, auth_id: impl Into<AuthId>) -> Activity {
-        let client_info = ClientInfo::new("10.0.0.1:12345".parse().unwrap(), auth_id.into());
-        Activity::new(client_id, client_info, operation)
+        let client_info = ClientInfo::new(
+            client_id.into(),
+            "10.0.0.1:12345".parse().unwrap(),
+            auth_id.into(),
+        );
+        Activity::new(client_info, operation)
     }
 }

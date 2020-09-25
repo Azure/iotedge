@@ -110,6 +110,7 @@ mod tests {
     fn test_subscriptions() {
         let expected_id: ClientId = "Session".into();
         let client_info = ClientInfo::new(
+            expected_id.clone(),
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
             AuthId::from("authId1"),
         );
@@ -175,6 +176,7 @@ mod tests {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
         let client_info = ClientInfo::new(
+            "client_id".into(),
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
             AuthId::from("authId1"),
         );
@@ -271,6 +273,7 @@ mod tests {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
         let client_info = ClientInfo::new(
+            "client_id".into(),
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
             AuthId::from("authId1"),
         );
@@ -396,7 +399,7 @@ mod tests {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut state = SessionState::new(id.into(), client_info.clone(), default_config());
+        let mut state = SessionState::new(client_info.clone(), default_config());
 
         for topic_filter in subscriptions {
             state.update_subscription(

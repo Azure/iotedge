@@ -20,7 +20,6 @@ use crate::{
 /// Common data and functions for broker sessions.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SessionState {
-    client_id: ClientId,
     client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
     packet_identifiers: PacketIdentifiers,
@@ -39,9 +38,8 @@ pub struct SessionState {
 }
 
 impl SessionState {
-    pub fn new(client_id: ClientId, client_info: ClientInfo, config: SessionConfig) -> Self {
+    pub fn new(client_info: ClientInfo, config: SessionConfig) -> Self {
         Self {
-            client_id,
             client_info,
             subscriptions: HashMap::new(),
             packet_identifiers: PacketIdentifiers::default(),
@@ -61,7 +59,7 @@ impl SessionState {
     }
 
     pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
-        let (client_id, client_info, subscriptions, queued_publications) = snapshot.into_parts();
+        let (client_info, subscriptions, queued_publications) = snapshot.into_parts();
 
         let mut waiting_to_be_sent = BoundedQueue::new(
             config.max_queued_messages(),
@@ -71,7 +69,6 @@ impl SessionState {
         waiting_to_be_sent.extend(queued_publications);
 
         Self {
-            client_id,
             client_info,
             subscriptions,
             packet_identifiers: PacketIdentifiers::default(),
@@ -86,7 +83,7 @@ impl SessionState {
     }
 
     pub fn client_id(&self) -> &ClientId {
-        &self.client_id
+        &self.client_info.client_id
     }
 
     pub fn client_info(&self) -> &ClientInfo {
@@ -346,7 +343,6 @@ impl SessionState {
 impl From<SessionState> for SessionSnapshot {
     fn from(state: SessionState) -> Self {
         SessionSnapshot::from_parts(
-            state.client_id,
             state.client_info,
             state.subscriptions,
             state.waiting_to_be_sent.into_inner(),
@@ -373,7 +369,7 @@ mod tests {
     fn test_publish_to_inflight() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 3;
         let max_queued = 10;
         let topic = "topic/new";
@@ -387,7 +383,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 
@@ -404,7 +400,7 @@ mod tests {
     fn test_publish_to_queues_when_inflight_full() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 2;
         let max_queued = 10;
         let topic = "topic/new";
@@ -418,7 +414,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 
@@ -436,7 +432,7 @@ mod tests {
     fn test_publish_to_drops_new_message_when_queue_count_limit_reached() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 2;
         let max_queued = 2;
         let topic = "topic/new";
@@ -450,7 +446,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 
@@ -481,7 +477,7 @@ mod tests {
     fn test_publish_to_drops_new_message_when_queue_size_limit_reached() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 2;
         let max_size = HumanSize::new_bytes(10);
         let topic = "topic/new";
@@ -495,7 +491,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 
@@ -525,7 +521,7 @@ mod tests {
     fn test_publish_to_drops_old_message_when_queue_count_limit_reached() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 2;
         let max_queued = 2;
         let topic = "topic/new";
@@ -539,7 +535,7 @@ mod tests {
             QueueFullAction::DropOld,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 
@@ -570,7 +566,7 @@ mod tests {
     fn test_publish_to_drops_old_message_when_queue_size_limit_reached() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 2;
         let max_size = HumanSize::new_bytes(10);
         let topic = "topic/new";
@@ -584,7 +580,7 @@ mod tests {
             QueueFullAction::DropOld,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 
@@ -615,7 +611,7 @@ mod tests {
     fn test_publish_to_drops_old_message_when_queue_full() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 2;
         let max_queued = 2;
         let topic = "topic/new";
@@ -629,7 +625,7 @@ mod tests {
             QueueFullAction::DropOld,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 
@@ -660,7 +656,7 @@ mod tests {
     fn test_publish_to_ignores_zero_max_inflight_messages() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 0;
         let max_queued = 0;
         let topic = "topic/new";
@@ -674,7 +670,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 
@@ -692,7 +688,7 @@ mod tests {
     fn test_publish_to_ignores_zero_max_queued_messages() {
         let client_id = ClientId::from("id1");
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        let client_info = ClientInfo::new(socket, AuthId::from("authId1"));
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let max_inflight = 2;
         let max_queued = 0;
         let topic = "topic/new";
@@ -706,7 +702,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_id, client_info, config);
+        let mut session = SessionState::new(client_info, config);
 
         subscribe_to(topic, &mut session);
 

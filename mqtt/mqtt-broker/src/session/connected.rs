@@ -5,7 +5,7 @@ use tracing::warn;
 use mqtt3::proto;
 
 use crate::{
-    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientId, ClientInfo,
+    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientInfo,
     ConnectionHandle, Error, Message, SessionState,
 };
 
@@ -30,10 +30,6 @@ impl ConnectedSession {
             will,
             handle,
         }
-    }
-
-    pub fn client_id(&self) -> &ClientId {
-        self.state.client_id()
     }
 
     pub fn client_info(&self) -> &ClientInfo {

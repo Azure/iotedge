@@ -83,16 +83,22 @@ impl Display for ClientId {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientInfo {
+    client_id: ClientId,
     peer_addr: SocketAddr,
     auth_id: AuthId,
 }
 
 impl ClientInfo {
-    pub fn new(peer_addr: SocketAddr, auth_id: impl Into<AuthId>) -> Self {
+    pub fn new(client_id: ClientId, peer_addr: SocketAddr, auth_id: impl Into<AuthId>) -> Self {
         Self {
+            client_id,
             peer_addr,
             auth_id: auth_id.into(),
         }
+    }
+
+    pub fn client_id(&self) -> &ClientId {
+        &self.client_id
     }
 
     pub fn peer_addr(&self) -> SocketAddr {
@@ -158,8 +164,8 @@ impl ConnReq {
         self.handle
     }
 
-    pub fn into_parts(self) -> (SocketAddr, proto::Connect, ConnectionHandle) {
-        (self.peer_addr, self.connect, self.handle)
+    pub fn into_parts(self) -> (ClientId, SocketAddr, proto::Connect, ConnectionHandle) {
+        (self.client_id, self.peer_addr, self.connect, self.handle)
     }
 }
 

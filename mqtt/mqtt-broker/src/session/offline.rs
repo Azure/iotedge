@@ -23,7 +23,7 @@ impl OfflineSession {
         self.state.client_id()
     }
 
-    pub fn client_info(&self) -> &ClientInfo {
+    pub fn last_client_info(&self) -> &ClientInfo {
         self.state.client_info()
     }
 

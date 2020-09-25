@@ -103,24 +103,22 @@ where
     }
 
     fn prepare_activities(client_id: &ClientId, session: &Session) -> Vec<(ClientId, Activity)> {
-        let mut activities = Vec::new();
-        for sub in session
+        session
             .subscriptions()
             .into_iter()
             .flat_map(HashMap::values)
-        {
-            let client_info = session.client_info();
-            let sub_topic_filter = sub.filter().to_string();
-            let operation = Operation::new_subscribe(proto::SubscribeTo {
-                topic_filter: sub_topic_filter.clone(),
-                qos: *sub.max_qos(),
-            });
-            activities.push((
-                client_id.clone(),
-                Activity::new(client_id.clone(), client_info.clone(), operation),
-            ));
-        }
-        activities
+            .map(|sub| {
+                let operation = Operation::new_subscribe(proto::SubscribeTo {
+                    topic_filter: sub.filter().to_string(),
+                    qos: *sub.max_qos(),
+                });
+
+                let client_info = session.client_info().clone();
+                let activity = Activity::new(client_info, operation);
+
+                (client_id.clone(), activity)
+            })
+            .collect()
     }
 
     fn reevaluate_subscriptions(&mut self) {
@@ -335,9 +333,13 @@ where
         };
 
         // Check client permissions to connect
-        let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
+        let client_info = ClientInfo::new(
+            connreq.client_id().clone(),
+            connreq.peer_addr(),
+            auth_id.clone(),
+        );
         let operation = Operation::new_connect(connreq.connect().clone());
-        let activity = Activity::new(client_id.clone(), client_info, operation);
+        let activity = Activity::new(client_info, operation);
         match self.authorizer.authorize(activity) {
             Ok(Authorization::Allowed) => {
                 debug!("client {} successfully authorized", client_id);
@@ -557,7 +559,7 @@ where
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(client_id) {
             let client_info = session.client_info().clone();
-            let activity = Activity::new(client_id.clone(), client_info, operation);
+            let activity = Activity::new(client_info, operation);
             match self.authorizer.authorize(activity) {
                 Ok(Authorization::Allowed) => {
                     debug!("client {} successfully authorized", client_id);
@@ -700,7 +702,7 @@ where
 
     fn open_session(&mut self, auth_id: AuthId, connreq: ConnReq) -> Result<OpenSession, Error> {
         let client_id = connreq.client_id().clone();
-        let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
+        let client_info = ClientInfo::new(client_id.clone(), connreq.peer_addr(), auth_id.clone());
 
         let session = match self.sessions.remove(&client_id) {
             Some(Session::Transient(current_connected)) => {
@@ -725,11 +727,7 @@ where
                         }
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let state = SessionState::new(
-                            client_id.clone(),
-                            client_info,
-                            self.config.session().clone(),
-                        );
+                        let state = SessionState::new(client_info, self.config.session().clone());
                         let new_session = Session::new_transient(auth_id, connreq, state);
                         (new_session, vec![], false)
                     };
@@ -752,19 +750,11 @@ where
                     connreq.connect().client_id
                 {
                     info!("creating new persistent session for {}", client_id);
-                    let state = SessionState::new(
-                        client_id.clone(),
-                        client_info,
-                        self.config.session().clone(),
-                    );
+                    let state = SessionState::new(client_info, self.config.session().clone());
                     Session::new_persistent(auth_id, connreq, state)
                 } else {
                     info!("creating new transient session for {}", client_id);
-                    let state = SessionState::new(
-                        client_id.clone(),
-                        client_info,
-                        self.config.session().clone(),
-                    );
+                    let state = SessionState::new(client_info, self.config.session().clone());
                     Session::new_transient(auth_id, connreq, state)
                 };
 
@@ -819,30 +809,23 @@ where
 
             let client_id = connreq.client_id().clone();
             let (state, _will, handle) = current_connected.into_parts();
-            let old_session = Session::new_disconnecting(
-                client_id.clone(),
-                state.client_info().clone(),
-                None,
-                handle,
-            );
-            let (new_session, session_present) =
-                if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
-                    debug!(
-                        "moving persistent session to this connection for {}",
-                        client_id
-                    );
-                    let new_session = Session::new_persistent(auth_id, connreq, state);
-                    (new_session, true)
-                } else {
-                    info!("cleaning session for {}", client_id);
-                    let state = SessionState::new(
-                        client_id.clone(),
-                        state.client_info().clone(),
-                        self.config.session().clone(),
-                    );
-                    let new_session = Session::new_transient(auth_id, connreq, state);
-                    (new_session, false)
-                };
+            let old_session = Session::new_disconnecting(state.client_info().clone(), None, handle);
+            let (new_session, session_present) = if let proto::ClientId::IdWithExistingSession(_) =
+                connreq.connect().client_id
+            {
+                debug!(
+                    "moving persistent session to this connection for {}",
+                    client_id
+                );
+                let new_session = Session::new_persistent(auth_id, connreq, state);
+                (new_session, true)
+            } else {
+                info!("cleaning session for {}", client_id);
+                let state =
+                    SessionState::new(state.client_info().clone(), self.config.session().clone());
+                let new_session = Session::new_transient(auth_id, connreq, state);
+                (new_session, false)
+            };
 
             self.sessions.insert(client_id, new_session);
             let ack = proto::ConnAck {
@@ -866,7 +849,6 @@ where
 
                 let (state, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
-                    client_id.clone(),
                     state.client_info().clone(),
                     will,
                     handle,
@@ -884,7 +866,6 @@ where
                 let new_session = Session::new_offline(state.clone());
                 self.sessions.insert(client_id.clone(), new_session);
                 Some(Session::new_disconnecting(
-                    client_id.clone(),
                     state.client_info().clone(),
                     will,
                     handle,
@@ -963,7 +944,7 @@ where
 
     let auth_results = subscribe.subscribe_to.into_iter().map(|subscribe_to| {
         let operation = Operation::new_subscribe(subscribe_to.clone());
-        let activity = Activity::new(client_id.clone(), client_info.clone(), operation);
+        let activity = Activity::new(client_info.clone(), operation);
         let auth = authorizer.authorize(activity);
         auth.map(|auth| (auth, subscribe_to))
     });

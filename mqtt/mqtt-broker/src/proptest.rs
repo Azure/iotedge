@@ -44,7 +44,6 @@ pub(crate) fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse
 
 prop_compose! {
     pub fn arb_session_snapshot()(
-        client_id in arb_clientid(),
         client_info in arb_client_info(),
         subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
         _packet_identifiers in arb_packet_identifiers(),
@@ -54,7 +53,6 @@ prop_compose! {
         _waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
     ) -> SessionSnapshot {
         SessionSnapshot::from_parts(
-            client_id,
             client_info,
             subscriptions,
             waiting_to_be_sent,
@@ -117,6 +115,7 @@ prop_compose! {
 
 prop_compose! {
     pub fn arb_client_info()(
+        client_id in arb_clientid(),
         auth_id in arb_auth_id(),
         ip in arb_ip(),
         port in arb_port(),
@@ -126,7 +125,7 @@ prop_compose! {
         // This workaround manually sets them to 0 but uses arbitrary values for ip and port
         // Issue opened: https://github.com/servo/bincode/issues/354
         let socket = SocketAddr::new(ip, port);
-        ClientInfo::new(socket, auth_id)
+        ClientInfo::new(client_id, socket, auth_id)
     }
 }
 
