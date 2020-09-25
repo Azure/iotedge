@@ -102,7 +102,7 @@ impl Bridge {
 
         self.connect(
             self.subscriptions.clone(),
-            &mut self.incoming_persist,
+            self.incoming_persist,
             self.connection_settings.address(),
             Some(self.connection_settings.port().to_owned()),
             self.connection_settings.credentials(),
@@ -124,7 +124,7 @@ impl Bridge {
 
         self.connect(
             self.forwards.clone(),
-            self.outgoing_persist.clone(),
+            self.outgoing_persist,
             self.system_address.as_str(),
             None,
             &Credentials::Anonymous(client_id),
@@ -136,7 +136,7 @@ impl Bridge {
     async fn connect(
         &self,
         mut topics: HashMap<String, TopicRule>,
-        persistor: &mut PublicationStore<WakingMemoryStore>,
+        persistor: PublicationStore<WakingMemoryStore>,
         address: &str,
         port: Option<String>,
         credentials: &Credentials,
