@@ -4,7 +4,6 @@ use std::{path::Path, time::Duration, vec::Vec};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
-use tracing::debug;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
@@ -80,16 +79,11 @@ impl<'de> serde::Deserialize<'de> for Settings {
 
         let upstream_connection_settings = nested_bridge
             .filter(|nested_bridge| {
-                nested_bridge.enable_upstream_bridge().map_or_else(
-                    || {
-                        debug!("upstream bridge not enabled.");
-                        false
-                    },
-                    |p| {
-                        debug!("upstream bridge setting {}", p);
-                        p
-                    },
-                )
+                nested_bridge
+                    .enable_upstream_bridge()
+                    .unwrap_or("false")
+                    .to_lowercase()
+                    == "true"
             })
             .map(|nested_bridge| ConnectionSettings {
                 name: "upstream".into(),
@@ -199,7 +193,7 @@ impl AuthenticationSettings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
     #[serde(rename = "enableupstreambridge")]
-    enable_upstream_bridge: Option<bool>,
+    enable_upstream_bridge: Option<String>,
 
     #[serde(rename = "iotedge_iothubhostname")]
     iothub_hostname: String,
@@ -221,8 +215,8 @@ pub struct CredentialProviderSettings {
 }
 
 impl CredentialProviderSettings {
-    pub fn enable_upstream_bridge(&self) -> Option<bool> {
-        self.enable_upstream_bridge
+    pub fn enable_upstream_bridge(&self) -> Option<&str> {
+        self.enable_upstream_bridge.as_ref().map(AsRef::as_ref)
     }
 
     pub fn iothub_hostname(&self) -> &str {
@@ -396,7 +390,7 @@ mod tests {
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-        let _enable_bridge = env::set_var("Enableupstreambridge", true);
+        let _enable_bridge = env::set_var("enableupstreambridge", "true");
 
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();

@@ -10,7 +10,6 @@ use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
 use tokio_openssl::connect;
 use tracing::{debug, error, warn};
-use Vec;
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
@@ -154,7 +153,7 @@ impl IoSource for BridgeIoSource {
                                 Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
                             })?;
 
-                    let connector = SslConnector::builder(SslMethod::tls())
+                    let config = SslConnector::builder(SslMethod::tls())
                         .and_then(|mut builder| {
                             if let Some(trust_bundle) = server_root_certificate {
                                 X509::stack_from_pem(trust_bundle.as_bytes())
@@ -168,9 +167,8 @@ impl IoSource for BridgeIoSource {
 
                             Ok(builder.build())
                         })
+                        .and_then(|conn| conn.configure())
                         .ok();
-
-                    let config = connector.map_or(None, |conn| conn.configure().ok());
 
                     let res = if let Some(c) = config {
                         let io = connect(c, &address, stream).await;
@@ -185,42 +183,6 @@ impl IoSource for BridgeIoSource {
                     } else {
                         None
                     };
-
-                    //     let io =
-                    //         connect(connector.configure().unwrap(), &address, stream).await;
-
-                    //     debug!("Tls connection {:?} for {:?}", io, address);
-
-                    //     io.map(|io| {
-                    //         let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
-                    //         Ok((stream, password))
-                    //     })
-                    // })
-                    // .ok()
-                    // .await;
-                    //.map_err(|e| Error::new(ErrorKind::Other, e));
-                    // let res = if let Some(builder) = builder {
-                    //     if let Some(trust_bundle) = server_root_certificate {
-                    //         X509::stack_from_pem(trust_bundle.as_bytes()).map(|certs| {
-                    //             if let Some(ca) = certs.pop() {
-                    //                 builder.cert_store_mut().add_cert(ca).ok();
-                    //             }
-                    //         });
-                    //     }
-
-                    //     let connector = builder.build();
-
-                    //     let io = connect(connector.configure().unwrap(), &address, stream).await;
-
-                    //     debug!("Tls connection {:?} for {:?}", io, address);
-
-                    //     io.map(|io| {
-                    //         let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
-                    //         Ok((stream, password))
-                    //     })
-                    // } else {
-                    //     Err(Error::new(ErrorKind::Other, e));
-                    // };
 
                     res.map_or(
                         Err(Error::new(ErrorKind::Other, "could not connect")),
