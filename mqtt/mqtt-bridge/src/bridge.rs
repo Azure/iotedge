@@ -15,6 +15,13 @@ use crate::{
 
 const BATCH_SIZE: usize = 10;
 
+// TODO PRE: make this generic
+pub struct Pump {
+    loader: MessageLoader<WakingMemoryStore>,
+    client: MqttClient<MessageHandler<WakingMemoryStore>>,
+    store: PublicationStore<WakingMemoryStore>,
+}
+
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 // TODO PRE: make persistence generic
 pub struct Bridge {
@@ -23,8 +30,6 @@ pub struct Bridge {
     connection_settings: ConnectionSettings,
     forwards: HashMap<String, TopicRule>,
     subscriptions: HashMap<String, TopicRule>,
-    outgoing_persist: PublicationStore<WakingMemoryStore>,
-    incoming_persist: PublicationStore<WakingMemoryStore>,
 }
 
 impl Bridge {
@@ -32,14 +37,14 @@ impl Bridge {
         system_address: String,
         device_id: String,
         connection_settings: ConnectionSettings,
-    ) -> Self {
-        let forwards = connection_settings
+    ) -> Result<Self, BridgeError> {
+        let forwards: HashMap<String, TopicRule> = connection_settings
             .forwards()
             .iter()
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let subscriptions = connection_settings
+        let subscriptions: HashMap<String, TopicRule> = connection_settings
             .subscriptions()
             .iter()
             .map(|sub| Self::format_key_value(sub))
@@ -51,15 +56,86 @@ impl Bridge {
         // create local and remote clients
         // note: if we instead do this in start then we will have to pass the persistor into it, necessitating shared ownership and mutex
 
+        // self.connect(
+        //     self.subscriptions.clone(),
+        //     self.incoming_persist,
+        //     self.connection_settings.address(),
+        //     Some(self.connection_settings.port().to_owned()),
+        //     self.connection_settings.credentials(),
+        //     true,
+        // )
+        // .await
+        // self.connect(
+        //     self.forwards.clone(),
+        //     self.outgoing_persist,
+        //     self.system_address.as_str(),
+        //     None,
+        //     &Credentials::Anonymous(client_id),
+        //     false,
+        // )
+        // .await
+        // async fn connect(
+        //     &self,
+        //     mut topics: HashMap<String, TopicRule>,
+        //     persistor: PublicationStore<WakingMemoryStore>,
+        //     address: &str,
+        //     port: Option<String>,
+        //     credentials: &Credentials,
+        //     secure: bool,
+        // ) -> Result<(), BridgeError> {
+        // let client = MqttClient::new(
+        //     address,
+        //     port,
+        //     self.connection_settings.keep_alive(),
+        //     self.connection_settings.clean_session(),
+        //     MessageHandler::new(persistor, topic_filters),
+        //     credentials,
+        //     secure,
+        // );
+
+        let (remote_subcriptions, remote_topic_rules): (Vec<_>, Vec<_>) =
+            subscriptions.drain().unzip();
+        let remote_topic_filters = remote_topic_rules
+            .into_iter()
+            .map(|topic| topic.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
+        let remote_client = MqttClient::new(
+            connection_settings.address(),
+            Some(connection_settings.port().to_owned()),
+            connection_settings.keep_alive(),
+            connection_settings.clean_session(),
+            MessageHandler::new(incoming_persist, remote_topic_filters),
+            connection_settings.credentials(),
+            true,
+        );
+
+        let local_client_id = format!(
+            "{}/$edgeHub/$bridge/{}",
+            device_id,
+            connection_settings.name()
+        );
+        let (local_subscriptions, local_topic_rules): (Vec<_>, Vec<_>) = forwards.drain().unzip();
+        let local_topic_filters = local_topic_rules
+            .into_iter()
+            .map(|topic| topic.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
+        let local_client = MqttClient::new(
+            system_address.as_str(),
+            None,
+            connection_settings.keep_alive(),
+            connection_settings.clean_session(),
+            MessageHandler::new(outgoing_persist, local_topic_filters),
+            &Credentials::Anonymous(local_client_id),
+            true,
+        );
+
         // TODO PRE: remove persistors from self
         Bridge {
             system_address,
             device_id,
             connection_settings,
             forwards,
-            subscriptions,
-            outgoing_persist,
-            incoming_persist,
+            subscriptions: remote_subcriptions,
         }
     }
 
