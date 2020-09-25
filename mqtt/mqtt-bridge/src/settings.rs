@@ -8,7 +8,6 @@ use tracing::debug;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
-const EXPECTED_UPSTREAM_PROTOCOL: &str = "mqtt";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
@@ -81,14 +80,14 @@ impl<'de> serde::Deserialize<'de> for Settings {
 
         let upstream_connection_settings = nested_bridge
             .filter(|nested_bridge| {
-                nested_bridge.upstream_protocol().map_or_else(
+                nested_bridge.enable_upstream_bridge().map_or_else(
                     || {
-                        debug!("upstream protocol not set.");
+                        debug!("upstream bridge not enabled.");
                         false
                     },
                     |p| {
-                        debug!("upstream protocol {}", p);
-                        p.to_lowercase() == EXPECTED_UPSTREAM_PROTOCOL
+                        debug!("upstream bridge setting {}", p);
+                        p
                     },
                 )
             })
@@ -199,8 +198,8 @@ impl AuthenticationSettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
-    #[serde(rename = "upstreamprotocol")]
-    upstream_protocol: Option<String>,
+    #[serde(rename = "enableupstreambridge")]
+    enable_upstream_bridge: Option<bool>,
 
     #[serde(rename = "iotedge_iothubhostname")]
     iothub_hostname: String,
@@ -222,8 +221,8 @@ pub struct CredentialProviderSettings {
 }
 
 impl CredentialProviderSettings {
-    pub fn upstream_protocol(&self) -> Option<&str> {
-        self.upstream_protocol.as_ref().map(AsRef::as_ref)
+    pub fn enable_upstream_bridge(&self) -> Option<bool> {
+        self.enable_upstream_bridge
     }
 
     pub fn iothub_hostname(&self) -> &str {
@@ -397,7 +396,7 @@ mod tests {
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-        let _iupstream_protocl = env::set_var("UpstreamProtocol", "mqtt");
+        let _enable_bridge = env::set_var("Enableupstreambridge", true);
 
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();

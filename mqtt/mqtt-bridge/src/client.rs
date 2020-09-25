@@ -5,11 +5,12 @@ use std::{
 
 use async_trait::async_trait;
 use chrono::Utc;
-use futures_util::future::BoxFuture;
+use futures_util::future::{ok, BoxFuture, Either::Left, Either::Right};
 use native_tls::{Certificate, TlsConnector};
 use openssl::x509::X509;
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
+use Vec;
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
@@ -101,9 +102,9 @@ impl IoSource for BridgeIoSource {
                     let io = TcpStream::connect(&host);
 
                     let token = if let Some(ref ts) = token_source {
-                        futures_util::future::Either::Left(ts.get(&expiry))
+                        Left(ts.get(&expiry))
                     } else {
-                        futures_util::future::Either::Right(futures_util::future::ok(None))
+                        Right(ok(None))
                     };
 
                     let (password, io) =
@@ -129,15 +130,15 @@ impl IoSource for BridgeIoSource {
                         Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
 
                     let server_root_certificate = if let Some(ref source) = trust_bundle_source {
-                        futures_util::future::Either::Left(source.get_trust_bundle())
+                        Left(source.get_trust_bundle())
                     } else {
-                        futures_util::future::Either::Right(futures_util::future::ok(None))
+                        Right(ok(None))
                     };
 
                     let token = if let Some(ref ts) = token_source {
-                        futures_util::future::Either::Left(ts.get(&expiry))
+                        Left(ts.get(&expiry))
                     } else {
-                        futures_util::future::Either::Right(futures_util::future::ok(None))
+                        Right(ok(None))
                     };
 
                     let io = TcpStream::connect(host);
@@ -155,7 +156,13 @@ impl IoSource for BridgeIoSource {
                         let certs = X509::stack_from_pem(trust_bundle.as_bytes())
                             .unwrap()
                             .into_iter()
-                            .map(|cert| Certificate::from_der(&cert.to_der().unwrap()).unwrap());
+                            .flat_map(|cert| {
+                                cert.to_der()
+                                    .ok()
+                                    .map(|der| Certificate::from_der(&der).ok())
+                            })
+                            .filter_map(|cert| cert)
+                            .collect::<Vec<_>>();
 
                         for cert in certs {
                             builder.add_root_certificate(cert);
@@ -280,7 +287,7 @@ impl<T: EventHandler> MqttClient<T> {
     pub async fn handle_events(mut self) -> Result<(), ClientConnectError> {
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
-            // TODO: handle the error and recreat the client/bridge
+            // TODO: handle the error by recreting the connection
             None
         }) {
             debug!("handle event {:?}", event);
@@ -370,12 +377,14 @@ impl<T: EventHandler> MqttClient<T> {
                         SubscriptionUpdateEvent::Subscribe(sub) => {
                             subacks.remove(&sub.topic_filter);
                         }
-                        SubscriptionUpdateEvent::SubscriptionRejectedByServer(sub) => {
-                            subacks.remove(&sub);
-                            error!("subscription rejected by server {}", sub);
+                        SubscriptionUpdateEvent::SubscriptionRejectedByServer(topic_filter) => {
+                            subacks.remove(&topic_filter);
+                            error!("subscription rejected by server {}", topic_filter);
                         }
 
-                        SubscriptionUpdateEvent::Unsubscribe(_) => {}
+                        SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
+                            warn!("Unsubscribed {}", topic_filter);
+                        }
                     }
                 }
             }
