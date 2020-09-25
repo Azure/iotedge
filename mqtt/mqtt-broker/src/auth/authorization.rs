@@ -10,7 +10,7 @@ pub trait Authorizer {
     type Error: StdError;
 
     /// Authorizes a MQTT client to perform some action.
-    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error>;
+    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error>;
 
     fn update(&mut self, _update: Box<dyn Any>) -> Result<(), Self::Error> {
         Ok(())
@@ -40,8 +40,8 @@ where
 {
     type Error = E;
 
-    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
-        self(activity)
+    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
+        self(activity.clone())
     }
 }
 
@@ -52,7 +52,7 @@ pub struct DenyAll;
 impl Authorizer for DenyAll {
     type Error = Infallible;
 
-    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
+    fn authorize(&self, _: &Activity) -> Result<Authorization, Self::Error> {
         Ok(Authorization::Forbidden(
             "not allowed by default".to_string(),
         ))
@@ -66,13 +66,13 @@ pub struct AllowAll;
 impl Authorizer for AllowAll {
     type Error = Infallible;
 
-    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
+    fn authorize(&self, _: &Activity) -> Result<Authorization, Self::Error> {
         Ok(Authorization::Allowed)
     }
 }
 
 /// Describes a client activity to authorized.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Activity {
     client_id: ClientId,
     client_info: ClientInfo,
@@ -110,7 +110,7 @@ impl Activity {
 }
 
 /// Describes a client operation to be authorized.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Operation {
     Connect(Connect),
     Publish(Publish),
@@ -135,7 +135,7 @@ impl Operation {
 }
 
 /// Represents a client attempt to connect to the broker.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Connect {
     will: Option<Publication>,
 }
@@ -155,7 +155,7 @@ impl From<proto::Connect> for Connect {
 }
 
 /// Represents a publication description without payload to be used for authorization.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Publication {
     topic_name: String,
     qos: proto::QoS,
@@ -187,7 +187,7 @@ impl From<proto::Publication> for Publication {
 }
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Publish {
     publication: Publication,
 }
@@ -272,7 +272,7 @@ mod tests {
             Operation::new_connect(connect()),
         );
 
-        let res = auth.authorize(activity);
+        let res = auth.authorize(&activity);
 
         assert_matches!(res, Ok(Authorization::Forbidden(_)));
     }
@@ -286,7 +286,7 @@ mod tests {
             Operation::new_connect(connect()),
         );
 
-        let res = auth.authorize(activity);
+        let res = auth.authorize(&activity);
 
         assert_matches!(res, Ok(Authorization::Allowed));
     }

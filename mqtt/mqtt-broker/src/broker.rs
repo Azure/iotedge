@@ -130,7 +130,7 @@ where
             .iter()
             .flat_map(|(client_id, session)| Self::prepare_activities(client_id, session))
             .filter_map(
-                |(client_id, activity)| match self.authorizer.authorize(activity) {
+                |(client_id, activity)| match self.authorizer.authorize(&activity) {
                     Ok(Authorization::Allowed) => None,
                     Ok(Authorization::Forbidden(reason)) => {
                         debug!(
@@ -339,7 +339,7 @@ where
         let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
         let operation = Operation::new_connect(connreq.connect().clone());
         let activity = Activity::new(client_id.clone(), client_info, operation);
-        match self.authorizer.authorize(activity) {
+        match self.authorizer.authorize(&activity) {
             Ok(Authorization::Allowed) => {
                 debug!("client {} successfully authorized", client_id);
             }
@@ -559,7 +559,7 @@ where
         if let Some(session) = self.sessions.get_mut(client_id) {
             let client_info = session.client_info()?.clone();
             let activity = Activity::new(client_id.clone(), client_info, operation);
-            match self.authorizer.authorize(activity) {
+            match self.authorizer.authorize(&activity) {
                 Ok(Authorization::Allowed) => {
                     debug!("client {} successfully authorized", client_id);
                     let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
@@ -945,7 +945,7 @@ where
     let auth_results = subscribe.subscribe_to.into_iter().map(|subscribe_to| {
         let operation = Operation::new_subscribe(subscribe_to.clone());
         let activity = Activity::new(client_id.clone(), client_info.clone(), operation);
-        let auth = authorizer.authorize(activity);
+        let auth = authorizer.authorize(&activity);
         auth.map(|auth| (auth, subscribe_to))
     });
 
@@ -966,7 +966,7 @@ where
                 }
             }
             Ok((Authorization::Forbidden(reason), subscribe_to)) => {
-                debug!(
+                warn!(
                     "client {} not allowed to subscribe to topic {} qos {}. {}",
                     client_id,
                     subscribe_to.topic_filter,

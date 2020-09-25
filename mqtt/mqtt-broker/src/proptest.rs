@@ -1,3 +1,4 @@
+#![cfg(test)]
 use std::time::Duration;
 
 use bytes::Bytes;

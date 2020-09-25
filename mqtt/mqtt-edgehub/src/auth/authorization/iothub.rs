@@ -8,13 +8,19 @@ use mqtt_broker::{
     AuthId, ClientId, ClientInfo,
 };
 
+/// `IotHubAuthorizer` implements authorization rules for iothub-specific topics.
+///
+/// For example, it allows a client to publish (or subscribe for) twin updates, direct messages,
+/// telemetry messages, etc...
+///
+/// It denies all other non-iothub-specific topic operations.
 #[derive(Debug, Default)]
-pub struct EdgeHubAuthorizer {
+pub struct IotHubAuthorizer {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
     service_identities_cache: HashMap<ClientId, ServiceIdentity>,
 }
 
-impl EdgeHubAuthorizer {
+impl IotHubAuthorizer {
     #[allow(clippy::unused_self)]
     fn authorize_connect(
         &self,
@@ -145,7 +151,7 @@ impl EdgeHubAuthorizer {
     }
 
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
-        match EdgeHubAuthorizer::get_on_behalf_of_id(topic) {
+        match IotHubAuthorizer::get_on_behalf_of_id(topic) {
             Some(on_behalf_of_id) if client_id == &on_behalf_of_id => {
                 self.service_identities_cache.contains_key(client_id)
             }
@@ -214,12 +220,12 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
     ]
 }
 
-impl Authorizer for EdgeHubAuthorizer {
+impl Authorizer for IotHubAuthorizer {
     type Error = Infallible;
 
-    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
-        let (client_id, client_info, operation) = activity.into_parts();
-        let auth = match operation {
+    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
+        let (client_id, client_info, operation) = activity.clone().into_parts();
+        Ok(match operation {
             Operation::Connect(connect) => {
                 self.authorize_connect(&client_id, &client_info, &connect)
             }
@@ -229,9 +235,7 @@ impl Authorizer for EdgeHubAuthorizer {
             Operation::Subscribe(subscribe) => {
                 self.authorize_subscribe(&client_id, &client_info, &subscribe)
             }
-        };
-
-        Ok(auth)
+        })
     }
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
@@ -281,7 +285,6 @@ impl fmt::Display for ServiceIdentity {
 
 #[cfg(test)]
 mod tests {
-    use crate::auth::EdgeHubAuthorizer;
     use std::time::Duration;
 
     use matches::assert_matches;
@@ -294,13 +297,14 @@ mod tests {
         ClientInfo,
     };
 
+    use super::IotHubAuthorizer;
     use super::ServiceIdentity;
 
     #[test_case(connect_activity("device-1", "device-1"); "identical auth_id and client_id")]
     fn it_allows_to_connect(activity: Activity) {
         let authorizer = authorizer();
 
-        let auth = authorizer.authorize(activity);
+        let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -310,7 +314,7 @@ mod tests {
     fn it_forbids_to_connect(activity: Activity) {
         let authorizer = authorizer();
 
-        let auth = authorizer.authorize(activity);
+        let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
@@ -348,7 +352,7 @@ mod tests {
     fn it_allows_to_subscribe_to(activity: Activity) {
         let authorizer = authorizer();
 
-        let auth = authorizer.authorize(activity);
+        let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -367,7 +371,7 @@ mod tests {
     fn it_forbids_to_subscribe_to(activity: Activity) {
         let authorizer = authorizer();
 
-        let auth = authorizer.authorize(activity);
+        let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
@@ -406,7 +410,7 @@ mod tests {
     fn it_allows_to_publish_to(activity: Activity) {
         let authorizer = authorizer();
 
-        let auth = authorizer.authorize(activity);
+        let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
@@ -422,13 +426,13 @@ mod tests {
     fn it_forbids_to_publish_to(activity: Activity) {
         let authorizer = authorizer();
 
-        let auth = authorizer.authorize(activity);
+        let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    fn authorizer() -> EdgeHubAuthorizer {
-        let mut authorizer = EdgeHubAuthorizer::default();
+    fn authorizer() -> IotHubAuthorizer {
+        let mut authorizer = IotHubAuthorizer::default();
 
         let service_identity = ServiceIdentity {
             identity: "device-1".to_string(),

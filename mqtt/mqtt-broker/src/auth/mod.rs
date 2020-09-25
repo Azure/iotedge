@@ -60,7 +60,7 @@ impl<T: Into<Identity>> From<T> for AuthId {
 pub struct Identity(Arc<String>);
 
 impl Identity {
-    fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 }
