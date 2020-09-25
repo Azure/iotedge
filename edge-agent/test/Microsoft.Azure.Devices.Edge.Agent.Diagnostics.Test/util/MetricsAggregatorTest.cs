@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         DateTime now = DateTime.UtcNow;
 
         [Fact]
-        [Unit]
         public void TestBasicFunctionality()
         {
             MetricAggregator aggregator = new MetricAggregator(new AggregationTemplate("test_metric", "key1", new Averager()));
@@ -30,7 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        [Unit]
         public void TestKeepsNonAggregateTagsSeperate()
         {
             MetricAggregator aggregator = new MetricAggregator(new AggregationTemplate("test_metric", "key1", new Summer()));
@@ -50,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        [Unit]
         public void TestKeepsMultipleNonAggregateTagsSeperate()
         {
             MetricAggregator aggregator = new MetricAggregator(new AggregationTemplate("test_metric", "key1", new Summer()));
@@ -98,7 +95,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        [Unit]
         public void TestMultipleAggregation()
         {
             // metrics with 2 tags, key1, that has key values of val[0-1], and key2, which has key values of val[0-3].
@@ -134,7 +130,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        [Unit]
         public void TestMultipleTagsKeepsNonAggregateTagsSeperate()
         {
             MetricAggregator aggregator = new MetricAggregator(new AggregationTemplate(
@@ -162,7 +157,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        [Unit]
         public void TestMultipleMetrics()
         {
             MetricAggregator aggregator = new MetricAggregator(
@@ -182,7 +176,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        [Unit]
         public void TestMultipleMetricsDifferentAggregator()
         {
             MetricAggregator aggregator = new MetricAggregator(

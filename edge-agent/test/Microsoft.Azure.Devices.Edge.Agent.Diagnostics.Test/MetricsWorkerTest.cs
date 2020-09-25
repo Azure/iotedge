@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         Random rand = new Random();
 
         [Fact]
-        [Unit]
         public async Task TestScraping()
         {
             /* Setup mocks */
@@ -56,7 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestTagHashing()
         {
             /* Setup mocks */
@@ -145,7 +143,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestBasicUploading()
         {
             /* Setup mocks */
@@ -178,7 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestUploadContent()
         {
             /* test data */
@@ -204,7 +200,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestUploadIsLazy()
         {
             /* test data */
@@ -241,7 +236,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestNoOverlap()
         {
             /* Setup mocks */
@@ -299,7 +293,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestRetry()
         {
             int targetRetries = 10;
@@ -323,7 +316,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestRetryFail()
         {
             int maxRetries = 5;
@@ -345,7 +337,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
-        [Unit]
         public async Task TestUploadMaxAge()
         {
             /* Make fake data */

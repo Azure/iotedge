@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         Random rand = new Random();
 
         [Fact]
-        [Unit]
         public void TestCondenseTimeSeries()
         {
             /* fake data */
@@ -60,7 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        [Unit]
         public void TestCondenseTimeSeriesKeepsLine()
         {
             DateTime baseTime = new DateTime(10000000, DateTimeKind.Utc);
@@ -93,7 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        [Unit]
         public void TestCondenseTimeSeries0Value()
         {
             DateTime baseTime = new DateTime(10000000, DateTimeKind.Utc);
