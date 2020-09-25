@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, time::Duration};
+use std::{net::IpAddr, net::SocketAddr, time::Duration};
 
 use bytes::Bytes;
 use mqtt3::proto;
@@ -118,8 +118,14 @@ prop_compose! {
 prop_compose! {
     pub fn arb_client_info()(
         auth_id in arb_auth_id(),
-        socket in arb_socket()
+        ip in arb_ip(),
+        port in arb_port(),
     ) -> ClientInfo {
+        // Unfortunately we can't just call SocketAddr::arbitrary() because when serde occurs on SocketAddr,
+        // we lose the flowid and scope_id. They get set to 0 by default.
+        // This workaround manually sets them to 0 but uses arbitrary values for ip and port
+        // Issue opened: https://github.com/servo/bincode/issues/354
+        let socket = SocketAddr::new(ip, port);
         ClientInfo::new(socket, auth_id)
     }
 }
@@ -156,8 +162,12 @@ pub fn arb_auth_id() -> impl Strategy<Value = AuthId> {
     "[a-zA-Z0-9]{1,23}".prop_map(AuthId::from)
 }
 
-pub fn arb_socket() -> impl Strategy<Value = SocketAddr> {
-    SocketAddr::arbitrary()
+pub fn arb_ip() -> impl Strategy<Value = IpAddr> {
+    IpAddr::arbitrary()
+}
+
+pub fn arb_port() -> impl Strategy<Value = u16> {
+    proptest::num::u16::ANY
 }
 
 pub fn arb_client_id_weighted() -> impl Strategy<Value = proto::ClientId> {

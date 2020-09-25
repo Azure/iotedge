@@ -548,10 +548,12 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::{
-        persist::{ConsolidatedState, FileFormat, FilePersistor, Persist, VersionedFileFormat},
+        persist::{FileFormat, FilePersistor, Persist, VersionedFileFormat},
         proptest::arb_broker_snapshot,
         BrokerSnapshot,
     };
+
+    use super::ConsolidatedState;
 
     proptest! {
         #[test]
