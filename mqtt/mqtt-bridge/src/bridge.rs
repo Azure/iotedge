@@ -260,6 +260,7 @@ pub enum BridgeError {
 mod tests {
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
+    use futures_util::stream::TryStreamExt;
     use std::str::FromStr;
 
     use mqtt3::{
@@ -343,7 +344,7 @@ mod tests {
 
         let loader = handler.inner.loader();
 
-        let extracted1 = loader.lock().next().await.unwrap();
+        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
     }
 
@@ -387,7 +388,7 @@ mod tests {
 
         let loader = handler.inner.loader();
 
-        let extracted1 = loader.lock().next().await.unwrap();
+        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
     }
 
@@ -431,7 +432,7 @@ mod tests {
 
         let loader = handler.inner.loader();
 
-        let extracted1 = loader.lock().next().await.unwrap();
+        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
     }
 

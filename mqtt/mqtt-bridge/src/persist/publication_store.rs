@@ -82,7 +82,7 @@ impl<S: StreamWakeableState> PublicationStore<S> {
 #[cfg(test)]
 mod tests {
     use bytes::Bytes;
-    use futures_util::stream::StreamExt;
+    use futures_util::stream::TryStreamExt;
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
 
@@ -120,8 +120,8 @@ mod tests {
         let mut loader = loader.lock();
 
         // make sure same publications come out in correct order
-        let extracted1 = loader.next().await.unwrap();
-        let extracted2 = loader.next().await.unwrap();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.0, key1);
         assert_eq!(extracted2.0, key2);
         assert_eq!(extracted1.1, pub1);
@@ -159,12 +159,12 @@ mod tests {
         let mut loader = loader.lock();
 
         // process first message, forcing loader to get new batch on the next read
-        loader.next().await.unwrap();
+        loader.try_next().await.unwrap().unwrap();
         assert_matches!(persistence.remove(key1), Ok(_));
 
         // add a second message and verify this is returned by loader
         persistence.push(pub2.clone()).unwrap();
-        let extracted = loader.next().await.unwrap();
+        let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
 
@@ -237,8 +237,8 @@ mod tests {
         let mut loader = loader.lock();
 
         // verify the loader returns both elements
-        let extracted1 = loader.next().await.unwrap();
-        let extracted2 = loader.next().await.unwrap();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.0, key1);
         assert_eq!(extracted2.0, key2);
         assert_eq!(extracted1.1, pub1);

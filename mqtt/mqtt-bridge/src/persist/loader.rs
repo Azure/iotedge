@@ -44,20 +44,17 @@ impl<S: StreamWakeableState> MessageLoader<S> {
 }
 
 impl<S: StreamWakeableState> Stream for MessageLoader<S> {
-    type Item = (Key, Publication);
+    type Item = Result<(Key, Publication), PersistError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if let Some(item) = self.batch.pop_front() {
-            return Poll::Ready(Some((item.0, item.1)));
+            return Poll::Ready(Some(Ok((item.0, item.1))));
         }
 
-        // Since poll_next does not return a Result type, we cannot percolate error all the way up
-        // We need to fail fast and loud in the case this rocksdb retrieval errors
-        // If error, either someone forged the database or we have a database schema change
         let mut_self = self.get_mut();
-        mut_self.batch = mut_self
-            .next_batch()
-            .expect("Failed retrieval from rocksdb. Either someone is forging the database or there was a database schema change.");
+
+        // If error, either someone forged the database or we have a database schema change
+        mut_self.batch = mut_self.next_batch()?;
 
         mut_self.batch.pop_front().map_or_else(
             || {
@@ -65,7 +62,7 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
                 state_lock.set_waker(cx.waker());
                 Poll::Pending
             },
-            |item| Poll::Ready(Some((item.0, item.1))),
+            |item| Poll::Ready(Some(Ok((item.0, item.1)))),
         )
     }
 }
@@ -75,7 +72,8 @@ mod tests {
     use std::{sync::Arc, time::Duration};
 
     use bytes::Bytes;
-    use futures_util::stream::StreamExt;
+    // use futures_util::stream::StreamExt;
+    use futures_util::stream::TryStreamExt;
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
     use tokio::{self, time};
@@ -234,8 +232,8 @@ mod tests {
         let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
 
         // make sure same publications come out in correct order
-        let extracted1 = loader.next().await.unwrap();
-        let extracted2 = loader.next().await.unwrap();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.0, key1);
         assert_eq!(extracted2.0, key2);
         assert_eq!(extracted1.1, pub1);
@@ -275,8 +273,8 @@ mod tests {
         let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
 
         // process inserted messages
-        loader.next().await.unwrap();
-        loader.next().await.unwrap();
+        loader.try_next().await.unwrap().unwrap();
+        loader.try_next().await.unwrap().unwrap();
 
         // remove inserted elements
         let mut state_lock = state.lock();
@@ -297,7 +295,7 @@ mod tests {
         drop(state_lock);
 
         // verify new elements are there
-        let extracted = loader.next().await.unwrap();
+        let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted.0, key3);
         assert_eq!(extracted.1, pub3);
     }
@@ -325,10 +323,8 @@ mod tests {
         let key_copy = key1;
         let pub_copy = pub1.clone();
         let poll_stream = async move {
-            let maybe_extracted = loader.next().await;
-            if let Some(extracted) = maybe_extracted {
-                assert_eq!((key_copy, pub_copy), extracted);
-            }
+            let extracted = loader.try_next().await.unwrap().unwrap();
+            assert_eq!((key_copy, pub_copy), extracted);
         };
 
         // start the function and make sure it starts polling the stream before next step
