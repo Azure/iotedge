@@ -81,20 +81,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public async Task<ISinkResult> ProcessAsync(IRoutingMessage routingMessage, CancellationToken token)
             {
-                Preconditions.CheckNotNull(routingMessage, nameof(routingMessage));
-
-                string id = this.GetIdentity(routingMessage);
-                ISinkResult result = await this.ProcessClientMessagesBatch(id, new List<IRoutingMessage> { routingMessage }, token);
-                Events.DoneProcessing(token);
-                return result;
+                var logId = Guid.NewGuid().ToString();
+                try
+                {
+                    Events.BeforeProcessing(logId, nameof(routingMessage));
+                    Preconditions.CheckNotNull(routingMessage, nameof(routingMessage));
+                    string id = this.GetIdentity(routingMessage);
+                    ISinkResult result = await this.ProcessClientMessagesBatch(id, new List<IRoutingMessage> { routingMessage }, token);
+                    Events.DoneProcessing(token);
+                    Events.AfterProcessing(logId, nameof(routingMessage));
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Events.AfterProcessing(logId, nameof(routingMessage), ex);
+                    throw;
+                }
             }
 
             public Task<ISinkResult> ProcessAsync(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
-                Events.ProcessingMessages(Preconditions.CheckNotNull(routingMessages, nameof(routingMessages)));
-                Task<ISinkResult> syncResult = this.ProcessByClients(routingMessages, token);
-                Events.DoneProcessing(token);
-                return syncResult;
+                var logId = Guid.NewGuid().ToString();
+                try
+                {
+                    Events.BeforeProcessing(logId, nameof(routingMessages));
+                    Events.ProcessingMessages(Preconditions.CheckNotNull(routingMessages, nameof(routingMessages)));
+                    Task<ISinkResult> syncResult = this.ProcessByClients(routingMessages, token);
+                    Events.DoneProcessing(token);
+                    Events.AfterProcessing(logId, nameof(routingMessages));
+                    return syncResult;
+                }
+                catch (Exception ex)
+                {
+                    Events.AfterProcessing(logId, nameof(routingMessages), ex);
+                    throw;
+                }
             }
 
             public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
@@ -281,7 +302,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 InvalidMessageNoIdentity,
                 CancelledProcessing,
                 Created,
-                DoneProcessing
+                DoneProcessing,
+                BeforeProcessing,
+                AfterProcessing
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)
@@ -356,6 +379,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message for client {id}."));
             }
+
+            internal static void BeforeProcessing(string traceId, string operation) => Log.LogDebug((int)EventIds.BeforeProcessing, Invariant($"[Trace]={traceId}: before process {operation} with traceId={traceId}."));
+
+            internal static void AfterProcessing(string traceId, string operation) => Log.LogDebug((int)EventIds.AfterProcessing, Invariant($"[Trace]={traceId}: after process {operation}."));
+
+            internal static void AfterProcessing(string traceId, string operation, Exception ex) => Log.LogDebug((int)EventIds.AfterProcessing, Invariant($"[Trace]={traceId}: after process {operation} with error {ex.StackTrace}."));
         }
 
         static class MetricsV0

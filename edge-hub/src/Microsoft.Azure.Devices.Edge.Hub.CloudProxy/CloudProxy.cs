@@ -134,21 +134,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
             Message message = converter.FromMessage(inputMessage);
             this.timer.Reset();
+            var traceId = Guid.NewGuid().ToString();
+
             try
             {
                 string outputRoute = inputMessage.GetOutput();
                 using (Metrics.TimeMessageSend(this.clientId, outputRoute))
                 {
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
+                    Events.AttemptSendingMessage(traceId, this);
                     await this.client.SendEventAsync(message);
-                    Events.SendMessage(this);
+                    Events.SucessSendingMessage(traceId, this);
                     Metrics.AddSentMessages(this.clientId, 1, outputRoute, inputMessage.ProcessedPriority);
                 }
             }
             catch (Exception ex)
             {
-                Events.ErrorSendingMessage(this, ex);
+                Events.ErrorSendingMessage(traceId, this, ex);
+                Events.BeforeHandleException(traceId, this);
                 await this.HandleException(ex);
+                Events.AfterHandleException(traceId, this);
                 throw;
             }
         }
@@ -167,12 +172,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .ToList();
             this.timer.Reset();
 
+            var traceId = Guid.NewGuid().ToString();
+
             try
             {
                 using (Metrics.TimeMessageSend(this.clientId, metricOutputRoute))
                 {
+                    Events.AttemptSendingBatchMessage(traceId, this, messages.Count);
                     await this.client.SendEventBatchAsync(messages);
-                    Events.SendMessage(this);
+                    Events.SucessSendingBatchMessage(traceId, this, messages.Count);
 
                     if (messages.Count > 0)
                     {
@@ -184,8 +192,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                Events.ErrorSendingBatchMessage(this, ex);
+                Events.ErrorSendingBatchMessage(traceId, this, messages.Count, ex);
+                Events.BeforeHandleException(traceId, this);
                 await this.HandleException(ex);
+                Events.AfterHandleException(traceId, this);
                 throw;
             }
         }
@@ -491,7 +501,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ErrorUpdatingReportedProperties,
                 ErrorSendingFeedbackMessageAsync,
                 ErrorGettingTwin,
-                HandleNre
+                HandleNre,
+                SendingMessage,
+                SendingBatchMessage,
+                SucessSendingBatchMessage,
+                ErrorSendingBatchMessage,
+                BeforeHandleException,
+                AfterHandleException
             }
 
             public static void Closed(CloudProxy cloudProxy)
@@ -509,19 +525,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for {cloudProxy.clientId}"));
             }
 
-            public static void SendMessage(CloudProxy cloudProxy)
+            public static void SucessSendingMessage(string traceId, CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.SendMessage, Invariant($"[Trace]={traceId}: Sucess to send message for {cloudProxy.clientId}"));
             }
 
-            public static void ErrorSendingMessage(CloudProxy cloudProxy, Exception ex)
+            public static void ErrorSendingMessage(string traceId, CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"[Trace]={traceId}: Error to send message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void ErrorSendingBatchMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error to send message batch for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void UpdateReportedProperties(CloudProxy cloudProxy)
@@ -617,6 +633,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             internal static void CloudReceiverNull(string clientId, string operation)
             {
                 Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for {clientId} because cloud receiver is null"));
+            }
+
+            internal static void AttemptSendingMessage(string traceId, CloudProxy cloudProxy)
+            {
+                Log.LogDebug((int)EventIds.SendingMessage, Invariant($"[Trace]={traceId}: Attempting to send message for {cloudProxy.clientId}"));
+            }
+
+            internal static void AttemptSendingBatchMessage(string traceId, CloudProxy cloudProxy, int size)
+            {
+                Log.LogDebug((int)EventIds.SendingBatchMessage, Invariant($"[Trace]={traceId}: Attempting to send message for {cloudProxy.clientId} with batch size {size}."));
+            }
+
+            internal static void SucessSendingBatchMessage(string traceId, CloudProxy cloudProxy, int size)
+            {
+                Log.LogDebug((int)EventIds.SucessSendingBatchMessage, Invariant($"[Trace]={traceId}: Sucess to send message for {cloudProxy.clientId} with batch size {size}."));
+            }
+
+            public static void ErrorSendingBatchMessage(string traceId, CloudProxy cloudProxy, int size, Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorSendingBatchMessage, ex, Invariant($"[Trace]={traceId}: Error to send message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id} with batch size {size}."));
+            }
+
+            public static void BeforeHandleException(string traceId, CloudProxy cloudProxy)
+            {
+                Log.LogDebug((int)EventIds.BeforeHandleException, Invariant($"[Trace]={traceId}: before handler exception for {cloudProxy.clientId}."));
+            }
+
+            public static void AfterHandleException(string traceId, CloudProxy cloudProxy)
+            {
+                Log.LogDebug((int)EventIds.AfterHandleException, Invariant($"[Trace]={traceId}: after handler exception for {cloudProxy.clientId}."));
             }
         }
 

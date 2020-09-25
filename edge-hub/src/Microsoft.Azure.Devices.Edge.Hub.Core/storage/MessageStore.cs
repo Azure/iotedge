@@ -392,7 +392,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 ObtainedNextBatch,
                 CleanupCheckpointState,
                 MessageAdded,
-                ErrorGettingMessagesBatch
+                ErrorGettingMessagesBatch,
+                ObtainedBatchIncludingExpiredMessage,
+                ObtainedExpiredMessage
             }
 
             public static void MessageStoreCreated()
@@ -463,7 +465,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             internal static void ObtainedNextBatch(string entityName, long startingOffset, int count)
             {
-                Log.LogDebug((int)EventIds.ObtainedNextBatch, $"Obtained next batch for endpoint {entityName} with batch size {count}. Next start offset = {startingOffset}.");
+                Log.LogDebug((int)EventIds.ObtainedNextBatch, $"Obtained {count} messages for endpoint {entityName}. Next start offset was set to {startingOffset}.");
             }
 
             internal static void CleanupCheckpointState(string endpointId, CheckpointData checkpointData)
@@ -478,6 +480,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 {
                     Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset} - messageCount = {messageCount}"));
                 }
+            }
+
+            internal static void ObtainedBatchIncludingExpiredMessage(string entityName, int count)
+            {
+                Log.LogDebug((int)EventIds.ObtainedBatchIncludingExpiredMessage, $"Obtained {count} messages for endpoint {entityName} including expired.");
+            }
+
+            internal static void ObtainedExpiredMessage(string entityName, int count)
+            {
+                Log.LogDebug((int)EventIds.ObtainedExpiredMessage, $"Obtained {count} messages for endpoint {entityName} expired.");
             }
         }
 
@@ -508,6 +520,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     // TODO - Currently, this does not iterate over a snapshot. This should work as the cleanup and reference counting is managed at
                     // application level. But need to check if creating a snapshot for iterating is needed.
                     List<(long offset, MessageRef msgRef)> batch = (await this.endpointSequentialStore.GetBatch(this.startingOffset, batchSize)).ToList();
+                    Events.ObtainedBatchIncludingExpiredMessage(this.endpointSequentialStore.EntityName, batch.Count);
+
                     if (batch.Count > 0)
                     {
                         foreach ((long offset, MessageRef msgRef) item in batch)
@@ -531,6 +545,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                         }
 
                         this.startingOffset = batch[batch.Count - 1].offset + 1;
+
+                        Events.ObtainedExpiredMessage(this.endpointSequentialStore.EntityName, batch.Count - messageList.Count);
                     }
 
                     Events.ObtainedNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, messageList.Count);
