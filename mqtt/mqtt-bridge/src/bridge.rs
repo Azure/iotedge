@@ -84,14 +84,11 @@ impl Bridge {
             self.connection_settings.address()
         );
 
-        connect(
+        self.connect(
             self.subscriptions.clone(),
             self.incoming_persist.clone(),
-            self.outgoing_persist.lock().loader(),
             self.connection_settings.address(),
             Some(self.connection_settings.port().to_owned()),
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
             self.connection_settings.credentials(),
             true,
         )
@@ -109,61 +106,51 @@ impl Bridge {
             self.system_address, client_id
         );
 
-        connect(
+        self.connect(
             self.forwards.clone(),
             self.outgoing_persist.clone(),
-            self.incoming_persist.lock().loader(),
             self.system_address.as_str(),
             None,
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
             &Credentials::Anonymous(client_id),
             false,
         )
         .await
     }
-}
 
-async fn connect(
-    mut topics: HashMap<String, Topic>,
-    persistor: Arc<Mutex<PublicationStore<WakingMemoryStore>>>,
-    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-    address: &str,
-    port: Option<String>,
-    keep_alive: Duration,
-    clean_session: bool,
-    credentials: &Credentials,
-    secure: bool,
-) -> Result<(), BridgeError> {
-    let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
-    let topic_filters = topics
-        .into_iter()
-        .map(|topic| topic.try_into())
-        .collect::<Result<Vec<_>, _>>()?;
+    async fn connect(
+        &self,
+        mut topics: HashMap<String, Topic>,
+        persistor: Arc<Mutex<PublicationStore<WakingMemoryStore>>>,
+        address: &str,
+        port: Option<String>,
+        credentials: &Credentials,
+        secure: bool,
+    ) -> Result<(), BridgeError> {
+        let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
+        let topic_filters = topics
+            .into_iter()
+            .map(|topic| topic.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
 
-    let mut client = MqttClient::new(
-        address,
-        port,
-        keep_alive,
-        clean_session,
-        MessageHandler::new(persistor, topic_filters),
-        credentials,
-        secure,
-    );
+        let client = MqttClient::new(
+            address,
+            port,
+            self.connection_settings.keep_alive(),
+            self.connection_settings.clean_session(),
+            MessageHandler::new(persistor, topic_filters),
+            credentials,
+            secure,
+        );
 
-    debug!("subscribe to remote {:?}", subscriptions);
+        debug!("subscribe to remote {:?}", subscriptions);
 
-    client
-        .subscribe(subscriptions)
-        .await
-        .map_err(BridgeError::Subscribe)?;
+        //TODO: handle this with shutdown
+        let _events_task = tokio::spawn(client.handle_events());
 
-    //TODO: handle this with shutdown
-    let _events_task = tokio::spawn(client.handle_events());
+        // TODO PRE: start new thread where client starts pump
 
-    // TODO PRE: start new thread where client starts pump
-
-    Ok(())
+        Ok(())
+    }
 }
 
 #[derive(Clone)]

@@ -1,12 +1,9 @@
-use std::{collections::HashMap, env};
+use std::collections::HashMap;
 
 use tracing::info;
 
 use crate::bridge::{Bridge, BridgeError};
 use crate::settings::Settings;
-
-const UPSTREAM_PROTOCOL: &str = "UpstreamProtocol";
-const EXPECTED_UPSTREAM_PROTOCOL: &str = "mqtt";
 
 /// Controller that handles the settings and monitors changes, spawns new Bridges and monitors shutdown signal.
 #[derive(Default)]
@@ -28,21 +25,12 @@ impl BridgeController {
         let settings = Settings::new().map_err(BridgeError::LoadingSettings)?;
 
         if let Some(upstream) = settings.upstream() {
-            let upstream_protocol = env::var(UPSTREAM_PROTOCOL).ok();
+            let nested_bridge = Bridge::new(system_address, device_id.into(), upstream.clone());
 
-            if let Some(protocol) = upstream_protocol {
-                if protocol.to_lowercase() == EXPECTED_UPSTREAM_PROTOCOL {
-                    let nested_bridge =
-                        Bridge::new(system_address, device_id.into(), upstream.clone());
+            nested_bridge.start().await?;
 
-                    nested_bridge.start().await?;
-
-                    self.bridges
-                        .insert(upstream.name().to_string(), nested_bridge);
-                } else {
-                    info!("Upstream protocol is not MQTT. Not starting usptream bridge.")
-                }
-            }
+            self.bridges
+                .insert(upstream.name().to_string(), nested_bridge);
         } else {
             info!("No upstream settings detected. Not starting bridge.")
         };
