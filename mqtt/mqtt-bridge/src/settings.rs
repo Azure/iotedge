@@ -122,9 +122,9 @@ pub struct ConnectionSettings {
     #[serde(flatten)]
     credentials: Credentials,
 
-    subscriptions: Vec<Topic>,
+    subscriptions: Vec<TopicRule>,
 
-    forwards: Vec<Topic>,
+    forwards: Vec<TopicRule>,
 
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
@@ -149,11 +149,11 @@ impl ConnectionSettings {
         &self.credentials
     }
 
-    pub fn subscriptions(&self) -> &Vec<Topic> {
+    pub fn subscriptions(&self) -> &Vec<TopicRule> {
         &self.subscriptions
     }
 
-    pub fn forwards(&self) -> &Vec<Topic> {
+    pub fn forwards(&self) -> &Vec<TopicRule> {
         &self.forwards
     }
 
@@ -252,7 +252,7 @@ impl CredentialProviderSettings {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Topic {
+pub struct TopicRule {
     pattern: String,
 
     local: Option<String>,
@@ -260,7 +260,7 @@ pub struct Topic {
     remote: Option<String>,
 }
 
-impl Topic {
+impl TopicRule {
     pub fn pattern(&self) -> &str {
         &self.pattern
     }
@@ -284,9 +284,9 @@ struct UpstreamSettings {
 
     clean_session: bool,
 
-    subscriptions: Vec<Topic>,
+    subscriptions: Vec<TopicRule>,
 
-    forwards: Vec<Topic>,
+    forwards: Vec<TopicRule>,
 }
 
 #[cfg(test)]

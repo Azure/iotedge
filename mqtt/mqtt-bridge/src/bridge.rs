@@ -12,7 +12,7 @@ use crate::{
     persist::{
         MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
     },
-    settings::{ConnectionSettings, Credentials, Topic},
+    settings::{ConnectionSettings, Credentials, TopicRule},
 };
 
 const BATCH_SIZE: usize = 10;
@@ -23,8 +23,8 @@ pub struct Bridge {
     system_address: String,
     device_id: String,
     connection_settings: ConnectionSettings,
-    forwards: HashMap<String, Topic>,
-    subscriptions: HashMap<String, Topic>,
+    forwards: HashMap<String, TopicRule>,
+    subscriptions: HashMap<String, TopicRule>,
     local_client: MqttClient<MessageHandler<WakingMemoryStore>>,
     remote_client: MqttClient<MessageHandler<WakingMemoryStore>>,
 }
@@ -35,13 +35,13 @@ impl Bridge {
         device_id: String,
         connection_settings: ConnectionSettings,
     ) -> Result<Self, BridgeError> {
-        let forwards: HashMap<String, Topic> = connection_settings
+        let forwards: HashMap<String, TopicRule> = connection_settings
             .forwards()
             .iter()
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let subscriptions: HashMap<String, Topic> = connection_settings
+        let subscriptions: HashMap<String, TopicRule> = connection_settings
             .subscriptions()
             .iter()
             .map(|sub| Self::format_key_value(sub))
@@ -69,8 +69,8 @@ impl Bridge {
         //     credentials,
         //     secure,
         // );
-        let (remote_client_subs, topics): (Vec<_>, Vec<_>) = subscriptions.drain().unzip();
-        let topic_filters = topics
+        let (remote_client_subs, topic_rules): (Vec<_>, Vec<_>) = subscriptions.drain().unzip();
+        let topic_filters = topic_rules
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
@@ -84,8 +84,8 @@ impl Bridge {
             true,
         );
 
-        let (local_client_subs, topics): (Vec<_>, Vec<_>) = forwards.drain().unzip();
-        let topic_filters = topics
+        let (local_client_subs, topic_rules): (Vec<_>, Vec<_>) = forwards.drain().unzip();
+        let topic_filters = topic_rules
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
@@ -115,7 +115,7 @@ impl Bridge {
         })
     }
 
-    fn format_key_value(topic: &Topic) -> (String, Topic) {
+    fn format_key_value(topic: &TopicRule) -> (String, TopicRule) {
         let key = if let Some(local) = topic.local() {
             format!("{}/{}", local, topic.pattern().to_string())
         } else {
@@ -174,7 +174,7 @@ impl Bridge {
 
     async fn connect(
         &self,
-        mut topics: HashMap<String, Topic>,
+        mut topics: HashMap<String, TopicRule>,
         persistor: Arc<Mutex<PublicationStore<WakingMemoryStore>>>,
         address: &str,
         port: Option<String>,
@@ -214,14 +214,14 @@ impl Bridge {
 
 #[derive(Clone)]
 struct TopicMapper {
-    topic_settings: Topic,
+    topic_settings: TopicRule,
     topic_filter: TopicFilter,
 }
 
-impl TryFrom<Topic> for TopicMapper {
+impl TryFrom<TopicRule> for TopicMapper {
     type Error = BridgeError;
 
-    fn try_from(topic: Topic) -> Result<Self, BridgeError> {
+    fn try_from(topic: TopicRule) -> Result<Self, BridgeError> {
         let topic_filter = topic
             .pattern()
             .parse()
