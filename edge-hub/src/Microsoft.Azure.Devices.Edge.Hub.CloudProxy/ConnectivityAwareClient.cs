@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     /// </summary>
     class ConnectivityAwareClient : IClient
     {
-        static readonly TimeSpan OperationTimeOut = TimeSpan.FromMinutes(120);
+        static readonly TimeSpan OperationTimeOut = TimeSpan.FromMinutes(2);
         readonly IClient underlyingClient;
         readonly IDeviceConnectivityManager deviceConnectivityManager;
         readonly AtomicBoolean isConnected = new AtomicBoolean(false);
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.BeforeOperation(traceId, nameof(this.SendEventAsync), this.identity);
             try
             {
-                await this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message), nameof(this.SendEventAsync), traceId: traceId).TimeoutAfter(OperationTimeOut);
+                await this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message), nameof(this.SendEventAsync), traceId: traceId);
                 Events.AfterOperation(traceId, nameof(this.SendEventAsync), this.identity);
             }
             catch (Exception ex)
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Events.BeforeOperation(traceId, nameof(this.SendEventBatchAsync), this.identity);
             try
             {
-                await this.InvokeFunc(() => this.underlyingClient.SendEventBatchAsync(messages), nameof(this.SendEventBatchAsync), traceId: traceId).TimeoutAfter(OperationTimeOut);
+                await this.InvokeFunc(() => this.underlyingClient.SendEventBatchAsync(messages), nameof(this.SendEventBatchAsync), traceId: traceId);
                 Events.AfterOperation(traceId, nameof(this.SendEventBatchAsync), this.identity);
             }
             catch (Exception ex)
@@ -219,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             },
             operation,
             useForConnectivityCheck,
-            traceId);
+            traceId).TimeoutAfter(OperationTimeOut);
 
         static class Events
         {
