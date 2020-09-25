@@ -21,7 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             // Arrange
             var capture = new SendCapture();
-            var connector = GetConnector(capture);
+            var connectionState = new TaskCompletionSource<bool>();
+            var connector = GetConnector(capture, connectionState);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             var sut = new ScopeIdentitiesHandler(Task.FromResult(deviceScopeIdentitiesCache.Object));
             sut.SetConnector(connector.Object);
@@ -33,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             BrokerServiceIdentity identity = new BrokerServiceIdentity("d1", Option.Some("testAuthChain"));
             BrokerServiceIdentity identity2 = new BrokerServiceIdentity("d2", Option.Some("testAuthChain"));
             BrokerServiceIdentity identity3 = new BrokerServiceIdentity("d3", Option.Some("testAuthChain"));
-            connector.Raise(c => c.OnConnected += null, null, null);
+            connectionState.SetResult(true);
 
             // Act
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string> { serviceIdentity.Id, serviceIdentity2.Id, serviceIdentity3.Id });
@@ -48,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             // Arrange
             var capture = new SendCapture();
-            var connector = GetConnector(capture);
+            var connectionState = new TaskCompletionSource<bool>();
+            var connector = GetConnector(capture, connectionState);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             var serviceIdentity = new ServiceIdentity("d1", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
             var serviceIdentity2 = new ServiceIdentity("d2", "genId", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("primKey", "secKey")), ServiceIdentityStatus.Enabled);
@@ -75,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Null(capture.Content);
 
             // Act
-            connector.Raise(c => c.OnConnected += null, null, null);
+            connectionState.SetResult(true);
 
             // Assert
             Assert.Equal(Topic, capture.Topic);
@@ -96,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Contains(identity2, brokerServiceIdentities);
         }
 
-        protected static Mock<IMqttBrokerConnector> GetConnector(SendCapture sendCapture = null)
+        protected static Mock<IMqttBrokerConnector> GetConnector(SendCapture sendCapture = null, TaskCompletionSource<bool> connectionState = null)
         {
             var connector = new Mock<IMqttBrokerConnector>();
             connector
@@ -106,6 +108,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                     sendCapture?.Capture(topic, content);
                     return Task.FromResult(true);
                 });
+
+            if (connectionState != null)
+            {
+                connector
+                    .SetupGet(c => c.EnsureConnected)
+                    .Returns(connectionState.Task);
+            }
 
             return connector;
         }

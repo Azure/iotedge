@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -256,7 +257,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             }
             else
             {
-
+                builder.Register(
+                    c =>
+                    {
+                        return Task.FromResult(new BrokeredCloudConnectionProvider(c.Resolve<BrokeredCloudProxyDispatcher>()) as ICloudConnectionProvider);
+                    })
+                .As<Task<ICloudConnectionProvider>>()
+                .SingleInstance();
             }
 
             // IIdentityProvider

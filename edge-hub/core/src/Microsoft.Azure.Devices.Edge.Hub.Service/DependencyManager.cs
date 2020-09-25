@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
             bool isLegacyUpstream = this.configuration.GetValue("mqttBrokerSettings:legacyUpstream", true);
 
-                builder.RegisterModule(
+            builder.RegisterModule(
                 new RoutingModule(
                     this.iotHubHostname,
                     this.gatewayHostname,
