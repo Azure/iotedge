@@ -57,13 +57,12 @@ impl HostConnectIotHub {
         check: &mut Check,
         runtime: &mut tokio::runtime::Runtime,
     ) -> Result<CheckResult, failure::Error> {
-
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {
             return Ok(CheckResult::Skipped);
         };
-        
+
         let parent_hostname: String;
         let hub_hostname = if let Some(hub_hostname) = settings.parent_hostname() {
             parent_hostname = hub_hostname.to_string();

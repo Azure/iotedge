@@ -113,12 +113,15 @@ impl ContainerConnectIotHub {
         if self.use_container_runtime_network {
             args.extend(&["--network", network_name]);
         }
-        
-        let diagnostics_image_name = if check.diagnostics_image_name.starts_with("/azureiotedge-diagnostics:") {
+
+        let diagnostics_image_name = if check
+            .diagnostics_image_name
+            .starts_with("/azureiotedge-diagnostics:")
+        {
             if let Some(hub_hostname) = settings.parent_hostname() {
                 hub_hostname.to_string() + &check.diagnostics_image_name
             } else if let Some(_) = &check.iothub_hostname {
-                String::from("mcr.microsoft.com")  +  &check.diagnostics_image_name 
+                String::from("mcr.microsoft.com") + &check.diagnostics_image_name
             } else {
                 return Ok(CheckResult::Skipped);
             }

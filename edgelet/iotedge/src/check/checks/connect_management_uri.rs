@@ -40,11 +40,14 @@ impl ConnectManagementUri {
         //If check.diagnostics_image_name starts with /azureiotedge-diagnostics:xx, it means the default name is used.
         // Then if parent_hostname is defined, by default, the image address is parent_hostname/azureiotedge-diagnostics:xx,
         // Otherwise mcr.microsoft.com/azureiotedge-diagnostics:xx
-        let diagnostics_image_name = if check.diagnostics_image_name.starts_with("/azureiotedge-diagnostics:") {
+        let diagnostics_image_name = if check
+            .diagnostics_image_name
+            .starts_with("/azureiotedge-diagnostics:")
+        {
             if let Some(hub_hostname) = settings.parent_hostname() {
                 hub_hostname.to_string() + &check.diagnostics_image_name
             } else if let Some(_) = &check.iothub_hostname {
-                String::from("mcr.microsoft.com")  +  &check.diagnostics_image_name 
+                String::from("mcr.microsoft.com") + &check.diagnostics_image_name
             } else {
                 return Ok(CheckResult::Skipped);
             }
