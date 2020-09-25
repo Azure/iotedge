@@ -5,10 +5,10 @@ use std::{
 
 use async_trait::async_trait;
 use chrono::Utc;
-use futures_util::future::{ok, BoxFuture, Either::Left, Either::Right};
-use native_tls::{Certificate, TlsConnector};
-use openssl::x509::X509;
+use futures_util::future::{ok, try_join3, BoxFuture, Either::Left, Either::Right};
+use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
+use tokio_openssl::connect;
 use tracing::{debug, error, warn};
 use Vec;
 
@@ -89,11 +89,13 @@ impl IoSource for BridgeIoSource {
 
     fn connect(&mut self) -> Self::Future {
         match self {
-            BridgeIoSource::Tcp(connect) => {
-                let address = connect.address.clone();
-                let port = connect.port.clone();
-                let token_source = connect.token_source.as_ref().cloned();
-                let host = port.map_or(address.clone(), |p| format!("{}:{}", address.clone(), p));
+            BridgeIoSource::Tcp(connect_settings) => {
+                //let address = connect_settings.address.clone();
+                let port = connect_settings.port.clone();
+                let token_source = connect_settings.token_source.as_ref().cloned();
+                let host = port.map_or(connect_settings.address.clone(), |p| {
+                    format!("{}:{}", connect_settings.address.clone(), p)
+                });
 
                 Box::pin(async move {
                     let expiry =
@@ -118,12 +120,14 @@ impl IoSource for BridgeIoSource {
                     Ok((stream, password))
                 })
             }
-            BridgeIoSource::Tls(connect) => {
-                let address = connect.address.clone();
-                let port = connect.port.clone();
-                let token_source = connect.token_source.as_ref().cloned();
-                let trust_bundle_source = connect.trust_bundle_source.clone();
-                let host = port.map_or(address.clone(), |p| format!("{}:{}", address.clone(), p));
+            BridgeIoSource::Tls(connect_settings) => {
+                let address = connect_settings.address.clone();
+                let port = connect_settings.port.clone();
+                let token_source = connect_settings.token_source.as_ref().cloned();
+                let trust_bundle_source = connect_settings.trust_bundle_source.clone();
+                let host = port.map_or(connect_settings.address.clone(), |p| {
+                    format!("{}:{}", connect_settings.address.clone(), p)
+                });
 
                 Box::pin(async move {
                     let expiry =
@@ -144,49 +148,83 @@ impl IoSource for BridgeIoSource {
                     let io = TcpStream::connect(host);
 
                     let (server_root_certificate, password, stream) =
-                        futures_util::future::try_join3(server_root_certificate, token, io)
+                        try_join3(server_root_certificate, token, io)
                             .await
                             .map_err(|err| {
                                 Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
                             })?;
 
-                    let mut builder = TlsConnector::builder();
+                    let connector = SslConnector::builder(SslMethod::tls())
+                        .and_then(|mut builder| {
+                            if let Some(trust_bundle) = server_root_certificate {
+                                X509::stack_from_pem(trust_bundle.as_bytes())
+                                    .map(|mut certs| {
+                                        if let Some(ca) = certs.pop() {
+                                            builder.cert_store_mut().add_cert(ca).ok();
+                                        }
+                                    })
+                                    .ok();
+                            }
 
-                    if let Some(trust_bundle) = server_root_certificate {
-                        let certs = X509::stack_from_pem(trust_bundle.as_bytes())
-                            .unwrap()
-                            .into_iter()
-                            .flat_map(|cert| {
-                                cert.to_der()
-                                    .ok()
-                                    .map(|der| Certificate::from_der(&der).ok())
-                            })
-                            .filter_map(|cert| cert)
-                            .collect::<Vec<_>>();
+                            Ok(builder.build())
+                        })
+                        .ok();
 
-                        for cert in certs {
-                            builder.add_root_certificate(cert);
-                        }
-                    }
+                    let config = connector.map_or(None, |conn| conn.configure().ok());
 
-                    let connector = builder.build().map_err(|err| {
-                        Error::new(
-                            ErrorKind::Other,
-                            format!("could not create TLS connector: {}", err),
-                        )
-                    })?;
-                    let connector: tokio_tls::TlsConnector = connector.into();
+                    let res = if let Some(c) = config {
+                        let io = connect(c, &address, stream).await;
 
-                    let io = connector.connect(&address, stream).await;
+                        debug!("Tls connection {:?} for {:?}", io, address);
 
-                    debug!("Tls connection {:?} for {:?}", io, address);
-
-                    io.map_or_else(
-                        |e| Err(Error::new(ErrorKind::Other, e)),
-                        |io| {
+                        io.map(|io| {
                             let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
                             Ok((stream, password))
-                        },
+                        })
+                        .ok()
+                    } else {
+                        None
+                    };
+
+                    //     let io =
+                    //         connect(connector.configure().unwrap(), &address, stream).await;
+
+                    //     debug!("Tls connection {:?} for {:?}", io, address);
+
+                    //     io.map(|io| {
+                    //         let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
+                    //         Ok((stream, password))
+                    //     })
+                    // })
+                    // .ok()
+                    // .await;
+                    //.map_err(|e| Error::new(ErrorKind::Other, e));
+                    // let res = if let Some(builder) = builder {
+                    //     if let Some(trust_bundle) = server_root_certificate {
+                    //         X509::stack_from_pem(trust_bundle.as_bytes()).map(|certs| {
+                    //             if let Some(ca) = certs.pop() {
+                    //                 builder.cert_store_mut().add_cert(ca).ok();
+                    //             }
+                    //         });
+                    //     }
+
+                    //     let connector = builder.build();
+
+                    //     let io = connect(connector.configure().unwrap(), &address, stream).await;
+
+                    //     debug!("Tls connection {:?} for {:?}", io, address);
+
+                    //     io.map(|io| {
+                    //         let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
+                    //         Ok((stream, password))
+                    //     })
+                    // } else {
+                    //     Err(Error::new(ErrorKind::Other, e));
+                    // };
+
+                    res.map_or(
+                        Err(Error::new(ErrorKind::Other, "could not connect")),
+                        |io| io,
                     )
                 })
             }
@@ -349,10 +387,7 @@ impl<T: EventHandler> MqttClient<T> {
         } else {
             error!(
                 "failed to receive expected subacks for topics: {0:?}",
-                subacks
-                    .iter()
-                    .map(std::string::ToString::to_string)
-                    .collect::<String>()
+                subacks.iter().map(ToString::to_string).collect::<String>()
             );
         }
 
@@ -377,4 +412,7 @@ pub enum ClientConnectError {
 
     #[error("failed to shutdown custom mqtt client: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
+
+    #[error("failed to connect")]
+    SslHandshake,
 }

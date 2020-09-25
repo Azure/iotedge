@@ -23,6 +23,7 @@ serial_test = "0.4"
 thiserror = "1.0"
 tokio = { version = "0.2", features = ["sync"] }
 tokio-tls = "0.3"
+tokio-openssl = "0.4"
 tracing = "0.1"
 url = "1.7"
 
