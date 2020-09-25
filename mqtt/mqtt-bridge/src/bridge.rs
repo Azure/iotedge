@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
 use mqtt_broker::TopicFilter;
 use parking_lot::Mutex;
+use parking_lot::MutexGuard;
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -24,8 +25,8 @@ pub struct Bridge {
     connection_settings: ConnectionSettings,
     forwards: HashMap<String, Topic>,
     subscriptions: HashMap<String, Topic>,
-    outgoing_persist: Arc<Mutex<PublicationStore<WakingMemoryStore>>>,
-    incoming_persist: Arc<Mutex<PublicationStore<WakingMemoryStore>>>,
+    local_client: MqttClient<MessageHandler<WakingMemoryStore>>,
+    remote_client: MqttClient<MessageHandler<WakingMemoryStore>>,
 }
 
 impl Bridge {
@@ -33,31 +34,85 @@ impl Bridge {
         system_address: String,
         device_id: String,
         connection_settings: ConnectionSettings,
-    ) -> Self {
-        let forwards = connection_settings
+    ) -> Result<Self, BridgeError> {
+        let forwards: HashMap<String, Topic> = connection_settings
             .forwards()
             .iter()
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let subscriptions = connection_settings
+        let subscriptions: HashMap<String, Topic> = connection_settings
             .subscriptions()
             .iter()
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let outgoing_persist = Arc::new(Mutex::new(PublicationStore::new_memory(BATCH_SIZE)));
-        let incoming_persist = Arc::new(Mutex::new(PublicationStore::new_memory(BATCH_SIZE)));
+        let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let outgoing_loader = outgoing_persist.loader();
+        let incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let incoming_loader = incoming_persist.loader();
 
-        Bridge {
+        // self.connect(
+        //     self.forwards.clone(),
+        //     self.outgoing_persist.clone(),
+        //     self.system_address.as_str(),
+        //     None,
+        //     &Credentials::Anonymous(client_id),
+        //     false,
+        // )
+        // let client = MqttClient::new(
+        //     address,
+        //     port,
+        //     self.connection_settings.keep_alive(),
+        //     self.connection_settings.clean_session(),
+        //     MessageHandler::new(persistor, topic_filters),
+        //     credentials,
+        //     secure,
+        // );
+        let (remote_client_subs, topics): (Vec<_>, Vec<_>) = subscriptions.drain().unzip();
+        let topic_filters = topics
+            .into_iter()
+            .map(|topic| topic.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
+        let remote_client = MqttClient::new(
+            connection_settings.address(),
+            Some(connection_settings.port().to_owned()),
+            connection_settings.keep_alive(),
+            connection_settings.clean_session(),
+            MessageHandler::new(incoming_persist, topic_filters),
+            connection_settings.credentials(),
+            true,
+        );
+
+        let (local_client_subs, topics): (Vec<_>, Vec<_>) = forwards.drain().unzip();
+        let topic_filters = topics
+            .into_iter()
+            .map(|topic| topic.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
+        let client_id = format!(
+            "{}/$edgeHub/$bridge/{}",
+            device_id,
+            connection_settings.name()
+        );
+        let local_client = MqttClient::new(
+            system_address.as_str(),
+            Some(connection_settings.port().to_owned()),
+            connection_settings.keep_alive(),
+            connection_settings.clean_session(),
+            MessageHandler::new(outgoing_persist, topic_filters),
+            &Credentials::Anonymous(client_id),
+            true,
+        );
+
+        Ok(Self {
             system_address,
             device_id,
             connection_settings,
             forwards,
             subscriptions,
-            outgoing_persist,
-            incoming_persist,
-        }
+            local_client,
+            remote_client,
+        })
     }
 
     fn format_key_value(topic: &Topic) -> (String, Topic) {
@@ -143,6 +198,10 @@ impl Bridge {
         );
 
         debug!("subscribe to remote {:?}", subscriptions);
+        client
+            .subscribe(subscriptions)
+            .await
+            .map_err(BridgeError::Subscribe)?;
 
         //TODO: handle this with shutdown
         let _events_task = tokio::spawn(client.handle_events());
@@ -182,17 +241,14 @@ where
     S: StreamWakeableState,
 {
     topic_mappers: Vec<TopicMapper>,
-    inner: Arc<Mutex<PublicationStore<S>>>,
+    inner: PublicationStore<S>,
 }
 
 impl<S> MessageHandler<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(
-        persistor: Arc<Mutex<PublicationStore<S>>>,
-        topic_mappers: Vec<TopicMapper>,
-    ) -> Self {
+    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
             inner: persistor,
