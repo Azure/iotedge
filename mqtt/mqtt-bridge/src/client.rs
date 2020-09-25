@@ -241,20 +241,21 @@ impl<T: EventHandler> MqttClient<T> {
             Credentials::Anonymous(client_id) => (client_id.into(), None, None),
         };
 
-        let io_source = if secure {
-            BridgeIoSource::Tls(TcpConnection::<SasTokenSource>::new(
-                address.to_owned(),
-                port,
-                token_source,
-                Some(TrustBundleSource::new(connection_credentials.clone())),
-            ))
+        let trust_bundle = if secure {
+            Some(TrustBundleSource::new(connection_credentials.clone()))
         } else {
-            BridgeIoSource::Tcp(TcpConnection::<SasTokenSource>::new(
-                address.to_owned(),
-                port,
-                token_source,
-                None,
-            ))
+            None
+        };
+        let tcp_connection = TcpConnection::<SasTokenSource>::new(
+            address.to_owned(),
+            port,
+            token_source,
+            trust_bundle,
+        );
+        let io_source = if secure {
+            BridgeIoSource::Tls(tcp_connection)
+        } else {
+            BridgeIoSource::Tcp(tcp_connection)
         };
 
         let client = Client::new(
