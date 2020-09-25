@@ -46,7 +46,7 @@ impl ConnectManagementUri {
         {
             if let Some(hub_hostname) = settings.parent_hostname() {
                 hub_hostname.to_string() + &check.diagnostics_image_name
-            } else if let Some(_) = &check.iothub_hostname {
+            } else if check.iothub_hostname.is_some() {
                 String::from("mcr.microsoft.com") + &check.diagnostics_image_name
             } else {
                 return Ok(CheckResult::Skipped);
