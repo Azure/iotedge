@@ -88,109 +88,117 @@ impl IoSource for BridgeIoSource {
 
     fn connect(&mut self) -> Self::Future {
         match self {
-            BridgeIoSource::Tcp(connect_settings) => {
-                //let address = connect_settings.address.clone();
-                let port = connect_settings.port.clone();
-                let token_source = connect_settings.token_source.as_ref().cloned();
-                let host = port.map_or(connect_settings.address.clone(), |p| {
-                    format!("{}:{}", connect_settings.address.clone(), p)
-                });
+            BridgeIoSource::Tcp(connect_settings) => Self::get_tcp_source(connect_settings.clone()),
+            BridgeIoSource::Tls(connect_settings) => Self::get_tls_source(connect_settings.clone()),
+        }
+    }
+}
 
-                Box::pin(async move {
-                    let expiry =
-                        Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
+impl BridgeIoSource {
+    fn get_tcp_source(
+        connection_settings: TcpConnection<SasTokenSource>,
+    ) -> BoxFuture<'static, Result<(Pin<Box<dyn BridgeIo>>, Option<String>), Error>> {
+        let address = connection_settings.address;
+        let port = connection_settings.port;
+        let token_source = connection_settings.token_source;
+        let host = port.map_or(address.clone(), move |p| {
+            format!("{}:{}", address.clone(), p)
+        });
 
-                    let io = TcpStream::connect(&host);
+        Box::pin(async move {
+            let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
 
-                    let token = if let Some(ref ts) = token_source {
-                        Left(ts.get(&expiry))
-                    } else {
-                        Right(ok(None))
-                    };
+            let io = TcpStream::connect(&host);
 
-                    let (password, io) =
-                        futures_util::future::try_join(token, io)
-                            .await
-                            .map_err(|err| {
-                                Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
-                            })?;
+            let token = if let Some(ref ts) = token_source {
+                Left(ts.get(&expiry))
+            } else {
+                Right(ok(None))
+            };
 
+            let (password, io) =
+                futures_util::future::try_join(token, io)
+                    .await
+                    .map_err(|err| {
+                        Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
+                    })?;
+
+            let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
+            Ok((stream, password))
+        })
+    }
+
+    fn get_tls_source(
+        connection_settings: TcpConnection<SasTokenSource>,
+    ) -> BoxFuture<'static, Result<(Pin<Box<dyn BridgeIo>>, Option<String>), Error>> {
+        let address = connection_settings.address.clone();
+        let port = connection_settings.port.clone();
+        let token_source = connection_settings.token_source.as_ref().cloned();
+        let trust_bundle_source = connection_settings.trust_bundle_source.clone();
+        let host = port.map_or(connection_settings.address.clone(), |p| {
+            format!("{}:{}", connection_settings.address.clone(), p)
+        });
+
+        Box::pin(async move {
+            let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
+
+            let server_root_certificate = if let Some(ref source) = trust_bundle_source {
+                Left(source.get_trust_bundle())
+            } else {
+                Right(ok(None))
+            };
+
+            let token = if let Some(ref ts) = token_source {
+                Left(ts.get(&expiry))
+            } else {
+                Right(ok(None))
+            };
+
+            let io = TcpStream::connect(host);
+
+            let (server_root_certificate, password, stream) =
+                try_join3(server_root_certificate, token, io)
+                    .await
+                    .map_err(|err| {
+                        Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
+                    })?;
+
+            let config = SslConnector::builder(SslMethod::tls())
+                .and_then(|mut builder| {
+                    if let Some(trust_bundle) = server_root_certificate {
+                        X509::stack_from_pem(trust_bundle.as_bytes())
+                            .map(|mut certs| {
+                                if let Some(ca) = certs.pop() {
+                                    builder.cert_store_mut().add_cert(ca).ok();
+                                }
+                            })
+                            .ok();
+                    }
+
+                    Ok(builder.build())
+                })
+                .and_then(|conn| conn.configure())
+                .ok();
+
+            let res = if let Some(c) = config {
+                let io = connect(c, &address, stream).await;
+
+                debug!("Tls connection {:?} for {:?}", io, address);
+
+                io.map(|io| {
                     let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
                     Ok((stream, password))
                 })
-            }
-            BridgeIoSource::Tls(connect_settings) => {
-                let address = connect_settings.address.clone();
-                let port = connect_settings.port.clone();
-                let token_source = connect_settings.token_source.as_ref().cloned();
-                let trust_bundle_source = connect_settings.trust_bundle_source.clone();
-                let host = port.map_or(connect_settings.address.clone(), |p| {
-                    format!("{}:{}", connect_settings.address.clone(), p)
-                });
+                .ok()
+            } else {
+                None
+            };
 
-                Box::pin(async move {
-                    let expiry =
-                        Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
-
-                    let server_root_certificate = if let Some(ref source) = trust_bundle_source {
-                        Left(source.get_trust_bundle())
-                    } else {
-                        Right(ok(None))
-                    };
-
-                    let token = if let Some(ref ts) = token_source {
-                        Left(ts.get(&expiry))
-                    } else {
-                        Right(ok(None))
-                    };
-
-                    let io = TcpStream::connect(host);
-
-                    let (server_root_certificate, password, stream) =
-                        try_join3(server_root_certificate, token, io)
-                            .await
-                            .map_err(|err| {
-                                Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
-                            })?;
-
-                    let config = SslConnector::builder(SslMethod::tls())
-                        .and_then(|mut builder| {
-                            if let Some(trust_bundle) = server_root_certificate {
-                                X509::stack_from_pem(trust_bundle.as_bytes())
-                                    .map(|mut certs| {
-                                        if let Some(ca) = certs.pop() {
-                                            builder.cert_store_mut().add_cert(ca).ok();
-                                        }
-                                    })
-                                    .ok();
-                            }
-
-                            Ok(builder.build())
-                        })
-                        .and_then(|conn| conn.configure())
-                        .ok();
-
-                    let res = if let Some(c) = config {
-                        let io = connect(c, &address, stream).await;
-
-                        debug!("Tls connection {:?} for {:?}", io, address);
-
-                        io.map(|io| {
-                            let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
-                            Ok((stream, password))
-                        })
-                        .ok()
-                    } else {
-                        None
-                    };
-
-                    res.map_or(
-                        Err(Error::new(ErrorKind::Other, "could not connect")),
-                        |io| io,
-                    )
-                })
-            }
-        }
+            res.map_or(
+                Err(Error::new(ErrorKind::Other, "could not connect")),
+                |io| io,
+            )
+        })
     }
 }
 
