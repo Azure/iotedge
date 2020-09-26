@@ -47,6 +47,8 @@ objects that will be created.
 | createOptions.HostConfig.Privileged | [Deployment](#podtemplate) |
 | createOptions.HostConfig.Binds | [Deployment](#podtemplate) |
 | createOptions.HostConfig.Mounts | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
+| createOptions.HostConfig.IpcMode | [Deployment](#podtemplate) |
+| createOptions.HostConfig.NetworkMode | [Deployment](#podtemplate) |
 | createOptions.HostConfig.ExposedPorts | [Service](#service) |
 | createOptions.HostConfig.PortBindings | [Service](#service) |
 
@@ -174,6 +176,8 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
 - **serviceAccountName** = The module name, sanitized to be a K8s identifier. See [Module Authentication](rbac.md#module-authentication) for details.
 - **nodeSelector** = `settings.k8s-extensions.nodeSelector` Placed in spec as provided.
 - **hostIPC** = `settings.createOptions.HostConfig.IpcMode` if IpcMode=host, we will set hostIPC to true
+- **hostNetwork** = `settings.createOptions.HostConfig.NetworkMode` if NetworkMode=host, we will set hostNetwork to true
+- **dnsPolicy** = `settings.createOptions.HostConfig.NetworkMode` if NetworkMode=host, we will set hostNetwork to `ClusterFirstWithHostNet`
 
 ## Service
 ### metadata
