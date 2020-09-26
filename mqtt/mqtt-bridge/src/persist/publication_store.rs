@@ -5,6 +5,7 @@ use anyhow::Result;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 use rocksdb::DB;
+use tokio::sync::Mutex as AsyncMutex;
 use tracing::debug;
 
 use crate::persist::{
@@ -16,7 +17,7 @@ use crate::persist::{
 pub struct PublicationStore<S: StreamWakeableState> {
     state: Arc<Mutex<S>>,
     offset: u32,
-    loader: Arc<Mutex<MessageLoader<S>>>,
+    loader: Arc<AsyncMutex<MessageLoader<S>>>,
 }
 
 impl PublicationStore<WakingMemoryStore> {
@@ -40,7 +41,7 @@ impl<S: StreamWakeableState> PublicationStore<S> {
     pub fn new(state: S, batch_size: usize) -> Self {
         let state = Arc::new(Mutex::new(state));
         let loader = MessageLoader::new(Arc::clone(&state), batch_size);
-        let loader = Arc::new(Mutex::new(loader));
+        let loader = Arc::new(AsyncMutex::new(loader));
 
         let offset = 0;
         Self {
@@ -74,7 +75,7 @@ impl<S: StreamWakeableState> PublicationStore<S> {
         Ok(())
     }
 
-    pub fn loader(&mut self) -> Arc<Mutex<MessageLoader<S>>> {
+    pub fn loader(&mut self) -> Arc<AsyncMutex<MessageLoader<S>>> {
         Arc::clone(&self.loader)
     }
 }
@@ -117,7 +118,7 @@ mod tests {
 
         // get loader
         let loader = persistence.loader();
-        let mut loader = loader.lock();
+        let mut loader = loader.lock().await;
 
         // make sure same publications come out in correct order
         let extracted1 = loader.try_next().await.unwrap().unwrap();
@@ -156,7 +157,7 @@ mod tests {
 
         // get loader
         let loader = persistence.loader();
-        let mut loader = loader.lock();
+        let mut loader = loader.lock().await;
 
         // process first message, forcing loader to get new batch on the next read
         loader.try_next().await.unwrap().unwrap();
@@ -234,7 +235,7 @@ mod tests {
 
         // get loader with batch size
         let loader = persistence.loader();
-        let mut loader = loader.lock();
+        let mut loader = loader.lock().await;
 
         // verify the loader returns both elements
         let extracted1 = loader.try_next().await.unwrap().unwrap();

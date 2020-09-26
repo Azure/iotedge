@@ -3,6 +3,7 @@ use std::{collections::HashMap, convert::TryFrom, convert::TryInto, sync::Arc, t
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
 use mqtt_broker::TopicFilter;
+use tokio::sync::Mutex;
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -17,9 +18,23 @@ const BATCH_SIZE: usize = 10;
 
 // TODO PRE: make this generic
 pub struct Pump {
-    loader: MessageLoader<WakingMemoryStore>,
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
     store: PublicationStore<WakingMemoryStore>,
+    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+}
+
+impl Pump {
+    pub fn new(
+        client: MqttClient<MessageHandler<WakingMemoryStore>>,
+        store: PublicationStore<WakingMemoryStore>,
+        loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+    ) {
+        Self {
+            client,
+            store,
+            loader,
+        }
+    }
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
@@ -128,6 +143,9 @@ impl Bridge {
             &Credentials::Anonymous(local_client_id),
             true,
         );
+
+        let incoming_loader = incoming_persist.loader();
+        let local_pump = Pump::new(local_client, outgoing_persist, incoming_loader);
 
         // TODO PRE: remove persistors from self
         Bridge {
