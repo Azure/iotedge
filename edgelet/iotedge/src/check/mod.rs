@@ -23,6 +23,8 @@ use self::stdout::Stdout;
 
 mod upstream_protocol_port;
 
+mod hostname_checks_common;
+
 mod checker;
 use checker::Checker;
 
@@ -30,10 +32,10 @@ mod checks;
 use checks::{
     get_host_connect_iothub_tests, get_host_container_iothub_tests, CertificatesQuickstart,
     ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
-    ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime, EdgeAgentStorageMounted,
-    EdgeHubStorageMounted, HostConnectDpsEndpoint, HostLocalTime, Hostname,
-    IdentityCertificateExpiry, IotedgedVersion, WellFormedConfig, WellFormedConnectionString,
-    WindowsHostVersion,
+    ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
+    ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted,
+    HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry, IotedgedVersion,
+    ParentHostname, WellFormedConfig, WellFormedConnectionString, WindowsHostVersion,
 };
 
 pub struct Check {
@@ -231,6 +233,8 @@ impl Check {
                     Box::new(ContainerEngineInstalled::default()),
                     Box::new(WindowsHostVersion::default()),
                     Box::new(Hostname::default()),
+                    Box::new(ParentHostname::default()),
+                    Box::new(ContainerResolveParentHostname::default()),
                     Box::new(ConnectManagementUri::default()),
                     Box::new(IotedgedVersion::default()),
                     Box::new(HostLocalTime::default()),
