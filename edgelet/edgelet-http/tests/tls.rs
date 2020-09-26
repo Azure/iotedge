@@ -1,5 +1,5 @@
 #![cfg(not(windows))]
-#![deny(rust_2018_idioms, warnings)]
+#![deny(warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::env;

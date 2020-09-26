@@ -3,7 +3,7 @@
 // We disable this test on Windows in order to avoid having to add a dependency
 // on OpenSSL.
 #![cfg(not(windows))]
-#![deny(rust_2018_idioms, warnings)]
+#![deny(warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
 use std::env;
