@@ -79,19 +79,22 @@ where
                                 info!("sent state to snapshotter.");
                             }
                         }
-                        SystemEvent::ForceClientDisconnect(client_id) => {
-                            if let Err(e) = self.process_drop_connection(&client_id) {
-                                warn!(message = "an error occured disconnecting client", error = %e);
-                            } else {
-                                debug!("successfully disconnected client");
-                            }
-                        }
                         SystemEvent::AuthorizationUpdate(update) => {
                             if let Err(e) = self.authorizer.update(update) {
                                 error!(message = "an error occurred while updating authorization info", error = %e);
+                                // TODO return an error instead?
                                 break;
+                            } else {
+                                self.reevaluate_subscriptions();
+                                debug!("successfully updated authorization info");
                             }
-                            self.reevaluate_subscriptions();
+                        }
+                        SystemEvent::Publish(publication) => {
+                            if let Err(e) = self.publish_all(publication) {
+                                warn!(message = "an error occurred sending publication", error = %e);
+                            } else {
+                                debug!("successfully send publication");
+                            }
                         }
                     }
                 }
