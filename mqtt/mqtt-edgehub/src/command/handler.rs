@@ -158,8 +158,8 @@ async fn subscribe(
                     SubscriptionUpdateEvent::Subscribe(sub) => {
                         subacks.remove(&sub.topic_filter);
                     }
-                    SubscriptionUpdateEvent::SubscriptionRejectedByServer(sub) => {
-                        return Err(CommandHandlerError::RejectedByServer(sub));
+                    SubscriptionUpdateEvent::RejectedByServer(sub) => {
+                        return Err(CommandHandlerError::SubscriptionRejectedByServer(sub));
                     }
                     SubscriptionUpdateEvent::Unsubscribe(_) => {}
                 }
@@ -184,7 +184,7 @@ pub enum CommandHandlerError {
     MissingSubacks(Vec<String>),
 
     #[error("subscription rejected by server: {0:?}")]
-    RejectedByServer(String),
+    SubscriptionRejectedByServer(String),
 
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),

@@ -520,7 +520,7 @@ pub enum Event {
 pub enum SubscriptionUpdateEvent {
     Subscribe(crate::proto::SubscribeTo),
     Unsubscribe(String),
-    SubscriptionRejectedByServer(String),
+    RejectedByServer(String),
 }
 
 /// A message that was received from the server

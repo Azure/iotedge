@@ -111,7 +111,8 @@ impl State {
                                 }
 
                                 crate::proto::SubAckQos::Failure => {
-                                    subscription_updates.push(super::SubscriptionUpdateEvent::SubscriptionRejectedByServer(topic_filter));
+                                    // Return an event for rejected subscription instead of retrying to send the subscription
+                                    subscription_updates.push(super::SubscriptionUpdateEvent::RejectedByServer(topic_filter));
                                 }
                             }
                         }

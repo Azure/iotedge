@@ -50,6 +50,8 @@ trait BridgeIo: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
 impl<I> BridgeIo for I where I: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
+type BridgeIoSourceFuture = BoxFuture<'static, Result<(Pin<Box<dyn BridgeIo>>, Option<String>), Error>>;
+
 #[derive(Clone)]
 pub struct TcpConnection<T>
 where
@@ -89,7 +91,7 @@ impl IoSource for BridgeIoSource {
     fn connect(&mut self) -> Self::Future {
         match self {
             BridgeIoSource::Tcp(connect_settings) => Self::get_tcp_source(connect_settings.clone()),
-            BridgeIoSource::Tls(connect_settings) => Self::get_tls_source(connect_settings.clone()),
+            BridgeIoSource::Tls(connect_settings) => Self::get_tls_source(&connect_settings),
         }
     }
 }
@@ -97,12 +99,12 @@ impl IoSource for BridgeIoSource {
 impl BridgeIoSource {
     fn get_tcp_source(
         connection_settings: TcpConnection<SasTokenSource>,
-    ) -> BoxFuture<'static, Result<(Pin<Box<dyn BridgeIo>>, Option<String>), Error>> {
+    ) -> BridgeIoSourceFuture {
         let address = connection_settings.address;
         let port = connection_settings.port;
         let token_source = connection_settings.token_source;
         let host = port.map_or(address.clone(), move |p| {
-            format!("{}:{}", address.clone(), p)
+            format!("{}:{}", address, p)
         });
 
         Box::pin(async move {
@@ -129,8 +131,8 @@ impl BridgeIoSource {
     }
 
     fn get_tls_source(
-        connection_settings: TcpConnection<SasTokenSource>,
-    ) -> BoxFuture<'static, Result<(Pin<Box<dyn BridgeIo>>, Option<String>), Error>> {
+        connection_settings: &TcpConnection<SasTokenSource>,
+    ) ->  BridgeIoSourceFuture {
         let address = connection_settings.address.clone();
         let port = connection_settings.port.clone();
         let token_source = connection_settings.token_source.as_ref().cloned();
@@ -164,7 +166,7 @@ impl BridgeIoSource {
                     })?;
 
             let config = SslConnector::builder(SslMethod::tls())
-                .and_then(|mut builder| {
+                .map(|mut builder| {
                     if let Some(trust_bundle) = server_root_certificate {
                         X509::stack_from_pem(trust_bundle.as_bytes())
                             .map(|mut certs| {
@@ -175,7 +177,7 @@ impl BridgeIoSource {
                             .ok();
                     }
 
-                    Ok(builder.build())
+                    builder.build()
                 })
                 .and_then(|conn| conn.configure())
                 .ok();
@@ -340,7 +342,7 @@ impl<T: EventHandler> MqttClient<T> {
                         SubscriptionUpdateEvent::Subscribe(sub) => {
                             subacks.remove(&sub.topic_filter);
                         }
-                        SubscriptionUpdateEvent::SubscriptionRejectedByServer(topic_filter) => {
+                        SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
                             subacks.remove(&topic_filter);
                             error!("subscription rejected by server {}", topic_filter);
                         }
