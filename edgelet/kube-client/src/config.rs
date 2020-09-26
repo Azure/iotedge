@@ -98,7 +98,7 @@ impl<T: TokenSource> Config<T> {
             })?;
 
         // add the root ca cert to the TLS settings
-        let root_ca = Certificate::from_pem(&file_or_data_bytes(
+        let root_ca = get_all_certs(file_or_data_bytes(
             cluster.certificate_authority(),
             cluster.certificate_authority_data(),
         )?)
@@ -123,14 +123,20 @@ impl<T: TokenSource> Config<T> {
                 &file_or_data_bytes(user.client_key(), user.client_key_data())?,
             )?;
 
-            TlsConnector::builder()
-                .add_root_certificate(root_ca)
+            let mut builder = TlsConnector::builder();
+            for cert in root_ca {
+                builder.add_root_certificate(cert);
+            }
+            builder
                 .identity(identity)
                 .build()
                 .context(ErrorKind::KubeConfig(KubeConfigErrorReason::Tls))?
         } else {
-            TlsConnector::builder()
-                .add_root_certificate(root_ca)
+            let mut builder = TlsConnector::builder();
+            for cert in root_ca {
+                builder.add_root_certificate(cert);
+            }
+            builder
                 .build()
                 .context(ErrorKind::KubeConfig(KubeConfigErrorReason::Tls))?
         };
@@ -228,14 +234,19 @@ fn get_token_and_tls_connector() -> Result<(ValueToken, TlsConnector)> {
     let cert = fs::read(ROOT_CA_FILE).context(ErrorKind::KubeConfig(
         KubeConfigErrorReason::LoadCertificate,
     ))?;
-    let root_ca = Certificate::from_pem(&cert).context(ErrorKind::KubeConfig(
+    let root_ca = get_all_certs(cert).context(ErrorKind::KubeConfig(
         KubeConfigErrorReason::LoadCertificate,
     ))?;
 
-    let tls_connector = TlsConnector::builder()
-        .add_root_certificate(root_ca)
-        .build()
-        .context(ErrorKind::KubeConfig(KubeConfigErrorReason::Tls))?;
+    let tls_connector = {
+        let mut builder = TlsConnector::builder();
+        for cert in root_ca {
+            builder.add_root_certificate(cert);
+        }
+        builder
+            .build()
+            .context(ErrorKind::KubeConfig(KubeConfigErrorReason::Tls))?
+    };
 
     Ok((ValueToken(Some(token)), tls_connector))
 }
@@ -267,6 +278,39 @@ fn identity_from_cert_key(user_name: &str, cert: &[u8], key: &[u8]) -> Result<Id
     ))?;
 
     Ok(identity)
+}
+
+fn get_all_certs(raw_certs: Vec<u8>) -> Result<Vec<Certificate>> {
+    let all_certs = std::str::from_utf8(&raw_certs)
+        .context(ErrorKind::KubeConfig(KubeConfigErrorReason::StringConvert))?;
+
+    if all_certs.is_empty() {
+        return Err(Error::from(ErrorKind::KubeConfig(
+            KubeConfigErrorReason::NoRootData,
+        )));
+    }
+
+    let mut certs = Vec::new();
+
+    // Extract each certificate's string. The final string from the split will either be empty
+    // or a non-certificate entry, so it is dropped.
+    let delimiter = "-----END CERTIFICATE-----";
+    let raw_certs: Vec<&str> = all_certs.split(delimiter).collect();
+    let len = raw_certs.len();
+    if len == 1 {
+        return Err(Error::from(ErrorKind::KubeConfig(
+            KubeConfigErrorReason::NoRootData,
+        )));
+    }
+    for raw_cert in &raw_certs[..(len - 1)] {
+        let current_cert = format!("{}{}", raw_cert, delimiter);
+        let cert = Certificate::from_pem(current_cert.as_bytes()).context(
+            ErrorKind::KubeConfig(KubeConfigErrorReason::LoadCertificate),
+        )?;
+
+        certs.push(cert);
+    }
+    Ok(certs)
 }
 
 fn file_or_data_bytes(path: Option<&str>, data: Option<&str>) -> Result<Vec<u8>> {
@@ -302,9 +346,55 @@ fn file_or_data_string(path: Option<&str>, data: Option<&str>) -> Result<String>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tls::CertGenerator;
     use std::fs::File;
     use std::io::Write;
     use tempdir::TempDir;
+
+    #[test]
+    fn get_all_certs_with_no_good_certs() {
+        let empty = String::new();
+        let not_utf8 = vec![0, 159, 146, 150];
+        let not_a_cert = String::from("not a cert");
+        let bad_cert = String::from("not correct-----END CERTIFICATE-----");
+
+        let empty_result = get_all_certs(empty.into_bytes());
+        let not_utf8_result = get_all_certs(not_utf8);
+        let not_a_cert_result = get_all_certs(not_a_cert.into_bytes());
+        let bad_cert_result = get_all_certs(bad_cert.into_bytes());
+
+        assert!(empty_result.is_err());
+        assert!(not_utf8_result.is_err());
+        assert!(not_a_cert_result.is_err());
+        assert!(bad_cert_result.is_err());
+    }
+
+    #[test]
+    fn get_all_certs_get_single_cert_gets_one_cert() {
+        let one_cert = CertGenerator::default().generate().unwrap();
+
+        let one_cert_result = get_all_certs(one_cert).unwrap();
+
+        assert_eq!(one_cert_result.len(), 1);
+    }
+
+    #[test]
+    fn get_all_certs_multiple_certs_gets_all_certs() {
+        let cert1 = CertGenerator::default().generate().unwrap();
+        let cert1 = std::str::from_utf8(&cert1).unwrap();
+        let cert2 = CertGenerator::default().generate().unwrap();
+        let cert2 = std::str::from_utf8(&cert2).unwrap();
+        let cert3 = CertGenerator::default().generate().unwrap();
+        let cert3 = std::str::from_utf8(&cert3).unwrap();
+        let multiple_certs1 = format!("{}\n{}\nnot a cert", cert1, cert2);
+        let multiple_certs2 = format!("{}\n{}\n{}", cert1, cert2, cert3);
+
+        let cert1_result = get_all_certs(multiple_certs1.into_bytes()).unwrap();
+        let cert2_result = get_all_certs(multiple_certs2.into_bytes()).unwrap();
+
+        assert_eq!(cert1_result.len(), 2);
+        assert_eq!(cert2_result.len(), 3);
+    }
 
     #[test]
     fn test_get_host() {
