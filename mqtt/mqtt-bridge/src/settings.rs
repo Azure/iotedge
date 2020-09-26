@@ -396,7 +396,7 @@ mod tests {
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-        let _enable_bridge = env::set_var("Enableupstreambridge", true);
+        // let _enable_bridge = env::set_var("Enableupstreambridge", true);
 
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();
