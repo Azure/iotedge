@@ -28,7 +28,10 @@ use mqtt_broker::{
     ServerCertificate,
 };
 use mqtt_edgehub::{
-    auth::{EdgeHubAuthenticator, IotHubAuthorizer, LocalAuthenticator},
+    auth::{
+        EdgeHubAuthenticator, EdgeHubAuthorizer, IotHubAuthorizer, LocalAuthenticator,
+        LocalAuthorizer, PolicyAuthorizer,
+    },
     command::{AuthorizedIdentities, CommandHandler, Disconnect},
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
@@ -68,9 +71,17 @@ where
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
-) -> Result<Broker<IotHubAuthorizer>> {
+) -> Result<Broker<impl Authorizer>> {
+    let device_id = env::var(DEVICE_ID_ENV)?;
+
+    let authorizer = EdgeHubAuthorizer::new(
+        LocalAuthorizer,
+        IotHubAuthorizer::default(),
+        PolicyAuthorizer::new(device_id),
+    );
+
     let broker = BrokerBuilder::default()
-        .with_authorizer(IotHubAuthorizer::default())
+        .with_authorizer(authorizer)
         .with_state(state.unwrap_or_default())
         .with_config(config.clone())
         .build();

@@ -3,12 +3,12 @@ use std::convert::Infallible;
 use mqtt_broker::auth::{Activity, Authorization, Authorizer};
 
 /// `LocalAuthorizer` implicitly allows all operations that come from local clients. Local
-/// clients are those with peer ip address equal to loopback (localhost).
+/// clients are those with peer ip address equal to loop back (localhost).
 ///
 /// It denies all other non localhost operations.
 ///
 /// This is the first authorizer in the chain of edgehub-specific authorizers (see `EdgeHubAuthorizer`).
-/// It's purpose to allow sidecars (`CommahdHanlder`, `Bridge`, EdgeHub bridge, etc...) to connect
+/// It's purpose to allow sidecars (`CommandHandler`, `Bridge`, `EdgeHub bridge`, etc...) to connect
 /// before public external transport is available for all other clients to connect.
 #[derive(Copy, Clone)]
 pub struct LocalAuthorizer;

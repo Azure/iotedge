@@ -285,23 +285,21 @@ impl fmt::Display for ServiceIdentity {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use matches::assert_matches;
     use test_case::test_case;
 
-    use mqtt3::proto;
     use mqtt_broker::{
         auth::Authorizer,
-        auth::{Activity, AuthId, Authorization, Operation},
-        ClientInfo,
+        auth::{Activity, AuthId, Authorization},
     };
+
+    use crate::auth::authorization::tests;
 
     use super::IotHubAuthorizer;
     use super::ServiceIdentity;
 
-    #[test_case(connect_activity("device-1", "device-1"); "identical auth_id and client_id")]
-    fn it_allows_to_connect(activity: Activity) {
+    #[test_case(&tests::connect_activity("device-1", "device-1"); "identical auth_id and client_id")]
+    fn it_allows_to_connect(activity: &Activity) {
         let authorizer = authorizer();
 
         let auth = authorizer.authorize(&activity);
@@ -309,9 +307,9 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
 
-    #[test_case(connect_activity("device-1", AuthId::Anonymous); "anonymous clients")]
-    #[test_case(connect_activity("device-1", "device-2"); "different auth_id and client_id")]
-    fn it_forbids_to_connect(activity: Activity) {
+    #[test_case(&tests::connect_activity("device-1", AuthId::Anonymous); "anonymous clients")]
+    #[test_case(&tests::connect_activity("device-1", "device-2"); "different auth_id and client_id")]
+    fn it_forbids_to_connect(activity: &Activity) {
         let authorizer = authorizer();
 
         let auth = authorizer.authorize(&activity);
@@ -319,37 +317,37 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    #[test_case(subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/messages/events"); "device events")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/events"); "edge module events")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/messages/c2d/post"); "device C2D messages")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/c2d/post"); "edge module C2D messages")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/desired"); "device update desired properties")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/desired"); "edge module update desired properties")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/reported"); "device update reported properties")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/reported"); "edge module update reported properties")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/get"); "device twin request")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module twin request")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/messages/events"); "iothub telemetry")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/events"); "iothub telemetry with moduleId")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/messages/c2d/post"); "iothub c2d messages")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/c2d/post"); "iothub c2d messages with moduleId")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/desired"); "iothub update desired properties")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/desired"); "iothub update desired properties with moduleId")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/reported"); "iothub update reported properties")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/reported"); "iothub update reported properties with moduleId")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/get"); "iothub device twin request")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/get"); "iothub module twin request")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/res"); "iothub device twin response")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/res"); "iothub module twin response")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/methods/post"); "iothub device DM request")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/post"); "iothub module DM request")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/methods/res"); "iothub device DM response")]
-    #[test_case(subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/res"); "iothub module DM response")]
-    fn it_allows_to_subscribe_to(activity: Activity) {
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/messages/events"); "device events")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/events"); "edge module events")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/messages/c2d/post"); "device C2D messages")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/c2d/post"); "edge module C2D messages")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/desired"); "device update desired properties")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/desired"); "edge module update desired properties")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/reported"); "device update reported properties")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/reported"); "edge module update reported properties")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/get"); "device twin request")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module twin request")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/messages/events"); "iothub telemetry")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/events"); "iothub telemetry with moduleId")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/messages/c2d/post"); "iothub c2d messages")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/c2d/post"); "iothub c2d messages with moduleId")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/desired"); "iothub update desired properties")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/desired"); "iothub update desired properties with moduleId")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/reported"); "iothub update reported properties")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/reported"); "iothub update reported properties with moduleId")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/get"); "iothub device twin request")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/get"); "iothub module twin request")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/twin/res"); "iothub device twin response")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/res"); "iothub module twin response")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/methods/post"); "iothub device DM request")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/post"); "iothub module DM request")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/methods/res"); "iothub device DM response")]
+    #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/res"); "iothub module DM response")]
+    fn it_allows_to_subscribe_to(activity: &Activity) {
         let authorizer = authorizer();
 
         let auth = authorizer.authorize(&activity);
@@ -357,18 +355,18 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
 
-    #[test_case(subscribe_activity("device-1", "device-1", "#"); "everything")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$SYS/connected"); "SYS topics")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$CUSTOM/topic"); "any special topics")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/#"); "everything with edgehub prefixed")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$iothub/#"); "everything with iothub prefixed")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$upstream/#"); "everything with upstream prefixed")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$downstream/#"); "everything with downstream prefixed")]
-    #[test_case(subscribe_activity("device-1", "device-2", "$edgehub/device-1/twin/get"); "twin request for another client")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/+/twin/get"); "twin request for any device")]
-    #[test_case(subscribe_activity("device-1", AuthId::Anonymous, "$edgehub/device-1/twin/get"); "twin request by anonymous client")]
-    #[test_case(subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/+"); "both twin operations")]
-    fn it_forbids_to_subscribe_to(activity: Activity) {
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "#"); "everything")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$SYS/connected"); "SYS topics")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$CUSTOM/topic"); "any special topics")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/#"); "everything with edgehub prefixed")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/#"); "everything with iothub prefixed")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$upstream/#"); "everything with upstream prefixed")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$downstream/#"); "everything with downstream prefixed")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-2", "$edgehub/device-1/twin/get"); "twin request for another client")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/+/twin/get"); "twin request for any device")]
+    #[test_case(&tests::subscribe_activity("device-1", AuthId::Anonymous, "$edgehub/device-1/twin/get"); "twin request by anonymous client")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/+"); "both twin operations")]
+    fn it_forbids_to_subscribe_to(activity: &Activity) {
         let authorizer = authorizer();
 
         let auth = authorizer.authorize(&activity);
@@ -376,38 +374,38 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    #[test_case(publish_activity("device-1", "device-1", "topic"); "generic MQTT topic")]
-    #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/messages/events"); "device events")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/events"); "edge module events")]
-    #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/messages/c2d/post"); "device C2D messages")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/c2d/post"); "edge module C2D messages")]
-    #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/desired"); "device update desired properties")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/desired"); "edge module update desired properties")]
-    #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/reported"); "device update reported properties")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/reported"); "edge module update reported properties")]
-    #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/get"); "device twin request")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module twin request")]
-    #[test_case(publish_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module twin response")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/messages/events"); "iothub telemetry")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/events"); "iothub telemetry with moduleId")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/messages/c2d/post"); "iothub c2d messages")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/c2d/post"); "iothub c2d messages with moduleId")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/desired"); "iothub update desired properties")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/desired"); "iothub update desired properties with moduleId")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/reported"); "iothub update reported properties")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/reported"); "iothub update reported properties with moduleId")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/get"); "iothub device twin request")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/get"); "iothub module twin request")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/res"); "iothub device twin response")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/res"); "iothub module twin response")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/methods/post"); "iothub device DM request")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/post"); "iothub module DM request")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/clients/device-1/methods/res"); "iothub device DM response")]
-    #[test_case(publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/res"); "iothub module DM response")]
-    fn it_allows_to_publish_to(activity: Activity) {
+    #[test_case(&tests::publish_activity("device-1", "device-1", "topic"); "generic MQTT topic")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/device-1/messages/events"); "device events")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/events"); "edge module events")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/device-1/messages/c2d/post"); "device C2D messages")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/c2d/post"); "edge module C2D messages")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/device-1/twin/desired"); "device update desired properties")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/desired"); "edge module update desired properties")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/device-1/twin/reported"); "device update reported properties")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/reported"); "edge module update reported properties")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/device-1/twin/get"); "device twin request")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/get"); "edge module twin request")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/device-1/twin/res"); "device twin response")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/twin/res"); "edge module twin response")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/outputs/route1"); "edge module access M2M outputs")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/inputs/route1"); "edge module access M2M inputs")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/messages/events"); "iothub telemetry")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/events"); "iothub telemetry with moduleId")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/messages/c2d/post"); "iothub c2d messages")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/messages/c2d/post"); "iothub c2d messages with moduleId")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/desired"); "iothub update desired properties")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/desired"); "iothub update desired properties with moduleId")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/patch/properties/reported"); "iothub update reported properties")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/patch/properties/reported"); "iothub update reported properties with moduleId")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/get"); "iothub device twin request")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/get"); "iothub module twin request")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/twin/res"); "iothub device twin response")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/twin/res"); "iothub module twin response")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/methods/post"); "iothub device DM request")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/post"); "iothub module DM request")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/methods/res"); "iothub device DM response")]
+    #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/res"); "iothub module DM response")]
+    fn it_allows_to_publish_to(activity: &Activity) {
         let authorizer = authorizer();
 
         let auth = authorizer.authorize(&activity);
@@ -415,15 +413,15 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
 
-    #[test_case(publish_activity("device-1", "device-1", "$edgehub/some/topic"); "any edgehub prefixed topic")]
-    #[test_case(publish_activity("device-1", "device-1", "$iothub/some/topic"); "any iothub prefixed topic")]
-    #[test_case(publish_activity("device-1", "device-1", "$downstream/some/topic"); "any downstream prefixed topics")]
-    #[test_case(publish_activity("device-1", "device-1", "$upstream/some/topic"); "any upstream prefixed topics")]
-    #[test_case(publish_activity("device-1", "device-2", "$edgehub/device-1/twin/get"); "twin request for another client")]
-    #[test_case(publish_activity("device-1", AuthId::Anonymous, "$edgehub/device-1/twin/get"); "twin request by anonymous client")]
-    #[test_case(publish_activity("device-1", "device-1", "$SYS/foo"); "any system topic")]
-    #[test_case(publish_activity("device-1", "device-1", "$CUSTOM/foo"); "any special topic")]
-    fn it_forbids_to_publish_to(activity: Activity) {
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/some/topic"); "any edgehub prefixed topic")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/some/topic"); "any iothub prefixed topic")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$downstream/some/topic"); "any downstream prefixed topics")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$upstream/some/topic"); "any upstream prefixed topics")]
+    #[test_case(&tests::publish_activity("device-1", "device-2", "$edgehub/device-1/twin/get"); "twin request for another client")]
+    #[test_case(&tests::publish_activity("device-1", AuthId::Anonymous, "$edgehub/device-1/twin/get"); "twin request by anonymous client")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$SYS/foo"); "any system topic")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$CUSTOM/foo"); "any special topic")]
+    fn it_forbids_to_publish_to(activity: &Activity) {
         let authorizer = authorizer();
 
         let auth = authorizer.authorize(&activity);
@@ -444,51 +442,5 @@ mod tests {
         };
         let _ = authorizer.update(Box::new(vec![service_identity, service_identity2]));
         authorizer
-    }
-
-    fn connect_activity(client_id: &str, auth_id: impl Into<AuthId>) -> Activity {
-        let connect = proto::Connect {
-            username: None,
-            password: None,
-            will: None,
-            client_id: proto::ClientId::IdWithCleanSession(client_id.into()),
-            keep_alive: Duration::from_secs(1),
-            protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
-            protocol_level: mqtt3::PROTOCOL_LEVEL,
-        };
-
-        let operation = Operation::new_connect(connect);
-        activity(operation, client_id, auth_id)
-    }
-
-    fn publish_activity(client_id: &str, auth_id: impl Into<AuthId>, topic_name: &str) -> Activity {
-        let publish = proto::Publish {
-            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
-            retain: false,
-            topic_name: topic_name.into(),
-            payload: "data".into(),
-        };
-
-        let operation = Operation::new_publish(publish);
-        activity(operation, client_id, auth_id)
-    }
-
-    fn subscribe_activity(
-        client_id: &str,
-        auth_id: impl Into<AuthId>,
-        topic_filter: &str,
-    ) -> Activity {
-        let subscribe = proto::SubscribeTo {
-            topic_filter: topic_filter.into(),
-            qos: proto::QoS::AtLeastOnce,
-        };
-
-        let operation = Operation::new_subscribe(subscribe);
-        activity(operation, client_id, auth_id)
-    }
-
-    fn activity(operation: Operation, client_id: &str, auth_id: impl Into<AuthId>) -> Activity {
-        let client_info = ClientInfo::new("10.0.0.1:12345".parse().unwrap(), auth_id.into());
-        Activity::new(client_id, client_info, operation)
     }
 }
