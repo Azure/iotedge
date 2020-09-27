@@ -76,7 +76,6 @@ impl Bridge {
         self.connect(
             self.subscriptions.clone(),
             self.connection_settings.address(),
-            Some(self.connection_settings.port().to_owned()),
             self.connection_settings.credentials(),
             true,
         )
@@ -97,7 +96,6 @@ impl Bridge {
         self.connect(
             self.forwards.clone(),
             self.system_address.as_str(),
-            None,
             &Credentials::Anonymous(client_id),
             false,
         )
@@ -108,7 +106,6 @@ impl Bridge {
         &self,
         mut topics: HashMap<String, Topic>,
         address: &str,
-        port: Option<String>,
         credentials: &Credentials,
         secure: bool,
     ) -> Result<(), BridgeError> {
@@ -120,7 +117,6 @@ impl Bridge {
 
         let mut client = MqttClient::new(
             address,
-            port,
             self.connection_settings.keep_alive(),
             self.connection_settings.clean_session(),
             MessageHandler::new(topic_filters, BATCH_SIZE),

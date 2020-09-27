@@ -87,8 +87,10 @@ impl<'de> serde::Deserialize<'de> for Settings {
             })
             .map(|nested_bridge| ConnectionSettings {
                 name: "upstream".into(),
-                address: nested_bridge.gateway_hostname.clone(),
-                port: DEFAULT_UPSTREAM_PORT.to_owned(),
+                address: format!(
+                    "{}:{}",
+                    nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
+                ),
                 subscriptions: upstream.subscriptions,
                 forwards: upstream.forwards,
                 credentials: Credentials::Provider(nested_bridge),
@@ -110,8 +112,6 @@ pub struct ConnectionSettings {
 
     address: String,
 
-    port: String,
-
     #[serde(flatten)]
     credentials: Credentials,
 
@@ -132,10 +132,6 @@ impl ConnectionSettings {
 
     pub fn address(&self) -> &str {
         &self.address
-    }
-
-    pub fn port(&self) -> &str {
-        &self.port
     }
 
     pub fn credentials(&self) -> &Credentials {
@@ -313,8 +309,7 @@ mod tests {
         let upstream = settings.upstream().unwrap();
 
         assert_eq!(upstream.name(), "upstream");
-        assert_eq!(upstream.address(), "edge1");
-        assert_eq!(upstream.port(), "8883");
+        assert_eq!(upstream.address(), "edge1:8883");
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {
@@ -337,7 +332,7 @@ mod tests {
         assert_eq!(len, 1);
         let remote = settings.remotes().first().unwrap();
         assert_eq!(remote.name(), "r1");
-        assert_eq!(remote.address(), "remote");
+        assert_eq!(remote.address(), "remote:8883");
         assert_eq!(remote.keep_alive().as_secs(), 60);
         assert_eq!(remote.clean_session(), false);
 
@@ -396,8 +391,7 @@ mod tests {
         let upstream = settings.upstream().unwrap();
 
         assert_eq!(upstream.name(), "upstream");
-        assert_eq!(upstream.address(), "upstream");
-        assert_eq!(upstream.port(), "8883");
+        assert_eq!(upstream.address(), "upstream:8883");
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {

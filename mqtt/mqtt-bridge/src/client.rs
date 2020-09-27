@@ -14,6 +14,7 @@ use tracing::{debug, error, warn};
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
+use url::Url;
 
 use crate::{
     settings::Credentials,
@@ -50,7 +51,8 @@ trait BridgeIo: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
 impl<I> BridgeIo for I where I: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
-type BridgeIoSourceFuture = BoxFuture<'static, Result<(Pin<Box<dyn BridgeIo>>, Option<String>), Error>>;
+type BridgeIoSourceFuture =
+    BoxFuture<'static, Result<(Pin<Box<dyn BridgeIo>>, Option<String>), Error>>;
 
 #[derive(Clone)]
 pub struct TcpConnection<T>
@@ -58,7 +60,6 @@ where
     T: TokenSource + Clone + Send + Sync + 'static,
 {
     address: String,
-    port: Option<String>,
     token_source: Option<T>,
     trust_bundle_source: Option<TrustBundleSource>,
 }
@@ -69,13 +70,11 @@ where
 {
     pub fn new(
         address: String,
-        port: Option<String>,
         token_source: Option<T>,
         trust_bundle_source: Option<TrustBundleSource>,
     ) -> Self {
         Self {
             address,
-            port,
             token_source,
             trust_bundle_source,
         }
@@ -97,20 +96,14 @@ impl IoSource for BridgeIoSource {
 }
 
 impl BridgeIoSource {
-    fn get_tcp_source(
-        connection_settings: TcpConnection<SasTokenSource>,
-    ) -> BridgeIoSourceFuture {
+    fn get_tcp_source(connection_settings: TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
         let address = connection_settings.address;
-        let port = connection_settings.port;
         let token_source = connection_settings.token_source;
-        let host = port.map_or(address.clone(), move |p| {
-            format!("{}:{}", address, p)
-        });
 
         Box::pin(async move {
             let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
 
-            let io = TcpStream::connect(&host);
+            let io = TcpStream::connect(&address);
 
             let token = if let Some(ref ts) = token_source {
                 Left(ts.get(&expiry))
@@ -130,16 +123,10 @@ impl BridgeIoSource {
         })
     }
 
-    fn get_tls_source(
-        connection_settings: &TcpConnection<SasTokenSource>,
-    ) ->  BridgeIoSourceFuture {
+    fn get_tls_source(connection_settings: &TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
         let address = connection_settings.address.clone();
-        let port = connection_settings.port.clone();
         let token_source = connection_settings.token_source.as_ref().cloned();
         let trust_bundle_source = connection_settings.trust_bundle_source.clone();
-        let host = port.map_or(connection_settings.address.clone(), |p| {
-            format!("{}:{}", connection_settings.address.clone(), p)
-        });
 
         Box::pin(async move {
             let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
@@ -156,7 +143,7 @@ impl BridgeIoSource {
                 Right(ok(None))
             };
 
-            let io = TcpStream::connect(host);
+            let io = TcpStream::connect(address.clone());
 
             let (server_root_certificate, password, stream) =
                 try_join3(server_root_certificate, token, io)
@@ -182,8 +169,14 @@ impl BridgeIoSource {
                 .and_then(|conn| conn.configure())
                 .ok();
 
+            let hostname = if let Ok(addr) = Url::parse(&address) {
+                addr.host_str().map_or(address.clone(), ToOwned::to_owned)
+            } else {
+                address.clone()
+            };
+
             let res = if let Some(c) = config {
-                let io = connect(c, &address, stream).await;
+                let io = connect(c, &hostname, stream).await;
 
                 debug!("Tls connection {:?} for {:?}", io, address);
 
@@ -219,7 +212,6 @@ where
 impl<T: EventHandler> MqttClient<T> {
     pub fn new(
         address: &str,
-        port: Option<String>,
         keep_alive: Duration,
         _clean_session: bool,
         event_handler: T,
@@ -256,12 +248,8 @@ impl<T: EventHandler> MqttClient<T> {
         } else {
             None
         };
-        let tcp_connection = TcpConnection::<SasTokenSource>::new(
-            address.to_owned(),
-            port,
-            token_source,
-            trust_bundle,
-        );
+        let tcp_connection =
+            TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, trust_bundle);
         let io_source = if secure {
             BridgeIoSource::Tls(tcp_connection)
         } else {
