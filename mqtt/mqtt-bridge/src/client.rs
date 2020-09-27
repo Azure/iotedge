@@ -5,7 +5,7 @@ use std::{
 
 use async_trait::async_trait;
 use chrono::Utc;
-use futures_util::future::{self, ok, try_join3, BoxFuture, Either::Left, Either::Right};
+use futures_util::future::{self, try_join3, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
 use tokio_openssl::connect;
@@ -106,10 +106,9 @@ impl BridgeIoSource {
             let io = TcpStream::connect(&address);
 
             let token_task = async {
-                if let Some(ref ts) = token_source {
-                    ts.get(&expiry).await
-                } else {
-                    Ok(None)
+                match token_source {
+                    Some(ref ts) => ts.get(&expiry).await,
+                    None => Ok(None),
                 }
             };
 
@@ -130,17 +129,17 @@ impl BridgeIoSource {
         Box::pin(async move {
             let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
 
-            let server_root_certificate_task = if let Some(ref source) = trust_bundle_source {
-                Left(source.get_trust_bundle())
-            } else {
-                Right(ok(None))
+            let server_root_certificate_task = async {
+                match trust_bundle_source {
+                    Some(ref source) => source.get_trust_bundle().await,
+                    None => Ok(None),
+                }
             };
 
             let token_task = async {
-                if let Some(ref ts) = token_source {
-                    ts.get(&expiry).await
-                } else {
-                    Ok(None)
+                match token_source {
+                    Some(ref ts) => ts.get(&expiry).await,
+                    None => Ok(None),
                 }
             };
 
