@@ -22,9 +22,8 @@ use tokio::{
 use tracing::{error, info, warn};
 
 use mqtt_bridge::BridgeController;
-use mqtt_broker::BrokerHandle;
 use mqtt_broker::{
-    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server,
+    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerSnapshot, Server,
     ServerCertificate,
 };
 use mqtt_edgehub::{
@@ -89,8 +88,8 @@ where
 {
     let broker_handle = broker.handle();
 
-    let mut server =
-        Server::from_broker(broker).with_packet_processor(MakeEdgeHubPacketProcessor::default());
+    let make_processor = MakeEdgeHubPacketProcessor::new_default(broker_handle.clone());
+    let mut server = Server::from_broker(broker).with_packet_processor(make_processor);
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();

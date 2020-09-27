@@ -1,7 +1,7 @@
 use tracing::info;
 
 use mqtt3::ReceivedPublication;
-use mqtt_broker::{BrokerHandle, ClientId, Message, SystemEvent};
+use mqtt_broker::{BrokerHandle, ClientEvent, ClientId, Message};
 
 use crate::command::Command;
 
@@ -32,7 +32,7 @@ impl Command for Disconnect {
 
         info!("received disconnection request for client {}", client_id);
 
-        let message = Message::System(SystemEvent::ForceClientDisconnect(client_id.clone()));
+        let message = Message::Client(client_id.clone(), ClientEvent::DropConnection);
         self.broker_handle
             .send(message)
             .map_err(Error::DisconnectSignal)?;
