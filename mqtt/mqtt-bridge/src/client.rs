@@ -5,7 +5,7 @@ use std::{
 
 use async_trait::async_trait;
 use chrono::Utc;
-use futures_util::future::{ok, try_join3, BoxFuture, Either::Left, Either::Right};
+use futures_util::future::{self, ok, try_join3, BoxFuture, Either::Left, Either::Right};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
 use tokio_openssl::connect;
@@ -105,18 +105,17 @@ impl BridgeIoSource {
 
             let io = TcpStream::connect(&address);
 
-            let token = if let Some(ref ts) = token_source {
-                Left(ts.get(&expiry))
-            } else {
-                Right(ok(None))
+            let token_task = async {
+                if let Some(ref ts) = token_source {
+                    ts.get(&expiry).await
+                } else {
+                    Ok(None)
+                }
             };
 
-            let (password, io) =
-                futures_util::future::try_join(token, io)
-                    .await
-                    .map_err(|err| {
-                        Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
-                    })?;
+            let (password, io) = future::try_join(token_task, io).await.map_err(|err| {
+                Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
+            })?;
 
             let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
             Ok((stream, password))
@@ -131,22 +130,24 @@ impl BridgeIoSource {
         Box::pin(async move {
             let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
 
-            let server_root_certificate = if let Some(ref source) = trust_bundle_source {
+            let server_root_certificate_task = if let Some(ref source) = trust_bundle_source {
                 Left(source.get_trust_bundle())
             } else {
                 Right(ok(None))
             };
 
-            let token = if let Some(ref ts) = token_source {
-                Left(ts.get(&expiry))
-            } else {
-                Right(ok(None))
+            let token_task = async {
+                if let Some(ref ts) = token_source {
+                    ts.get(&expiry).await
+                } else {
+                    Ok(None)
+                }
             };
 
             let io = TcpStream::connect(address.clone());
 
             let (server_root_certificate, password, stream) =
-                try_join3(server_root_certificate, token, io)
+                try_join3(server_root_certificate_task, token_task, io)
                     .await
                     .map_err(|err| {
                         Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
