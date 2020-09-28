@@ -26,8 +26,8 @@ mod logs;
 mod module;
 mod network;
 mod parse_since;
-mod virtualization;
 mod settings;
+mod virtualization;
 pub mod watchdog;
 pub mod workload;
 
@@ -50,13 +50,13 @@ pub use module::{
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;
-pub use virtualization::is_virtualized_env;
 pub use settings::{
     AttestationMethod, Certificates, Connect, Dps, External, Listen, Manual, ManualAuthMethod,
     ManualDeviceConnectionString, ManualX509Auth, Protocol, Provisioning, ProvisioningType,
     RetryLimit, RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
     WatchdogSettings, X509AttestationInfo,
 };
+pub use virtualization::is_virtualized_env;
 pub use workload::WorkloadConfig;
 
 /// This is the default auto generated certificate life
