@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public int NumCpus { get; }
 
-        public string Virtualized { get;}
+        public string Virtualized { get; }
 
         static SystemInfo Empty { get; } = new SystemInfo(string.Empty, string.Empty, string.Empty);
     }
