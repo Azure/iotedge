@@ -56,7 +56,9 @@ impl Pump {
         loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
         persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
     ) -> Result<Self, BridgeError> {
-        let publish_handle = client.publish_handle()?;
+        let publish_handle = client
+            .publish_handle()
+            .map_err(BridgeError::PublishHandle)?;
         let client_shutdown = client.shutdown_handle()?;
 
         Ok(Self {
