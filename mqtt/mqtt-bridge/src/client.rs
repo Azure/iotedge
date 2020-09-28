@@ -14,7 +14,6 @@ use tracing::{debug, error, warn};
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
-use url::Url;
 
 use crate::{
     settings::Credentials,
@@ -169,11 +168,10 @@ impl BridgeIoSource {
                 .and_then(|conn| conn.configure())
                 .ok();
 
-            let hostname = if let Ok(addr) = Url::parse(&address) {
-                addr.host_str().map_or(address.clone(), ToOwned::to_owned)
-            } else {
-                address.clone()
-            };
+            let hostname = address
+                .split(':')
+                .next()
+                .map_or(address.clone(), ToOwned::to_owned);
 
             let res = if let Some(c) = config {
                 let io = connect(c, &hostname, stream).await;
