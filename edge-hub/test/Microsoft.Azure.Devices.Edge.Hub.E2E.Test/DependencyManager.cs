@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             if (!int.TryParse(this.configuration["TimeToLiveSecs"], out int timeToLiveSecs))
             {
-                timeToLiveSecs = -1;
+                timeToLiveSecs = 7200;
             }
 
             if (long.TryParse(this.configuration["MaxStorageBytes"], out long maxStorageBytes))

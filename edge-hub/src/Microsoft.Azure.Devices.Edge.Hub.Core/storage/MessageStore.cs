@@ -369,7 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             TimeSpan GetCleanupTaskSleepTime()
             {
-                if (this.messageStore.timeToLive.TotalSeconds == 0)
+                if (this.messageStore.timeToLive.TotalSeconds <= 0)
                 {
                     return MinCleanupSleepTime;
                 }
