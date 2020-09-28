@@ -13,7 +13,7 @@ use tokio::sync::Mutex;
 use tracing::{debug, info, warn};
 
 use crate::{
-    client::{ClientConnectError, EventHandler, MqttClient},
+    client::{ClientError, EventHandler, MqttClient},
     persist::{
         MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
     },
@@ -43,66 +43,60 @@ impl Pump {
         }
     }
 
-    pub fn run() {
-        /*
-        struct Pump{
-            client: MqttClient//mqtt3::Client,
-            loader,
-            other_store,
-            sh_handle:
-        }
-        impl Pump {
-            async fn run(self, shutdown) {
-                let publish_handle = client.publish_handle();
-                let f1 = async {
-                    while let Some(p) = select(shdutdown_rx.next(), self.loader.try_next()).await {
-                        Left(_, loader_next) => {
-                            // wait until all inflights are sent
-                            let _ = senders.try_collect().await;
+    pub fn run(self) {}
 
-                        }
-                        Right(p, _) => {
-                            // send pubs if there is a spots in the inflight queue
-                            if senders.len() < MAX_INFLIGHT {
-                                let fut = async {
-                                    client.publish(p).await;
-                                    store.remove(k);
-                                };
-                                senders.push(fut);
-                            } else {
-                                senders.next().await;
-                            }
+    /*
+    impl Pump {
+        async fn run(self, shutdown) {
+            let publish_handle = client.publish_handle();
+            let f1 = async {
+                while let Some(p) = select(shdutdown_rx.next(), self.loader.try_next()).await {
+                    Left(_, loader_next) => {
+                        // wait until all inflights are sent
+                        let _ = senders.try_collect().await;
+
+                    }
+                    Right(p, _) => {
+                        // send pubs if there is a spots in the inflight queue
+                        if senders.len() < MAX_INFLIGHT {
+                            let fut = async {
+                                client.publish(p).await;
+                                store.remove(k);
+                            };
+                            senders.push(fut);
+                        } else {
+                            senders.next().await;
                         }
                     }
-                };
-                // if it is a mqtt3::Client
-                // let f2 = async {
-                //     while let Some(p) = self.client.next().await {
-                //         self.queue.push(p)
-                //     }
-                // }
-                let f2 = self.client.handle_events();
-                // if we decide to go with external shutdown event
-                // match select3(f1, f2, shutdown).await {
-                //     Either::3(_) => {
-                //         self.client.shutdown().await;
-                //         shdutdown_tx.send(())
-                //     }
-                // }
+                }
+            };
+            // if it is a mqtt3::Client
+            // let f2 = async {
+            //     while let Some(p) = self.client.next().await {
+            //         self.queue.push(p)
+            //     }
+            // }
+            let f2 = self.client.handle_events();
+            // if we decide to go with external shutdown event
+            // match select3(f1, f2, shutdown).await {
+            //     Either::3(_) => {
+            //         self.client.shutdown().await;
+            //         shdutdown_tx.send(())
+            //     }
+            // }
 
-                // if we want to chain ShuddownHandles till the one of mqtt3::Client::ShutdownHandle
-                match select3(f1, f2).await {
-                    Either::Left(_) => {
-                        shdutdown_tx.send(())
-                    },
-                    Either::Right(_) => {
-                        panic!("loader errored out!!!!")
-                    }
+            // if we want to chain ShuddownHandles till the one of mqtt3::Client::ShutdownHandle
+            match select3(f1, f2).await {
+                Either::Left(_) => {
+                    shdutdown_tx.send(())
+                },
+                Either::Right(_) => {
+                    panic!("loader errored out!!!!")
                 }
             }
         }
-        */
     }
+    */
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
@@ -443,7 +437,7 @@ pub enum BridgeError {
     Store(#[from] PersistError),
 
     #[error("failed to subscribe to topic.")]
-    Subscribe(#[from] ClientConnectError),
+    Subscribe(#[from] ClientError),
 
     #[error("failed to parse topic pattern.")]
     TopicFilterParse(#[from] mqtt_broker::Error),

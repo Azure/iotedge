@@ -12,7 +12,8 @@ use tracing::{debug, error, warn};
 use Vec;
 
 use mqtt3::{
-    proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
+    proto, Client, Event, IoSource, PublishHandle, ShutdownError, SubscriptionUpdateEvent,
+    UpdateSubscriptionError,
 };
 
 use crate::{
@@ -31,11 +32,11 @@ const API_VERSION: &str = "2010-01-01";
 pub struct ShutdownHandle(mqtt3::ShutdownHandle);
 
 impl ShutdownHandle {
-    pub async fn shutdown(&mut self) -> Result<(), ClientConnectError> {
+    pub async fn shutdown(&mut self) -> Result<(), ClientError> {
         self.0
             .shutdown()
             .await
-            .map_err(ClientConnectError::ShutdownClient)?;
+            .map_err(ClientError::ShutdownClient)?;
         Ok(())
     }
 }
@@ -283,7 +284,16 @@ impl<T: EventHandler> MqttClient<T> {
             })
     }
 
-    pub async fn handle_events(mut self) -> Result<(), ClientConnectError> {
+    pub fn publish_handle(&self) -> Result<PublishHandle, ClientError> {
+        let publish_handle = self
+            .client
+            .publish_handle()
+            .map_err(ClientError::PublishHandle)?;
+
+        Ok(publish_handle)
+    }
+
+    pub async fn handle_events(mut self) -> Result<(), ClientError> {
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
             // TODO: handle the error by recreting the connection
@@ -298,7 +308,7 @@ impl<T: EventHandler> MqttClient<T> {
         Ok(())
     }
 
-    pub async fn subscribe(&mut self, topics: &Vec<String>) -> Result<(), ClientConnectError> {
+    pub async fn subscribe(&mut self, topics: &Vec<String>) -> Result<(), ClientError> {
         debug!("subscribing to topics");
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
@@ -309,7 +319,7 @@ impl<T: EventHandler> MqttClient<T> {
             debug!("subscribing to topic {}", subscription.topic_filter);
             self.client
                 .subscribe(subscription)
-                .map_err(ClientConnectError::SubscribeFailure)?;
+                .map_err(ClientError::Subscribe)?;
         }
 
         let mut subacks: HashSet<_> = topics.iter().collect();
@@ -322,7 +332,7 @@ impl<T: EventHandler> MqttClient<T> {
             .client
             .try_next()
             .await
-            .map_err(ClientConnectError::PollClientFailure)?
+            .map_err(ClientError::PollClient)?
         {
             if let Event::SubscriptionUpdates(subscriptions) = event {
                 for subscription in subscriptions {
@@ -366,13 +376,16 @@ pub trait EventHandler {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ClientConnectError {
+pub enum ClientError {
     #[error("failed to subscribe topic")]
-    SubscribeFailure(#[from] UpdateSubscriptionError),
+    Subscribe(#[from] UpdateSubscriptionError),
 
     #[error("failed to poll client")]
-    PollClientFailure(#[from] mqtt3::Error),
+    PollClient(#[from] mqtt3::Error),
 
     #[error("failed to shutdown custom mqtt client: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
+
+    #[error("failed to shutdown custom mqtt client: {0}")]
+    PublishHandle(#[from] mqtt3::PublishError),
 }
