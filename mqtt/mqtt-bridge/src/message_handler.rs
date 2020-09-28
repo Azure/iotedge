@@ -34,7 +34,6 @@ use crate::{
         MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
     },
     pump::Pump,
-    pump::PumpError,
     settings::{ConnectionSettings, Credentials, TopicRule},
 };
 

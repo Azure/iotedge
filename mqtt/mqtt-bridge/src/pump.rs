@@ -28,6 +28,7 @@ use tracing::error;
 use tracing::{debug, info, warn};
 
 use crate::{
+    bridge::BridgeError,
     client::{ClientError, ClientShutdownHandle, EventHandler, MqttClient},
     message_handler::MessageHandler,
     persist::{
@@ -37,15 +38,6 @@ use crate::{
 };
 
 const MAX_INFLIGHT: usize = 16;
-
-#[derive(Debug, thiserror::Error)]
-pub enum PumpError {
-    #[error("Failed to get publish handle from client.")]
-    PublishHandle(#[from] ClientError),
-
-    #[error("Failed to get publish handle from client.")]
-    ClientShutdown(#[from] ShutdownError),
-}
 
 // TODO PRE: make this generic
 pub struct Pump {
@@ -63,7 +55,7 @@ impl Pump {
         subscriptions: Vec<String>,
         loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
         persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-    ) -> Result<Self, PumpError> {
+    ) -> Result<Self, BridgeError> {
         let publish_handle = client.publish_handle()?;
         let client_shutdown = client.shutdown_handle()?;
 
@@ -84,6 +76,7 @@ impl Pump {
         let loader = self.loader.clone();
         let persist = self.persist.clone();
         let mut client_shutdown = self.client_shutdown.clone();
+
         let f1 = async move {
             let mut loader_lock = loader.lock().await;
             match select(loader_shutdown_rx, loader_lock.try_next()).await {
@@ -95,8 +88,6 @@ impl Pump {
                 Either::Right((p, _)) => {
                     // TODO_PRE: handle publication error
                     let p = p.unwrap().unwrap();
-
-                    // TODO PRE: handle error
 
                     // send pubs if there is a spots in the inflight queue
                     if senders.len() < MAX_INFLIGHT {

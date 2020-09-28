@@ -34,7 +34,6 @@ use crate::{
         MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
     },
     pump::Pump,
-    pump::PumpError,
     settings::{ConnectionSettings, Credentials, TopicRule},
 };
 
@@ -154,7 +153,7 @@ impl Bridge {
         (key, topic.clone())
     }
 
-    pub async fn start(&mut self) -> Result<BridgeShutdownHandle, PumpError> {
+    pub async fn start(&mut self) -> Result<BridgeShutdownHandle, BridgeError> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
         let (local_shutdown, local_shutdown_listener) = oneshot::channel::<()>();
@@ -174,23 +173,26 @@ impl Bridge {
 /// Authentication error.
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
-    #[error("failed to save to store.")]
+    #[error("Failed to save to store.")]
     Store(#[from] PersistError),
 
-    #[error("failed to subscribe to topic.")]
-    Subscribe(#[from] ClientError),
+    #[error("Failed to subscribe to topic.")]
+    Subscribe(#[source] ClientError),
 
-    #[error("failed to parse topic pattern.")]
+    #[error("Failed to parse topic pattern.")]
     TopicFilterParse(#[from] mqtt_broker::Error),
 
-    #[error("failed to load settings.")]
+    #[error("Failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
 
-    #[error("failed to create pump.")]
-    CreatePump(#[from] PumpError),
-
-    #[error("failed to signal bridge shutdown.")]
+    #[error("Failed to signal bridge shutdown.")]
     ShutdownBridge(()),
+
+    #[error("Failed to get publish handle from client.")]
+    PublishHandle(#[source] ClientError),
+
+    #[error("Failed to get publish handle from client.")]
+    ClientShutdown(#[from] ShutdownError),
 }
 
 // #[cfg(test)]
