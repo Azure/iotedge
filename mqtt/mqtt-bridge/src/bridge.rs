@@ -152,81 +152,6 @@ impl Pump {
         f1.await;
         f2.await;
     }
-
-    /*
-        impl Bridge {
-        fn run() {
-            let store = PublicationStore::disk();
-            let loader = store.loader();
-            let senders = FutureUnordered::new();
-            loop {
-                if senders.len() < MAX_INFLIGHT {
-                    let fut = async {
-                        let (k,p) = loader.next().await;
-                        client.publish(p).await;
-                        store.remove(k);
-                    };
-                    senders.push(fut);
-                } else {
-                    senders.next().await;
-                }
-            }
-        }
-    }
-    */
-
-    /*
-    impl Pump {
-        async fn run(self, shutdown) {
-            let publish_handle = client.publish_handle();
-            let f1 = async {
-                while let Some(p) = select(shdutdown_rx.next(), self.loader.try_next()).await {
-                    Left(_, loader_next) => {
-                        // wait until all inflights are sent
-                        let _ = senders.try_collect().await;
-
-                    }
-                    Right(p, _) => {
-                        // send pubs if there is a spots in the inflight queue
-                        if senders.len() < MAX_INFLIGHT {
-                            let fut = async {
-                                client.publish(p).await;
-                                store.remove(k);
-                            };
-                            senders.push(fut);
-                        } else {
-                            senders.next().await;
-                        }
-                    }
-                }
-            };
-            // if it is a mqtt3::Client
-            // let f2 = async {
-            //     while let Some(p) = self.client.next().await {
-            //         self.queue.push(p)
-            //     }
-            // }
-            let f2 = self.client.handle_events();
-            // if we decide to go with external shutdown event
-            // match select3(f1, f2, shutdown).await {
-            //     Either::3(_) => {
-            //         self.client.shutdown().await;
-            //         shdutdown_tx.send(())
-            //     }
-            // }
-
-            // if we want to chain ShuddownHandles till the one of mqtt3::Client::ShutdownHandle
-            match select3(f1, f2).await {
-                Either::Left(_) => {
-                    shdutdown_tx.send(())
-                },
-                Either::Right(_) => {
-                    panic!("loader errored out!!!!")
-                }
-            }
-        }
-    }
-    */
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
@@ -261,46 +186,6 @@ impl Bridge {
         let incoming_loader = incoming_persist.loader();
         let incoming_persist = Rc::new(RefCell::new(incoming_persist));
         let outgoing_persist = Rc::new(RefCell::new(outgoing_persist));
-
-        // create local and remote clients
-        // note: if we instead do this in start then we will have to pass the persistor into it, necessitating shared ownership and mutex
-
-        // self.connect(
-        //     self.subscriptions.clone(),
-        //     self.incoming_persist,
-        //     self.connection_settings.address(),
-        //     Some(self.connection_settings.port().to_owned()),
-        //     self.connection_settings.credentials(),
-        //     true,
-        // )
-        // .await
-        // self.connect(
-        //     self.forwards.clone(),
-        //     self.outgoing_persist,
-        //     self.system_address.as_str(),
-        //     None,
-        //     &Credentials::Anonymous(client_id),
-        //     false,
-        // )
-        // .await
-        // async fn connect(
-        //     &self,
-        //     mut topics: HashMap<String, TopicRule>,
-        //     persistor: PublicationStore<WakingMemoryStore>,
-        //     address: &str,
-        //     port: Option<String>,
-        //     credentials: &Credentials,
-        //     secure: bool,
-        // ) -> Result<(), BridgeError> {
-        // let client = MqttClient::new(
-        //     address,
-        //     port,
-        //     self.connection_settings.keep_alive(),
-        //     self.connection_settings.clean_session(),
-        //     MessageHandler::new(persistor, topic_filters),
-        //     credentials,
-        //     secure,
-        // );
 
         let (remote_subscriptions, remote_topic_rules): (Vec<_>, Vec<_>) =
             subscriptions.drain().unzip();
@@ -351,7 +236,6 @@ impl Bridge {
             incoming_persist,
         )?;
 
-        // TODO PRE: remove persistors from self
         Ok(Bridge {
             local_pump,
             remote_pump,
@@ -371,89 +255,8 @@ impl Bridge {
     pub async fn start(&self) -> Result<(), PumpError> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
-        // self.connect_to_local().await?;
-        // self.connect_to_remote().await?;
-
         Ok(())
     }
-
-    // async fn connect_to_remote(&self) -> Result<(), BridgeError> {
-    //     info!(
-    //         "connecting to remote broker {}",
-    //         self.connection_settings.address()
-    //     );
-
-    //     self.connect(
-    //         self.subscriptions.clone(),
-    //         self.incoming_persist,
-    //         self.connection_settings.address(),
-    //         Some(self.connection_settings.port().to_owned()),
-    //         self.connection_settings.credentials(),
-    //         true,
-    //     )
-    //     .await
-    // }
-
-    // async fn connect_to_local(&self) -> Result<(), BridgeError> {
-    //     let client_id = format!(
-    //         "{}/$edgeHub/$bridge/{}",
-    //         self.device_id,
-    //         self.connection_settings.name()
-    //     );
-    //     info!(
-    //         "connecting to local broker {}, clientid {}",
-    //         self.system_address, client_id
-    //     );
-
-    //     self.connect(
-    //         self.forwards.clone(),
-    //         self.outgoing_persist,
-    //         self.system_address.as_str(),
-    //         None,
-    //         &Credentials::Anonymous(client_id),
-    //         false,
-    //     )
-    //     .await
-    // }
-
-    // async fn connect(
-    //     &self,
-    //     mut topics: HashMap<String, TopicRule>,
-    //     persistor: PublicationStore<WakingMemoryStore>,
-    //     address: &str,
-    //     port: Option<String>,
-    //     credentials: &Credentials,
-    //     secure: bool,
-    // ) -> Result<(), BridgeError> {
-    //     let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
-    //     let topic_filters = topics
-    //         .into_iter()
-    //         .map(|topic| topic.try_into())
-    //         .collect::<Result<Vec<_>, _>>()?;
-
-    //     let client = MqttClient::new(
-    //         address,
-    //         port,
-    //         self.connection_settings.keep_alive(),
-    //         self.connection_settings.clean_session(),
-    //         MessageHandler::new(persistor, topic_filters),
-    //         credentials,
-    //         secure,
-    //     );
-
-    //     debug!("subscribe to remote {:?}", subscriptions);
-    // client
-    // .subscribe(subscriptions)
-    // .await
-    // .map_err(BridgeError::Subscribe)?;
-
-    //     //TODO: handle this with shutdown
-    //     let _events_task = tokio::spawn(client.handle_events());
-
-    //     // TODO PRE: start new thread where client starts pump
-
-    //     Ok(())
-    // }
 }
 
 #[derive(Clone)]
