@@ -79,16 +79,21 @@ where
                                 info!("sent state to snapshotter.");
                             }
                         }
-                        SystemEvent::ForceClientDisconnect(client_id) => {
-                            if let Err(e) = self.process_drop_connection(&client_id) {
-                                warn!(message = "an error occured disconnecting client", error = %e);
-                            } else {
-                                debug!("successfully disconnected client");
-                            }
-                        }
                         SystemEvent::AuthorizationUpdate(update) => {
                             if let Err(e) = self.authorizer.update(update) {
-                                warn!(message = "an error occurred updating authorization info", error = %e);
+                                error!(message = "an error occurred while updating authorization info", error = %e);
+                                // TODO return an error instead?
+                                break;
+                            } else {
+                                self.reevaluate_subscriptions();
+                                debug!("successfully updated authorization info");
+                            }
+                        }
+                        SystemEvent::Publish(publication) => {
+                            if let Err(e) = self.publish_all(publication) {
+                                warn!(message = "an error occurred sending publication", error = %e);
+                            } else {
+                                debug!("successfully send publication");
                             }
                         }
                     }
@@ -98,6 +103,61 @@ where
 
         info!("broker is shutdown.");
         Ok(self.snapshot())
+    }
+
+    fn prepare_activities(client_id: &ClientId, session: &Session) -> Vec<(ClientId, Activity)> {
+        let mut activities = Vec::new();
+        for sub in session
+            .subscriptions()
+            .into_iter()
+            .flat_map(HashMap::values)
+        {
+            if let Ok(client_info) = session.client_info() {
+                let sub_topic_filter = sub.filter().to_string();
+                let operation = Operation::new_subscribe(proto::SubscribeTo {
+                    topic_filter: sub_topic_filter.clone(),
+                    qos: *sub.max_qos(),
+                });
+                activities.push((
+                    client_id.clone(),
+                    Activity::new(client_id.clone(), client_info.clone(), operation),
+                ));
+            }
+        }
+        activities
+    }
+
+    fn reevaluate_subscriptions(&mut self) {
+        let disconnecting: Vec<ClientId> = self
+            .sessions
+            .iter()
+            .flat_map(|(client_id, session)| Self::prepare_activities(client_id, session))
+            .filter_map(
+                |(client_id, activity)| match self.authorizer.authorize(activity) {
+                    Ok(Authorization::Allowed) => None,
+                    Ok(Authorization::Forbidden(reason)) => {
+                        debug!(
+                            "client {} not allowed to subscribe to topic. {}",
+                            client_id, reason
+                        );
+                        Some(client_id)
+                    }
+                    Err(e) => {
+                        warn!(message="error authorizing client subscription: {}", error = %e);
+                        Some(client_id)
+                    }
+                },
+            )
+            .collect();
+
+        for client_id in disconnecting {
+            if let Err(x) = self.process_drop_connection(&client_id) {
+                warn!(
+                    "error dropping connection for client {}. Reason {}",
+                    client_id, x
+                );
+            }
+        }
     }
 
     fn snapshot(&self) -> BrokerSnapshot {

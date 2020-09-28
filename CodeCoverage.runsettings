@@ -51,7 +51,10 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*stackexchange\..*</ModulePath>
                 <ModulePath>.*system.identitymodel\..*</ModulePath>
                 <ModulePath>.*system.reactive.*</ModulePath>
+                <ModulePath>.*system.linq.async.*</ModulePath>
                 <ModulePath>.*xunit\..*</ModulePath>
+                <ModulePath>.*edgex509authdownstreamdevice.*\..*</ModulePath>
+                <ModulePath>.*edgedownstreamdevice.*\..*</ModulePath>
                 <!-- test binaries -->
                 <ModulePath>.*test\..*</ModulePath>
                 <!-- test/sample edge modules -->
