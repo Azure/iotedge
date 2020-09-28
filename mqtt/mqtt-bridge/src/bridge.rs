@@ -29,23 +29,16 @@ use tracing::{debug, info, warn};
 
 use crate::{
     client::{ClientError, ClientShutdownHandle, EventHandler, MqttClient},
+    message_handler::MessageHandler,
     persist::{
         MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
     },
+    pump::Pump,
+    pump::PumpError,
     settings::{ConnectionSettings, Credentials, TopicRule},
 };
 
 const BATCH_SIZE: usize = 10;
-const MAX_INFLIGHT: usize = 16;
-
-#[derive(Debug, thiserror::Error)]
-pub enum PumpError {
-    #[error("Failed to get publish handle from client.")]
-    PublishHandle(#[from] ClientError),
-
-    #[error("Failed to get publish handle from client.")]
-    ClientShutdown(#[from] ShutdownError),
-}
 
 #[derive(Debug)]
 pub struct BridgeShutdownHandle {
@@ -62,114 +55,6 @@ impl BridgeShutdownHandle {
             .send(())
             .map_err(BridgeError::ShutdownBridge)?;
         Ok(())
-    }
-}
-
-// TODO PRE: make this generic
-struct Pump {
-    client: MqttClient<MessageHandler<WakingMemoryStore>>,
-    client_shutdown: ClientShutdownHandle,
-    publish_handle: PublishHandle,
-    subscriptions: Vec<String>,
-    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-    persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-}
-
-impl Pump {
-    pub fn new(
-        client: MqttClient<MessageHandler<WakingMemoryStore>>,
-        subscriptions: Vec<String>,
-        loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-        persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-    ) -> Result<Self, PumpError> {
-        let publish_handle = client.publish_handle()?;
-        let client_shutdown = client.shutdown_handle()?;
-
-        Ok(Self {
-            client,
-            client_shutdown,
-            publish_handle: publish_handle,
-            subscriptions,
-            loader,
-            persist,
-        })
-    }
-
-    pub async fn run(&mut self, shutdown: Receiver<()>) {
-        let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
-        let mut senders = FuturesUnordered::new();
-        let mut publish_handle = self.publish_handle.clone();
-        let loader = self.loader.clone();
-        let persist = self.persist.clone();
-        let mut client_shutdown = self.client_shutdown.clone();
-        let f1 = async move {
-            let mut loader_lock = loader.lock().await;
-            match select(loader_shutdown_rx, loader_lock.try_next()).await {
-                Either::Left((shutdown, loader_next)) => {
-                    for sender in senders.iter_mut() {
-                        sender.await;
-                    }
-                }
-                Either::Right((p, _)) => {
-                    // TODO_PRE: handle publication error
-                    let p = p.unwrap().unwrap();
-
-                    // TODO PRE: handle error
-
-                    // send pubs if there is a spots in the inflight queue
-                    if senders.len() < MAX_INFLIGHT {
-                        let persist_copy = persist.clone();
-                        let fut = async move {
-                            let mut persist = persist_copy.borrow_mut();
-                            // TODO PRE: log error if this fails
-                            if let Err(e) = publish_handle.publish(p.1).await {
-                                // TODO PRE: say which bridge pump
-                                error!(message = "failed publishing message for bridge pump", err = %e);
-                            } else {
-                                // TODO PRE: should we be retrying?
-                                // if this failure is due to something that will keep failing it is probably safer to remove and never try again
-                                if let Err(e) = persist.remove(p.0) {
-                                    // TODO PRE: give context to error
-                                    error!(message = "failed to remove message from store for bridge pump", err = %e);
-                                }
-                            }
-                        };
-                        senders.push(Box::pin(fut));
-                    } else {
-                        senders.next().await;
-                    }
-                }
-            }
-        };
-
-        let f2 = self.client.handle_events();
-
-        let f1 = f1.fuse();
-        let f2 = f2.fuse();
-        let mut shutdown = shutdown.fuse();
-        pin_mut!(f1);
-        pin_mut!(f2);
-
-        select! {
-            _ = f1 => {
-                error!(message = "publish loop failed and exited for bridge pump");
-            },
-            _ = f2 => {
-                error!(message = "incoming message loop failed and exited for bridge pump");
-            },
-            _ = shutdown => {
-                if let Err(e) = client_shutdown.shutdown().await {
-                    error!(message = "failed to shutdown incoming message loop for bridge pump", err = %e);
-                }
-
-                if let Err(e) = loader_shutdown.send(()) {
-                    error!(message = "failed to shutdown publish loop for bridge pump");
-                }
-            },
-        }
-
-        f1.await;
-        f2.await;
     }
 }
 
@@ -283,111 +168,6 @@ impl Bridge {
         self.remote_pump.run(remote_shutdown_listener).await;
 
         Ok(shutdown_handle)
-    }
-}
-
-#[derive(Clone)]
-struct TopicMapper {
-    topic_settings: TopicRule,
-    topic_filter: TopicFilter,
-}
-
-impl TryFrom<TopicRule> for TopicMapper {
-    type Error = BridgeError;
-
-    fn try_from(topic: TopicRule) -> Result<Self, BridgeError> {
-        let topic_filter = topic
-            .pattern()
-            .parse()
-            .map_err(BridgeError::TopicFilterParse)?;
-
-        Ok(Self {
-            topic_settings: topic,
-            topic_filter,
-        })
-    }
-}
-
-/// Handle events from client and saves them with the forward topic
-// TODO PRE: make inner a locked version of the publication store
-struct MessageHandler<S>
-where
-    S: StreamWakeableState,
-{
-    topic_mappers: Vec<TopicMapper>,
-    inner: Rc<RefCell<PublicationStore<S>>>,
-}
-
-impl<S> MessageHandler<S>
-where
-    S: StreamWakeableState,
-{
-    pub fn new(
-        persistor: Rc<RefCell<PublicationStore<S>>>,
-        topic_mappers: Vec<TopicMapper>,
-    ) -> Self {
-        Self {
-            topic_mappers,
-            inner: persistor,
-        }
-    }
-
-    fn transform(&self, topic_name: &str) -> Option<String> {
-        self.topic_mappers.iter().find_map(|mapper| {
-            mapper
-                .topic_settings
-                .local()
-                // maps if local does not have a value it uses the topic that was received,
-                // else it checks that the received topic starts with local prefix and removes the local prefix
-                .map_or(Some(topic_name), |local_prefix| {
-                    let prefix = format!("{}/", local_prefix);
-                    topic_name.strip_prefix(&prefix)
-                })
-                // match topic without local prefix with the topic filter pattern
-                .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
-                .map(|stripped_topic| {
-                    if let Some(remote_prefix) = mapper.topic_settings.remote() {
-                        format!("{}/{}", remote_prefix, stripped_topic)
-                    } else {
-                        stripped_topic.to_string()
-                    }
-                })
-        })
-    }
-}
-
-// TODO: implement for generic
-impl EventHandler for MessageHandler<WakingMemoryStore> {
-    type Error = BridgeError;
-
-    fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
-        if let Event::Publication(publication) = event {
-            let ReceivedPublication {
-                topic_name,
-                qos,
-                retain,
-                payload,
-                dup: _,
-            } = publication;
-            let forward_publication = self.transform(topic_name.as_ref()).map(|f| Publication {
-                topic_name: f,
-                qos,
-                retain,
-                payload,
-            });
-
-            if let Some(f) = forward_publication {
-                debug!("Save message to store");
-                // TODO PRE: Handle error in borrow
-                let mut publication_store = self.inner.borrow_mut();
-                publication_store.push(f).map_err(BridgeError::Store)?;
-                drop(publication_store);
-            } else {
-                warn!("No topic matched");
-            }
-        }
-
-        Ok(())
     }
 }
 
