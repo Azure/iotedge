@@ -1,38 +1,17 @@
-#![allow(unused_imports)] // TODO: Remove when ready
-#![allow(dead_code)] // TODO: Remove when ready
-#![allow(unused_variables)] // TODO: Remove when ready
-
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::{collections::HashMap, convert::TryFrom, convert::TryInto, sync::Arc, time::Duration};
+use std::{collections::HashMap, convert::TryInto};
 
-use async_trait::async_trait;
-use futures_util::future::select;
-use futures_util::future::select_all;
-use futures_util::future::Either;
-use futures_util::future::FutureExt;
-use futures_util::pin_mut;
-use futures_util::select;
-use futures_util::stream::FuturesUnordered;
-use futures_util::stream::StreamExt;
-use futures_util::stream::TryStreamExt;
-use mqtt3::{proto::Publication, Event, PublishHandle, ReceivedPublication, ShutdownError};
-use mqtt_broker::TopicFilter;
+use mqtt3::ShutdownError;
 use tokio::sync::oneshot;
-use tokio::sync::oneshot::channel;
-use tokio::sync::oneshot::Receiver;
 use tokio::sync::oneshot::Sender;
-use tokio::sync::Mutex;
-use tokio::time;
 use tracing::error;
-use tracing::{debug, info, warn};
+use tracing::info;
 
 use crate::{
-    client::{ClientError, ClientShutdownHandle, EventHandler, MqttClient},
+    client::{ClientError, MqttClient},
     message_handler::MessageHandler,
-    persist::{
-        MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
-    },
+    persist::{PersistError, PublicationStore},
     pump::Pump,
     settings::{ConnectionSettings, Credentials, TopicRule},
 };
@@ -46,6 +25,8 @@ pub struct BridgeShutdownHandle {
 }
 
 impl BridgeShutdownHandle {
+    // TODO: Remove when we implement bridge controller shutdown
+    #![allow(dead_code)]
     pub async fn shutdown(self) -> Result<(), BridgeError> {
         self.local_shutdown
             .send(())
