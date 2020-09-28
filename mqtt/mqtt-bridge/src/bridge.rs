@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::{collections::HashMap, convert::TryFrom, convert::TryInto, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
-use mqtt3::{proto::Publication, Event, ReceivedPublication};
+use mqtt3::{proto::Publication, Event, PublishHandle, ReceivedPublication};
 use mqtt_broker::TopicFilter;
 use tokio::sync::Mutex;
 use tracing::{debug, info, warn};
@@ -22,11 +22,19 @@ use crate::{
 
 const BATCH_SIZE: usize = 10;
 
+#[derive(Debug, thiserror::Error)]
+pub enum PumpError {
+    #[error("Failed to get publish handle from client.")]
+    PublishHandle(#[from] ClientError),
+}
+
 // TODO PRE: make this generic
 struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
+    publish_handle: PublishHandle,
     subscriptions: Vec<String>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+    persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
 }
 
 impl Pump {
@@ -35,12 +43,16 @@ impl Pump {
         subscriptions: Vec<String>,
         loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
         persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, PumpError> {
+        let publish_handle = client.publish_handle()?;
+
+        Ok(Self {
             client,
+            publish_handle: publish_handle,
             subscriptions,
             loader,
-        }
+            persist,
+        })
     }
 
     pub fn run(self) {}
@@ -213,13 +225,13 @@ impl Bridge {
             local_subscriptions,
             incoming_loader,
             outgoing_persist,
-        );
+        )?;
         let remote_pump = Pump::new(
             remote_client,
             remote_subscriptions,
             outgoing_loader,
             incoming_persist,
-        );
+        )?;
 
         // TODO PRE: remove persistors from self
         Ok(Bridge {
@@ -238,7 +250,7 @@ impl Bridge {
         (key, topic.clone())
     }
 
-    pub async fn start(&self) -> Result<(), BridgeError> {
+    pub async fn start(&self) -> Result<(), PumpError> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
         // self.connect_to_local().await?;
@@ -444,6 +456,9 @@ pub enum BridgeError {
 
     #[error("failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
+
+    #[error("failed to create pump.")]
+    CreatePump(#[from] PumpError),
 }
 
 // #[cfg(test)]
