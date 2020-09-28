@@ -1,5 +1,9 @@
 #![allow(unused_imports)] // TODO: Remove when ready
 #![allow(dead_code)] // TODO: Remove when ready
+#![allow(unused_variables)] // TODO: Remove when ready
+
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{collections::HashMap, convert::TryFrom, convert::TryInto, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
@@ -30,12 +34,74 @@ impl Pump {
         client: MqttClient<MessageHandler<WakingMemoryStore>>,
         subscriptions: Vec<String>,
         loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+        persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
     ) -> Self {
         Self {
             client,
             subscriptions,
             loader,
         }
+    }
+
+    pub fn run() {
+        /*
+        struct Pump{
+            client: MqttClient//mqtt3::Client,
+            loader,
+            other_store,
+            sh_handle:
+        }
+        impl Pump {
+            async fn run(self, shutdown) {
+                let publish_handle = client.publish_handle();
+                let f1 = async {
+                    while let Some(p) = select(shdutdown_rx.next(), self.loader.try_next()).await {
+                        Left(_, loader_next) => {
+                            // wait until all inflights are sent
+                            let _ = senders.try_collect().await;
+
+                        }
+                        Right(p, _) => {
+                            // send pubs if there is a spots in the inflight queue
+                            if senders.len() < MAX_INFLIGHT {
+                                let fut = async {
+                                    client.publish(p).await;
+                                    store.remove(k);
+                                };
+                                senders.push(fut);
+                            } else {
+                                senders.next().await;
+                            }
+                        }
+                    }
+                };
+                // if it is a mqtt3::Client
+                // let f2 = async {
+                //     while let Some(p) = self.client.next().await {
+                //         self.queue.push(p)
+                //     }
+                // }
+                let f2 = self.client.handle_events();
+                // if we decide to go with external shutdown event
+                // match select3(f1, f2, shutdown).await {
+                //     Either::3(_) => {
+                //         self.client.shutdown().await;
+                //         shdutdown_tx.send(())
+                //     }
+                // }
+
+                // if we want to chain ShuddownHandles till the one of mqtt3::Client::ShutdownHandle
+                match select3(f1, f2).await {
+                    Either::Left(_) => {
+                        shdutdown_tx.send(())
+                    },
+                    Either::Right(_) => {
+                        panic!("loader errored out!!!!")
+                    }
+                }
+            }
+        }
+        */
     }
 }
 
@@ -69,6 +135,8 @@ impl Bridge {
         let mut incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
         let outgoing_loader = outgoing_persist.loader();
         let incoming_loader = incoming_persist.loader();
+        let incoming_persist = Rc::new(RefCell::new(incoming_persist));
+        let outgoing_persist = Rc::new(RefCell::new(outgoing_persist));
 
         // create local and remote clients
         // note: if we instead do this in start then we will have to pass the persistor into it, necessitating shared ownership and mutex
@@ -121,7 +189,7 @@ impl Bridge {
             Some(connection_settings.port().to_owned()),
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
-            MessageHandler::new(incoming_persist, remote_topic_filters),
+            MessageHandler::new(incoming_persist.clone(), remote_topic_filters),
             connection_settings.credentials(),
             true,
         );
@@ -141,13 +209,23 @@ impl Bridge {
             None,
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
-            MessageHandler::new(outgoing_persist, local_topic_filters),
+            MessageHandler::new(outgoing_persist.clone(), local_topic_filters),
             &Credentials::Anonymous(local_client_id),
             true,
         );
 
-        let local_pump = Pump::new(local_client, local_subscriptions, incoming_loader);
-        let remote_pump = Pump::new(remote_client, remote_subscriptions, outgoing_loader);
+        let local_pump = Pump::new(
+            local_client,
+            local_subscriptions,
+            incoming_loader,
+            outgoing_persist,
+        );
+        let remote_pump = Pump::new(
+            remote_client,
+            remote_subscriptions,
+            outgoing_loader,
+            incoming_persist,
+        );
 
         // TODO PRE: remove persistors from self
         Ok(Bridge {
@@ -283,14 +361,17 @@ where
     S: StreamWakeableState,
 {
     topic_mappers: Vec<TopicMapper>,
-    inner: PublicationStore<S>,
+    inner: Rc<RefCell<PublicationStore<S>>>,
 }
 
 impl<S> MessageHandler<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
+    pub fn new(
+        persistor: Rc<RefCell<PublicationStore<S>>>,
+        topic_mappers: Vec<TopicMapper>,
+    ) -> Self {
         Self {
             topic_mappers,
             inner: persistor,
@@ -322,11 +403,10 @@ where
 }
 
 // TODO: implement for generic
-#[async_trait]
 impl EventHandler for MessageHandler<WakingMemoryStore> {
     type Error = BridgeError;
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
+    fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
         if let Event::Publication(publication) = event {
             let ReceivedPublication {
                 topic_name,
@@ -344,7 +424,9 @@ impl EventHandler for MessageHandler<WakingMemoryStore> {
 
             if let Some(f) = forward_publication {
                 debug!("Save message to store");
-                self.inner.push(f).map_err(BridgeError::Store)?;
+                let mut publication_store = self.inner.borrow_mut();
+                publication_store.push(f).map_err(BridgeError::Store)?;
+                drop(publication_store);
             } else {
                 warn!("No topic matched");
             }

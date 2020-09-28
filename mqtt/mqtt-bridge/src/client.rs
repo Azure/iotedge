@@ -3,7 +3,6 @@ use std::{
     collections::HashSet, fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration,
 };
 
-use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::{ok, BoxFuture, Either::Left, Either::Right};
 use native_tls::{Certificate, TlsConnector};
@@ -291,59 +290,13 @@ impl<T: EventHandler> MqttClient<T> {
             None
         }) {
             debug!("handle event {:?}", event);
-            if let Err(e) = self.event_handler.handle_event(event).await {
+            if let Err(e) = self.event_handler.handle_event(event) {
                 error!("error processing event {}", e);
             }
         }
 
         Ok(())
     }
-
-    // TODO PRE: upstream pump
-    /*
-    OPTION A: semaphore
-    impl Bridge {
-        fn run() {
-            let store = PublicationStore::disk();
-            let loader = store.loader();
-            let inflight = tokio::sync::Semaphore::new(MAX_INFLIGHT);
-            loop {
-                let permit = inflight.acquire().await;
-
-                let fut = async {
-                    let (k,p) = loader.next().await;
-                    client.publish(p).await;
-                    store.remove(k);
-                    drop(permit)
-                }
-                tokio::spawn(fut);
-            }
-        }
-    }
-
-    OPTION B: semaphore
-    impl Bridge {
-        fn run() {
-            let store = PublicationStore::disk();
-            let loader = store.loader();
-            let senders = FutureUnordered::new();
-            loop {
-                if senders.len() < MAX_INFLIGHT {
-                    let fut = async {
-                        let (k,p) = loader.next().await;
-                        client.publish(p).await;
-                        store.remove(k);
-                    };
-                    senders.push(fut);
-                } else {
-                    senders.next().await;
-                }
-            }
-        }
-    }
-    */
-    // pub async fn upstream_pump(mut self) -> Result<(), ClientConnectError> {
-    // }
 
     pub async fn subscribe(&mut self, topics: &Vec<String>) -> Result<(), ClientConnectError> {
         debug!("subscribing to topics");
@@ -406,11 +359,10 @@ impl<T: EventHandler> MqttClient<T> {
     }
 }
 
-#[async_trait]
 pub trait EventHandler {
     type Error: Display;
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error>;
+    fn handle_event(&mut self, event: Event) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, thiserror::Error)]
