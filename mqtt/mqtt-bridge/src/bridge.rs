@@ -214,7 +214,6 @@ impl Bridge {
             .collect::<Result<Vec<_>, _>>()?;
         let remote_client = MqttClient::new(
             connection_settings.address(),
-            Some(connection_settings.port().to_owned()),
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(incoming_persist.clone(), remote_topic_filters),
@@ -234,7 +233,6 @@ impl Bridge {
             .collect::<Result<Vec<_>, _>>()?;
         let local_client = MqttClient::new(
             system_address.as_str(),
-            None,
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(outgoing_persist.clone(), local_topic_filters),

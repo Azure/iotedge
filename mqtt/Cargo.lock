@@ -473,7 +473,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tower-service",
- "url 2.1.1",
+ "url",
 ]
 
 [[package]]
@@ -837,17 +837,6 @@ dependencies = [
 
 [[package]]
 name = "idna"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38f09e0f0b1fb55fdee1f17470ad800da77af5186a1a76c026b679358b7e844e"
-dependencies = [
- "matches",
- "unicode-bidi",
- "unicode-normalization",
-]
-
-[[package]]
-name = "idna"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02e2673c30ee86b5b96a9cb52ad15718aa1f966f5ab9ad54a8b95d5ca33120a9"
@@ -1132,7 +1121,6 @@ dependencies = [
  "mqtt-broker",
  "mqtt-broker-tests-util",
  "mqtt3",
- "native-tls",
  "openssl",
  "parking_lot 0.11.0",
  "percent-encoding 1.0.1",
@@ -1144,9 +1132,10 @@ dependencies = [
  "test-case",
  "thiserror",
  "tokio",
+ "tokio-openssl",
  "tokio-tls",
  "tracing",
- "url 1.7.2",
+ "url",
 ]
 
 [[package]]
@@ -1225,6 +1214,7 @@ dependencies = [
  "mqtt-broker-tests-util",
  "mqtt3",
  "openssl",
+ "parking_lot 0.11.0",
  "proptest",
  "regex",
  "serde",
@@ -2033,7 +2023,7 @@ dependencies = [
  "dtoa",
  "itoa",
  "serde",
- "url 2.1.1",
+ "url",
 ]
 
 [[package]]
@@ -2472,22 +2462,11 @@ checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 
 [[package]]
 name = "url"
-version = "1.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd4e7c0d531266369519a4aa4f399d748bd37043b00bde1e4ff1f60a120b355a"
-dependencies = [
- "idna 0.1.5",
- "matches",
- "percent-encoding 1.0.1",
-]
-
-[[package]]
-name = "url"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "829d4a8476c35c9bf0bbce5a3b23f4106f79728039b726d292bb93bc106787cb"
 dependencies = [
- "idna 0.2.0",
+ "idna",
  "matches",
  "percent-encoding 2.1.0",
 ]

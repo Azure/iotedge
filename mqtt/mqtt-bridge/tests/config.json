@@ -5,7 +5,7 @@
     "iotedge_modulegenerationid": "321",
     "iotedge_workloaduri": "uri",
     "iotedge_iothubhostname": "iothub",
-    "enableupstreambridge": true,
+    "enableupstreambridge": "true",
     "upstream": {
         "subscriptions": [
             {
@@ -31,8 +31,7 @@
     "remotes": [
         {
             "name": "r1",
-            "address": "remote",
-            "port": "8883",
+            "address": "remote:8883",
             "client_id": "client",
             "username": "mymodule",
             "password": "pass",

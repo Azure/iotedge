@@ -4,7 +4,6 @@ use std::{path::Path, time::Duration, vec::Vec};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
-use tracing::debug;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
@@ -80,21 +79,18 @@ impl<'de> serde::Deserialize<'de> for Settings {
 
         let upstream_connection_settings = nested_bridge
             .filter(|nested_bridge| {
-                nested_bridge.enable_upstream_bridge().map_or_else(
-                    || {
-                        debug!("upstream bridge not enabled.");
-                        false
-                    },
-                    |p| {
-                        debug!("upstream bridge setting {}", p);
-                        p
-                    },
-                )
+                nested_bridge
+                    .enable_upstream_bridge()
+                    .unwrap_or("false")
+                    .to_lowercase()
+                    == "true"
             })
             .map(|nested_bridge| ConnectionSettings {
                 name: "upstream".into(),
-                address: nested_bridge.gateway_hostname.clone(),
-                port: DEFAULT_UPSTREAM_PORT.to_owned(),
+                address: format!(
+                    "{}:{}",
+                    nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
+                ),
                 subscriptions: upstream.subscriptions,
                 forwards: upstream.forwards,
                 credentials: Credentials::Provider(nested_bridge),
@@ -116,8 +112,6 @@ pub struct ConnectionSettings {
 
     address: String,
 
-    port: String,
-
     #[serde(flatten)]
     credentials: Credentials,
 
@@ -138,10 +132,6 @@ impl ConnectionSettings {
 
     pub fn address(&self) -> &str {
         &self.address
-    }
-
-    pub fn port(&self) -> &str {
-        &self.port
     }
 
     pub fn credentials(&self) -> &Credentials {
@@ -199,7 +189,7 @@ impl AuthenticationSettings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
     #[serde(rename = "enableupstreambridge")]
-    enable_upstream_bridge: Option<bool>,
+    enable_upstream_bridge: Option<String>,
 
     #[serde(rename = "iotedge_iothubhostname")]
     iothub_hostname: String,
@@ -221,8 +211,8 @@ pub struct CredentialProviderSettings {
 }
 
 impl CredentialProviderSettings {
-    pub fn enable_upstream_bridge(&self) -> Option<bool> {
-        self.enable_upstream_bridge
+    pub fn enable_upstream_bridge(&self) -> Option<&str> {
+        self.enable_upstream_bridge.as_ref().map(AsRef::as_ref)
     }
 
     pub fn iothub_hostname(&self) -> &str {
@@ -319,8 +309,7 @@ mod tests {
         let upstream = settings.upstream().unwrap();
 
         assert_eq!(upstream.name(), "upstream");
-        assert_eq!(upstream.address(), "edge1");
-        assert_eq!(upstream.port(), "8883");
+        assert_eq!(upstream.address(), "edge1:8883");
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {
@@ -343,7 +332,7 @@ mod tests {
         assert_eq!(len, 1);
         let remote = settings.remotes().first().unwrap();
         assert_eq!(remote.name(), "r1");
-        assert_eq!(remote.address(), "remote");
+        assert_eq!(remote.address(), "remote:8883");
         assert_eq!(remote.keep_alive().as_secs(), 60);
         assert_eq!(remote.clean_session(), false);
 
@@ -396,14 +385,13 @@ mod tests {
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-        // let _enable_bridge = env::set_var("Enableupstreambridge", true);
+        let _enable_bridge = env::set_var("enableupstreambridge", "true");
 
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();
 
         assert_eq!(upstream.name(), "upstream");
-        assert_eq!(upstream.address(), "upstream");
-        assert_eq!(upstream.port(), "8883");
+        assert_eq!(upstream.address(), "upstream:8883");
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {

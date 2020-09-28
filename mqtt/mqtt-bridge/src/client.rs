@@ -4,12 +4,11 @@ use std::{
 };
 
 use chrono::Utc;
-use futures_util::future::{ok, BoxFuture, Either::Left, Either::Right};
-use native_tls::{Certificate, TlsConnector};
-use openssl::x509::X509;
+use futures_util::future::{self, try_join3, BoxFuture};
+use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
+use tokio_openssl::connect;
 use tracing::{debug, error, warn};
-use Vec;
 
 use mqtt3::{
     proto, Client, Event, IoSource, PublishHandle, ShutdownError, SubscriptionUpdateEvent,
@@ -51,13 +50,15 @@ trait BridgeIo: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
 impl<I> BridgeIo for I where I: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
+type BridgeIoSourceFuture =
+    BoxFuture<'static, Result<(Pin<Box<dyn BridgeIo>>, Option<String>), Error>>;
+
 #[derive(Clone)]
 pub struct TcpConnection<T>
 where
     T: TokenSource + Clone + Send + Sync + 'static,
 {
     address: String,
-    port: Option<String>,
     token_source: Option<T>,
     trust_bundle_source: Option<TrustBundleSource>,
 }
@@ -68,13 +69,11 @@ where
 {
     pub fn new(
         address: String,
-        port: Option<String>,
         token_source: Option<T>,
         trust_bundle_source: Option<TrustBundleSource>,
     ) -> Self {
         Self {
             address,
-            port,
             token_source,
             trust_bundle_source,
         }
@@ -89,108 +88,110 @@ impl IoSource for BridgeIoSource {
 
     fn connect(&mut self) -> Self::Future {
         match self {
-            BridgeIoSource::Tcp(connect) => {
-                let address = connect.address.clone();
-                let port = connect.port.clone();
-                let token_source = connect.token_source.as_ref().cloned();
-                let host = port.map_or(address.clone(), |p| format!("{}:{}", address.clone(), p));
+            BridgeIoSource::Tcp(connect_settings) => Self::get_tcp_source(connect_settings.clone()),
+            BridgeIoSource::Tls(connect_settings) => Self::get_tls_source(&connect_settings),
+        }
+    }
+}
 
-                Box::pin(async move {
-                    let expiry =
-                        Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
+impl BridgeIoSource {
+    fn get_tcp_source(connection_settings: TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
+        let address = connection_settings.address;
+        let token_source = connection_settings.token_source;
 
-                    let io = TcpStream::connect(&host);
+        Box::pin(async move {
+            let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
 
-                    let token = if let Some(ref ts) = token_source {
-                        Left(ts.get(&expiry))
-                    } else {
-                        Right(ok(None))
-                    };
+            let io = TcpStream::connect(&address);
 
-                    let (password, io) =
-                        futures_util::future::try_join(token, io)
-                            .await
-                            .map_err(|err| {
-                                Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
-                            })?;
+            let token_task = async {
+                match token_source {
+                    Some(ref ts) => ts.get(&expiry).await,
+                    None => Ok(None),
+                }
+            };
 
+            let (password, io) = future::try_join(token_task, io).await.map_err(|err| {
+                Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
+            })?;
+
+            let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
+            Ok((stream, password))
+        })
+    }
+
+    fn get_tls_source(connection_settings: &TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
+        let address = connection_settings.address.clone();
+        let token_source = connection_settings.token_source.as_ref().cloned();
+        let trust_bundle_source = connection_settings.trust_bundle_source.clone();
+
+        Box::pin(async move {
+            let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
+
+            let server_root_certificate_task = async {
+                match trust_bundle_source {
+                    Some(ref source) => source.get_trust_bundle().await,
+                    None => Ok(None),
+                }
+            };
+
+            let token_task = async {
+                match token_source {
+                    Some(ref ts) => ts.get(&expiry).await,
+                    None => Ok(None),
+                }
+            };
+
+            let io = TcpStream::connect(address.clone());
+
+            let (server_root_certificate, password, stream) =
+                try_join3(server_root_certificate_task, token_task, io)
+                    .await
+                    .map_err(|err| {
+                        Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
+                    })?;
+
+            let config = SslConnector::builder(SslMethod::tls())
+                .map(|mut builder| {
+                    if let Some(trust_bundle) = server_root_certificate {
+                        X509::stack_from_pem(trust_bundle.as_bytes())
+                            .map(|mut certs| {
+                                if let Some(ca) = certs.pop() {
+                                    builder.cert_store_mut().add_cert(ca).ok();
+                                }
+                            })
+                            .ok();
+                    }
+
+                    builder.build()
+                })
+                .and_then(|conn| conn.configure())
+                .ok();
+
+            let hostname = address
+                .split(':')
+                .next()
+                .map_or(address.clone(), ToOwned::to_owned);
+
+            let res = if let Some(c) = config {
+                let io = connect(c, &hostname, stream).await;
+
+                debug!("Tls connection {:?} for {:?}", io, address);
+
+                io.map(|io| {
                     let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
                     Ok((stream, password))
                 })
-            }
-            BridgeIoSource::Tls(connect) => {
-                let address = connect.address.clone();
-                let port = connect.port.clone();
-                let token_source = connect.token_source.as_ref().cloned();
-                let trust_bundle_source = connect.trust_bundle_source.clone();
-                let host = port.map_or(address.clone(), |p| format!("{}:{}", address.clone(), p));
+                .ok()
+            } else {
+                None
+            };
 
-                Box::pin(async move {
-                    let expiry =
-                        Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
-
-                    let server_root_certificate = if let Some(ref source) = trust_bundle_source {
-                        Left(source.get_trust_bundle())
-                    } else {
-                        Right(ok(None))
-                    };
-
-                    let token = if let Some(ref ts) = token_source {
-                        Left(ts.get(&expiry))
-                    } else {
-                        Right(ok(None))
-                    };
-
-                    let io = TcpStream::connect(host);
-
-                    let (server_root_certificate, password, stream) =
-                        futures_util::future::try_join3(server_root_certificate, token, io)
-                            .await
-                            .map_err(|err| {
-                                Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
-                            })?;
-
-                    let mut builder = TlsConnector::builder();
-
-                    if let Some(trust_bundle) = server_root_certificate {
-                        let certs = X509::stack_from_pem(trust_bundle.as_bytes())
-                            .unwrap()
-                            .into_iter()
-                            .flat_map(|cert| {
-                                cert.to_der()
-                                    .ok()
-                                    .map(|der| Certificate::from_der(&der).ok())
-                            })
-                            .filter_map(|cert| cert)
-                            .collect::<Vec<_>>();
-
-                        for cert in certs {
-                            builder.add_root_certificate(cert);
-                        }
-                    }
-
-                    let connector = builder.build().map_err(|err| {
-                        Error::new(
-                            ErrorKind::Other,
-                            format!("could not create TLS connector: {}", err),
-                        )
-                    })?;
-                    let connector: tokio_tls::TlsConnector = connector.into();
-
-                    let io = connector.connect(&address, stream).await;
-
-                    debug!("Tls connection {:?} for {:?}", io, address);
-
-                    io.map_or_else(
-                        |e| Err(Error::new(ErrorKind::Other, e)),
-                        |io| {
-                            let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
-                            Ok((stream, password))
-                        },
-                    )
-                })
-            }
-        }
+            res.map_or(
+                Err(Error::new(ErrorKind::Other, "could not connect")),
+                |io| io,
+            )
+        })
     }
 }
 
@@ -209,7 +210,6 @@ where
 impl<T: EventHandler> MqttClient<T> {
     pub fn new(
         address: &str,
-        port: Option<String>,
         keep_alive: Duration,
         _clean_session: bool,
         event_handler: T,
@@ -241,20 +241,17 @@ impl<T: EventHandler> MqttClient<T> {
             Credentials::Anonymous(client_id) => (client_id.into(), None, None),
         };
 
-        let io_source = if secure {
-            BridgeIoSource::Tls(TcpConnection::<SasTokenSource>::new(
-                address.to_owned(),
-                port,
-                token_source,
-                Some(TrustBundleSource::new(connection_credentials.clone())),
-            ))
+        let trust_bundle = if secure {
+            Some(TrustBundleSource::new(connection_credentials.clone()))
         } else {
-            BridgeIoSource::Tcp(TcpConnection::<SasTokenSource>::new(
-                address.to_owned(),
-                port,
-                token_source,
-                None,
-            ))
+            None
+        };
+        let tcp_connection =
+            TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, trust_bundle);
+        let io_source = if secure {
+            BridgeIoSource::Tls(tcp_connection)
+        } else {
+            BridgeIoSource::Tcp(tcp_connection)
         };
 
         let client = Client::new(
@@ -338,7 +335,7 @@ impl<T: EventHandler> MqttClient<T> {
                         SubscriptionUpdateEvent::Subscribe(sub) => {
                             subacks.remove(&sub.topic_filter);
                         }
-                        SubscriptionUpdateEvent::SubscriptionRejectedByServer(topic_filter) => {
+                        SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
                             subacks.remove(&topic_filter);
                             error!("subscription rejected by server {}", topic_filter);
                         }
@@ -356,10 +353,7 @@ impl<T: EventHandler> MqttClient<T> {
         } else {
             error!(
                 "failed to receive expected subacks for topics: {0:?}",
-                subacks
-                    .iter()
-                    .map(std::string::ToString::to_string)
-                    .collect::<String>()
+                subacks.iter().map(ToString::to_string).collect::<String>()
             );
         }
 
@@ -386,4 +380,7 @@ pub enum ClientError {
 
     #[error("failed to shutdown custom mqtt client: {0}")]
     PublishHandle(#[from] mqtt3::PublishError),
+
+    #[error("failed to connect")]
+    SslHandshake,
 }
