@@ -28,10 +28,10 @@ const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(5);
 const DEFAULT_QOS: proto::QoS = proto::QoS::AtLeastOnce;
 const API_VERSION: &str = "2010-01-01";
 
-#[derive(Debug)]
-pub struct ShutdownHandle(mqtt3::ShutdownHandle);
+#[derive(Debug, Clone)]
+pub struct ClientShutdownHandle(mqtt3::ShutdownHandle);
 
-impl ShutdownHandle {
+impl ClientShutdownHandle {
     pub async fn shutdown(&mut self) -> Result<(), ClientError> {
         self.0
             .shutdown()
@@ -276,11 +276,11 @@ impl<T: EventHandler> MqttClient<T> {
         }
     }
 
-    pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
+    pub fn shutdown_handle(&self) -> Result<ClientShutdownHandle, ShutdownError> {
         self.client
             .shutdown_handle()
             .map_or(Err(ShutdownError::ClientDoesNotExist), |shutdown_handle| {
-                Ok(ShutdownHandle(shutdown_handle))
+                Ok(ClientShutdownHandle(shutdown_handle))
             })
     }
 
@@ -293,7 +293,7 @@ impl<T: EventHandler> MqttClient<T> {
         Ok(publish_handle)
     }
 
-    pub async fn handle_events(mut self) {
+    pub async fn handle_events(&mut self) {
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
             // TODO: handle the error by recreting the connection

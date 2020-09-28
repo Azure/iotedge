@@ -21,13 +21,14 @@ use mqtt_broker::TopicFilter;
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::channel;
 use tokio::sync::oneshot::Receiver;
+use tokio::sync::oneshot::Sender;
 use tokio::sync::Mutex;
 use tokio::time;
 use tracing::error;
 use tracing::{debug, info, warn};
 
 use crate::{
-    client::{ClientError, EventHandler, MqttClient, ShutdownHandle},
+    client::{ClientError, ClientShutdownHandle, EventHandler, MqttClient},
     persist::{
         MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
     },
@@ -46,10 +47,28 @@ pub enum PumpError {
     ClientShutdown(#[from] ShutdownError),
 }
 
+#[derive(Debug)]
+pub struct BridgeShutdownHandle {
+    local_shutdown: Sender<()>,
+    remote_shutdown: Sender<()>,
+}
+
+impl BridgeShutdownHandle {
+    pub async fn shutdown(self) -> Result<(), BridgeError> {
+        self.local_shutdown
+            .send(())
+            .map_err(BridgeError::ShutdownBridge)?;
+        self.remote_shutdown
+            .send(())
+            .map_err(BridgeError::ShutdownBridge)?;
+        Ok(())
+    }
+}
+
 // TODO PRE: make this generic
 struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
-    client_shutdown: ShutdownHandle,
+    client_shutdown: ClientShutdownHandle,
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
@@ -76,13 +95,13 @@ impl Pump {
         })
     }
 
-    pub async fn run(self, shutdown: Receiver<()>) {
+    pub async fn run(&mut self, shutdown: Receiver<()>) {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let mut senders = FuturesUnordered::new();
-        let mut publish_handle = self.publish_handle;
-        let loader = self.loader;
+        let mut publish_handle = self.publish_handle.clone();
+        let loader = self.loader.clone();
         let persist = self.persist.clone();
-        let mut client_shutdown = self.client_shutdown;
+        let mut client_shutdown = self.client_shutdown.clone();
         let f1 = async move {
             let mut loader_lock = loader.lock().await;
             match select(loader_shutdown_rx, loader_lock.try_next()).await {
@@ -252,10 +271,20 @@ impl Bridge {
         (key, topic.clone())
     }
 
-    pub async fn start(&self) -> Result<(), PumpError> {
+    pub async fn start(&mut self) -> Result<BridgeShutdownHandle, PumpError> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
-        Ok(())
+        let (local_shutdown, local_shutdown_listener) = oneshot::channel::<()>();
+        let (remote_shutdown, remote_shutdown_listener) = oneshot::channel::<()>();
+        let shutdown_handle = BridgeShutdownHandle {
+            local_shutdown,
+            remote_shutdown,
+        };
+
+        self.local_pump.run(local_shutdown_listener).await;
+        self.remote_pump.run(remote_shutdown_listener).await;
+
+        Ok(shutdown_handle)
     }
 }
 
@@ -381,6 +410,9 @@ pub enum BridgeError {
 
     #[error("failed to create pump.")]
     CreatePump(#[from] PumpError),
+
+    #[error("failed to signal bridge shutdown.")]
+    ShutdownBridge(()),
 }
 
 // #[cfg(test)]
