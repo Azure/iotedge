@@ -1,26 +1,44 @@
-use std::convert::Infallible;
+use std::{any::Any, error::Error as StdError};
 
 use mqtt_broker::auth::{Activity, Authorization, Authorizer};
 
 /// `LocalAuthorizer` implicitly allows all operations that come from local clients. Local
 /// clients are those with peer ip address equal to loop back (localhost).
 ///
-/// It denies all other non localhost operations.
+/// For non-local clients it delegates the request to an inner authorizer.
 ///
-/// This is the first authorizer in the chain of edgehub-specific authorizers (see `EdgeHubAuthorizer`).
+/// This is the first authorizer in the chain of edgehub-specific authorizers.
 /// It's purpose to allow sidecars (`CommandHandler`, `Bridge`, `EdgeHub bridge`, etc...) to connect
 /// before public external transport is available for all other clients to connect.
-#[derive(Copy, Clone)]
-pub struct LocalAuthorizer;
+#[derive(Debug, Copy, Clone)]
+pub struct LocalAuthorizer<Z>(Z);
 
-impl Authorizer for LocalAuthorizer {
-    type Error = Infallible;
+impl<Z> LocalAuthorizer<Z>
+where
+    Z: Authorizer,
+{
+    pub fn new(authorizer: Z) -> Self {
+        Self(authorizer)
+    }
+}
+
+impl<Z, E> Authorizer for LocalAuthorizer<Z>
+where
+    Z: Authorizer<Error = E>,
+    E: StdError,
+{
+    type Error = E;
 
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         if activity.client_info().peer_addr().ip().is_loopback() {
             return Ok(Authorization::Allowed);
         }
-        Ok(Authorization::Forbidden("non-local client".into()))
+
+        self.0.authorize(activity)
+    }
+
+    fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
+        self.0.update(update)
     }
 }
 
@@ -28,26 +46,38 @@ impl Authorizer for LocalAuthorizer {
 mod tests {
     use std::time::Duration;
 
+    use matches::assert_matches;
     use test_case::test_case;
 
     use mqtt3::proto;
     use mqtt_broker::{
-        auth::{Activity, AuthId, Authorization, Authorizer, Operation},
+        auth::{authorize_fn_ok, Activity, AuthId, Authorization, Authorizer, DenyAll, Operation},
         ClientInfo,
     };
 
     use super::LocalAuthorizer;
 
-    #[test_case(&connect_activity("127.0.0.1:12345"), Authorization::Allowed; "local connect")]
-    #[test_case(&publish_activity("127.0.0.1:12345"), Authorization::Allowed; "local publish")]
-    #[test_case(&subscribe_activity("127.0.0.1:12345"), Authorization::Allowed; "local subscribe")]
-    #[test_case(&connect_activity("192.168.0.1:12345"), Authorization::Forbidden("non-local client".into()); "remote connect")]
-    #[test_case(&publish_activity("192.168.0.1:12345"), Authorization::Forbidden("non-local client".into()); "remote publish")]
-    #[test_case(&subscribe_activity("192.168.0.1:12345"), Authorization::Forbidden("non-local client".into()); "remote subscribe")]
-    fn it_authorizes_client_from_localhost(activity: &Activity, result: Authorization) {
-        let auth = LocalAuthorizer.authorize(&activity);
+    #[test_case(&connect_activity("127.0.0.1:12345"); "connect")]
+    #[test_case(&publish_activity("127.0.0.1:12345"); "publish")]
+    #[test_case(&subscribe_activity("127.0.0.1:12345"); "subscribe")]
+    fn it_authorizes_client_from_localhost(activity: &Activity) {
+        let authorizer = LocalAuthorizer::new(DenyAll);
 
-        assert_eq!(auth, Ok(result));
+        let auth = authorizer.authorize(activity);
+
+        assert_matches!(auth, Ok(Authorization::Allowed));
+    }
+
+    #[test_case(&connect_activity("192.168.0.1:12345"); "connect")]
+    #[test_case(&publish_activity("192.168.0.1:12345"); "publish")]
+    #[test_case(&subscribe_activity("192.168.0.1:12345"); "subscribe")]
+    fn it_calls_inner_authorizer_when_client_not_from_localhost(activity: &Activity) {
+        let inner = authorize_fn_ok(|_| Authorization::Forbidden("not allowed inner".to_string()));
+        let authorizer = LocalAuthorizer::new(inner);
+
+        let auth = authorizer.authorize(activity);
+
+        assert_matches!(auth, Ok(auth) if auth == Authorization::Forbidden("not allowed inner".to_string()));
     }
 
     fn connect_activity(peer_addr: &str) -> Activity {

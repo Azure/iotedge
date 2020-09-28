@@ -1,4 +1,4 @@
-use std::{any::Any, cell::RefCell, collections::HashMap, convert::Infallible, fmt};
+use std::{any::Any, cell::RefCell, collections::HashMap, error::Error as StdError, fmt};
 
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -8,40 +8,53 @@ use mqtt_broker::{
     AuthId, ClientId, ClientInfo,
 };
 
-/// `IotHubAuthorizer` implements authorization rules for iothub-specific topics.
+/// `IotHubAuthorizer` implements authorization rules for iothub-specific primitives.
 ///
 /// For example, it allows a client to publish (or subscribe for) twin updates, direct messages,
 /// telemetry messages, etc...
 ///
-/// It denies all other non-iothub-specific topic operations.
-#[derive(Debug, Default)]
-pub struct IotHubAuthorizer {
+/// For non-iothub-specific primitives it delegates the request to an inner authorizer (`PolicyAuthorizer`).
+#[derive(Debug)]
+pub struct IotHubAuthorizer<Z> {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
     service_identities_cache: HashMap<ClientId, ServiceIdentity>,
+    inner: Z,
 }
 
-impl IotHubAuthorizer {
+impl<Z, E> IotHubAuthorizer<Z>
+where
+    Z: Authorizer<Error = E>,
+    E: StdError,
+{
+    pub fn new(authorizer: Z) -> Self {
+        Self {
+            iothub_allowed_topics: RefCell::default(),
+            service_identities_cache: HashMap::default(),
+            inner: authorizer,
+        }
+    }
+
     #[allow(clippy::unused_self)]
     fn authorize_connect(
         &self,
-        client_id: &ClientId,
-        client_info: &ClientInfo,
+        activity: &Activity,
         _connect: &Connect,
-    ) -> Authorization {
-        match client_info.auth_id() {
+    ) -> Result<Authorization, E> {
+        match activity.client_info().auth_id() {
             // forbid anonymous clients to connect to the broker
-            AuthId::Anonymous => {
-                Authorization::Forbidden("Anonymous clients cannot connect to broker".to_string())
-            }
+            AuthId::Anonymous => Ok(Authorization::Forbidden(
+                "Anonymous clients cannot connect to broker".to_string(),
+            )),
             // allow only those clients whose auth_id and client_id identical
             AuthId::Identity(identity) => {
-                if identity == client_id {
-                    Authorization::Allowed
+                if identity == activity.client_id() {
+                    // delegate to inner authorizer.
+                    self.inner.authorize(activity)
                 } else {
-                    Authorization::Forbidden(format!(
+                    Ok(Authorization::Forbidden(format!(
                         "client_id {} does not match registered iothub identity id.",
-                        client_id
-                    ))
+                        activity.client_id()
+                    )))
                 }
             }
         }
@@ -49,41 +62,45 @@ impl IotHubAuthorizer {
 
     fn authorize_publish(
         &self,
-        client_id: &ClientId,
-        client_info: &ClientInfo,
+        activity: &Activity,
         publish: &Publish,
-    ) -> Authorization {
+    ) -> Result<Authorization, E> {
         let topic = publish.publication().topic_name();
 
         if is_iothub_topic(topic) {
             // run authorization rules for publication to IoTHub topic
-            self.authorize_iothub_topic(client_id, client_info, topic)
+            Ok(self.authorize_iothub_topic(activity.client_id(), activity.client_info(), topic))
         } else if is_forbidden_topic(topic) {
             // forbid any clients to access restricted topics
-            Authorization::Forbidden(format!("{} is forbidden topic filter", topic))
+            Ok(Authorization::Forbidden(format!(
+                "{} is forbidden topic filter",
+                topic
+            )))
         } else {
-            // allow any client to publish to any non-iothub topics
-            Authorization::Allowed
+            // delegate to inner authorizer for to any non-iothub topics.
+            self.inner.authorize(activity)
         }
     }
 
     fn authorize_subscribe(
         &self,
-        client_id: &ClientId,
-        client_info: &ClientInfo,
+        activity: &Activity,
         subscribe: &Subscribe,
-    ) -> Authorization {
+    ) -> Result<Authorization, E> {
         let topic = subscribe.topic_filter();
 
         if is_iothub_topic(topic) {
             // run authorization rules for subscription to IoTHub topic
-            self.authorize_iothub_topic(client_id, client_info, topic)
+            Ok(self.authorize_iothub_topic(activity.client_id(), activity.client_info(), topic))
         } else if is_forbidden_topic_filter(topic) {
             // forbid any clients to access restricted topics
-            Authorization::Forbidden(format!("{} is forbidden topic filter", topic))
+            Ok(Authorization::Forbidden(format!(
+                "{} is forbidden topic filter",
+                topic
+            )))
         } else {
-            // allow any client to subscribe to any non-iothub topics
-            Authorization::Allowed
+            // delegate to inner authorizer for to any non-iothub topics.
+            self.inner.authorize(activity)
         }
     }
 
@@ -129,29 +146,8 @@ impl IotHubAuthorizer {
             .any(|allowed_topic| topic.starts_with(allowed_topic))
     }
 
-    fn get_on_behalf_of_id(topic: &str) -> Option<ClientId> {
-        // topics without the new topic format cannot have on_behalf_of_ids
-        if !topic.starts_with("$iothub/clients") {
-            return None;
-        }
-        let topic_parts = topic.split('/').collect::<Vec<_>>();
-        let device_id = topic_parts.get(2);
-        let module_id = match topic_parts.get(3) {
-            Some(s) if *s == "modules" => topic_parts.get(4),
-            _ => None,
-        };
-
-        match (device_id, module_id) {
-            (Some(device_id), Some(module_id)) => {
-                Some(format!("{}/{}", device_id, module_id).into())
-            }
-            (Some(device_id), None) => Some((*device_id).into()),
-            _ => None,
-        }
-    }
-
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
-        match IotHubAuthorizer::get_on_behalf_of_id(topic) {
+        match get_on_behalf_of_id(topic) {
             Some(on_behalf_of_id) if client_id == &on_behalf_of_id => {
                 self.service_identities_cache.contains_key(client_id)
             }
@@ -166,6 +162,25 @@ impl IotHubAuthorizer {
                 self.service_identities_cache.contains_key(client_id)
             }
         }
+    }
+}
+
+fn get_on_behalf_of_id(topic: &str) -> Option<ClientId> {
+    // topics without the new topic format cannot have on_behalf_of_ids
+    if !topic.starts_with("$iothub/clients") {
+        return None;
+    }
+    let topic_parts = topic.split('/').collect::<Vec<_>>();
+    let device_id = topic_parts.get(2);
+    let module_id = match topic_parts.get(3) {
+        Some(s) if *s == "modules" => topic_parts.get(4),
+        _ => None,
+    };
+
+    match (device_id, module_id) {
+        (Some(device_id), Some(module_id)) => Some(format!("{}/{}", device_id, module_id).into()),
+        (Some(device_id), None) => Some((*device_id).into()),
+        _ => None,
     }
 }
 
@@ -220,22 +235,19 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
     ]
 }
 
-impl Authorizer for IotHubAuthorizer {
-    type Error = Infallible;
+impl<Z, E> Authorizer for IotHubAuthorizer<Z>
+where
+    Z: Authorizer<Error = E>,
+    E: StdError,
+{
+    type Error = E;
 
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
-        let (client_id, client_info, operation) = activity.clone().into_parts();
-        Ok(match operation {
-            Operation::Connect(connect) => {
-                self.authorize_connect(&client_id, &client_info, &connect)
-            }
-            Operation::Publish(publish) => {
-                self.authorize_publish(&client_id, &client_info, &publish)
-            }
-            Operation::Subscribe(subscribe) => {
-                self.authorize_subscribe(&client_id, &client_info, &subscribe)
-            }
-        })
+        match activity.operation() {
+            Operation::Connect(connect) => self.authorize_connect(activity, &connect),
+            Operation::Publish(publish) => self.authorize_publish(activity, &publish),
+            Operation::Subscribe(subscribe) => self.authorize_subscribe(activity, &subscribe),
+        }
     }
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
@@ -290,7 +302,7 @@ mod tests {
 
     use mqtt_broker::{
         auth::Authorizer,
-        auth::{Activity, AuthId, Authorization},
+        auth::{Activity, AuthId, Authorization, DenyAll},
     };
 
     use crate::auth::authorization::tests;
@@ -429,8 +441,8 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    fn authorizer() -> IotHubAuthorizer {
-        let mut authorizer = IotHubAuthorizer::default();
+    fn authorizer() -> IotHubAuthorizer<DenyAll> {
+        let mut authorizer = IotHubAuthorizer::new(DenyAll);
 
         let service_identity = ServiceIdentity {
             identity: "device-1".to_string(),
