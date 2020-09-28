@@ -355,7 +355,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
-                            await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
+                            // await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
                         }
                         catch (Exception ex)
                         {
