@@ -726,6 +726,12 @@ impl ModuleRuntime for DockerModuleRuntime {
                             version: edgelet_core::version_with_source_version(),
                             provisioning,
                             cpus: system_info.NCPU().unwrap_or_default(),
+                            virtualized: match edgelet_core::is_virtualized_env()
+                                {
+                                    Ok(Some(true)) => "yes",
+                                    Ok(Some(false)) => "no",
+                                    Ok(None) | Err(_) => "unknown"
+                                },
                             kernel_version: system_info
                                 .kernel_version()
                                 .map(std::string::ToString::to_string)
