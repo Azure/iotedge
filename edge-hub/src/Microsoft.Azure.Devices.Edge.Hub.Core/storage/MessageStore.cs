@@ -367,9 +367,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
             }
 
-            TimeSpan GetCleanupTaskSleepTime() => this.messageStore.timeToLive.TotalSeconds / 2 < CleanupTaskFrequency.TotalSeconds
-                ? TimeSpan.FromSeconds(this.messageStore.timeToLive.TotalSeconds / 2)
-                : CleanupTaskFrequency;
+            TimeSpan GetCleanupTaskSleepTime() {
+                if (this.messageStore.timeToLive.TotalSeconds == 0)
+                {
+                    return MinCleanupSleepTime;
+                }
+                double totalSeconds = Math.Min(this.messageStore.timeToLive.TotalSeconds / 2, CleanupTaskFrequency.TotalSeconds);
+                return TimeSpan.FromSeconds(totalSeconds);
+            }
         }
 
         static class Events
