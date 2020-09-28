@@ -123,7 +123,7 @@ steps:
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 6
       $context['teardownTimeoutMinutes'] = 5
-      $context['testTimeoutMinutes'] = 6
+      $context['testTimeoutMinutes'] = 10
     }
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
