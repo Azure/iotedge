@@ -193,11 +193,13 @@ pub enum BridgeError {
 //     };
 //     use mqtt_broker::TopicFilter;
 
-//     use crate::bridge::{Bridge, MessageHandler, TopicMapper};
+//     use crate::bridge::Bridge;
+//     use crate::bridge::MessageHandler;
 //     use crate::client::EventHandler;
 //     use crate::persist::PublicationStore;
 //     use crate::settings::Settings;
 
+//     // TODO PRE: move this test to pump
 //     #[tokio::test]
 //     async fn bridge_new() {
 //         let settings = Settings::from_file("tests/config.json").unwrap();
@@ -228,6 +230,7 @@ pub enum BridgeError {
 //         assert_eq!(value.remote().unwrap(), "floor/kitchen");
 //     }
 
+//     // TODO PRE: move below tests to message handler
 //     #[tokio::test]
 //     async fn message_handler_saves_message_with_local_and_forward_topic() {
 //         let batch_size: usize = 5;
