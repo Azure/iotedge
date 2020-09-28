@@ -293,7 +293,7 @@ impl<T: EventHandler> MqttClient<T> {
         Ok(publish_handle)
     }
 
-    pub async fn handle_events(mut self) -> Result<(), ClientError> {
+    pub async fn handle_events(mut self) {
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
             // TODO: handle the error by recreting the connection
@@ -304,8 +304,6 @@ impl<T: EventHandler> MqttClient<T> {
                 error!("error processing event {}", e);
             }
         }
-
-        Ok(())
     }
 
     pub async fn subscribe(&mut self, topics: &Vec<String>) -> Result<(), ClientError> {

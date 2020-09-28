@@ -75,7 +75,6 @@ mod tests {
     use std::{sync::Arc, time::Duration};
 
     use bytes::Bytes;
-    // use futures_util::stream::StreamExt;
     use futures_util::stream::TryStreamExt;
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
