@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 }, token);
-            await Task.Delay(10000);
+            await Task.Delay(30000);
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
