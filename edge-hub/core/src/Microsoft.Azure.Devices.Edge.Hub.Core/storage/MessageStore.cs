@@ -305,7 +305,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                                 if (deleteMessage)
                                 {
-                                    if (enqueuedTime >= messageRef.TimeToLive)
+                                    if (checkpointData.Offset < offset && enqueuedTime >= messageRef.TimeToLive)
                                     {
                                         this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString } );
                                     }
