@@ -66,7 +66,8 @@ pub struct Bridge {
 }
 
 impl Bridge {
-    pub fn new(
+    // TODO PRE: make init method with some of this logic
+    pub async fn new(
         system_address: String,
         device_id: String,
         connection_settings: ConnectionSettings,
@@ -124,18 +125,21 @@ impl Bridge {
             true,
         );
 
-        let local_pump = Pump::new(
+        let mut local_pump = Pump::new(
             local_client,
             local_subscriptions,
             incoming_loader,
             outgoing_persist,
         )?;
-        let remote_pump = Pump::new(
+        let mut remote_pump = Pump::new(
             remote_client,
             remote_subscriptions,
             outgoing_loader,
             incoming_persist,
         )?;
+
+        local_pump.subscribe().await?;
+        remote_pump.subscribe().await?;
 
         Ok(Bridge {
             local_pump,

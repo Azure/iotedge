@@ -1,40 +1,20 @@
-#![allow(unused_imports)] // TODO: Remove when ready
-#![allow(dead_code)] // TODO: Remove when ready
-#![allow(unused_variables)] // TODO: Remove when ready
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::{collections::HashMap, convert::TryFrom, convert::TryInto, sync::Arc, time::Duration};
-
-use async_trait::async_trait;
-use futures_util::future::select;
-use futures_util::future::select_all;
-use futures_util::future::Either;
-use futures_util::future::FutureExt;
-use futures_util::pin_mut;
-use futures_util::select;
-use futures_util::stream::FuturesUnordered;
-use futures_util::stream::StreamExt;
-use futures_util::stream::TryStreamExt;
-use mqtt3::{proto::Publication, Event, PublishHandle, ReceivedPublication, ShutdownError};
-use mqtt_broker::TopicFilter;
-use tokio::sync::oneshot;
-use tokio::sync::oneshot::channel;
-use tokio::sync::oneshot::Receiver;
-use tokio::sync::oneshot::Sender;
-use tokio::sync::Mutex;
-use tokio::time;
+use futures_util::{
+    future::{select, Either, FutureExt},
+    pin_mut, select,
+    stream::{FuturesUnordered, StreamExt, TryStreamExt},
+};
+use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
 use tracing::error;
-use tracing::{debug, info, warn};
+
+use mqtt3::PublishHandle;
 
 use crate::{
     bridge::BridgeError,
-    client::{ClientError, ClientShutdownHandle, EventHandler, MqttClient},
+    client::{ClientShutdownHandle, MqttClient},
     message_handler::MessageHandler,
-    persist::{
-        MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
-    },
-    settings::{ConnectionSettings, Credentials, TopicRule},
+    persist::{MessageLoader, PublicationStore, WakingMemoryStore},
 };
 
 const MAX_INFLIGHT: usize = 16;
@@ -71,6 +51,17 @@ impl Pump {
         })
     }
 
+    pub async fn subscribe(&mut self) -> Result<(), BridgeError> {
+        self.client
+            .subscribe(&self.subscriptions)
+            .await
+            .map_err(BridgeError::Subscribe)?;
+
+        Ok(())
+    }
+
+    // TODO PRE: Give logging context. Say which bridge pump.
+    // TODO PRE: add comments
     pub async fn run(&mut self, shutdown: Receiver<()>) {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let mut senders = FuturesUnordered::new();
@@ -82,7 +73,11 @@ impl Pump {
         let f1 = async move {
             let mut loader_lock = loader.lock().await;
             match select(loader_shutdown_rx, loader_lock.try_next()).await {
-                Either::Left((shutdown, loader_next)) => {
+                Either::Left((shutdown, _)) => {
+                    if let Err(e) = shutdown {
+                        error!(message = "failed while signalling bridge pump shutdown", error = %e)
+                    }
+
                     for sender in senders.iter_mut() {
                         sender.await;
                     }
@@ -91,20 +86,16 @@ impl Pump {
                     // TODO_PRE: handle publication error
                     let p = p.unwrap().unwrap();
 
-                    // send pubs if there is a spots in the inflight queue
                     if senders.len() < MAX_INFLIGHT {
                         let persist_copy = persist.clone();
                         let fut = async move {
                             let mut persist = persist_copy.borrow_mut();
-                            // TODO PRE: log error if this fails
                             if let Err(e) = publish_handle.publish(p.1).await {
-                                // TODO PRE: say which bridge pump
                                 error!(message = "failed publishing message for bridge pump", err = %e);
                             } else {
                                 // TODO PRE: should we be retrying?
                                 // if this failure is due to something that will keep failing it is probably safer to remove and never try again
                                 if let Err(e) = persist.remove(p.0) {
-                                    // TODO PRE: give context to error
                                     error!(message = "failed to remove message from store for bridge pump", err = %e);
                                 }
                             }

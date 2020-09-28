@@ -25,7 +25,8 @@ impl BridgeController {
         let settings = Settings::new().map_err(BridgeError::LoadingSettings)?;
 
         if let Some(upstream) = settings.upstream() {
-            let mut bridge = Bridge::new(system_address, device_id.into(), upstream.clone())?;
+            let mut bridge =
+                Bridge::new(system_address, device_id.into(), upstream.clone()).await?;
 
             let bridge_shutdown = bridge.start().await?;
 
