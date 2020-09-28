@@ -389,6 +389,7 @@ mod tests {
     #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/some/topic"); "arbitrary iothub prefixed topic")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/#"); "everything with edgehub prefixed")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/#"); "everything with iothub prefixed")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-2/twin/get"); "twin request for another device")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/+/twin/get"); "twin request for arbitrary device")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/+"); "both twin operations")]
     fn iothub_primitives_overridden_by_inner(activity: &Activity) {
