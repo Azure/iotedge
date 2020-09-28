@@ -5,7 +5,7 @@ use tracing::debug;
 
 use mqtt_broker::{
     auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
-    AuthId, ClientId, ClientInfo,
+    AuthId, ClientId,
 };
 
 /// `IotHubAuthorizer` implements authorization rules for iothub-specific primitives.
@@ -69,7 +69,7 @@ where
 
         if is_iothub_topic(topic) {
             // run authorization rules for publication to IoTHub topic
-            Ok(self.authorize_iothub_topic(activity.client_id(), activity.client_info(), topic))
+            self.authorize_iothub_topic(activity, topic)
         } else if is_forbidden_topic(topic) {
             // forbid any clients to access restricted topics
             Ok(Authorization::Forbidden(format!(
@@ -91,7 +91,7 @@ where
 
         if is_iothub_topic(topic) {
             // run authorization rules for subscription to IoTHub topic
-            Ok(self.authorize_iothub_topic(activity.client_id(), activity.client_info(), topic))
+            self.authorize_iothub_topic(activity, topic)
         } else if is_forbidden_topic_filter(topic) {
             // forbid any clients to access restricted topics
             Ok(Authorization::Forbidden(format!(
@@ -104,35 +104,35 @@ where
         }
     }
 
-    fn authorize_iothub_topic(
-        &self,
-        client_id: &ClientId,
-        client_info: &ClientInfo,
-        topic: &str,
-    ) -> Authorization {
-        match client_info.auth_id() {
+    fn authorize_iothub_topic(&self, activity: &Activity, topic: &str) -> Result<Authorization, E> {
+        Ok(match activity.client_info().auth_id() {
             // forbid anonymous clients to subscribe to restricted topics
             AuthId::Anonymous => Authorization::Forbidden(
                 "Anonymous clients do not have access to IoTHub topics".to_string(),
             ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
-            AuthId::Identity(identity) if identity == client_id => {
-                if self.is_iothub_topic_allowed(client_id, topic)
-                    && self.check_authorized_cache(client_id, topic)
+            AuthId::Identity(identity) if identity == activity.client_id() => {
+                if self.is_iothub_topic_allowed(activity.client_id(), topic)
+                    && self.check_authorized_cache(activity.client_id(), topic)
                 {
                     Authorization::Allowed
                 } else {
-                    Authorization::Forbidden(
-                        "Client must connect to its own IoTHub topic".to_string(),
-                    )
+                    // check if iothub policy is overridden by a custom policy.
+                    if Authorization::Allowed == self.inner.authorize(activity)? {
+                        Authorization::Allowed
+                    } else {
+                        Authorization::Forbidden(
+                            "Client must access its own IoTHub topics only".to_string(),
+                        )
+                    }
                 }
             }
             // forbid access otherwise
             AuthId::Identity(_) => Authorization::Forbidden(format!(
                 "client_id {} must match registered iothub identity id to access IoTHub topic",
-                client_id
+                activity.client_id()
             )),
-        }
+        })
     }
 
     fn is_iothub_topic_allowed(&self, client_id: &ClientId, topic: &str) -> bool {
@@ -302,7 +302,7 @@ mod tests {
 
     use mqtt_broker::{
         auth::Authorizer,
-        auth::{Activity, AuthId, Authorization, DenyAll},
+        auth::{authorize_fn_ok, Activity, AllowAll, AuthId, Authorization, DenyAll},
     };
 
     use crate::auth::authorization::tests;
@@ -310,26 +310,16 @@ mod tests {
     use super::IotHubAuthorizer;
     use super::ServiceIdentity;
 
-    #[test_case(&tests::connect_activity("device-1", "device-1"); "identical auth_id and client_id")]
-    fn it_allows_to_connect(activity: &Activity) {
-        let authorizer = authorizer();
-
-        let auth = authorizer.authorize(&activity);
-
-        assert_matches!(auth, Ok(Authorization::Allowed));
-    }
-
     #[test_case(&tests::connect_activity("device-1", AuthId::Anonymous); "anonymous clients")]
     #[test_case(&tests::connect_activity("device-1", "device-2"); "different auth_id and client_id")]
     fn it_forbids_to_connect(activity: &Activity) {
-        let authorizer = authorizer();
+        let authorizer = authorizer(AllowAll);
 
         let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    #[test_case(&tests::subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/messages/events"); "device events")]
     #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/events"); "edge module events")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/messages/c2d/post"); "device C2D messages")]
@@ -360,7 +350,7 @@ mod tests {
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/clients/device-1/methods/res"); "iothub device DM response")]
     #[test_case(&tests::subscribe_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/res"); "iothub module DM response")]
     fn it_allows_to_subscribe_to(activity: &Activity) {
-        let authorizer = authorizer();
+        let authorizer = authorizer(DenyAll);
 
         let auth = authorizer.authorize(&activity);
 
@@ -370,23 +360,46 @@ mod tests {
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "#"); "everything")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$SYS/connected"); "SYS topics")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$CUSTOM/topic"); "any special topics")]
-    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/#"); "everything with edgehub prefixed")]
-    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/#"); "everything with iothub prefixed")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$upstream/#"); "everything with upstream prefixed")]
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "$downstream/#"); "everything with downstream prefixed")]
     #[test_case(&tests::subscribe_activity("device-1", "device-2", "$edgehub/device-1/twin/get"); "twin request for another client")]
-    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/+/twin/get"); "twin request for any device")]
     #[test_case(&tests::subscribe_activity("device-1", AuthId::Anonymous, "$edgehub/device-1/twin/get"); "twin request by anonymous client")]
-    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/+"); "both twin operations")]
     fn it_forbids_to_subscribe_to(activity: &Activity) {
-        let authorizer = authorizer();
+        let authorizer = authorizer(AllowAll);
 
         let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    #[test_case(&tests::publish_activity("device-1", "device-1", "topic"); "generic MQTT topic")]
+    #[test_case(&tests::connect_activity("device-1", "device-1"); "identical auth_id and client_id")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "topic"); "generic MQTT topic publish")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic subscribe")]
+    fn it_delegates_to_inner(activity: &Activity) {
+        let inner = authorize_fn_ok(|_| Authorization::Forbidden("not allowed inner".to_string()));
+        let authorizer = IotHubAuthorizer::new(inner);
+
+        let auth = authorizer.authorize(&activity);
+
+        // make sure error message matches inner authorizer.
+        assert_matches!(auth, Ok(auth) if auth == Authorization::Forbidden("not allowed inner".to_string()));
+    }
+
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/some/topic"); "arbitrary edgehub prefixed topic")]
+    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/some/topic"); "arbitrary iothub prefixed topic")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/#"); "everything with edgehub prefixed")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$iothub/#"); "everything with iothub prefixed")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/+/twin/get"); "twin request for arbitrary device")]
+    #[test_case(&tests::subscribe_activity("device-1", "device-1", "$edgehub/device-1/twin/+"); "both twin operations")]
+    fn iothub_primitives_overridden_by_inner(activity: &Activity) {
+        // these primitives must be denied, but overridden by AllowAll
+        let authorizer = authorizer(AllowAll);
+
+        let auth = authorizer.authorize(&activity);
+
+        assert_matches!(auth, Ok(Authorization::Allowed));
+    }
+
     #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/device-1/messages/events"); "device events")]
     #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$edgehub/device-1/module-a/messages/events"); "edge module events")]
     #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/device-1/messages/c2d/post"); "device C2D messages")]
@@ -418,15 +431,13 @@ mod tests {
     #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/clients/device-1/methods/res"); "iothub device DM response")]
     #[test_case(&tests::publish_activity("device-1/module-a", "device-1/module-a", "$iothub/clients/device-1/modules/module-a/methods/res"); "iothub module DM response")]
     fn it_allows_to_publish_to(activity: &Activity) {
-        let authorizer = authorizer();
+        let authorizer = authorizer(DenyAll);
 
         let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
 
-    #[test_case(&tests::publish_activity("device-1", "device-1", "$edgehub/some/topic"); "any edgehub prefixed topic")]
-    #[test_case(&tests::publish_activity("device-1", "device-1", "$iothub/some/topic"); "any iothub prefixed topic")]
     #[test_case(&tests::publish_activity("device-1", "device-1", "$downstream/some/topic"); "any downstream prefixed topics")]
     #[test_case(&tests::publish_activity("device-1", "device-1", "$upstream/some/topic"); "any upstream prefixed topics")]
     #[test_case(&tests::publish_activity("device-1", "device-2", "$edgehub/device-1/twin/get"); "twin request for another client")]
@@ -434,15 +445,18 @@ mod tests {
     #[test_case(&tests::publish_activity("device-1", "device-1", "$SYS/foo"); "any system topic")]
     #[test_case(&tests::publish_activity("device-1", "device-1", "$CUSTOM/foo"); "any special topic")]
     fn it_forbids_to_publish_to(activity: &Activity) {
-        let authorizer = authorizer();
+        let authorizer = authorizer(AllowAll);
 
         let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    fn authorizer() -> IotHubAuthorizer<DenyAll> {
-        let mut authorizer = IotHubAuthorizer::new(DenyAll);
+    fn authorizer<Z>(inner: Z) -> IotHubAuthorizer<Z>
+    where
+        Z: Authorizer,
+    {
+        let mut authorizer = IotHubAuthorizer::new(inner);
 
         let service_identity = ServiceIdentity {
             identity: "device-1".to_string(),
