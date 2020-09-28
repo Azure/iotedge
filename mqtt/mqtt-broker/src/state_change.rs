@@ -176,7 +176,7 @@ mod tests {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
         let client_info = ClientInfo::new(
-            "client_id".into(),
+            "client_id",
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
             AuthId::from("authId1"),
         );
@@ -273,7 +273,7 @@ mod tests {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
         let client_info = ClientInfo::new(
-            "client_id".into(),
+            "client_id",
             SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
             AuthId::from("authId1"),
         );

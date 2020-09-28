@@ -484,11 +484,8 @@ mod tests {
     }
 
     fn activity(operation: Operation, client_id: &str, auth_id: impl Into<AuthId>) -> Activity {
-        let client_info = ClientInfo::new(
-            client_id.into(),
-            "10.0.0.1:12345".parse().unwrap(),
-            auth_id.into(),
-        );
+        let client_info =
+            ClientInfo::new(client_id, "10.0.0.1:12345".parse().unwrap(), auth_id.into());
         Activity::new(client_info, operation)
     }
 }

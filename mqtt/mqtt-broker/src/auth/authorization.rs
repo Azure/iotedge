@@ -257,7 +257,7 @@ mod tests {
     fn default_auth_always_deny_any_action() {
         let auth = DenyAll;
         let activity = Activity::new(
-            ClientInfo::new("client-auth-id".into(), peer_addr(), "client-id"),
+            ClientInfo::new("client-auth-id", peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 
@@ -270,7 +270,7 @@ mod tests {
     fn authorizer_wrapper_around_function() {
         let auth = AllowAll;
         let activity = Activity::new(
-            ClientInfo::new("client-auth-id".into(), peer_addr(), "client-id"),
+            ClientInfo::new("client-auth-id", peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 

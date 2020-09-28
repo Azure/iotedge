@@ -89,9 +89,13 @@ pub struct ClientInfo {
 }
 
 impl ClientInfo {
-    pub fn new(client_id: ClientId, peer_addr: SocketAddr, auth_id: impl Into<AuthId>) -> Self {
+    pub fn new(
+        client_id: impl Into<ClientId>,
+        peer_addr: SocketAddr,
+        auth_id: impl Into<AuthId>,
+    ) -> Self {
         Self {
-            client_id,
+            client_id: client_id.into(),
             peer_addr,
             auth_id: auth_id.into(),
         }
