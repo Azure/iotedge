@@ -16,7 +16,7 @@ use futures_util::select;
 use futures_util::stream::FuturesUnordered;
 use futures_util::stream::StreamExt;
 use futures_util::stream::TryStreamExt;
-use mqtt3::{proto::Publication, Event, PublishHandle, ReceivedPublication};
+use mqtt3::{proto::Publication, Event, PublishHandle, ReceivedPublication, ShutdownError};
 use mqtt_broker::TopicFilter;
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::channel;
@@ -27,7 +27,7 @@ use tracing::error;
 use tracing::{debug, info, warn};
 
 use crate::{
-    client::{ClientError, EventHandler, MqttClient},
+    client::{ClientError, EventHandler, MqttClient, ShutdownHandle},
     persist::{
         MessageLoader, PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore,
     },
@@ -41,11 +41,15 @@ const MAX_INFLIGHT: usize = 16;
 pub enum PumpError {
     #[error("Failed to get publish handle from client.")]
     PublishHandle(#[from] ClientError),
+
+    #[error("Failed to get publish handle from client.")]
+    ClientShutdown(#[from] ShutdownError),
 }
 
 // TODO PRE: make this generic
 struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
+    client_shutdown: ShutdownHandle,
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
@@ -60,9 +64,11 @@ impl Pump {
         persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
     ) -> Result<Self, PumpError> {
         let publish_handle = client.publish_handle()?;
+        let client_shutdown = client.shutdown_handle()?;
 
         Ok(Self {
             client,
+            client_shutdown,
             publish_handle: publish_handle,
             subscriptions,
             loader,
@@ -71,14 +77,15 @@ impl Pump {
     }
 
     pub async fn run(self, shutdown: Receiver<()>) {
-        let (loader_shutdown, shutdown_rx) = oneshot::channel::<()>();
+        let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let mut senders = FuturesUnordered::new();
         let mut publish_handle = self.publish_handle;
         let loader = self.loader;
         let persist = self.persist.clone();
+        let mut client_shutdown = self.client_shutdown;
         let f1 = async move {
             let mut loader_lock = loader.lock().await;
-            match select(shutdown_rx, loader_lock.try_next()).await {
+            match select(loader_shutdown_rx, loader_lock.try_next()).await {
                 Either::Left((shutdown, loader_next)) => {
                     for sender in senders.iter_mut() {
                         sender.await;
@@ -97,14 +104,14 @@ impl Pump {
                             let mut persist = persist_copy.borrow_mut();
                             // TODO PRE: log error if this fails
                             if let Err(e) = publish_handle.publish(p.1).await {
-                                // TODO PRE: say which bridge
-                                error!(message = "failed publishing message for bridge", err = %e);
+                                // TODO PRE: say which bridge pump
+                                error!(message = "failed publishing message for bridge pump", err = %e);
                             } else {
                                 // TODO PRE: should we be retrying?
                                 // if this failure is due to something that will keep failing it is probably safer to remove and never try again
                                 if let Err(e) = persist.remove(p.0) {
                                     // TODO PRE: give context to error
-                                    error!(message = "failed to remove message from store", err = %e);
+                                    error!(message = "failed to remove message from store for bridge pump", err = %e);
                                 }
                             }
                         };
@@ -125,17 +132,25 @@ impl Pump {
         pin_mut!(f2);
 
         select! {
-            _ = f1 => {},
-            _ = f2 => {},
-            _ = shutdown => {},
+            _ = f1 => {
+                error!(message = "publish loop failed and exited for bridge pump");
+            },
+            _ = f2 => {
+                error!(message = "incoming message loop failed and exited for bridge pump");
+            },
+            _ = shutdown => {
+                if let Err(e) = client_shutdown.shutdown().await {
+                    error!(message = "failed to shutdown incoming message loop for bridge pump", err = %e);
+                }
+
+                if let Err(e) = loader_shutdown.send(()) {
+                    error!(message = "failed to shutdown publish loop for bridge pump");
+                }
+            },
         }
 
-        // let double_pump = select(f1, f2);
-
-        // match select(double_pump, shutdown).await {
-        //     Either::Left((_, _)) => {}
-        //     Either::Right((_, _)) => {}
-        // };
+        f1.await;
+        f2.await;
     }
 
     /*
@@ -143,7 +158,7 @@ impl Pump {
         fn run() {
             let store = PublicationStore::disk();
             let loader = store.loader();
-             let senders = FutureUnordered::new();
+            let senders = FutureUnordered::new();
             loop {
                 if senders.len() < MAX_INFLIGHT {
                     let fut = async {
