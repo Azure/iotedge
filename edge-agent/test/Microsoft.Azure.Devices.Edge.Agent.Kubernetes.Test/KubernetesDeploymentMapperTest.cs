@@ -50,6 +50,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IpcMode = "private"
         };
 
+        static readonly HostConfig HostNetworkModeHostConfig = new HostConfig
+        {
+            NetworkMode = "host"
+        };
+
+        static readonly HostConfig BridgeNetworkModeHostConfig = new HostConfig
+        {
+            NetworkMode = "bridge"
+        };
+
         static readonly KubernetesModuleOwner EdgeletModuleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
 
         [Fact]
@@ -761,6 +771,57 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Assert.NotNull(deployment);
             Assert.Equal(false, deployment.Spec.Template.Spec.HostIPC);
+        }
+
+        [Fact]
+        public void NoNetworkModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Null(deployment.Spec.Template.Spec.HostNetwork);
+            Assert.Null(deployment.Spec.Template.Spec.DnsPolicy);
+        }
+
+        [Fact]
+        public void HostNetworkModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: HostNetworkModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(true, deployment.Spec.Template.Spec.HostNetwork);
+            Assert.Equal("ClusterFirstWithHostNet", deployment.Spec.Template.Spec.DnsPolicy);
+        }
+
+        [Fact]
+        public void BridgeNetworkModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: BridgeNetworkModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(false, deployment.Spec.Template.Spec.HostNetwork);
+            Assert.Null(deployment.Spec.Template.Spec.DnsPolicy);
         }
 
         static KubernetesDeploymentMapper CreateMapper(
