@@ -8,24 +8,24 @@ pub(crate) fn get_host_connect_upstream_tests() -> Vec<Box<dyn Checker>> {
     vec![
         make_check(
             "host-connect-upstream-amqp",
-            "host can connect to and perform TLS handshake with IoT Hub AMQP port",
+            "host can connect to and perform TLS handshake with upstream AMQP port",
             UpstreamProtocolPort::Amqp,
         ),
         make_check(
             "host-connect-upstream-https",
-            "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
+            "host can connect to and perform TLS handshake with upstream HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
         ),
         make_check(
             "host-connect-upstream-mqtt",
-            "host can connect to and perform TLS handshake with IoT Hub MQTT port",
+            "host can connect to and perform TLS handshake with upstream MQTT port",
             UpstreamProtocolPort::Mqtt,
         ),
     ]
 }
 
 #[derive(serde_derive::Serialize)]
-pub(crate) struct HostConnectIotHub {
+pub(crate) struct HostConnectUpstream {
     port_number: u16,
     upstream_hostname: Option<String>,
     proxy: Option<String>,
@@ -35,7 +35,7 @@ pub(crate) struct HostConnectIotHub {
     description: &'static str,
 }
 
-impl Checker for HostConnectIotHub {
+impl Checker for HostConnectUpstream {
     fn id(&self) -> &'static str {
         self.id
     }
@@ -51,7 +51,7 @@ impl Checker for HostConnectIotHub {
     }
 }
 
-impl HostConnectIotHub {
+impl HostConnectUpstream {
     fn inner_execute(
         &mut self,
         check: &mut Check,
@@ -104,8 +104,8 @@ fn make_check(
     id: &'static str,
     description: &'static str,
     upstream_protocol_port: UpstreamProtocolPort,
-) -> Box<HostConnectIotHub> {
-    Box::new(HostConnectIotHub {
+) -> Box<HostConnectUpstream> {
+    Box::new(HostConnectUpstream {
         id,
         description,
         port_number: upstream_protocol_port.as_port(),

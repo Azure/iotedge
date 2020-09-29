@@ -9,39 +9,39 @@ pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
         #[cfg(unix)]
         make_check(
             "container-default-connect-upstream-amqp",
-            "container on the default network can connect to IoT Hub AMQP port",
+            "container on the default network can connect to upstream  AMQP port",
             UpstreamProtocolPort::Amqp,
             false,
         ),
         #[cfg(unix)]
         make_check(
             "container-default-connect-upstream-https",
-            "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
+            "container on the default network can connect to upstream HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
             false,
         ),
         #[cfg(unix)]
         make_check(
             "container-default-connect-upstream-mqtt",
-            "container on the default network can connect to IoT Hub MQTT port",
+            "container on the default network can connect to upstream MQTT port",
             UpstreamProtocolPort::Mqtt,
             false,
         ),
         make_check(
             "container-connect-upstream-amqp",
-            "container on the IoT Edge module network can connect to IoT Hub AMQP port",
+            "container on the IoT Edge module network can connect to upstream AMQP port",
             UpstreamProtocolPort::Amqp,
             true,
         ),
         make_check(
             "container-connect-upstream-https",
-            "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
+            "container on the IoT Edge module network can connect to upstream HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
             true,
         ),
         make_check(
             "container-connect-upstream-mqtt",
-            "container on the IoT Edge module network can connect to IoT Hub MQTT port",
+            "container on the IoT Edge module network can connect to upstream MQTT port",
             UpstreamProtocolPort::Mqtt,
             true,
         ),
@@ -115,7 +115,7 @@ impl ContainerConnectUpstream {
             &check.diagnostics_image_name,
             "dotnet",
             "IotedgeDiagnosticsDotnet.dll",
-            "iothub",
+            "upstream",
             "--hostname",
             upstream_hostname,
             "--port",

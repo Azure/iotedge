@@ -37,24 +37,6 @@ impl ConnectManagementUri {
             return Ok(CheckResult::Skipped);
         };
 
-        //If check.diagnostics_image_name starts with /azureiotedge-diagnostics:xx, it means the default name is used.
-        // Then if parent_hostname is defined, by default, the image address is parent_hostname/azureiotedge-diagnostics:xx,
-        // Otherwise mcr.microsoft.com/azureiotedge-diagnostics:xx
-        let diagnostics_image_name = if check
-            .diagnostics_image_name
-            .starts_with("/azureiotedge-diagnostics:")
-        {
-            if let Some(hub_hostname) = settings.parent_hostname() {
-                hub_hostname.to_string() + &check.diagnostics_image_name
-            } else if check.iothub_hostname.is_some() {
-                String::from("mcr.microsoft.com") + &check.diagnostics_image_name
-            } else {
-                return Ok(CheckResult::Skipped);
-            }
-        } else {
-            check.diagnostics_image_name.clone()
-        };
-
         let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
             docker_host_arg
         } else {
@@ -78,42 +60,42 @@ impl ConnectManagementUri {
         }
 
         match (connect_management_uri.scheme(), listen_management_uri.scheme()) {
-            ("http", "http") => (),
+        ("http", "http") => (),
 
-            ("unix", "unix") | ("unix", "fd") => {
-                args.push(Cow::Borrowed(OsStr::new("-v")));
+        ("unix", "unix") | ("unix", "fd") => {
+            args.push(Cow::Borrowed(OsStr::new("-v")));
 
-                let socket_path =
-                    connect_management_uri.to_uds_file_path()
-                    .context("Could not parse connect.management_uri: does not represent a valid file path")?;
+            let socket_path =
+                connect_management_uri.to_uds_file_path()
+                .context("Could not parse connect.management_uri: does not represent a valid file path")?;
 
-                // On Windows we mount the parent folder because we can't mount the socket files directly
-                #[cfg(windows)]
-                let socket_path =
-                    socket_path.parent()
-                    .ok_or_else(|| Context::new("Could not parse connect.management_uri: does not have a parent directory"))?;
+            // On Windows we mount the parent folder because we can't mount the socket files directly
+            #[cfg(windows)]
+            let socket_path =
+                socket_path.parent()
+                .ok_or_else(|| Context::new("Could not parse connect.management_uri: does not have a parent directory"))?;
 
-                let socket_path =
-                    socket_path.to_str()
-                    .ok_or_else(|| Context::new("Could not parse connect.management_uri: file path is not valid utf-8"))?;
+            let socket_path =
+                socket_path.to_str()
+                .ok_or_else(|| Context::new("Could not parse connect.management_uri: file path is not valid utf-8"))?;
 
-                args.push(Cow::Owned(format!("{}:{}", socket_path, socket_path).into()));
-            },
+            args.push(Cow::Owned(format!("{}:{}", socket_path, socket_path).into()));
+        },
 
-            (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
-                format!(
-                    "config.yaml has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
-                    scheme1, scheme2,
-                ))
-                .into()),
+        (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
+            format!(
+                "config.yaml has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
+                scheme1, scheme2,
+            ))
+            .into()),
 
-            (scheme, _) => return Err(Context::new(
-                format!("Could not parse connect.management_uri: scheme {} is invalid", scheme),
-            ).into()),
-        }
+        (scheme, _) => return Err(Context::new(
+            format!("Could not parse connect.management_uri: scheme {} is invalid", scheme),
+        ).into()),
+    }
 
         args.extend(vec![
-            Cow::Borrowed(OsStr::new(&diagnostics_image_name)),
+            Cow::Borrowed(OsStr::new(&check.diagnostics_image_name)),
             Cow::Borrowed(OsStr::new("dotnet")),
             Cow::Borrowed(OsStr::new("IotedgeDiagnosticsDotnet.dll")),
             Cow::Borrowed(OsStr::new("edge-agent")),
