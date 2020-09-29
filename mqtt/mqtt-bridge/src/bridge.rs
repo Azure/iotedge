@@ -2,6 +2,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::{collections::HashMap, convert::TryInto};
 
+use futures_util::future::select;
+use futures_util::future::Either;
+use futures_util::pin_mut;
 use mqtt3::ShutdownError;
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::Sender;
@@ -138,7 +141,7 @@ impl Bridge {
         (key, topic.clone())
     }
 
-    pub async fn start(&mut self) -> Result<BridgeShutdownHandle, BridgeError> {
+    pub async fn start(&mut self) -> Result<(), BridgeError> {
         info!("Starting bridge...{}", self.connection_settings.name());
 
         let (local_shutdown, local_shutdown_listener) = oneshot::channel::<()>();
@@ -148,10 +151,21 @@ impl Bridge {
             remote_shutdown,
         };
 
-        self.local_pump.run(local_shutdown_listener).await;
-        self.remote_pump.run(remote_shutdown_listener).await;
+        let local_pump = self.local_pump.run(local_shutdown_listener);
+        let remote_pump = self.remote_pump.run(remote_shutdown_listener);
+        pin_mut!(local_pump);
+        pin_mut!(remote_pump);
 
-        Ok(shutdown_handle)
+        match select(local_pump, remote_pump).await {
+            Either::Left(_) => {
+                shutdown_handle.shutdown().await?;
+            }
+            Either::Right(_) => {
+                shutdown_handle.shutdown().await?;
+            }
+        }
+
+        Ok(())
     }
 }
 
