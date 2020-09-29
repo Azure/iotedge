@@ -1,6 +1,6 @@
 REM ECDSA scripts
 REM ###############################################################################
-REM This script generates test certs and keys for Content Trust feature 
+REM This script generates test certs and keys for Manifest Trust feature 
 REM
 REM !!!MUST not be used in production!!!
 REM ###############################################################################

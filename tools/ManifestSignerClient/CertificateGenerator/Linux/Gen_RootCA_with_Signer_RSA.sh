@@ -1,6 +1,6 @@
 #!/bin/bash
 ###############################################################################
-# This script generates test certs and keys for Content Trust feature 
+# This script generates test certs and keys for Manifest Trust feature 
 #
 # MUST not be used in production
 ###############################################################################
