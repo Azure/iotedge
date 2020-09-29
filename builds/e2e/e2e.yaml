@@ -75,6 +75,10 @@ jobs:
       artifactName: iotedged-windows
 
     steps:
+    - pwsh: |
+        Remove-Item –path C:\ProgramData\iotedge\hsm –recurse
+      displayName: Clean up HSM previous run artifacts
+
     - template: templates/e2e-setup.yaml
 
     - pwsh: |
@@ -96,6 +100,7 @@ jobs:
         netsh interface ipv6 show prefixpolicies
       displayName: Prefer IPv4
 
+    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################	
