@@ -413,7 +413,6 @@ mod tests {
 
         if online {
             Session::new_persistent(
-                AuthId::Anonymous,
                 ConnReq::new(
                     id.into(),
                     peer_addr(),

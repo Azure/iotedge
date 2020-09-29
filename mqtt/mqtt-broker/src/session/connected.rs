@@ -5,14 +5,13 @@ use tracing::warn;
 use mqtt3::proto;
 
 use crate::{
-    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientInfo,
-    ConnectionHandle, Error, Message, SessionState,
+    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ConnectionHandle, Error,
+    Message, SessionState,
 };
 
 #[derive(Debug)]
 pub struct ConnectedSession {
     state: SessionState,
-    client_info: ClientInfo,
     will: Option<proto::Publication>,
     handle: ConnectionHandle,
 }
@@ -20,20 +19,14 @@ pub struct ConnectedSession {
 impl ConnectedSession {
     pub fn new(
         state: SessionState,
-        client_info: ClientInfo,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
             state,
-            client_info,
             will,
             handle,
         }
-    }
-
-    pub fn client_info(&self) -> &ClientInfo {
-        &self.client_info
     }
 
     pub fn handle(&self) -> &ConnectionHandle {
@@ -42,6 +35,10 @@ impl ConnectedSession {
 
     pub fn snapshot(&self) -> SessionSnapshot {
         self.state.clone().into()
+    }
+
+    pub fn state(&self) -> &SessionState {
+        &self.state
     }
 
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {

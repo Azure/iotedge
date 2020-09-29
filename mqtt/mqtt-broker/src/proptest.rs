@@ -158,7 +158,10 @@ pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
 }
 
 pub fn arb_auth_id() -> impl Strategy<Value = AuthId> {
-    "[a-zA-Z0-9]{1,23}".prop_map(AuthId::from)
+    prop_oneof![
+        "[a-zA-Z0-9]{1,23}".prop_map(AuthId::from),
+        Just(AuthId::Anonymous)
+    ]
 }
 
 pub fn arb_ip() -> impl Strategy<Value = IpAddr> {
