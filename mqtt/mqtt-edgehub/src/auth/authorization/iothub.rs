@@ -251,17 +251,22 @@ where
     }
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
-        if let Ok(service_identities) = update.downcast::<Vec<ServiceIdentity>>() {
-            debug!(
-                "service identities update received. Service identities: {:?}",
-                service_identities
-            );
+        match update.downcast::<Vec<ServiceIdentity>>() {
+            Ok(service_identities) => {
+                debug!(
+                    "service identities update received. Service identities: {:?}",
+                    service_identities
+                );
 
-            self.service_identities_cache = service_identities
-                .into_iter()
-                .map(|id| (id.identity().into(), id))
-                .collect();
-        }
+                self.service_identities_cache = service_identities
+                    .into_iter()
+                    .map(|id| (id.identity().into(), id))
+                    .collect();
+            }
+            Err(update) => {
+                self.inner.update(update)?;
+            }
+        };
         Ok(())
     }
 }
