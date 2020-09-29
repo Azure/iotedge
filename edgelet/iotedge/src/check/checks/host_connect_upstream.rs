@@ -4,20 +4,20 @@ use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
 
-pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
+pub(crate) fn get_host_connect_upstream_tests() -> Vec<Box<dyn Checker>> {
     vec![
         make_check(
-            "host-connect-iothub-amqp",
+            "host-connect-upstream-amqp",
             "host can connect to and perform TLS handshake with IoT Hub AMQP port",
             UpstreamProtocolPort::Amqp,
         ),
         make_check(
-            "host-connect-iothub-https",
+            "host-connect-upstream-https",
             "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
         ),
         make_check(
-            "host-connect-iothub-mqtt",
+            "host-connect-upstream-mqtt",
             "host can connect to and perform TLS handshake with IoT Hub MQTT port",
             UpstreamProtocolPort::Mqtt,
         ),
@@ -27,7 +27,7 @@ pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
 #[derive(serde_derive::Serialize)]
 pub(crate) struct HostConnectIotHub {
     port_number: u16,
-    hub_hostname: Option<String>,
+    upstream_hostname: Option<String>,
     proxy: Option<String>,
     #[serde(skip)]
     id: &'static str,
@@ -64,16 +64,16 @@ impl HostConnectIotHub {
         };
 
         let parent_hostname: String;
-        let hub_hostname = if let Some(hub_hostname) = settings.parent_hostname() {
-            parent_hostname = hub_hostname.to_string();
+        let upstream_hostname = if let Some(upstream_hostname) = settings.parent_hostname() {
+            parent_hostname = upstream_hostname.to_string();
             &parent_hostname
-        } else if let Some(hub_hostname) = &check.iothub_hostname {
-            hub_hostname
+        } else if let Some(iothub_hostname) = &check.iothub_hostname {
+            iothub_hostname
         } else {
             return Ok(CheckResult::Skipped);
         };
 
-        self.hub_hostname = Some(hub_hostname.clone());
+        self.upstream_hostname = Some(upstream_hostname.clone());
 
         self.proxy = check
             .settings
@@ -83,16 +83,16 @@ impl HostConnectIotHub {
         if let Some(proxy) = &self.proxy {
             runtime.block_on(
                 super::host_connect_dps_endpoint::resolve_and_tls_handshake_proxy(
-                    hub_hostname.clone(),
+                    upstream_hostname.clone(),
                     Some(self.port_number),
                     proxy.clone(),
                 ),
             )?;
         } else {
             super::host_connect_dps_endpoint::resolve_and_tls_handshake(
-                &(&**hub_hostname, self.port_number),
-                hub_hostname,
-                &format!("{}:{}", hub_hostname, self.port_number),
+                &(&**upstream_hostname, self.port_number),
+                upstream_hostname,
+                &format!("{}:{}", upstream_hostname, self.port_number),
             )?;
         }
 
@@ -109,7 +109,7 @@ fn make_check(
         id,
         description,
         port_number: upstream_protocol_port.as_port(),
-        hub_hostname: None,
+        upstream_hostname: None,
         proxy: None,
     })
 }
