@@ -15,13 +15,13 @@ use mqtt_broker::{
 ///
 /// For non-iothub-specific primitives it delegates the request to an inner authorizer (`PolicyAuthorizer`).
 #[derive(Debug)]
-pub struct IotHubAuthorizer<Z> {
+pub struct EdgeHubAuthorizer<Z> {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
     service_identities_cache: HashMap<ClientId, ServiceIdentity>,
     inner: Z,
 }
 
-impl<Z, E> IotHubAuthorizer<Z>
+impl<Z, E> EdgeHubAuthorizer<Z>
 where
     Z: Authorizer<Error = E>,
     E: StdError,
@@ -235,7 +235,7 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
     ]
 }
 
-impl<Z, E> Authorizer for IotHubAuthorizer<Z>
+impl<Z, E> Authorizer for EdgeHubAuthorizer<Z>
 where
     Z: Authorizer<Error = E>,
     E: StdError,
@@ -312,7 +312,7 @@ mod tests {
 
     use crate::auth::authorization::tests;
 
-    use super::IotHubAuthorizer;
+    use super::EdgeHubAuthorizer;
     use super::ServiceIdentity;
 
     #[test_case(&tests::connect_activity("device-1", AuthId::Anonymous); "anonymous clients")]
@@ -382,7 +382,7 @@ mod tests {
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic subscribe")]
     fn it_delegates_to_inner(activity: &Activity) {
         let inner = authorize_fn_ok(|_| Authorization::Forbidden("not allowed inner".to_string()));
-        let authorizer = IotHubAuthorizer::new(inner);
+        let authorizer = EdgeHubAuthorizer::new(inner);
 
         let auth = authorizer.authorize(&activity);
 
@@ -458,11 +458,11 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    fn authorizer<Z>(inner: Z) -> IotHubAuthorizer<Z>
+    fn authorizer<Z>(inner: Z) -> EdgeHubAuthorizer<Z>
     where
         Z: Authorizer,
     {
-        let mut authorizer = IotHubAuthorizer::new(inner);
+        let mut authorizer = EdgeHubAuthorizer::new(inner);
 
         let service_identity = ServiceIdentity {
             identity: "device-1".to_string(),
