@@ -291,7 +291,7 @@ impl<T: EventHandler> MqttClient<T> {
         }
     }
 
-    fn get_token_source(connection_credentials: &Credentials) -> Option<SasTokenSource> {
+    fn token_source(connection_credentials: &Credentials) -> Option<SasTokenSource> {
         match connection_credentials {
             Credentials::Provider(_) | Credentials::PlainText(_) => {
                 Some(SasTokenSource::new(connection_credentials.clone()))
