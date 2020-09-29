@@ -21,7 +21,6 @@ use tokio::{
 };
 use tracing::{error, info, warn};
 
-use mqtt_bridge::BridgeController;
 use mqtt_broker::{
     auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerSnapshot, Server,
     ServerCertificate,
@@ -188,11 +187,6 @@ async fn start_sidecars(
 ) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
     let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
     let device_id = env::var(DEVICE_ID_ENV)?;
-
-    let mut bridge_controller = BridgeController::new();
-    bridge_controller
-        .start(system_address.clone(), device_id.clone().as_str())
-        .await?;
 
     let sidecars = tokio::spawn(async move {
         let mut command_handler = CommandHandler::new(system_address, device_id.as_str());

@@ -2,26 +2,33 @@ mod bootstrap;
 mod shutdown;
 mod snapshot;
 
-use std::{fs, path::Path};
+use std::{env, fs, path::Path};
 
 use anyhow::{Context, Result};
-use futures_util::pin_mut;
+use futures_util::{
+    future::{select, Either},
+    pin_mut,
+};
 use tokio::{
     task::JoinHandle,
     time::{Duration, Instant},
 };
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
+use mqtt_bridge::BridgeController;
 use mqtt_broker::{
-    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
+    BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
     StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
+
+const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
     P: AsRef<Path>,
 {
     let config = bootstrap::config(config_path).context(LoadConfigurationError)?;
+    let system_address = config.listener().system().addr().to_string();
 
     info!("loading state...");
     let persistence_config = config.broker().persistence();
@@ -43,7 +50,33 @@ where
     pin_mut!(shutdown);
 
     info!("starting server...");
-    let state = bootstrap::start_server(config, broker, shutdown).await?;
+    let server_fut = bootstrap::start_server(config, broker, shutdown);
+
+    info!("starting bridge controller...");
+    let device_id = env::var(DEVICE_ID_ENV)?;
+    let mut bridge_controller = BridgeController::new();
+    let bridge_controller_fut = bridge_controller.start(system_address, device_id.as_str());
+
+    pin_mut!(bridge_controller_fut);
+    pin_mut!(server_fut);
+    let state: BrokerSnapshot = match select(server_fut, bridge_controller_fut).await {
+        Either::Left((server_output, bridge_fut)) => {
+            if let Err(e) = bridge_fut.await {
+                error!(message = "bridge failed to exit gracefully", err = %e);
+            }
+
+            let state = server_output?;
+            state
+        }
+        Either::Right((bridge_output, server_fut)) => {
+            if let Err(e) = bridge_output {
+                error!(message = "bridge failed to exit gracefully", err = %e);
+            }
+
+            let state = server_fut.await?;
+            state
+        }
+    };
 
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;
