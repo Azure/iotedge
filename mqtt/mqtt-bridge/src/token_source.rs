@@ -28,7 +28,7 @@ impl SasTokenSource {
         SasTokenSource { creds }
     }
 
-    async fn get_token_from_workload(
+    async fn generate_sas_token(
         &self,
         provider_settings: &CredentialProviderSettings,
         expiry: &DateTime<Utc>,
