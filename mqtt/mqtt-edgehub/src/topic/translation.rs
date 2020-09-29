@@ -262,11 +262,11 @@ translate_c2d! {
     // Module-to-Module inputs
     module_to_module_inputs {
         to_internal {
-            format!("devices/{}/modules/{}/#", DEVICE_ID, MODULE_ID),
-            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/inputs/#", &captures["device_id"], &captures["module_id"])}
+            format!("devices/{}/modules/{}/inputs/(?P<path>.+)", DEVICE_ID, MODULE_ID),
+            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/inputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
         },
         to_external {
-            format!("\\$edgehub/{}/{}/inputs/(?P<path>.*)", DEVICE_ID, MODULE_ID),
+            format!("\\$edgehub/{}/{}/inputs/(?P<path>.+)", DEVICE_ID, MODULE_ID),
             {|captures: regex::Captures<'_>| format!("devices/{}/modules/{}/inputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
         }
     }
@@ -507,8 +507,15 @@ mod tests {
 
         // M2M subscription
         assert_eq!(
-            c2d.to_internal("devices/device_1/modules/module_a/#", &client_id),
+            c2d.to_internal("devices/device_1/modules/module_a/inputs/#", &client_id),
             Some("$edgehub/device_1/module_a/inputs/#".to_owned())
+        );
+        assert_eq!(
+            c2d.to_internal(
+                "devices/device_1/modules/module_a/inputs/telemetry/?rid=1",
+                &client_id
+            ),
+            Some("$edgehub/device_1/module_a/inputs/telemetry/?rid=1".to_owned())
         );
 
         // M2M incoming
