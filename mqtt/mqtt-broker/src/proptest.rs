@@ -1,4 +1,4 @@
-#![cfg(test)]
+#[cfg(any(test, feature = "proptest"))]
 use std::time::Duration;
 
 use bytes::Bytes;
