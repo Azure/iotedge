@@ -83,12 +83,12 @@ impl IoSource for BridgeIoSource {
     type Io = Pin<Box<dyn BridgeIo>>;
     type Error = Error;
     #[allow(clippy::type_complexity)]
-    type Future = BoxFuture<'static, Result<(Self::Io, Option<String>), Error>>;
+    type Future = BoxFuture<'static, Result<(Self::Io, Option<String>), Self::Error>>;
 
     fn connect(&mut self) -> Self::Future {
         match self {
             BridgeIoSource::Tcp(connect_settings) => Self::get_tcp_source(connect_settings.clone()),
-            BridgeIoSource::Tls(connect_settings) => Self::get_tls_source(&connect_settings),
+            BridgeIoSource::Tls(connect_settings) => Self::get_tls_source(connect_settings.clone()),
         }
     }
 }
@@ -119,7 +119,7 @@ impl BridgeIoSource {
         })
     }
 
-    fn get_tls_source(connection_settings: &TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
+    fn get_tls_source(connection_settings: TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
         let address = connection_settings.address.clone();
         let token_source = connection_settings.token_source.as_ref().cloned();
         let trust_bundle_source = connection_settings.trust_bundle_source.clone();
@@ -165,32 +165,24 @@ impl BridgeIoSource {
                     builder.build()
                 })
                 .and_then(|conn| conn.configure())
-                .ok();
+                .map_err(|e| Error::new(ErrorKind::NotConnected, e))?;
 
             let hostname = address.split(':').next().unwrap_or(&address);
 
-            let res = if let Some(c) = config {
-                let io = tokio_openssl::connect(c, &hostname, stream).await;
+            let io = tokio_openssl::connect(config, &hostname, stream).await;
 
-                debug!("Tls connection {:?} for {:?}", io, address);
+            debug!("Tls connection {:?} for {:?}", io, address);
 
-                io.map(|io| {
-                    let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
-                    Ok((stream, password))
-                })
-                .ok()
-            } else {
-                None
-            };
-
-            res.map_or(
-                Err(Error::new(ErrorKind::Other, "could not connect")),
-                |io| io,
-            )
+            io.map(|io| {
+                let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
+                Ok((stream, password))
+            })
+            .map_err(|e| Error::new(ErrorKind::NotConnected, e))?
         })
     }
 }
 
+/// This is a wrapper over mqtt3 client
 pub struct MqttClient<T>
 where
     T: EventHandler,
@@ -204,6 +196,24 @@ where
 }
 
 impl<T: EventHandler> MqttClient<T> {
+    // pub fn tcp(
+    //     address: &str,
+    //     keep_alive: Duration,
+    //     _clean_session: bool,
+    //     event_handler: T,
+    //     connection_credentials: &Credentials,
+    // ) -> Self {
+    // }
+
+    // pub fn tls(
+    //     address: &str,
+    //     keep_alive: Duration,
+    //     _clean_session: bool,
+    //     event_handler: T,
+    //     connection_credentials: &Credentials,
+    // ) -> Self {
+    // }
+
     pub fn new(
         address: &str,
         keep_alive: Duration,
