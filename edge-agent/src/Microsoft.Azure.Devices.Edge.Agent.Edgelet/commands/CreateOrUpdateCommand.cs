@@ -169,13 +169,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 }
 
                 envVars.Add(new EnvVar(Constants.ModeKey, Constants.IotedgedMode));
-            }
 
-            // Set the edgelet's api version
-            string apiVersion = configSource.Configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
-            if (!string.IsNullOrEmpty(apiVersion))
+                string apiVersion = configSource.Configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
+                if (!string.IsNullOrEmpty(apiVersion))
+                {
+                    envVars.Add(new EnvVar(Constants.EdgeletApiVersionVariableName, apiVersion));
+                }
+            }
+            else
             {
-                envVars.Add(new EnvVar(Constants.EdgeletApiVersionVariableName, apiVersion));
+                // Fix the api version for modules to current Workload API version.
+                envVars.Add(new EnvVar(Constants.EdgeletApiVersionVariableName, Constants.WorkloadApiVersion));
             }
 
             return envVars;
