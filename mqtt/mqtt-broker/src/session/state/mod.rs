@@ -90,6 +90,10 @@ impl SessionState {
         &self.client_info
     }
 
+    pub fn set_client_info(&mut self, client_info: ClientInfo) {
+        self.client_info = client_info;
+    }
+
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
         &self.subscriptions
     }
@@ -110,10 +114,6 @@ impl SessionState {
 
     pub(super) fn waiting_to_be_sent_mut(&mut self) -> &mut BoundedQueue {
         &mut self.waiting_to_be_sent
-    }
-
-    pub fn set_client_info(&mut self, client_info: ClientInfo) {
-        self.client_info = client_info;
     }
 
     pub fn update_subscription(

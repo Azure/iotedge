@@ -811,9 +811,8 @@ where
         let (mut state, _will, handle) = current_connected.into_parts();
         let old_session = Session::new_disconnecting(state.client_info().clone(), None, handle);
         let client_id = connreq.client_id().clone();
-        let new_client_info = ClientInfo::new(client_id, connreq.peer_addr(), auth_id);
+        let new_client_info = ClientInfo::new(client_id.clone(), connreq.peer_addr(), auth_id);
         state.set_client_info(new_client_info);
-        let client_id = connreq.client_id().clone();
 
         let (new_session, session_present) =
             if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
