@@ -281,36 +281,16 @@ fn identity_from_cert_key(user_name: &str, cert: &[u8], key: &[u8]) -> Result<Id
 }
 
 fn get_all_certs(raw_certs: Vec<u8>) -> Result<Vec<Certificate>> {
-    let all_certs = std::str::from_utf8(&raw_certs)
-        .context(ErrorKind::KubeConfig(KubeConfigErrorReason::StringConvert))?;
 
-    if all_certs.is_empty() {
-        return Err(Error::from(ErrorKind::KubeConfig(
-            KubeConfigErrorReason::NoRootData,
-        )));
+    let certs = X509::stack_from_pem(&raw_certs)
+        .context(ErrorKind::KubeConfig(KubeConfigErrorReason::LoadCertificate))?;
+    let mut result = Vec::with_capacity(certs.len());
+    for cert in certs {
+        let ssl_cert: Vec<u8> = cert.to_der().context(ErrorKind::KubeConfig(KubeConfigErrorReason::LoadCertificate))?;
+        let cert = Certificate::from_der(&ssl_cert).context(ErrorKind::KubeConfig(KubeConfigErrorReason::LoadCertificate))?;
+        result.push(cert);
     }
-
-    let mut certs = Vec::new();
-
-    // Extract each certificate's string. The final string from the split will either be empty
-    // or a non-certificate entry, so it is dropped.
-    let delimiter = "-----END CERTIFICATE-----";
-    let raw_certs: Vec<&str> = all_certs.split(delimiter).collect();
-    let len = raw_certs.len();
-    if len == 1 {
-        return Err(Error::from(ErrorKind::KubeConfig(
-            KubeConfigErrorReason::NoRootData,
-        )));
-    }
-    for raw_cert in &raw_certs[..(len - 1)] {
-        let current_cert = format!("{}{}", raw_cert, delimiter);
-        let cert = Certificate::from_pem(current_cert.as_bytes()).context(
-            ErrorKind::KubeConfig(KubeConfigErrorReason::LoadCertificate),
-        )?;
-
-        certs.push(cert);
-    }
-    Ok(certs)
+    Ok(result)
 }
 
 fn file_or_data_bytes(path: Option<&str>, data: Option<&str>) -> Result<Vec<u8>> {
