@@ -180,6 +180,7 @@ pub enum BridgeError {
     ClientShutdown(#[from] ShutdownError),
 }
 
+// TODO PRE: move to integration test
 // #[cfg(test)]
 // mod tests {
 //     use bytes::Bytes;
@@ -198,205 +199,48 @@ pub enum BridgeError {
 //     use crate::client::EventHandler;
 //     use crate::persist::PublicationStore;
 //     use crate::settings::Settings;
+/*
+pub struct Pump {
+    client: MqttClient<MessageHandler<WakingMemoryStore>>,
+    client_shutdown: ClientShutdownHandle,
+    publish_handle: PublishHandle,
+    subscriptions: Vec<String>,
+    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+    persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+}
+    */
+// #[tokio::test]
+// async fn bridge_new() {
+//     let settings = Settings::from_file("tests/config.json").unwrap();
+//     let connection_settings = settings.upstream().unwrap();
 
-//     // TODO PRE: move this test to pump
-//     #[tokio::test]
-//     async fn bridge_new() {
-//         let settings = Settings::from_file("tests/config.json").unwrap();
-//         let connection_settings = settings.upstream().unwrap();
+//     let bridge = Bridge::new(
+//         "localhost:5555".into(),
+//         "d1".into(),
+//         connection_settings.clone(),
+//     )
+//     .await
+//     .unwrap();
 
-//         let bridge = Bridge::new(
-//             "localhost:5555".into(),
-//             "d1".into(),
-//             connection_settings.clone(),
-//         );
+//     bridge.local_pump;
 
-//         let (key, value) = bridge.forwards.get_key_value("temp/#").unwrap();
-//         assert_eq!(key, "temp/#");
-//         assert_eq!(value.remote().unwrap(), "floor/kitchen");
-//         assert_eq!(value.local(), None);
+// let (key, value) = bridge.forwards.get_key_value("temp/#").unwrap();
+// assert_eq!(key, "temp/#");
+// assert_eq!(value.remote().unwrap(), "floor/kitchen");
+// assert_eq!(value.local(), None);
 
-//         let (key, value) = bridge.forwards.get_key_value("pattern/#").unwrap();
-//         assert_eq!(key, "pattern/#");
-//         assert_eq!(value.remote(), None);
+// let (key, value) = bridge.forwards.get_key_value("pattern/#").unwrap();
+// assert_eq!(key, "pattern/#");
+// assert_eq!(value.remote(), None);
 
-//         let (key, value) = bridge.forwards.get_key_value("local/floor/#").unwrap();
-//         assert_eq!(key, "local/floor/#");
-//         assert_eq!(value.local().unwrap(), "local");
-//         assert_eq!(value.remote().unwrap(), "remote");
+// let (key, value) = bridge.forwards.get_key_value("local/floor/#").unwrap();
+// assert_eq!(key, "local/floor/#");
+// assert_eq!(value.local().unwrap(), "local");
+// assert_eq!(value.remote().unwrap(), "remote");
 
-//         let (key, value) = bridge.subscriptions.get_key_value("temp/#").unwrap();
-//         assert_eq!(key, "temp/#");
-//         assert_eq!(value.remote().unwrap(), "floor/kitchen");
-//     }
+// let (key, value) = bridge.subscriptions.get_key_value("temp/#").unwrap();
+// assert_eq!(key, "temp/#");
+// assert_eq!(value.remote().unwrap(), "floor/kitchen");
+// }
 
-//     // TODO PRE: move below tests to message handler
-//     #[tokio::test]
-//     async fn message_handler_saves_message_with_local_and_forward_topic() {
-//         let batch_size: usize = 5;
-//         let settings = Settings::from_file("tests/config.json").unwrap();
-//         let connection_settings = settings.upstream().unwrap();
-
-//         let topics: Vec<TopicMapper> = connection_settings
-//             .forwards()
-//             .iter()
-//             .map(move |sub| TopicMapper {
-//                 topic_settings: sub.clone(),
-//                 topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-//             })
-//             .collect();
-
-//         let persistor = PublicationStore::new_memory(batch_size);
-//         let mut handler = MessageHandler::new(persistor, topics);
-
-//         let pub1 = ReceivedPublication {
-//             topic_name: "local/floor/1".to_string(),
-//             qos: QoS::AtLeastOnce,
-//             retain: true,
-//             payload: Bytes::new(),
-//             dup: false,
-//         };
-
-//         let expected = Publication {
-//             topic_name: "remote/floor/1".to_string(),
-//             qos: QoS::AtLeastOnce,
-//             retain: true,
-//             payload: Bytes::new(),
-//         };
-
-//         handler
-//             .handle_event(Event::Publication(pub1))
-//             .await
-//             .unwrap();
-
-//         let loader = handler.inner.loader();
-
-//         let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
-//         assert_eq!(extracted1.1, expected);
-//     }
-
-//     #[tokio::test]
-//     async fn message_handler_saves_message_with_forward_topic() {
-//         let batch_size: usize = 5;
-//         let settings = Settings::from_file("tests/config.json").unwrap();
-//         let connection_settings = settings.upstream().unwrap();
-
-//         let topics: Vec<TopicMapper> = connection_settings
-//             .forwards()
-//             .iter()
-//             .map(move |sub| TopicMapper {
-//                 topic_settings: sub.clone(),
-//                 topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-//             })
-//             .collect();
-
-//         let persistor = PublicationStore::new_memory(batch_size);
-//         let mut handler = MessageHandler::new(persistor, topics);
-
-//         let pub1 = ReceivedPublication {
-//             topic_name: "temp/1".to_string(),
-//             qos: QoS::AtLeastOnce,
-//             retain: true,
-//             payload: Bytes::new(),
-//             dup: false,
-//         };
-
-//         let expected = Publication {
-//             topic_name: "floor/kitchen/temp/1".to_string(),
-//             qos: QoS::AtLeastOnce,
-//             retain: true,
-//             payload: Bytes::new(),
-//         };
-
-//         handler
-//             .handle_event(Event::Publication(pub1))
-//             .await
-//             .unwrap();
-
-//         let loader = handler.inner.loader();
-
-//         let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
-//         assert_eq!(extracted1.1, expected);
-//     }
-
-//     #[tokio::test]
-//     async fn message_handler_saves_message_with_no_forward_mapping() {
-//         let batch_size: usize = 5;
-//         let settings = Settings::from_file("tests/config.json").unwrap();
-//         let connection_settings = settings.upstream().unwrap();
-
-//         let topics: Vec<TopicMapper> = connection_settings
-//             .forwards()
-//             .iter()
-//             .map(move |sub| TopicMapper {
-//                 topic_settings: sub.clone(),
-//                 topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-//             })
-//             .collect();
-
-//         let persistor = PublicationStore::new_memory(batch_size);
-//         let mut handler = MessageHandler::new(persistor, topics);
-
-//         let pub1 = ReceivedPublication {
-//             topic_name: "pattern/p1".to_string(),
-//             qos: QoS::AtLeastOnce,
-//             retain: true,
-//             payload: Bytes::new(),
-//             dup: false,
-//         };
-
-//         let expected = Publication {
-//             topic_name: "pattern/p1".to_string(),
-//             qos: QoS::AtLeastOnce,
-//             retain: true,
-//             payload: Bytes::new(),
-//         };
-
-//         handler
-//             .handle_event(Event::Publication(pub1))
-//             .await
-//             .unwrap();
-
-//         let loader = handler.inner.loader();
-
-//         let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
-//         assert_eq!(extracted1.1, expected);
-//     }
-
-//     #[tokio::test]
-//     async fn message_handler_no_topic_match() {
-//         let batch_size: usize = 5;
-//         let settings = Settings::from_file("tests/config.json").unwrap();
-//         let connection_settings = settings.upstream().unwrap();
-
-//         let topics: Vec<TopicMapper> = connection_settings
-//             .forwards()
-//             .iter()
-//             .map(move |sub| TopicMapper {
-//                 topic_settings: sub.clone(),
-//                 topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-//             })
-//             .collect();
-
-//         let persistor = PublicationStore::new_memory(batch_size);
-//         let mut handler = MessageHandler::new(persistor, topics);
-
-//         let pub1 = ReceivedPublication {
-//             topic_name: "local/temp/1".to_string(),
-//             qos: QoS::AtLeastOnce,
-//             retain: true,
-//             payload: Bytes::new(),
-//             dup: false,
-//         };
-
-//         handler
-//             .handle_event(Event::Publication(pub1))
-//             .await
-//             .unwrap();
-
-//         let loader = handler.inner.loader();
-
-//         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-//         futures_util::future::select(interval.next(), loader.lock().next()).await;
-//     }
 // }
