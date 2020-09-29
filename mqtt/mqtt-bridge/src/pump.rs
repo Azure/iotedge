@@ -65,44 +65,51 @@ impl Pump {
     pub async fn run(&mut self, shutdown: Receiver<()>) {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let mut senders = FuturesUnordered::new();
-        let mut publish_handle = self.publish_handle.clone();
+        let publish_handle = self.publish_handle.clone();
         let loader = self.loader.clone();
         let persist = self.persist.clone();
         let mut client_shutdown = self.client_shutdown.clone();
 
         let f1 = async move {
             let mut loader_lock = loader.lock().await;
-            match select(loader_shutdown_rx, loader_lock.try_next()).await {
-                Either::Left((shutdown, _)) => {
-                    if let Err(e) = shutdown {
-                        error!(message = "failed while signalling bridge pump shutdown", error = %e)
-                    }
+            let mut receive_fut = loader_shutdown_rx.into_stream();
 
-                    for sender in senders.iter_mut() {
-                        sender.await;
-                    }
-                }
-                Either::Right((p, _)) => {
-                    // TODO_PRE: handle publication error
-                    let p = p.unwrap().unwrap();
+            loop {
+                let mut publish_handle = publish_handle.clone();
+                match select(receive_fut.next(), loader_lock.try_next()).await {
+                    Either::Left((shutdown, _)) => {
+                        if let None = shutdown {
+                            error!(message = "unexpected behavior from shutdown signal while signalling bridge pump shutdown")
+                        }
 
-                    if senders.len() < MAX_INFLIGHT {
-                        let persist_copy = persist.clone();
-                        let fut = async move {
-                            let mut persist = persist_copy.borrow_mut();
-                            if let Err(e) = publish_handle.publish(p.1).await {
-                                error!(message = "failed publishing message for bridge pump", err = %e);
-                            } else {
-                                // TODO PRE: should we be retrying?
-                                // if this failure is due to something that will keep failing it is probably safer to remove and never try again
-                                if let Err(e) = persist.remove(p.0) {
-                                    error!(message = "failed to remove message from store for bridge pump", err = %e);
+                        for sender in senders.iter_mut() {
+                            sender.await;
+                        }
+
+                        break;
+                    }
+                    Either::Right((p, _)) => {
+                        // TODO_PRE: handle publication error
+                        let p = p.unwrap().unwrap();
+
+                        if senders.len() < MAX_INFLIGHT {
+                            let persist_copy = persist.clone();
+                            let fut = async move {
+                                let mut persist = persist_copy.borrow_mut();
+                                if let Err(e) = publish_handle.publish(p.1).await {
+                                    error!(message = "failed publishing message for bridge pump", err = %e);
+                                } else {
+                                    // TODO PRE: should we be retrying?
+                                    // if this failure is due to something that will keep failing it is probably safer to remove and never try again
+                                    if let Err(e) = persist.remove(p.0) {
+                                        error!(message = "failed to remove message from store for bridge pump", err = %e);
+                                    }
                                 }
-                            }
-                        };
-                        senders.push(Box::pin(fut));
-                    } else {
-                        senders.next().await;
+                            };
+                            senders.push(Box::pin(fut));
+                        } else {
+                            senders.next().await;
+                        }
                     }
                 }
             }
