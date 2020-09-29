@@ -115,14 +115,23 @@ impl Bridge {
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
-        let mut client = MqttClient::new(
-            address,
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
-            MessageHandler::new(topic_filters, BATCH_SIZE),
-            credentials,
-            secure,
-        );
+        let mut client = if secure {
+            MqttClient::tls(
+                address,
+                self.connection_settings.keep_alive(),
+                self.connection_settings.clean_session(),
+                MessageHandler::new(topic_filters, BATCH_SIZE),
+                credentials,
+            )
+        } else {
+            MqttClient::tcp(
+                address,
+                self.connection_settings.keep_alive(),
+                self.connection_settings.clean_session(),
+                MessageHandler::new(topic_filters, BATCH_SIZE),
+                credentials,
+            )
+        };
 
         debug!("subscribe to remote {:?}", subscriptions);
 
