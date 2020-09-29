@@ -39,7 +39,7 @@ steps:
     # Remove old images
     $remove = Invoke-Expression ($dockerCommand + " images --format '{{.Repository}}:{{.Tag}}'") `
         | where { $images -notcontains $_ }
-    Invoke-Expression ($dockerCommand + " rm -f $(docker ps -a -q)")
+    Invoke-Expression ($dockerCommand + " rm -f $(Invoke-Expression ($dockerCommand + " ps -a -q"))")
     $remove | foreach { Invoke-Expression ($dockerCommand + " rmi $_") }
 
     # Delete everything else
