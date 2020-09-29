@@ -17,7 +17,7 @@ use tracing::{error, info, warn};
 
 use mqtt_bridge::BridgeController;
 use mqtt_broker::{
-    BrokerHandle, BrokerSnapshot, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
+    BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
     StateSnapshotHandle, SystemEvent, VersionedFileFormat,
 };
 
@@ -59,7 +59,7 @@ where
 
     pin_mut!(bridge_controller_fut);
     pin_mut!(server_fut);
-    let state: BrokerSnapshot = match select(server_fut, bridge_controller_fut).await {
+    let state = match select(server_fut, bridge_controller_fut).await {
         Either::Left((server_output, bridge_fut)) => {
             if let Err(e) = bridge_fut.await {
                 error!(message = "bridge failed to exit gracefully", err = %e);
