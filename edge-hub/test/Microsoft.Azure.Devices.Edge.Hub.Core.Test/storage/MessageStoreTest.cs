@@ -232,7 +232,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         [InlineData(true)]
         public async Task CleanupTestTimeoutMultipleTTLs(bool checkEntireQueueOnCleanup)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore inMemoryDbStore) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 10);
+            Guid guid = Guid.NewGuid();
+            Console.WriteLine("GUID FOR TEST RUN: {}", guid);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore inMemoryDbStore) result = await this.GetMessageStore(checkEntireQueueOnCleanup, guid, 10);
             result.messageStore.SetTimeToLive(TimeSpan.FromSeconds(10));
             using (IMessageStore messageStore = result.messageStore)
             {
@@ -561,6 +563,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         }
 
         async Task<(IMessageStore, ICheckpointStore, InMemoryDbStore)> GetMessageStore(bool checkEntireQueueOnCleanup, int ttlSecs = 300)
+        {
+            var dbStoreProvider = new InMemoryDbStoreProvider();
+            IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+            InMemoryDbStore inMemoryDbStore = dbStoreProvider.GetDbStore("messages") as InMemoryDbStore;
+            ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
+            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs), checkEntireQueueOnCleanup);
+            await messageStore.AddEndpoint("module1");
+            await messageStore.AddEndpoint("module2");
+            return (messageStore, checkpointStore, inMemoryDbStore);
+        }
+
+        async Task<(IMessageStore, ICheckpointStore, InMemoryDbStore)> GetMessageStore(bool checkEntireQueueOnCleanup, Guid guid, int ttlSecs = 300)
         {
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);

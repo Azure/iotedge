@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using App.Metrics;
@@ -47,6 +48,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             this.timeToLive = timeToLive;
             this.checkpointStore = Preconditions.CheckNotNull(checkpointStore, nameof(checkpointStore));
             this.messagesCleaner = new CleanupProcessor(this, checkEntireQueueOnCleanup);
+            Events.MessageStoreCreated();
+        }
+
+        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, Guid guid, bool checkEntireQueueOnCleanup = false)
+        {
+            this.storeProvider = Preconditions.CheckNotNull(storeProvider);
+            this.messageEntityStore = this.storeProvider.GetEntityStore<string, MessageWrapper>(Constants.MessageStorePartitionKey);
+            this.endpointSequentialStores = new ConcurrentDictionary<string, ISequentialStore<MessageRef>>();
+            this.timeToLive = timeToLive;
+            this.checkpointStore = Preconditions.CheckNotNull(checkpointStore, nameof(checkpointStore));
+            this.messagesCleaner = new CleanupProcessor(this, checkEntireQueueOnCleanup, guid);
             Events.MessageStoreCreated();
         }
 
@@ -200,6 +212,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             readonly CancellationTokenSource cancellationTokenSource;
             readonly bool checkEntireQueueOnCleanup;
             readonly IMetricsCounter expiredCounter;
+            readonly Option<Guid> guid;
+
             Task cleanupTask;
 
             public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup)
@@ -212,6 +226,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                    "messages_dropped",
                    "Messages cleaned up because of TTL expired",
                    new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
+            }
+
+            public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup, Guid guid)
+            {
+                this.messageStore = messageStore;
+                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
+                this.cancellationTokenSource = new CancellationTokenSource();
+                this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
+                this.expiredCounter = Metrics.Instance.CreateCounter(
+                   "messages_dropped",
+                   "Messages cleaned up because of TTL expired",
+                   new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
+                this.guid = Option.Some(guid);
             }
 
             public void Dispose()
@@ -277,6 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                             {
                                 var enqueuedTime = DateTime.UtcNow - messageRef.TimeStamp;
+                                this.guid.ForEach(g => Events.PrintMe($"{this.guid} enqueued time: {enqueuedTime}. checkpointDataOffset: {checkpointData.Offset}. Offset: {offset} "));
                                 if (checkpointData.Offset < offset &&
                                      enqueuedTime < messageRef.TimeToLive)
                                 {
@@ -300,11 +328,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                             deleteMessage = true;
                                         }
 
+                                        this.guid.ForEach(g => Events.PrintMe($"{this.guid} ref count after decrease: {m.RefCount}"));
+
                                         return m;
                                     });
 
                                 if (deleteMessage)
                                 {
+                                    this.guid.ForEach(g => Events.PrintMe($"{this.guid} trying to delete message"));
                                     if (enqueuedTime >= messageRef.TimeToLive)
                                     {
                                         this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString } );
@@ -327,13 +358,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             int cleanupCount = 0;
                             if (checkEntireQueueOnCleanup)
                             {
+                                this.guid.ForEach(g => Events.PrintMe($"{this.guid} starting cleanup for entire queue"));
                                 IEnumerable<(long, MessageRef)> batch;
                                 long offset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
+                                this.guid.ForEach(g => Events.PrintMe($"{this.guid} offset is {offset}"));
+
                                 do
                                 {
                                     batch = await sequentialStore.GetBatch(offset, CleanupBatchSize);
+                                    this.guid.ForEach(g => Events.PrintMe($"{this.guid} got batch of size {batch.Count()}"));
+
                                     foreach ((long, MessageRef) messageWithOffset in batch)
                                     {
+                                        this.guid.ForEach(g => Events.PrintMe($"{this.guid} deciding to remove offset {messageWithOffset.Item1}"));
                                         if (await sequentialStore.RemoveOffset(DeleteMessageCallback, messageWithOffset.Item1, this.cancellationTokenSource.Token))
                                         {
                                             cleanupCount++;
@@ -354,7 +391,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
-                            Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
+                            Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount, this.guid);
+                            this.guid.ForEach(g => Events.PrintMe($"{this.guid} finished one endpoint. moving on...."));
                             // await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
                         }
                         catch (Exception ex)
@@ -362,6 +400,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             Events.ErrorCleaningMessagesForEndpoint(ex, endpointSequentialStore.Key);
                         }
                     }
+
+                    this.guid.ForEach(g => Events.PrintMe($"{this.guid} sleeping for {this.GetCleanupTaskSleepTime()}"));
 
                     await Task.Delay(this.GetCleanupTaskSleepTime());
                 }
@@ -402,6 +442,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 ErrorGettingMessagesBatch
             }
 
+            public static void PrintMe(string printMe)
+            {
+                Log.LogInformation($"DRB - {printMe}");
+            }
+
             public static void MessageStoreCreated()
             {
                 Log.LogInformation((int)EventIds.MessageStoreCreated, Invariant($"Created new message store"));
@@ -432,8 +477,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 Log.LogWarning((int)EventIds.ErrorCleaningMessages, ex, "Error cleaning up messages in message store");
             }
 
-            public static void CleanupCompleted(string endpointId, int queueMessagesCount, int storeMessagesCount, long totalQueueMessagesCount, long totalStoreMessagesCount)
+            public static void CleanupCompleted(string endpointId, int queueMessagesCount, int storeMessagesCount, long totalQueueMessagesCount, long totalStoreMessagesCount, Option<Guid> guid)
             {
+                guid.ForEach(g => Log.LogInformation($"DRB - GUID: {g}"));
                 Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {queueMessagesCount} messages from queue for endpoint {endpointId} and {storeMessagesCount} messages from message store."));
                 Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Total messages cleaned up from queue for endpoint {endpointId} = {totalQueueMessagesCount}, and total messages cleaned up for message store = {totalStoreMessagesCount}."));
             }
