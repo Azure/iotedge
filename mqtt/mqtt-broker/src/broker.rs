@@ -307,6 +307,7 @@ where
             refuse_connection!(proto::ConnectionRefusedReason::UnacceptableProtocolVersion);
             return Ok(());
         }
+
         // [MQTT-3.1.4-3] - The Server MAY check that the contents of the CONNECT
         // Packet meet any further restrictions and MAY perform authentication
         // and authorization checks. If any of these checks fail, it SHOULD send an
