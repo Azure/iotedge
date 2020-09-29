@@ -112,6 +112,10 @@ impl SessionState {
         &mut self.waiting_to_be_sent
     }
 
+    pub fn set_client_info(&mut self, client_info: ClientInfo) {
+        self.client_info = client_info;
+    }
+
     pub fn update_subscription(
         &mut self,
         topic_filter: String,

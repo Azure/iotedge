@@ -808,23 +808,24 @@ where
             );
         }
 
-        let client_id = connreq.client_id().clone();
-        let (state, _will, handle) = current_connected.into_parts();
+        let (mut state, _will, handle) = current_connected.into_parts();
         let old_session = Session::new_disconnecting(state.client_info().clone(), None, handle);
-        let new_client_info =
-            ClientInfo::new(connreq.client_id().clone(), connreq.peer_addr(), auth_id);
-        let new_state = SessionState::new(new_client_info, self.config.session().clone());
+        let client_id = connreq.client_id().clone();
+        let new_client_info = ClientInfo::new(client_id, connreq.peer_addr(), auth_id);
+        state.set_client_info(new_client_info);
+        let client_id = connreq.client_id().clone();
+
         let (new_session, session_present) =
             if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                 debug!(
                     "moving persistent session to this connection for {}",
                     client_id
                 );
-                let new_session = Session::new_persistent(connreq, new_state);
+                let new_session = Session::new_persistent(connreq, state);
                 (new_session, true)
             } else {
                 info!("cleaning session for {}", client_id);
-                let new_session = Session::new_transient(connreq, new_state);
+                let new_session = Session::new_transient(connreq, state);
                 (new_session, false)
             };
 
