@@ -1,15 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography;
-using Org.Webpki.JsonCanonicalizer;
-using Newtonsoft.Json.Linq;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace ManifestSignerClient
 {
+    using System;
+    using System.IO;
+    using System.Security.Cryptography;
+    using Newtonsoft.Json.Linq;
+
+    using Org.Webpki.JsonCanonicalizer;
+
     public class CertificateUtil
     {
-        static public string GetBase64CertContent(string certPath)
+        public static string GetBase64CertContent(string certPath)
         {
             var sectionStart = "-----BEGIN CERTIFICATE-----";
             var sectionEnd = "-----END CERTIFICATE-----";
@@ -40,7 +42,7 @@ namespace ManifestSignerClient
             try
             {
                 var base64part = content[startPos..endPos];
-                base64part = base64part.Replace("\n", "");
+                base64part = base64part.Replace("\n", string.Empty);
 
                 return base64part;
             }
@@ -49,115 +51,70 @@ namespace ManifestSignerClient
                 throw new Exception("Could not decode PEM signer certificate - invalid base64 section", e);
             }
         }
-        static public ECDsa CreateECDsaFromPrivateKey(string SignerKeyPath)
+
+       
+
+        public static byte[] GetPrivateKeyFromPem(string keyPath, string algoStr)
         {
-            var signerKeyContent = default(string);
-            using (var file = File.OpenText(SignerKeyPath))
+            var pemKeyFileContent = default(string);
+            using (var file = File.OpenText(keyPath))
             {
-                signerKeyContent = file.ReadToEnd();
+                pemKeyFileContent = file.ReadToEnd();
             }
 
-            var derCodedKey = GetDerECDsaPrivateKeyFromPem(signerKeyContent);
+            var sectionStart = "-----BEGIN " + algoStr + " PRIVATE KEY-----";
+            var sectionEnd = "-----END " + algoStr + " PRIVATE KEY-----";
+
+            var startPos = pemKeyFileContent.IndexOf(sectionStart);
+
+            if (startPos < 0)
+            {
+                throw new Exception($"Bad key file, maybe not PEM? (missing 'BEGIN {algoStr} PRIVATE KEY')");
+            }
+
+            startPos += sectionStart.Length;
+
+            var endPos = pemKeyFileContent.IndexOf(sectionEnd);
+
+            if (endPos < 0)
+            {
+                throw new Exception($"Bad key file, maybe not PEM? (missing 'END {algoStr} PRIVATE KEY')");
+            }
+
+            if (startPos >= endPos)
+            {
+                throw new Exception("Bad key file, maybe not PEM?");
+            }
+
+            try
+            {
+                var base64part = pemKeyFileContent[startPos..endPos];
+                var result = Convert.FromBase64String(base64part);
+
+                return result;
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Could not decode PEM key - invalid base64 section", e);
+            }
+        }
+
+        public static ECDsa CreateECDsaFromPrivateKey(byte[] signerPrivateKeyContent)
+        {
             var ecdsa = ECDsa.Create();
-            ecdsa.ImportECPrivateKey(derCodedKey, out _);
+            ecdsa.ImportECPrivateKey(signerPrivateKeyContent, out _);
 
             return ecdsa;
         }
 
-        static byte[] GetDerECDsaPrivateKeyFromPem(string pemKey)
+        public static RSA CreateRSAFromPrivateKey(byte[] signerPrivateKeyContent)
         {
-            var sectionStart = "-----BEGIN EC PRIVATE KEY-----";
-            var sectionEnd = "-----END EC PRIVATE KEY-----";
-
-            var startPos = pemKey.IndexOf(sectionStart);
-
-            if (startPos < 0)
-            {
-                throw new Exception("Bad key file, maybe not PEM? (missing 'BEGIN EC PRIVATE KEY')");
-            }
-
-            startPos += sectionStart.Length;
-
-            var endPos = pemKey.IndexOf(sectionEnd);
-
-            if (endPos < 0)
-            {
-                throw new Exception("Bad key file, maybe not PEM? (missing 'END EC PRIVATE KEY')");
-            }
-
-            if (startPos >= endPos)
-            {
-                throw new Exception("Bad key file, maybe not PEM?");
-            }
-
-            try
-            {
-                var base64part = pemKey.Substring(startPos, endPos - startPos);
-                var result = Convert.FromBase64String(base64part);
-
-                return result;
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Could not decode PEM key - invalid base64 section", e);
-            }
-        }
-
-        static public RSA CreateRSAFromPrivateKey(string keyPath)
-        {
-            var keyFileContent = default(string);
-            using (var file = File.OpenText(keyPath))
-            {
-                keyFileContent = file.ReadToEnd();
-            }
-
-            var derCodedKey = GetRSAPrivateKeyFromPem(keyFileContent);
-
             var rsa = RSA.Create();
-            rsa.ImportRSAPrivateKey(derCodedKey, out _);
+            rsa.ImportRSAPrivateKey(signerPrivateKeyContent, out _);
             return rsa;
         }
 
-        static byte[] GetRSAPrivateKeyFromPem(string pemKey)
-        {
-            var sectionStart = "-----BEGIN RSA PRIVATE KEY-----";
-            var sectionEnd = "-----END RSA PRIVATE KEY-----";
-
-            var startPos = pemKey.IndexOf(sectionStart);
-
-            if (startPos < 0)
-            {
-                throw new Exception("Bad key file, maybe not PEM? (missing 'BEGIN RSA PRIVATE KEY')");
-            }
-
-            startPos += sectionStart.Length;
-
-            var endPos = pemKey.IndexOf(sectionEnd);
-
-            if (endPos < 0)
-            {
-                throw new Exception("Bad key file, maybe not PEM? (missing 'END RSA PRIVATE KEY')");
-            }
-
-            if (startPos >= endPos)
-            {
-                throw new Exception("Bad key file, maybe not PEM?");
-            }
-
-            try
-            {
-                var base64part = pemKey[startPos..endPos];
-                var result = Convert.FromBase64String(base64part);
-
-                return result;
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Could not decode PEM key - invalid base64 section", e);
-            }
-        }
-
-        static public string GetJsonSignature(string dsaAlgorithmScheme, HashAlgorithmName shaAlgorithm, string content, JObject protectedHeader, string keyPath)
+        public static string GetJsonSignature(string dsaAlgorithmScheme, HashAlgorithmName shaAlgorithm, string content, JObject protectedHeader, string signerKeyPath)
         {
             var canonicalizerContent = new JsonCanonicalizer(content);
             var canonicalizedContent = canonicalizerContent.GetEncodedUTF8();
@@ -170,20 +127,18 @@ namespace ManifestSignerClient
             Array.Copy(canonicalizedHeader, 0, finalContent, 0, canonicalizedHeader.Length);
             Array.Copy(canonicalizedContent, 0, finalContent, canonicalizedHeader.Length, canonicalizedContent.Length);
 
-            if(dsaAlgorithmScheme == "EC")
+            if (dsaAlgorithmScheme == "EC")
             {
-                var signer = CreateECDsaFromPrivateKey(keyPath);
+                var signerPrivateKeyContent = GetPrivateKeyFromPem(signerKeyPath, "EC");
+                var signer = CreateECDsaFromPrivateKey(signerPrivateKeyContent);
                 return Convert.ToBase64String(signer.SignData(finalContent, shaAlgorithm));
-            }
-            else if(dsaAlgorithmScheme == "RS")
-            {
-                var signer = CreateRSAFromPrivateKey(keyPath);
-                var rsaSignaturePadding = RSASignaturePadding.Pkcs1;
-                return Convert.ToBase64String(signer.SignData(finalContent, 0, finalContent.Length, shaAlgorithm, rsaSignaturePadding));
             }
             else
             {
-                throw new Exception("DSA algorithm not supported");
+                var signerPrivateKeyContent = GetPrivateKeyFromPem(signerKeyPath, "RSA");
+                var signer = CreateRSAFromPrivateKey(signerPrivateKeyContent);
+                var rsaSignaturePadding = RSASignaturePadding.Pkcs1;
+                return Convert.ToBase64String(signer.SignData(finalContent, 0, finalContent.Length, shaAlgorithm, rsaSignaturePadding));
             }
         }
     }

@@ -1,6 +1,10 @@
 REM RSA scripts
+REM ###############################################################################
+REM This script generates test certs and keys for Content Trust feature 
+REM
+REM !!!MUST not be used in production!!!
+REM ###############################################################################
 @echo off
-
 REM SHA algorithm choices : SHA256, SHA384, SHA512
 set ROOT_SHA_ALGORITHM=-SHA256 
 set SIGNER_SHA_ALGORITHM=-SHA256

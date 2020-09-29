@@ -26,7 +26,7 @@ namespace ManifestSignerClient
 
             if (string.IsNullOrEmpty(ManifestVersion))
             {
-                throw new Exception("Manifest Version number is empty");
+                throw new Exception("Manifest Version number is empty. Please update it in launchSettings.json");
             }
             else
             {
@@ -35,7 +35,7 @@ namespace ManifestSignerClient
 
             if (string.IsNullOrEmpty(DsaAlgorithm))
             {
-                throw new Exception("DSA Algorithm value is empty");
+                throw new Exception("DSA Algorithm value is empty. Please update it in launchSettings.json");
             }
             else
             {
@@ -44,7 +44,7 @@ namespace ManifestSignerClient
 
             if (string.IsNullOrEmpty(DeploymentManifestFilePath))
             {
-                throw new Exception("Deployment Manifest path is empty");
+                throw new Exception("Deployment Manifest path is empty. Please update it in launchSettings.json");
             }
             else
             {
@@ -53,7 +53,7 @@ namespace ManifestSignerClient
 
             if (string.IsNullOrEmpty(SignedDeploymentManifestFilePath))
             {
-                throw new Exception("Signed Deployment Manifest path is empty");
+                throw new Exception("Signed Deployment Manifest path is empty. Please update it in launchSettings.json");
             }
             else
             {
@@ -62,7 +62,7 @@ namespace ManifestSignerClient
 
             if (string.IsNullOrEmpty(DeviceRootCaPath))
             {
-                throw new Exception("Device Root CA path is empty");
+                throw new Exception("Device Root CA path is empty. Please update it in launchSettings.json");
             }
             else
             {
@@ -71,7 +71,7 @@ namespace ManifestSignerClient
 
             if (string.IsNullOrEmpty(SignerPrivateKeyPath))
             {
-                throw new Exception("Signer Private key path is empty");
+                throw new Exception("Signer Private key path is empty. Please update it in launchSettings.json");
             }
             else
             {
@@ -80,7 +80,7 @@ namespace ManifestSignerClient
 
             if (string.IsNullOrEmpty(SignerCertPath))
             {
-                throw new Exception("Signer Certificate path is empty");
+               throw new Exception("Signer Certificate path is empty. Please update it in launchSettings.json");
             }
             else
             {
@@ -109,47 +109,42 @@ namespace ManifestSignerClient
         {
             if (DsaAlgorithm.Length < 2)
             {
-                throw new Exception("DSA algorithm is not specific correctly");
+                throw new Exception("DSA algorithm is not specific correctly \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
             }
 
-            string dsaAlgorithmScheme = DsaAlgorithm[0..2];
-            if (dsaAlgorithmScheme == "ES")
+            if (DsaAlgorithm[0..2] == "ES" || DsaAlgorithm[0..2] == "RS")
             {
-                return "ES";
-            }
-            else if (dsaAlgorithmScheme == "RS")
-            {
-                return "RS";
+                return DsaAlgorithm[0..2];
             }
             else
             {
-                throw new Exception("DSA Algorithm Type not supported");
+                throw new Exception("DSA Algorithm Type not supported \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
             }
         }
 
-        static HashAlgorithmName GetHashAlgorithm(string DsaAlgorithm)
+        private static HashAlgorithmName GetHashAlgorithm(string DsaAlgorithm)
         {
             try
             {
                 if (DsaAlgorithm.Length <= 2 || DsaAlgorithm.Length > 5)
                 {
-                    throw new Exception("SHA algorithm is not specific correctly");
+                    throw new Exception("SHA algorithm is not specific correctly \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
                 }
                 else if (DsaAlgorithm[2..5] == "256")
                 {
                     return HashAlgorithmName.SHA256;
                 }
-                else if (DsaAlgorithm[2..4] == "384")
+                else if (DsaAlgorithm[2..5] == "384")
                 {
                     return HashAlgorithmName.SHA384;
                 }
-                else if (DsaAlgorithm[2..4] == "512")
+                else if (DsaAlgorithm[2..5] == "512")
                 {
                     return HashAlgorithmName.SHA512;
                 }
                 else
                 {
-                    throw new Exception("SHA Algorithm Type not supported");
+                    throw new Exception("SHA Algorithm Type not supported \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
                 }
             }
             catch (Exception e)
@@ -160,27 +155,26 @@ namespace ManifestSignerClient
 
         static bool VerifyCertificate(X509Certificate2 signerCertificate, X509Certificate2 rootCertificate)
         {
-            var ch = new X509Chain();
-            ch.ChainPolicy.ExtraStore.Add(rootCertificate);
+            var chain = new X509Chain();
+            chain.ChainPolicy.ExtraStore.Add(rootCertificate);
 
             // You can alter how the chain is built/validated. These checks are only for testing.
-            ch.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-            ch.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
 
             // Do the validation
-            var result = ch.Build(signerCertificate);
+            var result = chain.Build(signerCertificate);
 
             return result;
         }
 
         static void Main()
         {
-            // Check launch settings and display it
-            CheckInputAndDisplayLaunchSettings();
-
-            // Check if the given signer cert is issued by root CA
+            // Initialize & Check if the given signer cert is issued by root CA
             try
             {
+                // Check launch settings and display it
+                CheckInputAndDisplayLaunchSettings();
                 var signerCertificate = new X509Certificate2(SignerCertPath);
                 var rootCertificate = new X509Certificate2(DeviceRootCaPath);
                 var result = VerifyCertificate(signerCertificate, rootCertificate);
@@ -191,7 +185,8 @@ namespace ManifestSignerClient
             }
             catch (Exception e)
             {
-                throw e;
+                Console.WriteLine(e.ToString());
+                Environment.Exit(0);
             }
 
             // Read the deployment manifest file and get signature of each modules's desired properties
@@ -201,7 +196,7 @@ namespace ManifestSignerClient
                 var deploymentManifestContentJson = JObject.Parse(manifestFileHandle.ReadToEnd());
                 if (deploymentManifestContentJson["modulesContent"] != null)
                 {
-                    // Get DSA and SHA algorthm
+                    // Get the DSA and SHA algorithm
                     var dsaAlgorithmScheme = GetAlgorithmScheme(DsaAlgorithm);
                     var shaAlgorithm = GetHashAlgorithm(DsaAlgorithm);
 
@@ -262,7 +257,8 @@ namespace ManifestSignerClient
             }
             catch (Exception e)
             {
-                throw e;
+                Console.WriteLine(e.ToString());
+                Environment.Exit(0);
             }
         }
     }
