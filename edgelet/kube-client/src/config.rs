@@ -281,16 +281,26 @@ fn identity_from_cert_key(user_name: &str, cert: &[u8], key: &[u8]) -> Result<Id
 }
 
 fn get_all_certs(raw_certs: Vec<u8>) -> Result<Vec<Certificate>> {
-
-    let certs = X509::stack_from_pem(&raw_certs)
-        .context(ErrorKind::KubeConfig(KubeConfigErrorReason::LoadCertificate))?;
-    let mut result = Vec::with_capacity(certs.len());
-    for cert in certs {
-        let ssl_cert: Vec<u8> = cert.to_der().context(ErrorKind::KubeConfig(KubeConfigErrorReason::LoadCertificate))?;
-        let cert = Certificate::from_der(&ssl_cert).context(ErrorKind::KubeConfig(KubeConfigErrorReason::LoadCertificate))?;
-        result.push(cert);
+    let certs = X509::stack_from_pem(&raw_certs).context(ErrorKind::KubeConfig(
+        KubeConfigErrorReason::LoadCertificate,
+    ))?;
+    if certs.is_empty() {
+        return Err(Error::from(ErrorKind::KubeConfig(
+            KubeConfigErrorReason::LoadCertificate,
+        )));
     }
-    Ok(result)
+    certs
+        .into_iter()
+        .map(|cert| {
+            let der = cert.to_der().context(ErrorKind::KubeConfig(
+                KubeConfigErrorReason::LoadCertificate,
+            ))?;
+            let cert = Certificate::from_der(&der).context(ErrorKind::KubeConfig(
+                KubeConfigErrorReason::LoadCertificate,
+            ))?;
+            Ok(cert)
+        })
+        .collect()
 }
 
 fn file_or_data_bytes(path: Option<&str>, data: Option<&str>) -> Result<Vec<u8>> {

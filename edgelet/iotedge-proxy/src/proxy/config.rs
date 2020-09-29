@@ -4,6 +4,7 @@ use std::fs;
 
 use failure::ResultExt;
 use native_tls::{Certificate, TlsConnector};
+use openssl::x509::X509;
 use url::Url;
 
 use crate::{Error, ErrorKind, InitializeErrorReason, ServiceSettings};
@@ -57,22 +58,19 @@ pub fn get_config(settings: &ServiceSettings) -> Result<Config<ValueToken>, Erro
             )));
         }
 
-        // Extract each certificate's string. The final string from the split will either be empty
-        // or a non-certificate entry, so it is dropped.
-        let delimiter = "-----END CERTIFICATE-----";
-        // replace with split_inclusive once stable.
-        let raw_certs: Vec<&str> = file.split(delimiter).collect();
-        let len = raw_certs.len();
-        if len == 1 {
+        let certs = X509::stack_from_pem(file.as_bytes())
+            .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
+        if certs.is_empty() {
             return Err(Error::from(ErrorKind::Initialize(
                 InitializeErrorReason::ClientConfig,
             )));
         }
-        for raw_cert in &raw_certs[..(len - 1)] {
-            let current_cert = format!("{}{}", raw_cert, delimiter);
-            let cert = Certificate::from_pem(current_cert.as_bytes())
+        for cert in certs {
+            let der = cert
+                .to_der()
                 .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
-
+            let cert = Certificate::from_der(&der)
+                .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
             tls.add_root_certificate(cert);
         }
     }
