@@ -14,6 +14,7 @@ RUSTUP="${CARGO_HOME:-"$HOME/.cargo"}/bin/rustup"
 ARM_PACKAGE=
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}
+CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -49,6 +50,8 @@ function install_rust()
     # but it's simpler to just always `update` whatever toolchain it is. `update` installs the toolchain
     # if it hasn't already been installed, so this also works for pinned versions.
     rustup update "$(< "$PROJECT_ROOT/rust-toolchain")"
+
+    $CARGO install sccache
 }
 
 ###############################################################################
