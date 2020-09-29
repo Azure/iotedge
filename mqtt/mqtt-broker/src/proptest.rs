@@ -123,7 +123,7 @@ prop_compose! {
         // Unfortunately we can't just call SocketAddr::arbitrary() because when serde occurs on SocketAddr,
         // we lose the flowid and scope_id. They get set to 0 by default.
         // This workaround manually sets them to 0 but uses arbitrary values for ip and port
-        // Issue opened: https://github.com/servo/bincode/issues/354
+        // Issue opened: https://github.com/serde-rs/serde/issues/1896
         let socket = SocketAddr::new(ip, port);
         ClientInfo::new(client_id, socket, auth_id)
     }
