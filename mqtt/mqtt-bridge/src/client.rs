@@ -83,12 +83,12 @@ impl IoSource for BridgeIoSource {
     type Io = Pin<Box<dyn BridgeIo>>;
     type Error = Error;
     #[allow(clippy::type_complexity)]
-    type Future = BoxFuture<'static, Result<(Self::Io, Option<String>), Error>>;
+    type Future = BoxFuture<'static, Result<(Self::Io, Option<String>), Self::Error>>;
 
     fn connect(&mut self) -> Self::Future {
         match self {
             BridgeIoSource::Tcp(connect_settings) => Self::get_tcp_source(connect_settings.clone()),
-            BridgeIoSource::Tls(connect_settings) => Self::get_tls_source(&connect_settings),
+            BridgeIoSource::Tls(connect_settings) => Self::get_tls_source(connect_settings.clone()),
         }
     }
 }
@@ -119,10 +119,10 @@ impl BridgeIoSource {
         })
     }
 
-    fn get_tls_source(connection_settings: &TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
+    fn get_tls_source(connection_settings: TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
         let address = connection_settings.address.clone();
         let token_source = connection_settings.token_source.as_ref().cloned();
-        let trust_bundle_source = connection_settings.trust_bundle_source.clone();
+        let trust_bundle_source = connection_settings.trust_bundle_source;
 
         Box::pin(async move {
             let expiry = Utc::now() + chrono::Duration::minutes(DEFAULT_TOKEN_DURATION_MINS);
@@ -165,37 +165,29 @@ impl BridgeIoSource {
                     builder.build()
                 })
                 .and_then(|conn| conn.configure())
-                .ok();
+                .map_err(|e| Error::new(ErrorKind::NotConnected, e))?;
 
             let hostname = address.split(':').next().unwrap_or(&address);
 
-            let res = if let Some(c) = config {
-                let io = tokio_openssl::connect(c, &hostname, stream).await;
+            let io = tokio_openssl::connect(config, &hostname, stream).await;
 
-                debug!("Tls connection {:?} for {:?}", io, address);
+            debug!("Tls connection {:?} for {:?}", io, address);
 
-                io.map(|io| {
-                    let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
-                    Ok((stream, password))
-                })
-                .ok()
-            } else {
-                None
-            };
-
-            res.map_or(
-                Err(Error::new(ErrorKind::Other, "could not connect")),
-                |io| io,
-            )
+            io.map(|io| {
+                let stream: Pin<Box<dyn BridgeIo>> = Box::pin(io);
+                Ok((stream, password))
+            })
+            .map_err(|e| Error::new(ErrorKind::NotConnected, e))?
         })
     }
 }
 
+/// This is a wrapper over mqtt3 client
 pub struct MqttClient<T>
 where
     T: EventHandler,
 {
-    client_id: String,
+    client_id: Option<String>,
     username: Option<String>,
     io_source: BridgeIoSource,
     keep_alive: Duration,
@@ -204,15 +196,58 @@ where
 }
 
 impl<T: EventHandler> MqttClient<T> {
-    pub fn new(
+    pub fn tcp(
         address: &str,
         keep_alive: Duration,
-        _clean_session: bool,
+        clean_session: bool,
         event_handler: T,
         connection_credentials: &Credentials,
-        secure: bool,
     ) -> Self {
-        let (client_id, username, token_source) = match connection_credentials {
+        let token_source = Self::get_token_source(&connection_credentials);
+        let tcp_connection =
+            TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, None);
+        let io_source = BridgeIoSource::Tcp(tcp_connection);
+
+        Self::new(
+            keep_alive,
+            clean_session,
+            event_handler,
+            connection_credentials,
+            io_source,
+        )
+    }
+
+    pub fn tls(
+        address: &str,
+        keep_alive: Duration,
+        clean_session: bool,
+        event_handler: T,
+        connection_credentials: &Credentials,
+    ) -> Self {
+        let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
+
+        let token_source = Self::get_token_source(&connection_credentials);
+        let tcp_connection =
+            TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, trust_bundle);
+        let io_source = BridgeIoSource::Tls(tcp_connection);
+
+        Self::new(
+            keep_alive,
+            clean_session,
+            event_handler,
+            connection_credentials,
+            io_source,
+        )
+    }
+
+    fn new(
+        keep_alive: Duration,
+        clean_session: bool,
+        event_handler: T,
+        connection_credentials: &Credentials,
+        io_source: BridgeIoSource,
+    ) -> Self {
+        let (client_id, username) = match connection_credentials {
             Credentials::Provider(provider_settings) => (
                 format!(
                     "{}/{}",
@@ -227,31 +262,18 @@ impl<T: EventHandler> MqttClient<T> {
                     provider_settings.module_id().to_owned(),
                     API_VERSION.to_owned()
                 )),
-                Some(SasTokenSource::new(connection_credentials.clone())),
             ),
             Credentials::PlainText(creds) => (
                 creds.client_id().to_owned(),
                 Some(creds.username().to_owned()),
-                Some(SasTokenSource::new(connection_credentials.clone())),
             ),
-            Credentials::Anonymous(client_id) => (client_id.into(), None, None),
+            Credentials::Anonymous(client_id) => (client_id.into(), None),
         };
 
-        let trust_bundle = if secure {
-            Some(TrustBundleSource::new(connection_credentials.clone()))
-        } else {
-            None
-        };
-        let tcp_connection =
-            TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, trust_bundle);
-        let io_source = if secure {
-            BridgeIoSource::Tls(tcp_connection)
-        } else {
-            BridgeIoSource::Tcp(tcp_connection)
-        };
+        let client_id = if clean_session { None } else { Some(client_id) };
 
         let client = Client::new(
-            Some(client_id.clone()),
+            client_id.clone(),
             username.clone(),
             None,
             io_source.clone(),
@@ -266,6 +288,15 @@ impl<T: EventHandler> MqttClient<T> {
             keep_alive,
             client,
             event_handler,
+        }
+    }
+
+    fn get_token_source(connection_credentials: &Credentials) -> Option<SasTokenSource> {
+        match connection_credentials {
+            Credentials::Provider(_) | Credentials::PlainText(_) => {
+                Some(SasTokenSource::new(connection_credentials.clone()))
+            }
+            Credentials::Anonymous(_) => None,
         }
     }
 
