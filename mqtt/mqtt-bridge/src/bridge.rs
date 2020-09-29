@@ -156,6 +156,11 @@ impl Bridge {
         pin_mut!(local_pump);
         pin_mut!(remote_pump);
 
+        // TODO PRE: Do we want to shut down?
+        //           We can either recreate the pump or shut everything down and start over.
+        //
+        //           If there is a client error then this can potentially get reset without the pump shutting down
+        //           Alternatively, if this client error shuts down the pump, we will need to recreate it.
         match select(local_pump, remote_pump).await {
             Either::Left(_) => {
                 shutdown_handle.shutdown().await?;
