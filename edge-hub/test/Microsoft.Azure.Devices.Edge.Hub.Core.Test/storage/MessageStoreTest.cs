@@ -257,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     CompareUpdatedMessageWithOffset(input, i, updatedMessage);
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(70));
+                await Task.Delay(TimeSpan.FromSeconds(140));
 
                 IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
                 IEnumerable<IMessage> batch = await module1Iterator.GetNext(200);
