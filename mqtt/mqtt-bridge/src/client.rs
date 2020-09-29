@@ -5,10 +5,9 @@ use std::{
 
 use async_trait::async_trait;
 use chrono::Utc;
-use futures_util::future::{self, try_join3, BoxFuture};
+use futures_util::future::{self, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tokio_openssl::connect;
 use tracing::{debug, error, warn};
 
 use mqtt3::{
@@ -106,7 +105,7 @@ impl BridgeIoSource {
 
             let token_task = async {
                 match token_source {
-                    Some(ref ts) => ts.get(&expiry).await,
+                    Some(ts) => ts.get(&expiry).await,
                     None => Ok(None),
                 }
             };
@@ -130,14 +129,14 @@ impl BridgeIoSource {
 
             let server_root_certificate_task = async {
                 match trust_bundle_source {
-                    Some(ref source) => source.get_trust_bundle().await,
+                    Some(source) => source.get_trust_bundle().await,
                     None => Ok(None),
                 }
             };
 
             let token_task = async {
                 match token_source {
-                    Some(ref ts) => ts.get(&expiry).await,
+                    Some(ts) => ts.get(&expiry).await,
                     None => Ok(None),
                 }
             };
@@ -145,7 +144,7 @@ impl BridgeIoSource {
             let io = TcpStream::connect(address.clone());
 
             let (server_root_certificate, password, stream) =
-                try_join3(server_root_certificate_task, token_task, io)
+                future::try_join3(server_root_certificate_task, token_task, io)
                     .await
                     .map_err(|err| {
                         Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
@@ -156,7 +155,7 @@ impl BridgeIoSource {
                     if let Some(trust_bundle) = server_root_certificate {
                         X509::stack_from_pem(trust_bundle.as_bytes())
                             .map(|mut certs| {
-                                if let Some(ca) = certs.pop() {
+                                while let Some(ca) = certs.pop() {
                                     builder.cert_store_mut().add_cert(ca).ok();
                                 }
                             })
@@ -168,13 +167,10 @@ impl BridgeIoSource {
                 .and_then(|conn| conn.configure())
                 .ok();
 
-            let hostname = address
-                .split(':')
-                .next()
-                .map_or(address.clone(), ToOwned::to_owned);
+            let hostname = address.split(':').next().unwrap_or(&address);
 
             let res = if let Some(c) = config {
-                let io = connect(c, &hostname, stream).await;
+                let io = tokio_openssl::connect(c, &hostname, stream).await;
 
                 debug!("Tls connection {:?} for {:?}", io, address);
 
