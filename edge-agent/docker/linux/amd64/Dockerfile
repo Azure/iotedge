@@ -10,6 +10,11 @@ ARG EXE_DIR=.
 RUN apk update && \
     apk add --no-cache snappy
 
+# create a default user to allow agent to run as non-root
+ARG EDGEAGENTUSER_ID
+ENV EDGEAGENTUSER_ID ${EDGEAGENTUSER_ID:-1000}
+RUN adduser -Ds /bin/sh -u ${EDGEAGENTUSER_ID} edgeagentuser 
+
 # Install RocksDB
 COPY --from=builder publish/* /usr/local/lib/
 
@@ -17,5 +22,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Agent" && \
-    exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll
+CMD exec /app/agentStart.sh
