@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\json-canonicalization\dotnet\jsoncanonicalizer\jsoncanonicalizer.csproj" />
+    <ProjectReference Include="..\jsoncanonicalizer\jsoncanonicalizer.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>

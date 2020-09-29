@@ -5,9 +5,9 @@ VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ManifestSignerClient", "ManifestSignerClient\ManifestSignerClient.csproj", "{C0BE92C7-B928-4767-B8AA-88F5BE7804A5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jsoncanonicalizer", "..\..\..\json-canonicalization\dotnet\jsoncanonicalizer\jsoncanonicalizer.csproj", "{319CFB75-78AD-4EC1-8D63-9214101D35E6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jsoncanonicalizer", "jsoncanonicalizer\jsoncanonicalizer.csproj", "{8437C864-9349-44F3-AD4B-20FBF2B86F0C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "es6numberserializer", "..\..\..\json-canonicalization\dotnet\es6numberserializer\es6numberserializer.csproj", "{0AE329CA-074E-4B58-8492-6155A11FE1FD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "es6numberserializer", "es6numberserializer\es6numberserializer.csproj", "{5ACD959A-48C6-4E1D-9C88-0BA2148A3114}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,14 +19,14 @@ Global
 		{C0BE92C7-B928-4767-B8AA-88F5BE7804A5}.Debug|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{C0BE92C7-B928-4767-B8AA-88F5BE7804A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C0BE92C7-B928-4767-B8AA-88F5BE7804A5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{319CFB75-78AD-4EC1-8D63-9214101D35E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{319CFB75-78AD-4EC1-8D63-9214101D35E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{319CFB75-78AD-4EC1-8D63-9214101D35E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{319CFB75-78AD-4EC1-8D63-9214101D35E6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0AE329CA-074E-4B58-8492-6155A11FE1FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0AE329CA-074E-4B58-8492-6155A11FE1FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0AE329CA-074E-4B58-8492-6155A11FE1FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0AE329CA-074E-4B58-8492-6155A11FE1FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8437C864-9349-44F3-AD4B-20FBF2B86F0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8437C864-9349-44F3-AD4B-20FBF2B86F0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8437C864-9349-44F3-AD4B-20FBF2B86F0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8437C864-9349-44F3-AD4B-20FBF2B86F0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5ACD959A-48C6-4E1D-9C88-0BA2148A3114}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5ACD959A-48C6-4E1D-9C88-0BA2148A3114}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5ACD959A-48C6-4E1D-9C88-0BA2148A3114}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5ACD959A-48C6-4E1D-9C88-0BA2148A3114}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

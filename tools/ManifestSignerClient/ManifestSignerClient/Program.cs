@@ -7,7 +7,6 @@ namespace ManifestSignerClient
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using Newtonsoft.Json.Linq;
-
     class Program
     {
         // Edit the launchSettings.json or directly add the values of the Environmental variables

@@ -5,9 +5,16 @@ Manifest Signer Client is a tool that will be used for the Manifest Trust featur
 Manifest Signer client gives a signed deployment JSON file as an end output. 
 
 ### Step 1: Certificate Generator
-Manifest signer client needs a root Certificate Authority and a signer cert. To achieve that Certificate Generator scripts will be used. There are two scripts in the CertificateGenerator folder
+OpenSSL is needed to generate the certificate. Please follow the instructions [here](https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#windows-1).
+Manifest signer client needs a root Certificate Authority and a signer cert. To achieve that Certificate Generator scripts will be used. There are two folders in the CertificateGenerator folder. One for Windows and other for Linux.
+
+Under Windows, there are two scripts. One for RSA and other EDCDsa.
 1. Gen_RootCA_with_Signer_ECDsa.bat
 2. Gen_RootCA_with_Signer_RSA.bat
+
+Under Linux, same format is followed.
+1. Gen_RootCA_with_Signer_ECDsa.sh
+2. Gen_RootCA_with_Signer_RSA.sh
 
 ##### Set of choices in DSA algorithms
 1. The first decision to make is which DSA algorithm schemes to choose. We highly recommend using ECDSA as it generates smaller signatures. Choose the scripts accordingly with the corresponding labelled script. 

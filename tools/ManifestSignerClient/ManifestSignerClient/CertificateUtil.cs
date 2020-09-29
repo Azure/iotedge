@@ -52,8 +52,6 @@ namespace ManifestSignerClient
             }
         }
 
-       
-
         public static byte[] GetPrivateKeyFromPem(string keyPath, string algoStr)
         {
             var pemKeyFileContent = default(string);
