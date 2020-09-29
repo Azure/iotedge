@@ -81,13 +81,12 @@ impl Bridge {
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
-        let remote_client = MqttClient::new(
+        let remote_client = MqttClient::tls(
             connection_settings.address(),
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(incoming_persist.clone(), remote_topic_filters),
             connection_settings.credentials(),
-            true,
         );
 
         let local_client_id = format!(
@@ -100,13 +99,12 @@ impl Bridge {
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
-        let local_client = MqttClient::new(
+        let local_client = MqttClient::tcp(
             system_address.as_str(),
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(outgoing_persist.clone(), local_topic_filters),
             &Credentials::Anonymous(local_client_id),
-            true,
         );
 
         let mut local_pump = Pump::new(

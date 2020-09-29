@@ -212,7 +212,7 @@ pub struct CredentialProviderSettings {
 
 impl CredentialProviderSettings {
     pub fn enable_upstream_bridge(&self) -> Option<&str> {
-        self.enable_upstream_bridge.as_ref().map(AsRef::as_ref)
+        self.enable_upstream_bridge.as_deref()
     }
 
     pub fn iothub_hostname(&self) -> &str {
