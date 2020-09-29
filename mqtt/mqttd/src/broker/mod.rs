@@ -57,6 +57,7 @@ where
     let mut bridge_controller = BridgeController::new();
     let bridge_controller_fut = bridge_controller.start(system_address, device_id.as_str());
 
+    // TODO PRE: merge conflict resolution with sidecar startup
     pin_mut!(bridge_controller_fut);
     pin_mut!(server_fut);
     let state = match select(server_fut, bridge_controller_fut).await {
