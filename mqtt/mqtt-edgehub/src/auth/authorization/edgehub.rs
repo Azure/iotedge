@@ -8,7 +8,7 @@ use mqtt_broker::{
     AuthId, ClientId,
 };
 
-/// `IotHubAuthorizer` implements authorization rules for iothub-specific primitives.
+/// `EdgeHubAuthorizer` implements authorization rules for iothub-specific primitives.
 ///
 /// For example, it allows a client to publish (or subscribe for) twin updates, direct messages,
 /// telemetry messages, etc...
