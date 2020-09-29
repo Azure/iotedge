@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -26,29 +25,29 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                           builder =>
-                           {
-                               builder.AddModule(SensorName, sensorImage)
-                                   .WithEnvironment(new[] { ("MessageCount", "1") });
-                           },
-                           token);
+                builder =>
+                {
+                    builder.AddModule(SensorName, sensorImage)
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
+                },
+                token);
 
             EdgeModule sensor = deployment.Modules[SensorName];
             await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
 
             await sensor.UpdateDesiredPropertiesAsync(
-                           new
-                           {
-                               properties = new
-                               {
-                                   desired = new
-                                   {
-                                       SendData = true,
-                                       SendInterval = 10
-                                   }
-                               }
-                           },
-                           token);
+                new
+                {
+                    properties = new
+                    {
+                        desired = new
+                        {
+                            SendData = true,
+                            SendInterval = 10
+                        }
+                    }
+                },
+                token);
             await sensor.WaitForReportedPropertyUpdatesAsync(
                 new
                 {
@@ -71,30 +70,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
             const string filterName = "tempFilter";
 
             string filterImage = Context.Current.TempFilterImage.Expect(
-                           () => new ArgumentException("tempFilterImage parameter is required for TempFilter test"));
+                () => new ArgumentException("tempFilterImage parameter is required for TempFilter test"));
             string sensorImage = Context.Current.TempSensorImage.Expect(
                 () => new ArgumentException("tempSensorImage parameter is required for TempFilter test"));
 
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                           builder =>
-                           {
-                               builder.AddModule(SensorName, sensorImage)
-                                   .WithEnvironment(new[] { ("MessageCount", "1") });
-                               builder.AddModule(filterName, filterImage)
-                                   .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
-                               builder.GetModule(ModuleName.EdgeHub)
-                                   .WithDesiredProperties(new Dictionary<string, object>
-                                   {
-                                       ["routes"] = new
-                                       {
-                                           TempFilterToCloud = $"FROM /messages/modules/{filterName}/outputs/alertOutput INTO $upstream",
-                                           TempSensorToTempFilter = $"FROM /messages/modules/{SensorName}/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/{filterName}/inputs/input1')"
-                                       }
-                                   });
-                           },
-                           token);
+                builder =>
+                {
+                    builder.AddModule(SensorName, sensorImage)
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
+                    builder.AddModule(filterName, filterImage)
+                        .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
+                    builder.GetModule(ModuleName.EdgeHub)
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                            ["routes"] = new
+                            {
+                                TempFilterToCloud = $"FROM /messages/modules/{filterName}/outputs/alertOutput INTO $upstream",
+                                TempSensorToTempFilter = $"FROM /messages/modules/{SensorName}/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/{filterName}/inputs/input1')"
+                            }
+                        } );
+                },
+                token);
 
             EdgeModule filter = deployment.Modules[filterName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
@@ -120,23 +119,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                           builder =>
-                           {
-                               builder.AddModule(SensorName, sensorImage)
-                                   .WithEnvironment(new[] { ("MessageCount", "1") });
-                               builder.AddModule(filterFuncName, filterFuncImage)
-                                   .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
-                               builder.GetModule(ModuleName.EdgeHub)
-                                   .WithDesiredProperties(new Dictionary<string, object>
-                                   {
-                                       ["routes"] = new
-                                       {
-                                           TempFilterFunctionsToCloud = $"FROM /messages/modules/{filterFuncName}/outputs/output1 INTO $upstream",
-                                           TempSensorToTempFilter = $"FROM /messages/modules/{SensorName}/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/{filterFuncName}/inputs/input1')"
-                                       }
-                                   });
-                           },
-                           token);
+                builder =>
+                {
+                    builder.AddModule(SensorName, sensorImage)
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
+                    builder.AddModule(filterFuncName, filterFuncImage)
+                        .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
+                    builder.GetModule(ModuleName.EdgeHub)
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                            ["routes"] = new
+                            {
+                                TempFilterFunctionsToCloud = $"FROM /messages/modules/{filterFuncName}/outputs/output1 INTO $upstream",
+                                TempSensorToTempFilter = $"FROM /messages/modules/{SensorName}/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/{filterFuncName}/inputs/input1')"
+                            }
+                        });
+                },
+                token);
 
             EdgeModule filter = deployment.Modules[filterFuncName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
@@ -145,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         [Category("CentOsSafe")]
         public async Task ModuleToModuleDirectMethod(
-                   [Values] Protocol protocol)
+            [Values] Protocol protocol)
         {
             if (OsPlatform.IsWindows() && (protocol == Protocol.AmqpWs || protocol == Protocol.MqttWs))
             {
@@ -160,21 +159,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                           builder =>
-                           {
-                               string clientTransport = protocol.ToTransportType().ToString();
+                builder =>
+                {
+                    string clientTransport = protocol.ToTransportType().ToString();
 
-                               builder.AddModule(methodSender, senderImage)
-                                           .WithEnvironment(
-                                               new[]
-                                               {
-                                                    ("TransportType", clientTransport),
-                                                    ("TargetModuleId", methodReceiver)
-                                               });
-                               builder.AddModule(methodReceiver, receiverImage)
-                                   .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
-                           },
-                           token);
+                    builder.AddModule(methodSender, senderImage)
+                        .WithEnvironment(
+                            new[]
+                            {
+                                ("TransportType", clientTransport),
+                                ("TargetModuleId", methodReceiver)
+                            });
+                    builder.AddModule(methodReceiver, receiverImage)
+                        .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
+                },
+                token);
 
             EdgeModule sender = deployment.Modules[methodSender];
             await sender.WaitForEventsReceivedAsync(deployment.StartTime, token);

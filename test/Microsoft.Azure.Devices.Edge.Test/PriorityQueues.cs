@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -236,30 +235,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
                        })
                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
 
- .WithDesiredProperties(new Dictionary<string, object>
- {
-     ["reportMetadataList"] = new Dictionary<string, object>
-     {
-         ["reportMetadata1"] = new Dictionary<string, object>
-         {
-             ["TestReportType"] = "CountingReport",
-             ["TestOperationResultType"] = "Messages",
-             ["ExpectedSource"] = $"{LoadGenModuleName}.send",
-             ["ActualSource"] = $"{actualSource}.receive",
-             ["TestDescription"] = "unnecessary"
-         },
-         ["reportMetadata2"] = new Dictionary<string, object>
-         {
-             ["TestReportType"] = "NetworkControllerReport",
-             ["Source"] = $"{NetworkControllerModuleName}",
-             ["TestDescription"] = "network controller"
-         }
-     }
- });
+                       .WithDesiredProperties(new Dictionary<string, object>
+                       {
+                           ["reportMetadataList"] = new Dictionary<string, object>
+                           {
+                               ["reportMetadata1"] = new Dictionary<string, object>
+                               {
+                                   ["TestReportType"] = "CountingReport",
+                                   ["TestOperationResultType"] = "Messages",
+                                   ["ExpectedSource"] = $"{LoadGenModuleName}.send",
+                                   ["ActualSource"] = $"{actualSource}.receive",
+                                   ["TestDescription"] = "unnecessary"
+                               },
+                               ["reportMetadata2"] = new Dictionary<string, object>
+                               {
+                                   ["TestReportType"] = "NetworkControllerReport",
+                                   ["Source"] = $"{NetworkControllerModuleName}",
+                                   ["TestDescription"] = "network controller"
+                               }
+                           }
+                       });
 
                     builder.AddModule(LoadGenModuleName, loadGenImage)
-                                           .WithEnvironment(new[]
-                                           {
+                        .WithEnvironment(new[]
+                        {
                             ("testResultCoordinatorUrl", TrcUrl),
                             ("senderType", "PriorityMessageSender"),
                             ("testStartDelay", testInfo.LoadGenStartDelay),
@@ -269,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("priorities", string.Join(';', testInfo.Priorities)),
                             ("ttls", string.Join(';', testInfo.Ttls)),
                             ("ttlThresholdSecs", testInfo.TtlThreshold.ToString())
-                                           });
+                        });
 
                     Dictionary<string, object> routes = this.BuildRoutes(testInfo, LoadGenModuleName, RelayerModuleName, cloudUpstream);
                     builder.GetModule(ModuleName.EdgeHub).WithDesiredProperties(new Dictionary<string, object> { ["routes"] = routes });
@@ -348,15 +347,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token) =>
-                   await Profiler.Run(
-                       async () =>
-                           await this.iotHub.InvokeMethodAsync(
-                               this.runtime.DeviceId,
-                               moduleName,
-                               new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
-                               token),
-                       "Toggled connectivity to {Connectivity}",
-                       connectivityOn ? "on" : "off");
+            await Profiler.Run(
+                async () =>
+                    await this.iotHub.InvokeMethodAsync(
+                        this.runtime.DeviceId,
+                        moduleName,
+                        new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
+                        token),
+                "Toggled connectivity to {Connectivity}",
+                connectivityOn ? "on" : "off");
 
         private async Task<PriorityQueueTestStatus> PollUntilFinishedAsync(string moduleName, CancellationToken token)
         {

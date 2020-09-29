@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -98,10 +97,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 public override bool CanRead => false;
 
                 public override object ReadJson(JsonReader r, Type t, object o, JsonSerializer s) =>
-                                   throw new NotImplementedException();
+                    throw new NotImplementedException();
 
                 public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) =>
-                                   serializer.Serialize(writer, ((List<Report>)value).Where(c => c.Failed != 0).ToArray());
+                    serializer.Serialize(writer, ((List<Report>)value).Where(c => c.Failed != 0).ToArray());
             }
         }
     }
@@ -120,8 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             builder.AddModule(Metrics.ModuleName, image);
 
             builder.GetModule(ConfigModuleName.EdgeHub)
-                           .WithDesiredProperties(new Dictionary<string, object>
-                           {
+                .WithDesiredProperties(new Dictionary<string, object>
+                {
                     {
                         "routes", new
                         {
@@ -129,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             QueueLengthTest = $"FROM /messages/modules/{Metrics.ModuleName}/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/{Metrics.ModuleName}/inputs/FromSelf\")"
                         }
                     }
-                           });
+                });
 
             builder.GetModule("$edgeAgent").WithEnvironment(("PerformanceMetricsUpdateFrequency", "00:00:20"));
         }

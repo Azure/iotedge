@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -31,9 +30,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string LoadGenModuleName = "loadGenModule";
 
         public PlugAndPlay()
-                   : base(
-                   Context.Current.PreviewConnectionString.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview connection string for PlugAndPlay tests.")),
-                   Context.Current.PreviewEventHubEndpoint.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview Event Hub endpoint for PlugAndPlay tests.")))
+            : base(
+            Context.Current.PreviewConnectionString.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview connection string for PlugAndPlay tests.")),
+            Context.Current.PreviewEventHubEndpoint.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview Event Hub endpoint for PlugAndPlay tests.")))
         {
         }
 
@@ -51,28 +50,28 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string leafDeviceId = DeviceId.Current.Generate();
 
             var leaf = await LeafDevice.CreateAsync(
-                           leafDeviceId,
-                           Protocol.Mqtt,
-                           AuthenticationType.Sas,
-                           Option.Some(this.runtime.DeviceId),
-                           false,
-                           CertificateAuthority.GetQuickstart(),
-                           this.iotHub,
-                           token,
-                           Option.Some(TestModelId));
+                leafDeviceId,
+                Protocol.Mqtt,
+                AuthenticationType.Sas,
+                Option.Some(this.runtime.DeviceId),
+                false,
+                CertificateAuthority.GetQuickstart(),
+                this.iotHub,
+                token,
+                Option.Some(TestModelId));
 
             await TryFinally.DoAsync(
-                           async () =>
-                           {
-                               DateTime seekTime = DateTime.Now;
-                               await leaf.SendEventAsync(token);
-                               await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                               await this.ValidateDevice(leafDeviceId, TestModelId);
-                           },
-                           async () =>
-                           {
-                               await leaf.DeleteIdentityAsync(token);
-                           });
+                async () =>
+                {
+                    DateTime seekTime = DateTime.Now;
+                    await leaf.SendEventAsync(token);
+                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
+                    await this.ValidateDevice(leafDeviceId, TestModelId);
+                },
+                async () =>
+                {
+                    await leaf.DeleteIdentityAsync(token);
+                });
         }
 
         [Test]

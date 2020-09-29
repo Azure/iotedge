@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -48,15 +47,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             await this.daemon.ConfigureAsync(
-                           config =>
-                           {
-                               config.SetDpsSymmetricKey(idScope, registrationId, deviceKey);
-                               config.Update();
-                               return Task.FromResult((
-                                   "with DPS symmetric key attestation for '{Identity}'",
-                                   new object[] { registrationId }));
-                           },
-                           token);
+                config =>
+                {
+                    config.SetDpsSymmetricKey(idScope, registrationId, deviceKey);
+                    config.Update();
+                    return Task.FromResult((
+                        "with DPS symmetric key attestation for '{Identity}'",
+                        new object[] { registrationId }));
+                },
+                token);
 
             await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
@@ -65,15 +64,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
-                           registrationId,
-                           this.iotHub,
-                           token,
-                           takeOwnership: true);
+                registrationId,
+                this.iotHub,
+                token,
+                takeOwnership: true);
 
             Context.Current.DeleteList.TryAdd(
-                           registrationId,
-                           device.Expect(() => new InvalidOperationException(
-                               $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
+                registrationId,
+                device.Expect(() => new InvalidOperationException(
+                    $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
 
         [Test]
@@ -89,23 +88,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             CertificateAuthority ca = await CertificateAuthority.CreateAsync(
-                           registrationId,
-                           rootCa,
-                           caCertScriptPath,
-                           token);
+                registrationId,
+                rootCa,
+                caCertScriptPath,
+                token);
 
             IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(registrationId, token);
 
             await this.daemon.ConfigureAsync(
-                           config =>
-                           {
-                               config.SetDpsX509(idScope, registrationId, idCert);
-                               config.Update();
-                               return Task.FromResult((
-                                   "with DPS X509 attestation for '{Identity}'",
-                                   new object[] { registrationId }));
-                           },
-                           token);
+                config =>
+                {
+                    config.SetDpsX509(idScope, registrationId, idCert);
+                    config.Update();
+                    return Task.FromResult((
+                        "with DPS X509 attestation for '{Identity}'",
+                        new object[] { registrationId }));
+                },
+                token);
 
             await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
@@ -114,15 +113,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
-                           registrationId,
-                           this.iotHub,
-                           token,
-                           takeOwnership: true);
+                registrationId,
+                this.iotHub,
+                token,
+                takeOwnership: true);
 
             Context.Current.DeleteList.TryAdd(
-                           registrationId,
-                           device.Expect(() => new InvalidOperationException(
-                               $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
+                registrationId,
+                device.Expect(() => new InvalidOperationException(
+                    $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
     }
 }

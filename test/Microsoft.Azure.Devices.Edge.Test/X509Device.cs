@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -26,28 +25,28 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string leafDeviceId = DeviceId.Current.Generate();
 
             var leaf = await LeafDevice.CreateAsync(
-                           leafDeviceId,
-                           Protocol.Amqp,
-                           AuthenticationType.Sas,
-                           Option.Some(this.runtime.DeviceId),
-                           false,
-                           CertificateAuthority.GetQuickstart(),
-                           this.iotHub,
-                           token,
-                           Option.None<string>());
+                leafDeviceId,
+                Protocol.Amqp,
+                AuthenticationType.Sas,
+                Option.Some(this.runtime.DeviceId),
+                false,
+                CertificateAuthority.GetQuickstart(),
+                this.iotHub,
+                token,
+                Option.None<string>());
 
             await TryFinally.DoAsync(
-                           async () =>
-                           {
-                               DateTime seekTime = DateTime.Now;
-                               await leaf.SendEventAsync(token);
-                               await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                               await leaf.InvokeDirectMethodAsync(token);
-                           },
-                           async () =>
-                           {
-                               await leaf.DeleteIdentityAsync(token);
-                           });
+                async () =>
+                {
+                    DateTime seekTime = DateTime.Now;
+                    await leaf.SendEventAsync(token);
+                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
+                    await leaf.InvokeDirectMethodAsync(token);
+                },
+                async () =>
+                {
+                    await leaf.DeleteIdentityAsync(token);
+                });
         }
     }
 }
