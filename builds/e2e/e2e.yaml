@@ -101,7 +101,10 @@ jobs:
         netsh interface ipv6 show prefixpolicies
       displayName: Prefer IPv4
 
-    - template: templates/e2e-clear-docker-cached-images.yaml
+    - pwsh: |
+        docker -H npipe:////./pipe/iotedge_moby_engine system prune --volumes -af
+      displayName: clear cached docker images
+
     - template: templates/e2e-run.yaml
 
 ################################################################################	
