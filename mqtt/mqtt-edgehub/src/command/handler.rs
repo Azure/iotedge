@@ -159,8 +159,14 @@ async fn subscribe(
     {
         if let Event::SubscriptionUpdates(subscriptions) = event {
             for subscription in subscriptions {
-                if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
-                    subacks.remove(&sub.topic_filter);
+                match subscription {
+                    SubscriptionUpdateEvent::Subscribe(sub) => {
+                        subacks.remove(&sub.topic_filter);
+                    }
+                    SubscriptionUpdateEvent::RejectedByServer(sub) => {
+                        return Err(CommandHandlerError::SubscriptionRejectedByServer(sub));
+                    }
+                    SubscriptionUpdateEvent::Unsubscribe(_) => {}
                 }
             }
 
@@ -181,6 +187,9 @@ async fn subscribe(
 pub enum CommandHandlerError {
     #[error("failed to receive expected subacks for command topics: {0:?}")]
     MissingSubacks(Vec<String>),
+
+    #[error("subscription rejected by server: {0:?}")]
+    SubscriptionRejectedByServer(String),
 
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),

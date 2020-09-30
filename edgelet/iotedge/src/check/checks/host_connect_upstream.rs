@@ -4,30 +4,30 @@ use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
 
-pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
+pub(crate) fn get_host_connect_upstream_tests() -> Vec<Box<dyn Checker>> {
     vec![
         make_check(
-            "host-connect-iothub-amqp",
-            "host can connect to and perform TLS handshake with IoT Hub AMQP port",
+            "host-connect-upstream-amqp",
+            "host can connect to and perform TLS handshake with upstream AMQP port",
             UpstreamProtocolPort::Amqp,
         ),
         make_check(
-            "host-connect-iothub-https",
-            "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
+            "host-connect-upstream-https",
+            "host can connect to and perform TLS handshake with upstream HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
         ),
         make_check(
-            "host-connect-iothub-mqtt",
-            "host can connect to and perform TLS handshake with IoT Hub MQTT port",
+            "host-connect-upstream-mqtt",
+            "host can connect to and perform TLS handshake with upstream MQTT port",
             UpstreamProtocolPort::Mqtt,
         ),
     ]
 }
 
 #[derive(serde_derive::Serialize)]
-pub(crate) struct HostConnectIotHub {
+pub(crate) struct HostConnectUpstream {
     port_number: u16,
-    iothub_hostname: Option<String>,
+    upstream_hostname: Option<String>,
     proxy: Option<String>,
     #[serde(skip)]
     id: &'static str,
@@ -35,7 +35,7 @@ pub(crate) struct HostConnectIotHub {
     description: &'static str,
 }
 
-impl Checker for HostConnectIotHub {
+impl Checker for HostConnectUpstream {
     fn id(&self) -> &'static str {
         self.id
     }
@@ -51,18 +51,29 @@ impl Checker for HostConnectIotHub {
     }
 }
 
-impl HostConnectIotHub {
+impl HostConnectUpstream {
     fn inner_execute(
         &mut self,
         check: &mut Check,
         runtime: &mut tokio::runtime::Runtime,
     ) -> Result<CheckResult, failure::Error> {
-        let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
+        let settings = if let Some(settings) = &check.settings {
+            settings
+        } else {
+            return Ok(CheckResult::Skipped);
+        };
+
+        let parent_hostname: String;
+        let upstream_hostname = if let Some(upstream_hostname) = settings.parent_hostname() {
+            parent_hostname = upstream_hostname.to_string();
+            &parent_hostname
+        } else if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
         } else {
             return Ok(CheckResult::Skipped);
         };
-        self.iothub_hostname = Some(iothub_hostname.clone());
+
+        self.upstream_hostname = Some(upstream_hostname.clone());
 
         self.proxy = check
             .settings
@@ -72,16 +83,16 @@ impl HostConnectIotHub {
         if let Some(proxy) = &self.proxy {
             runtime.block_on(
                 super::host_connect_dps_endpoint::resolve_and_tls_handshake_proxy(
-                    iothub_hostname.clone(),
+                    upstream_hostname.clone(),
                     Some(self.port_number),
                     proxy.clone(),
                 ),
             )?;
         } else {
             super::host_connect_dps_endpoint::resolve_and_tls_handshake(
-                &(&**iothub_hostname, self.port_number),
-                iothub_hostname,
-                &format!("{}:{}", iothub_hostname, self.port_number),
+                &(&**upstream_hostname, self.port_number),
+                upstream_hostname,
+                &format!("{}:{}", upstream_hostname, self.port_number),
             )?;
         }
 
@@ -93,12 +104,12 @@ fn make_check(
     id: &'static str,
     description: &'static str,
     upstream_protocol_port: UpstreamProtocolPort,
-) -> Box<HostConnectIotHub> {
-    Box::new(HostConnectIotHub {
+) -> Box<HostConnectUpstream> {
+    Box::new(HostConnectUpstream {
         id,
         description,
         port_number: upstream_protocol_port.as_port(),
-        iothub_hostname: None,
+        upstream_hostname: None,
         proxy: None,
     })
 }

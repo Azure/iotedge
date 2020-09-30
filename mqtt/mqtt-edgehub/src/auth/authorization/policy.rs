@@ -2,10 +2,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::debug;
 
-use mqtt_broker::{
-    auth::{Activity, Authorization, Authorizer, Operation},
-    AuthId,
-};
+use mqtt_broker::auth::{Activity, Authorization, Authorizer, Operation};
 use mqtt_policy::{MqttSubstituter, MqttTopicFilterMatcher, MqttValidator};
 use policy::{Decision, Policy, PolicyBuilder, Request};
 
@@ -35,9 +32,9 @@ impl Authorizer for PolicyAuthorizer {
 
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         let request = Request::with_context(
-            get_identity(&activity),
-            get_operation(&activity),
-            get_resource(&activity),
+            identity(&activity),
+            operation(&activity),
+            resource(&activity),
             activity.clone(),
         )
         .map_err(Error::Authorization)?;
@@ -96,14 +93,11 @@ fn build_policy(
         .map_err(Error::BuildPolicy)
 }
 
-fn get_identity(activity: &Activity) -> &str {
-    match activity.client_info().auth_id() {
-        AuthId::Anonymous => "*", //TODO: think about this one.
-        AuthId::Identity(identity) => identity.as_str(),
-    }
+fn identity(activity: &Activity) -> &str {
+    activity.client_info().auth_id().as_str() //TODO: think about anonymous case.
 }
 
-fn get_operation(activity: &Activity) -> &str {
+fn operation(activity: &Activity) -> &str {
     match activity.operation() {
         Operation::Connect(_) => "mqtt:connect",
         Operation::Publish(_) => "mqtt:publish",
@@ -111,7 +105,7 @@ fn get_operation(activity: &Activity) -> &str {
     }
 }
 
-fn get_resource(activity: &Activity) -> &str {
+fn resource(activity: &Activity) -> &str {
     match activity.operation() {
         // this is intentional. mqtt:connect should have empty resource.
         Operation::Connect(_) => "",

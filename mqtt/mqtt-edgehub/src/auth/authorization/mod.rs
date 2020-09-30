@@ -1,9 +1,9 @@
-mod iothub;
+mod edgehub;
 mod local;
 mod policy;
 
 pub use self::policy::{PolicyAuthorizer, PolicyUpdate};
-pub use iothub::{AuthorizerUpdate, IotHubAuthorizer};
+pub use edgehub::{AuthorizerUpdate, EdgeHubAuthorizer};
 pub use local::LocalAuthorizer;
 
 #[cfg(test)]
@@ -59,7 +59,8 @@ mod tests {
     }
 
     fn activity(operation: Operation, client_id: &str, auth_id: impl Into<AuthId>) -> Activity {
-        let client_info = ClientInfo::new("10.0.0.1:12345".parse().unwrap(), auth_id.into());
-        Activity::new(client_id, client_info, operation)
+        let client_info =
+            ClientInfo::new(client_id, "10.0.0.1:12345".parse().unwrap(), auth_id.into());
+        Activity::new(client_info, operation)
     }
 }

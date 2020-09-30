@@ -8,20 +8,20 @@ use mqtt_broker::{
     AuthId, ClientId,
 };
 
-/// `IotHubAuthorizer` implements authorization rules for iothub-specific primitives.
+/// `EdgeHubAuthorizer` implements authorization rules for iothub-specific primitives.
 ///
 /// For example, it allows a client to publish (or subscribe for) twin updates, direct messages,
 /// telemetry messages, etc...
 ///
 /// For non-iothub-specific primitives it delegates the request to an inner authorizer (`PolicyAuthorizer`).
 #[derive(Debug)]
-pub struct IotHubAuthorizer<Z> {
+pub struct EdgeHubAuthorizer<Z> {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
     service_identities_cache: HashMap<ClientId, IdentityUpdate>,
     inner: Z,
 }
 
-impl<Z, E> IotHubAuthorizer<Z>
+impl<Z, E> EdgeHubAuthorizer<Z>
 where
     Z: Authorizer<Error = E>,
     E: StdError,
@@ -52,8 +52,9 @@ where
                     self.inner.authorize(activity)
                 } else {
                     Ok(Authorization::Forbidden(format!(
-                        "client_id {} does not match registered iothub identity id.",
-                        activity.client_id()
+                        "client_id {} does not match registered iothub identity id {}",
+                        activity.client_id(),
+                        identity
                     )))
                 }
             }
@@ -235,7 +236,7 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
     ]
 }
 
-impl<Z, E> Authorizer for IotHubAuthorizer<Z>
+impl<Z, E> Authorizer for EdgeHubAuthorizer<Z>
 where
     Z: Authorizer<Error = E>,
     E: StdError,
@@ -320,7 +321,7 @@ mod tests {
 
     use crate::auth::authorization::tests;
 
-    use super::{AuthorizerUpdate, IdentityUpdate, IotHubAuthorizer};
+    use super::{AuthorizerUpdate, EdgeHubAuthorizer, IdentityUpdate};
 
     #[test_case(&tests::connect_activity("device-1", AuthId::Anonymous); "anonymous clients")]
     #[test_case(&tests::connect_activity("device-1", "device-2"); "different auth_id and client_id")]
@@ -389,7 +390,7 @@ mod tests {
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic subscribe")]
     fn it_delegates_to_inner(activity: &Activity) {
         let inner = authorize_fn_ok(|_| Authorization::Forbidden("not allowed inner".to_string()));
-        let authorizer = IotHubAuthorizer::new(inner);
+        let authorizer = EdgeHubAuthorizer::new(inner);
 
         let auth = authorizer.authorize(&activity);
 
@@ -465,11 +466,11 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    fn authorizer<Z>(inner: Z) -> IotHubAuthorizer<Z>
+    fn authorizer<Z>(inner: Z) -> EdgeHubAuthorizer<Z>
     where
         Z: Authorizer,
     {
-        let mut authorizer = IotHubAuthorizer::new(inner);
+        let mut authorizer = EdgeHubAuthorizer::new(inner);
 
         let service_identity = IdentityUpdate {
             identity: "device-1".to_string(),

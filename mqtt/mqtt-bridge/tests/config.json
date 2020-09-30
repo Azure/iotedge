@@ -1,10 +1,11 @@
 {
-    "gatewayhostname": "edge1",
-    "deviceid": "d1",
-    "moduleid": "mymodule",
-    "modulegenerationid": "321",
-    "workloaduri": "uri",
-    "iothubhostname": "iothub",
+    "iotedge_gatewayhostname": "edge1",
+    "iotedge_deviceid": "d1",
+    "iotedge_moduleid": "mymodule",
+    "iotedge_modulegenerationid": "321",
+    "iotedge_workloaduri": "uri",
+    "iotedge_iothubhostname": "iothub",
+    "enableupstreambridge": "true",
     "upstream": {
         "subscriptions": [
             {
@@ -30,7 +31,7 @@
     "remotes": [
         {
             "name": "r1",
-            "address": "remote",
+            "address": "remote:8883",
             "client_id": "client",
             "username": "mymodule",
             "password": "pass",

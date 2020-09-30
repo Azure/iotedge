@@ -28,20 +28,20 @@ pub enum Authorization {
 /// It wraps any provided function with an interface aligned with authorizer.
 pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
 where
-    F: Fn(Activity) -> Authorization + Sync + 'static,
+    F: Fn(&Activity) -> Authorization + Sync + 'static,
 {
-    move |activity| Ok::<_, Infallible>(f(activity))
+    move |activity: &Activity| Ok::<_, Infallible>(f(activity))
 }
 
 impl<F, E> Authorizer for F
 where
-    F: Fn(Activity) -> Result<Authorization, E> + Sync,
+    F: Fn(&Activity) -> Result<Authorization, E> + Sync,
     E: StdError,
 {
     type Error = E;
 
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
-        self(activity.clone())
+        self(activity)
     }
 }
 
@@ -74,26 +74,20 @@ impl Authorizer for AllowAll {
 /// Describes a client activity to authorized.
 #[derive(Clone, Debug)]
 pub struct Activity {
-    client_id: ClientId,
     client_info: ClientInfo,
     operation: Operation,
 }
 
 impl Activity {
-    pub fn new(
-        client_id: impl Into<ClientId>,
-        client_info: ClientInfo,
-        operation: Operation,
-    ) -> Self {
+    pub fn new(client_info: ClientInfo, operation: Operation) -> Self {
         Self {
-            client_id: client_id.into(),
             client_info,
             operation,
         }
     }
 
     pub fn client_id(&self) -> &ClientId {
-        &self.client_id
+        &self.client_info.client_id()
     }
 
     pub fn client_info(&self) -> &ClientInfo {
@@ -104,8 +98,8 @@ impl Activity {
         &self.operation
     }
 
-    pub fn into_parts(self) -> (ClientId, ClientInfo, Operation) {
-        (self.client_id, self.client_info, self.operation)
+    pub fn into_parts(self) -> (ClientInfo, Operation) {
+        (self.client_info, self.operation)
     }
 }
 
@@ -267,8 +261,7 @@ mod tests {
     fn default_auth_always_deny_any_action() {
         let auth = DenyAll;
         let activity = Activity::new(
-            "client-auth-id",
-            ClientInfo::new(peer_addr(), "client-id"),
+            ClientInfo::new("client-auth-id", peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 
@@ -281,8 +274,7 @@ mod tests {
     fn authorizer_wrapper_around_function() {
         let auth = AllowAll;
         let activity = Activity::new(
-            "client-auth-id",
-            ClientInfo::new(peer_addr(), "client-id"),
+            ClientInfo::new("client-auth-id", peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 
