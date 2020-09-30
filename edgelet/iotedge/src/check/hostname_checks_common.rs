@@ -58,10 +58,10 @@ mod tests {
     #[test]
     fn test_check_length_for_local_issuer() {
         let longest_valid_label = "a".repeat(64);
-        assert!(check_length_for_local_issuer(longest_valid_label));
+        assert!(check_length_for_local_issuer(&longest_valid_label));
 
         let invalid_label = "a".repeat(65);
-        assert!(!check_length_for_local_issuer(invalid_label));
+        assert!(!check_length_for_local_issuer(&invalid_label));
     }
 
     #[test]
