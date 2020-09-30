@@ -7,10 +7,10 @@ use mqtt_broker::{
     AuthId,
 };
 
-/// Allows to connect any MQTT client connected to locahost.
+/// Allows to connect any MQTT client connected to localhost.
 /// It is intended to use to authenticate client for local communication
 /// inside `EdgeHub` container.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct LocalAuthenticator;
 
 impl LocalAuthenticator {

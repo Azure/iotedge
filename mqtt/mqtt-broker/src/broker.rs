@@ -1128,7 +1128,7 @@ pub(crate) mod tests {
 
     use super::OpenSession;
     use crate::{
-        auth::{authorize_fn_ok, AllowAll, Authorization, Operation},
+        auth::{authorize_fn_ok, Activity, AllowAll, Authorization, Operation},
         broker::{BrokerBuilder, BrokerHandle},
         error::Error,
         session::Session,
@@ -1613,7 +1613,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authorization_failed() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(|_| Err(AuthorizeError))
+            .with_authorizer(|_: &Activity| Err(AuthorizeError))
             .build();
 
         let mut broker_handle = broker.handle();

@@ -28,20 +28,20 @@ pub enum Authorization {
 /// It wraps any provided function with an interface aligned with authorizer.
 pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
 where
-    F: Fn(Activity) -> Authorization + Sync + 'static,
+    F: Fn(&Activity) -> Authorization + Sync + 'static,
 {
-    move |activity| Ok::<_, Infallible>(f(activity))
+    move |activity: &Activity| Ok::<_, Infallible>(f(activity))
 }
 
 impl<F, E> Authorizer for F
 where
-    F: Fn(Activity) -> Result<Authorization, E> + Sync,
+    F: Fn(&Activity) -> Result<Authorization, E> + Sync,
     E: StdError,
 {
     type Error = E;
 
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
-        self(activity.clone())
+        self(activity)
     }
 }
 
