@@ -812,19 +812,21 @@ where
         let old_session = Session::new_disconnecting(state.client_info().clone(), None, handle);
         let client_id = connreq.client_id().clone();
         let new_client_info = ClientInfo::new(client_id.clone(), connreq.peer_addr(), auth_id);
-        state.set_client_info(new_client_info);
-
         let (new_session, session_present) =
             if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                 debug!(
                     "moving persistent session to this connection for {}",
                     client_id
                 );
+                state.set_client_info(new_client_info);
                 let new_session = Session::new_persistent(connreq, state);
                 (new_session, true)
             } else {
                 info!("cleaning session for {}", client_id);
-                let new_session = Session::new_transient(connreq, state);
+                let new_session = Session::new_transient(
+                    connreq,
+                    SessionState::new(new_client_info, self.config.session().clone()),
+                );
                 (new_session, false)
             };
 
