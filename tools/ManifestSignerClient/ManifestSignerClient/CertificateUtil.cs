@@ -125,7 +125,7 @@ namespace ManifestSignerClient
             Array.Copy(canonicalizedHeader, 0, finalContent, 0, canonicalizedHeader.Length);
             Array.Copy(canonicalizedContent, 0, finalContent, canonicalizedHeader.Length, canonicalizedContent.Length);
 
-            if (dsaAlgorithmScheme == "EC")
+            if (dsaAlgorithmScheme == "ES")
             {
                 var signerPrivateKeyContent = GetPrivateKeyFromPem(signerKeyPath, "EC");
                 var signer = CreateECDsaFromPrivateKey(signerPrivateKeyContent);

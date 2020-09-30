@@ -246,7 +246,7 @@ namespace ManifestSignerClient
                         }
                     }
 
-                    var signedDeploymentfile = File.CreateText(SignedDeploymentManifestFilePath);
+                    using var signedDeploymentfile = File.CreateText(SignedDeploymentManifestFilePath);
                     signedDeploymentfile.Write(deploymentManifestContentJson);
                 }
                 else
