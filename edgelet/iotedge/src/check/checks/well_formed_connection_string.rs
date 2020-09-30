@@ -1,6 +1,6 @@
-use failure::{self, Context, ResultExt};
+use failure::{self, Fail, ResultExt};
 
-use edgelet_core::{self, ManualAuthMethod, ProvisioningType, RuntimeSettings};
+use edgelet_core::{self, ManualAuthMethod, ProvisioningResult, ProvisioningType, RuntimeSettings};
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
@@ -49,10 +49,20 @@ impl WellFormedConnectionString {
             check.iothub_hostname = Some(hub);
             self.iothub_hostname = check.iothub_hostname.clone();
         } else if check.iothub_hostname.is_none() {
-            let warning = "Device not configured with manual provisioning, in this configuration 'iotedge check' is not able to discover the device's backing IoT Hub.\n\
-                            To run connectivity checks in this configuration please specify the backing IoT Hub name using --iothub-hostname switch if you have that information.\n\
-                            If no hostname is provided, all hub connectivity tests will be skipped.";
-            return Ok(CheckResult::Warning(Context::new(warning).into()));
+            let provisioning_file_path = settings
+                .homedir()
+                .join("cache")
+                .join("provisioning_backup.json");
+
+            let provision_result = provisioning::restore(&provisioning_file_path).map_err(|e| {
+                let reason = "Could not retrieve iothub_hostname from provisioning file.\n\
+                Please specify the backing IoT Hub name using --iothub-hostname switch if you have that information.\n\
+                If no hostname is provided, all hub connectivity tests will be skipped.";
+                e.context(reason)
+            })?;
+
+            check.iothub_hostname = Some(provision_result.hub_name().to_owned());
+            self.iothub_hostname = check.iothub_hostname.clone();
         }
 
         Ok(CheckResult::Ok)
