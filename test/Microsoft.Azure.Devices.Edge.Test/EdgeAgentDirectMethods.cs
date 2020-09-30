@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual(expected, response.Payload);
         }
 
-        // [Test]
+        [Test]
         public async Task TestUploadModuleLogs()
         {
             string moduleName = "NumberLogger";
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
                 response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
 
-                if (response.Status == BackgroundTaskRunStatus.NotStarted || response.Status == BackgroundTaskRunStatus.Running)
+                if (response.Status != BackgroundTaskRunStatus.NotStarted && response.Status != BackgroundTaskRunStatus.Running)
                 {
                     break;
                 }
@@ -136,9 +136,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             Assert.AreEqual(BackgroundTaskRunStatus.Completed, response.Status, response.Message);
-
-            // BlobServiceClient blobServiceClient = new BlobServiceClient(sasUrl);
-            // string expected = string.Join('\n', Enumerable.Range(0, count));
         }
 
         class LogResponse
