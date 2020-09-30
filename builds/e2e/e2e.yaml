@@ -63,7 +63,11 @@ jobs:
     displayName: Windows amd64
 
     pool:
-      vmImage: windows-2019
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Windows_NT
+        - Agent.OSArchitecture -equals X64
+        - run-new-e2e-tests -equals true
 
     variables:
       os: windows
@@ -71,6 +75,11 @@ jobs:
       artifactName: iotedged-windows
 
     steps:
+    - pwsh: |
+        Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
+        Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
+      displayName: Clean up HSM previous run artifacts
+
     - template: templates/e2e-setup.yaml
 
     - pwsh: |
@@ -92,6 +101,7 @@ jobs:
         netsh interface ipv6 show prefixpolicies
       displayName: Prefer IPv4
 
+    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################	
