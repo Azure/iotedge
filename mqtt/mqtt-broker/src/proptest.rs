@@ -1,3 +1,4 @@
+#[cfg(any(test, feature = "proptest"))]
 use std::{net::IpAddr, net::SocketAddr, time::Duration};
 
 use bytes::Bytes;

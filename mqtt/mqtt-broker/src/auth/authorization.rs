@@ -2,7 +2,7 @@ use std::{any::Any, convert::Infallible, error::Error as StdError};
 
 use mqtt3::proto;
 
-use crate::ClientInfo;
+use crate::{ClientId, ClientInfo};
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
@@ -10,7 +10,7 @@ pub trait Authorizer {
     type Error: StdError;
 
     /// Authorizes a MQTT client to perform some action.
-    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error>;
+    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error>;
 
     fn update(&mut self, _update: Box<dyn Any>) -> Result<(), Self::Error> {
         Ok(())
@@ -28,19 +28,19 @@ pub enum Authorization {
 /// It wraps any provided function with an interface aligned with authorizer.
 pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
 where
-    F: Fn(Activity) -> Authorization + Sync + 'static,
+    F: Fn(&Activity) -> Authorization + Sync + 'static,
 {
-    move |activity| Ok::<_, Infallible>(f(activity))
+    move |activity: &Activity| Ok::<_, Infallible>(f(activity))
 }
 
 impl<F, E> Authorizer for F
 where
-    F: Fn(Activity) -> Result<Authorization, E> + Sync,
+    F: Fn(&Activity) -> Result<Authorization, E> + Sync,
     E: StdError,
 {
     type Error = E;
 
-    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
+    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         self(activity)
     }
 }
@@ -52,7 +52,7 @@ pub struct DenyAll;
 impl Authorizer for DenyAll {
     type Error = Infallible;
 
-    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
+    fn authorize(&self, _: &Activity) -> Result<Authorization, Self::Error> {
         Ok(Authorization::Forbidden(
             "not allowed by default".to_string(),
         ))
@@ -66,13 +66,13 @@ pub struct AllowAll;
 impl Authorizer for AllowAll {
     type Error = Infallible;
 
-    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
+    fn authorize(&self, _: &Activity) -> Result<Authorization, Self::Error> {
         Ok(Authorization::Allowed)
     }
 }
 
 /// Describes a client activity to authorized.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Activity {
     client_info: ClientInfo,
     operation: Operation,
@@ -84,6 +84,10 @@ impl Activity {
             client_info,
             operation,
         }
+    }
+
+    pub fn client_id(&self) -> &ClientId {
+        &self.client_info.client_id()
     }
 
     pub fn client_info(&self) -> &ClientInfo {
@@ -100,7 +104,7 @@ impl Activity {
 }
 
 /// Describes a client operation to be authorized.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Operation {
     Connect(Connect),
     Publish(Publish),
@@ -125,7 +129,7 @@ impl Operation {
 }
 
 /// Represents a client attempt to connect to the broker.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Connect {
     will: Option<Publication>,
 }
@@ -145,7 +149,7 @@ impl From<proto::Connect> for Connect {
 }
 
 /// Represents a publication description without payload to be used for authorization.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Publication {
     topic_name: String,
     qos: proto::QoS,
@@ -177,7 +181,7 @@ impl From<proto::Publication> for Publication {
 }
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Publish {
     publication: Publication,
 }
@@ -261,7 +265,7 @@ mod tests {
             Operation::new_connect(connect()),
         );
 
-        let res = auth.authorize(activity);
+        let res = auth.authorize(&activity);
 
         assert_matches!(res, Ok(Authorization::Forbidden(_)));
     }
@@ -274,7 +278,7 @@ mod tests {
             Operation::new_connect(connect()),
         );
 
-        let res = auth.authorize(activity);
+        let res = auth.authorize(&activity);
 
         assert_matches!(res, Ok(Authorization::Allowed));
     }

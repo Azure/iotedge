@@ -250,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    fn test_topics() {
+    fn test_topic_matching() {
         let cases = vec![
             ("#", "blah", true),
             ("blah/#", "blah", true),
@@ -269,7 +269,35 @@ mod tests {
             assert_eq!(
                 *expected,
                 parsed.matches(topic),
-                "filter \"{}\" matches \"{}\"",
+                "filter \"{}\" matches topic \"{}\"",
+                filter,
+                topic
+            );
+        }
+    }
+
+    #[test]
+    fn test_topic_filter_matching() {
+        let cases = vec![
+            ("#", "#", true),
+            ("#", "+", true),
+            ("blah/#", "blah/+", true),
+            ("blah/blah2/#", "blah/#", false),
+            ("blah/+/blah2", "blah/blah1/#", false),
+            ("blah/+/blah2", "blah/+/blah1", false),
+            ("blah/+", "blah/blah1/#", false),
+            ("blah/blah1", "blah/blah1/+", false),
+            ("blah/blah1/blah2", "blah/blah/+", false),
+            ("#", "$SYS/#", false),
+            ("+", "$SYS/+", false),
+        ];
+
+        for (filter, topic, expected) in &cases {
+            let parsed = TopicFilter::from_str(filter).unwrap();
+            assert_eq!(
+                *expected,
+                parsed.matches(topic),
+                "filter \"{}\" matches topic filter \"{}\"",
                 filter,
                 topic
             );
