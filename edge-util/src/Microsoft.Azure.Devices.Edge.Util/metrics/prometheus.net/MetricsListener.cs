@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 
     public class MetricsListener : IMetricsListener
     {
-        readonly MetricServer metricServer;
+        readonly KestrelMetricServer metricServer;
         readonly MetricsListenerConfig listenerConfig;
 
         ILogger logger;
@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             }
 
             this.listenerConfig = Preconditions.CheckNotNull(listenerConfig, nameof(listenerConfig));
-            this.metricServer = new MetricServer(listenerConfig.Host, listenerConfig.Port, listenerConfig.Suffix.Trim('/') + '/', prometheusMetricsProvider.DefaultRegistry);
+            this.metricServer = new KestrelMetricServer(listenerConfig.Host, listenerConfig.Port, '/' + listenerConfig.Suffix.Trim('/'), prometheusMetricsProvider.DefaultRegistry);
         }
 
         public void Dispose()
