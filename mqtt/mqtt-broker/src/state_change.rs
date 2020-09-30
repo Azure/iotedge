@@ -90,7 +90,10 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, convert::TryInto, str::FromStr};
+    use std::{
+        collections::HashMap, convert::TryInto, net::IpAddr, net::Ipv4Addr, net::SocketAddr,
+        str::FromStr,
+    };
 
     use mqtt3::proto;
 
@@ -100,15 +103,20 @@ mod tests {
         state_change::{StateChange, STATE_CHANGE_QOS},
         subscription::{Subscription, TopicFilter},
         tests::peer_addr,
-        Auth, AuthId, BrokerConfig, ClientId, ConnReq, SessionConfig,
+        Auth, AuthId, BrokerConfig, ClientId, ClientInfo, ConnReq, SessionConfig,
     };
 
     #[test]
     fn test_subscriptions() {
         let expected_id: ClientId = "Session".into();
+        let client_info = ClientInfo::new(
+            expected_id.clone(),
+            SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
+            AuthId::from("authId1"),
+        );
 
         // Session with no subscriptions
-        let session = make_session(expected_id.as_str(), Vec::<&str>::new(), true);
+        let session = make_session(expected_id.as_str(), &client_info, Vec::<&str>::new(), true);
         let no_subs = StateChange::new_subscription_change(&expected_id, Some(&session));
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &no_subs {
@@ -120,7 +128,7 @@ mod tests {
         matches_subscription_publication(message, expected_id.as_str(), &[]);
 
         // Session with 1 subscription
-        let session = make_session(expected_id.as_str(), &["Sub"], true);
+        let session = make_session(expected_id.as_str(), &client_info, &["Sub"], true);
         let one_sub = StateChange::new_subscription_change(&expected_id, Some(&session));
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &one_sub {
@@ -134,6 +142,7 @@ mod tests {
         // Session with many subscriptions
         let session = make_session(
             expected_id.as_str(),
+            &client_info,
             (1..4).map(|i| format!("Sub{}", i)),
             true,
         );
@@ -166,6 +175,11 @@ mod tests {
     fn test_connections() {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
+        let client_info = ClientInfo::new(
+            "client_id",
+            SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
+            AuthId::from("authId1"),
+        );
         let no_connections = StateChange::new_connection_change(&sessions);
         if let StateChange::Connections(no_connections) = &no_connections {
             assert_eq!(&Vec::<&ClientId>::new(), no_connections);
@@ -180,8 +194,12 @@ mod tests {
         let sessions: HashMap<ClientId, Session> = (1..2)
             .map(|i| {
                 let id = format!("Session {}", i);
-                let session =
-                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+                let session = make_session(
+                    &id,
+                    &client_info,
+                    (1..i).map(|j| format!("Subscription {}", j)),
+                    true,
+                );
 
                 (id.into(), session)
             })
@@ -201,8 +219,12 @@ mod tests {
         let sessions: HashMap<ClientId, Session> = (1..4)
             .map(|i| {
                 let id = format!("Session {}", i);
-                let session =
-                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+                let session = make_session(
+                    &id,
+                    &client_info,
+                    (1..i).map(|j| format!("Subscription {}", j)),
+                    true,
+                );
 
                 (id.into(), session)
             })
@@ -225,6 +247,7 @@ mod tests {
                 let id = format!("Session {}", i);
                 let session = make_session(
                     &id,
+                    &client_info,
                     (1..i).map(|j| format!("Subscription {}", j)),
                     i % 2 == 0, // even sessions are online, odd offline
                 );
@@ -249,6 +272,11 @@ mod tests {
     fn test_sessions() {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
+        let client_info = ClientInfo::new(
+            "client_id",
+            SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
+            AuthId::from("authId1"),
+        );
         let no_sessions = StateChange::new_session_change(&sessions);
         if let StateChange::Sessions(no_sessions) = &no_sessions {
             assert_eq!(&Vec::<&ClientId>::new(), no_sessions);
@@ -263,8 +291,12 @@ mod tests {
         let sessions: HashMap<ClientId, Session> = (1..2)
             .map(|i| {
                 let id = format!("Session {}", i);
-                let session =
-                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+                let session = make_session(
+                    &id,
+                    &client_info,
+                    (1..i).map(|j| format!("Subscription {}", j)),
+                    true,
+                );
 
                 (id.into(), session)
             })
@@ -284,8 +316,12 @@ mod tests {
         let sessions: HashMap<ClientId, Session> = (1..4)
             .map(|i| {
                 let id = format!("Session {}", i);
-                let session =
-                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+                let session = make_session(
+                    &id,
+                    &client_info,
+                    (1..i).map(|j| format!("Subscription {}", j)),
+                    true,
+                );
 
                 (id.into(), session)
             })
@@ -308,6 +344,7 @@ mod tests {
                 let id = format!("Session {}", i);
                 let session = make_session(
                     &id,
+                    &client_info,
                     (1..i).map(|j| format!("Subscription {}", j)),
                     i % 2 == 0, // even sessions are online, odd offline
                 );
@@ -352,12 +389,17 @@ mod tests {
         BrokerConfig::default().session().clone()
     }
 
-    fn make_session<I, S>(id: &str, subscriptions: I, online: bool) -> Session
+    fn make_session<I, S>(
+        id: &str,
+        client_info: &ClientInfo,
+        subscriptions: I,
+        online: bool,
+    ) -> Session
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut state = SessionState::new(id.into(), default_config());
+        let mut state = SessionState::new(client_info.clone(), default_config());
 
         for topic_filter in subscriptions {
             state.update_subscription(
@@ -371,7 +413,6 @@ mod tests {
 
         if online {
             Session::new_persistent(
-                AuthId::Anonymous,
                 ConnReq::new(
                     id.into(),
                     peer_addr(),

@@ -23,6 +23,7 @@ impl BridgeController {
     ) -> Result<(), BridgeError> {
         info!("starting bridge");
         let settings = Settings::new().map_err(BridgeError::LoadingSettings)?;
+
         if let Some(upstream) = settings.upstream() {
             let nested_bridge = Bridge::new(system_address, device_id.into(), upstream.clone());
 
