@@ -5,13 +5,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public class SharedKeyCredentials : ISharedKeyCredentials
     {
-        public SharedKeyCredentials(IIdentity identity, string connectionString, string productInfo, Option<string> modelId)
+        public SharedKeyCredentials(IIdentity identity, string connectionString, string productInfo, Option<string> modelId, Option<string> authChain)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.ConnectionString = Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
             this.AuthenticationType = AuthenticationType.SasKey;
             this.ProductInfo = productInfo ?? string.Empty;
             this.ModelId = modelId;
+            this.AuthChain = authChain;
         }
 
         public IIdentity Identity { get; }
@@ -22,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
         public string ProductInfo { get; }
 
-        public Option<string> ModelId { get; set; }
+        public Option<string> ModelId { get; }
+
+        public Option<string> AuthChain { get; }
     }
 }

@@ -67,8 +67,8 @@ pub enum Error {
     #[error("An error occurred when constructing state change: {0}")]
     StateChange(#[from] serde_json::Error),
 
-    #[error("Failed to shutdown custom mqtt client: {0}")]
-    ShutdownClient(#[from] mqtt3::ShutdownError),
+    #[error("An error occurred when processing packet")]
+    PacketProcessing(#[source] Box<dyn StdError + Send + Sync>),
 }
 
 /// Represents errors occurred while bootstrapping broker.
