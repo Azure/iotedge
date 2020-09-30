@@ -22,7 +22,7 @@ impl BridgeController {
         system_address: String,
         device_id: &str,
     ) -> Result<(), BridgeError> {
-        info!("starting bridge");
+        info!("starting bridge controller...");
         let settings = Settings::new().map_err(BridgeError::LoadingSettings)?;
 
         if let Some(upstream) = settings.upstream() {

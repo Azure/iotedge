@@ -41,7 +41,6 @@ where
 
     let broker = bootstrap::broker(config.broker(), state).await?;
 
-    info!("starting snapshotter...");
     let snapshot_interval = persistence_config.time_interval();
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
         start_snapshotter(broker.handle(), persistor, snapshot_interval).await;
@@ -49,10 +48,8 @@ where
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
 
-    info!("starting server...");
     let server_fut = bootstrap::start_server(config, broker, shutdown);
 
-    info!("starting bridge controller...");
     let device_id = env::var(DEVICE_ID_ENV)?;
     let mut bridge_controller = BridgeController::new();
     let bridge_controller_fut = bridge_controller.start(system_address, device_id.as_str());
@@ -99,6 +96,8 @@ async fn start_snapshotter(
     ShutdownHandle,
     JoinHandle<FilePersistor<VersionedFileFormat>>,
 ) {
+    info!("starting snapshotter...");
+
     let snapshotter = Snapshotter::new(persistor);
     let snapshot_handle = snapshotter.snapshot_handle();
     let shutdown_handle = snapshotter.shutdown_handle();

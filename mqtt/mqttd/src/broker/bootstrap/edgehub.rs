@@ -85,6 +85,8 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()> + Unpin,
 {
+    info!("starting server...");
+
     let broker_handle = broker.handle();
 
     let make_processor = MakeEdgeHubPacketProcessor::new_default(broker_handle.clone());
