@@ -52,7 +52,7 @@ mod tests {
     use mqtt3::proto;
     use mqtt_broker::{
         auth::{authorize_fn_ok, Activity, AuthId, Authorization, Authorizer, DenyAll, Operation},
-        ClientInfo,
+        ClientId, ClientInfo,
     };
 
     use super::LocalAuthorizer;
@@ -81,18 +81,19 @@ mod tests {
     }
 
     fn connect_activity(peer_addr: &str) -> Activity {
+        let client_id = proto::ClientId::IdWithCleanSession("local-client".into());
         let connect = proto::Connect {
             username: None,
             password: None,
             will: None,
-            client_id: proto::ClientId::IdWithCleanSession("local-client".into()),
+            client_id,
             keep_alive: Duration::from_secs(1),
             protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
             protocol_level: mqtt3::PROTOCOL_LEVEL,
         };
 
         let operation = Operation::new_connect(connect);
-        activity(operation, peer_addr)
+        activity("client_id".into(), operation, peer_addr)
     }
 
     fn publish_activity(peer_addr: &str) -> Activity {
@@ -104,7 +105,7 @@ mod tests {
         };
 
         let operation = Operation::new_publish(publish);
-        activity(operation, peer_addr)
+        activity("client_id".into(), operation, peer_addr)
     }
 
     fn subscribe_activity(peer_addr: &str) -> Activity {
@@ -114,14 +115,15 @@ mod tests {
         };
 
         let operation = Operation::new_subscribe(subscribe);
-        activity(operation, peer_addr)
+        activity("client_id".into(), operation, peer_addr)
     }
 
-    fn activity(operation: Operation, peer_addr: &str) -> Activity {
+    fn activity(client_id: ClientId, operation: Operation, peer_addr: &str) -> Activity {
         let client_info = ClientInfo::new(
+            client_id,
             peer_addr.parse().expect("peer_addr"),
             AuthId::Identity("local-client".into()),
         );
-        Activity::new("client-1", client_info, operation)
+        Activity::new(client_info, operation)
     }
 }

@@ -106,25 +106,22 @@ where
     }
 
     fn prepare_activities(client_id: &ClientId, session: &Session) -> Vec<(ClientId, Activity)> {
-        let mut activities = Vec::new();
-        for sub in session
+        session
             .subscriptions()
             .into_iter()
             .flat_map(HashMap::values)
-        {
-            if let Ok(client_info) = session.client_info() {
-                let sub_topic_filter = sub.filter().to_string();
+            .map(|sub| {
                 let operation = Operation::new_subscribe(proto::SubscribeTo {
-                    topic_filter: sub_topic_filter.clone(),
+                    topic_filter: sub.filter().to_string(),
                     qos: *sub.max_qos(),
                 });
-                activities.push((
-                    client_id.clone(),
-                    Activity::new(client_id.clone(), client_info.clone(), operation),
-                ));
-            }
-        }
-        activities
+
+                let client_info = session.client_info().clone();
+                let activity = Activity::new(client_info, operation);
+
+                (client_id.clone(), activity)
+            })
+            .collect()
     }
 
     fn reevaluate_subscriptions(&mut self) {
@@ -339,9 +336,13 @@ where
         };
 
         // Check client permissions to connect
-        let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
+        let client_info = ClientInfo::new(
+            connreq.client_id().clone(),
+            connreq.peer_addr(),
+            auth_id.clone(),
+        );
         let operation = Operation::new_connect(connreq.connect().clone());
-        let activity = Activity::new(client_id.clone(), client_info, operation);
+        let activity = Activity::new(client_info, operation);
         match self.authorizer.authorize(&activity) {
             Ok(Authorization::Allowed) => {
                 debug!("client {} successfully authorized", client_id);
@@ -560,8 +561,8 @@ where
     ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(client_id) {
-            let client_info = session.client_info()?.clone();
-            let activity = Activity::new(client_id.clone(), client_info, operation);
+            let client_info = session.client_info().clone();
+            let activity = Activity::new(client_info, operation);
             match self.authorizer.authorize(&activity) {
                 Ok(Authorization::Allowed) => {
                     debug!("client {} successfully authorized", client_id);
@@ -704,6 +705,7 @@ where
 
     fn open_session(&mut self, auth_id: AuthId, connreq: ConnReq) -> Result<OpenSession, Error> {
         let client_id = connreq.client_id().clone();
+        let client_info = ClientInfo::new(client_id.clone(), connreq.peer_addr(), auth_id.clone());
 
         let session = match self.sessions.remove(&client_id) {
             Some(Session::Transient(current_connected)) => {
@@ -719,7 +721,7 @@ where
                     if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                         debug!("moving offline session to online for {}", client_id);
                         if let Ok((state, events)) = offline.into_online() {
-                            let new_session = Session::new_persistent(auth_id, connreq, state);
+                            let new_session = Session::new_persistent(connreq, state);
                             (new_session, events, true)
                         } else {
                             panic!(
@@ -728,9 +730,8 @@ where
                         }
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let state =
-                            SessionState::new(client_id.clone(), self.config.session().clone());
-                        let new_session = Session::new_transient(auth_id, connreq, state);
+                        let state = SessionState::new(client_info, self.config.session().clone());
+                        let new_session = Session::new_transient(connreq, state);
                         (new_session, vec![], false)
                     };
 
@@ -752,12 +753,12 @@ where
                     connreq.connect().client_id
                 {
                     info!("creating new persistent session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
-                    Session::new_persistent(auth_id, connreq, state)
+                    let state = SessionState::new(client_info, self.config.session().clone());
+                    Session::new_persistent(connreq, state)
                 } else {
                     info!("creating new transient session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
-                    Session::new_transient(auth_id, connreq, state)
+                    let state = SessionState::new(client_info, self.config.session().clone());
+                    Session::new_transient(connreq, state)
                 };
 
                 let subscription_change =
@@ -808,34 +809,37 @@ where
                 "connection request for an in use client id ({}). closing previous connection",
                 connreq.client_id()
             );
+        }
 
-            let client_id = connreq.client_id().clone();
-            let (state, client_info_, _will, handle) = current_connected.into_parts();
-            let old_session =
-                Session::new_disconnecting(client_id.clone(), client_info_, None, handle);
-            let (new_session, session_present) =
-                if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
-                    debug!(
-                        "moving persistent session to this connection for {}",
-                        client_id
-                    );
-                    let new_session = Session::new_persistent(auth_id, connreq, state);
-                    (new_session, true)
-                } else {
-                    info!("cleaning session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
-                    let new_session = Session::new_transient(auth_id, connreq, state);
-                    (new_session, false)
-                };
-
-            self.sessions.insert(client_id, new_session);
-            let ack = proto::ConnAck {
-                session_present,
-                return_code: proto::ConnectReturnCode::Accepted,
+        let (mut state, _will, handle) = current_connected.into_parts();
+        let old_session = Session::new_disconnecting(state.client_info().clone(), None, handle);
+        let client_id = connreq.client_id().clone();
+        let new_client_info = ClientInfo::new(client_id.clone(), connreq.peer_addr(), auth_id);
+        let (new_session, session_present) =
+            if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
+                debug!(
+                    "moving persistent session to this connection for {}",
+                    client_id
+                );
+                state.set_client_info(new_client_info);
+                let new_session = Session::new_persistent(connreq, state);
+                (new_session, true)
+            } else {
+                info!("cleaning session for {}", client_id);
+                let new_session = Session::new_transient(
+                    connreq,
+                    SessionState::new(new_client_info, self.config.session().clone()),
+                );
+                (new_session, false)
             };
 
-            OpenSession::DuplicateSession(old_session, ack)
-        }
+        self.sessions.insert(client_id, new_session);
+        let ack = proto::ConnAck {
+            session_present,
+            return_code: proto::ConnectReturnCode::Accepted,
+        };
+
+        OpenSession::DuplicateSession(old_session, ack)
     }
 
     fn close_session(&mut self, client_id: &ClientId) -> Result<Option<Session>, Error> {
@@ -848,10 +852,9 @@ where
                     StateChange::new_subscription_change(client_id, None).try_into()?,
                 )?;
 
-                let (_state, client_info, will, handle) = connected.into_parts();
+                let (state, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
-                    client_id.clone(),
-                    client_info,
+                    state.client_info().clone(),
                     will,
                     handle,
                 ))
@@ -864,12 +867,11 @@ where
                 info!("moving persistent session to offline for {}", client_id);
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
 
-                let (state, client_info, will, handle) = connected.into_parts();
-                let new_session = Session::new_offline(state);
+                let (state, will, handle) = connected.into_parts();
+                let new_session = Session::new_offline(state.clone());
                 self.sessions.insert(client_id.clone(), new_session);
                 Some(Session::new_disconnecting(
-                    client_id.clone(),
-                    client_info,
+                    state.client_info().clone(),
                     will,
                     handle,
                 ))
@@ -940,14 +942,14 @@ where
     Z: Authorizer,
 {
     let client_id = session.client_id().clone();
-    let client_info = session.client_info()?.clone();
+    let client_info = session.client_info().clone();
 
     let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
     let mut acks = Vec::with_capacity(subscribe.subscribe_to.len());
 
     let auth_results = subscribe.subscribe_to.into_iter().map(|subscribe_to| {
         let operation = Operation::new_subscribe(subscribe_to.clone());
-        let activity = Activity::new(client_id.clone(), client_info.clone(), operation);
+        let activity = Activity::new(client_info.clone(), operation);
         let auth = authorizer.authorize(&activity);
         auth.map(|auth| (auth, subscribe_to))
     });
@@ -1131,7 +1133,8 @@ pub(crate) mod tests {
         error::Error,
         session::Session,
         tests::peer_addr,
-        Auth, AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message, Publish,
+        Auth, AuthId, ClientEvent, ClientId, ClientInfo, ConnReq, ConnectionHandle, Message,
+        Publish,
     };
 
     pub fn connection_handle() -> ConnectionHandle {
@@ -1805,29 +1808,40 @@ pub(crate) mod tests {
         let connect2 = transient_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
+        let auth1 = AuthId::Identity("auth_id1".into());
+        let auth2 = AuthId::Identity("auth_id2".into());
+        let expected_client_info1 = ClientInfo::new(client_id.clone(), peer_addr(), auth1.clone());
+        let expected_client_info2 = ClientInfo::new(client_id.clone(), peer_addr(), auth2.clone());
         let req1 = ConnReq::new(
             client_id.clone(),
             peer_addr(),
             connect1,
-            Auth::Identity(AuthId::Anonymous),
+            Auth::Identity(auth1.clone()),
             handle1,
         );
-        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(auth_id.clone(), req1).unwrap();
+        broker.open_session(auth1, req1).unwrap();
         assert_eq!(1, broker.sessions.len());
+        assert_eq!(
+            *broker.sessions[&client_id].client_info(),
+            expected_client_info1
+        );
 
         let req2 = ConnReq::new(
             client_id.clone(),
             peer_addr(),
             connect2,
-            Auth::Identity(AuthId::Anonymous),
+            Auth::Identity(auth2.clone()),
             handle2,
         );
-        let result = broker.open_session(auth_id, req2);
+        let result = broker.open_session(auth2, req2);
         assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
         assert_eq!(1, broker.sessions.len());
+        assert_eq!(
+            *broker.sessions[&client_id].client_info(),
+            expected_client_info2
+        );
     }
 
     #[test]
@@ -1840,29 +1854,40 @@ pub(crate) mod tests {
         let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
+        let auth1 = AuthId::Identity("auth_id1".into());
+        let auth2 = AuthId::Identity("auth_id2".into());
+        let expected_client_info1 = ClientInfo::new(client_id.clone(), peer_addr(), auth1.clone());
+        let expected_client_info2 = ClientInfo::new(client_id.clone(), peer_addr(), auth2.clone());
         let req1 = ConnReq::new(
             client_id.clone(),
             peer_addr(),
             connect1,
-            Auth::Identity(AuthId::Anonymous),
+            Auth::Identity(auth1.clone()),
             handle1,
         );
-        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(auth_id.clone(), req1).unwrap();
+        broker.open_session(auth1, req1).unwrap();
         assert_eq!(1, broker.sessions.len());
+        assert_eq!(
+            *broker.sessions[&client_id].client_info(),
+            expected_client_info1
+        );
 
         let req2 = ConnReq::new(
             client_id.clone(),
             peer_addr(),
             connect2,
-            Auth::Identity(AuthId::Anonymous),
+            Auth::Identity(auth2.clone()),
             handle2,
         );
-        let result = broker.open_session(auth_id, req2);
+        let result = broker.open_session(auth2, req2);
         assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
         assert_eq!(1, broker.sessions.len());
+        assert_eq!(
+            *broker.sessions[&client_id].client_info(),
+            expected_client_info2
+        );
     }
 
     #[test]
@@ -1875,29 +1900,40 @@ pub(crate) mod tests {
         let connect2 = transient_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
+        let auth1 = AuthId::Identity("auth_id1".into());
+        let auth2 = AuthId::Identity("auth_id2".into());
+        let expected_client_info1 = ClientInfo::new(client_id.clone(), peer_addr(), auth1.clone());
+        let expected_client_info2 = ClientInfo::new(client_id.clone(), peer_addr(), auth2.clone());
         let req1 = ConnReq::new(
             client_id.clone(),
             peer_addr(),
             connect1,
-            Auth::Identity(AuthId::Anonymous),
+            Auth::Identity(auth1.clone()),
             handle1,
         );
-        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(auth_id.clone(), req1).unwrap();
+        broker.open_session(auth1, req1).unwrap();
         assert_eq!(1, broker.sessions.len());
+        assert_eq!(
+            *broker.sessions[&client_id].client_info(),
+            expected_client_info1
+        );
 
         let req2 = ConnReq::new(
             client_id.clone(),
             peer_addr(),
             connect2,
-            Auth::Identity(AuthId::Anonymous),
+            Auth::Identity(auth2.clone()),
             handle2,
         );
-        let result = broker.open_session(auth_id, req2);
+        let result = broker.open_session(auth2, req2);
         assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
         assert_eq!(1, broker.sessions.len());
+        assert_eq!(
+            *broker.sessions[&client_id].client_info(),
+            expected_client_info2
+        );
     }
 
     #[test]
@@ -1910,29 +1946,40 @@ pub(crate) mod tests {
         let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
+        let auth1 = AuthId::Identity("auth_id1".into());
+        let auth2 = AuthId::Identity("auth_id2".into());
+        let expected_client_info1 = ClientInfo::new(client_id.clone(), peer_addr(), auth1.clone());
+        let expected_client_info2 = ClientInfo::new(client_id.clone(), peer_addr(), auth2.clone());
         let req1 = ConnReq::new(
             client_id.clone(),
             peer_addr(),
             connect1,
-            Auth::Identity(AuthId::Anonymous),
+            Auth::Identity(auth1.clone()),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
             peer_addr(),
             connect2,
-            Auth::Identity(AuthId::Anonymous),
+            Auth::Identity(auth2.clone()),
             handle2,
         );
-        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(auth_id.clone(), req1).unwrap();
+        broker.open_session(auth1, req1).unwrap();
         assert_eq!(1, broker.sessions.len());
+        assert_eq!(
+            *broker.sessions[&client_id].client_info(),
+            expected_client_info1
+        );
 
-        let result = broker.open_session(auth_id, req2);
+        let result = broker.open_session(auth2, req2);
         assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
         assert_eq!(1, broker.sessions.len());
+        assert_eq!(
+            *broker.sessions[&client_id].client_info(),
+            expected_client_info2
+        );
     }
 
     #[test]
