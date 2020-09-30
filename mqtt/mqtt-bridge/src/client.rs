@@ -318,6 +318,8 @@ impl<T: EventHandler> MqttClient<T> {
     }
 
     pub async fn handle_events(&mut self) {
+        // TODO PRE: give information about the client
+        debug!("polling bridge client");
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
             // TODO: handle the error by recreting the connection

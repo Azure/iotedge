@@ -8,6 +8,7 @@ use futures_util::pin_mut;
 use mqtt3::ShutdownError;
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::Sender;
+use tracing::debug;
 use tracing::error;
 use tracing::info;
 
@@ -51,11 +52,14 @@ pub struct Bridge {
 
 impl Bridge {
     // TODO PRE: make init method with some of this logic
+    // TODO PRE: sort out logging
     pub async fn new(
         system_address: String,
         device_id: String,
         connection_settings: ConnectionSettings,
     ) -> Result<Self, BridgeError> {
+        debug!("creating bridge...{}", connection_settings.name());
+
         let mut forwards: HashMap<String, TopicRule> = connection_settings
             .forwards()
             .iter()
@@ -123,6 +127,7 @@ impl Bridge {
         local_pump.subscribe().await?;
         remote_pump.subscribe().await?;
 
+        debug!("created bridge...{}", connection_settings.name());
         Ok(Bridge {
             local_pump,
             remote_pump,
@@ -159,6 +164,7 @@ impl Bridge {
         //
         //           If there is a client error then this can potentially get reset without the pump shutting down
         //           Alternatively, if this client error shuts down the pump, we will need to recreate it.
+        debug!("Starting bridge...{}", self.connection_settings.name());
         match select(local_pump, remote_pump).await {
             Either::Left(_) => {
                 shutdown_handle.shutdown().await?;
