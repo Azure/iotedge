@@ -31,7 +31,9 @@ use mqtt_edgehub::{
         EdgeHubAuthenticator, IotHubAuthorizer, LocalAuthenticator, LocalAuthorizer,
         PolicyAuthorizer,
     },
-    command::{AuthorizedIdentities, CommandHandler, Disconnect},
+    command::{
+        AuthorizedIdentitiesCommand, CommandHandler, DisconnectCommand, PolicyUpdateCommand,
+    },
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
@@ -204,8 +206,9 @@ async fn start_sidecars(
 
     let sidecars = tokio::spawn(async move {
         let mut command_handler = CommandHandler::new(system_address, device_id.as_str());
-        command_handler.add_command(Disconnect::new(&broker_handle));
-        command_handler.add_command(AuthorizedIdentities::new(&broker_handle));
+        command_handler.add_command(DisconnectCommand::new(&broker_handle));
+        command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
+        command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
 
         command_handler.init().await?;
 

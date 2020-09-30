@@ -28,6 +28,7 @@ impl IoSource for BrokerConnection {
     }
 }
 
+/// Shutdown handle for `CommandHandler`
 pub struct ShutdownHandle {
     client_shutdown: mqtt3::ShutdownHandle,
 }
@@ -44,6 +45,10 @@ impl ShutdownHandle {
     }
 }
 
+/// `CommandHandler` is a, so called, "sidecar" that runs alongside the broker (in a separate task)
+/// and subscribes to a certain system topics to receive and dispatch commands.
+///
+/// For example, see `DisconnectCommand`.
 pub struct CommandHandler {
     client: Client<BrokerConnection>,
     commands: HashMap<String, Box<dyn Command<Error = Box<dyn StdError>> + Send>>,

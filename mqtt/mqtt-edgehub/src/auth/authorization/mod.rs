@@ -2,8 +2,8 @@ mod iothub;
 mod local;
 mod policy;
 
-pub use self::policy::PolicyAuthorizer;
-pub use iothub::{IotHubAuthorizer, ServiceIdentity};
+pub use self::policy::{PolicyAuthorizer, PolicyUpdate};
+pub use iothub::{AuthorizerUpdate, IotHubAuthorizer};
 pub use local::LocalAuthorizer;
 
 #[cfg(test)]

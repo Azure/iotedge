@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::debug;
 
@@ -63,7 +64,10 @@ impl Authorizer for PolicyAuthorizer {
     }
 }
 
+/// Represents updates to a `PolicyAuthorizer`.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PolicyUpdate {
+    /// New policy definition to use.
     definition: String,
 }
 
