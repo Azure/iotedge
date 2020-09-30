@@ -122,3 +122,4 @@ BUILD_COMMAND="RUSTC_WRAPPER=sccache $CARGO build ${PACKAGES_FORMATTED} ${CARGO_
 
 echo $BUILD_COMMAND
 eval $BUILD_COMMAND
+sccache --show-stats
