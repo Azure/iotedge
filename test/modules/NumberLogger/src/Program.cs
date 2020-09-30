@@ -21,13 +21,10 @@ namespace NumberLogger
                 Console.WriteLine(i);
             }
 
-            try
-            {
-                Task.Delay(-1, cts.Token).Wait();
-            }
-            catch
-            {
-            }
+            cts.Token.WhenCanceled().Wait();
+
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
         }
     }
 }
