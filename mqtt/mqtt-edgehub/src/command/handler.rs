@@ -45,8 +45,9 @@ impl ShutdownHandle {
     }
 }
 
-/// `CommandHandler` is a, so called, "sidecar" that runs alongside the broker (in a separate task)
-/// and subscribes to a certain system topics to receive and dispatch commands.
+/// `CommandHandler` is a, so called, "sidecar" that runs alongside
+/// the broker (in a separate task) and subscribes to a certain system
+/// topics to receive and dispatch commands.
 ///
 /// For example, see `DisconnectCommand`.
 pub struct CommandHandler {

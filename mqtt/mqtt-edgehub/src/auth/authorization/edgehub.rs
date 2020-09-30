@@ -273,7 +273,7 @@ where
     }
 }
 
-/// Represents updates to an `IotHubAuthorizer`.
+/// Represents updates to an `EdgeHubAuthorizer`.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthorizerUpdate(Vec<IdentityUpdate>);
 
