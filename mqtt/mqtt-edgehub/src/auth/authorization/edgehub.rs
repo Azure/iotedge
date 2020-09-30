@@ -52,8 +52,9 @@ where
                     self.inner.authorize(activity)
                 } else {
                     Ok(Authorization::Forbidden(format!(
-                        "client_id {} does not match registered iothub identity id.",
-                        activity.client_id()
+                        "client_id {} does not match registered iothub identity id {}",
+                        activity.client_id(),
+                        identity
                     )))
                 }
             }
