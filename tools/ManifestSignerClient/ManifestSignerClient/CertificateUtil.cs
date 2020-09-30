@@ -52,7 +52,7 @@ namespace ManifestSignerClient
             }
         }
 
-        public static byte[] GetPrivateKeyFromPem(string keyPath, string algoStr)
+        private static byte[] GetPrivateKeyFromPem(string keyPath, string algoStr)
         {
             var pemKeyFileContent = default(string);
             using (var file = File.OpenText(keyPath))
@@ -88,7 +88,6 @@ namespace ManifestSignerClient
             {
                 var base64part = pemKeyFileContent[startPos..endPos];
                 var result = Convert.FromBase64String(base64part);
-
                 return result;
             }
             catch (Exception e)
@@ -97,7 +96,7 @@ namespace ManifestSignerClient
             }
         }
 
-        public static ECDsa CreateECDsaFromPrivateKey(byte[] signerPrivateKeyContent)
+        private static ECDsa CreateECDsaFromPrivateKey(byte[] signerPrivateKeyContent)
         {
             var ecdsa = ECDsa.Create();
             ecdsa.ImportECPrivateKey(signerPrivateKeyContent, out _);
@@ -105,7 +104,7 @@ namespace ManifestSignerClient
             return ecdsa;
         }
 
-        public static RSA CreateRSAFromPrivateKey(byte[] signerPrivateKeyContent)
+        private static RSA CreateRSAFromPrivateKey(byte[] signerPrivateKeyContent)
         {
             var rsa = RSA.Create();
             rsa.ImportRSAPrivateKey(signerPrivateKeyContent, out _);
