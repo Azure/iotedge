@@ -61,6 +61,7 @@ pub fn get_config(settings: &ServiceSettings) -> Result<Config<ValueToken>, Erro
         let certs = X509::stack_from_pem(file.as_bytes())
             .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
         if certs.is_empty() {
+            // Expect this has at least one usable certificate
             return Err(Error::from(ErrorKind::Initialize(
                 InitializeErrorReason::ClientConfig,
             )));

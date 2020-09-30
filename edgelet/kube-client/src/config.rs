@@ -285,6 +285,7 @@ fn get_all_certs(raw_certs: Vec<u8>) -> Result<Vec<Certificate>> {
         KubeConfigErrorReason::LoadCertificate,
     ))?;
     if certs.is_empty() {
+        // Expect this has at least one usable certificate
         return Err(Error::from(ErrorKind::KubeConfig(
             KubeConfigErrorReason::LoadCertificate,
         )));
