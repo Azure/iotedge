@@ -57,6 +57,16 @@ This check validates that the value of the `hostname` field in the `config.yaml`
 
 It also validates that the value complies with RFC 1035, since some modules and downstream devices have difficulty connecting to a domain name that doesn't comply with that RFC.
 
+If the hostname if longer than 64 characters it issues a warning. Hostname longer than 64 charaters cannot be used as local issuer in certificates.
+
+## config.yaml has correct parent hostname
+
+This check validates if the parent hostname exist. Parent hostname is only used when the IoT Edge device is nested.
+
+If it exists:
+It validates that the value complies with RFC 1035, since some modules and downstream devices have difficulty connecting to a domain name that doesn't comply with that RFC.
+It validates that parent hostname is not longer than 64 characters.
+
 ## config.yaml has correct URIs for daemon mgmt endpoint
 
 This check validates that the value of the `connect.management_uri` field in the `config.yaml` is valid, and that the IoT Edge daemon's management endpoint can be queried through it.
