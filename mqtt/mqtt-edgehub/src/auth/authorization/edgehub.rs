@@ -33,8 +33,8 @@ impl EdgeHubAuthorizer {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden(format!(
-                        "client_id {} does not match registered iothub identity id.",
-                        client_id
+                        "client_id {} does not match registered iothub identity id {}",
+                        client_id, identity
                     ))
                 }
             }

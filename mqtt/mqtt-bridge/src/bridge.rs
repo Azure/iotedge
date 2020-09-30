@@ -1,6 +1,4 @@
-use std::{
-    collections::HashMap, convert::TryFrom, convert::TryInto, marker::PhantomData, time::Duration,
-};
+use std::{collections::HashMap, convert::TryFrom, convert::TryInto, marker::PhantomData};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
@@ -78,9 +76,8 @@ impl Bridge {
         self.connect(
             self.subscriptions.clone(),
             self.connection_settings.address(),
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
             self.connection_settings.credentials(),
+            true,
         )
         .await
     }
@@ -99,9 +96,8 @@ impl Bridge {
         self.connect(
             self.forwards.clone(),
             self.system_address.as_str(),
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
             &Credentials::Anonymous(client_id),
+            false,
         )
         .await
     }
@@ -110,9 +106,8 @@ impl Bridge {
         &self,
         mut topics: HashMap<String, Topic>,
         address: &str,
-        keep_alive: Duration,
-        clean_session: bool,
         credentials: &Credentials,
+        secure: bool,
     ) -> Result<(), BridgeError> {
         let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
         let topic_filters = topics
@@ -120,13 +115,23 @@ impl Bridge {
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
-        let mut client = MqttClient::new(
-            address,
-            keep_alive,
-            clean_session,
-            MessageHandler::new(topic_filters, BATCH_SIZE),
-            credentials,
-        );
+        let mut client = if secure {
+            MqttClient::tls(
+                address,
+                self.connection_settings.keep_alive(),
+                self.connection_settings.clean_session(),
+                MessageHandler::new(topic_filters, BATCH_SIZE),
+                credentials,
+            )
+        } else {
+            MqttClient::tcp(
+                address,
+                self.connection_settings.keep_alive(),
+                self.connection_settings.clean_session(),
+                MessageHandler::new(topic_filters, BATCH_SIZE),
+                credentials,
+            )
+        };
 
         debug!("subscribe to remote {:?}", subscriptions);
 
