@@ -93,7 +93,7 @@ pub async fn process<I, N, P>(
 where
     I: AsyncRead + AsyncWrite + GetPeerInfo<Certificate = Certificate> + Unpin,
     N: Authenticator + ?Sized,
-    P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor,
+    P: MakePacketProcessor,
 {
     let certificate = io.peer_certificate()?;
     let peer_addr = io.peer_addr()?;
@@ -120,7 +120,7 @@ where
             let span = info_span!("connection", client_id=%client_id, remote_addr=%remote_addr, connection=%connection_handle);
 
             // async block to attach instrumentation context
-            async {
+            async move{
                 info!("new client connection");
                 debug!("received CONNECT: {:?}", connect);
 
@@ -158,7 +158,7 @@ where
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
                     Err(e) => {
-                        warn!(message = "error authenticating client", error =% &*e);
+                        warn!(message = "error authenticating client", error =% &e);
                         Auth::Failure
                     }
                 };
@@ -169,15 +169,14 @@ where
                 broker_handle.send(message)?;
 
                 let (outgoing, incoming) = codec.split();
+                let (outgoing_processor, incoming_processor) = make_processor.make(&client_id);
 
                 // prepare processing incoming packets
-                let incoming_processor = make_processor.make_incoming(&client_id);
                 let incoming_task =
                     incoming_task(client_id.clone(), incoming, broker_handle.clone(), incoming_processor);
                 pin_mut!(incoming_task);
 
                 // prepare processing outgoing packets
-                let outgoing_processor = make_processor.make_outgoing(&client_id);
                 let outgoing_task = outgoing_task(events, outgoing, broker_handle.clone(), outgoing_processor);
                 pin_mut!(outgoing_task);
 

@@ -6,28 +6,32 @@ use std::{
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Duration, Utc};
-use thiserror::Error;
-
 use futures_util::{
     future::{self, Either},
     pin_mut, FutureExt,
 };
+use thiserror::Error;
 use tokio::{
-    sync::oneshot::{channel, Sender},
+    sync::{
+        broadcast,
+        oneshot::{self, Sender},
+    },
     task::JoinHandle,
     time,
 };
 use tracing::{error, info, warn};
 
 use mqtt_bridge::BridgeController;
-use mqtt_broker::BrokerHandle;
 use mqtt_broker::{
-    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerSnapshot, Server,
+    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerSnapshot, Server,
     ServerCertificate,
 };
 use mqtt_edgehub::{
-    auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::CommandHandler,
+    auth::{
+        EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer,
+        PolicyAuthorizer,
+    },
+    command::{AuthorizedIdentities, CommandHandler, Disconnect},
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
@@ -66,9 +70,13 @@ where
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
-) -> Result<Broker<LocalAuthorizer<EdgeHubAuthorizer>>> {
+) -> Result<Broker<impl Authorizer>> {
+    let device_id = env::var(DEVICE_ID_ENV)?;
+
+    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(device_id)));
+
     let broker = BrokerBuilder::default()
-        .with_authorizer(LocalAuthorizer::new(EdgeHubAuthorizer::default()))
+        .with_authorizer(authorizer)
         .with_state(state.unwrap_or_default())
         .with_config(config.clone())
         .build();
@@ -87,17 +95,20 @@ where
 {
     let broker_handle = broker.handle();
 
-    let mut server =
-        Server::from_broker(broker).packet_processor(MakeEdgeHubPacketProcessor::default());
+    let make_processor = MakeEdgeHubPacketProcessor::new_default(broker_handle.clone());
+    let mut server = Server::from_broker(broker).with_packet_processor(make_processor);
 
     // Add system transport to allow communication between edgehub components
     let authenticator = LocalAuthenticator::new();
-    server.tcp(config.listener().system().addr(), authenticator);
+    server.with_tcp(config.listener().system().addr(), authenticator, None)?;
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
+    let (broker_ready, _) = broadcast::channel(1);
+
     if let Some(tcp) = config.listener().tcp() {
-        server.tcp(tcp.addr(), authenticator.clone());
+        let broker_ready = Some(broker_ready.subscribe());
+        server.with_tcp(tcp.addr(), authenticator.clone(), broker_ready)?;
     }
 
     // Add regular MQTT over TLS transport
@@ -119,7 +130,9 @@ where
                     .with_context(|| ServerCertificateLoadError::Edgelet)?
             };
             let renew_at = identity.not_after();
-            server.tls(tls.addr(), identity, authenticator.clone())?;
+
+            let broker_ready = Some(broker_ready.subscribe());
+            server.with_tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
             Either::Left(renewal_signal)
@@ -131,17 +144,23 @@ where
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
-    // Start serving new connections
-    let serve = server.serve(shutdown);
+    // TODO remove this call when broker readiness is implemented
+    tokio::spawn(async move {
+        tokio::time::delay_for(std::time::Duration::from_millis(500)).await;
+        broker_ready.send(()).expect("ready signal");
+    });
 
+    // Start the sidecars
     let system_address = config.listener().system().addr().to_string();
     let (sidecar_shutdown_handle, sidecar_join_handle) =
         start_sidecars(broker_handle, system_address).await?;
 
-    let state = serve.await?;
+    // Start serving new connections
+    let state = server.serve(shutdown).await?;
 
+    // Shutdown the sidecars
     sidecar_shutdown_handle.shutdown()?;
-    sidecar_join_handle.await?;
+    sidecar_join_handle.await??;
 
     Ok(state)
 }
@@ -162,22 +181,37 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
     }
 }
 
+// TODO: We need to elevate failable init steps out of the async block running in it's own thread.
+//       This is because we need to have defined setup steps, that once complete, the sidecars can run without failing.
+//       Once this is done, complex startup order will be easier to implement.
+//       We can also stop the broker process if sidecars fail to init.
+//
+//       This change depends on restructuring the startup logic so that:
+//         1. sidecars and server run at same time
+//         2. if one fails the other shuts down
 async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
-) -> Result<(SidecarShutdownHandle, JoinHandle<()>)> {
-    let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
+) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
+    let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
 
     let device_id = env::var(DEVICE_ID_ENV)?;
-    let command_handler =
-        CommandHandler::new(broker_handle, system_address, device_id.as_str()).await?;
-    let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
 
     let mut bridge_controller = BridgeController::new();
+    bridge_controller
+        .start(system_address.clone(), device_id.clone().as_str())
+        .await?;
 
-    let event_loop = tokio::spawn(async move {
+    let sidecars = tokio::spawn(async move {
+        let mut command_handler = CommandHandler::new(system_address, device_id.as_str());
+        command_handler.add_command(Disconnect::new(&broker_handle));
+        command_handler.add_command(AuthorizedIdentities::new(&broker_handle));
+
+        command_handler.init().await?;
+
+        let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
+
         let command_handler_join_handle = tokio::spawn(command_handler.run());
-        let bridge = bridge_controller.start();
 
         if let Err(e) = sidecar_termination_receiver.await {
             error!(message = "failed to listen to sidecar termination", error = %e);
@@ -189,15 +223,11 @@ async fn start_sidecars(
         if let Err(e) = command_handler_join_handle.await {
             error!(message = "failed waiting for command handler shutdown", error = %e);
         }
-        if let Err(e) = bridge.await {
-            error!(message = "failed waiting for bridge shutdown", error = %e);
-        }
+
+        Ok(())
     });
 
-    Ok((
-        SidecarShutdownHandle(sidecar_termination_handle),
-        event_loop,
-    ))
+    Ok((SidecarShutdownHandle(sidecar_termination_handle), sidecars))
 }
 
 #[derive(Debug, thiserror::Error)]

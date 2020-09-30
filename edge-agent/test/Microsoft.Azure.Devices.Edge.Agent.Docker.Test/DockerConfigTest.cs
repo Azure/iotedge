@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -36,6 +37,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config16 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.Some("4562124545"));
         static readonly DockerConfig ConfigUnknown = new DockerConfig("unknown");
         static readonly DockerConfig ConfigUnknownExpected = new DockerConfig("unknown:latest");
+
+        public class MockNestedEdgeParentUriParser : INestedEdgeParentUriParser
+        {
+            public Option<string> ParseURI(string uri)
+            {
+                return Option.None<string>();
+            }
+        }
 
         static readonly string Extended9 = @"
         {
@@ -203,6 +212,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string updatedImage = DockerConfig.ValidateAndGetImage(image);
                 Assert.Equal(result, updatedImage);
             }
+        }
+
+        [Fact]
+        public void TestValidateAndGetImageFailedParsing()
+        {
+            string image = "$failToParse:543/dummy/test";
+            Type expectedException = typeof(ArgumentException);
+
+            Assert.Throws(expectedException, () => DockerConfig.ValidateAndGetImage(image, new MockNestedEdgeParentUriParser()));
         }
 
         [Theory]

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -15,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     {
         // This is not the actual docker image regex, but a less strict version.
         const string ImageRegexPattern = @"^(?<repo>([^/]*/)*)(?<image>[^/:]+)(?<tag>:[^/:]+)?$";
-
         static readonly Regex ImageRegex = new Regex(ImageRegexPattern);
         readonly CreateContainerParameters createOptions;
 
@@ -87,8 +87,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         internal static string ValidateAndGetImage(string image)
         {
+            return ValidateAndGetImage(image, new NestedEdgeParentUriParser());
+        }
+
+        internal static string ValidateAndGetImage(string image, INestedEdgeParentUriParser parser)
+        {
             image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
+
+            if (image[0] == '$')
+            {
+                image = parser.ParseURI(image)
+                    .Expect(() => new ArgumentException($"Image {image} is not in the right format.If your intention is to use an environment variable, check the port is specified."));
+            }
+
             Match match = ImageRegex.Match(image);
+
             if (match.Success)
             {
                 if (match.Groups["tag"]?.Length > 0)

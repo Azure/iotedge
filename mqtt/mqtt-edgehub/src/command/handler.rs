@@ -1,32 +1,14 @@
-use std::{collections::HashSet, time::Duration};
+use std::{collections::HashMap, collections::HashSet, error::Error as StdError, time::Duration};
 
 use futures_util::future::BoxFuture;
-use serde_json::error::Error as SerdeError;
 use tokio::{net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
-use mqtt_broker::{BrokerHandle, ClientId, Error, Message, SystemEvent};
 
-const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
-
-pub struct ShutdownHandle {
-    client_shutdown: mqtt3::ShutdownHandle,
-}
-
-impl ShutdownHandle {
-    pub async fn shutdown(mut self) -> Result<(), CommandHandlerError> {
-        debug!("signaling command handler shutdown");
-        self.client_shutdown
-            .shutdown()
-            .await
-            .map_err(CommandHandlerError::ShutdownClient)?;
-
-        Ok(())
-    }
-}
+use crate::command::{Command, DynCommand};
 
 pub struct BrokerConnection {
     address: String,
@@ -46,20 +28,43 @@ impl IoSource for BrokerConnection {
     }
 }
 
+pub struct ShutdownHandle {
+    client_shutdown: mqtt3::ShutdownHandle,
+}
+
+impl ShutdownHandle {
+    pub async fn shutdown(mut self) -> Result<(), CommandHandlerError> {
+        debug!("signaling command handler shutdown");
+        self.client_shutdown
+            .shutdown()
+            .await
+            .map_err(CommandHandlerError::ShutdownClient)?;
+
+        Ok(())
+    }
+}
+
 pub struct CommandHandler {
-    broker_handle: BrokerHandle,
     client: Client<BrokerConnection>,
+    commands: HashMap<String, Box<dyn Command<Error = Box<dyn StdError>> + Send>>,
 }
 
 impl CommandHandler {
-    pub async fn new(
-        broker_handle: BrokerHandle,
-        address: String,
-        device_id: &str,
-    ) -> Result<Self, CommandHandlerError> {
+    pub fn add_command<C, E>(&mut self, command: C)
+    where
+        C: Command<Error = E> + Send + 'static,
+        E: StdError + 'static,
+    {
+        let topic = command.topic().to_string();
+        let command = Box::new(DynCommand::from(command));
+
+        self.commands.insert(topic, command);
+    }
+
+    pub fn new(address: String, device_id: &str) -> Self {
         let client_id = format!("{}/$edgeHub/$broker", device_id);
 
-        let mut client = Client::new(
+        let client = Client::new(
             Some(client_id),
             None,
             None,
@@ -68,13 +73,17 @@ impl CommandHandler {
             Duration::from_secs(60),
         );
 
-        let subscribe_topics = &[DISCONNECT_TOPIC.to_string()];
-        subscribe(&mut client, subscribe_topics).await?;
-
-        Ok(CommandHandler {
-            broker_handle,
+        CommandHandler {
             client,
-        })
+            commands: HashMap::new(),
+        }
+    }
+
+    // TODO refactor and move it inside the [`run`] method
+    pub async fn init(&mut self) -> Result<(), CommandHandlerError> {
+        let topics: Vec<_> = self.commands.keys().map(String::as_str).collect();
+        subscribe(&mut self.client, &topics).await?;
+        Ok(())
     }
 
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
@@ -106,49 +115,37 @@ impl CommandHandler {
         debug!("command handler stopped");
     }
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), HandleDisconnectError> {
+    async fn handle_event(&mut self, event: Event) -> Result<(), Box<dyn StdError>> {
         if let Event::Publication(publication) = event {
-            let client_id: ClientId = serde_json::from_slice(&publication.payload)
-                .map_err(HandleDisconnectError::ParseClientId)?;
-
-            info!("received disconnection request for client {}", client_id);
-
-            if let Err(e) =
-                self.broker_handle
-                    .send(Message::System(SystemEvent::ForceClientDisconnect(
-                        client_id.clone(),
-                    )))
-            {
-                return Err(HandleDisconnectError::SignalError(e));
+            if let Some(command) = self.commands.get_mut(&publication.topic_name) {
+                command.handle(&publication)?;
             }
-
-            info!(
-                "succeeded sending broker signal to disconnect client{}",
-                client_id
-            );
         }
-
         Ok(())
     }
 }
 
 async fn subscribe(
     client: &mut mqtt3::Client<BrokerConnection>,
-    topics: &[String],
+    topics: &[&str],
 ) -> Result<(), CommandHandlerError> {
-    debug!("command handler subscribing to disconnect topic");
-    let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
-        topic_filter: topic.to_string(),
-        qos: proto::QoS::AtLeastOnce,
-    });
+    debug!(
+        "command handler subscribing to topics: {}",
+        topics.join(", ")
+    );
 
-    for subscription in subscriptions {
+    for topic in topics {
+        let subscription = proto::SubscribeTo {
+            topic_filter: (*topic).to_string(),
+            qos: proto::QoS::AtLeastOnce,
+        };
+
         client
             .subscribe(subscription)
             .map_err(CommandHandlerError::SubscribeFailure)?;
     }
 
-    let mut subacks: HashSet<_> = topics.iter().map(Clone::clone).collect();
+    let mut subacks: HashSet<_> = topics.iter().map(ToString::to_string).collect();
 
     while let Some(event) = client
         .try_next()
@@ -157,8 +154,14 @@ async fn subscribe(
     {
         if let Event::SubscriptionUpdates(subscriptions) = event {
             for subscription in subscriptions {
-                if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
-                    subacks.remove(&sub.topic_filter);
+                match subscription {
+                    SubscriptionUpdateEvent::Subscribe(sub) => {
+                        subacks.remove(&sub.topic_filter);
+                    }
+                    SubscriptionUpdateEvent::RejectedByServer(sub) => {
+                        return Err(CommandHandlerError::SubscriptionRejectedByServer(sub));
+                    }
+                    SubscriptionUpdateEvent::Unsubscribe(_) => {}
                 }
             }
 
@@ -180,6 +183,9 @@ pub enum CommandHandlerError {
     #[error("failed to receive expected subacks for command topics: {0:?}")]
     MissingSubacks(Vec<String>),
 
+    #[error("subscription rejected by server: {0:?}")]
+    SubscriptionRejectedByServer(String),
+
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
 
@@ -188,13 +194,4 @@ pub enum CommandHandlerError {
 
     #[error("failed to signal shutdown for command handler")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
-}
-
-#[derive(Debug, thiserror::Error)]
-enum HandleDisconnectError {
-    #[error("failed to parse client id from message payload")]
-    ParseClientId(#[from] SerdeError),
-
-    #[error("failed sending broker signal to disconnect client")]
-    SignalError(#[from] Error),
 }

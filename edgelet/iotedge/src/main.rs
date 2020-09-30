@@ -80,7 +80,7 @@ fn run() -> Result<(), Error> {
     let default_mgmt_uri = option_env!("IOTEDGE_HOST").unwrap_or(&*default_mgmt_uri);
 
     let default_diagnostics_image_name = format!(
-        "mcr.microsoft.com/azureiotedge-diagnostics:{}",
+        "/azureiotedge-diagnostics:{}",
         edgelet_core::version().replace("~", "-")
     );
 

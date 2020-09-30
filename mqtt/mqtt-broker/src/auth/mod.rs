@@ -3,6 +3,7 @@ mod authorization;
 
 pub use authentication::{
     authenticate_fn_ok, AuthenticationContext, Authenticator, Certificate, DefaultAuthenticator,
+    DynAuthenticator,
 };
 pub use authorization::{
     authorize_fn_ok, Activity, AllowAll, Authorization, Authorizer, Connect, DenyAll, Operation,
@@ -14,10 +15,12 @@ use std::{
     sync::Arc,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::ClientId;
 
 /// Authenticated MQTT client identity.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AuthId {
     /// Identity for anonymous client.
     Anonymous,
@@ -26,12 +29,18 @@ pub enum AuthId {
     Identity(Identity),
 }
 
+impl AuthId {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AuthId::Anonymous => "*",
+            AuthId::Identity(identity) => identity.as_str(),
+        }
+    }
+}
+
 impl Display for AuthId {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            Self::Anonymous => write!(f, "*"),
-            Self::Identity(identity) => write!(f, "{}", identity),
-        }
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -49,11 +58,11 @@ impl<T: Into<Identity>> From<T> for AuthId {
 }
 
 /// Non-anonymous client identity.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Identity(Arc<String>);
 
 impl Identity {
-    fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 }

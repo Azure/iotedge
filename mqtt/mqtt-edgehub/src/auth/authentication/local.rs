@@ -1,4 +1,4 @@
-use std::error::Error as StdError;
+use std::convert::Infallible;
 
 use async_trait::async_trait;
 
@@ -7,7 +7,7 @@ use mqtt_broker::{
     AuthId,
 };
 
-/// Allows to connect any MQTT client connected to locahost.
+/// Allows to connect any MQTT client connected to localhost.
 /// It is intended to use to authenticate client for local communication
 /// inside `EdgeHub` container.
 #[derive(Debug, Default)]
@@ -21,7 +21,7 @@ impl LocalAuthenticator {
 
 #[async_trait]
 impl Authenticator for LocalAuthenticator {
-    type Error = Box<dyn StdError>;
+    type Error = Infallible;
 
     async fn authenticate(
         &self,

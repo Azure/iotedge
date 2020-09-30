@@ -196,6 +196,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.False(objectDictionary.TryGetNonEmptyValue("2", out returnedObj));
         }
 
+        [Fact]
+        public void DefaultDictionaryTest()
+        {
+            DefaultDictionary<int, int> dict1 = new DefaultDictionary<int, int>(_ => 0);
+            Assert.Empty(dict1);
+            Assert.Equal(0, dict1[5]);
+            dict1[10]++;
+            Assert.Equal(1, dict1[10]);
+
+            DefaultDictionary<int, int> dict2 = new DefaultDictionary<int, int>(x => x + 5);
+            Assert.Empty(dict2);
+            Assert.Equal(10, dict2[5]);
+        }
+
         [Theory]
         [MemberData(nameof(GetBatchTestData))]
         public void BatchTest(IList<int> list, int batchSize, IList<int> expectedBatches)

@@ -16,7 +16,7 @@ mod workload;
 pub use connect::Connector;
 pub use workload::{
     CertificateResponse, IdentityCertificateRequest, ServerCertificateRequest, SignRequest,
-    SignResponse, TrustBundleResponse, WorkloadClient,
+    SignResponse, TrustBundleResponse, WorkloadClient, WorkloadError,
 };
 
 use std::error::Error as StdError;
