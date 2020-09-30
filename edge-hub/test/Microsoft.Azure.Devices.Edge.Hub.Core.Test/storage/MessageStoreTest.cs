@@ -233,7 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         public async Task CleanupTestTimeoutMultipleTTLs(bool checkEntireQueueOnCleanup)
         {
             Guid guid = Guid.NewGuid();
-            Console.WriteLine("GUID FOR TEST RUN: {}", guid);
             (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore inMemoryDbStore) result = await this.GetMessageStore(checkEntireQueueOnCleanup, guid, 10);
             result.messageStore.SetTimeToLive(TimeSpan.FromSeconds(10));
             using (IMessageStore messageStore = result.messageStore)
