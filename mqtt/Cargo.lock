@@ -1102,6 +1102,7 @@ dependencies = [
  "mqtt-broker-tests-util",
  "mqtt3",
  "openssl",
+ "parking_lot 0.11.0",
  "proptest",
  "regex",
  "serde",

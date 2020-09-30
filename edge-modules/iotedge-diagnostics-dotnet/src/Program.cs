@@ -46,8 +46,8 @@ namespace Diagnostics
                 case "edge-agent":
                     await EdgeAgent(config["management-uri"]);
                     break;
-                case "iothub":
-                    await Iothub(config["hostname"], config["port"], config["proxy"]);
+                case "upstream":
+                    await Upstream(config["hostname"], config["port"], config["proxy"]);
                     break;
                 case "local-time":
                     Console.WriteLine(DateTime.Now.ToUnixTimestamp());
@@ -80,7 +80,7 @@ namespace Diagnostics
             }
         }
 
-        static async Task Iothub(string hostname, string port, string proxy)
+        static async Task Upstream(string hostname, string port, string proxy)
         {
             if (proxy != null)
             {

@@ -36,6 +36,7 @@ use std::{
     sync::Arc,
 };
 
+use proto::Publication;
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
 
@@ -44,8 +45,8 @@ use mqtt3::proto;
 pub use crate::auth::{AuthId, Identity};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
 pub use crate::connection::{
-    ConnectionHandle, IncomingPacketProcessor, MakeIncomingPacketProcessor,
-    MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, OutgoingPacketProcessor, PacketAction,
+    ConnectionHandle, IncomingPacketProcessor, MakeMqttPacketProcessor, MakePacketProcessor,
+    OutgoingPacketProcessor, PacketAction,
 };
 pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{
@@ -247,10 +248,20 @@ pub enum ClientEvent {
 
 #[derive(Debug)]
 pub enum SystemEvent {
+    /// An event for a broker to stop processing incoming event and exit.
     Shutdown,
+
+    /// An event for a broker to make a snapshot of the current broker state
+    /// and send it back to the caller.
     StateSnapshot(StateSnapshotHandle),
-    ForceClientDisconnect(ClientId),
+
+    /// An event for a broker to update authorizer with additional data.
     AuthorizationUpdate(Box<dyn Any + Send + Sync>),
+
+    /// An event for a broker to dispatch a publication by broker itself.
+    /// The main difference is `ClientEvent::Publish` it doesn't require
+    /// ClientId of sender to be passed along with the event.
+    Publish(Publication),
 }
 
 #[derive(Debug)]
