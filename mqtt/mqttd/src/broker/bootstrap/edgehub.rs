@@ -152,10 +152,12 @@ where
         broker_ready.send(()).expect("ready signal");
     });
 
+    let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
+
     // Start the sidecars
     let system_address = config.listener().system().addr().to_string();
     let (sidecar_shutdown_handle, sidecar_join_handle) =
-        start_sidecars(broker_handle, system_address).await?;
+        start_sidecars(broker_handle, system_address, device_id).await?;
 
     // Start serving new connections
     let state = server.serve(shutdown).await?;
@@ -194,10 +196,9 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
 async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
+    device_id: String,
 ) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
     let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
-
-    let device_id = env::var(DEVICE_ID_ENV)?;
 
     let mut bridge_controller = BridgeController::new();
     bridge_controller
