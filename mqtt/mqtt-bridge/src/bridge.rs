@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryFrom, convert::TryInto, time::Duration};
+use std::{collections::HashMap, convert::TryFrom, convert::TryInto, marker::PhantomData};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
@@ -7,7 +7,7 @@ use tracing::{debug, info, warn};
 
 use crate::{
     client::{ClientConnectError, EventHandler, MqttClient},
-    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    persist::{memory::InMemoryPersist, Persist},
     settings::{ConnectionSettings, Credentials, Topic},
 };
 
@@ -76,9 +76,8 @@ impl Bridge {
         self.connect(
             self.subscriptions.clone(),
             self.connection_settings.address(),
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
             self.connection_settings.credentials(),
+            true,
         )
         .await
     }
@@ -97,9 +96,8 @@ impl Bridge {
         self.connect(
             self.forwards.clone(),
             self.system_address.as_str(),
-            self.connection_settings.keep_alive(),
-            self.connection_settings.clean_session(),
             &Credentials::Anonymous(client_id),
+            false,
         )
         .await
     }
@@ -108,9 +106,8 @@ impl Bridge {
         &self,
         mut topics: HashMap<String, Topic>,
         address: &str,
-        keep_alive: Duration,
-        clean_session: bool,
         credentials: &Credentials,
+        secure: bool,
     ) -> Result<(), BridgeError> {
         let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
         let topic_filters = topics
@@ -118,14 +115,23 @@ impl Bridge {
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
-        let persistor = PublicationStore::new_memory(BATCH_SIZE);
-        let mut client = MqttClient::new(
-            address,
-            keep_alive,
-            clean_session,
-            MessageHandler::new(persistor, topic_filters),
-            credentials,
-        );
+        let mut client = if secure {
+            MqttClient::tls(
+                address,
+                self.connection_settings.keep_alive(),
+                self.connection_settings.clean_session(),
+                MessageHandler::new(topic_filters, BATCH_SIZE),
+                credentials,
+            )
+        } else {
+            MqttClient::tcp(
+                address,
+                self.connection_settings.keep_alive(),
+                self.connection_settings.clean_session(),
+                MessageHandler::new(topic_filters, BATCH_SIZE),
+                credentials,
+            )
+        };
 
         debug!("subscribe to remote {:?}", subscriptions);
 
@@ -164,22 +170,25 @@ impl TryFrom<Topic> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-struct MessageHandler<S>
+#[derive(Clone)]
+struct MessageHandler<'a, T>
 where
-    S: StreamWakeableState,
+    T: Persist<'a>,
 {
     topic_mappers: Vec<TopicMapper>,
-    inner: PublicationStore<S>,
+    inner: T,
+    phantom: PhantomData<&'a T>,
 }
 
-impl<S> MessageHandler<S>
+impl<'a, T> MessageHandler<'a, T>
 where
-    S: StreamWakeableState,
+    T: Persist<'a>,
 {
-    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
+    pub fn new(topic_mappers: Vec<TopicMapper>, batch_size: usize) -> Self {
         Self {
             topic_mappers,
-            inner: persistor,
+            inner: T::new(batch_size),
+            phantom: PhantomData,
         }
     }
 
@@ -207,9 +216,9 @@ where
     }
 }
 
-// TODO: implement for generic
+// TODO: implement for generic T where T: Persist
 #[async_trait]
-impl EventHandler for MessageHandler<WakingMemoryStore> {
+impl EventHandler for MessageHandler<'_, InMemoryPersist> {
     type Error = BridgeError;
 
     async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
@@ -230,7 +239,7 @@ impl EventHandler for MessageHandler<WakingMemoryStore> {
 
             if let Some(f) = forward_publication {
                 debug!("Save message to store");
-                self.inner.push(f).map_err(BridgeError::Store)?;
+                self.inner.push(f).await.map_err(BridgeError::Store)?;
             } else {
                 warn!("No topic matched");
             }
@@ -244,7 +253,7 @@ impl EventHandler for MessageHandler<WakingMemoryStore> {
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
     #[error("failed to save to store.")]
-    Store(#[from] PersistError),
+    Store(#[from] std::io::Error),
 
     #[error("failed to subscribe to topic.")]
     Subscribe(#[from] ClientConnectError),
@@ -260,7 +269,6 @@ pub enum BridgeError {
 mod tests {
     use bytes::Bytes;
     use futures_util::stream::StreamExt;
-    use futures_util::stream::TryStreamExt;
     use std::str::FromStr;
 
     use mqtt3::{
@@ -271,7 +279,7 @@ mod tests {
 
     use crate::bridge::{Bridge, MessageHandler, TopicMapper};
     use crate::client::EventHandler;
-    use crate::persist::PublicationStore;
+    use crate::persist::{memory::InMemoryPersist, Persist};
     use crate::settings::Settings;
 
     #[tokio::test]
@@ -319,8 +327,7 @@ mod tests {
             })
             .collect();
 
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
+        let mut handler = MessageHandler::<InMemoryPersist>::new(topics, batch_size);
 
         let pub1 = ReceivedPublication {
             topic_name: "local/floor/1".to_string(),
@@ -342,9 +349,9 @@ mod tests {
             .await
             .unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.inner.loader().await;
 
-        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
+        let extracted1 = loader.lock().next().await.unwrap();
         assert_eq!(extracted1.1, expected);
     }
 
@@ -363,8 +370,7 @@ mod tests {
             })
             .collect();
 
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
+        let mut handler = MessageHandler::<InMemoryPersist>::new(topics, batch_size);
 
         let pub1 = ReceivedPublication {
             topic_name: "temp/1".to_string(),
@@ -386,9 +392,9 @@ mod tests {
             .await
             .unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.inner.loader().await;
 
-        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
+        let extracted1 = loader.lock().next().await.unwrap();
         assert_eq!(extracted1.1, expected);
     }
 
@@ -407,8 +413,7 @@ mod tests {
             })
             .collect();
 
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
+        let mut handler = MessageHandler::<InMemoryPersist>::new(topics, batch_size);
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -430,9 +435,9 @@ mod tests {
             .await
             .unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.inner.loader().await;
 
-        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
+        let extracted1 = loader.lock().next().await.unwrap();
         assert_eq!(extracted1.1, expected);
     }
 
@@ -451,8 +456,7 @@ mod tests {
             })
             .collect();
 
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
+        let mut handler = MessageHandler::<InMemoryPersist>::new(topics, batch_size);
 
         let pub1 = ReceivedPublication {
             topic_name: "local/temp/1".to_string(),
@@ -467,7 +471,7 @@ mod tests {
             .await
             .unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.inner.loader().await;
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
         futures_util::future::select(interval.next(), loader.lock().next()).await;

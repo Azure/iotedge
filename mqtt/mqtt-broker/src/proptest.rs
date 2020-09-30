@@ -1,4 +1,5 @@
-use std::time::Duration;
+#[cfg(any(test, feature = "proptest"))]
+use std::{net::IpAddr, net::SocketAddr, time::Duration};
 
 use bytes::Bytes;
 use mqtt3::proto;
@@ -11,7 +12,8 @@ use proptest::{
 
 use crate::{
     session::identifiers::{IdentifiersInUse, PacketIdentifiers},
-    BrokerSnapshot, ClientId, Publish, Segment, SessionSnapshot, Subscription, TopicFilter,
+    AuthId, BrokerSnapshot, ClientId, ClientInfo, Publish, Segment, SessionSnapshot, Subscription,
+    TopicFilter,
 };
 
 prop_compose! {
@@ -43,7 +45,7 @@ pub(crate) fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse
 
 prop_compose! {
     pub fn arb_session_snapshot()(
-        client_id in arb_clientid(),
+        client_info in arb_client_info(),
         subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
         _packet_identifiers in arb_packet_identifiers(),
         waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
@@ -52,7 +54,7 @@ prop_compose! {
         _waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
     ) -> SessionSnapshot {
         SessionSnapshot::from_parts(
-            client_id,
+            client_info,
             subscriptions,
             waiting_to_be_sent,
         )
@@ -112,6 +114,22 @@ prop_compose! {
     }
 }
 
+prop_compose! {
+    pub fn arb_client_info()(
+        client_id in arb_clientid(),
+        auth_id in arb_auth_id(),
+        ip in arb_ip(),
+        port in arb_port(),
+    ) -> ClientInfo {
+        // Unfortunately we can't just call SocketAddr::arbitrary() because when serde occurs on SocketAddr,
+        // we lose the flowid and scope_id. They get set to 0 by default.
+        // This workaround manually sets them to 0 but uses arbitrary values for ip and port
+        // Issue opened: https://github.com/serde-rs/serde/issues/1896
+        let socket = SocketAddr::new(ip, port);
+        ClientInfo::new(client_id, socket, auth_id)
+    }
+}
+
 pub fn arb_topic_filter_weighted() -> impl Strategy<Value = String> {
     let max = 10;
     prop_oneof![
@@ -138,6 +156,21 @@ pub fn arb_client_id() -> impl Strategy<Value = proto::ClientId> {
 pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
     // TODO: Add in # and + once the broker can handle them
     "[a-zA-Z0-9_()!@%,'=\\*\\$\\?\\-]{1,23}".prop_map(Into::into)
+}
+
+pub fn arb_auth_id() -> impl Strategy<Value = AuthId> {
+    prop_oneof![
+        "[a-zA-Z0-9]{1,23}".prop_map(AuthId::from),
+        Just(AuthId::Anonymous)
+    ]
+}
+
+pub fn arb_ip() -> impl Strategy<Value = IpAddr> {
+    IpAddr::arbitrary()
+}
+
+pub fn arb_port() -> impl Strategy<Value = u16> {
+    proptest::num::u16::ANY
 }
 
 pub fn arb_client_id_weighted() -> impl Strategy<Value = proto::ClientId> {
