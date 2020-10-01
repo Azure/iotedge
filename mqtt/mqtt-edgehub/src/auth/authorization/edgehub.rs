@@ -17,7 +17,7 @@ use mqtt_broker::{
 #[derive(Debug)]
 pub struct EdgeHubAuthorizer<Z> {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
-    service_identities_cache: HashMap<ClientId, IdentityUpdate>,
+    identities_cache: HashMap<ClientId, IdentityUpdate>,
     inner: Z,
 }
 
@@ -29,7 +29,7 @@ where
     pub fn new(authorizer: Z) -> Self {
         Self {
             iothub_allowed_topics: RefCell::default(),
-            service_identities_cache: HashMap::default(),
+            identities_cache: HashMap::default(),
             inner: authorizer,
         }
     }
@@ -150,17 +150,17 @@ where
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
         match get_on_behalf_of_id(topic) {
             Some(on_behalf_of_id) if client_id == &on_behalf_of_id => {
-                self.service_identities_cache.contains_key(client_id)
+                self.identities_cache.contains_key(client_id)
             }
             Some(on_behalf_of_id) => self
-                .service_identities_cache
+                .identities_cache
                 .get(&on_behalf_of_id)
                 .and_then(IdentityUpdate::auth_chain)
                 .map_or(false, |auth_chain| auth_chain.contains(client_id.as_str())),
             None => {
                 // If there is no on_behalf_of_id, we are dealing with a legacy topic
                 // The client_id must still be in the identities cache
-                self.service_identities_cache.contains_key(client_id)
+                self.identities_cache.contains_key(client_id)
             }
         }
     }
@@ -253,13 +253,10 @@ where
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
         match update.downcast::<AuthorizerUpdate>() {
-            Ok(service_identities) => {
-                debug!(
-                    "service identities update received. Service identities: {:?}",
-                    service_identities
-                );
+            Ok(update) => {
+                debug!("authorizer update received. Identities: {:?}", update);
 
-                self.service_identities_cache = service_identities
+                self.identities_cache = update
                     .0
                     .into_iter()
                     .map(|id| (id.identity().into(), id))
