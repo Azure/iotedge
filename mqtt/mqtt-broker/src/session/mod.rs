@@ -14,8 +14,7 @@ use std::collections::HashMap;
 use mqtt3::proto;
 
 use crate::{
-    subscription::Subscription, AuthId, ClientEvent, ClientId, ClientInfo, ConnReq,
-    ConnectionHandle, Error,
+    subscription::Subscription, ClientEvent, ClientId, ClientInfo, ConnReq, ConnectionHandle, Error,
 };
 
 #[derive(Debug)]
@@ -27,17 +26,15 @@ pub enum Session {
 }
 
 impl Session {
-    pub fn new_transient(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
-        let (peer_addr, connect, handle) = connreq.into_parts();
-        let client_info = ClientInfo::new(peer_addr, auth_id);
-        let connected = ConnectedSession::new(state, client_info, connect.will, handle);
+    pub fn new_transient(connreq: ConnReq, state: SessionState) -> Self {
+        let (_, _, connect, handle) = connreq.into_parts();
+        let connected = ConnectedSession::new(state, connect.will, handle);
         Self::Transient(connected)
     }
 
-    pub fn new_persistent(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
-        let (peer_addr, connect, handle) = connreq.into_parts();
-        let client_info = ClientInfo::new(peer_addr, auth_id);
-        let connected = ConnectedSession::new(state, client_info, connect.will, handle);
+    pub fn new_persistent(connreq: ConnReq, state: SessionState) -> Self {
+        let (_, _, connect, handle) = connreq.into_parts();
+        let connected = ConnectedSession::new(state, connect.will, handle);
         Self::Persistent(connected)
     }
 
@@ -47,30 +44,29 @@ impl Session {
     }
 
     pub fn new_disconnecting(
-        client_id: ClientId,
         client_info: ClientInfo,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
-        let disconnecting = DisconnectingSession::new(client_id, client_info, will, handle);
+        let disconnecting = DisconnectingSession::new(client_info, will, handle);
         Self::Disconnecting(disconnecting)
     }
 
     pub fn client_id(&self) -> &ClientId {
         match self {
-            Self::Transient(connected) => connected.client_id(),
-            Self::Persistent(connected) => connected.client_id(),
+            Self::Transient(connected) => connected.state().client_info().client_id(),
+            Self::Persistent(connected) => connected.state().client_info().client_id(),
             Self::Offline(offline) => offline.client_id(),
-            Self::Disconnecting(disconnecting) => disconnecting.client_id(),
+            Self::Disconnecting(disconnecting) => disconnecting.client_info().client_id(),
         }
     }
 
-    pub fn client_info(&self) -> Result<&ClientInfo, Error> {
+    pub fn client_info(&self) -> &ClientInfo {
         match self {
-            Self::Transient(connected) => Ok(connected.client_info()),
-            Self::Persistent(connected) => Ok(connected.client_info()),
-            Self::Offline(_offline) => Err(Error::SessionOffline),
-            Self::Disconnecting(disconnecting) => Ok(disconnecting.client_info()),
+            Self::Transient(connected) => connected.state().client_info(),
+            Self::Persistent(connected) => connected.state().client_info(),
+            Self::Offline(offline) => offline.last_client_info(),
+            Self::Disconnecting(disconnecting) => disconnecting.client_info(),
         }
     }
 
@@ -206,7 +202,7 @@ impl Session {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{net::IpAddr, net::Ipv4Addr, net::SocketAddr, time::Duration};
 
     use matches::assert_matches;
     use tokio::sync::mpsc;
@@ -216,8 +212,8 @@ mod tests {
 
     use super::{Session, SessionState};
     use crate::{
-        auth::AuthId, settings::QueueFullAction, tests::peer_addr, Auth, ClientId, ConnReq,
-        ConnectionHandle, Error, SessionConfig,
+        auth::AuthId, settings::QueueFullAction, tests::peer_addr, Auth, ClientId, ClientInfo,
+        ConnReq, ConnectionHandle, Error, SessionConfig,
     };
 
     fn connection_handle() -> ConnectionHandle {
@@ -262,9 +258,11 @@ mod tests {
             Auth::Unknown,
             handle1,
         );
-        let auth_id = "auth-id1".into();
-        let state = SessionState::new(client_id, default_config());
-        let mut session = Session::new_transient(auth_id, req1, state);
+        let auth_id: AuthId = "auth-id1".into();
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(client_id, socket, auth_id);
+        let state = SessionState::new(client_info, default_config());
+        let mut session = Session::new_transient(req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
             qos: proto::QoS::AtMostOnce,
@@ -310,18 +308,13 @@ mod tests {
     fn test_subscribe_to_with_invalid_topic() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(client_id.clone(), socket, AuthId::from("authId1"));
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(
-            client_id.clone(),
-            peer_addr(),
-            connect1,
-            Auth::Unknown,
-            handle1,
-        );
-        let auth_id = "auth-id1".into();
-        let state = SessionState::new(client_id, default_config());
-        let mut session = Session::new_transient(auth_id, req1, state);
+        let req1 = ConnReq::new(client_id, peer_addr(), connect1, Auth::Unknown, handle1);
+        let state = SessionState::new(client_info, default_config());
+        let mut session = Session::new_transient(req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/#/#".to_string(),
             qos: proto::QoS::AtMostOnce,
@@ -337,18 +330,13 @@ mod tests {
     fn test_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(client_id.clone(), socket, AuthId::from("authId1"));
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(
-            client_id.clone(),
-            peer_addr(),
-            connect1,
-            Auth::Unknown,
-            handle1,
-        );
-        let auth_id = AuthId::Anonymous;
-        let state = SessionState::new(client_id, default_config());
-        let mut session = Session::new_transient(auth_id, req1, state);
+        let req1 = ConnReq::new(client_id, peer_addr(), connect1, Auth::Unknown, handle1);
+        let state = SessionState::new(client_info, default_config());
+        let mut session = Session::new_transient(req1, state);
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -398,7 +386,9 @@ mod tests {
     fn test_offline_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id, default_config()));
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
+        let mut session = Session::new_offline(SessionState::new(client_info, default_config()));
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -412,7 +402,9 @@ mod tests {
     fn test_offline_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id, default_config()));
+        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+        let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
+        let mut session = Session::new_offline(SessionState::new(client_info, default_config()));
 
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),

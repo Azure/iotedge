@@ -43,6 +43,9 @@ namespace Diagnostics
             var config = new ConfigurationBuilder().AddCommandLine(args).Build();
             switch (args[0])
             {
+                case "parent-hostname":
+                    ParentHostname(config["parent-hostname"]);
+                    break;
                 case "edge-agent":
                     await EdgeAgent(config["management-uri"]);
                     break;
@@ -101,6 +104,11 @@ namespace Diagnostics
                 await client.ConnectAsync(hostname, int.Parse(port));
                 client.GetStream();
             }
+        }
+
+        static void ParentHostname(string parent_hostname)
+        {
+            _ = Dns.GetHostEntry(parent_hostname);
         }
 
         static IProxyClient MakeProxy(Uri proxyUri)
