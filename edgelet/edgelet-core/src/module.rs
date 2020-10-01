@@ -371,6 +371,7 @@ pub struct SystemInfo {
     pub kernel_version: String,
     pub operating_system: String,
     pub cpus: i32,
+    pub virtualized: &'static str,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]

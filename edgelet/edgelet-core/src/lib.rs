@@ -27,6 +27,7 @@ mod module;
 mod network;
 mod parse_since;
 mod settings;
+mod virtualization;
 pub mod watchdog;
 pub mod workload;
 
@@ -55,6 +56,7 @@ pub use settings::{
     RetryLimit, RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
     WatchdogSettings, X509AttestationInfo,
 };
+pub use virtualization::is_virtualized_env;
 pub use workload::WorkloadConfig;
 
 /// This is the default auto generated certificate life
