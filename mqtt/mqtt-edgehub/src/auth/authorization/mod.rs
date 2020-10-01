@@ -2,8 +2,8 @@ mod edgehub;
 mod local;
 mod policy;
 
-pub use self::policy::PolicyAuthorizer;
-pub use edgehub::{EdgeHubAuthorizer, ServiceIdentity};
+pub use self::policy::{PolicyAuthorizer, PolicyUpdate};
+pub use edgehub::{AuthorizerUpdate, EdgeHubAuthorizer};
 pub use local::LocalAuthorizer;
 
 #[cfg(test)]

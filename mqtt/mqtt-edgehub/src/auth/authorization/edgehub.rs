@@ -17,7 +17,7 @@ use mqtt_broker::{
 #[derive(Debug)]
 pub struct EdgeHubAuthorizer<Z> {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
-    service_identities_cache: HashMap<ClientId, ServiceIdentity>,
+    identities_cache: HashMap<ClientId, IdentityUpdate>,
     inner: Z,
 }
 
@@ -29,7 +29,7 @@ where
     pub fn new(authorizer: Z) -> Self {
         Self {
             iothub_allowed_topics: RefCell::default(),
-            service_identities_cache: HashMap::default(),
+            identities_cache: HashMap::default(),
             inner: authorizer,
         }
     }
@@ -150,17 +150,17 @@ where
     fn check_authorized_cache(&self, client_id: &ClientId, topic: &str) -> bool {
         match get_on_behalf_of_id(topic) {
             Some(on_behalf_of_id) if client_id == &on_behalf_of_id => {
-                self.service_identities_cache.contains_key(client_id)
+                self.identities_cache.contains_key(client_id)
             }
             Some(on_behalf_of_id) => self
-                .service_identities_cache
+                .identities_cache
                 .get(&on_behalf_of_id)
-                .and_then(ServiceIdentity::auth_chain)
+                .and_then(IdentityUpdate::auth_chain)
                 .map_or(false, |auth_chain| auth_chain.contains(client_id.as_str())),
             None => {
                 // If there is no on_behalf_of_id, we are dealing with a legacy topic
                 // The client_id must still be in the identities cache
-                self.service_identities_cache.contains_key(client_id)
+                self.identities_cache.contains_key(client_id)
             }
         }
     }
@@ -252,14 +252,12 @@ where
     }
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
-        match update.downcast::<Vec<ServiceIdentity>>() {
-            Ok(service_identities) => {
-                debug!(
-                    "service identities update received. Service identities: {:?}",
-                    service_identities
-                );
+        match update.downcast::<AuthorizerUpdate>() {
+            Ok(update) => {
+                debug!("authorizer update received. Identities: {:?}", update);
 
-                self.service_identities_cache = service_identities
+                self.identities_cache = update
+                    .0
                     .into_iter()
                     .map(|id| (id.identity().into(), id))
                     .collect();
@@ -272,16 +270,23 @@ where
     }
 }
 
+/// Represents updates to an `EdgeHubAuthorizer`.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ServiceIdentity {
+pub struct AuthorizerUpdate(Vec<IdentityUpdate>);
+
+/// Represents an update to an identity.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IdentityUpdate {
+    /// Identity name.
     #[serde(rename = "Identity")]
     identity: String,
 
+    /// Auth chain is used to authorize "on-behalf-of" operations.
     #[serde(rename = "AuthChain")]
     auth_chain: Option<String>,
 }
 
-impl ServiceIdentity {
+impl IdentityUpdate {
     pub fn identity(&self) -> &str {
         &self.identity
     }
@@ -290,7 +295,7 @@ impl ServiceIdentity {
     }
 }
 
-impl fmt::Display for ServiceIdentity {
+impl fmt::Display for IdentityUpdate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.auth_chain {
             Some(auth_chain) => {
@@ -313,8 +318,7 @@ mod tests {
 
     use crate::auth::authorization::tests;
 
-    use super::EdgeHubAuthorizer;
-    use super::ServiceIdentity;
+    use super::{AuthorizerUpdate, EdgeHubAuthorizer, IdentityUpdate};
 
     #[test_case(&tests::connect_activity("device-1", AuthId::Anonymous); "anonymous clients")]
     #[test_case(&tests::connect_activity("device-1", "device-2"); "different auth_id and client_id")]
@@ -465,15 +469,18 @@ mod tests {
     {
         let mut authorizer = EdgeHubAuthorizer::new(inner);
 
-        let service_identity = ServiceIdentity {
+        let service_identity = IdentityUpdate {
             identity: "device-1".to_string(),
             auth_chain: Some("edgeB;device-1;".to_string()),
         };
-        let service_identity2 = ServiceIdentity {
+        let service_identity2 = IdentityUpdate {
             identity: "device-1/module-a".to_string(),
             auth_chain: Some("edgeB;device-1/module-a;".to_string()),
         };
-        let _ = authorizer.update(Box::new(vec![service_identity, service_identity2]));
+        let _ = authorizer.update(Box::new(AuthorizerUpdate(vec![
+            service_identity,
+            service_identity2,
+        ])));
         authorizer
     }
 }
