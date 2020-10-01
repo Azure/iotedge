@@ -85,19 +85,19 @@ where
                 Some(resources) => {
                     // Iterate over and match resources.
                     // We need to go through all resources and find one with highest priority (smallest order).
-                    let mut result = ("", &EffectOrd::undefined());
+                    let mut result = &EffectOrd::undefined();
                     for (resource, effect) in &resources.0 {
-                        if effect.order < result.1.order // check the order
+                        if effect.order < result.order // check the order
                             && self.resource_matcher.do_match( // only then check that matches
                                 request,
                                 &request.resource,
                                 &resource,
                             )
                         {
-                            result = (resource, effect);
+                            result = effect;
                         }
                     }
-                    Ok(*result.1)
+                    Ok(*result)
                 }
                 None => Ok(EffectOrd::undefined()),
             },
@@ -117,20 +117,20 @@ where
                     Some(resources) => {
                         // Iterate over and match resources.
                         // We need to go through all resources and find one with highest priority (smallest order).
-                        let mut result = ("".to_string(), &EffectOrd::undefined());
+                        let mut result = &EffectOrd::undefined();
                         for (resource, effect) in &resources.0 {
                             let resource = self.substituter.visit_resource(resource, request)?;
-                            if effect.order < result.1.order // check the order
+                            if effect.order < result.order // check the order
                                 && self.resource_matcher.do_match( // only then check that matches
                                     request,
                                     &request.resource,
                                     &resource,
                                 )
                             {
-                                result = (resource, effect);
+                                result = effect;
                             }
                         }
-                        Ok(*result.1)
+                        Ok(*result)
                     }
                     None => Ok(EffectOrd::undefined()),
                 };
