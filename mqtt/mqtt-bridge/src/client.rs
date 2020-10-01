@@ -352,6 +352,8 @@ impl<T: EventHandler> MqttClient<T> {
             return Ok(());
         }
 
+        // TODO PRE: Don't wait for subscription updates before starting the bridge.
+        //           We should move this logic to the handle events.
         while let Some(event) = self
             .client
             .try_next()
@@ -359,10 +361,15 @@ impl<T: EventHandler> MqttClient<T> {
             .map_err(ClientError::PollClient)?
         {
             if let Event::SubscriptionUpdates(subscriptions) = event {
+                let subacks_received = false;
+
                 for subscription in subscriptions {
                     match subscription {
                         SubscriptionUpdateEvent::Subscribe(sub) => {
                             subacks.remove(&sub.topic_filter);
+                            debug!("successfully subscribed to topics");
+                            subacks_received = true;
+                            break;
                         }
                         SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
                             subacks.remove(&topic_filter);
@@ -373,6 +380,10 @@ impl<T: EventHandler> MqttClient<T> {
                             warn!("Unsubscribed {}", topic_filter);
                         }
                     }
+                }
+
+                if subacks_received {
+                    break;
                 }
             }
         }
