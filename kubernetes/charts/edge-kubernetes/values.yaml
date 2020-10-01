@@ -167,6 +167,9 @@ edgeAgent:
     # false dy default.
     # runAsNonRoot: false
 
+    # If an environment variables is required and not defined above, they may be added as needed.
+    # ANOTHER_ENV_VAR: "another env value"
+
 # Optional registry credentials for module images
 # registryCredentials:
 #   <SERVER ADDRESS>:
