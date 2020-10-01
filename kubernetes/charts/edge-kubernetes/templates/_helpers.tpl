@@ -60,42 +60,39 @@ agent:
   type: "docker"
   {{- if .Values.edgeAgent.env }}
   env:
-    {{- if .Values.edgeAgent.env.portMappingServiceType}}
-    PortMappingServiceType: {{ .Values.edgeAgent.env.portMappingServiceType | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.backupConfigFilePath}}
-    BackupConfigFilePath: {{ .Values.edgeAgent.env.backupConfigFilePath | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.enableK8sServiceCallTracing}}
-    EnableK8sServiceCallTracing: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.runtimeLogLevel}}
-    RuntimeLogLevel: {{ .Values.edgeAgent.env.runtimeLogLevel | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb}}
-    {{- $sizeInMb :=  .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb }}
-    PersistentVolumeClaimDefaultSizeInMb: {{- if kindIs "float64" $sizeInMb }} {{ printf "%.0f" $sizeInMb | quote }} {{- else }} {{ $sizeInMb | quote }} {{end}}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.upstreamProtocol}}
-    UpstreamProtocol: {{ .Values.edgeAgent.env.upstreamProtocol | quote }}
-    {{- end }}
     {{- if .Values.iotedged.data.httpsProxy }}
     https_proxy: {{ .Values.iotedged.data.httpsProxy | quote }}
     {{- end}}
-    {{- if .Values.edgeAgent.env.useMountSourceForVolumeName}}
-    UseMountSourceForVolumeName: {{ .Values.edgeAgent.env.useMountSourceForVolumeName | quote }}
+    {{- if .Values.iotedged.data.noProxy }}
+    no_proxy: {{ .Values.iotedged.data.noProxy | quote }}
+    {{- end}}
+    {{- range $envkey, $envval := .Values.edgeAgent.env }}
+    {{- if eq $envkey "portMappingServiceType"}}
+    PortMappingServiceType: {{ $envval | quote }}
+    {{- else if eq $envkey "backupConfigFilePath"}}
+    BackupConfigFilePath: {{ $envval | quote }}
+    {{- else if eq $envkey "enableK8sServiceCallTracing"}}
+    EnableK8sServiceCallTracing: {{ $envval | quote }}
+    {{- else if eq $envkey "runtimeLogLevel"}}
+    RuntimeLogLevel: {{ $envval | quote }}
+    {{- else if eq $envkey "persistentVolumeClaimDefaultSizeInMb"}}
+    {{- $sizeInMb :=  $envval }}
+    PersistentVolumeClaimDefaultSizeInMb: {{- if kindIs "float64" $sizeInMb }} {{ printf "%.0f" $sizeInMb | quote }} {{- else }} {{ $sizeInMb | quote }} {{end}}
+    {{- else if eq $envkey "upstreamProtocol"}}
+    UpstreamProtocol: {{ $envval | quote }}
+    {{- else if eq $envkey "useMountSourceForVolumeName"}}
+    UseMountSourceForVolumeName: {{ $envval | quote }}
+    {{- else if eq $envkey "storageClassName"}}
+    StorageClassName: {{- if (eq "-" $envval) }} "" {{- else }} {{ $envval | quote }} {{- end }}
+    {{- else if eq $envkey "enableExperimentalFeatures" }}
+    ExperimentalFeatures__Enabled: {{ $envval | quote }}
+    {{- else if eq $envkey "enableK8sExtensions" }}
+    ExperimentalFeatures__EnableK8SExtensions: {{ $envval | quote }}
+    {{- else if eq $envkey "runAsNonRoot" }}
+    RunAsNonRoot: {{ $envval | quote }}
+    {{- else }}
+    {{ $envkey }}: {{$envval | quote }}
     {{- end }}
-    {{- if .Values.edgeAgent.env.storageClassName}}
-    StorageClassName: {{- if (eq "-" .Values.edgeAgent.env.storageClassName) }} "" {{- else }} {{ .Values.edgeAgent.env.storageClassName | quote }} {{- end }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.enableExperimentalFeatures }}
-    ExperimentalFeatures__Enabled: {{ .Values.edgeAgent.env.enableExperimentalFeatures | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.enableK8sExtensions }}
-    ExperimentalFeatures__EnableK8SExtensions: {{ .Values.edgeAgent.env.enableK8sExtensions | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.runAsNonRoot }}
-    RunAsNonRoot: {{ .Values.edgeAgent.env.runAsNonRoot | quote }}
     {{- end }}
   {{ else }}
   env: {}
