@@ -84,15 +84,20 @@ where
                 // operation exists.
                 Some(resources) => {
                     // Iterate over and match resources.
+                    // We need to go through all resources and find one with highest priority (smallest order).
+                    let mut result = ("", &EffectOrd::undefined());
                     for (resource, effect) in &resources.0 {
-                        if self
-                            .resource_matcher
-                            .do_match(request, &request.resource, &resource)
+                        if effect.order < result.1.order // check the order
+                            && self.resource_matcher.do_match( // only then check that matches
+                                request,
+                                &request.resource,
+                                &resource,
+                            )
                         {
-                            return Ok(*effect);
+                            result = (resource, effect);
                         }
                     }
-                    Ok(EffectOrd::undefined())
+                    Ok(*result.1)
                 }
                 None => Ok(EffectOrd::undefined()),
             },
@@ -111,16 +116,21 @@ where
                     // operation exists.
                     Some(resources) => {
                         // Iterate over and match resources.
+                        // We need to go through all resources and find one with highest priority (smallest order).
+                        let mut result = ("".to_string(), &EffectOrd::undefined());
                         for (resource, effect) in &resources.0 {
                             let resource = self.substituter.visit_resource(resource, request)?;
-                            if self
-                                .resource_matcher
-                                .do_match(request, &request.resource, &resource)
+                            if effect.order < result.1.order // check the order
+                                && self.resource_matcher.do_match( // only then check that matches
+                                    request,
+                                    &request.resource,
+                                    &resource,
+                                )
                             {
-                                return Ok(*effect);
+                                result = (resource, effect);
                             }
                         }
-                        Ok(EffectOrd::undefined())
+                        Ok(*result.1)
                     }
                     None => Ok(EffectOrd::undefined()),
                 };
@@ -317,7 +327,7 @@ impl EffectOrd {
 
     pub fn undefined() -> Self {
         Self {
-            order: 0,
+            order: usize::MAX,
             effect: Effect::Undefined,
         }
     }
@@ -595,6 +605,103 @@ pub(crate) mod tests {
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
 
+    /// Scenario:
+    /// - Have a policy with a custom resource matcher
+    /// - Have conflicting rules for resources that
+    ///   are different, but both will match according to
+    ///   custom resource matcher.
+    /// - Expected: match first "allow" rule
+    ///
+    /// This case is created as a result of a discovered bug.
+    #[test]
+    fn rule_ordering_should_work_for_custom_matchers() {
+        let json = r###"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "actor_a"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/b"
+                    ]
+                },
+                {
+                    "effect": "deny",
+                    "identities": [
+                        "actor_a"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/a"
+                    ]
+                }
+            ]
+        }"###;
+
+        let policy = PolicyBuilder::from_json(json)
+            .with_default_decision(Decision::Denied)
+            .with_substituter(TestSubstituter)
+            .with_matcher(StartWithMatcher)
+            .build()
+            .expect("Unable to build policy from json.");
+
+        let request = Request::new("actor_a", "write", "hello").unwrap();
+
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
+    /// See test case above for details.
+    #[test]
+    fn rule_ordering_should_work_for_custom_matchers_variable_rules() {
+        let json = r###"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "{{any}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/b"
+                    ]
+                },
+                {
+                    "effect": "deny",
+                    "identities": [
+                        "{{any}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/a"
+                    ]
+                }
+            ]
+        }"###;
+
+        let policy = PolicyBuilder::from_json(json)
+            .with_default_decision(Decision::Denied)
+            .with_substituter(TestSubstituter)
+            .with_matcher(StartWithMatcher)
+            .build()
+            .expect("Unable to build policy from json.");
+
+        let request = Request::new("actor_a", "write", "hello").unwrap();
+
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
     /// `TestSubstituter` replaces any value with the corresponding identity or resource
     /// from the request, thus making the variable rule to always match the request.
     struct TestSubstituter;
@@ -608,6 +715,19 @@ pub(crate) mod tests {
 
         fn visit_resource(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
             Ok(context.resource.clone())
+        }
+    }
+
+    /// `StartWithMatcher` matches resources that start with requested value. For
+    /// example, if a policy defines a resource "hello/world", then request for "hello/"
+    /// will match.
+    struct StartWithMatcher;
+
+    impl ResourceMatcher for StartWithMatcher {
+        type Context = ();
+
+        fn do_match(&self, _: &Request<Self::Context>, input: &str, policy: &str) -> bool {
+            policy.starts_with(input)
         }
     }
 }
