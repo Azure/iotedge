@@ -376,6 +376,7 @@ impl<T: EventHandler> MqttClient<T> {
                         }
                     }
                 }
+                debug!("stop waiting for subscriptions");
                 break;
             }
         }

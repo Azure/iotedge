@@ -164,7 +164,7 @@ impl Bridge {
         //
         //           If there is a client error then this can potentially get reset without the pump shutting down
         //           Alternatively, if this client error shuts down the pump, we will need to recreate it.
-        debug!("Starting bridge...{}", self.connection_settings.name());
+        debug!("Starting pumps...{}", self.connection_settings.name());
         match select(local_pump, remote_pump).await {
             Either::Left(_) => {
                 shutdown_handle.shutdown().await?;

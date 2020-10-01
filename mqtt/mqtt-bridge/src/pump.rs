@@ -6,6 +6,7 @@ use futures_util::{
     stream::{FuturesUnordered, StreamExt, TryStreamExt},
 };
 use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
+use tracing::debug;
 use tracing::error;
 
 use mqtt3::PublishHandle;
@@ -62,6 +63,7 @@ impl Pump {
 
     // TODO PRE: Give logging context. Say which bridge pump.
     // TODO PRE: add comments
+    // TODO PRE: clean up logging
     pub async fn run(&mut self, shutdown: Receiver<()>) {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let mut senders = FuturesUnordered::new();
@@ -74,25 +76,33 @@ impl Pump {
             let mut loader_lock = loader.lock().await;
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
+            debug!("started outgoing pump");
+
             loop {
                 let mut publish_handle = publish_handle.clone();
                 match select(receive_fut.next(), loader_lock.try_next()).await {
                     Either::Left((shutdown, _)) => {
+                        debug!("outgoing pump received shutdown signal");
                         if let None = shutdown {
                             error!(message = "unexpected behavior from shutdown signal while signalling bridge pump shutdown")
                         }
 
+                        debug!("waiting on all remaining in-flight messages to send");
                         for sender in senders.iter_mut() {
                             sender.await;
                         }
 
+                        debug!("all messages sent for outgoing pump");
                         break;
                     }
                     Either::Right((p, _)) => {
+                        debug!("outgoing pump extracted message from store");
+
                         // TODO_PRE: handle publication error
                         let p = p.unwrap().unwrap();
 
                         if senders.len() < MAX_INFLIGHT {
+                            debug!("publishing message for outgoing pump");
                             let persist_copy = persist.clone();
                             let fut = async move {
                                 let mut persist = persist_copy.borrow_mut();
@@ -108,6 +118,7 @@ impl Pump {
                             };
                             senders.push(Box::pin(fut));
                         } else {
+                            debug!("outgoing pump max in-flight messages reached");
                             senders.next().await;
                         }
                     }
