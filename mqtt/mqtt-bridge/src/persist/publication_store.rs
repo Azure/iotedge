@@ -71,7 +71,7 @@ impl<S: StreamWakeableState> PublicationStore<S> {
     }
 
     pub fn remove(&mut self, key: Key) -> Result<(), PersistError> {
-        debug!("removing publication with offset {}", self.offset);
+        debug!("removing publication with key {:?}", key);
 
         let mut state_lock = self.state.lock();
         state_lock.remove(key)?;
@@ -140,7 +140,6 @@ mod tests {
         let mut persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key1 = Key { offset: 0 };
         let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -163,7 +162,7 @@ mod tests {
         let mut loader = loader.lock().await;
 
         // process first message, forcing loader to get new batch on the next read
-        loader.try_next().await.unwrap().unwrap();
+        let (key1, _) = loader.try_next().await.unwrap().unwrap();
         assert_matches!(persistence.remove(key1), Ok(_));
 
         // add a second message and verify this is returned by loader

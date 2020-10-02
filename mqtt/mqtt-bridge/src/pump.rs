@@ -1,9 +1,12 @@
+#![allow(dead_code)]
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use futures_util::{
     future::{select, Either, FutureExt},
-    pin_mut, select,
-    stream::{FuturesUnordered, StreamExt, TryStreamExt},
+    pin_mut,
+    select,
+    // stream::{FuturesUnordered, StreamExt, TryStreamExt},
+    stream::{StreamExt, TryStreamExt},
 };
 use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
 use tracing::debug;
@@ -18,7 +21,7 @@ use crate::{
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
 };
 
-const MAX_INFLIGHT: usize = 16;
+// const MAX_INFLIGHT: usize = 16;
 
 // TODO PRE: make this generic
 pub struct Pump {
@@ -66,10 +69,10 @@ impl Pump {
     // TODO PRE: clean up logging
     pub async fn run(&mut self, shutdown: Receiver<()>) {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
-        let mut senders = FuturesUnordered::new();
+        // let mut senders = FuturesUnordered::new();
         let publish_handle = self.publish_handle.clone();
         let loader = self.loader.clone();
-        let persist = self.persist.clone();
+        // let persist = self.persist.clone();
         let mut client_shutdown = self.client_shutdown.clone();
 
         let f1 = async move {
@@ -87,10 +90,10 @@ impl Pump {
                             error!(message = "unexpected behavior from shutdown signal while signalling bridge pump shutdown")
                         }
 
-                        debug!("waiting on all remaining in-flight messages to send");
-                        for sender in senders.iter_mut() {
-                            sender.await;
-                        }
+                        // debug!("waiting on all remaining in-flight messages to send");
+                        // for sender in senders.iter_mut() {
+                        //     sender.await;
+                        // }
 
                         debug!("all messages sent for outgoing pump");
                         break;
@@ -101,26 +104,46 @@ impl Pump {
                         // TODO_PRE: handle publication error
                         let p = p.unwrap().unwrap();
 
-                        if senders.len() < MAX_INFLIGHT {
-                            debug!("publishing message for outgoing pump");
-                            let persist_copy = persist.clone();
-                            let fut = async move {
-                                let mut persist = persist_copy.borrow_mut();
-                                if let Err(e) = publish_handle.publish(p.1).await {
-                                    error!(message = "failed publishing message for bridge pump", err = %e);
-                                } else {
-                                    // TODO PRE: should we be retrying?
-                                    // if this failure is due to something that will keep failing it is probably safer to remove and never try again
-                                    if let Err(e) = persist.remove(p.0) {
-                                        error!(message = "failed to remove message from store for bridge pump", err = %e);
-                                    }
-                                }
-                            };
-                            senders.push(Box::pin(fut));
-                        } else {
-                            debug!("outgoing pump max in-flight messages reached");
-                            senders.next().await;
-                        }
+                        debug!("publishing message {:?} for outgoing pump", p.0);
+                        // let persist_copy = persist.clone();
+                        let fut = async move {
+                            if let Err(e) = publish_handle.publish(p.1).await {
+                                error!(message = "failed publishing message for bridge pump", err = %e);
+                            } else {
+                                // TODO PRE: should we be retrying?
+                                // if this failure is due to something that will keep failing it is probably safer to remove and never try again
+
+                                // TODO PRE: We need to remove from the other persistor
+                                // let mut persist = persist_copy.borrow_mut();
+                                // if let Err(e) = persist.remove(p.0) {
+                                //     error!(message = "failed to remove message from store for bridge pump", err = %e);
+                                // }
+                                // drop(persist);
+                            }
+                        };
+
+                        fut.await;
+
+                        // if senders.len() < MAX_INFLIGHT {
+                        //     debug!("publishing message for outgoing pump");
+                        //     let persist_copy = persist.clone();
+                        //     let fut = async move {
+                        //         let mut persist = persist_copy.borrow_mut();
+                        //         if let Err(e) = publish_handle.publish(p.1).await {
+                        //             error!(message = "failed publishing message for bridge pump", err = %e);
+                        //         } else {
+                        //             // TODO PRE: should we be retrying?
+                        //             // if this failure is due to something that will keep failing it is probably safer to remove and never try again
+                        //             if let Err(e) = persist.remove(p.0) {
+                        //                 error!(message = "failed to remove message from store for bridge pump", err = %e);
+                        //             }
+                        //         }
+                        //     };
+                        //     senders.push(Box::pin(fut));
+                        // } else {
+                        //     debug!("outgoing pump max in-flight messages reached");
+                        //     senders.next().await;
+                        // }
                     }
                 }
             }
