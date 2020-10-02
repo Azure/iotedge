@@ -30,6 +30,12 @@ impl ContainerResolveParentHostname {
             return Ok(CheckResult::Skipped);
         };
 
+        let parent_hostname = if let Some(hub_hostname) = settings.parent_hostname() {
+            hub_hostname.to_string()
+        } else {
+            return Ok(CheckResult::Ignored);
+        };
+
         let diagnostics_image_name = if check
             .diagnostics_image_name
             .starts_with("/azureiotedge-diagnostics:")
@@ -49,27 +55,33 @@ impl ContainerResolveParentHostname {
             return Ok(CheckResult::Skipped);
         };
 
-        let parent_hostname = if let Some(hub_hostname) = settings.parent_hostname() {
-            hub_hostname.to_string()
-        } else {
-            return Ok(CheckResult::Skipped);
-        };
+        let mut args = vec!["run".to_owned(), "--rm".to_owned()];
 
-        super::docker(
-            docker_host_arg,
-            vec![
-                "run",
-                "--rm",
-                &diagnostics_image_name,
-                "dotnet",
-                "IotedgeDiagnosticsDotnet.dll",
-                "parent-hostname",
-                "--parent-hostname",
-                &parent_hostname,
-            ],
-        )
-        .map_err(|(_, err)| err)
-        .context("Failed to resolve parent hostname")?;
+        settings
+            .agent()
+            .config()
+            .create_options()
+            .host_config()
+            .and_then(docker::models::HostConfig::extra_hosts)
+            .iter()
+            .for_each(|extra_hosts| {
+                extra_hosts
+                    .iter()
+                    .for_each(|host| args.push(format!("--add-host={}", host)))
+            });
+
+        args.extend(vec![
+            diagnostics_image_name,
+            "dotnet".to_owned(),
+            "IotedgeDiagnosticsDotnet.dll".to_owned(),
+            "parent-hostname".to_owned(),
+            "--parent-hostname".to_owned(),
+            parent_hostname,
+        ]);
+
+        super::docker(docker_host_arg, args)
+            .map_err(|(_, err)| err)
+            .context("Failed to resolve parent hostname")?;
 
         Ok(CheckResult::Ok)
     }
