@@ -44,41 +44,47 @@ where
         tokio::spawn(bootstrap::start_server(settings, broker, shutdown_signal));
 
     // start sidecars
+    // TODO PRE: don't blow up here
     info!("starting sidecars...");
-    let (sidecars_shutdown, sidecar_join_handles) =
-        bootstrap::start_sidecars(broker_handle.clone(), listener_settings).await?;
+    let state;
+    if let Some((sidecars_shutdown, sidecar_join_handles)) =
+        bootstrap::start_sidecars(broker_handle.clone(), listener_settings).await?
+    {
+        // combine future for all sidecars
+        // wait on future for sidecars or broker
+        // if one of them exits then shut the other down
+        // TODO PRE: don't blow up and log errors?
+        let sidecars_fut = select_all(sidecar_join_handles);
+        state = match select(server_join_handle, sidecars_fut).await {
+            Either::Left((server_join_handle, sidecars_join_handle)) => {
+                let state = server_join_handle??;
 
-    // combine future for all sidecars
-    // wait on future for sidecars or broker
-    // if one of them exits then shut the other down
-    let sidecars_fut = select_all(sidecar_join_handles);
-    let state = match select(server_join_handle, sidecars_fut).await {
-        Either::Left((server_join_handle, sidecars_join_handle)) => {
-            let state = server_join_handle??;
+                sidecars_shutdown.shutdown().await?;
+                let (completed_join_handle, _, other_handles) = sidecars_join_handle.await;
+                completed_join_handle?;
+                for handle in other_handles {
+                    handle.await?;
+                }
 
-            sidecars_shutdown.shutdown().await?;
-            let (completed_join_handle, _, other_handles) = sidecars_join_handle.await;
-            completed_join_handle?;
-            for handle in other_handles {
-                handle.await?;
+                state
             }
+            Either::Right((sidecars_join_handle, server_join_handle)) => {
+                let (completed_join_handle, _, other_handles) = sidecars_join_handle;
+                completed_join_handle?;
+                for handle in other_handles {
+                    handle.await?;
+                }
 
-            state
-        }
-        Either::Right((sidecars_join_handle, server_join_handle)) => {
-            let (completed_join_handle, _, other_handles) = sidecars_join_handle;
-            completed_join_handle?;
-            for handle in other_handles {
-                handle.await?;
+                sidecars_shutdown.shutdown().await?;
+                broker_handle.send(Message::System(SystemEvent::Shutdown))?;
+                let state = server_join_handle.await??;
+
+                state
             }
-
-            sidecars_shutdown.shutdown().await?;
-            broker_handle.send(Message::System(SystemEvent::Shutdown))?;
-            let state = server_join_handle.await??;
-
-            state
-        }
-    };
+        };
+    } else {
+        state = server_join_handle.await??;
+    }
 
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;

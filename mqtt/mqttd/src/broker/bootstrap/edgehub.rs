@@ -26,7 +26,7 @@ use mqtt_edgehub::{
         AuthorizedIdentities, CommandHandler, CommandHandlerError, Disconnect, ShutdownHandle,
     },
     connection::MakeEdgeHubPacketProcessor,
-    settings::Settings,
+    settings::{ListenerConfig, Settings},
 };
 
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
@@ -123,8 +123,10 @@ impl SidecarShutdownHandle {
 
 pub async fn start_sidecars(
     broker_handle: BrokerHandle,
-    system_address: String,
-) -> Result<(SidecarShutdownHandle, Vec<JoinHandle<()>>)> {
+    listener_settings: ListenerConfig,
+) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
+    let system_address = listener_settings.system().addr().to_string();
+
     info!("initializing command handler...");
     let device_id = env::var(DEVICE_ID_ENV)?;
     let mut command_handler = CommandHandler::new(system_address.clone(), device_id.as_str());
@@ -140,15 +142,15 @@ pub async fn start_sidecars(
     info!("running bridge...");
     let mut bridge_controller = BridgeController::new();
     bridge_controller
-        .start(system_address.clone(), device_id.clone().as_str())
+        .start(system_address, device_id.clone().as_str())
         .await?;
 
-    Ok((
+    Ok(Some((
         SidecarShutdownHandle {
             command_handler_shutdown,
         },
         join_handles,
-    ))
+    )))
 }
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>

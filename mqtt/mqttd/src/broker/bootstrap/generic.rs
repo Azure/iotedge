@@ -80,7 +80,7 @@ pub enum SidecarError {}
 pub struct SidecarShutdownHandle {}
 impl SidecarShutdownHandle {
     pub async fn shutdown(self) -> Result<(), SidecarError> {
-        info!("not starting any sidecars for generic feature flag");
+        info!("no sidecars to stop");
         Ok(())
     }
 }
@@ -88,10 +88,8 @@ impl SidecarShutdownHandle {
 pub async fn start_sidecars(
     broker_handle: BrokerHandle,
     listener_settings: ListenerConfig,
-) -> Result<(SidecarShutdownHandle, Vec<JoinHandle<()>>)> {
-    let sidecars_shutdown = SidecarShutdownHandle {};
-    let join_handles: Vec<JoinHandle<()>> = Vec::new();
-    Ok((sidecars_shutdown, join_handles))
+) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
+    Ok(None)
 }
 
 fn load_server_certificate(config: &CertificateConfig) -> Result<ServerCertificate> {
