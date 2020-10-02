@@ -11,14 +11,7 @@ use futures_util::{
     pin_mut, FutureExt,
 };
 use thiserror::Error;
-use tokio::{
-    sync::{
-        broadcast,
-        oneshot::{self, Sender},
-    },
-    task::JoinHandle,
-    time,
-};
+use tokio::{sync::broadcast, task::JoinHandle, time};
 use tracing::{error, info, warn};
 
 use mqtt_bridge::BridgeController;
@@ -32,59 +25,14 @@ use mqtt_edgehub::{
         PolicyAuthorizer,
     },
     command::{
-        AuthorizedIdentitiesCommand, CommandHandler, DisconnectCommand, PolicyUpdateCommand,
+        AuthorizedIdentitiesCommand, CommandHandler, CommandHandlerError, DisconnectCommand,
+        PolicyUpdateCommand, ShutdownHandle,
     },
     connection::MakeEdgeHubPacketProcessor,
-    settings::Settings,
+    settings::{ListenerConfig, Settings},
 };
 
-pub struct SidecarShutdownHandle(Sender<()>);
-
-impl SidecarShutdownHandle {
-    pub fn shutdown(self) -> Result<(), SidecarError> {
-        self.0.send(()).map_err(|_| SidecarError::SidecarShutdown)
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum SidecarError {
-    #[error("An error occurred shutting down sidecars")]
-    SidecarShutdown,
-}
-
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
-
-pub fn config<P>(config_path: Option<P>) -> Result<Settings>
-where
-    P: AsRef<Path>,
-{
-    let config = if let Some(path) = config_path {
-        info!("loading settings from a file {}", path.as_ref().display());
-        Settings::from_file(path)?
-    } else {
-        info!("using default settings");
-        Settings::new()?
-    };
-
-    Ok(config)
-}
-
-pub async fn broker(
-    config: &BrokerConfig,
-    state: Option<BrokerSnapshot>,
-) -> Result<Broker<impl Authorizer>> {
-    let device_id = env::var(DEVICE_ID_ENV)?;
-
-    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(device_id)));
-
-    let broker = BrokerBuilder::default()
-        .with_authorizer(authorizer)
-        .with_state(state.unwrap_or_default())
-        .with_config(config.clone())
-        .build();
-
-    Ok(broker)
-}
 
 pub async fn start_server<Z, F>(
     config: Settings,
@@ -93,7 +41,7 @@ pub async fn start_server<Z, F>(
 ) -> Result<BrokerSnapshot>
 where
     Z: Authorizer + Send + 'static,
-    F: Future<Output = ()> + Unpin,
+    F: Future<Output = ()>,
 {
     let broker_handle = broker.handle();
 
@@ -143,6 +91,7 @@ where
     };
 
     // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
+    pin_mut!(shutdown_signal);
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
@@ -152,21 +101,95 @@ where
         broker_ready.send(()).expect("ready signal");
     });
 
-    let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
-
-    // Start the sidecars
-    let system_address = config.listener().system().addr().to_string();
-    let (sidecar_shutdown_handle, sidecar_join_handle) =
-        start_sidecars(broker_handle, system_address, device_id).await?;
-
     // Start serving new connections
     let state = server.serve(shutdown).await?;
 
-    // Shutdown the sidecars
-    sidecar_shutdown_handle.shutdown()?;
-    sidecar_join_handle.await??;
-
     Ok(state)
+}
+
+#[derive(Debug, Error)]
+pub enum SidecarError {
+    #[error("Failed to shutdown command handler")]
+    CommandHandlerShutdown(#[from] CommandHandlerError),
+}
+
+pub struct SidecarShutdownHandle {
+    command_handler_shutdown: ShutdownHandle,
+}
+
+impl SidecarShutdownHandle {
+    pub async fn shutdown(self) -> Result<(), SidecarError> {
+        self.command_handler_shutdown
+            .shutdown()
+            .await
+            .map_err(SidecarError::CommandHandlerShutdown)
+    }
+}
+
+pub async fn start_sidecars(
+    broker_handle: BrokerHandle,
+    listener_settings: ListenerConfig,
+) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
+    info!("starting sidecars...");
+
+    let system_address = listener_settings.system().addr().to_string();
+
+    // command handler
+    let device_id = env::var(DEVICE_ID_ENV)?;
+    let mut command_handler = CommandHandler::new(system_address.clone(), device_id.as_str());
+    command_handler.add_command(DisconnectCommand::new(&broker_handle));
+    command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
+    command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
+    command_handler.init().await?;
+    let command_handler_shutdown = command_handler.shutdown_handle()?;
+    let command_handler_join_handle = tokio::spawn(command_handler.run());
+
+    // bridge
+    let mut bridge_controller = BridgeController::new();
+    bridge_controller
+        .init(system_address, device_id.clone().as_str())
+        .await?;
+    let bridge_controller_join_handle = tokio::spawn(bridge_controller.run());
+
+    let join_handles = vec![command_handler_join_handle, bridge_controller_join_handle];
+    Ok(Some((
+        SidecarShutdownHandle {
+            command_handler_shutdown,
+        },
+        join_handles,
+    )))
+}
+
+pub fn config<P>(config_path: Option<P>) -> Result<Settings>
+where
+    P: AsRef<Path>,
+{
+    let config = if let Some(path) = config_path {
+        info!("loading settings from a file {}", path.as_ref().display());
+        Settings::from_file(path)?
+    } else {
+        info!("using default settings");
+        Settings::new()?
+    };
+
+    Ok(config)
+}
+
+pub async fn broker(
+    config: &BrokerConfig,
+    state: Option<BrokerSnapshot>,
+) -> Result<Broker<impl Authorizer>> {
+    let device_id = env::var(DEVICE_ID_ENV)?;
+
+    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(device_id)));
+
+    let broker = BrokerBuilder::default()
+        .with_authorizer(authorizer)
+        .with_state(state.unwrap_or_default())
+        .with_config(config.clone())
+        .build();
+
+    Ok(broker)
 }
 
 async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
@@ -183,55 +206,6 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
     } else {
         warn!("server certificate expired at {}", renew_at);
     }
-}
-
-// TODO: We need to elevate failable init steps out of the async block running in it's own thread.
-//       This is because we need to have defined setup steps, that once complete, the sidecars can run without failing.
-//       Once this is done, complex startup order will be easier to implement.
-//       We can also stop the broker process if sidecars fail to init.
-//
-//       This change depends on restructuring the startup logic so that:
-//         1. sidecars and server run at same time
-//         2. if one fails the other shuts down
-async fn start_sidecars(
-    broker_handle: BrokerHandle,
-    system_address: String,
-    device_id: String,
-) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
-    let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
-
-    let mut bridge_controller = BridgeController::new();
-    bridge_controller
-        .start(system_address.clone(), device_id.clone().as_str())
-        .await?;
-
-    let sidecars = tokio::spawn(async move {
-        let mut command_handler = CommandHandler::new(system_address, device_id.as_str());
-        command_handler.add_command(DisconnectCommand::new(&broker_handle));
-        command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
-        command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
-
-        command_handler.init().await?;
-
-        let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
-
-        let command_handler_join_handle = tokio::spawn(command_handler.run());
-
-        if let Err(e) = sidecar_termination_receiver.await {
-            error!(message = "failed to listen to sidecar termination", error = %e);
-        }
-
-        if let Err(e) = command_handler_shutdown_handle.shutdown().await {
-            error!(message = "failed shutting down command handler", error = %e);
-        }
-        if let Err(e) = command_handler_join_handle.await {
-            error!(message = "failed waiting for command handler shutdown", error = %e);
-        }
-
-        Ok(())
-    });
-
-    Ok((SidecarShutdownHandle(sidecar_termination_handle), sidecars))
 }
 
 #[derive(Debug, thiserror::Error)]
