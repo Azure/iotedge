@@ -1,21 +1,23 @@
 mod authorized_identities;
 mod disconnect;
 mod handler;
+mod policy_update;
 
-pub use authorized_identities::AuthorizedIdentities;
-pub use disconnect::Disconnect;
+pub use authorized_identities::AuthorizedIdentitiesCommand;
+pub use disconnect::DisconnectCommand;
 pub use handler::{CommandHandler, CommandHandlerError, ShutdownHandle};
+pub use policy_update::PolicyUpdateCommand;
 
 use std::error::Error as StdError;
 
 use mqtt3::ReceivedPublication;
 
-/// A command trait to be implemented by any MQTT command handler.
+/// A command trait to be implemented and used with `CommandHandler`.
 pub trait Command {
     /// An error type that occurs when handling command.
     type Error;
 
-    /// A topic to receive command.
+    /// A topic for `CommandHandler` to subscribe to receive commands.
     fn topic(&self) -> &str;
 
     /// Unwraps command from MQTT publication and process it.

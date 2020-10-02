@@ -36,6 +36,7 @@ use std::{
     sync::Arc,
 };
 
+use proto::Publication;
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
 
@@ -44,8 +45,8 @@ use mqtt3::proto;
 pub use crate::auth::{AuthId, Identity};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle};
 pub use crate::connection::{
-    ConnectionHandle, IncomingPacketProcessor, MakeIncomingPacketProcessor,
-    MakeMqttPacketProcessor, MakeOutgoingPacketProcessor, OutgoingPacketProcessor, PacketAction,
+    ConnectionHandle, IncomingPacketProcessor, MakeMqttPacketProcessor, MakePacketProcessor,
+    OutgoingPacketProcessor, PacketAction,
 };
 pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{
@@ -81,18 +82,28 @@ impl Display for ClientId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientInfo {
+    client_id: ClientId,
     peer_addr: SocketAddr,
     auth_id: AuthId,
 }
 
 impl ClientInfo {
-    pub fn new(peer_addr: SocketAddr, auth_id: impl Into<AuthId>) -> Self {
+    pub fn new(
+        client_id: impl Into<ClientId>,
+        peer_addr: SocketAddr,
+        auth_id: impl Into<AuthId>,
+    ) -> Self {
         Self {
+            client_id: client_id.into(),
             peer_addr,
             auth_id: auth_id.into(),
         }
+    }
+
+    pub fn client_id(&self) -> &ClientId {
+        &self.client_id
     }
 
     pub fn peer_addr(&self) -> SocketAddr {
@@ -158,8 +169,8 @@ impl ConnReq {
         self.handle
     }
 
-    pub fn into_parts(self) -> (SocketAddr, proto::Connect, ConnectionHandle) {
-        (self.peer_addr, self.connect, self.handle)
+    pub fn into_parts(self) -> (ClientId, SocketAddr, proto::Connect, ConnectionHandle) {
+        (self.client_id, self.peer_addr, self.connect, self.handle)
     }
 }
 
@@ -237,10 +248,20 @@ pub enum ClientEvent {
 
 #[derive(Debug)]
 pub enum SystemEvent {
+    /// An event for a broker to stop processing incoming event and exit.
     Shutdown,
+
+    /// An event for a broker to make a snapshot of the current broker state
+    /// and send it back to the caller.
     StateSnapshot(StateSnapshotHandle),
-    ForceClientDisconnect(ClientId),
+
+    /// An event for a broker to update authorizer with additional data.
     AuthorizationUpdate(Box<dyn Any + Send + Sync>),
+
+    /// An event for a broker to dispatch a publication by broker itself.
+    /// The main difference is `ClientEvent::Publish` it doesn't require
+    /// ClientId of sender to be passed along with the event.
+    Publish(Publication),
 }
 
 #[derive(Debug)]
