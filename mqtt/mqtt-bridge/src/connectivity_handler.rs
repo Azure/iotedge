@@ -4,7 +4,7 @@ use mqtt3::Event;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, info, warn};
 
-use crate::bridge::BridgeError;
+use crate::bridge::{BridgeError, ComponentMessage};
 
 #[derive(Clone, Copy, Debug)]
 pub enum ConnectivityState {
@@ -13,14 +13,24 @@ pub enum ConnectivityState {
     Disconnected,
 }
 
+impl ToString for ConnectivityState {
+    fn to_string(&self) -> String {
+        match self {
+            ConnectivityState::Connected => "Connected".to_string(),
+            ConnectivityState::Disconnected => "Disconnected".to_string(),
+            ConnectivityState::Disconnecting => "Disconnecting".to_string(),
+        }
+    }
+}
+
 /// Handles connection and disconnection events and sends a notification when status changes
 pub struct ConnectivityHandler {
     state: ConnectivityState,
-    sender: UnboundedSender<ConnectivityState>,
+    sender: UnboundedSender<ComponentMessage>,
 }
 
 impl ConnectivityHandler {
-    pub fn new(sender: UnboundedSender<ConnectivityState>) -> Self {
+    pub fn new(sender: UnboundedSender<ComponentMessage>) -> Self {
         ConnectivityHandler {
             state: ConnectivityState::Disconnected,
             sender,
@@ -36,7 +46,9 @@ impl ConnectivityHandler {
                     ConnectivityState::Disconnecting => {
                         self.state = ConnectivityState::Disconnected;
                         self.sender
-                            .send(self.state)
+                            .send(ComponentMessage::ConnectivityUpdate(
+                                ConnectivityState::Disconnected,
+                            ))
                             .map_err(BridgeError::SenderError)?;
                         info!("Sent disconnected state");
                     }
@@ -56,7 +68,9 @@ impl ConnectivityHandler {
                 ConnectivityState::Disconnected => {
                     self.state = ConnectivityState::Connected;
                     self.sender
-                        .send(self.state)
+                        .send(ComponentMessage::ConnectivityUpdate(
+                            ConnectivityState::Connected,
+                        ))
                         .map_err(BridgeError::SenderError)?;
                     info!("Sent connected state")
                 }

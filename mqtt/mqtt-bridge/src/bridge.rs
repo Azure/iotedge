@@ -26,6 +26,12 @@ use crate::{
 const BATCH_SIZE: usize = 10;
 
 #[derive(Debug)]
+pub enum ComponentMessage {
+    ConnectivityUpdate(ConnectivityState),
+    ConfigurationUpdate,
+}
+
+#[derive(Debug)]
 pub struct BridgeShutdownHandle {
     local_shutdown: Sender<()>,
     remote_shutdown: Sender<()>,
@@ -89,8 +95,9 @@ impl Bridge {
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
-        let (connectivity_sender, connectivity_receiver) = mpsc::unbounded_channel();
-        let upstream_connectivity_handler = ConnectivityHandler::new(connectivity_sender);
+        // component_sender can be used for configuration changes
+        let (component_sender, component_receiver) = mpsc::unbounded_channel::<ComponentMessage>();
+        let upstream_connectivity_handler = ConnectivityHandler::new(component_sender.clone());
         let remote_client = MqttClient::tls(
             connection_settings.address(),
             connection_settings.keep_alive(),
@@ -124,7 +131,7 @@ impl Bridge {
             local_subscriptions,
             incoming_loader,
             outgoing_persist,
-            Some(connectivity_receiver),
+            Some(component_receiver),
         )?;
         let mut remote_pump = Pump::new(
             remote_client,
@@ -212,8 +219,8 @@ pub enum BridgeError {
     #[error("Failed to get publish handle from client.")]
     ClientShutdown(#[from] ShutdownError),
 
-    #[error("Failed to get send connectivity.")]
-    SenderError(#[from] SendError<ConnectivityState>),
+    #[error("Failed to get send component message.")]
+    SenderError(#[from] SendError<ComponentMessage>),
 }
 
 // TODO PRE: move to integration test

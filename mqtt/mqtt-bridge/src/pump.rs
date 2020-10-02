@@ -13,13 +13,14 @@ use mqtt3::{proto::Publication, proto::QoS::AtLeastOnce, PublishHandle};
 
 use crate::{
     bridge::BridgeError,
+    bridge::ComponentMessage,
     client::{ClientShutdownHandle, MqttClient},
-    connectivity_handler::ConnectivityState,
     message_handler::MessageHandler,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
 };
 
 const MAX_INFLIGHT: usize = 16;
+const CONNECTIVITY_TOPIC: &str = "$sys/connectivity";
 
 // TODO PRE: make this generic
 pub struct Pump {
@@ -29,7 +30,7 @@ pub struct Pump {
     subscriptions: Vec<String>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
     persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-    connectivity_receiver: Option<UnboundedReceiver<ConnectivityState>>,
+    connectivity_receiver: Option<UnboundedReceiver<ComponentMessage>>,
 }
 
 impl Pump {
@@ -38,7 +39,7 @@ impl Pump {
         subscriptions: Vec<String>,
         loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
         persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-        connectivity_receiver: Option<UnboundedReceiver<ConnectivityState>>,
+        connectivity_receiver: Option<UnboundedReceiver<ComponentMessage>>,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()
@@ -138,23 +139,23 @@ impl Pump {
             //let mut publish = publish_handle.clone();
             if let Some(r) = receiver {
                 while let Some(message) = r.recv().await {
-                    debug!("Received connectivity event {:?}", message);
-                    let payload: bytes::Bytes = {
-                        match message {
-                            ConnectivityState::Disconnected => "Disconnected".to_owned(),
-                            _ => "Connected".to_owned(),
-                        }
-                        .into()
-                    };
-                    let publication = Publication {
-                        topic_name: "$sys/connectivity".to_owned(),
-                        qos: AtLeastOnce,
-                        retain: true,
-                        payload,
-                    };
+                    match message {
+                        ComponentMessage::ConnectivityUpdate(connectivity) => {
+                            debug!("Received connectivity event {:?}", connectivity);
+                            let payload: bytes::Bytes = connectivity.to_string().into();
 
-                    if let Err(e) = connectivity_publish_handle.publish(publication).await {
-                        error!("Failed to send connectivity event message {:?}", e);
+                            let publication = Publication {
+                                topic_name: CONNECTIVITY_TOPIC.to_owned(),
+                                qos: AtLeastOnce,
+                                retain: true,
+                                payload,
+                            };
+
+                            if let Err(e) = connectivity_publish_handle.publish(publication).await {
+                                error!("Failed to send connectivity event message {:?}", e);
+                            }
+                        }
+                        _ => {} //Ignore other messages
                     }
                 }
             }
