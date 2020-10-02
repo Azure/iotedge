@@ -50,7 +50,7 @@ impl BridgeController {
         let bridges_status = join_all(bridge_handles).await;
         for status in bridges_status {
             if let Err(e) = status {
-                // TODO PRE: give context to error
+                // TODO REVIEW: how do we give context to this error message?
                 error!(message = "error while running bridge", err = %e);
             }
         }
