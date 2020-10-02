@@ -211,7 +211,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             }
                             else
                             {
+                                Events.Debugging($"Before update token for device {tokenCredentials.Identity.Id} with token {tokenCredentials.Token}.");
                                 await clientTokenCloudConnection.UpdateTokenAsync(tokenCredentials);
+                                Events.Debugging($"After update token for device {tokenCredentials.Identity.Id} with token {tokenCredentials.Token}.");
                                 return Try.Success(c);
                             }
                         }
@@ -345,7 +347,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (await this.connectToCloudLock.ReaderLockAsync())
             {
-                return await this.cloudConnectionProvider.Connect(credentials, connectionStatusChangedHandler);
+                Events.Debugging($"Before create new connection for device {credentials.Identity.Id}.");
+                try
+                {
+                    var result = await this.cloudConnectionProvider.Connect(credentials, connectionStatusChangedHandler);
+                    Events.Debugging($"After create new connection for device {credentials.Identity.Id} succeed={result.Success}.");
+                    return result;
+                }
+                catch (Exception e)
+                {
+                    Events.Debugging($"After create new connection for device {credentials.Identity.Id} with exception {e.StackTrace}.");
+                    throw;
+                }
             }
         }
 
@@ -481,7 +494,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 HandlingConnectionStatusChangedHandler,
                 CloudConnectionLostClosingClient,
                 CloudConnectionLostClosingAllClients,
-                GettingCloudConnectionForDeviceSubscriptions
+                GettingCloudConnectionForDeviceSubscriptions,
+                Debugging
+            }
+
+            public static void Debugging(string message)
+            {
+                Log.LogInformation((int)EventIds.Debugging, $"[Debugging]: {message}");
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)

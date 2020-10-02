@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
+    using Org.BouncyCastle.Security;
 
     public class EndpointExecutorFsm : IDisposable
     {
@@ -516,7 +517,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             var pair = new StateCommandPair(thisPtr.state, command.Type);
             if (!Transitions.TryGetValue(pair, out transition))
             {
-                throw new InvalidOperationException($"Unknown state transition. In state.{thisPtr.state}, Got command.{command.Type}");
+                var error = $"Unknown state transition. In state.{thisPtr.state}, Got command.{command.Type}";
+                Events.Error(error);
+                throw new InvalidOperationException(error);
             }
 
             StateActions currentActions = Actions[thisPtr.state];
@@ -589,22 +592,23 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 UpdateEndpoint,
                 UpdateEndpointSuccess,
                 UpdateEndpointFailure,
-                CheckRetryInnerException
+                CheckRetryInnerException,
+                Error
             }
 
             public static void StateEnter(EndpointExecutorFsm fsm)
             {
-                Log.LogTrace((int)EventIds.StateEnter, "[StateEnter] Entered state <{0}>. {1}", fsm.state, GetContextString(fsm));
+                Log.LogDebug((int)EventIds.StateEnter, "[StateEnter] Entered state <{0}>. {1}", fsm.state, GetContextString(fsm));
             }
 
             public static void StateExit(EndpointExecutorFsm fsm)
             {
-                Log.LogTrace((int)EventIds.StateExit, "[StateExit] Exited state <{0}>. {1}", fsm.state, GetContextString(fsm));
+                Log.LogDebug((int)EventIds.StateExit, "[StateExit] Exited state <{0}>. {1}", fsm.state, GetContextString(fsm));
             }
 
             public static void StateTransition(EndpointExecutorFsm fsm, State from, State to)
             {
-                Log.LogTrace((int)EventIds.StateTransition, "[StateTransition] Transitioned from <{0}> to <{1}>. {2}", from, to, GetContextString(fsm));
+                Log.LogDebug((int)EventIds.StateTransition, "[StateTransition] Transitioned from <{0}> to <{1}>. {2}", from, to, GetContextString(fsm));
             }
 
             public static void Send(EndpointExecutorFsm fsm, ICollection<IMessage> messages, ICollection<IMessage> admitted)
@@ -861,6 +865,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             {
                 Log.LogError((int)EventIds.UpdateEndpointFailure, ex, "[UpdateEndpointFailure] Updating endpoint failed. {0}", GetContextString(fsm));
             }
+
+            public static void Error(string error) => Log.LogError((int)EventIds.Error, error);
 
             static void LogUnhealthyEndpointOpMonError(EndpointExecutorFsm fsm, FailureKind failureKind)
             {

@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28.GeneratedCode;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
@@ -20,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     /// </summary>
     class ConnectivityAwareClient : IClient
     {
-        static readonly TimeSpan OperationTimeOut = TimeSpan.FromMinutes(2);
         readonly IClient underlyingClient;
         readonly IDeviceConnectivityManager deviceConnectivityManager;
         readonly AtomicBoolean isConnected = new AtomicBoolean(false);
@@ -38,7 +38,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task CloseAsync()
         {
+            Events.Debugging($"Before close cloud connection of device {this.identity.Id}");
             await this.underlyingClient.CloseAsync();
+            Events.Debugging($"After close cloud connection of device {this.identity.Id}");
             this.isConnected.Set(false);
             this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected -= this.HandleDeviceDisconnectedEvent;
@@ -59,39 +61,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task OpenAsync()
         {
+            Events.Debugging($"Before connect cloud connection of device {this.identity.Id}");
             await this.InvokeFunc(() => this.underlyingClient.OpenAsync(), nameof(this.OpenAsync));
+            Events.Debugging($"After connect cloud connection of device {this.identity.Id}");
             this.deviceConnectivityManager.DeviceConnected += this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
         }
 
         public async Task SendEventAsync(Message message)
         {
-            var traceId = Guid.NewGuid().ToString();
-            Events.BeforeOperation(traceId, nameof(this.SendEventAsync), this.identity);
+            Events.Debugging($"Before SendEventAsync of device {this.identity.Id}");
             try
             {
-                await this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message), nameof(this.SendEventAsync), traceId: traceId);
-                Events.AfterOperation(traceId, nameof(this.SendEventAsync), this.identity);
+                await this.InvokeFunc(() => this.underlyingClient.SendEventAsync(message), nameof(this.SendEventAsync));
+                Events.Debugging($"After SendEventAsync of device {this.identity.Id}");
             }
             catch (Exception ex)
             {
-                Events.AfterOperation(traceId, nameof(this.SendEventAsync), this.identity, ex);
+                Events.Debugging($"After SendEventAsync of device {this.identity.Id} with failure: {ex.StackTrace}");
                 throw;
             }
         }
 
         public async Task SendEventBatchAsync(IEnumerable<Message> messages)
         {
-            var traceId = Guid.NewGuid().ToString();
-            Events.BeforeOperation(traceId, nameof(this.SendEventBatchAsync), this.identity);
+            Events.Debugging($"Before SendEventBatchAsync of device {this.identity.Id}");
             try
             {
-                await this.InvokeFunc(() => this.underlyingClient.SendEventBatchAsync(messages), nameof(this.SendEventBatchAsync), traceId: traceId);
-                Events.AfterOperation(traceId, nameof(this.SendEventBatchAsync), this.identity);
+                await this.InvokeFunc(() => this.underlyingClient.SendEventBatchAsync(messages), nameof(this.SendEventBatchAsync));
+                Events.Debugging($"After SendEventBatchAsync of device {this.identity.Id}");
             }
             catch (Exception ex)
             {
-                Events.AfterOperation(traceId, nameof(this.SendEventBatchAsync), this.identity, ex);
+                Events.Debugging($"After SendEventBatchAsync of device {this.identity.Id} with failure: {ex.StackTrace}");
                 throw;
             }
         }
@@ -119,6 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void Dispose()
         {
+            Events.Debugging($"Dispose cloud connection of device {this.identity.Id}");
             this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected -= this.HandleDeviceDisconnectedEvent;
             this.isConnected.Set(false);
@@ -149,6 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         void InternalConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
+            Events.Debugging($"Device {this.identity.Id} cloud connection status changed to {status} with reason {reason}.");
             Events.ReceivedDeviceSdkCallback(this.identity, status, reason);
             // @TODO: Ignore callback from Device SDK since it seems to be generating a lot of spurious Connected/NotConnected callbacks
             /*
@@ -166,13 +170,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             */
         }
 
-        async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true, string traceId = null)
+        async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true)
         {
             try
             {
-                Events.BeforeInvoke(traceId, operation, this.identity);
                 T result = await func();
-                Events.AfterInvoke(traceId, operation, this.identity);
 
                 if (useForConnectivityCheck)
                 {
@@ -185,7 +187,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                Events.AfterInvoke(traceId, operation, this.identity, ex);
                 Exception mappedException = ex.GetEdgeException(operation);
                 if (mappedException.HasTimeoutException())
                 {
@@ -219,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             },
             operation,
             useForConnectivityCheck,
-            traceId).TimeoutAfter(OperationTimeOut);
+            traceId);
 
         static class Events
         {
@@ -236,7 +237,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 BeforeOperation,
                 AfterOperation,
                 BeforeInvoke,
-                AfterInvoke
+                AfterInvoke,
+                Debugging
+            }
+
+            public static void Debugging(string message)
+            {
+                Log.LogInformation((int)EventIds.Debugging, $"[Debugging]: {message}");
             }
 
             public static void ReceivedDeviceSdkCallback(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason)
@@ -263,18 +270,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Log.LogInformation((int)EventIds.ChangingStatus, $"Cloud connection for {identity.Id} is {isConnected.Get()}");
             }
-
-            public static void BeforeOperation(string traceId, string operation, IIdentity identity) => Log.LogInformation((int)EventIds.BeforeOperation, $"[Trace]={traceId}: Before {operation} for {identity.Id}.");
-
-            public static void AfterOperation(string traceId, string operation, IIdentity identity) => Log.LogInformation((int)EventIds.AfterOperation, $"[Trace]={traceId}: After {operation} for {identity.Id}.");
-
-            public static void AfterOperation(string traceId, string operation, IIdentity identity, Exception ex) => Log.LogInformation((int)EventIds.AfterOperation, $"[Trace]={traceId}: After {operation} for {identity.Id} with exception {ex.StackTrace}.");
-
-            public static void BeforeInvoke(string traceId, string operation, IIdentity identity) => Log.LogInformation((int)EventIds.BeforeInvoke, $"[Trace]={traceId}: Before invoke {operation} for {identity.Id}.");
-
-            public static void AfterInvoke(string traceId, string operation, IIdentity identity) => Log.LogInformation((int)EventIds.AfterInvoke, $"[Trace]={traceId}: After invoke {operation} for {identity.Id}.");
-
-            public static void AfterInvoke(string traceId, string operation, IIdentity identity, Exception ex) => Log.LogInformation((int)EventIds.AfterInvoke, $"[Trace]={traceId}: After invoke {operation} for {identity.Id} with exception {ex.StackTrace}.");
         }
     }
 }

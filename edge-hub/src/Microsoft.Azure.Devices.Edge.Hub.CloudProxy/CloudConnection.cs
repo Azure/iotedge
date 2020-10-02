@@ -81,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<string> modelId)
         {
             Preconditions.CheckNotNull(tokenProvider, nameof(tokenProvider));
+            Events.Debugging($"Before create new CloudConnection for device {identity.Id}.");
             var cloudConnection = new CloudConnection(
                 identity,
                 connectionStatusChangedHandler,
@@ -95,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 modelId);
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);
+            Events.Debugging($"After create new CloudConnection for device {identity.Id}.");
             return cloudConnection;
         }
 
@@ -118,8 +120,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
+            Events.Debugging($"Before create DeviceClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
             Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity, this.modelId);
             IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
+            Events.Debugging($"After create DeviceClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
 
             client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
@@ -128,13 +132,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 client.SetProductInfo(this.productInfo);
             }
 
+            Events.Debugging($"Before connect DeviceClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
             await client.OpenAsync();
+            Events.Debugging($"After connect DeviceClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
             Events.CreateDeviceClientSuccess(this.transportSettingsList, this.operationTimeout, this.Identity);
             return client;
         }
 
         void InternalConnectionStatusChangesHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
+            Events.Debugging($"Device {this.Identity.Id} connection status changed to {status} with reason {reason}.");
             // Don't invoke the callbacks if callbacks are not enabled, i.e. when the
             // cloudProxy is being updated. That is because this method can be called before
             // this.CloudProxy has been set/updated, so the old CloudProxy object may be returned.
@@ -163,7 +170,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             enum EventIds
             {
                 AttemptingTransport = IdStart,
-                TransportConnected
+                TransportConnected,
+                Debugging
+            }
+
+            public static void Debugging(string message)
+            {
+                Log.LogInformation((int)EventIds.Debugging, $"[Debugging]: {message}");
             }
 
             public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity, Option<string> modelId)

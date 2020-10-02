@@ -157,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             async Task<ISinkResult> ProcessByClients(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
+                Events.Debug("Enter ProcessByClients");
                 var result = new MergingSinkResult<IRoutingMessage>();
 
                 var routingMessageGroups = (from r in routingMessages
@@ -179,12 +180,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     }
                 }
 
+                Events.Debug("Exit ProcessByClients");
                 return result;
             }
 
             // Process all messages for a particular client
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessages(string id, List<IRoutingMessage> routingMessages, CancellationToken token)
             {
+                Events.Debug($"Enter ProcessClientMessages for {id} with {routingMessages.Count} messages.");
                 var result = new MergingSinkResult<IRoutingMessage>();
 
                 // Find the maximum message size, and divide messages into largest batches
@@ -206,6 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     result.AddFailed(iterator.Current);
                 }
 
+                Events.Debug($"Exit ProcessClientMessages for {id} with {routingMessages.Count} messages.");
                 return result;
             }
 
@@ -221,7 +225,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     return HandleCancelled(routingMessages);
                 }
 
+                var traceId = Guid.NewGuid().ToString();
+                Events.Debug($"[Trace]={traceId}: Enter ProcessClientMessagesBatch for {id} with {routingMessages.Count} messages.");
+                Events.Debug($"[Trace]={traceId}: before get CloudProxy for {id}.");
                 Util.Option<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
+                Events.Debug($"[Trace]={traceId}:  after get CloudProxy for {id}.");
+
                 ISinkResult result = await cloudProxy.Match(
                     async cp =>
                     {
@@ -233,6 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                             using (MetricsV0.CloudLatency(id))
                             {
+                                Events.Debug($"[Trace]={traceId}: before send message for {id}.");
                                 if (messages.Count == 1)
                                 {
                                     await cp.SendMessageAsync(messages[0]);
@@ -241,6 +251,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                 {
                                     await cp.SendMessageBatchAsync(messages);
                                 }
+
+                                Events.Debug($"[Trace]={traceId}: after send message for {id}.");
                             }
 
                             MetricsV0.MessageCount(id, messages.Count);
@@ -249,10 +261,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         }
                         catch (Exception ex)
                         {
+                            Events.Debug($"[Trace]={traceId}: after send message for {id} with error {ex.StackTrace}.");
                             return this.HandleException(ex, id, routingMessages);
                         }
                     },
                     () => Task.FromResult(HandleNoConnection(id, routingMessages)));
+
+                Events.Debug($"Exit ProcessClientMessagesBatch for {id} with {routingMessages.Count} messages.");
 
                 return result;
             }
@@ -304,7 +319,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Created,
                 DoneProcessing,
                 BeforeProcessing,
-                AfterProcessing
+                AfterProcessing,
+                Debug
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)
@@ -363,6 +379,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 {
                     Log.LogDebug((int)EventIds.DoneProcessing, "Finished processing messages to upstream");
                 }
+            }
+
+            public static void Debug(string message)
+            {
+                Log.LogDebug((int)EventIds.Debug, message);
             }
 
             internal static void IoTHubNotConnected(string id)

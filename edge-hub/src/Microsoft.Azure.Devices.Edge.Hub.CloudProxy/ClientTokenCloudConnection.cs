@@ -81,9 +81,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 operationTimeout,
                 productInfo,
                 modelId);
+            Events.Debugging($"Before create new ClientTokenCloudConnection for device {tokenCredentials.Identity.Id} with token {tokenCredentials.Token}.");
             ITokenProvider tokenProvider = new ClientTokenBasedTokenProvider(tokenCredentials, cloudConnection);
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);
+            Events.Debugging($"After create new ClientTokenCloudConnection for device {tokenCredentials.Identity.Id} with token {tokenCredentials.Token}.");
             return cloudConnection;
         }
 
@@ -288,7 +290,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 UpdatedCloudConnection,
                 ObtainedNewToken,
                 ErrorRenewingToken,
-                ErrorCheckingTokenUsability
+                ErrorCheckingTokenUsability,
+                Debugging
+            }
+
+            public static void Debugging(string message)
+            {
+                Log.LogInformation((int)EventIds.Debugging, $"[Debugging]: {message}");
             }
 
             public static void ErrorCheckingTokenUsable(Exception ex)
