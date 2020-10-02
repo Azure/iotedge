@@ -34,7 +34,7 @@ impl BridgeController {
         Ok(())
     }
 
-    pub async fn run(self) -> () {
+    pub async fn run(self) {
         info!("starting bridge...");
 
         // TODO REVIEW: Bridge will need to update subscriptions
