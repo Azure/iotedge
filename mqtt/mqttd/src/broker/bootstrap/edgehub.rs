@@ -34,6 +34,38 @@ use mqtt_edgehub::{
 
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
+pub fn config<P>(config_path: Option<P>) -> Result<Settings>
+where
+    P: AsRef<Path>,
+{
+    let config = if let Some(path) = config_path {
+        info!("loading settings from a file {}", path.as_ref().display());
+        Settings::from_file(path)?
+    } else {
+        info!("using default settings");
+        Settings::new()?
+    };
+
+    Ok(config)
+}
+
+pub async fn broker(
+    config: &BrokerConfig,
+    state: Option<BrokerSnapshot>,
+) -> Result<Broker<impl Authorizer>> {
+    let device_id = env::var(DEVICE_ID_ENV)?;
+
+    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(device_id)));
+
+    let broker = BrokerBuilder::default()
+        .with_authorizer(authorizer)
+        .with_state(state.unwrap_or_default())
+        .with_config(config.clone())
+        .build();
+
+    Ok(broker)
+}
+
 pub async fn start_server<Z, F>(
     config: Settings,
     broker: Broker<Z>,
@@ -158,38 +190,6 @@ pub async fn start_sidecars(
         },
         join_handles,
     )))
-}
-
-pub fn config<P>(config_path: Option<P>) -> Result<Settings>
-where
-    P: AsRef<Path>,
-{
-    let config = if let Some(path) = config_path {
-        info!("loading settings from a file {}", path.as_ref().display());
-        Settings::from_file(path)?
-    } else {
-        info!("using default settings");
-        Settings::new()?
-    };
-
-    Ok(config)
-}
-
-pub async fn broker(
-    config: &BrokerConfig,
-    state: Option<BrokerSnapshot>,
-) -> Result<Broker<impl Authorizer>> {
-    let device_id = env::var(DEVICE_ID_ENV)?;
-
-    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(device_id)));
-
-    let broker = BrokerBuilder::default()
-        .with_authorizer(authorizer)
-        .with_state(state.unwrap_or_default())
-        .with_config(config.clone())
-        .build();
-
-    Ok(broker)
 }
 
 async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
