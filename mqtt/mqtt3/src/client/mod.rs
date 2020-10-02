@@ -513,6 +513,8 @@ pub enum Event {
 
     /// Subscription updates acked by the server
     SubscriptionUpdates(Vec<SubscriptionUpdateEvent>),
+
+    Disconnected(String),
 }
 
 /// A subscription update event

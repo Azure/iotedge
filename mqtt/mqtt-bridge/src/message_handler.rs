@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::rc::Rc;
 
-use mqtt3::{proto::Publication, Event, ReceivedPublication};
+use mqtt3::{proto::Publication, ReceivedPublication};
 use mqtt_broker::TopicFilter;
 use tracing::{debug, warn};
 
@@ -87,31 +87,29 @@ where
 impl EventHandler for MessageHandler<WakingMemoryStore> {
     type Error = BridgeError;
 
-    fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
-        if let Event::Publication(publication) = event {
-            let ReceivedPublication {
-                topic_name,
-                qos,
-                retain,
-                payload,
-                dup: _,
-            } = publication;
-            let forward_publication = self.transform(topic_name.as_ref()).map(|f| Publication {
-                topic_name: f,
-                qos,
-                retain,
-                payload,
-            });
+    fn handle_event(&mut self, publication: ReceivedPublication) -> Result<(), Self::Error> {
+        let ReceivedPublication {
+            topic_name,
+            qos,
+            retain,
+            payload,
+            dup: _,
+        } = publication;
+        let forward_publication = self.transform(topic_name.as_ref()).map(|f| Publication {
+            topic_name: f,
+            qos,
+            retain,
+            payload,
+        });
 
-            if let Some(f) = forward_publication {
-                debug!("Save message to store");
-                // TODO PRE: Handle error in borrow
-                let mut publication_store = self.inner.borrow_mut();
-                publication_store.push(f).map_err(BridgeError::Store)?;
-                drop(publication_store);
-            } else {
-                warn!("No topic matched");
-            }
+        if let Some(f) = forward_publication {
+            debug!("Save message to store");
+            // TODO PRE: Handle error in borrow
+            let mut publication_store = self.inner.borrow_mut();
+            publication_store.push(f).map_err(BridgeError::Store)?;
+            drop(publication_store);
+        } else {
+            warn!("No topic matched");
         }
 
         Ok(())

@@ -10,11 +10,12 @@ use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
 use tracing::{debug, error, warn};
 
 use mqtt3::{
-    proto, Client, Event, IoSource, PublishHandle, ShutdownError, SubscriptionUpdateEvent,
-    UpdateSubscriptionError,
+    proto, Client, Event, IoSource, PublishHandle, ReceivedPublication, ShutdownError,
+    SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
 
 use crate::{
+    connectivity_handler::ConnectivityHandler,
     settings::Credentials,
     token_source::TrustBundleSource,
     token_source::{SasTokenSource, TokenSource},
@@ -193,6 +194,7 @@ where
     keep_alive: Duration,
     client: Client<BridgeIoSource>,
     event_handler: T,
+    connectivity_handler: Option<ConnectivityHandler>,
 }
 
 impl<T: EventHandler> MqttClient<T> {
@@ -201,6 +203,7 @@ impl<T: EventHandler> MqttClient<T> {
         keep_alive: Duration,
         clean_session: bool,
         event_handler: T,
+        connectivity_handler: Option<ConnectivityHandler>,
         connection_credentials: &Credentials,
     ) -> Self {
         let token_source = Self::get_token_source(&connection_credentials);
@@ -212,6 +215,7 @@ impl<T: EventHandler> MqttClient<T> {
             keep_alive,
             clean_session,
             event_handler,
+            connectivity_handler,
             connection_credentials,
             io_source,
         )
@@ -222,6 +226,7 @@ impl<T: EventHandler> MqttClient<T> {
         keep_alive: Duration,
         clean_session: bool,
         event_handler: T,
+        connectivity_handler: Option<ConnectivityHandler>,
         connection_credentials: &Credentials,
     ) -> Self {
         let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
@@ -235,6 +240,7 @@ impl<T: EventHandler> MqttClient<T> {
             keep_alive,
             clean_session,
             event_handler,
+            connectivity_handler,
             connection_credentials,
             io_source,
         )
@@ -244,6 +250,7 @@ impl<T: EventHandler> MqttClient<T> {
         keep_alive: Duration,
         clean_session: bool,
         event_handler: T,
+        connectivity_handler: Option<ConnectivityHandler>,
         connection_credentials: &Credentials,
         io_source: BridgeIoSource,
     ) -> Self {
@@ -288,6 +295,7 @@ impl<T: EventHandler> MqttClient<T> {
             keep_alive,
             client,
             event_handler,
+            connectivity_handler,
         }
     }
 
@@ -326,9 +334,21 @@ impl<T: EventHandler> MqttClient<T> {
             None
         }) {
             debug!("handle event {:?}", event);
-            if let Err(e) = self.event_handler.handle_event(event) {
-                error!("error processing event {}", e);
-            }
+            match event {
+                Event::Publication(publication) => {
+                    if let Err(e) = self.event_handler.handle_event(publication) {
+                        error!("error processing publication {}", e);
+                    }
+                }
+                Event::SubscriptionUpdates(_sub) => {}
+                Event::NewConnection { reset_session: _ } | Event::Disconnected(_) => {
+                    if let Some(handler) = self.connectivity_handler.as_mut() {
+                        if let Err(e) = handler.handle_connectivity_event(event).await {
+                            error!("error processing connectivity event {}", e);
+                        }
+                    }
+                }
+            };
         }
     }
 
@@ -397,7 +417,7 @@ impl<T: EventHandler> MqttClient<T> {
 pub trait EventHandler {
     type Error: Display;
 
-    fn handle_event(&mut self, event: Event) -> Result<(), Self::Error>;
+    fn handle_event(&mut self, event: ReceivedPublication) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -416,4 +436,7 @@ pub enum ClientError {
 
     #[error("failed to connect")]
     SslHandshake,
+
+    #[error("failed to handle connectivity event")]
+    ConnectivityHandler(#[from] std::io::Error),
 }

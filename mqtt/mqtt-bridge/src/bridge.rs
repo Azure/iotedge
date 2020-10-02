@@ -5,15 +5,18 @@ use std::{collections::HashMap, convert::TryInto};
 use futures_util::future::select;
 use futures_util::future::Either;
 use futures_util::pin_mut;
+use mpsc::error::SendError;
 use mqtt3::ShutdownError;
-use tokio::sync::oneshot;
 use tokio::sync::oneshot::Sender;
+use tokio::sync::{mpsc, oneshot};
 use tracing::debug;
 use tracing::error;
 use tracing::info;
 
 use crate::{
     client::{ClientError, MqttClient},
+    connectivity_handler::ConnectivityHandler,
+    connectivity_handler::ConnectivityState,
     message_handler::MessageHandler,
     persist::{PersistError, PublicationStore},
     pump::Pump,
@@ -85,11 +88,15 @@ impl Bridge {
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
+
+        let (connectivity_sender, connectivity_receiver) = mpsc::unbounded_channel();
+        let upstream_connectivity_handler = ConnectivityHandler::new(connectivity_sender);
         let remote_client = MqttClient::tls(
             connection_settings.address(),
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(incoming_persist.clone(), remote_topic_filters),
+            Some(upstream_connectivity_handler),
             connection_settings.credentials(),
         );
 
@@ -108,6 +115,7 @@ impl Bridge {
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(outgoing_persist.clone(), local_topic_filters),
+            None,
             &Credentials::Anonymous(local_client_id),
         );
 
@@ -116,12 +124,14 @@ impl Bridge {
             local_subscriptions,
             incoming_loader,
             outgoing_persist,
+            Some(connectivity_receiver),
         )?;
         let mut remote_pump = Pump::new(
             remote_client,
             remote_subscriptions,
             outgoing_loader,
             incoming_persist,
+            None,
         )?;
 
         local_pump.subscribe().await?;
@@ -201,6 +211,9 @@ pub enum BridgeError {
 
     #[error("Failed to get publish handle from client.")]
     ClientShutdown(#[from] ShutdownError),
+
+    #[error("Failed to get send connectivity.")]
+    SenderError(#[from] SendError<ConnectivityState>),
 }
 
 // TODO PRE: move to integration test

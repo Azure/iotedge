@@ -5,15 +5,16 @@ use futures_util::{
     pin_mut, select,
     stream::{FuturesUnordered, StreamExt, TryStreamExt},
 };
-use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
+use tokio::sync::{mpsc::UnboundedReceiver, oneshot, oneshot::Receiver, Mutex};
 use tracing::debug;
 use tracing::error;
 
-use mqtt3::PublishHandle;
+use mqtt3::{proto::Publication, proto::QoS::AtLeastOnce, PublishHandle};
 
 use crate::{
     bridge::BridgeError,
     client::{ClientShutdownHandle, MqttClient},
+    connectivity_handler::ConnectivityState,
     message_handler::MessageHandler,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
 };
@@ -28,6 +29,7 @@ pub struct Pump {
     subscriptions: Vec<String>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
     persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+    connectivity_receiver: Option<UnboundedReceiver<ConnectivityState>>,
 }
 
 impl Pump {
@@ -36,6 +38,7 @@ impl Pump {
         subscriptions: Vec<String>,
         loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
         persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+        connectivity_receiver: Option<UnboundedReceiver<ConnectivityState>>,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()
@@ -49,6 +52,7 @@ impl Pump {
             subscriptions,
             loader,
             persist,
+            connectivity_receiver,
         })
     }
 
@@ -68,9 +72,11 @@ impl Pump {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let mut senders = FuturesUnordered::new();
         let publish_handle = self.publish_handle.clone();
+        let mut connectivity_publish_handle = self.publish_handle.clone();
         let loader = self.loader.clone();
         let persist = self.persist.clone();
         let mut client_shutdown = self.client_shutdown.clone();
+        let receiver = self.connectivity_receiver.as_mut();
 
         let f1 = async move {
             let mut loader_lock = loader.lock().await;
@@ -128,11 +134,39 @@ impl Pump {
 
         let f2 = self.client.handle_events();
 
+        let f3 = async move {
+            //let mut publish = publish_handle.clone();
+            if let Some(r) = receiver {
+                while let Some(message) = r.recv().await {
+                    debug!("Received connectivity event {:?}", message);
+                    let payload: bytes::Bytes = {
+                        match message {
+                            ConnectivityState::Disconnected => "Disconnected".to_owned(),
+                            _ => "Connected".to_owned(),
+                        }
+                        .into()
+                    };
+                    let publication = Publication {
+                        topic_name: "$sys/connectivity".to_owned(),
+                        qos: AtLeastOnce,
+                        retain: true,
+                        payload,
+                    };
+
+                    if let Err(e) = connectivity_publish_handle.publish(publication).await {
+                        error!("Failed to send connectivity event message {:?}", e);
+                    }
+                }
+            }
+        };
+
         let f1 = f1.fuse();
         let f2 = f2.fuse();
+        let f3 = f3.fuse();
         let mut shutdown = shutdown.fuse();
         pin_mut!(f1);
         pin_mut!(f2);
+        pin_mut!(f3);
 
         select! {
             _ = f1 => {
@@ -140,6 +174,9 @@ impl Pump {
             },
             _ = f2 => {
                 error!(message = "incoming message loop failed and exited for bridge pump");
+            },
+            _ = f3 => {
+                error!(message = "incoming connectivity state loop failed and exited for bridge pump");
             },
             _ = shutdown => {
                 if let Err(e) = client_shutdown.shutdown().await {
@@ -154,5 +191,6 @@ impl Pump {
 
         f1.await;
         f2.await;
+        f3.await;
     }
 }
