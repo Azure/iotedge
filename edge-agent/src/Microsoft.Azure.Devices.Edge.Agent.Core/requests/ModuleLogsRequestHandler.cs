@@ -4,8 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics.Concurrency;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -49,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 false);
 
             IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
+            int messageSize = 0;
             IEnumerable<Task<ModuleLogsResponse>> uploadLogsTasks = logOptionsList.Select(
                 async l =>
                 {
@@ -58,25 +61,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
                     if (l.logOptions.ContentEncoding == LogsContentEncoding.Gzip)
                     {
-                        if (moduleLogs.Length > MaxPayloadSize)
-                        {
-                            return new ModuleLogsResponse(l.id, Events.LargePayload(moduleLogs.Length, l.logOptions));
-                        }
-
+                        messageSize += moduleLogs.Length;
                         return new ModuleLogsResponse(l.id, moduleLogs);
                     }
                     else
                     {
                         string encodedLogs = moduleLogs.FromBytes();
-                        if (encodedLogs.Length > MaxPayloadSize)
-                        {
-                            return new ModuleLogsResponse(l.id, Events.LargePayload(encodedLogs.Length, l.logOptions));
-                        }
+                        messageSize += encodedLogs.Length;
 
                         return new ModuleLogsResponse(l.id, encodedLogs);
                     }
                 });
+
             IEnumerable<ModuleLogsResponse> response = await Task.WhenAll(uploadLogsTasks);
+
+            if (messageSize > MaxPayloadSize)
+            {
+                string message = Events.LargePayload(messageSize, logOptionsList.Select(o => o.logOptions));
+                throw new ArgumentException(message);
+            }
+
             return Option.Some(response);
         }
 
@@ -108,10 +112,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 Log.LogWarning((int)EventIds.MismatchedMinorVersions, $"Logs upload request schema version {payloadSchemaVersion} does not match expected schema version {expectedSchemaVersion}. Some settings may not be supported.");
             }
 
-            public static string LargePayload(int size, ModuleLogOptions options)
+            public static string LargePayload(int size, IEnumerable<ModuleLogOptions> options)
             {
                 // TODO: make/get aka link for documentation
-                string message = $"The payload is too large for a direct method. {Name} supports up to {MaxPayloadSize} bytes of logs. The current request returned {size} bytes.\nTry reducing the size of the logs by setting the 'tail', 'since' and 'from' fields in log options filter. For more information, see [[aka.ms/TODO:LinkToDocumentation]].\nCurrent options settings are:\n{Newtonsoft.Json.JsonConvert.SerializeObject(options, Newtonsoft.Json.Formatting.Indented)}";
+                string message = $"The payload is too large for a direct method. {Name} supports up to {MaxPayloadSize} bytes of logs. The current request returned {size} bytes.\nTry reducing the size of the logs by setting the 'tail', 'since' and 'from' fields in log options filter. For more information, see https://aka.ms/iotedge-log-pull \nCurrent options settings are:\n{Newtonsoft.Json.JsonConvert.SerializeObject(options, Newtonsoft.Json.Formatting.Indented)}";
 
                 Log.LogWarning((int)EventIds.LargePayload, message);
 
