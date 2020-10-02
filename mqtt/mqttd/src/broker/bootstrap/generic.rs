@@ -54,6 +54,7 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()>,
 {
+    info!("starting server...");
     let mut server = Server::from_broker(broker);
 
     if let Some(tcp) = config.listener().tcp() {
@@ -89,6 +90,7 @@ pub async fn start_sidecars(
     broker_handle: BrokerHandle,
     listener_settings: ListenerConfig,
 ) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
+    info!("no sidecars to start");
     Ok(None)
 }
 

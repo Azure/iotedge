@@ -18,6 +18,8 @@ pub async fn start_snapshotter(
     ShutdownHandle,
     JoinHandle<FilePersistor<VersionedFileFormat>>,
 ) {
+    info!("starting snapshotter...");
+
     let snapshotter = Snapshotter::new(persistor);
     let snapshot_handle = snapshotter.snapshot_handle();
     let shutdown_handle = snapshotter.shutdown_handle();

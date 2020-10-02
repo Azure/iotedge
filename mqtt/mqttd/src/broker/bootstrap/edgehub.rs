@@ -126,11 +126,12 @@ impl SidecarShutdownHandle {
     }
 }
 
-// TODO PRE: move device id to param
 pub async fn start_sidecars(
     broker_handle: BrokerHandle,
     listener_settings: ListenerConfig,
 ) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
+    info!("starting sidecars...");
+
     let system_address = listener_settings.system().addr().to_string();
 
     // command handler
