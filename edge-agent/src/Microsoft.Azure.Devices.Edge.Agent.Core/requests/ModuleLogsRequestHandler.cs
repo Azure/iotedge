@@ -61,13 +61,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
                     if (l.logOptions.ContentEncoding == LogsContentEncoding.Gzip)
                     {
-                        messageSize += moduleLogs.Length;
+                        Interlocked.Add(ref messageSize, moduleLogs.Length);
                         return new ModuleLogsResponse(l.id, moduleLogs);
                     }
                     else
                     {
                         string encodedLogs = moduleLogs.FromBytes();
-                        messageSize += encodedLogs.Length;
+                        Interlocked.Add(ref messageSize, encodedLogs.Length);
 
                         return new ModuleLogsResponse(l.id, encodedLogs);
                     }
