@@ -133,7 +133,7 @@ pub async fn start_sidecars(
 ) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
     let system_address = listener_settings.system().addr().to_string();
 
-    info!("initializing command handler...");
+    // command handler
     let device_id = env::var(DEVICE_ID_ENV)?;
     let mut command_handler = CommandHandler::new(system_address.clone(), device_id.as_str());
     command_handler.add_command(DisconnectCommand::new(&broker_handle));
@@ -141,17 +141,16 @@ pub async fn start_sidecars(
     command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
     command_handler.init().await?;
     let command_handler_shutdown = command_handler.shutdown_handle()?;
-
-    info!("running command handler...");
     let command_handler_join_handle = tokio::spawn(command_handler.run());
-    let join_handles = vec![command_handler_join_handle];
 
-    info!("running bridge...");
+    // bridge
     let mut bridge_controller = BridgeController::new();
     bridge_controller
-        .start(system_address, device_id.clone().as_str())
+        .init(system_address, device_id.clone().as_str())
         .await?;
+    let bridge_controller_join_handle = tokio::spawn(bridge_controller.run());
 
+    let join_handles = vec![command_handler_join_handle, bridge_controller_join_handle];
     Ok(Some((
         SidecarShutdownHandle {
             command_handler_shutdown,
