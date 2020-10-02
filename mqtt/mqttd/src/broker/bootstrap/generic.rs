@@ -1,4 +1,3 @@
-#![allow(unused_variables)] // TODO remove when ready
 use std::{
     future::Future,
     path::{Path, PathBuf},
@@ -87,8 +86,8 @@ impl SidecarShutdownHandle {
 }
 
 pub async fn start_sidecars(
-    broker_handle: BrokerHandle,
-    listener_settings: ListenerConfig,
+    _: BrokerHandle,
+    _: ListenerConfig,
 ) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
     info!("no sidecars to start");
     Ok(None)
