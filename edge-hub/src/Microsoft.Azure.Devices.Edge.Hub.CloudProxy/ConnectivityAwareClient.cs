@@ -212,15 +212,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        Task InvokeFunc(Func<Task> func, string operation, bool useForConnectivityCheck = true, string traceId = null) => this.InvokeFunc(
+        Task InvokeFunc(Func<Task> func, string operation, bool useForConnectivityCheck = true) => this.InvokeFunc(
             async () =>
             {
                 await func();
                 return true;
             },
             operation,
-            useForConnectivityCheck,
-            traceId);
+            useForConnectivityCheck);
 
         static class Events
         {
@@ -234,10 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 OperationFailed,
                 OperationSucceeded,
                 ChangingStatus,
-                BeforeOperation,
-                AfterOperation,
-                BeforeInvoke,
-                AfterInvoke,
                 Debugging
             }
 
