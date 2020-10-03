@@ -14,6 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 
     public sealed class EdgeRuntimeDiagnosticsUpload : IMetricsPublisher
     {
+        // Max message size is 256KB, keep a buffer for safety.
+        // Absolute maximum is 256*1024 bytes total, but to be extra safe I kept it under 256000.
+        // It doesn't increase customer bandwidth, which is the biggest concern.
+        const int MaxMessageSize = 255000;
+
         static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeRuntimeDiagnosticsUpload>();
         readonly IEdgeAgentConnection edgeAgentConnection;
 
@@ -25,24 +30,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(metrics, nameof(metrics));
-            byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
 
-            if (data.Length > 0)
+            Message[] messagesToSend = this.BatchAndBuildMessages(metrics.ToArray()).ToArray();
+            try
             {
-                Message message = this.BuildMessage(data);
-
-                try
-                {
-                    await this.edgeAgentConnection.SendEventAsync(message);
-                }
-                catch (Exception ex) when (ex.HasTimeoutException())
-                {
-                    Log.LogDebug(ex, "Send message to IoTHub");
-                    return false;
-                }
+                await this.edgeAgentConnection.SendEventBatchAsync(messagesToSend);
+            }
+            catch (Exception ex) when (ex.HasTimeoutException())
+            {
+                Log.LogDebug(ex, "Send message to IoTHub");
+                return false;
             }
 
             return true;
+        }
+
+        IEnumerable<Message> BatchAndBuildMessages(ArraySegment<Metric> metrics)
+        {
+            if (!metrics.Any())
+            {
+                return Enumerable.Empty<Message>();
+            }
+
+            byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
+            if (data.Length > MaxMessageSize)
+            {
+                var part1 = this.BatchAndBuildMessages(metrics.Slice(0, metrics.Count / 2));
+                var part2 = this.BatchAndBuildMessages(metrics.Slice(metrics.Count / 2));
+
+                return part1.Concat(part2);
+            }
+            else
+            {
+                return new Message[] { this.BuildMessage(data) };
+            }
         }
 
         Message BuildMessage(byte[] data)
