@@ -337,6 +337,12 @@ where
                                 }
 
                                 connect.reconnect();
+
+                                if err.is_connection_error() {
+                                    return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
+                                        format!("Connection failed {}", err),
+                                    ))));
+                                }
                             }
                         }
 
@@ -507,6 +513,8 @@ pub enum Event {
         /// Whether the session was reset as part of this new connection or not
         reset_session: bool,
     },
+
+    Disconnected(String),
 
     /// A publication received from the server
     Publication(ReceivedPublication),
@@ -807,6 +815,16 @@ impl Error {
                 _ => false,
             },
             Error::ServerClosedConnection => true,
+            _ => false,
+        }
+    }
+
+    fn is_connection_error(&self) -> bool {
+        match self {
+            Error::DecodePacket(crate::proto::DecodeError::Io(_))
+            | Error::EncodePacket(crate::proto::EncodeError::Io(_))
+            | Error::ServerClosedConnection
+            | Error::PingTimer(_) => true,
             _ => false,
         }
     }
