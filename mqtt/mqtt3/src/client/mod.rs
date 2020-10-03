@@ -337,9 +337,12 @@ where
                                 }
 
                                 connect.reconnect();
-                                return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
-                                    format!("Connection failed {}", err),
-                                ))));
+
+                                if err.is_connection_error() {
+                                    return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
+                                        format!("Connection failed {}", err),
+                                    ))));
+                                }
                             }
                         }
 
@@ -812,6 +815,16 @@ impl Error {
                 _ => false,
             },
             Error::ServerClosedConnection => true,
+            _ => false,
+        }
+    }
+
+    fn is_connection_error(&self) -> bool {
+        match self {
+            Error::DecodePacket(crate::proto::DecodeError::Io(_))
+            | Error::EncodePacket(crate::proto::EncodeError::Io(_))
+            | Error::ServerClosedConnection
+            | Error::PingTimer(_) => true,
             _ => false,
         }
     }
