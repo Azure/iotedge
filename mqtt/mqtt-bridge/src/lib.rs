@@ -11,14 +11,14 @@
     clippy::missing_errors_doc
 )]
 
-mod bridge;
+pub mod bridge;
 mod client;
 mod connectivity_handler;
 pub mod controller;
 mod message_handler;
 mod persist;
 mod pump;
-mod settings;
+pub mod settings;
 mod token_source;
 
 pub use crate::controller::BridgeController;

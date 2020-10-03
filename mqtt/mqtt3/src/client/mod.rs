@@ -337,6 +337,9 @@ where
                                 }
 
                                 connect.reconnect();
+                                return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
+                                    format!("Connection failed {}", err),
+                                ))));
                             }
                         }
 
@@ -508,13 +511,13 @@ pub enum Event {
         reset_session: bool,
     },
 
+    Disconnected(String),
+
     /// A publication received from the server
     Publication(ReceivedPublication),
 
     /// Subscription updates acked by the server
     SubscriptionUpdates(Vec<SubscriptionUpdateEvent>),
-
-    Disconnected(String),
 }
 
 /// A subscription update event

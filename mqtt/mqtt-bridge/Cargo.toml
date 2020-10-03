@@ -32,8 +32,11 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker = { path = "../mqtt-broker" }
 
 [dev-dependencies]
+atty = "0.2"
 matches = "0.1"
 tokio = { version = "0.2", features = ["macros"] }
+tracing-subscriber = "0.1"
+
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 serial_test = "0.4"
 tempfile = "3"

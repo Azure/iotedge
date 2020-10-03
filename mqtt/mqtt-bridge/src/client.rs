@@ -380,6 +380,8 @@ impl<T: EventHandler> MqttClient<T> {
             .await
             .map_err(ClientError::PollClient)?
         {
+            //TODO: change the mqtt client to send an error back when the subscriotion fails instead of reconnecting and resending the sub
+            //right now it can't detect if the the broker doesn't allow to subscribe to the specific topic, but it will send a connect event
             if let Event::SubscriptionUpdates(subscriptions) = event {
                 for subscription in subscriptions {
                     match subscription {
@@ -398,6 +400,15 @@ impl<T: EventHandler> MqttClient<T> {
                 }
                 debug!("stop waiting for subscriptions");
                 break;
+            }
+
+            if let Event::NewConnection { reset_session: _ } = event {
+                debug!("****************ANCAN New connection");
+                return Ok(());
+            }
+
+            if let Event::Disconnected(reason) = event {
+                debug!("***************ANCAN Disconnected {}", reason);
             }
         }
 

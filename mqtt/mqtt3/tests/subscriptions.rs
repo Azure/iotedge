@@ -165,6 +165,7 @@ fn server_generated_id_must_always_resubscribe() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
@@ -182,6 +183,7 @@ fn server_generated_id_must_always_resubscribe() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
@@ -199,6 +201,7 @@ fn server_generated_id_must_always_resubscribe() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
         ],
     );
 
@@ -404,6 +407,7 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
@@ -421,9 +425,11 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
+            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
         ],
     );
 
