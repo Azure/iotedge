@@ -10,7 +10,7 @@ use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 
 use mqtt3::{
-    proto::{ClientId, Connect, Packet, PacketCodec, Publish},
+    proto::{ClientId, Connect, Packet, PacketCodec, Publish, Subscribe},
     PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 
@@ -81,6 +81,10 @@ impl PacketStream {
 
     pub async fn send_publish(&mut self, publish: Publish) {
         self.send_packet(Packet::Publish(publish)).await;
+    }
+
+    pub async fn send_subscribe(&mut self, subscribe: Subscribe) {
+        self.send_packet(Packet::Subscribe(subscribe)).await;
     }
 
     pub async fn send_packet(&mut self, packet: Packet) {

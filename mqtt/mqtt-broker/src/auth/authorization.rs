@@ -45,6 +45,39 @@ where
     }
 }
 
+// Creates an authorizer from a function.
+// It wraps any provided function with an interface aligned with authorizer.
+// pub fn authorize_fn_ok_wraps_inner_authorizer<F, E, Z>(f: F, z: Z) -> impl Authorizer
+// where
+//     F: Fn(&Activity) -> Authorization + Sync + 'static,
+//     E: StdError,
+//     Z: Authorizer<Error = E>,
+// {
+//     NamedTuple(move |activity: &Activity| Ok(f(activity)), z)
+// }
+
+// struct NamedTuple<F, E, Z>(F, Z)
+// where
+//     F: Fn(&Activity) -> Result<Authorization, E> + Sync,
+//     Z: Authorizer;
+
+// impl<F, E, Z> Authorizer for NamedTuple<F, E, Z>
+// where
+//     F: Fn(&Activity) -> Result<Authorization, E> + Sync,
+//     E: StdError,
+//     Z: Authorizer<Error = E>,
+// {
+//     type Error = E;
+
+//     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
+//         if let Ok(x) = self.0(activity) {
+//             Ok(x)
+//         } else {
+//             self.1.authorize(activity)
+//         }
+//     }
+// }
+
 /// Default implementation that always denies any operation a client intends to perform.
 /// This implementation will be used if custom authorization mechanism was not provided.
 pub struct DenyAll;

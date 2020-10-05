@@ -60,7 +60,7 @@ impl Drop for ServerHandle {
 pub fn start_server<N, E, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
 where
     N: Authenticator<Error = E> + Send + Sync + 'static,
-    Z: Authorizer + Send + Sync + 'static,
+    Z: Authorizer + Send + 'static,
     E: StdError + Send + Sync + 'static,
 {
     run(|addr| {

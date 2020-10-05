@@ -272,8 +272,8 @@ where
 
 /// Represents updates to an `EdgeHubAuthorizer`.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AuthorizerUpdate(Vec<IdentityUpdate>);
 
+pub struct AuthorizerUpdate(Vec<IdentityUpdate>);
 /// Represents an update to an identity.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdentityUpdate {
@@ -292,6 +292,12 @@ impl IdentityUpdate {
     }
     pub fn auth_chain(&self) -> Option<&str> {
         self.auth_chain.as_deref()
+    }
+    pub fn new(identity: String, auth_chain: Option<String>) -> Self {
+        Self {
+            identity,
+            auth_chain,
+        }
     }
 }
 
