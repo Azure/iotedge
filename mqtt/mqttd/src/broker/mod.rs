@@ -107,21 +107,19 @@ where
 fn extract_broker_snapshot(
     server_output: Result<Result<BrokerSnapshot>, JoinError>,
 ) -> Option<BrokerSnapshot> {
-    server_output.map_or_else(
-        |e| {
-            error!(message = "failed waiting for server shutdown", err = %e);
+    match server_output {
+        Ok(snapshot_output) => snapshot_output.map_or_else(
+            |e| {
+                error!(message = "failed while running server", err = %e);
+                None
+            },
+            |broker_snapshot| Some(broker_snapshot),
+        ),
+        Err(e) => {
+            error!(message = "failed waiting on server to finish", err = %e);
             None
-        },
-        |snapshot_fut| {
-            snapshot_fut.map_or_else(
-                |e| {
-                    error!(message = "failed while running server", err = %e);
-                    None
-                },
-                |broker_snapshot| Some(broker_snapshot),
-            )
-        },
-    )
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
