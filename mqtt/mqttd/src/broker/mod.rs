@@ -47,12 +47,12 @@ where
     let server_join_handle =
         tokio::spawn(bootstrap::start_server(settings, broker, shutdown_signal));
 
-    // start sidecars
+    // start sidecars if they should run
+    // if not wait for server shutdown
     let state;
     if let Some(sidecar_manager) =
         bootstrap::start_sidecars(broker_handle.clone(), listener_settings).await?
     {
-        // combine future for all sidecars
         // wait on future for sidecars or broker
         // if one of them exits then shut the other down
         let sidecar_shutdown_handle = sidecar_manager.shutdown_handle();
