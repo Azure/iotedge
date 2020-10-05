@@ -1,3 +1,4 @@
+#![allow(dead_code)] // needed because we have no sidecars for the generic feature
 use futures_util::future::select_all;
 use tokio::task::JoinHandle;
 

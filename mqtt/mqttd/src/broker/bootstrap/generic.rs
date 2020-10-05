@@ -6,9 +6,9 @@ use std::{
 use anyhow::{Context, Result};
 use futures_util::pin_mut;
 use thiserror::Error;
-use tokio::task::JoinHandle;
 use tracing::info;
 
+use super::SidecarManager;
 use mqtt_broker::{
     auth::{authenticate_fn_ok, AllowAll, Authorizer},
     settings::BrokerConfig,
@@ -73,8 +73,10 @@ where
 }
 
 // There are currently no sidecars for the generic feature flag, so this is empty
-pub struct SidecarError;
+#[derive(Debug, Error)]
+pub enum SidecarError {}
 
+#[derive(Clone, Debug)]
 pub struct SidecarShutdownHandle;
 
 // There are currently no sidecars for the generic feature flag, so this is a no-op
@@ -85,10 +87,7 @@ impl SidecarShutdownHandle {
     }
 }
 
-pub async fn start_sidecars(
-    _: BrokerHandle,
-    _: ListenerConfig,
-) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
+pub async fn start_sidecars(_: BrokerHandle, _: ListenerConfig) -> Result<Option<SidecarManager>> {
     info!("no sidecars to start");
     Ok(None)
 }
