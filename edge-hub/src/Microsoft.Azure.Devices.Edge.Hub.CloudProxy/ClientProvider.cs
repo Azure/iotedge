@@ -7,9 +7,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class ClientProvider : IClientProvider
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<ClientProvider>();
+
         public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings, Option<string> modelId)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
@@ -33,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 DeviceClient deviceClient = options.Match(
                     o => DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings, o),
                     () => DeviceClient.Create(identity.IotHubHostName, authenticationMethod, transportSettings));
-                return new DeviceClientWrapper(deviceClient);
+                return new DeviceClientWrapper(deviceClient, identity.Id);
             }
 
             throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
@@ -53,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             else if (identity is IDeviceIdentity)
             {
                 DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(connectionString, transportSettings);
-                return new DeviceClientWrapper(deviceClient);
+                return new DeviceClientWrapper(deviceClient, identity.Id);
             }
 
             throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
@@ -91,5 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     throw new InvalidOperationException($"Invalid client identity type {identity.GetType()}");
             }
         }
+
+        public static void Debugging(string message) => Log.LogError($"[Debugging]-[ClientProvider]: {message}");
     }
 }

@@ -8,16 +8,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Extensions.Logging;
 
     class DeviceClientWrapper : IClient
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceClientWrapper>();
+
         readonly DeviceClient underlyingDeviceClient;
         readonly AtomicBoolean isActive;
+        readonly string deviceId;
 
-        public DeviceClientWrapper(DeviceClient deviceClient)
+        public DeviceClientWrapper(DeviceClient deviceClient, string deviceId = null)
         {
             this.underlyingDeviceClient = Preconditions.CheckNotNull(deviceClient);
             this.isActive = new AtomicBoolean(true);
+            this.deviceId = deviceId;
         }
 
         public bool IsActive => this.isActive;
@@ -28,7 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             if (this.isActive.GetAndSet(false))
             {
+                Debugging($"Before close DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
                 this.underlyingDeviceClient?.Dispose();
+                Debugging($"After close DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
             }
 
             return Task.CompletedTask;
@@ -38,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void Dispose()
         {
+            Debugging($"Dispose DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
             this.isActive.Set(false);
             this.underlyingDeviceClient?.Dispose();
         }
@@ -48,10 +56,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             try
             {
+                Debugging($"Before connect DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
                 await this.underlyingDeviceClient.OpenAsync().TimeoutAfter(TimeSpan.FromMinutes(2));
+                Debugging($"After connect DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Debugging($"After connect DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e.StackTrace}.");
                 this.isActive.Set(false);
                 this.underlyingDeviceClient?.Dispose();
                 throw;
@@ -62,9 +73,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task RejectAsync(string messageId) => this.underlyingDeviceClient.RejectAsync(messageId);
 
-        public Task SendEventAsync(Message message) => this.underlyingDeviceClient.SendEventAsync(message);
+        public async Task SendEventAsync(Message message)
+        {
+            try
+            {
+                Debugging($"Before SendEventAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
+                await this.underlyingDeviceClient.SendEventAsync(message);
+                Debugging($"After SendEventAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
+            }
+            catch (Exception e)
+            {
+                Debugging($"After SendEventAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e.StackTrace}.");
+                throw;
+            }
+        }
 
-        public Task SendEventBatchAsync(IEnumerable<Message> messages) => this.underlyingDeviceClient.SendEventBatchAsync(messages);
+        public async Task SendEventBatchAsync(IEnumerable<Message> messages)
+        {
+            try
+            {
+                Debugging($"Before SendEventBatchAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
+                await this.underlyingDeviceClient.SendEventBatchAsync(messages);
+                Debugging($"After SendEventBatchAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId}.");
+            }
+            catch (Exception e)
+            {
+                Debugging($"After SendEventBatchAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e.StackTrace}.");
+                throw;
+            }
+        }
 
         public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler) => this.underlyingDeviceClient.SetConnectionStatusChangesHandler(handler);
 
@@ -79,5 +116,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void SetProductInfo(string productInfo) => this.underlyingDeviceClient.ProductInfo = productInfo;
 
         public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.underlyingDeviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+
+        static void Debugging(string message)
+        {
+            Log.LogError($"[Debugging]-[DeviceClientWrapper]: {message}");
+        }
     }
 }

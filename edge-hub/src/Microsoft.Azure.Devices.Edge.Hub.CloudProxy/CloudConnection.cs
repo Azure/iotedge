@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using static Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ClientTokenCloudConnection;
 
     /// <summary>
     /// This class creates and manages cloud connections (CloudProxy instances)
@@ -97,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);
             Events.Debugging($"After create new CloudConnection for device {identity.Id}.");
+            Events.Debugging($"Associated CloudConnection({cloudConnection.GetHashCode()}) to {identity.Id}.");
             return cloudConnection;
         }
 
@@ -120,11 +122,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
-            Events.Debugging($"Before create DeviceClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
+            Events.Debugging($"Before create IClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
             Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity, this.modelId);
-            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
-            Events.Debugging($"After create DeviceClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
 
+            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
+            Events.Debugging($"After create IClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
+            Events.Debugging($"Associated IClient({client.GetHashCode()}) to {this.Identity.Id}.");
             client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
             if (!string.IsNullOrWhiteSpace(this.productInfo))
@@ -132,9 +135,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 client.SetProductInfo(this.productInfo);
             }
 
-            Events.Debugging($"Before connect DeviceClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
+            Events.Debugging($"Before connect IClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
             await client.OpenAsync();
-            Events.Debugging($"After connect DeviceClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
+            Events.Debugging($"After connect IClient {this.Identity.Id} to cloud with tokenProvider {newTokenProvider.GetHashCode()}.");
             Events.CreateDeviceClientSuccess(this.transportSettingsList, this.operationTimeout, this.Identity);
             return client;
         }
@@ -151,13 +154,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.ConnectionEstablished);
                 }
-                else if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
+                else if (status == ConnectionStatus.Disconnected)
                 {
-                    this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.DisconnectedTokenExpired);
-                }
-                else
-                {
-                    this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.Disconnected);
+                    if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
+                    {
+                        this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.DisconnectedTokenExpired);
+                    }
+                    else
+                    {
+                        this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.Disconnected);
+                    }
                 }
             }
         }
@@ -176,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void Debugging(string message)
             {
-                Log.LogInformation((int)EventIds.Debugging, $"[Debugging]: {message}");
+                Log.LogError((int)EventIds.Debugging, $"[Debugging]-[CloudConnection]: {message}");
             }
 
             public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity, Option<string> modelId)

@@ -86,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);
             Events.Debugging($"After create new ClientTokenCloudConnection for device {tokenCredentials.Identity.Id} with token {tokenCredentials.Token}.");
+            Events.Debugging($"Associated ClientTokenCloudConnection({cloudConnection.GetHashCode()}) to {tokenCredentials.Identity.Id}.");
             return cloudConnection;
         }
 
@@ -192,7 +193,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         /// </summary>
         async Task<string> GetNewToken(string currentToken)
         {
+            var traceId = Guid.NewGuid().ToString();
             Events.GetNewToken(this.Identity.Id);
+            Events.Debugging($"[traceId={traceId}]: Before GetNewToken for device {this.Identity.Id} with old token={currentToken}.");
             bool retrying = false;
             string token = currentToken;
             while (true)
@@ -201,6 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 // Device Client and it throws if the token is expired.
                 if (IsTokenUsable(this.Identity.IotHubHostName, token))
                 {
+                    Events.Debugging($"[traceId={traceId}]: Obtained new token={token} for device {this.Identity.Id}.");
                     if (retrying)
                     {
                         Events.NewTokenObtained(this.Identity, token);
@@ -210,6 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         Events.UsingExistingToken(this.Identity.Id);
                     }
 
+                    Events.Debugging($"[traceId={traceId}]: After GetNewToken for device {this.Identity.Id}.");
                     return token;
                 }
                 else
@@ -248,15 +253,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        class ClientTokenBasedTokenProvider : ITokenProvider
+        internal class ClientTokenBasedTokenProvider : ITokenProvider
         {
             readonly ClientTokenCloudConnection cloudConnection;
             readonly AsyncLock tokenUpdateLock = new AsyncLock();
+            string identity;
             string token;
 
             public ClientTokenBasedTokenProvider(ITokenCredentials tokenCredentials, ClientTokenCloudConnection cloudConnection)
             {
                 this.cloudConnection = cloudConnection;
+                this.identity = tokenCredentials.Identity.Id;
                 this.token = tokenCredentials.Token;
             }
 
@@ -266,7 +273,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     try
                     {
+                        Events.Debugging($"Before GetTokenAsync for device {this.identity}.");
                         this.token = await this.cloudConnection.GetNewToken(this.token);
+                        Events.Debugging($"After GetTokenAsync for device {this.identity}, token={this.token}.");
                         return this.token;
                     }
                     catch (Exception ex)
@@ -296,7 +305,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void Debugging(string message)
             {
-                Log.LogInformation((int)EventIds.Debugging, $"[Debugging]: {message}");
+                Log.LogError((int)EventIds.Debugging, $"[Debugging]-[ClientTokenCloudConnection]: {message}");
             }
 
             public static void ErrorCheckingTokenUsable(Exception ex)

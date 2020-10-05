@@ -238,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void Debugging(string message)
             {
-                Log.LogInformation((int)EventIds.Debugging, $"[Debugging]: {message}");
+                Log.LogError((int)EventIds.Debugging, $"[Debugging]-[ConnectivityAwareClient]: {message}");
             }
 
             public static void ReceivedDeviceSdkCallback(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason)

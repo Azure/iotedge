@@ -99,12 +99,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
         {
+            Events.Debugging($"Before TryGetCloudConnection {id}.");
             IIdentity identity = this.identityProvider.Create(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
                 c => this.ConnectToCloud(c.Identity, this.CloudConnectionStatusChangedHandler));
 
+            Events.Debugging($"After TryGetCloudConnection {id} success={cloudConnectionTry.Success}.");
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
             return cloudProxyTry;
@@ -269,12 +271,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     break;
 
                 case CloudConnectionStatus.DisconnectedTokenExpired:
-                    await this.RemoveDeviceConnection(device, true);
-                    Events.InvokingCloudConnectionLostEvent(device.Identity);
-                    this.CloudConnectionLost?.Invoke(this, device.Identity);
-                    break;
-
                 case CloudConnectionStatus.Disconnected:
+                    await this.RemoveDeviceConnection(device, true);
                     Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
                     break;
@@ -339,7 +337,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (await this.connectToCloudLock.ReaderLockAsync())
             {
-                return await this.cloudConnectionProvider.Connect(identity, connectionStatusChangedHandler);
+                Events.Debugging($"Before create new cloud connection for device {identity.Id}.");
+                var cloudConnection = await this.cloudConnectionProvider.Connect(identity, connectionStatusChangedHandler);
+                Events.Debugging($"After create new cloud connection for device {identity.Id} with hashcode {cloudConnection.GetHashCode()}");
+                return cloudConnection;
             }
         }
 
@@ -500,7 +501,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void Debugging(string message)
             {
-                Log.LogInformation((int)EventIds.Debugging, $"[Debugging]: {message}");
+                Log.LogError((int)EventIds.Debugging, $"[Debugging]-[ConnectionManager]: {message}");
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
