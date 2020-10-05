@@ -1,10 +1,13 @@
 # API proxy module for nested IoT Edge in layered network (ISA-95)
 
-When inside a layered network, IoT Edge doesn't have direct internet access. The API proxy module provides a way to download container images and maintain services that require their own connectivity to the cloud like the Azure Blob Store module inside a layered network, without tunneling and by terminating connections at each layer.
+When inside a layered network, IoT Edge doesn't have direct internet access. In that configuration, modules that attempt to reach out directly to a backend service in the Cloud will not be successful. The API proxy module can re-route these attempts to go through all the layers securely. It provides a secure way for clients to communicate to multiple services over HTTPs without tunneling, and instead by terminating the connections at each layer.
+
+As an example, the API proxy module enables an IoT Edge device in a bottom layer of a layered network to download its container images from an [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/) via intermediate IoT Edge nodes. It also enables an IoT Edge device in a bottom layer of a layered network to upload blobs to an [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) with the [Azure Blob Store module](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/azure-blob-storage.edge-azure-blob-storage?tab=Overview) via intermediate IoT Edge nodes.
 
 ## Concept
 
-The API Proxy module is an [IoT Edge module](https://docs.microsoft.com/en-us/azure/iot-edge/iot-edge-modules) that leverages a [nginx](http://nginx.org/) reverse proxy to route data through network layers. The diagram below illustrates this approach in the case of an IoT Edge device in a bottom layer that pulls container images from a container registry in the Cloud:
+The API Proxy module is an [IoT Edge module](https://docs.microsoft.com/en-us/azure/iot-edge/iot-edge-modules) that leverages a [nginx](http://nginx.org/) reverse proxy to route data through network layers.
+The diagram below illustrates this approach in the case of an IoT Edge device in a bottom layer that pulls container images from a container registry in the Cloud:
 
 ![API proxy module architecture](images/concept.png)
 
