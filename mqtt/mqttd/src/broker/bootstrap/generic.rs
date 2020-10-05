@@ -73,8 +73,7 @@ where
 }
 
 // There are currently no sidecars for the generic feature flag, so this is empty
-#[derive(Debug, Error)]
-pub enum SidecarError {}
+pub struct SidecarError;
 
 pub struct SidecarShutdownHandle;
 
