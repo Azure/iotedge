@@ -12,8 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class Cloud2DeviceMessageHandler : MessageConfirmingHandler, ICloud2DeviceMessageHandler, IMessageProducer
     {
-        const string SubscriptionForDeviceboundPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)/messages/c2d/post/\#$";
-        const string C2DTopicDeviceTemplate = "$edgehub/{0}/messages/c2d/post/{1}";
+        const string SubscriptionForDeviceboundPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)/messages/c2d/post/\#$";
+        const string C2DTopicDeviceTemplate = "{0}/{1}/messages/c2d/post/{2}";
+
+        const string DirectTopicPrefix = "$edgehub";
+        const string IndirectTopicPrefix = "$iothub";
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(SubscriptionForDeviceboundPattern, DeviceSubscription.C2D) };
 
@@ -27,14 +30,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
-        public async Task SendC2DMessageAsync(IMessage message, IIdentity identity)
+        public async Task SendC2DMessageAsync(IMessage message, IIdentity identity, bool isDirectClient)
         {
             bool result;
             try
             {
+                var topicPrefix = isDirectClient ? DirectTopicPrefix : IndirectTopicPrefix;
                 var propertyBag = GetPropertyBag(message);
                 result = await this.connector.SendAsync(
-                                                GetCloudToDeviceTopic(identity, propertyBag),
+                                                GetCloudToDeviceTopic(identity, propertyBag, topicPrefix),
                                                 message.Body);
             }
             catch (Exception e)
@@ -58,14 +62,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        static string GetCloudToDeviceTopic(IIdentity identity, string propertyBag)
+        static string GetCloudToDeviceTopic(IIdentity identity, string propertyBag, string topicPrefix)
         {
             switch (identity)
             {
                 case IDeviceIdentity deviceIdentity:
-                    return string.Format(C2DTopicDeviceTemplate, deviceIdentity.DeviceId, propertyBag);
+                    return string.Format(C2DTopicDeviceTemplate, topicPrefix, deviceIdentity.DeviceId, propertyBag);
 
-                case IModuleIdentity moduleIdentity:
+                case IModuleIdentity _:
                     Events.CannotSendC2DToModule(identity.Id);
                     throw new Exception($"Cannot send C2D message to {identity.Id}, because it is not a device but a module");
 

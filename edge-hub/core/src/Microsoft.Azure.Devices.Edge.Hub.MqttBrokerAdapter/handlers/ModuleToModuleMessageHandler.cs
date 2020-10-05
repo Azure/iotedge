@@ -12,8 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class ModuleToModuleMessageHandler : MessageConfirmingHandler, IModuleToModuleMessageHandler, IMessageProducer
     {
-        const string ModuleToModleSubscriptionPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/inputs/\#$";
-        const string ModuleToModleTopicTemplate = @"$edgehub/{0}/{1}/inputs/{2}/{3}";
+        const string ModuleToModleSubscriptionPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/inputs/\#$";
+        const string ModuleToModleTopicTemplate = @"{0}/{1}/{2}/inputs/{3}/{4}";
+
+        const string DirectTopicPrefix = "$edgehub";
+        const string IndirectTopicPrefix = "$iothub";
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(ModuleToModleSubscriptionPattern, DeviceSubscription.ModuleMessages) };
 
@@ -27,14 +30,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
 
-        public async Task SendModuleToModuleMessageAsync(IMessage message, string input, IIdentity identity)
+        public async Task SendModuleToModuleMessageAsync(IMessage message, string input, IIdentity identity, bool isDirectClient)
         {
             bool result;
             try
             {
+                var topicPrefix = isDirectClient ? DirectTopicPrefix : IndirectTopicPrefix;
                 var propertyBag = GetPropertyBag(message);
                 result = await this.connector.SendAsync(
-                                                GetMessageToMessageTopic(identity, input, propertyBag),
+                                                GetMessageToMessageTopic(identity, input, propertyBag, topicPrefix),
                                                 message.Body);
             }
             catch (Exception e)
@@ -58,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        static string GetMessageToMessageTopic(IIdentity identity, string input, string propertyBag)
+        static string GetMessageToMessageTopic(IIdentity identity, string input, string propertyBag, string topicPrefix)
         {
             switch (identity)
             {
@@ -67,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     throw new Exception($"Cannot send Module To Module message to {identity.Id}, because it is not a module but a device");
 
                 case IModuleIdentity moduleIdentity:
-                    return string.Format(ModuleToModleTopicTemplate, moduleIdentity.DeviceId, moduleIdentity.ModuleId, input, propertyBag);
+                    return string.Format(ModuleToModleTopicTemplate, topicPrefix, moduleIdentity.DeviceId, moduleIdentity.ModuleId, input, propertyBag);
 
                 default:
                     Events.BadIdentityFormat(identity.Id);

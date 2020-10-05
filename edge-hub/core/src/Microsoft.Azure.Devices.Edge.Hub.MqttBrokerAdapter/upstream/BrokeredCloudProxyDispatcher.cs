@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.IO;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -13,22 +14,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Bson;
+    using Newtonsoft.Json.Serialization;
 
     public class BrokeredCloudProxyDispatcher : IMessageConsumer, IMessageProducer
     {
-        const string TelemetryTopicTemplate = "$upstream/rpc/pub/{0}/{1}/messages/events/{2}";
-        const string EnableTwinDesiredUpdateTemplate = "$upstream/rpc/sub/{0}/{1}/twin/res/"; // this will be interpreted as .../res/#
-        const string DisableTwinDesiredUpdateTemplate = "$upstream/rpc/unsub/{0}/{1}/twin/res/";
-        const string EnableDirectMethodTemplate = "$upstream/rpc/sub/{0}/{1}/POST/"; // this will be interpreted as .../POST/#
-        const string DisableDirectMethodTemplate = "$upstream/rpc/unsub/{0}/{1}/POST/";
-        const string GetTwinTemplate = "$upstream/rpc/pub/{0}/{1}/twin/get/?$rid={2}";
-        const string UpdateReportedTemplate = "$upstream/rpc/pub/{0}/{1}/twin/reported/?$rid={2}";
-        const string DirectMethodResponseTemplate = "$upstream/rpc/pub/{0}/{1}/methods/res/{2}/?$rid={3}";
+        const string TelemetryTopicTemplate = "$iothub/{0}/messages/events/{1}";
+        const string TwinDesiredUpdateSubscriptionTemplate = "$iothub/{0}/twin/res/#";
+        const string DirectMethodSubscriptionTemplate = "$iothub/{0}/methods/POST/#";
+        const string GetTwinTemplate = "$iothub/{0}/twin/get/?$rid={1}";
+        const string UpdateReportedTemplate = "$iothub/{0}/twin/reported/?$rid={1}";
+        const string DirectMethodResponseTemplate = "$iothub/{0}/methods/res/{1}/?$rid={2}";
+        const string RpcTopicTemplate = "$edgehub/rpc/{0}";
 
-        const string OpenNotificationTemplate = "$upstream/rpc/pub/{0}/{1}/connection/open";
-        const string CloseNotificationTemplate = "$upstream/rpc/pub/{0}/{1}/connection/close";
+        const string RpcVersion = "v1";
+        const string RpcCmdSub = "sub";
+        const string RpcCmdUnsub = "unsub";
+        const string RpcCmdPub = "pub";
 
-        const string RpcAckPattern = @"^\$downstream/rpc/ack/(?<cmd>[^/\+\#]+)/(?<guid>[^/\+\#]+)";
+        const string RpcAckPattern = @"^\$downstream/rpc/ack/(?<guid>[^/\+\#]+)";
         const string TwinGetResponsePattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/(?<res>.+)/\?\$rid=(?<rid>.+)";
         const string TwinSubscriptionForPatchPattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\?\$version=(?<version>.+)";
         const string MethodCallPattern = @"^\$downstream/(?<id1>[^/\+\#]+)/methods/(?<mname>[^/\+\#]+)/\?\$rid=(?<rid>.+)";
@@ -56,54 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connectorGetter.SetResult(connector);
 
-        public async Task<bool> OpenAsync(IIdentity identity)
-        {
-            try
-            {
-                if (!this.isActive.GetAndSet(true))
-                {
-                    var messageId = Guid.NewGuid();
-                    var topic = string.Format(OpenNotificationTemplate, messageId, identity.Id);
-
-                    Events.SendingOpenNotificationForClient(identity.Id);
-                    await this.SendUpstreamMessageAsync(messageId, topic, this.emptyArray);
-                    Events.SentOpenNotificationForClient(identity.Id);
-                }
-            }
-            catch (Exception e)
-            {
-                Events.ErrorSendingOpenNotificationForClient(identity.Id, e);
-                this.isActive.Set(false);
-                throw;
-            }
-
-            return true;
-        }
-
-        public async Task<bool> CloseAsync(IIdentity identity)
-        {
-            try
-            {
-                var messageId = Guid.NewGuid();
-                var topic = string.Format(CloseNotificationTemplate, messageId, identity.Id);
-
-                Events.SendingCloseNotificationForClient(identity.Id);
-                await this.SendUpstreamMessageAsync(messageId, topic, this.emptyArray);
-                Events.SentCloseNotificationForClient(identity.Id);
-            }
-            catch (Exception e)
-            {
-                Events.ErrorSendingCloseNotificationForClient(identity.Id, e);
-                throw;
-            }
-            finally
-            {
-                // still set inactive, even if there was an error
-                this.isActive.Set(false);
-            }
-
-            return true;
-        }
+        public Task<bool> OpenAsync(IIdentity identity) => Task.FromResult(true);
+        public Task<bool> CloseAsync(IIdentity identity) => Task.FromResult(true);
 
         public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {
@@ -112,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 var match = Regex.Match(publishInfo.Topic, RpcAckPattern);
                 if (match.Success)
                 {
-                    this.HandleRpcAck(match.Groups["cmd"].Value, match.Groups["guid"].Value);
+                    this.HandleRpcAck(match.Groups["guid"].Value, publishInfo.Payload);
                     return Task.FromResult(true);
                 }
 
@@ -147,42 +106,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public async Task SetupCallMethodAsync(IIdentity identity)
         {
-            var messageId = Guid.NewGuid();
-            var topic = string.Format(EnableDirectMethodTemplate, messageId, identity.Id);
+            Events.AddingDirectMethodCallSubscription(identity.Id);
 
-            Events.AddingDirectMethodCallSubscription(identity.Id, messageId);
-
-            await this.SendUpstreamMessageAsync(messageId, topic, this.emptyArray);
+            var topic = string.Format(DirectMethodSubscriptionTemplate, identity.Id);
+            await this.SendUpstreamMessageAsync(RpcCmdSub, topic, this.emptyArray);
         }
 
         public async Task SetupDesiredPropertyUpdatesAsync(IIdentity identity)
         {
-            var messageId = Guid.NewGuid();
-            var topic = string.Format(EnableTwinDesiredUpdateTemplate, messageId, identity.Id);
+            Events.AddingDesiredPropertyUpdateSubscription(identity.Id);
 
-            Events.AddingDesiredPropertyUpdateSubscription(identity.Id, messageId);
-
-            await this.SendUpstreamMessageAsync(messageId, topic, this.emptyArray);
+            var topic = string.Format(TwinDesiredUpdateSubscriptionTemplate, identity.Id);
+            await this.SendUpstreamMessageAsync(RpcCmdSub, topic, this.emptyArray);
         }
 
         public async Task RemoveCallMethodAsync(IIdentity identity)
         {
-            var messageId = Guid.NewGuid();
-            var topic = string.Format(DisableDirectMethodTemplate, messageId, identity.Id);
+            Events.RemovingDirectMethodCallSubscription(identity.Id);
 
-            Events.RemovingDirectMethodCallSubscription(identity.Id, messageId);
-
-            await this.SendUpstreamMessageAsync(messageId, topic, this.emptyArray);
+            var topic = string.Format(DirectMethodSubscriptionTemplate, identity.Id);
+            await this.SendUpstreamMessageAsync(RpcCmdUnsub, topic, this.emptyArray);
         }
 
         public async Task RemoveDesiredPropertyUpdatesAsync(IIdentity identity)
         {
-            var messageId = Guid.NewGuid();
-            var topic = string.Format(DisableTwinDesiredUpdateTemplate, messageId, identity.Id);
+            Events.RemovingDesiredPropertyUpdateSubscription(identity.Id);
 
-            Events.RemovingDesiredPropertyUpdateSubscription(identity.Id, messageId);
-
-            await this.SendUpstreamMessageAsync(messageId, topic, this.emptyArray);
+            var topic = string.Format(TwinDesiredUpdateSubscriptionTemplate, identity.Id);
+            await this.SendUpstreamMessageAsync(RpcCmdUnsub, topic, this.emptyArray);
         }
 
         public Task SendFeedbackMessageAsync(IIdentity identity, string messageId, FeedbackStatus feedbackStatus)
@@ -193,13 +144,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public async Task SendMessageAsync(IIdentity identity, IMessage message)
         {
+            Events.SendingTelemetry(identity.Id);
+
             var propertyBag = GetPropertyBag(message);
-            var messageId = Guid.NewGuid();
-            var topic = string.Format(TelemetryTopicTemplate, messageId, identity.Id, propertyBag);
+            var topic = string.Format(TelemetryTopicTemplate, identity.Id, propertyBag);
 
-            Events.SendingTelemetry(identity.Id, messageId);
-
-            await this.SendUpstreamMessageAsync(messageId, topic, message.Body);
+            await this.SendUpstreamMessageAsync(RpcCmdPub, topic, message.Body);
         }
 
         public async Task SendMessageBatchAsync(IIdentity identity, IEnumerable<IMessage> inputMessages)
@@ -223,11 +173,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             this.AddPendingRid(rid, identity.Id, taskCompletion);
 
-            var messageId = Guid.NewGuid();
-            var topic = string.Format(UpdateReportedTemplate, messageId, identity.Id, rid);
+            var topic = string.Format(UpdateReportedTemplate, identity.Id, rid);
 
             Events.SendingReportedProperyUpdate(identity.Id, rid);
-            await this.SendUpstreamMessageAsync(messageId, topic, reportedPropertiesMessage.Body);
+            await this.SendUpstreamMessageAsync(RpcCmdPub, topic, reportedPropertiesMessage.Body);
             Events.TwinUpdateSentWaitingResult(identity.Id, rid);
 
             await this.WaitCompleted(taskCompletion.Task, identity.Id, rid);
@@ -241,11 +190,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             this.AddPendingRid(rid, identity.Id, taskCompletion);
 
-            var messageId = Guid.NewGuid();
-            var topic = string.Format(GetTwinTemplate, messageId, identity.Id, rid);
+            var topic = string.Format(GetTwinTemplate, identity.Id, rid);
 
             Events.GettingTwin(identity.Id, rid);
-            await this.SendUpstreamMessageAsync(messageId, topic, this.emptyArray);
+            await this.SendUpstreamMessageAsync(RpcCmdPub, topic, this.emptyArray);
             Events.TwinSentWaitingResult(identity.Id, rid);
 
             await this.WaitCompleted(taskCompletion.Task, identity.Id, rid);
@@ -254,13 +202,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return taskCompletion.Task.Result;
         }
 
-        void HandleRpcAck(string cmd, string ackedGuid)
+        void HandleRpcAck(string ackedGuid, byte[] payload)
         {
-            switch (cmd)
+            var ackInfo = this.GetAckInfo(payload);
+            switch (ackInfo.Cmd)
             {
-                case "pub":
-                case "sub":
-                case "unsub":
+                case RpcCmdPub:
+                case RpcCmdSub:
+                case RpcCmdUnsub:
                     {
                         if (!Guid.TryParse(ackedGuid, out var guid))
                         {
@@ -281,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     break;
 
                 default:
-                    Events.UnknownAckType(cmd, ackedGuid);
+                    Events.UnknownAckType(ackInfo.Cmd, ackedGuid);
                     break;
             }
         }
@@ -312,6 +261,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             tsc.SetResult(message);
+
+            Events.TwinResultReceived(id, ridAsLong);
         }
 
         void HandleDesiredProperyUpdate(string id, string version, byte[] payload)
@@ -329,14 +280,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         void HandleDirectMethodCall(string id, string method, string rid, byte[] payload)
         {
             var callingTask = this.edgeHub.InvokeMethodAsync(rid, new DirectMethodRequest(id, method, payload, TimeSpan.FromMinutes(1))); // FIXME response timeout
-            _ = callingTask.ContinueWith(
+            callingTask.ContinueWith(
                     async response =>
                     {
                         var status = response.IsCompletedSuccessfully ? response.Result.Status : 500; // FIXME status in case of error?
-                        var messageId = Guid.NewGuid();
-                        var topic = string.Format(DirectMethodResponseTemplate, messageId, id, response.Result.Status, rid);
+                        var topic = string.Format(DirectMethodResponseTemplate, id, response.Result.Status, rid);
 
-                        await this.SendUpstreamMessageAsync(messageId, topic, response.Result.Data ?? this.emptyArray);
+                        await this.SendUpstreamMessageAsync(RpcCmdPub, topic, response.Result.Data ?? this.emptyArray);
                     });
         }
 
@@ -382,8 +332,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return connector;
         }
 
-        async Task SendUpstreamMessageAsync(Guid messageId, string topic, byte[] payload)
+        async Task SendUpstreamMessageAsync(string command, string topic, byte[] payload)
         {
+            var messageId = Guid.NewGuid();
+
+            Events.SendingUpstreamMessage(messageId);
+
             var taskCompletion = new TaskCompletionSource<bool>();
             var added = this.pendingRpcs.TryAdd(messageId, taskCompletion);
 
@@ -393,10 +347,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 throw new Exception("Cannot add rpc id to the pending list, because the id already exists");
             }
 
-            Events.SendingUpstreamMessage(messageId);
+            var rpcTopic = string.Format(RpcTopicTemplate, messageId);
+            var rpcPayload = this.GetRpcPayload(command, topic, payload);
 
             var connector = await this.GetConnector();
-            await connector.SendAsync(topic, payload);
+            await connector.SendAsync(rpcTopic, rpcPayload);
 
             Events.SentUpstreamWaitingAck(messageId);
 
@@ -408,6 +363,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             Events.ReceivedConfirmation(messageId);
+        }
+
+        byte[] GetRpcPayload(string command, string topic, byte[] payload)
+        {
+            var rpcPacket = new RpcPacket
+                                {
+                                    Version = RpcVersion,
+                                    Cmd = command,
+                                    Topic = topic,
+                                    Payload = payload
+                                };
+
+            var stream = new MemoryStream();
+            using (var writer = new BsonDataWriter(stream))
+            {
+                var serializer = new JsonSerializer
+                                     {
+                                         ContractResolver = new DefaultContractResolver
+                                         {
+                                             NamingStrategy = new CamelCaseNamingStrategy()
+                                         }
+                                     };
+
+                serializer.Serialize(writer, rpcPacket);
+            }
+
+            return stream.ToArray();
+        }
+
+        RpcPacket GetAckInfo(byte[] rawAckInfo)
+        {
+            using (var reader = new BsonDataReader(new MemoryStream(rawAckInfo)))
+            {
+                var serializer = new JsonSerializer
+                {
+                    ContractResolver = new DefaultContractResolver
+                    {
+                        NamingStrategy = new CamelCaseNamingStrategy()
+                    }
+                };
+
+                return serializer.Deserialize<RpcPacket>(reader);
+            }
         }
 
         long GetRid() => Interlocked.Increment(ref this.lastRid);
@@ -478,7 +476,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public static void TwinResultReceived(string id, long rid) => Log.LogDebug((int)EventIds.TwinResultReceived, $"Twin received for client: {id} with request id: {rid}");
         public static void CannotParseRid(string rid) => Log.LogError((int)EventIds.CannotParseGuid, "Cannot parse rid: {rid}");
         public static void CannotFindRid(string rid) => Log.LogError((int)EventIds.CannotFindGuid, "Cannot find rid to ACK: {rid}");
-        public static void SendingTelemetry(string id, Guid guid) => Log.LogDebug((int)EventIds.SendingTelemetry, $"Sending telemetry message from client: {id} with request id: {guid}");
+        public static void SendingTelemetry(string id) => Log.LogDebug((int)EventIds.SendingTelemetry, $"Sending telemetry message from client: {id}");
 
         public static void UpstreamMessageTimeout(string id, long rid) => Log.LogWarning((int)EventIds.UpstreamMessageTimeout, $"Timeout waiting for result after request sent for client: {id} with request id: {rid}");
 
@@ -491,22 +489,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public static void SentUpstreamTimeout(Guid guid) => Log.LogWarning((int)EventIds.SentUpstreamTimeout, $"Timeout waiting for upstream message confirmation. Message id: {guid}");
         public static void ReceivedConfirmation(Guid guid) => Log.LogDebug((int)EventIds.ReceivedConfirmation, $"Received confirmation for upstream message. Message id: {guid}");
 
-        public static void AddingDirectMethodCallSubscription(string id, Guid guid) => Log.LogDebug((int)EventIds.AddingDirectMethodCallSubscription, $"Adding direct method call subscritpions for client: {id} with request id: {guid}");
-        public static void AddingDesiredPropertyUpdateSubscription(string id, Guid guid) => Log.LogDebug((int)EventIds.AddingDesiredPropertyUpdateSubscription, $"Adding desired property update subscritpions for client: {id} with request id: {guid}");
-        public static void RemovingDirectMethodCallSubscription(string id, Guid guid) => Log.LogDebug((int)EventIds.RemovingDirectMethodCallSubscription, $"Removing direct method call subscritpions for client: {id} with request id: {guid}");
-        public static void RemovingDesiredPropertyUpdateSubscription(string id, Guid guid) => Log.LogDebug((int)EventIds.RemovingDesiredPropertyUpdateSubscription, $"Removing desired property update subscritpions for client: {id} with request id: {guid}");
+        public static void AddingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.AddingDirectMethodCallSubscription, $"Adding direct method call subscritpions for client: {id}");
+        public static void AddingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.AddingDesiredPropertyUpdateSubscription, $"Adding desired property update subscritpions for client: {id}");
+        public static void RemovingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDirectMethodCallSubscription, $"Removing direct method call subscritpions for client: {id}");
+        public static void RemovingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDesiredPropertyUpdateSubscription, $"Removing desired property update subscritpions for client: {id}");
 
         public static void ErrorHandlingDownstreamMessage(string topic, Exception e) => Log.LogError((int)EventIds.ErrorHandlingDownstreamMessage, e, $"Error handling downstream message on topic: {topic}");
         public static void CannotParseGuid(string guid) => Log.LogError((int)EventIds.CannotParseGuid, $"Cannot parse guid: {guid}");
         public static void CannotFindGuid(string guid) => Log.LogError((int)EventIds.CannotFindGuid, $"Cannot find guid to ACK: {guid}");
         public static void UnknownAckType(string cmd, string guid) => Log.LogError((int)EventIds.UnknownAckType, $"Unknown ack type: {cmd} with guid: {guid}");
-
-        public static void SendingOpenNotificationForClient(string id) => Log.LogDebug((int)EventIds.SendingOpenNotificationForClient, $"Sending open notification for client: {id}");
-        public static void SentOpenNotificationForClient(string id) => Log.LogDebug((int)EventIds.SentOpenNotificationForClient, $"Sent open notification for client: {id}");
-        public static void ErrorSendingOpenNotificationForClient(string id, Exception e) => Log.LogError((int)EventIds.ErrorSendingOpenNotificationForClient, e, $"Error sending open notification for client: {id}");
-
-        public static void SendingCloseNotificationForClient(string id) => Log.LogDebug((int)EventIds.SendingCloseNotificationForClient, $"Sending close notification for client: {id}");
-        public static void SentCloseNotificationForClient(string id) => Log.LogDebug((int)EventIds.SentCloseNotificationForClient, $"Sent close notification for client: {id}");
-        public static void ErrorSendingCloseNotificationForClient(string id, Exception e) => Log.LogError((int)EventIds.ErrorSendingCloseNotificationForClient, e, $"Error sending close notification for client: {id}");
     }
 }

@@ -2,14 +2,16 @@
 
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Moq;
     using Newtonsoft.Json;
-    using System.Collections.Generic;
-    using System.Text;
-    using System.Threading.Tasks;
     using Xunit;
 
     public class ScopeIdentitiesHandlerTest
@@ -40,6 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string> { serviceIdentity.Id, serviceIdentity2.Id, serviceIdentity3.Id });
 
             // Assert
+            capture.WhenCaptured().Wait();
+
             Assert.Equal(Topic, capture.Topic);
             Assert.Equal(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new List<BrokerServiceIdentity>() { identity, identity2, identity3 })), capture.Content);
         }
@@ -80,6 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             connectionState.SetResult(true);
 
             // Assert
+            capture.WhenCaptured().Wait();
+
             Assert.Equal(Topic, capture.Topic);
             IList<BrokerServiceIdentity> brokerServiceIdentities = JsonConvert.DeserializeObject<IList<BrokerServiceIdentity>>(Encoding.UTF8.GetString(capture.Content));
             Assert.Equal(3, brokerServiceIdentities.Count);
@@ -121,6 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         protected class SendCapture
         {
+            SemaphoreSlim milestone = new SemaphoreSlim(0, 1);
+
             public string Topic { get; private set; }
             public byte[] Content { get; private set; }
 
@@ -128,7 +136,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             {
                 this.Topic = topic;
                 this.Content = content;
+
+                this.milestone.Release();
             }
+
+            public Task WhenCaptured() => this.milestone.WaitAsync(TimeSpan.FromSeconds(3));
         }
     }
 }

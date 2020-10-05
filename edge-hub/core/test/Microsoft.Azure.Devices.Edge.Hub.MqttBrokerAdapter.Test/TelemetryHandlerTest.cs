@@ -252,7 +252,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                       "$edgehub/device_id/messages/events/prop1=val1&prop2=val2",
                                       "$edgehub/device_id/module_id/messages/events",
                                       "$edgehub/device_id/module_id/messages/events/",
-                                      "$edgehub/device_id/module_id/messages/events/prop1=val1&prop2=val2"
+                                      "$edgehub/device_id/module_id/messages/events/prop1=val1&prop2=val2",
+                                      "$iothub/device_id/messages/events",
+                                      "$iothub/device_id/messages/events/",
+                                      "$iothub/device_id/messages/events/prop1=val1&prop2=val2",
+                                      "$iothub/device_id/module_id/messages/events",
+                                      "$iothub/device_id/module_id/messages/events/",
+                                      "$iothub/device_id/module_id/messages/events/prop1=val1&prop2=val2"
             };
 
             return testStrings.Select(s => new string[] { s });

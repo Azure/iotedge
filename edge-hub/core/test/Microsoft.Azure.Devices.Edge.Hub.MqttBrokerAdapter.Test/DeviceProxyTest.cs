@@ -25,10 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var request = new DirectMethodRequest("123", "name", new byte[] { 1, 2, 3 }, TimeSpan.FromSeconds(60));
 
             Mock.Get(directMethodHandler)
-                .Setup(h => h.CallDirectMethodAsync(It.Is<DirectMethodRequest>(m => m == request), It.Is<IIdentity>(i => i == identity)))
+                .Setup(h => h.CallDirectMethodAsync(It.Is<DirectMethodRequest>(m => m == request), It.Is<IIdentity>(i => i == identity), It.IsAny<bool>()))
                 .Returns(Task.FromResult(new DirectMethodResponse("123", new byte[0], 200)));
 
-            var sut = new DeviceProxy(identity, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+            var sut = new DeviceProxy(identity, true, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
 
             await sut.InvokeMethodAsync(request);
 
@@ -48,10 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var desired = new EdgeMessage.Builder(new byte[0]).Build();
 
             Mock.Get(twinHandler)
-                .Setup(h => h.SendDesiredPropertiesUpdate(It.Is<IMessage>(m => m == desired), It.Is<IIdentity>(i => i == identity)))
+                .Setup(h => h.SendDesiredPropertiesUpdate(It.Is<IMessage>(m => m == desired), It.Is<IIdentity>(i => i == identity), It.IsAny<bool>()))
                 .Returns(Task.CompletedTask);
 
-            var sut = new DeviceProxy(identity, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+            var sut = new DeviceProxy(identity, true, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
 
             await sut.OnDesiredPropertyUpdates(desired);
 
@@ -71,10 +71,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var message = new EdgeMessage.Builder(new byte[0]).Build();
 
             Mock.Get(c2dHandler)
-                .Setup(h => h.SendC2DMessageAsync(It.Is<IMessage>(m => m == message), It.Is<IIdentity>(i => i == identity)))
+                .Setup(h => h.SendC2DMessageAsync(It.Is<IMessage>(m => m == message), It.Is<IIdentity>(i => i == identity), It.IsAny<bool>()))
                 .Returns(Task.CompletedTask);
 
-            var sut = new DeviceProxy(identity, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+            var sut = new DeviceProxy(identity, true, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
 
             await sut.SendC2DMessageAsync(message);
 
@@ -95,10 +95,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var message = new EdgeMessage.Builder(new byte[0]).Build();
 
             Mock.Get(m2mHandler)
-                .Setup(h => h.SendModuleToModuleMessageAsync(It.Is<IMessage>(m => m == message), It.Is<string>(s => s == input), It.Is<IIdentity>(i => i == identity)))
+                .Setup(h => h.SendModuleToModuleMessageAsync(It.Is<IMessage>(m => m == message), It.Is<string>(s => s == input), It.Is<IIdentity>(i => i == identity), It.IsAny<bool>()))
                 .Returns(Task.CompletedTask);
 
-            var sut = new DeviceProxy(identity, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+            var sut = new DeviceProxy(identity, true, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
 
             await sut.SendMessageAsync(message, input);
 
@@ -118,10 +118,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var twin = new EdgeMessage.Builder(new byte[0]).Build();
 
             Mock.Get(twinHandler)
-                .Setup(h => h.SendTwinUpdate(It.Is<IMessage>(m => m == twin), It.Is<IIdentity>(i => i == identity)))
+                .Setup(h => h.SendTwinUpdate(It.Is<IMessage>(m => m == twin), It.Is<IIdentity>(i => i == identity), It.IsAny<bool>()))
                 .Returns(Task.CompletedTask);
 
-            var sut = new DeviceProxy(identity, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+            var sut = new DeviceProxy(identity, true, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
 
             await sut.SendTwinUpdate(twin);
 
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Setup(h => h.CloseConnectionAsync(It.Is<IIdentity>(i => i == identity)))
                 .Returns(Task.CompletedTask);
 
-            var sut = new DeviceProxy(identity, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+            var sut = new DeviceProxy(identity, true, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
 
             await sut.CloseAsync(new Exception());
 
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var directMethodHandler = Mock.Of<IDirectMethodHandler>();
             var identity = new DeviceIdentity("hub", "device_id");
 
-            var sut = new DeviceProxy(identity, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+            var sut = new DeviceProxy(identity, true, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
 
             Assert.True(sut.IsActive);
 

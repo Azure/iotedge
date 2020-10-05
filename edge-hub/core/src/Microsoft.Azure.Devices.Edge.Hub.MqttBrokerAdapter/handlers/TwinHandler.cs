@@ -14,24 +14,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class TwinHandler : ITwinHandler, IMessageConsumer, IMessageProducer
     {
-        const string TwinGetDevice = "$edgehub/+/twin/get/#";
-        const string TwinGetModule = "$edgehub/+/+/twin/get/#";
-        const string TwinUpdateDevice = "$edgehub/+/twin/reported/#";
-        const string TwinUpdateModule = "$edgehub/+/+/twin/reported/#";
+        const string TwinGetDirectDevice = "$edgehub/+/twin/get/#";
+        const string TwinGetDirectModule = "$edgehub/+/+/twin/get/#";
+        const string TwinUpdateDirectDevice = "$edgehub/+/twin/reported/#";
+        const string TwinUpdateDirectModule = "$edgehub/+/+/twin/reported/#";
+        const string TwinGetIndirectDevice = "$iothub/+/twin/get/#";
+        const string TwinGetIndirectModule = "$iothub/+/+/twin/get/#";
+        const string TwinUpdateIndirectDevice = "$iothub/+/twin/reported/#";
+        const string TwinUpdateIndirectModule = "$iothub/+/+/twin/reported/#";
 
-        const string TwinGetPublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/get/\?\$rid=(?<rid>.+)";
-        const string TwinUpdatePublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/reported/\?\$rid=(?<rid>.+)";
+        const string TwinGetPublishPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/get/\?\$rid=(?<rid>.+)";
+        const string TwinUpdatePublishPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/reported/\?\$rid=(?<rid>.+)";
 
-        const string TwinSubscriptionForResultsPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/\#$";
-        const string TwinSubscriptionForPatchPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\#$";
+        const string TwinSubscriptionForResultsPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/\#$";
+        const string TwinSubscriptionForPatchPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\#$";
 
-        const string TwinResultDevice = "$edgehub/{0}/twin/res/{1}/?$rid={2}";
-        const string TwinResultModule = "$edgehub/{0}/{1}/twin/res/{2}/?$rid={3}";
+        const string TwinResultDevice = "{0}/{1}/twin/res/{2}/?$rid={3}";
+        const string TwinResultModule = "{0}/{1}/{2}/twin/res/{3}/?$rid={4}";
 
-        const string DesiredUpdateDevice = "$edgehub/{0}/twin/desired/?$version={1}";
-        const string DesiredUpdateModule = "$edgehub/{0}/{1}/twin/desired/?$version={2}";
+        const string DesiredUpdateDevice = "{0}/{1}/twin/desired/?$version={2}";
+        const string DesiredUpdateModule = "{0}/{1}/{2}/twin/desired/?$version={3}";
 
-        static readonly string[] subscriptions = new[] { TwinGetDevice, TwinGetModule, TwinUpdateDevice, TwinUpdateModule };
+        const string DirectTopicPrefix = "$edgehub";
+        const string IndirectTopicPrefix = "$iothub";
+
+        static readonly string[] subscriptions = new[]
+                                                 {
+                                                    TwinGetDirectDevice, TwinGetDirectModule, TwinUpdateDirectDevice, TwinUpdateDirectModule,
+                                                    TwinGetIndirectDevice, TwinGetIndirectModule, TwinUpdateIndirectDevice, TwinUpdateIndirectModule
+                                                 };
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[]
                                                                          {
@@ -72,8 +83,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
-        public async Task SendTwinUpdate(IMessage twin, IIdentity identity)
+        public async Task SendTwinUpdate(IMessage twin, IIdentity identity, bool isDirectClient)
         {
+            var topicPrefix = isDirectClient ? DirectTopicPrefix : IndirectTopicPrefix;
             var statusCode = string.Empty;
             var correlationId = string.Empty;
 
@@ -88,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 try
                 {
                     result = await this.connector.SendAsync(
-                                                    GetTwinResultTopic(identity, statusCode, correlationId),
+                                                    GetTwinResultTopic(identity, statusCode, correlationId, topicPrefix),
                                                     twin.Body);
                 }
                 catch (Exception e)
@@ -112,8 +124,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        public async Task SendDesiredPropertiesUpdate(IMessage desiredProperties, IIdentity identity)
+        public async Task SendDesiredPropertiesUpdate(IMessage desiredProperties, IIdentity identity, bool isDirectClient)
         {
+            var topicPrefix = isDirectClient ? DirectTopicPrefix : IndirectTopicPrefix;
+
             if (!desiredProperties.SystemProperties.TryGetValue(SystemProperties.Version, out var version))
             {
                 Events.DesiredPropertiesUpdateIncompete(identity.Id);
@@ -124,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             try
             {
                 result = await this.connector.SendAsync(
-                                                GetDesiredPropertiesUpdateTopic(identity, version),
+                                                GetDesiredPropertiesUpdateTopic(identity, version, topicPrefix),
                                                 desiredProperties.Body);
             }
             catch (Exception e)
@@ -195,15 +209,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return true;
         }
 
-        static string GetTwinResultTopic(IIdentity identity, string statusCode, string correlationId)
+        static string GetTwinResultTopic(IIdentity identity, string statusCode, string correlationId, string topicPrefix)
         {
             switch (identity)
             {
                 case IModuleIdentity moduleIdentity:
-                    return string.Format(TwinResultModule, moduleIdentity.DeviceId, moduleIdentity.ModuleId, statusCode, correlationId);
+                    return string.Format(TwinResultModule, topicPrefix, moduleIdentity.DeviceId, moduleIdentity.ModuleId, statusCode, correlationId);
 
                 case IDeviceIdentity deviceIdentity:
-                    return string.Format(TwinResultDevice, deviceIdentity.DeviceId, statusCode, correlationId);
+                    return string.Format(TwinResultDevice, topicPrefix, deviceIdentity.DeviceId, statusCode, correlationId);
 
                 default:
                     Events.BadIdentityFormat(identity.Id);
@@ -211,15 +225,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        static string GetDesiredPropertiesUpdateTopic(IIdentity identity, string version)
+        static string GetDesiredPropertiesUpdateTopic(IIdentity identity, string version, string topicPrefix)
         {
             switch (identity)
             {
                 case IModuleIdentity moduleIdentity:
-                    return string.Format(DesiredUpdateModule, moduleIdentity.DeviceId, moduleIdentity.ModuleId, version);
+                    return string.Format(DesiredUpdateModule, topicPrefix, moduleIdentity.DeviceId, moduleIdentity.ModuleId, version);
 
                 case IDeviceIdentity deviceIdentity:
-                    return string.Format(DesiredUpdateDevice, deviceIdentity.DeviceId, version);
+                    return string.Format(DesiredUpdateDevice, topicPrefix, deviceIdentity.DeviceId, version);
 
                 default:
                     Events.BadIdentityFormat(identity.Id);

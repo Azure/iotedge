@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new DirectMethodHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.CallDirectMethodAsync(method, identity);
+            await sut.CallDirectMethodAsync(method, identity, true);
 
             Assert.Equal("$edgehub/device_id/module_id/methods/post/method/?$rid=" + method.CorrelationId, capture.Topic);
         }
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new DirectMethodHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.CallDirectMethodAsync(method, identity);
+            await sut.CallDirectMethodAsync(method, identity, true);
 
             Assert.Equal("$edgehub/device_id/methods/post/method/?$rid=" + method.CorrelationId, capture.Topic);
         }
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new DirectMethodHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.CallDirectMethodAsync(method, identity);
+            await sut.CallDirectMethodAsync(method, identity, true);
 
             Assert.Equal(new byte[] { 1, 2, 3 }, capture.Content);
         }
@@ -159,7 +159,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public static IEnumerable<object[]> DirectMethodTopics()
         {
             var testStrings = new[] { "$edgehub/device_id/methods/res/200/?$rid=abcde",
-                                      "$edgehub/device_id/module_id/methods/res/200/?$rid=abcde"
+                                      "$edgehub/device_id/module_id/methods/res/200/?$rid=abcde",
+                                      "$iothub/device_id/methods/res/200/?$rid=abcde",
+                                      "$iothub/device_id/module_id/methods/res/200/?$rid=abcde"
             };
 
             return testStrings.Select(s => new string[] { s });
