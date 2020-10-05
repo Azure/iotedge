@@ -9,9 +9,12 @@ use futures_util::{
     future::{select, Either},
     pin_mut,
 };
+use tokio::task::JoinError;
 use tracing::{error, info};
 
-use mqtt_broker::{FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat};
+use mqtt_broker::{
+    BrokerSnapshot, FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat,
+};
 
 use crate::broker::snapshot::start_snapshotter;
 
@@ -65,7 +68,7 @@ where
             // server finished first
             Either::Left((server_output, sidecars_fut)) => {
                 // extract state from finished server
-                let state = server_output??;
+                let state = extract_broker_snapshot(server_output);
 
                 // shutdown sidecars
                 sidecar_shutdown_handle.shutdown().await?;
@@ -82,23 +85,49 @@ where
                 broker_handle.send(Message::System(SystemEvent::Shutdown))?;
 
                 // extract state from server
-                server_join_handle.await??
+                let server_output = server_join_handle.await;
+                let state = extract_broker_snapshot(server_output);
+
+                state
             }
         };
     } else {
-        state = server_join_handle.await??;
+        let server_output = server_join_handle.await;
+        state = extract_broker_snapshot(server_output);
     }
 
-    snapshotter_shutdown_handle.shutdown().await?;
-    let mut persistor = snapshotter_join_handle.await?;
-    info!("state snapshotter shutdown.");
+    if let Some(state) = state {
+        snapshotter_shutdown_handle.shutdown().await?;
+        let mut persistor = snapshotter_join_handle.await?;
+        info!("state snapshotter shutdown.");
 
-    info!("persisting state before exiting...");
-    persistor.store(state).await?;
-    info!("state persisted.");
+        info!("persisting state before exiting...");
+        persistor.store(state).await?;
+        info!("state persisted.");
+    }
+
     info!("exiting... goodbye");
-
     Ok(())
+}
+
+fn extract_broker_snapshot(
+    server_output: Result<Result<BrokerSnapshot>, JoinError>,
+) -> Option<BrokerSnapshot> {
+    server_output.map_or_else(
+        |e| {
+            error!(message = "failed waiting for server shutdown", err = %e);
+            None
+        },
+        |snapshot_fut| {
+            snapshot_fut.map_or_else(
+                |e| {
+                    error!(message = "failed while running server", err = %e);
+                    None
+                },
+                |broker_snapshot| Some(broker_snapshot),
+            )
+        },
+    )
 }
 
 #[derive(Debug, thiserror::Error)]
