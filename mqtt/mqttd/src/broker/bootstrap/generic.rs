@@ -76,8 +76,9 @@ where
 #[derive(Debug, Error)]
 pub enum SidecarError {}
 
+pub struct SidecarShutdownHandle;
+
 // There are currently no sidecars for the generic feature flag, so this is a no-op
-pub struct SidecarShutdownHandle {}
 impl SidecarShutdownHandle {
     pub async fn shutdown(self) -> Result<(), SidecarError> {
         info!("no sidecars to stop");

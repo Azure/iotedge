@@ -168,7 +168,7 @@ pub async fn start_sidecars(
 
     // command handler
     let device_id = env::var(DEVICE_ID_ENV)?;
-    let mut command_handler = CommandHandler::new(system_address.clone(), device_id.as_str());
+    let mut command_handler = CommandHandler::new(system_address.clone(), &device_id);
     command_handler.add_command(DisconnectCommand::new(&broker_handle));
     command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
     command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
@@ -179,7 +179,7 @@ pub async fn start_sidecars(
     // bridge
     let mut bridge_controller = BridgeController::new();
     bridge_controller
-        .init(system_address, device_id.clone().as_str())
+        .init(system_address, device_id.as_str())
         .await?;
     let bridge_controller_join_handle = tokio::spawn(bridge_controller.run());
 
