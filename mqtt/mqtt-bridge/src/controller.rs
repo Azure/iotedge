@@ -37,20 +37,15 @@ impl BridgeController {
     pub async fn run(self) {
         info!("starting bridge...");
 
-        // TODO REVIEW: Bridge will need to update subscriptions
-        //              assuming this can be solved by some sync entity we can pass into the bridge and then update
         let mut bridge_handles = vec![];
         for (_, bridge) in self.bridges {
             let bridge_handle = tokio::spawn(async move { bridge.start().await });
             bridge_handles.push(bridge_handle);
         }
 
-        // TODO REVIEW: Once we implement bridge shutdown we can switch to select all
-        //              If one bridge fails then we can shutdown all bridges
         let bridges_status = join_all(bridge_handles).await;
         for status in bridges_status {
             if let Err(e) = status {
-                // TODO REVIEW: how do we give context to this error message?
                 error!(message = "error while running bridge", err = %e);
             }
         }

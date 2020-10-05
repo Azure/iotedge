@@ -48,9 +48,6 @@ where
         tokio::spawn(bootstrap::start_server(settings, broker, shutdown_signal));
 
     // start sidecars
-    // TODO REVIEW: it is fine to blow up here
-    //              a failure here would indicate either bridge or command handler init failed
-    //              broker doesn't open ports until these are both initialized
     let state;
     if let Some(sidecar_manager) =
         bootstrap::start_sidecars(broker_handle.clone(), listener_settings).await?
@@ -58,9 +55,6 @@ where
         // combine future for all sidecars
         // wait on future for sidecars or broker
         // if one of them exits then shut the other down
-        // TODO REVIEW: we are only blowing up if either:
-        //              1 - we can't stop the server and can't get the needed state
-        //              2 - we can't signal server or sidecars to shutdown
         let sidecar_shutdown_handle = sidecar_manager.shutdown_handle();
         let sidecars_fut = sidecar_manager.wait_for_shutdown();
         pin_mut!(sidecars_fut);
