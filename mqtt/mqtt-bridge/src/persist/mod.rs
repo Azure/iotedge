@@ -11,7 +11,7 @@ pub mod memory;
 /// Elements are added, then can be removed once retrieved by the loader
 /// If one attempts to remove added elements before reading via the loader remove returns None
 #[async_trait]
-pub trait Persist<'a> {
+pub trait Persist {
     type Loader: Stream;
     type Error: Error;
 
@@ -21,7 +21,7 @@ pub trait Persist<'a> {
 
     async fn remove(&mut self, key: Key) -> Option<Publication>;
 
-    async fn loader(&'a mut self) -> Arc<Mutex<Self::Loader>>;
+    async fn loader(&mut self) -> Arc<Mutex<Self::Loader>>;
 }
 
 /// Keys used in persistence.

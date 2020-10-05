@@ -21,7 +21,7 @@ pub struct InMemoryPersist {
 }
 
 #[async_trait]
-impl<'a> Persist<'a> for InMemoryPersist {
+impl Persist for InMemoryPersist {
     type Loader = InMemoryMessageLoader;
     type Error = Error;
 
@@ -66,7 +66,7 @@ impl<'a> Persist<'a> for InMemoryPersist {
         state_lock.remove_in_flight(&key)
     }
 
-    async fn loader(&'a mut self) -> Arc<Mutex<InMemoryMessageLoader>> {
+    async fn loader(&mut self) -> Arc<Mutex<InMemoryMessageLoader>> {
         Arc::clone(&self.loader)
     }
 }

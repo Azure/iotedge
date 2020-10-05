@@ -144,6 +144,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "bson"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c11f16001d679cb13d14b2c93c7d0fa13bb484a87c34a6c4c39707ad936499b5"
+dependencies = [
+ "base64",
+ "chrono",
+ "hex",
+ "lazy_static",
+ "linked-hash-map",
+ "rand 0.7.3",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bstr"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -872,6 +888,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2f96b10ec2560088a8e76961b00d47107b3a625fecb76dedb29ee7ccbf98235"
 
 [[package]]
+name = "linked-hash-map"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8dd5a6d5999d9907cda8ed67bbd137d3af8085216c2ac62de5be860bd41f304a"
+
+[[package]]
 name = "lock_api"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1009,6 +1031,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bson",
  "bytes",
  "chrono",
  "config",
@@ -1024,6 +1047,7 @@ dependencies = [
  "parking_lot 0.11.0",
  "percent-encoding 1.0.1",
  "serde",
+ "serde_bytes",
  "serde_derive",
  "serial_test",
  "thiserror",
@@ -1848,6 +1872,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_bytes"
+version = "0.11.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16ae07dd2f88a366f15bd0632ba725227018c69a1c8550a927324f8eb8368bb9"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_cbor"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1874,6 +1907,7 @@ version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "164eacbdb13512ec2745fb09d51fd5b22b0d65ed294a1dcf7285a360c80a675c"
 dependencies = [
+ "indexmap",
  "itoa",
  "ryu",
  "serde",

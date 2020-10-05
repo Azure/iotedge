@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryFrom, convert::TryInto, marker::PhantomData};
+use std::{collections::HashMap, convert::TryFrom, convert::TryInto};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
@@ -8,6 +8,7 @@ use tracing::{debug, info, warn};
 use crate::{
     client::{ClientConnectError, EventHandler, MqttClient},
     persist::{memory::InMemoryPersist, Persist},
+    rpc::RpcHandler,
     settings::{ConnectionSettings, Credentials, Topic},
 };
 
@@ -115,12 +116,16 @@ impl Bridge {
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
+        let _handler: MessageHandler<InMemoryPersist> =
+            MessageHandler::new(topic_filters, BATCH_SIZE);
+        let handler = RpcHandler::new();
+
         let mut client = if secure {
             MqttClient::tls(
                 address,
                 self.connection_settings.keep_alive(),
                 self.connection_settings.clean_session(),
-                MessageHandler::new(topic_filters, BATCH_SIZE),
+                handler,
                 credentials,
             )
         } else {
@@ -128,7 +133,7 @@ impl Bridge {
                 address,
                 self.connection_settings.keep_alive(),
                 self.connection_settings.clean_session(),
-                MessageHandler::new(topic_filters, BATCH_SIZE),
+                handler,
                 credentials,
             )
         };
@@ -171,24 +176,22 @@ impl TryFrom<Topic> for TopicMapper {
 
 /// Handle events from client and saves them with the forward topic
 #[derive(Clone)]
-struct MessageHandler<'a, T>
+struct MessageHandler<T>
 where
-    T: Persist<'a>,
+    T: Persist,
 {
     topic_mappers: Vec<TopicMapper>,
     inner: T,
-    phantom: PhantomData<&'a T>,
 }
 
-impl<'a, T> MessageHandler<'a, T>
+impl<T> MessageHandler<T>
 where
-    T: Persist<'a>,
+    T: Persist,
 {
     pub fn new(topic_mappers: Vec<TopicMapper>, batch_size: usize) -> Self {
         Self {
             topic_mappers,
             inner: T::new(batch_size),
-            phantom: PhantomData,
         }
     }
 
@@ -218,10 +221,10 @@ where
 
 // TODO: implement for generic T where T: Persist
 #[async_trait]
-impl EventHandler for MessageHandler<'_, InMemoryPersist> {
+impl EventHandler for MessageHandler<InMemoryPersist> {
     type Error = BridgeError;
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
+    async fn handle(&mut self, event: Event) -> Result<(), Self::Error> {
         if let Event::Publication(publication) = event {
             let ReceivedPublication {
                 topic_name,
@@ -344,10 +347,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler
-            .handle_event(Event::Publication(pub1))
-            .await
-            .unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let loader = handler.inner.loader().await;
 
@@ -387,10 +387,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler
-            .handle_event(Event::Publication(pub1))
-            .await
-            .unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let loader = handler.inner.loader().await;
 
@@ -430,10 +427,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler
-            .handle_event(Event::Publication(pub1))
-            .await
-            .unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let loader = handler.inner.loader().await;
 
@@ -466,10 +460,7 @@ mod tests {
             dup: false,
         };
 
-        handler
-            .handle_event(Event::Publication(pub1))
-            .await
-            .unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let loader = handler.inner.loader().await;
 
