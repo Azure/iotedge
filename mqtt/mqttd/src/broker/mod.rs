@@ -68,14 +68,15 @@ where
                 sidecar_shutdown_handle.shutdown().await?;
 
                 // wait for sidecars to finish
-                sidecars_fut.await;
+                if let Err(e) = sidecars_fut.await {
+                    error!(message = "failed running sidecars", err = %e)
+                }
 
                 state
             }
-            // a sidecar finished first
+            // sidecars finished first
             Either::Right((_, server_join_handle)) => {
                 // signal server and sidecars shutdown
-                sidecar_shutdown_handle.shutdown().await?;
                 broker_handle.send(Message::System(SystemEvent::Shutdown))?;
 
                 // extract state from server
