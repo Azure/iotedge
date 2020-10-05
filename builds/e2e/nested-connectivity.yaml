@@ -102,7 +102,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: edgebuildkv
-          SecretsFilter: 'intcus-10-cs,EventHubConnectionString-intcus10'
+          SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString'
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
