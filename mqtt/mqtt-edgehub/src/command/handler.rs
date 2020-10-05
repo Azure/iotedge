@@ -29,6 +29,7 @@ impl IoSource for BrokerConnection {
 }
 
 /// Shutdown handle for `CommandHandler`
+#[derive(Clone, Debug)]
 pub struct ShutdownHandle {
     client_shutdown: mqtt3::ShutdownHandle,
 }

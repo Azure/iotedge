@@ -11,9 +11,10 @@ use futures_util::{
     pin_mut, FutureExt,
 };
 use thiserror::Error;
-use tokio::{sync::broadcast, task::JoinHandle, time};
+use tokio::{sync::broadcast, time};
 use tracing::{error, info, warn};
 
+use super::SidecarManager;
 use mqtt_bridge::BridgeController;
 use mqtt_broker::{
     auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerSnapshot, Server,
@@ -145,11 +146,18 @@ pub enum SidecarError {
     CommandHandlerShutdown(#[from] CommandHandlerError),
 }
 
+#[derive(Clone, Debug)]
 pub struct SidecarShutdownHandle {
     command_handler_shutdown: ShutdownHandle,
 }
 
 impl SidecarShutdownHandle {
+    pub fn new(command_handler_shutdown: ShutdownHandle) -> Self {
+        Self {
+            command_handler_shutdown,
+        }
+    }
+
     pub async fn shutdown(self) -> Result<(), SidecarError> {
         self.command_handler_shutdown
             .shutdown()
@@ -161,7 +169,7 @@ impl SidecarShutdownHandle {
 pub async fn start_sidecars(
     broker_handle: BrokerHandle,
     listener_settings: ListenerConfig,
-) -> Result<Option<(SidecarShutdownHandle, Vec<JoinHandle<()>>)>> {
+) -> Result<Option<SidecarManager>> {
     info!("starting sidecars...");
 
     let system_address = listener_settings.system().addr().to_string();
@@ -184,12 +192,9 @@ pub async fn start_sidecars(
     let bridge_controller_join_handle = tokio::spawn(bridge_controller.run());
 
     let join_handles = vec![command_handler_join_handle, bridge_controller_join_handle];
-    Ok(Some((
-        SidecarShutdownHandle {
-            command_handler_shutdown,
-        },
-        join_handles,
-    )))
+    let shutdown_handle = SidecarShutdownHandle::new(command_handler_shutdown);
+
+    Ok(Some(SidecarManager::new(join_handles, shutdown_handle)))
 }
 
 async fn server_certificate_renewal(renew_at: DateTime<Utc>) {

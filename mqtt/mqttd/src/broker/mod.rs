@@ -5,7 +5,10 @@ mod snapshot;
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
-use futures_util::future::{select, select_all, Either};
+use futures_util::{
+    future::{select, Either},
+    pin_mut,
+};
 use tracing::{error, info};
 
 use mqtt_broker::{FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat};
@@ -46,7 +49,7 @@ where
     //              a failure here would indicate either bridge or command handler init failed
     //              broker doesn't open ports until these are both initialized
     let state;
-    if let Some((sidecars_shutdown, sidecar_join_handles)) =
+    if let Some(sidecar_manager) =
         bootstrap::start_sidecars(broker_handle.clone(), listener_settings).await?
     {
         // combine future for all sidecars
@@ -55,48 +58,27 @@ where
         // TODO REVIEW: we are only blowing up if either:
         //              1 - we can't stop the server and can't get the needed state
         //              2 - we can't signal server or sidecars to shutdown
-        let sidecars_fut = select_all(sidecar_join_handles);
+        let sidecar_shutdown_handle = sidecar_manager.shutdown_handle();
+        let sidecars_fut = sidecar_manager.wait_for_shutdown();
+        pin_mut!(sidecars_fut);
         state = match select(server_join_handle, sidecars_fut).await {
             // server finished first
-            Either::Left((server_output, sidecar_join_handles)) => {
+            Either::Left((server_output, sidecars_fut)) => {
                 // extract state from finished server
                 let state = server_output??;
 
                 // shutdown sidecars
-                sidecars_shutdown.shutdown().await?;
-
-                // collect join handles
-                let (sidecar_output, _, other_handles) = sidecar_join_handles.await;
+                sidecar_shutdown_handle.shutdown().await?;
 
                 // wait for sidecars to finish
-                if let Err(e) = sidecar_output {
-                    error!(message = "failed waiting for sidecar shutdown", err = %e);
-                }
-                for handle in other_handles {
-                    if let Err(e) = handle.await {
-                        error!(message = "failed waiting for sidecar shutdown", err = %e);
-                    }
-                }
+                sidecars_fut.await;
 
                 state
             }
             // a sidecar finished first
-            Either::Right((sidecars_output, server_join_handle)) => {
-                // collect join handles from sidecars
-                let (completed_join_handle, _, other_handles) = sidecars_output;
-
-                // wait for sidecars to finish
-                if let Err(e) = completed_join_handle {
-                    error!(message = "failed waiting for sidecar shutdown", err = %e);
-                }
-                for handle in other_handles {
-                    if let Err(e) = handle.await {
-                        error!(message = "failed waiting for sidecar shutdown", err = %e);
-                    }
-                }
-
+            Either::Right((_, server_join_handle)) => {
                 // signal server and sidecars shutdown
-                sidecars_shutdown.shutdown().await?;
+                sidecar_shutdown_handle.shutdown().await?;
                 broker_handle.send(Message::System(SystemEvent::Shutdown))?;
 
                 // extract state from server
