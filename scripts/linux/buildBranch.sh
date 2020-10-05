@@ -243,6 +243,7 @@ publish_app "NetworkController"
 publish_app "DeploymentTester"
 publish_app "EdgeHubRestartTester"
 publish_app "MetricsValidator"
+publish_app "NumberLogger"
 publish_app "CloudToDeviceMessageTester"
 publish_app "IotedgeDiagnosticsDotnet"
 

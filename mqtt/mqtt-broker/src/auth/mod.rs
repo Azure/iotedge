@@ -15,10 +15,12 @@ use std::{
     sync::Arc,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::ClientId;
 
 /// Authenticated MQTT client identity.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AuthId {
     /// Identity for anonymous client.
     Anonymous,
@@ -56,11 +58,11 @@ impl<T: Into<Identity>> From<T> for AuthId {
 }
 
 /// Non-anonymous client identity.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Identity(Arc<String>);
 
 impl Identity {
-    fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 }

@@ -91,18 +91,13 @@ set -e
 if [[ "$ARCH" == "amd64" ]]; then
 cp -r ./templates/ ./docker/linux/amd64
 cp -r ./target/x86_64-unknown-linux-musl/release/api-proxy-module ./docker/linux/amd64
-docker build . -t  api-proxy-module -f ${PROJECT_ROOT}/edge-modules/api-proxy-module/docker/linux/amd64/Dockerfile ${PROJECT_ROOT}/edge-modules/api-proxy-module/
+docker build . -t  api-proxy-module -f docker/linux/amd64/Dockerfile
 elif [[ "$ARCH" == "arm32v7" ]]; then
 cp -r ./templates/ ./docker/linux/arm32v7
 cp -r ./target/armv7-unknown-linux-gnueabihf/release/api-proxy-module ./docker/linux/arm32v7
-docker build -t  api-proxy-module -f ${PROJECT_ROOT}/edge-modules/api-proxy-module/docker/linux/arm32v7/Dockerfile ${PROJECT_ROOT}/edge-modules/api-proxy-module/
+docker build . -t  api-proxy-module -f docker/linux/arm32v7/Dockerfile
 elif [[ "$ARCH" == "aarch64" ]]; then
 cp -r ./templates/ ./docker/linux/arm64v8
 cp -r ./target/aarch64-unknown-linux-gnu/release/api-proxy-module ./docker/linux/arm64v8
-docker build -t  api-proxy-module -f ${PROJECT_ROOT}/edge-modules/api-proxy-module/docker/linux/arm64v8/Dockerfile ${PROJECT_ROOT}/edge-modules/api-proxy-module/
+docker build . -t  api-proxy-module -f docker/linux/arm64v8/Dockerfile
 fi
-
-
-
-
-
