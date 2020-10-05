@@ -16,7 +16,6 @@ use tracing::info;
 use crate::{
     client::{ClientError, MqttClient},
     connectivity_handler::ConnectivityHandler,
-    connectivity_handler::ConnectivityState,
     message_handler::MessageHandler,
     persist::{PersistError, PublicationStore},
     pump::Pump,
@@ -26,9 +25,15 @@ use crate::{
 const BATCH_SIZE: usize = 10;
 
 #[derive(Debug)]
-pub enum ComponentMessage {
+pub enum BridgeMessage {
     ConnectivityUpdate(ConnectivityState),
-    ConfigurationUpdate,
+    ConfigurationUpdate(ConnectionSettings),
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum ConnectivityState {
+    Connected,
+    Disconnected,
 }
 
 #[derive(Debug)]
@@ -96,7 +101,7 @@ impl Bridge {
             .collect::<Result<Vec<_>, _>>()?;
 
         // component_sender can be used for configuration changes
-        let (component_sender, component_receiver) = mpsc::unbounded_channel::<ComponentMessage>();
+        let (component_sender, component_receiver) = mpsc::unbounded_channel::<BridgeMessage>();
         let upstream_connectivity_handler = ConnectivityHandler::new(component_sender.clone());
         let remote_client = MqttClient::tls(
             connection_settings.address(),
@@ -220,7 +225,7 @@ pub enum BridgeError {
     ClientShutdown(#[from] ShutdownError),
 
     #[error("Failed to get send component message.")]
-    SenderError(#[from] SendError<ComponentMessage>),
+    SenderError(#[from] SendError<BridgeMessage>),
 }
 
 // TODO PRE: move to integration test

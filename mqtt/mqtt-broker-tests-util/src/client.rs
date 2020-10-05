@@ -266,7 +266,7 @@ where
                                     Event::SubscriptionUpdates(_) => sub_sender
                                         .send(event)
                                         .expect("can't send an event to a sub channel"),
-                                    Event::Disconnected => conn_sender
+                                    Event::Disconnected(_) => conn_sender
                                         .send(event)
                                         .expect("can't send an event to a conn channel"),
                                 }

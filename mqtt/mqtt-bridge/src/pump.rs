@@ -13,7 +13,7 @@ use mqtt3::{proto::Publication, proto::QoS::AtLeastOnce, PublishHandle};
 
 use crate::{
     bridge::BridgeError,
-    bridge::ComponentMessage,
+    bridge::BridgeMessage,
     client::{ClientShutdownHandle, MqttClient},
     message_handler::MessageHandler,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
@@ -30,7 +30,7 @@ pub struct Pump {
     subscriptions: Vec<String>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
     persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-    connectivity_receiver: Option<UnboundedReceiver<ComponentMessage>>,
+    connectivity_receiver: Option<UnboundedReceiver<BridgeMessage>>,
 }
 
 impl Pump {
@@ -39,7 +39,7 @@ impl Pump {
         subscriptions: Vec<String>,
         loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
         persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-        connectivity_receiver: Option<UnboundedReceiver<ComponentMessage>>,
+        connectivity_receiver: Option<UnboundedReceiver<BridgeMessage>>,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()
@@ -49,7 +49,7 @@ impl Pump {
         Ok(Self {
             client,
             client_shutdown,
-            publish_handle: publish_handle,
+            publish_handle,
             subscriptions,
             loader,
             persist,
@@ -140,7 +140,7 @@ impl Pump {
             if let Some(r) = receiver {
                 while let Some(message) = r.recv().await {
                     match message {
-                        ComponentMessage::ConnectivityUpdate(connectivity) => {
+                        BridgeMessage::ConnectivityUpdate(connectivity) => {
                             debug!("Received connectivity event {:?}", connectivity);
                             let payload: bytes::Bytes = connectivity.to_string().into();
 
