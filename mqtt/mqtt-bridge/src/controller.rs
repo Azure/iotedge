@@ -22,20 +22,20 @@ impl BridgeController {
         system_address: String,
         device_id: &str,
     ) -> Result<(), BridgeError> {
-        info!("initializing bridge...");
+        info!("initializing bridge controller...");
         let settings = Settings::new().map_err(BridgeError::LoadingSettings)?;
 
         if let Some(upstream) = settings.upstream() {
             let bridge = Bridge::new(system_address, device_id.into(), upstream.clone());
             self.bridges.insert(upstream.name().to_string(), bridge);
         } else {
-            info!("No upstream settings detected. Not starting bridge.")
+            info!("No upstream settings detected. Not starting bridge controller.")
         };
         Ok(())
     }
 
     pub async fn run(self) {
-        info!("starting bridge...");
+        info!("starting bridge controller...");
 
         let mut bridge_handles = vec![];
         for (_, bridge) in self.bridges {
@@ -49,5 +49,7 @@ impl BridgeController {
                 error!(message = "error while running bridge", err = %e);
             }
         }
+
+        info!("bridge controller stopped");
     }
 }
