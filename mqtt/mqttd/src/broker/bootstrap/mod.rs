@@ -1,4 +1,3 @@
-#![allow(dead_code)] // needed because we have no sidecars for the generic feature
 use futures_util::future::select_all;
 use tokio::task::JoinHandle;
 
@@ -26,6 +25,7 @@ pub struct SidecarManager {
 }
 
 impl SidecarManager {
+    #![allow(dead_code)] // needed because we have no sidecars for the generic feature
     pub fn new(join_handles: Vec<JoinHandle<()>>, shutdown_handle: SidecarShutdownHandle) -> Self {
         Self {
             join_handles,
