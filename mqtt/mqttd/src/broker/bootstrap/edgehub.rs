@@ -74,7 +74,8 @@ pub async fn broker(
 ) -> Result<Broker<impl Authorizer>> {
     let device_id = env::var(DEVICE_ID_ENV)?;
 
-    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(device_id)));
+    // TODO: revert this change
+    let authorizer = mqtt_broker::auth::AllowAll;
 
     let broker = BrokerBuilder::default()
         .with_authorizer(authorizer)
