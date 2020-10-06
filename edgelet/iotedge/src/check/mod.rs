@@ -35,7 +35,8 @@ use checks::{
     ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
     ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted,
     HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry, IotedgedVersion,
-    ParentHostname, WellFormedConfig, WellFormedConnectionString, WindowsHostVersion,
+    ParentHostname, PullAgentFromUpstream, WellFormedConfig, WellFormedConnectionString,
+    WindowsHostVersion,
 };
 
 pub struct Check {
@@ -247,6 +248,7 @@ impl Check {
                     Box::new(ContainerEngineLogrotate::default()),
                     Box::new(EdgeAgentStorageMounted::default()),
                     Box::new(EdgeHubStorageMounted::default()),
+                    Box::new(PullAgentFromUpstream::default()),
                 ],
             ),
             ("Connectivity checks", {

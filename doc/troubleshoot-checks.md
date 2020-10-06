@@ -67,6 +67,10 @@ If it exists:
 It validates that the value complies with RFC 1035, since some modules and downstream devices have difficulty connecting to a domain name that doesn't comply with that RFC.
 It validates that parent hostname is not longer than 64 characters.
 
+## Resolve parent hostname inside container
+When in nested configuration, this check validates that parent hostname can be resolved fom inside a container.
+The extra hosts property added to edge Agent are added to the diagnostic image for name resolution.
+
 ## config.yaml has correct URIs for daemon mgmt endpoint
 
 This check validates that the value of the `connect.management_uri` field in the `config.yaml` is valid, and that the IoT Edge daemon's management endpoint can be queried through it.
@@ -80,8 +84,10 @@ You can override the expected version using the `--expected-iotedged-version` sw
 Note that the tool does *not* validate the versions of the Edge Agent and Edge Hub modules.
 
 ## host time is close to real time
-
 This check validates that the device's local time is close to the time reported by an NTP server. `pool.ntp.org:123` is used by default, and can be overridden with the `--ntp-server` parameter.
+
+When in nested configuration pool.ntp.org:123 might not be available and IoTedge will connect to a parent IoTedge and not to IoT Hub.
+The time is the checked directly against the parent IoT edge.
 
 ## container time is close to host time
 
@@ -113,6 +119,9 @@ If the certificate has already expired, it is reported as an error. If the certi
 
 This check validates that the container engine is the Moby container engine. Any other container engine, such as Docker CE, is not supported in production.  See <https://aka.ms/iotedge-prod-checklist-moby> for details.
 
+## EdgeAgent module can be pulled from upstream
+Try to download edge agent image using image name specified in config.yaml
+
 ## production readiness: logs policy (*warning*)
 
 This check validates that the container engine is configured to rotate module logs, by specifying log options and limits in the container engine's `daemon.json`. Log management best practices are documented at <https://aka.ms/iotedge-prod-checklist-logs>
@@ -127,6 +136,7 @@ These checks require the Edge Agent and Edge Hub containers to have been created
 
 
 # Connectivity check details
+Note: When in nested configuration, tests try to connect to parent instead of IoThub.
 
 ## host can connect to and perform TLS handshake with DPS endpoint
 
