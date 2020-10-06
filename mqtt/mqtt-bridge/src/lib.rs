@@ -10,6 +10,7 @@
     clippy::must_use_candidate,
     clippy::missing_errors_doc
 )]
+#![recursion_limit = "256"]
 
 pub mod bridge;
 mod client;

@@ -3,9 +3,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use futures_util::{
     future::{select, Either, FutureExt},
-    pin_mut,
-    select,
-    // stream::{FuturesUnordered, StreamExt, TryStreamExt},
+    pin_mut, select,
     stream::{StreamExt, TryStreamExt},
 };
 use tokio::sync::{mpsc::UnboundedReceiver, oneshot, oneshot::Receiver, Mutex};
@@ -158,9 +156,12 @@ impl Pump {
 
         let f2 = self.client.handle_events();
 
+        let has_receiver = receiver.is_some();
+
         let f3 = async move {
             //let mut publish = publish_handle.clone();
             if let Some(r) = receiver {
+                //has_receiver = true;
                 while let Some(message) = r.recv().await {
                     match message {
                         BridgeMessage::ConnectivityUpdate(connectivity) => {
@@ -192,25 +193,39 @@ impl Pump {
         pin_mut!(f2);
         pin_mut!(f3);
 
-        select! {
-            _ = f1 => {
-                error!(message = "publish loop failed and exited for bridge pump");
-            },
-            _ = f2 => {
-                error!(message = "incoming message loop failed and exited for bridge pump");
-            },
-            _ = f3 => {
-                error!(message = "incoming connectivity state loop failed and exited for bridge pump");
-            },
-            _ = shutdown => {
-                if let Err(e) = client_shutdown.shutdown().await {
-                    error!(message = "failed to shutdown incoming message loop for bridge pump", err = %e);
-                }
+        loop {
+            select! {
+                _ = f1 => {
+                    error!(message = "publish loop failed and exited for bridge pump");
+                    break;
+                },
+                _ = f2 => {
+                    error!(message = "incoming message loop failed and exited for bridge pump");
+                    break;
+                },
+                _ = f3 => {
+                    if has_receiver {
+                        error!(message = "incoming connectivity state loop failed and exited for bridge pump");
+                        break;
+                    }
+                    else
+                    {
+                        debug!(message = "no connectivity receiver");
+                    }
+                },
+                _ = shutdown => {
+                    if let Err(e) = client_shutdown.shutdown().await {
+                        error!(message = "failed to shutdown incoming message loop for bridge pump", err = %e);
+                    }
 
-                if let Err(e) = loader_shutdown.send(()) {
-                    error!(message = "failed to shutdown publish loop for bridge pump");
-                }
-            },
+                    if let Err(e) = loader_shutdown.send(()) {
+                        error!(message = "failed to shutdown publish loop for bridge pump");
+                    }
+
+                    break;
+                },
+                complete => break
+            };
         }
 
         f1.await;

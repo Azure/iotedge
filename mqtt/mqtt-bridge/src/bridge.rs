@@ -101,8 +101,9 @@ impl Bridge {
             .collect::<Result<Vec<_>, _>>()?;
 
         // component_sender can be used for configuration changes
-        let (component_sender, component_receiver) = mpsc::unbounded_channel::<BridgeMessage>();
-        let upstream_connectivity_handler = ConnectivityHandler::new(component_sender.clone());
+        let (connectivity_sender, connectivity_receiver) =
+            mpsc::unbounded_channel::<BridgeMessage>();
+        let upstream_connectivity_handler = ConnectivityHandler::new(connectivity_sender.clone());
         let remote_client = MqttClient::tls(
             connection_settings.address(),
             connection_settings.keep_alive(),
@@ -136,7 +137,7 @@ impl Bridge {
             local_subscriptions,
             incoming_loader,
             outgoing_persist,
-            Some(component_receiver),
+            Some(connectivity_receiver),
         )?;
         let mut remote_pump = Pump::new(
             remote_client,

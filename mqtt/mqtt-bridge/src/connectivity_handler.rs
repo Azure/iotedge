@@ -32,7 +32,7 @@ impl ConnectivityHandler {
     pub async fn handle_connectivity_event(&mut self, event: Event) -> Result<(), BridgeError> {
         match event {
             Event::Disconnected(reason) => {
-                debug!("Received disconncted state {}", reason);
+                debug!("Received disconnected state {}", reason);
                 match self.state {
                     ConnectivityState::Connected => {
                         self.state = ConnectivityState::Disconnected;
