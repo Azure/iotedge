@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
+bincode = "1.2"
 bytes = "0.5"
 config = { version = "0.10", features = ["json"], default-features = false }
 chrono = "0.4"
@@ -16,6 +17,7 @@ humantime-serde = "1.0"
 openssl = "0.10"
 parking_lot = "0.11"
 percent-encoding = "1.0"
+rocksdb = "0.15"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_derive = "1.0"
 serial_test = "0.4"
@@ -33,5 +35,7 @@ mqtt-broker = { path = "../mqtt-broker" }
 [dev-dependencies]
 matches = "0.1"
 tokio = { version = "0.2", features = ["macros"] }
-
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
+serial_test = "0.4"
+tempfile = "3"
+test-case = "1.0"
