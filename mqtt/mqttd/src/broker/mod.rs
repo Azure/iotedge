@@ -62,7 +62,7 @@ where
             // server finished first
             Either::Left((server_output, sidecars_fut)) => {
                 // extract state from finished server
-                let state = extract_broker_snapshot(server_output);
+                let state = collapse_snapshot_result(server_output);
 
                 // shutdown sidecars
                 sidecar_shutdown_handle.shutdown().await?;
@@ -72,7 +72,7 @@ where
                     error!(message = "failed running sidecars", err = %e)
                 }
 
-                state
+                state?
             }
             // sidecars finished first
             Either::Right((_, server_join_handle)) => {
@@ -81,46 +81,32 @@ where
 
                 // extract state from server
                 let server_output = server_join_handle.await;
-                let state = extract_broker_snapshot(server_output);
+                let state = collapse_snapshot_result(server_output);
 
-                state
+                state?
             }
         };
     } else {
         let server_output = server_join_handle.await;
-        state = extract_broker_snapshot(server_output);
+        state = collapse_snapshot_result(server_output)?;
     }
 
-    if let Some(state) = state {
-        snapshotter_shutdown_handle.shutdown().await?;
-        let mut persistor = snapshotter_join_handle.await?;
-        info!("state snapshotter shutdown.");
+    snapshotter_shutdown_handle.shutdown().await?;
+    let mut persistor = snapshotter_join_handle.await?;
+    info!("state snapshotter shutdown.");
 
-        info!("persisting state before exiting...");
-        persistor.store(state).await?;
-        info!("state persisted.");
-    }
+    info!("persisting state before exiting...");
+    persistor.store(state).await?;
+    info!("state persisted.");
 
     info!("exiting... goodbye");
     Ok(())
 }
 
-fn extract_broker_snapshot(
+fn collapse_snapshot_result(
     server_output: Result<Result<BrokerSnapshot>, JoinError>,
-) -> Option<BrokerSnapshot> {
-    match server_output {
-        Ok(snapshot_output) => snapshot_output.map_or_else(
-            |e| {
-                error!(message = "failed while running server", err = %e);
-                None
-            },
-            |broker_snapshot| Some(broker_snapshot),
-        ),
-        Err(e) => {
-            error!(message = "failed waiting on server to finish", err = %e);
-            None
-        }
-    }
+) -> Result<BrokerSnapshot> {
+    server_output?
 }
 
 #[derive(Debug, thiserror::Error)]
