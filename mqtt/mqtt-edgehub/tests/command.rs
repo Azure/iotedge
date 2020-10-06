@@ -10,7 +10,7 @@ use mqtt_broker_tests_util::{
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::{Command, CommandHandler, Disconnect, ShutdownHandle};
+use mqtt_edgehub::command::{Command, CommandHandler, DisconnectCommand, ShutdownHandle};
 
 const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 const TEST_SERVER_ADDRESS: &str = "localhost:5555";
@@ -28,7 +28,7 @@ async fn disconnect_client() {
 
     let server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
-    let command = Disconnect::new(&broker_handle);
+    let command = DisconnectCommand::new(&broker_handle);
     let (command_handler_shutdown_handle, join_handle) =
         start_command_handler(TEST_SERVER_ADDRESS.to_string(), command)
             .await
