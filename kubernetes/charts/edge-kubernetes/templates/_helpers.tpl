@@ -122,6 +122,8 @@ listen:
   workload_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
+memory_limit: {{ .Values.agent.limits.memoryLimit | quote }}
+cpu_limit: {{ .Values.agent.limits.cpuLimit | quote }}
 device_hub_selector: ""
 proxy:
   image: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
@@ -138,6 +140,8 @@ proxy:
   config_path: "/etc/iotedge-proxy"
   trust_bundle_config_map_name: "iotedged-proxy-trust-bundle"
   trust_bundle_path: "/etc/trust-bundle"
+  memory_limit: {{ .Values.iotedgedProxy.limits.memoryLimit | quote }}
+  cpu_limit: {{ .Values.iotedgedProxy.limits.cpuLimit | quote }}
 {{ end }}
 
 {{/* Template for rendering registry credentials. */}}

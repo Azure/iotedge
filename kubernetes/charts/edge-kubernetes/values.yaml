@@ -69,6 +69,27 @@ iotedged:
     #               1 - All other errors.
     ###############################################################################
     #  maxRetries: 2
+    ###############################################################################
+    # Resource limit settings
+    ###############################################################################
+    # 
+    # We want QoS to be "Guaranteed" so we are setting resource requests and limits
+    # to equal values.  Values can be adjusted here.
+    # iotedged:
+    #   Values set here will apply directly to iotedged deployment.
+    # Proxy: 
+    #   Values set in iotedgedProxy section will apply to all proxy containers in deployment.
+    # Agent: 
+    #   Values set in agent section will apply to agent as the bootstrap values.  
+    #   It may be overwritten in the edge deployment on the IoT Hub via $edgeAgent's 
+    #   createOptions.
+    # modules: 
+    #   All module container resources should be set through edge deployment on the 
+    #   IoT Hub via module's createOptions
+    ###############################################################################
+    limits:
+      memoryLimit: "100Mi"
+      cpuLimit: "20m"
 
   ###############################################################################
   # Certificate settings
@@ -98,16 +119,33 @@ iotedged:
   #   trusted_ca_certs: "<ADD SECRET ITEM NAME FOR CA CERTIFICATES HERE>"
   #   auto_generated_ca_lifetime_days: <value>
 
+# module to iotedged proxy sidecar settings.
+# Available Settings:
+# image:
+#   repository: 
+#   tag: 
+#   pullPolicy:
+# registryCredentials:
+#   username:
+#   password:
+#   serveraddress:
+# limits:  
+#   memoryLimit: 
+#   cpuLimit:
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
     tag: 0.1.0-beta10
     pullPolicy: Always
+  limits: 
+    memoryLimit: "25M"
+    cpuLimit: "5m"
 
 # Edge Agent image configuration
 # Settings:
 #     containerName  - name of the edge agent module. Expected to be "edgeAgent".
 #     image          - Image tag and image pull policy
+#     limits         - cpu and memory limit may be set here for bootstrap agent.
 #     env            - Any environment variable that needs to be set for edge agent module.
 #                      Some environment variables affect how Edge Agent creates modules in the
 #                      cluster see the descriptions below.
@@ -118,6 +156,9 @@ edgeAgent:
     tag: 0.1.0-beta10
     pullPolicy: Always
   hostname: "localhost"
+  limits: 
+    memoryLimit: "25M"
+    cpuLimit: "5m"
   env:
     authScheme: 'sasToken'
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the

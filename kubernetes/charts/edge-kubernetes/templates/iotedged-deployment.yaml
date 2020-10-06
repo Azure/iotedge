@@ -26,6 +26,13 @@ spec:
           imagePullPolicy: {{ .Values.iotedged.image.pullPolicy }}
           command: ["/app/iotedged"]
           args: ["-c", "/etc/iotedged/config.yaml"]
+          resources:
+            limits:
+              memory: {{- .Values.iotedged.data.limits.memoryLimit | quote }}
+              cpu: {{- .Values.iotedged.data.limits.cpuLimit | quote }}
+            requests:
+              memory: {{- .Values.iotedged.data.limits.memoryLimit | quote }}
+              cpu: {{- .Values.iotedged.data.limits.cpuLimit | quote }}
           env:
           - name: "IOTEDGE_LOG"
             value: "info"

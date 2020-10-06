@@ -24,6 +24,8 @@ pub struct Settings {
     device_id: Option<String>,
     device_hub_selector: String,
     proxy: ProxySettings,
+    memory_limit: String,
+    cpu_limit: String,
     #[serde(default = "Settings::default_nodes_rbac")]
     has_nodes_rbac: bool,
 }
@@ -81,6 +83,14 @@ impl Settings {
 
     pub fn device_hub_selector(&self) -> &str {
         &self.device_hub_selector
+    }
+
+    pub fn memory_limit(&self) -> &str {
+        &self.memory_limit
+    }
+
+    pub fn cpu_limit(&self) -> &str {
+        &self.cpu_limit
     }
 
     pub fn has_nodes_rbac(&self) -> bool {
@@ -141,6 +151,8 @@ pub struct ProxySettings {
     config_map_name: String,
     trust_bundle_path: String,
     trust_bundle_config_map_name: String,
+    memory_limit: String,
+    cpu_limit: String,
 }
 
 impl ProxySettings {
@@ -170,5 +182,13 @@ impl ProxySettings {
 
     pub fn image_pull_policy(&self) -> &str {
         &self.image_pull_policy
+    }
+
+    pub fn memory_limit(&self) -> &str {
+        &self.memory_limit
+    }
+
+    pub fn cpu_limit(&self) -> &str {
+        &self.cpu_limit
     }
 }

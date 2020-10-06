@@ -20,6 +20,10 @@ pub const PULL_SECRET_DATA_NAME: &str = ".dockerconfigjson";
 
 pub const PULL_SECRET_DATA_TYPE: &str = "kubernetes.io/dockerconfigjson";
 
+pub const MEMORY_RESOURCE: &str = "memory";
+
+pub const CPU_RESOURCE: &str = "cpu";
+
 pub mod env {
     pub const PROXY_IMAGE_KEY: &str = "ProxyImage";
 
@@ -28,6 +32,10 @@ pub mod env {
     pub const PROXY_CONFIG_MAP_NAME_KEY: &str = "ProxyConfigMapName";
 
     pub const PROXY_CONFIG_PATH_KEY: &str = "ProxyConfigPath";
+
+    pub const PROXY_CONFIG_MEMORY_LIMIT_KEY: &str = "ProxyMemoryLimit";
+
+    pub const PROXY_CONFIG_CPU_LIMIT_KEY: &str = "ProxyCpuLimit";
 
     pub const PROXY_TRUST_BUNDLE_VOLUME_KEY: &str = "ProxyTrustBundleVolume";
 
