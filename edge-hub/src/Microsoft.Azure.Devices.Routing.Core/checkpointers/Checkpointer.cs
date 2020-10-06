@@ -71,7 +71,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         public void Propose(IMessage message)
         {
             this.Proposed = Math.Max(message.Offset, this.Proposed);
-            Metrics.SetQueueLength(this);
         }
 
         public bool Admit(IMessage message)
@@ -111,7 +110,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 this.LastFailedRevivalTime = lastFailedRevivalTime;
                 this.UnhealthySince = unhealthySince;
                 await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(offset, this.LastFailedRevivalTime, this.UnhealthySince), token);
-                Metrics.SetQueueLength(this);
             }
 
             Events.CommitFinished(this);
@@ -194,16 +192,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             {
                 return Invariant($"CheckpointerId: {checkpointer.Id}, Offset: {checkpointer.Offset}, Proposed: {checkpointer.Proposed}");
             }
-        }
-
-        static class Metrics
-        {
-            static readonly IMetricsGauge QueueLength = EdgeMetrics.Instance.CreateGauge(
-                "queue_length",
-                "Number of messages pending to be processed for the endpoint",
-                new List<string> { "endpoint", "priority", MetricsConstants.MsTelemetry });
-
-            public static void SetQueueLength(Checkpointer checkpointer) => QueueLength.Set(checkpointer.Proposed - checkpointer.Offset, new[] { checkpointer.EndpointId, checkpointer.Priority, bool.TrueString });
         }
     }
 }
