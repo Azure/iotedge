@@ -4,8 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics.Concurrency;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -13,7 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
     public class ModuleLogsRequestHandler : RequestHandlerBase<ModuleLogsRequest, IEnumerable<ModuleLogsResponse>>
     {
-        const int MaxTailValue = 500;
+        // Max size is 128 KB, leave 1KB buffer
+        const int MaxPayloadSize = 127000;
+        const string Name = "GetModuleLogs";
 
         static readonly Version ExpectedSchemaVersion = new Version("1.0");
 
@@ -26,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
         }
 
-        public override string RequestName => "GetModuleLogs";
+        public override string RequestName => Name;
 
         protected override async Task<Option<IEnumerable<ModuleLogsResponse>>> HandleRequestInternal(Option<ModuleLogsRequest> payloadOption, CancellationToken cancellationToken)
         {
@@ -47,28 +51,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 false);
 
             IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
+            int messageSize = 0;
             IEnumerable<Task<ModuleLogsResponse>> uploadLogsTasks = logOptionsList.Select(
                 async l =>
                 {
-                    Events.ReceivedLogOptions(l);
-                    ModuleLogOptions logOptions = l.logOptions.Filter.Tail
-                        .Filter(t => t < MaxTailValue)
-                        .Map(t => l.logOptions)
-                        .GetOrElse(
-                            () =>
-                            {
-                                var filter = new ModuleLogFilter(Option.Some(MaxTailValue), l.logOptions.Filter.Since, l.logOptions.Filter.Until, l.logOptions.Filter.LogLevel, l.logOptions.Filter.RegexString);
-                                return new ModuleLogOptions(l.logOptions.ContentEncoding, l.logOptions.ContentType, filter, l.logOptions.OutputFraming, l.logOptions.OutputGroupingConfig, l.logOptions.Follow);
-                            });
-
-                    byte[] moduleLogs = await this.logsProvider.GetLogs(l.id, logOptions, cancellationToken);
+                    byte[] moduleLogs = await this.logsProvider.GetLogs(l.id, l.logOptions, cancellationToken);
 
                     Events.ReceivedModuleLogs(moduleLogs, l.id);
-                    return logOptions.ContentEncoding == LogsContentEncoding.Gzip
-                        ? new ModuleLogsResponse(l.id, moduleLogs)
-                        : new ModuleLogsResponse(l.id, moduleLogs.FromBytes());
+
+                    if (l.logOptions.ContentEncoding == LogsContentEncoding.Gzip)
+                    {
+                        Interlocked.Add(ref messageSize, moduleLogs.Length);
+                        return new ModuleLogsResponse(l.id, moduleLogs);
+                    }
+                    else
+                    {
+                        string encodedLogs = moduleLogs.FromBytes();
+                        Interlocked.Add(ref messageSize, encodedLogs.Length);
+
+                        return new ModuleLogsResponse(l.id, encodedLogs);
+                    }
                 });
+
             IEnumerable<ModuleLogsResponse> response = await Task.WhenAll(uploadLogsTasks);
+
+            if (messageSize > MaxPayloadSize)
+            {
+                string message = Events.LargePayload(messageSize, logOptionsList.Select(o => o.logOptions));
+                throw new ArgumentException(message);
+            }
+
             return Option.Some(response);
         }
 
@@ -80,31 +92,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             enum EventIds
             {
                 ReceivedModuleLogs = IdStart + 1,
-                ReceivedLogOptions,
+                LargePayload,
                 ProcessingRequest,
-                MismatchedMinorVersions
+                MismatchedMinorVersions,
             }
 
             public static void ReceivedModuleLogs(byte[] moduleLogs, string id)
             {
                 Log.LogInformation((int)EventIds.ReceivedModuleLogs, $"Received {moduleLogs.Length} bytes of logs for {id}");
-            }
-
-            public static void ReceivedLogOptions((string id, ModuleLogOptions logOptions) receivedLogOptions)
-            {
-                if (receivedLogOptions.logOptions.Filter.Tail.HasValue)
-                {
-                    receivedLogOptions.logOptions.Filter.Tail.ForEach(
-                        t => Log.LogInformation(
-                            (int)EventIds.ReceivedLogOptions,
-                            t < MaxTailValue
-                                ? $"Received log options for {receivedLogOptions.id} with tail value {t}"
-                                : $"Received log options for {receivedLogOptions.id} with tail value {t} which is larger than the maximum supported value, setting tail value to {MaxTailValue}"));
-                }
-                else
-                {
-                    Log.LogInformation((int)EventIds.ReceivedLogOptions, $"Received log options for {receivedLogOptions.id} with no tail value specified, setting tail value to {MaxTailValue}");
-                }
             }
 
             public static void ProcessingRequest(ModuleLogsRequest payload)
@@ -115,6 +110,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             public static void MismatchedMinorVersions(string payloadSchemaVersion, Version expectedSchemaVersion)
             {
                 Log.LogWarning((int)EventIds.MismatchedMinorVersions, $"Logs upload request schema version {payloadSchemaVersion} does not match expected schema version {expectedSchemaVersion}. Some settings may not be supported.");
+            }
+
+            public static string LargePayload(int size, IEnumerable<ModuleLogOptions> options)
+            {
+                // TODO: make/get aka link for documentation
+                string message = $"The payload is too large for a direct method. {Name} supports up to {MaxPayloadSize} bytes of logs. The current request returned {size} bytes.\nTry reducing the size of the logs by setting the 'tail', 'since' and 'from' fields in log options filter. For more information, see https://aka.ms/iotedge-log-pull \nCurrent options settings are:\n{Newtonsoft.Json.JsonConvert.SerializeObject(options, Newtonsoft.Json.Formatting.Indented)}";
+
+                Log.LogWarning((int)EventIds.LargePayload, message);
+
+                return message;
             }
         }
     }
