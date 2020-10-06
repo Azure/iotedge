@@ -187,7 +187,7 @@ pub async fn start_sidecars(
     // bridge
     let mut bridge_controller = BridgeController::new();
     bridge_controller
-        .init(system_address, device_id.as_str())
+        .init(system_address, &device_id)
         .await?;
     let bridge_controller_join_handle = tokio::spawn(bridge_controller.run());
 

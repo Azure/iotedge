@@ -19,6 +19,9 @@ pub use generic::{
     broker, config, start_server, start_sidecars, SidecarError, SidecarShutdownHandle,
 };
 
+/// Wraps join handles for sidecar processes and exposes single future
+/// Exposed future will wait for any sidecar to complete, then shut down the rest
+/// Also exposes shutdown handle used to shut down all the sidecars
 pub struct SidecarManager {
     join_handles: Vec<JoinHandle<()>>,
     shutdown_handle: SidecarShutdownHandle,
