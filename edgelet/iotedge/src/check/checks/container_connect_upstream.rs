@@ -92,6 +92,19 @@ impl ContainerConnectUpstream {
             return Ok(CheckResult::Skipped);
         };
 
+        let diagnostics_image_name = if check
+            .diagnostics_image_name
+            .starts_with("/azureiotedge-diagnostics:")
+        {
+            if let Some(upstream_hostname) = settings.parent_hostname() {
+                upstream_hostname.to_string() + &check.diagnostics_image_name
+            } else {
+                "mcr.microsoft.com".to_string() + &check.diagnostics_image_name
+            }
+        } else {
+            return Ok(CheckResult::Skipped);
+        };
+
         let upstream_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
         } else {
@@ -112,7 +125,7 @@ impl ContainerConnectUpstream {
 
         self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
         args.extend(&[
-            &check.diagnostics_image_name,
+            &diagnostics_image_name,
             "dotnet",
             "IotedgeDiagnosticsDotnet.dll",
             "upstream",

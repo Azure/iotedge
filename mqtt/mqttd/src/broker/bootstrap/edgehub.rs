@@ -27,8 +27,13 @@ use mqtt_broker::{
     ServerCertificate,
 };
 use mqtt_edgehub::{
-    auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
-    command::{AuthorizedIdentities, CommandHandler, Disconnect},
+    auth::{
+        EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer,
+        PolicyAuthorizer,
+    },
+    command::{
+        AuthorizedIdentitiesCommand, CommandHandler, DisconnectCommand, PolicyUpdateCommand,
+    },
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
 };
@@ -67,9 +72,13 @@ where
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
-) -> Result<Broker<LocalAuthorizer<EdgeHubAuthorizer>>> {
+) -> Result<Broker<impl Authorizer>> {
+    let device_id = env::var(DEVICE_ID_ENV)?;
+
+    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(device_id)));
+
     let broker = BrokerBuilder::default()
-        .with_authorizer(LocalAuthorizer::new(EdgeHubAuthorizer::default()))
+        .with_authorizer(authorizer)
         .with_state(state.unwrap_or_default())
         .with_config(config.clone())
         .build();
@@ -143,10 +152,12 @@ where
         broker_ready.send(()).expect("ready signal");
     });
 
+    let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
+
     // Start the sidecars
     let system_address = config.listener().system().addr().to_string();
     let (sidecar_shutdown_handle, sidecar_join_handle) =
-        start_sidecars(broker_handle, system_address).await?;
+        start_sidecars(broker_handle, system_address, device_id).await?;
 
     // Start serving new connections
     let state = server.serve(shutdown).await?;
@@ -185,10 +196,9 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
 async fn start_sidecars(
     broker_handle: BrokerHandle,
     system_address: String,
+    device_id: String,
 ) -> Result<(SidecarShutdownHandle, JoinHandle<Result<()>>)> {
     let (sidecar_termination_handle, sidecar_termination_receiver) = oneshot::channel();
-
-    let device_id = env::var(DEVICE_ID_ENV)?;
 
     let mut bridge_controller = BridgeController::new();
     bridge_controller
@@ -197,8 +207,9 @@ async fn start_sidecars(
 
     let sidecars = tokio::spawn(async move {
         let mut command_handler = CommandHandler::new(system_address, device_id.as_str());
-        command_handler.add_command(Disconnect::new(&broker_handle));
-        command_handler.add_command(AuthorizedIdentities::new(&broker_handle));
+        command_handler.add_command(DisconnectCommand::new(&broker_handle));
+        command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
+        command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
 
         command_handler.init().await?;
 

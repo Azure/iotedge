@@ -122,6 +122,9 @@ pub enum ErrorKind {
     #[fail(display = "Unable to parse since.")]
     ParseSince,
 
+    #[fail(display = "Unable to get the virtualization status.")]
+    GetVirtualizationStatus,
+
     #[fail(display = "Signing error occurred.")]
     Sign,
 
