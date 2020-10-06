@@ -4,12 +4,10 @@ use std::sync::Arc;
 use anyhow::Result;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
-use rocksdb::DB;
 use tracing::debug;
 
 use crate::persist::{
     loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
-    WakingRocksDBStore,
 };
 
 /// Persistence implementation used for the bridge
@@ -22,17 +20,6 @@ pub struct PublicationStore<S: StreamWakeableState> {
 impl PublicationStore<WakingMemoryStore> {
     pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
         Self::new(WakingMemoryStore::new(), batch_size)
-    }
-}
-
-impl PublicationStore<WakingRocksDBStore> {
-    pub fn new_disk(
-        db: DB,
-        column_family: String,
-        batch_size: usize,
-    ) -> Result<PublicationStore<WakingRocksDBStore>, PersistError> {
-        let waking_store = WakingRocksDBStore::new(db, column_family)?;
-        Ok(Self::new(waking_store, batch_size))
     }
 }
 

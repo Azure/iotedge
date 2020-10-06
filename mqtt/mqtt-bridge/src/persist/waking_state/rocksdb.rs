@@ -1,3 +1,5 @@
+// TODO: This file is not currently used.
+//       We need to fix rocksdb compilation on alpine then we will re-enable.
 use std::{
     collections::{HashSet, VecDeque},
     task::Waker,

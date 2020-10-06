@@ -17,7 +17,6 @@ humantime-serde = "1.0"
 openssl = "0.10"
 parking_lot = "0.11"
 percent-encoding = "1.0"
-rocksdb = "0.15"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_derive = "1.0"
 serial_test = "0.4"
