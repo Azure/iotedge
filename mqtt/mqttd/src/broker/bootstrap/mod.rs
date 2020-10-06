@@ -35,7 +35,7 @@ impl SidecarManager {
 
     pub async fn wait_for_shutdown(self) -> Result<(), SidecarError> {
         let (sidecar_output, _, other_handles) = select_all(self.join_handles).await;
-        // wait for sidecars to finish
+
         if let Err(e) = sidecar_output {
             error!(message = "failed waiting for sidecar shutdown", err = %e);
         }
