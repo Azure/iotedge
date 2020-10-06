@@ -37,8 +37,8 @@ impl ParentHostname {
             if let Some(config_parent_hostname) = settings.parent_hostname() {
                 config_parent_hostname
             } else {
-                //No parent hostname is a valid config.
-                return Ok(CheckResult::Skipped);
+                // No parent hostname is a valid config.
+                return Ok(CheckResult::Ignored);
             };
 
         self.config_parent_hostname = Some(config_parent_hostname.to_owned());
