@@ -398,6 +398,7 @@ where
                     always_reprovision_on_startup: true,
                 },
                 cpus: 0,
+                virtualized: "test",
                 kernel_version: "test".to_string(),
                 operating_system: "test".to_string(),
                 server_version: "test".to_string(),
