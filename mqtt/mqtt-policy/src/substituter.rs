@@ -28,7 +28,9 @@ impl MqttSubstituter {
         if let Some(context) = context.context() {
             if let Some(variable) = extract_variable(value) {
                 return match variable {
-                    crate::CLIENT_ID_VAR => replace(value, variable, context.client_id().as_str()),
+                    crate::CLIENT_ID_VAR => {
+                        replace(value, variable, context.client_info().client_id().as_str())
+                    }
                     crate::IDENTITY_VAR => {
                         replace(value, variable, context.client_info().auth_id().as_str())
                     }
