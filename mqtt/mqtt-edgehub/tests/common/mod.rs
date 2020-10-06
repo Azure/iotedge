@@ -11,7 +11,9 @@ pub const AUTHORIZED_IDENTITIES_TOPIC: &str = "$internal/identities";
 pub const LOCAL_BROKER_SUFFIX: &str = "$edgeHub/$broker";
 pub const TEST_SERVER_ADDRESS: &str = "localhost:5555";
 
-// We need a Dummy Authorizer to authorize the
+// We need a Dummy Authorizer to authorize the command handler and $edgehub
+// LocalAuthorizer currently wraps EdgeHubAuthorizer in production code,
+// but LocalAuthorizer would authorize everything in the case of an integ test.
 pub struct DummyAuthorizer<Z>(Z);
 
 impl<Z> DummyAuthorizer<Z>
