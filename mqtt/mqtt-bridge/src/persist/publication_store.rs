@@ -67,7 +67,7 @@ impl<S: StreamWakeableState> PublicationStore<S> {
     }
 
     pub fn remove(&mut self, key: Key) -> Result<(), PersistError> {
-        debug!("removing publication with offset {}", self.offset);
+        debug!("removing publication with key {:?}", key);
 
         let mut state_lock = self.state.lock();
         state_lock.remove(key)?;
