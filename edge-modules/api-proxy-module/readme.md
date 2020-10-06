@@ -11,8 +11,6 @@ The diagram below illustrates this approach in the case of an IoT Edge device in
 
 ![API proxy module architecture](images/concept.png)
 
-[EB] Can we update the naming of the levels into something simpler like top layer and bottom layer?
-
 The configuration of the proxy rules defines how data is routed. Several configuration options are described in the [configuration section](#configure).
 
 ## Design
@@ -117,12 +115,10 @@ Next, set each environment variable's value by listing them directly.
 | ------------- |  ------------- |
 | NGINX_DEFAULT_PORT  | Changes the port Nginx listens too. If you change this option, make sure that the port you select is exposed in the dockerfile. Default is 443  |
 | DOCKER_REQUEST_ROUTE_ADDRESS | Address to route docker requests. By default it points to the parent.  |
-| NGINX_HAS_BLOB_MODULE| [EB] TBD - why is this prefix NGNIX? |
-| NGINX_BLOB_MODULE_NAME_ADDRESS | [EB] TBD - why is this prefix NGNIX? |
-| NGINX_NOT_ROOT | [EB] TBD - why is this prefix NGNIX? and what does this do? |
-| PARENT_HOSTNAME | [EB] TBD |
-
-[EB] Any others pre-defined environment variables? like the one for edgeHub traffic?
+| NGINX_HAS_BLOB_MODULE| TBD - why is this prefix NGNIX? |
+| NGINX_BLOB_MODULE_NAME_ADDRESS | TBD - why is this prefix NGNIX? |
+| NGINX_NOT_ROOT | TBD - why is this prefix NGNIX? and what does this do? |
+| PARENT_HOSTNAME | TBD |
 
 ### Update the proxy configuration dynamically
 
@@ -145,8 +141,6 @@ Lastly, the configuration of the module should match the configuration of the pr
 To minimize the number of open ports, the API Proxy should relay all HTTPS traffic (e.g. port 443), including traffic targeting the edgeHub. To avoid port binding conflicts, the edgeHub settings thus needs to be modified to not port bind on port 443. The API Proxy module should bind its port 443. The API Proxy should also be configured to route the edgeHub traffic by turning on the `ROUTE_EDGEHUB_TRAFFIC` to true (see example below).
 
 If minimizing the numer of open ports is not a concerned, the API Proxy can listen on another port than 443 and let edgeHub use port 443. The API Proxy can for instance listen on port 8000 by setting the environment variable `NGINX_DEFAULT_PORT` to `8000` and bind port 8000 of the API Proxy module. This is the default configuration of the API Proxy module.
-
-[EB] Let s make that the default configuration so that it works out of the box from the marketplace (without modifying the edgeHub config)
 
 ## Configuration examples
 
@@ -211,8 +205,8 @@ Lastly, all the module image URIs in **any lower layer** should use the domain n
 
 ### Upload blob
 
-[EB] - TBD
+TBD
 
 ### Limit the number of open ports
 
-[EB] - TBD
+TBD
