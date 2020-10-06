@@ -14,6 +14,7 @@ namespace ManifestSignerClient
         static readonly string DsaAlgorithm = Environment.GetEnvironmentVariable("DSA_ALGORITHM");
         static readonly string DeploymentManifestFilePath = Environment.GetEnvironmentVariable("DEPLOYMENT_MANIFEST_FILE_PATH");
         static readonly string SignedDeploymentManifestFilePath = Environment.GetEnvironmentVariable("SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH");
+        static readonly string UseTestingCA = Environment.GetEnvironmentVariable("USE_TESTING_CA");
         static readonly string DeviceRootCaPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_DEVICE_ROOT_CA_PATH");
         static readonly string SignerPrivateKeyPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH");
         static readonly string SignerCertPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_SIGNER_CERT_PATH");
@@ -57,6 +58,15 @@ namespace ManifestSignerClient
             else
             {
                 Console.WriteLine($"Signed Deployment Manifest path is {SignedDeploymentManifestFilePath}");
+            }
+
+            if (string.IsNullOrEmpty(UseTestingCA))
+            {
+                throw new Exception("Use Testing CA settings is empty. Please update it in launchSettings.json");
+            }
+            else
+            {
+                Console.WriteLine($"Use Testing CA is set to {UseTestingCA}");
             }
 
             if (string.IsNullOrEmpty(DeviceRootCaPath))
@@ -157,9 +167,12 @@ namespace ManifestSignerClient
             var chain = new X509Chain();
             chain.ChainPolicy.ExtraStore.Add(rootCertificate);
 
-            // You can alter how the chain is built/validated. These checks are only for testing.
-            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-            chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+            if (UseTestingCA == "true")
+            {
+                // You can alter how the chain is built/validated. These checks are only for testing.
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+            }
 
             // Do the validation
             var result = chain.Build(signerCertificate);
