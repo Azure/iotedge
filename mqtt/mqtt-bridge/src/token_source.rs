@@ -28,7 +28,7 @@ impl SasTokenSource {
         SasTokenSource { creds }
     }
 
-    async fn get_token_from_workload(
+    async fn generate_sas_token(
         &self,
         provider_settings: &CredentialProviderSettings,
         expiry: &DateTime<Utc>,
@@ -73,9 +73,7 @@ impl TokenSource for SasTokenSource {
     async fn get(&self, expiry: &DateTime<Utc>) -> Result<Option<String>, Error> {
         let token = match &self.creds {
             Credentials::Provider(provider_settings) => {
-                let token = self
-                    .get_token_from_workload(provider_settings, expiry)
-                    .await?;
+                let token = self.generate_sas_token(provider_settings, expiry).await?;
                 Some(format!("SharedAccessSignature {}", token))
             }
             Credentials::PlainText(creds) => Some(creds.password().into()),

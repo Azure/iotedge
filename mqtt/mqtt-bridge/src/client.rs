@@ -206,7 +206,7 @@ impl<T: EventHandler> MqttClient<T> {
         connectivity_handler: Option<ConnectivityHandler>,
         connection_credentials: &Credentials,
     ) -> Self {
-        let token_source = Self::get_token_source(&connection_credentials);
+        let token_source = Self::token_source(&connection_credentials);
         let tcp_connection =
             TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, None);
         let io_source = BridgeIoSource::Tcp(tcp_connection);
@@ -231,7 +231,7 @@ impl<T: EventHandler> MqttClient<T> {
     ) -> Self {
         let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
 
-        let token_source = Self::get_token_source(&connection_credentials);
+        let token_source = Self::token_source(&connection_credentials);
         let tcp_connection =
             TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, trust_bundle);
         let io_source = BridgeIoSource::Tls(tcp_connection);
@@ -299,7 +299,7 @@ impl<T: EventHandler> MqttClient<T> {
         }
     }
 
-    fn get_token_source(connection_credentials: &Credentials) -> Option<SasTokenSource> {
+    fn token_source(connection_credentials: &Credentials) -> Option<SasTokenSource> {
         match connection_credentials {
             Credentials::Provider(_) | Credentials::PlainText(_) => {
                 Some(SasTokenSource::new(connection_credentials.clone()))
@@ -398,6 +398,7 @@ impl<T: EventHandler> MqttClient<T> {
                         }
                     }
                 }
+
                 debug!("stop waiting for subscriptions");
                 break;
             }
