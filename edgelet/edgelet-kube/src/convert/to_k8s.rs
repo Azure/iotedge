@@ -15,16 +15,18 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use log::warn;
 
 use crate::constants::env::{
-    EDGE_NETWORK_ID_KEY, EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY,
-    EDGE_OBJECT_OWNER_NAME_KEY, EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY,
-    PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_PATH_KEY, PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY,
-    PROXY_IMAGE_PULL_SECRET_NAME_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_MEMORY_LIMIT_KEY, PROXY_CONFIG_CPU_LIMIT_KEY,
-    PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
+    AGENT_CONFIG_CPU_LIMIT_KEY, AGENT_CONFIG_MEMORY_LIMIT_KEY, EDGE_NETWORK_ID_KEY,
+    EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY, EDGE_OBJECT_OWNER_NAME_KEY,
+    EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY, PROXY_CONFIG_CPU_LIMIT_KEY,
+    PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_MEMORY_LIMIT_KEY, PROXY_CONFIG_PATH_KEY,
+    PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY, PROXY_IMAGE_PULL_SECRET_NAME_KEY,
+    PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY, PROXY_TRUST_BUNDLE_PATH_KEY,
+    PROXY_TRUST_BUNDLE_VOLUME_KEY,
 };
 use crate::constants::{
-    EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
-    PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
-    PROXY_TRUST_BUNDLE_VOLUME_NAME, MEMORY_RESOURCE, CPU_RESOURCE,
+    CPU_RESOURCE, EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_MODULE_LABEL,
+    EDGE_ORIGINAL_MODULEID, MEMORY_RESOURCE, PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME,
+    PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
 };
 use crate::convert::{sanitize_dns_value, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
@@ -88,8 +90,16 @@ fn spec_to_podspec(
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
             settings.proxy().trust_bundle_config_map_name(),
         ));
-        env_vars.push(env(PROXY_CONFIG_MEMORY_LIMIT_KEY, settings.proxy().memory_limit()));
-        env_vars.push(env(PROXY_CONFIG_CPU_LIMIT_KEY, settings.proxy().cpu_limit()));
+        env_vars.push(env(
+            PROXY_CONFIG_MEMORY_LIMIT_KEY,
+            settings.proxy().memory_limit(),
+        ));
+        env_vars.push(env(
+            PROXY_CONFIG_CPU_LIMIT_KEY,
+            settings.proxy().cpu_limit(),
+        ));
+        env_vars.push(env(AGENT_CONFIG_MEMORY_LIMIT_KEY, settings.memory_limit()));
+        env_vars.push(env(AGENT_CONFIG_CPU_LIMIT_KEY, settings.cpu_limit()));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_VOLUME_KEY,
             PROXY_TRUST_BUNDLE_VOLUME_NAME,
@@ -115,24 +125,36 @@ fn spec_to_podspec(
     // Resource requirements:
     let mut proxy_limits = BTreeMap::new();
     if !settings.proxy().memory_limit().is_empty() {
-        proxy_limits.insert(MEMORY_RESOURCE.to_string(), api_resource::Quantity(settings.proxy().memory_limit().to_string()));
+        proxy_limits.insert(
+            MEMORY_RESOURCE.to_string(),
+            api_resource::Quantity(settings.proxy().memory_limit().to_string()),
+        );
     }
     if !settings.proxy().cpu_limit().is_empty() {
-        proxy_limits.insert(CPU_RESOURCE.to_string(), api_resource::Quantity(settings.proxy().cpu_limit().to_string()));
+        proxy_limits.insert(
+            CPU_RESOURCE.to_string(),
+            api_resource::Quantity(settings.proxy().cpu_limit().to_string()),
+        );
     }
-    let proxy_resource_requirements = api_core::ResourceRequirements{
+    let proxy_resource_requirements = api_core::ResourceRequirements {
         limits: Some(proxy_limits.clone()),
         requests: Some(proxy_limits),
     };
 
     let mut module_limits = BTreeMap::new();
     if !settings.memory_limit().is_empty() {
-        module_limits.insert(MEMORY_RESOURCE.to_string(), api_resource::Quantity(settings.memory_limit().to_string()));
+        module_limits.insert(
+            MEMORY_RESOURCE.to_string(),
+            api_resource::Quantity(settings.memory_limit().to_string()),
+        );
     }
     if !settings.cpu_limit().is_empty() {
-        module_limits.insert(CPU_RESOURCE.to_string(), api_resource::Quantity(settings.cpu_limit().to_string()));
+        module_limits.insert(
+            CPU_RESOURCE.to_string(),
+            api_resource::Quantity(settings.cpu_limit().to_string()),
+        );
     }
-    let module_resource_requirments = api_core::ResourceRequirements{
+    let module_resource_requirments = api_core::ResourceRequirements {
         limits: Some(module_limits.clone()),
         requests: Some(module_limits),
     };
@@ -558,14 +580,17 @@ mod tests {
     use edgelet_test_utils::cert::TestCert;
 
     use crate::constants::env::{
+        AGENT_CONFIG_CPU_LIMIT_KEY, AGENT_CONFIG_MEMORY_LIMIT_KEY,
         EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY, EDGE_OBJECT_OWNER_NAME_KEY,
-        EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY, PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_PATH_KEY,
-        PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_MEMORY_LIMIT_KEY, PROXY_CONFIG_CPU_LIMIT_KEY, PROXY_IMAGE_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+        EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY, PROXY_CONFIG_CPU_LIMIT_KEY,
+        PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_MEMORY_LIMIT_KEY, PROXY_CONFIG_PATH_KEY,
+        PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
         PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
     };
     use crate::constants::{
-        EDGE_DEVICE_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID, PROXY_CONFIG_VOLUME_NAME,
-        PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME, MEMORY_RESOURCE, CPU_RESOURCE,
+        CPU_RESOURCE, EDGE_DEVICE_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
+        MEMORY_RESOURCE, PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME,
+        PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
     };
     use crate::convert::{
         spec_to_deployment, spec_to_role_binding, spec_to_service_account,
@@ -676,10 +701,22 @@ mod tests {
                     if let Some(resources) = &module.resources {
                         let mem = api_resource::Quantity("300Mi".to_string());
                         let cpu = api_resource::Quantity("200m".to_string());
-                        assert_eq!(resources.limits.as_ref().unwrap().get(MEMORY_RESOURCE), Some(&mem));
-                        assert_eq!(resources.limits.as_ref().unwrap().get(CPU_RESOURCE), Some(&cpu));
-                        assert_eq!(resources.requests.as_ref().unwrap().get(MEMORY_RESOURCE), Some(&mem));
-                        assert_eq!(resources.requests.as_ref().unwrap().get(CPU_RESOURCE), Some(&cpu));
+                        assert_eq!(
+                            resources.limits.as_ref().unwrap().get(MEMORY_RESOURCE),
+                            Some(&mem)
+                        );
+                        assert_eq!(
+                            resources.limits.as_ref().unwrap().get(CPU_RESOURCE),
+                            Some(&cpu)
+                        );
+                        assert_eq!(
+                            resources.requests.as_ref().unwrap().get(MEMORY_RESOURCE),
+                            Some(&mem)
+                        );
+                        assert_eq!(
+                            resources.requests.as_ref().unwrap().get(CPU_RESOURCE),
+                            Some(&cpu)
+                        );
                     }
                 }
                 if let Some(proxy) = podspec
@@ -695,12 +732,23 @@ mod tests {
                     if let Some(resources) = &proxy.resources {
                         let mem = api_resource::Quantity("50Mi".to_string());
                         let cpu = api_resource::Quantity("20m".to_string());
-                        assert_eq!(resources.limits.as_ref().unwrap().get(MEMORY_RESOURCE), Some(&mem));
-                        assert_eq!(resources.limits.as_ref().unwrap().get(CPU_RESOURCE), Some(&cpu));
-                        assert_eq!(resources.requests.as_ref().unwrap().get(MEMORY_RESOURCE), Some(&mem));
-                        assert_eq!(resources.requests.as_ref().unwrap().get(CPU_RESOURCE), Some(&cpu));
+                        assert_eq!(
+                            resources.limits.as_ref().unwrap().get(MEMORY_RESOURCE),
+                            Some(&mem)
+                        );
+                        assert_eq!(
+                            resources.limits.as_ref().unwrap().get(CPU_RESOURCE),
+                            Some(&cpu)
+                        );
+                        assert_eq!(
+                            resources.requests.as_ref().unwrap().get(MEMORY_RESOURCE),
+                            Some(&mem)
+                        );
+                        assert_eq!(
+                            resources.requests.as_ref().unwrap().get(CPU_RESOURCE),
+                            Some(&cpu)
+                        );
                     }
-
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
                 assert!(podspec.security_context.is_some());
@@ -723,7 +771,7 @@ mod tests {
     }
 
     fn validate_container_env(env: &[api_core::EnvVar]) {
-        assert_eq!(env.len(), 17);
+        assert_eq!(env.len(), 19);
         assert!(env.contains(&super::env("a", "b")));
         assert!(env.contains(&super::env("C", "D")));
         assert!(env.contains(&super::env(NAMESPACE_KEY, "default")));
@@ -749,14 +797,10 @@ mod tests {
             &PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
         )));
-        assert!(env.contains(&super::env(
-            &PROXY_CONFIG_MEMORY_LIMIT_KEY,
-            "50Mi",
-        )));
-        assert!(env.contains(&super::env(
-            &PROXY_CONFIG_CPU_LIMIT_KEY,
-            "20m",
-        )));
+        assert!(env.contains(&super::env(&PROXY_CONFIG_MEMORY_LIMIT_KEY, "50Mi",)));
+        assert!(env.contains(&super::env(&PROXY_CONFIG_CPU_LIMIT_KEY, "20m",)));
+        assert!(env.contains(&super::env(&AGENT_CONFIG_MEMORY_LIMIT_KEY, "300Mi",)));
+        assert!(env.contains(&super::env(&AGENT_CONFIG_CPU_LIMIT_KEY, "200m",)));
         assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_API_VERSION_KEY, "v1",)));
         assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_KIND_KEY, "Deployment",)));
         assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_NAME_KEY, "iotedged",)));

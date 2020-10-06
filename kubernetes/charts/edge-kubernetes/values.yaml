@@ -138,7 +138,7 @@ iotedgedProxy:
     tag: 0.1.0-beta10
     pullPolicy: Always
   limits: 
-    memoryLimit: "25M"
+    memoryLimit: "25Mi"
     cpuLimit: "5m"
 
 # Edge Agent image configuration
@@ -157,8 +157,8 @@ edgeAgent:
     pullPolicy: Always
   hostname: "localhost"
   limits: 
-    memoryLimit: "25M"
-    cpuLimit: "5m"
+    memoryLimit: "200Mi"
+    cpuLimit: "50m"
   env:
     authScheme: 'sasToken'
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the

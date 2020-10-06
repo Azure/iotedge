@@ -393,6 +393,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void AppliesDefaultResourcesForAgent()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
+            var docker = new DockerModule("edgeAgent", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var agentResources = new V1ResourceRequirements(
+                new Dictionary<string, ResourceQuantity>
+                {
+                    ["memory"] = new ResourceQuantity("1500Mi"),
+                    ["cpu"] = new ResourceQuantity("150m"),
+                },
+                new Dictionary<string, ResourceQuantity>
+                {
+                    ["memory"] = new ResourceQuantity("1500Mi"),
+                    ["cpu"] = new ResourceQuantity("150m"),
+                });
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            var moduleContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "edgeagent");
+            Assert.Equal(agentResources.Limits, moduleContainer.Resources.Limits);
+            Assert.Equal(agentResources.Requests, moduleContainer.Resources.Requests);
+        }
+
+        [Fact]
+        public void AppliesDefaultResourcesForProxy()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var proxyResources = new V1ResourceRequirements(
+                new Dictionary<string, ResourceQuantity>
+                {
+                    ["memory"] = new ResourceQuantity("1000M"),
+                    ["cpu"] = new ResourceQuantity("20m"),
+                },
+                new Dictionary<string, ResourceQuantity>
+                {
+                    ["memory"] = new ResourceQuantity("1000M"),
+                    ["cpu"] = new ResourceQuantity("20m"),
+                });
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            var moduleContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "proxy");
+            Assert.Equal(proxyResources.Limits, moduleContainer.Resources.Limits);
+            Assert.Equal(proxyResources.Requests, moduleContainer.Resources.Requests);
+        }
+
+        [Fact]
         public void LeaveResourcesEmptyWhenNothingProvidedInCreateOptions()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
@@ -710,6 +766,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal("trustBundlePath", container.Env.Single(e => e.Name == KubernetesConstants.ProxyTrustBundlePathEnvKey).Value);
             Assert.Equal("trustBundleVolumeName", container.Env.Single(e => e.Name == KubernetesConstants.ProxyTrustBundleVolumeEnvKey).Value);
             Assert.Equal("trustBundleConfigMapName", container.Env.Single(e => e.Name == KubernetesConstants.ProxyTrustBundleConfigMapEnvKey).Value);
+            Assert.Equal("1000M", container.Env.Single(e => e.Name == KubernetesConstants.ProxyConfigMemoryLimitKey).Value);
+            Assert.Equal("20m", container.Env.Single(e => e.Name == KubernetesConstants.ProxyConfigCpuLimitKey).Value);
+            Assert.Equal("1500Mi", container.Env.Single(e => e.Name == KubernetesConstants.AgentConfigMemoryLimitKey).Value);
+            Assert.Equal("150m", container.Env.Single(e => e.Name == KubernetesConstants.AgentConfigCpuLimitKey).Value);
             Assert.Equal("namespace", container.Env.Single(e => e.Name == KubernetesConstants.K8sNamespaceKey).Value);
             Assert.Equal("True", container.Env.Single(e => e.Name == KubernetesConstants.RunAsNonRootKey).Value);
             Assert.Equal("v1", container.Env.Single(e => e.Name == KubernetesConstants.EdgeK8sObjectOwnerApiVersionKey).Value);
@@ -841,6 +901,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 "trustBundlePath",
                 "trustBundleVolumeName",
                 "trustBundleConfigMapName",
+                "1000M",
+                "20m",
+                "1500Mi",
+                "150m",
                 PortMapServiceType.ClusterIP,
                 useMountSourceForVolumeName,
                 storageClassName,

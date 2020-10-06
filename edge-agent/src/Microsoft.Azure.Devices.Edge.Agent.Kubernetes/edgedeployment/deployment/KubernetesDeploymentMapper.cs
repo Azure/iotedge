@@ -30,6 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
+        readonly string proxyMemoryLimit;
+        readonly string proxyCpuLimit;
+        readonly string agentMemoryLimit;
+        readonly string agentCpuLimit;
         readonly PortMapServiceType defaultServiceType;
         readonly bool useMountSourceForVolumeName;
         readonly Option<string> storageClassName;
@@ -52,6 +56,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
+            string proxyMemoryLimit,
+            string proxyCpuLimit,
+            string agentMemoryLimit,
+            string agentCpuLimit,
             PortMapServiceType defaultServiceType,
             bool useMountSourceForVolumeName,
             string storageClassName,
@@ -73,6 +81,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
+            this.proxyMemoryLimit = proxyMemoryLimit;
+            this.proxyCpuLimit = proxyCpuLimit;
+            this.agentMemoryLimit = agentMemoryLimit;
+            this.agentCpuLimit = agentCpuLimit;
             this.defaultServiceType = defaultServiceType;
             this.useMountSourceForVolumeName = useMountSourceForVolumeName;
             this.storageClassName = Option.Maybe(storageClassName);
@@ -189,6 +201,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             Option<List<V1ContainerPort>> exposedPorts = module.Config.CreateOptions.ExposedPorts
                 .Map(PortExtensions.GetContainerPorts);
 
+            Option<V1ResourceRequirements> resourceRequirements = this.PrepareModuleResourceRequirements(module, identity);
+
             var container = new V1Container
             {
                 Name = name,
@@ -197,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 VolumeMounts = volumeMounts,
                 SecurityContext = securityContext.OrDefault(),
                 Ports = exposedPorts.OrDefault(),
-                Resources = module.Config.CreateOptions.Resources.OrDefault(),
+                Resources = resourceRequirements.OrDefault(),
                 Command = module.Config.CreateOptions.Entrypoint.Map(list => list.ToList()).OrDefault(),
                 Args = module.Config.CreateOptions.Cmd.Map(list => list.ToList()).OrDefault(),
                 WorkingDir = module.Config.CreateOptions.WorkingDir.OrDefault(),
@@ -239,6 +253,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundlePathEnvKey, this.proxyTrustBundlePath));
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundleVolumeEnvKey, this.proxyTrustBundleVolumeName));
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundleConfigMapEnvKey, this.proxyTrustBundleConfigMapName));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyConfigMemoryLimitKey, this.proxyMemoryLimit));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyConfigCpuLimitKey, this.proxyCpuLimit));
+                envList.Add(new V1EnvVar(KubernetesConstants.AgentConfigMemoryLimitKey, this.agentMemoryLimit));
+                envList.Add(new V1EnvVar(KubernetesConstants.AgentConfigCpuLimitKey, this.agentCpuLimit));
                 envList.Add(new V1EnvVar(KubernetesConstants.K8sNamespaceKey, this.deviceNamespace));
                 envList.Add(new V1EnvVar(KubernetesConstants.RunAsNonRootKey, this.runAsNonRoot.ToString()));
                 envList.Add(new V1EnvVar(KubernetesConstants.EdgeK8sObjectOwnerApiVersionKey, module.Owner.ApiVersion));
@@ -328,6 +346,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             return (volumeList, volumeMountList);
         }
 
+        Option<V1ResourceRequirements> PrepareModuleResourceRequirements(KubernetesModule module, IModuleIdentity identity)
+        {
+            // All modules get their resource requirements from createOptions,
+            // but Agent has default resources to guarantee QoS if the user didn't set it.
+            if (!module.Config.CreateOptions.Resources.HasValue &&
+                string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName))
+            {
+                var limits = new Dictionary<string, ResourceQuantity>
+                {
+                    [KubernetesConstants.ResourceMemoryLimitKey] = new ResourceQuantity(this.agentMemoryLimit),
+                    [KubernetesConstants.ResourceCpuLimitKey] = new ResourceQuantity(this.agentCpuLimit),
+                };
+                var resources = new V1ResourceRequirements(limits: limits, requests: limits);
+                return Option.Some(resources);
+            }
+
+            return module.Config.CreateOptions.Resources;
+        }
+
         (V1Container, List<V1Volume>) PrepareProxyContainer(KubernetesModule module)
         {
             var env = new List<V1EnvVar>
@@ -347,11 +384,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 new V1Volume { Name = this.proxyTrustBundleVolumeName, ConfigMap = new V1ConfigMapVolumeSource(name: this.proxyTrustBundleConfigMapName) }
             };
 
+            var limits = new Dictionary<string, ResourceQuantity>
+            {
+                [KubernetesConstants.ResourceMemoryLimitKey] = new ResourceQuantity(this.proxyMemoryLimit),
+                [KubernetesConstants.ResourceCpuLimitKey] = new ResourceQuantity(this.proxyCpuLimit),
+            };
+            var resources = new V1ResourceRequirements(limits: limits, requests: limits);
+
             var container = new V1Container
             {
                 Name = "proxy",
                 Env = env,
                 Image = this.proxyImage,
+                Resources = resources,
                 VolumeMounts = volumeMounts
             };
 

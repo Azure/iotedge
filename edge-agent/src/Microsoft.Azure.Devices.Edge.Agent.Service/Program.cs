@@ -189,6 +189,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyTrustBundlePath = configuration.GetValue<string>(K8sConstants.ProxyTrustBundlePathEnvKey);
                         string proxyTrustBundleVolumeName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleVolumeEnvKey);
                         string proxyTrustBundleConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleConfigMapEnvKey);
+                        string proxyMemoryLimit = configuration.GetValue<string>(K8sConstants.ProxyConfigMemoryLimitKey, K8sConstants.ProxyMemoryLimitDefault);
+                        string proxyCpuLimit = configuration.GetValue<string>(K8sConstants.ProxyConfigCpuLimitKey, K8sConstants.ProxyCpuLimitDefault);
+                        string agentMemoryLimit = configuration.GetValue<string>(K8sConstants.AgentConfigMemoryLimitKey, K8sConstants.AgentMemoryLimitDefault);
+                        string agentCpuLimit = configuration.GetValue<string>(K8sConstants.AgentConfigCpuLimitKey, K8sConstants.AgentCpuLimitDefault);
                         PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         bool useMountSourceForVolumeName = configuration.GetValue<bool>(K8sConstants.UseMountSourceForVolumeNameKey, false);
@@ -217,6 +221,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 proxyTrustBundlePath,
                                 proxyTrustBundleVolumeName,
                                 proxyTrustBundleConfigMapName,
+                                proxyMemoryLimit,
+                                proxyCpuLimit,
+                                agentMemoryLimit,
+                                agentCpuLimit,
                                 apiVersion,
                                 deviceNamespace,
                                 new Uri(managementUri),

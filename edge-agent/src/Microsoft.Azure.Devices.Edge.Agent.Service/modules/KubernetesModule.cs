@@ -44,6 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
+        readonly string proxyMemoryLimit;
+        readonly string proxyCpuLimit;
+        readonly string agentMemoryLimit;
+        readonly string agentCpuLimit;
         readonly string apiVersion;
         readonly string deviceNamespace;
         readonly string deviceSelector;
@@ -77,6 +81,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
+            string proxyMemoryLimit,
+            string proxyCpuLimit,
+            string agentMemoryLimit,
+            string agentCpuLimit,
             string apiVersion,
             string deviceNamespace,
             Uri managementUri,
@@ -107,6 +115,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyTrustBundlePath = Preconditions.CheckNonWhiteSpace(proxyTrustBundlePath, nameof(proxyTrustBundlePath));
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
+            this.proxyMemoryLimit = Preconditions.CheckNonWhiteSpace(proxyMemoryLimit, nameof(proxyMemoryLimit));
+            this.proxyCpuLimit = Preconditions.CheckNonWhiteSpace(proxyCpuLimit, nameof(proxyCpuLimit));
+            this.agentMemoryLimit = Preconditions.CheckNonWhiteSpace(agentMemoryLimit, nameof(agentMemoryLimit));
+            this.agentCpuLimit = Preconditions.CheckNonWhiteSpace(agentCpuLimit, nameof(agentCpuLimit));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId)}";
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
@@ -255,6 +267,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyTrustBundlePath,
                             this.proxyTrustBundleVolumeName,
                             this.proxyTrustBundleConfigMapName,
+                            this.proxyMemoryLimit,
+                            this.proxyCpuLimit,
+                            this.agentMemoryLimit,
+                            this.agentCpuLimit,
                             this.defaultMapServiceType,
                             this.useMountSourceForVolumeName,
                             this.storageClassName,

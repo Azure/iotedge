@@ -25,6 +25,10 @@ pub const MEMORY_RESOURCE: &str = "memory";
 pub const CPU_RESOURCE: &str = "cpu";
 
 pub mod env {
+    pub const AGENT_CONFIG_MEMORY_LIMIT_KEY: &str = "AgentMemoryLimit";
+
+    pub const AGENT_CONFIG_CPU_LIMIT_KEY: &str = "AgentCpuLimit";
+
     pub const PROXY_IMAGE_KEY: &str = "ProxyImage";
 
     pub const PROXY_CONFIG_VOLUME_KEY: &str = "ProxyConfigVolume";
