@@ -31,7 +31,6 @@ use common::{BottomLevelDummyAuthorizer, DummyAuthorizer};
 /// verify client has disconnected
 #[tokio::test]
 async fn disconnect_client_on_auth_update() {
-    init_logging();
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to EdgeHubAuthorizer
     let broker = BrokerBuilder::default()
