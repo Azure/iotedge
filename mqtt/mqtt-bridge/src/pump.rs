@@ -1,12 +1,12 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 use futures_util::{
     future::{select, Either, FutureExt},
     pin_mut, select,
     stream::{StreamExt, TryStreamExt},
 };
-use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
+use tokio::sync::{oneshot, oneshot::Receiver};
 use tracing::debug;
 use tracing::error;
 
@@ -24,7 +24,7 @@ pub struct Pump {
     client_shutdown: ClientShutdownHandle,
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
-    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+    loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
     persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
 }
 
@@ -32,7 +32,7 @@ impl Pump {
     pub fn new(
         client: MqttClient<MessageHandler<WakingMemoryStore>>,
         subscriptions: Vec<String>,
-        loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+        loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
         egress_persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
@@ -70,14 +70,15 @@ impl Pump {
         let mut client_shutdown = self.client_shutdown.clone();
 
         let f1 = async move {
-            let mut loader_lock = loader.lock().await;
+            // TODO PRE: move this to init somehow
+            let mut loader_borrow = loader.borrow_mut();
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
             debug!("started outgoing pump");
 
             loop {
                 let mut publish_handle = publish_handle.clone();
-                match select(receive_fut.next(), loader_lock.try_next()).await {
+                match select(receive_fut.next(), loader_borrow.try_next()).await {
                     Either::Left((shutdown, _)) => {
                         debug!("outgoing pump received shutdown signal");
                         if let None = shutdown {

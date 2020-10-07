@@ -1,3 +1,5 @@
+use std::cell::BorrowMutError;
+
 use bincode::ErrorKind;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -29,4 +31,7 @@ pub enum PersistError {
 
     #[error("Failed to serialize on database insert")]
     Serialization(#[source] Box<ErrorKind>),
+
+    #[error("Failed to serialize on database insert")]
+    BorrowSharedState(#[from] BorrowMutError),
 }

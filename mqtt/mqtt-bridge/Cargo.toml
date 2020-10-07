@@ -33,7 +33,7 @@ mqtt-broker = { path = "../mqtt-broker" }
 
 [dev-dependencies]
 matches = "0.1"
-tokio = { version = "0.2", features = ["macros"] }
+tokio = { version = "0.2", features = ["macros", "rt-util"] }
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 serial_test = "0.4"
 tempfile = "3"

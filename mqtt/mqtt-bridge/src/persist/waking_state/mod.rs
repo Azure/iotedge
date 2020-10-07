@@ -30,15 +30,14 @@ pub trait StreamWakeableState {
 
 #[cfg(test)]
 mod tests {
-    use std::{pin::Pin, sync::Arc, task::Context, task::Poll};
+    use std::{cell::RefCell, pin::Pin, rc::Rc, task::Context, task::Poll};
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt, TryStreamExt};
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
-    use parking_lot::Mutex;
     use test_case::test_case;
-    use tokio::sync::Notify;
+    use tokio::{sync::Notify, task};
 
     use crate::persist::{
         loader::MessageLoader, waking_state::StreamWakeableState, Key, WakingMemoryStore,
@@ -105,16 +104,17 @@ mod tests {
         }
 
         // extract some, check that they are in order
-        let state_lock = Arc::new(Mutex::new(state));
-        let mut loader = MessageLoader::new(state_lock.clone(), num_elements);
+        let state = Rc::new(RefCell::new(state));
+        let mut loader = MessageLoader::new(state.clone(), num_elements);
         let (key1, _) = loader.try_next().await.unwrap().unwrap();
         let (key2, _) = loader.try_next().await.unwrap().unwrap();
         assert_eq!(key1, Key { offset: 0 });
         assert_eq!(key2, Key { offset: 1 });
 
         // remove some
-        state_lock.lock().remove(key1).unwrap();
-        state_lock.lock().remove(key2).unwrap();
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.remove(key1).unwrap();
+        state_borrow.remove(key2).unwrap();
 
         // check that the ordering is maintained
         for count in 2..num_elements {
@@ -244,7 +244,7 @@ mod tests {
     #[test_case(WakingMemoryStore::new())]
     async fn insert_wakes_stream(state: impl StreamWakeableState + Send + 'static) {
         // setup data
-        let state = Arc::new(Mutex::new(state));
+        let state = Rc::new(RefCell::new(state));
 
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -256,32 +256,33 @@ mod tests {
 
         // start reading stream in a separate thread
         // this stream will return pending until woken up
-        let state_copy = Arc::clone(&state);
-        let notify = Arc::new(Notify::new());
+        let state_copy = state.clone();
+        let notify = Rc::new(Notify::new());
         let notify2 = notify.clone();
         let poll_stream = async move {
             let mut test_stream = TestStream::new(state_copy, notify2);
             assert_eq!(test_stream.next().await.unwrap(), 1);
         };
 
-        let poll_stream_handle = tokio::spawn(poll_stream);
+        let poll_stream_handle = task::spawn_local(poll_stream);
         notify.notified().await;
 
         // insert an element to wake the stream, then wait for the other thread to complete
-        state.lock().insert(key1, pub1).unwrap();
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.insert(key1, pub1).unwrap();
         poll_stream_handle.await.unwrap();
     }
 
     struct TestStream<S: StreamWakeableState> {
-        state: Arc<Mutex<S>>,
-        notify: Arc<Notify>,
+        state: Rc<RefCell<S>>,
+        notify: Rc<Notify>,
         should_return_pending: bool,
     }
 
     impl<S: StreamWakeableState> TestStream<S> {
-        fn new(waking_map: Arc<Mutex<S>>, notify: Arc<Notify>) -> Self {
+        fn new(state: Rc<RefCell<S>>, notify: Rc<Notify>) -> Self {
             TestStream {
-                state: waking_map,
+                state: state,
                 notify,
                 should_return_pending: true,
             }
@@ -293,11 +294,11 @@ mod tests {
 
         fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
             let mut_self = self.get_mut();
-            let mut map_lock = mut_self.state.lock();
+            let mut state_borrow = mut_self.state.borrow_mut();
 
             if mut_self.should_return_pending {
                 mut_self.should_return_pending = false;
-                map_lock.set_waker(cx.waker());
+                state_borrow.set_waker(cx.waker());
                 mut_self.notify.notify();
                 Poll::Pending
             } else {
