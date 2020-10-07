@@ -21,7 +21,7 @@ use crate::{
 };
 
 //const MAX_INFLIGHT: usize = 16;
-const CONNECTIVITY_TOPIC: &str = "$sys/connectivity";
+const CONNECTIVITY_TOPIC: &str = "$internal/connectivity";
 
 // TODO PRE: make this generic
 pub struct Pump {
