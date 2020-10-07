@@ -1,9 +1,9 @@
-use std::{any::Any, convert::Infallible, error::Error as StdError};
+use std::{any::Any, error::Error as StdError};
 
 use tokio::task::JoinHandle;
 
 use mqtt3::ShutdownError;
-use mqtt_broker::auth::{Activity, Authorization, Authorizer, Operation};
+use mqtt_broker::auth::{Activity, Authorization, Authorizer};
 use mqtt_edgehub::command::{Command, CommandHandler, ShutdownHandle};
 
 pub const LOCAL_BROKER_SUFFIX: &str = "$edgeHub/$broker";
@@ -43,20 +43,6 @@ where
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
         self.0.update(update)
-    }
-}
-
-pub struct BottomLevelDummyAuthorizer;
-
-impl Authorizer for BottomLevelDummyAuthorizer {
-    type Error = Infallible;
-    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
-        match activity.operation() {
-            Operation::Connect(_) => Ok(Authorization::Allowed),
-            _ => Ok(Authorization::Forbidden(
-                "bottom level authorizer forbids anything that's not a connect".into(),
-            )),
-        }
     }
 }
 

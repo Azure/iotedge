@@ -5,7 +5,7 @@ use mqtt3::{
     proto::ClientId, proto::Packet, proto::PacketIdentifier, proto::QoS, proto::Subscribe,
     proto::SubscribeTo,
 };
-use mqtt_broker::BrokerBuilder;
+use mqtt_broker::{auth::authorize_fn_ok, auth::Authorization, auth::Operation, BrokerBuilder};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,
@@ -17,7 +17,7 @@ use mqtt_edgehub::{
 };
 
 mod common;
-use common::{BottomLevelDummyAuthorizer, DummyAuthorizer};
+use common::DummyAuthorizer;
 
 /// Scenario:
 /// create broker
@@ -32,7 +32,13 @@ async fn disconnect_client_on_auth_update() {
     // but otherwise passes authorization along to EdgeHubAuthorizer
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(EdgeHubAuthorizer::new(
-            BottomLevelDummyAuthorizer {},
+            authorize_fn_ok(|activity| {
+                if matches!(activity.operation(), Operation::Connect(_)) {
+                    Authorization::Allowed
+                } else {
+                    Authorization::Forbidden("not allowed".to_string())
+                }
+            }),
         )))
         .build();
     let broker_handle = broker.handle();

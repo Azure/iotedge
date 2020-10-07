@@ -102,8 +102,8 @@ impl DummyAuthenticator {
         Self(AuthId::Anonymous)
     }
 
-    pub fn with_id(id: &str) -> Self {
-        Self(AuthId::Identity(id.into()))
+    pub fn with_id(id: impl Into<AuthId>) -> Self {
+        Self(id.into())
     }
 }
 

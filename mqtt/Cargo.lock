@@ -1079,7 +1079,6 @@ name = "mqtt-broker-tests-util"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "atty",
  "bytes",
  "futures",
  "futures-util",
