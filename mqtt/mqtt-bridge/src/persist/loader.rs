@@ -1,14 +1,13 @@
 use std::{
+    cell::RefCell,
     collections::VecDeque,
     pin::Pin,
-    sync::Arc,
+    rc::Rc,
     task::{Context, Poll},
 };
 
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
-use parking_lot::Mutex;
-// use tracing::debug;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
@@ -20,13 +19,13 @@ use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 ///
 /// When the batch is exhausted it will grab a new batch
 pub struct MessageLoader<S: StreamWakeableState> {
-    state: Arc<Mutex<S>>,
+    state: Rc<RefCell<S>>,
     batch: VecDeque<(Key, Publication)>,
     batch_size: usize,
 }
 
 impl<S: StreamWakeableState> MessageLoader<S> {
-    pub fn new(state: Arc<Mutex<S>>, batch_size: usize) -> Self {
+    pub fn new(state: Rc<RefCell<S>>, batch_size: usize) -> Self {
         let batch = VecDeque::new();
 
         Self {
@@ -37,8 +36,11 @@ impl<S: StreamWakeableState> MessageLoader<S> {
     }
 
     fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-        let mut state_lock = self.state.lock();
-        let batch: VecDeque<_> = state_lock.batch(self.batch_size)?;
+        let mut state_borrow = self
+            .state
+            .try_borrow_mut()
+            .map_err(PersistError::BorrowSharedState)?;
+        let batch: VecDeque<_> = state_borrow.batch(self.batch_size)?;
 
         Ok(batch)
     }
@@ -55,14 +57,15 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
         let mut_self = self.get_mut();
 
         // If error, either someone forged the database or we have a database schema change
-        // debug!("message loader retrieving new batch");
         mut_self.batch = mut_self.next_batch()?;
 
+        let mut state_borrow = mut_self
+            .state
+            .try_borrow_mut()
+            .map_err(PersistError::BorrowSharedState)?;
         mut_self.batch.pop_front().map_or_else(
             || {
-                let mut state_lock = mut_self.state.lock();
-                state_lock.set_waker(cx.waker());
-                // debug!("message loader waiting for new messages");
+                state_borrow.set_waker(cx.waker());
                 Poll::Pending
             },
             |item| Poll::Ready(Some(Ok((item.0, item.1)))),
@@ -72,13 +75,12 @@ impl<S: StreamWakeableState> Stream for MessageLoader<S> {
 
 #[cfg(test)]
 mod tests {
-    use std::{sync::Arc, time::Duration};
+    use std::{cell::RefCell, rc::Rc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::stream::TryStreamExt;
     use mqtt3::proto::{Publication, QoS};
-    use parking_lot::Mutex;
-    use tokio::{self, time};
+    use tokio::{task, time};
 
     use crate::persist::{
         loader::{Key, MessageLoader},
@@ -90,7 +92,7 @@ mod tests {
     fn smaller_batch_size_respected() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Arc::new(Mutex::new(state));
+        let state = Rc::new(RefCell::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -109,10 +111,10 @@ mod tests {
         };
 
         // insert elements
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1.clone()).unwrap();
-        state_lock.insert(key2, pub2).unwrap();
-        drop(state_lock);
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.insert(key1, pub1.clone()).unwrap();
+        state_borrow.insert(key2, pub2).unwrap();
+        drop(state_borrow);
 
         // get batch size elements
         let batch_size = 1;
@@ -129,7 +131,7 @@ mod tests {
     fn larger_batch_size_respected() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Arc::new(Mutex::new(state));
+        let state = Rc::new(RefCell::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -148,10 +150,10 @@ mod tests {
         };
 
         // insert elements
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1.clone()).unwrap();
-        state_lock.insert(key2, pub2.clone()).unwrap();
-        drop(state_lock);
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.insert(key1, pub1.clone()).unwrap();
+        state_borrow.insert(key2, pub2.clone()).unwrap();
+        drop(state_borrow);
 
         // get batch size elements
         let batch_size = 5;
@@ -170,10 +172,10 @@ mod tests {
     fn ordering_maintained_across_inserts() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Arc::new(Mutex::new(state));
+        let state = Rc::new(RefCell::new(state));
 
         // add many elements
-        let mut state_lock = state.lock();
+        let mut state_borrow = state.borrow_mut();
         let num_elements = 10 as usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
@@ -185,9 +187,9 @@ mod tests {
                 payload: Bytes::new(),
             };
 
-            state_lock.insert(key, publication).unwrap();
+            state_borrow.insert(key, publication).unwrap();
         }
-        drop(state_lock);
+        drop(state_borrow);
 
         // verify insertion order
         let mut loader = MessageLoader::new(state, num_elements);
@@ -205,7 +207,7 @@ mod tests {
     async fn retrieve_elements() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Arc::new(Mutex::new(state));
+        let state = Rc::new(RefCell::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -224,14 +226,14 @@ mod tests {
         };
 
         // insert some elements
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1.clone()).unwrap();
-        state_lock.insert(key2, pub2.clone()).unwrap();
-        drop(state_lock);
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.insert(key1, pub1.clone()).unwrap();
+        state_borrow.insert(key2, pub2.clone()).unwrap();
+        drop(state_borrow);
 
         // get loader
         let batch_size = 5;
-        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), batch_size);
 
         // make sure same publications come out in correct order
         let extracted1 = loader.try_next().await.unwrap().unwrap();
@@ -246,7 +248,7 @@ mod tests {
     async fn delete_and_retrieve_new_elements() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Arc::new(Mutex::new(state));
+        let state = Rc::new(RefCell::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -265,24 +267,24 @@ mod tests {
         };
 
         // insert some elements
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1.clone()).unwrap();
-        state_lock.insert(key2, pub2.clone()).unwrap();
-        drop(state_lock);
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.insert(key1, pub1.clone()).unwrap();
+        state_borrow.insert(key2, pub2.clone()).unwrap();
+        drop(state_borrow);
 
         // get loader
         let batch_size = 5;
-        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), batch_size);
 
         // process inserted messages
         loader.try_next().await.unwrap().unwrap();
         loader.try_next().await.unwrap().unwrap();
 
         // remove inserted elements
-        let mut state_lock = state.lock();
-        state_lock.remove(key1).unwrap();
-        state_lock.remove(key2).unwrap();
-        drop(state_lock);
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.remove(key1).unwrap();
+        state_borrow.remove(key2).unwrap();
+        drop(state_borrow);
 
         // insert new elements
         let key3 = Key { offset: 2 };
@@ -292,9 +294,9 @@ mod tests {
             retain: true,
             payload: Bytes::new(),
         };
-        let mut state_lock = state.lock();
-        state_lock.insert(key3, pub3.clone()).unwrap();
-        drop(state_lock);
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.insert(key3, pub3.clone()).unwrap();
+        drop(state_borrow);
 
         // verify new elements are there
         let extracted = loader.try_next().await.unwrap().unwrap();
@@ -306,7 +308,7 @@ mod tests {
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Arc::new(Mutex::new(state));
+        let state = Rc::new(RefCell::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -319,7 +321,7 @@ mod tests {
 
         // get loader
         let batch_size = 5;
-        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), batch_size);
 
         // async function that waits for a message to enter the state
         let key_copy = key1;
@@ -330,13 +332,13 @@ mod tests {
         };
 
         // start the function and make sure it starts polling the stream before next step
-        let poll_stream_handle = tokio::spawn(poll_stream);
+        let poll_stream_handle = task::spawn_local(poll_stream);
         time::delay_for(Duration::from_secs(2)).await;
 
         // add an element to the state
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1).unwrap();
-        drop(state_lock);
+        let mut state_borrow = state.borrow_mut();
+        state_borrow.insert(key1, pub1).unwrap();
+        drop(state_borrow);
         poll_stream_handle.await.unwrap();
     }
 }

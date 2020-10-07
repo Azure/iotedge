@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc};
 
 use futures_util::{
     future::{select, Either, FutureExt},
@@ -7,6 +7,7 @@ use futures_util::{
     stream::{StreamExt, TryStreamExt},
 };
 use tokio::sync::{mpsc::UnboundedReceiver, oneshot, oneshot::Receiver, Mutex};
+use tokio::sync::{oneshot, oneshot::Receiver};
 use tracing::debug;
 use tracing::error;
 
@@ -23,13 +24,12 @@ use crate::{
 //const MAX_INFLIGHT: usize = 16;
 const CONNECTIVITY_TOPIC: &str = "$internal/connectivity";
 
-// TODO PRE: make this generic
 pub struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
     client_shutdown: ClientShutdownHandle,
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
-    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
+    loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
     persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
     connectivity_receiver: Option<UnboundedReceiver<BridgeMessage>>,
 }
@@ -38,8 +38,8 @@ impl Pump {
     pub fn new(
         client: MqttClient<MessageHandler<WakingMemoryStore>>,
         subscriptions: Vec<String>,
-        loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-        persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+        loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
+        egress_persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
         connectivity_receiver: Option<UnboundedReceiver<BridgeMessage>>,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
@@ -53,7 +53,7 @@ impl Pump {
             publish_handle,
             subscriptions,
             loader,
-            persist,
+            persist: egress_persist,
             connectivity_receiver,
         })
     }
@@ -72,83 +72,59 @@ impl Pump {
     // TODO PRE: clean up logging
     pub async fn run(&mut self, shutdown: Receiver<()>) {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
-        // let mut senders = FuturesUnordered::new();
         let publish_handle = self.publish_handle.clone();
         let mut connectivity_publish_handle = self.publish_handle.clone();
         let loader = self.loader.clone();
-        // let persist = self.persist.clone();
+        let persist = self.persist.clone();
         let mut client_shutdown = self.client_shutdown.clone();
         let receiver = self.connectivity_receiver.as_mut();
 
         let f1 = async move {
-            let mut loader_lock = loader.lock().await;
+            // TODO PRE: move this to init somehow
+            let mut loader_borrow = loader.borrow_mut();
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
             debug!("started outgoing pump");
 
             loop {
                 let mut publish_handle = publish_handle.clone();
-                match select(receive_fut.next(), loader_lock.try_next()).await {
+                match select(receive_fut.next(), loader_borrow.try_next()).await {
                     Either::Left((shutdown, _)) => {
                         debug!("outgoing pump received shutdown signal");
                         if let None = shutdown {
                             error!(message = "unexpected behavior from shutdown signal while signalling bridge pump shutdown")
                         }
 
-                        // debug!("waiting on all remaining in-flight messages to send");
-                        // for sender in senders.iter_mut() {
-                        //     sender.await;
-                        // }
-
-                        debug!("all messages sent for outgoing pump");
+                        debug!("bridge pump stopped");
                         break;
                     }
                     Either::Right((p, _)) => {
-                        debug!("outgoing pump extracted message from store");
+                        debug!("outgoing pump extracted publication from store");
 
                         // TODO_PRE: handle publication error
-                        let p = p.unwrap().unwrap();
+                        let (key, publication) = p.unwrap().unwrap();
 
-                        debug!("publishing message {:?} for outgoing pump", p.0);
-                        // let persist_copy = persist.clone();
-                        let fut = async move {
-                            if let Err(e) = publish_handle.publish(p.1).await {
-                                error!(message = "failed publishing message for bridge pump", err = %e);
-                            } else {
-                                // TODO PRE: should we be retrying?
-                                // if this failure is due to something that will keep failing it is probably safer to remove and never try again
+                        // TODO PRE: should we be retrying?
+                        // if this failure is due to something that will keep failing it is probably safer to remove and never try again
+                        // otherwise we should retry
+                        debug!("publishing publication {:?} for outgoing pump", key);
+                        if let Err(e) = publish_handle.publish(publication).await {
+                            error!(message = "failed publishing publication for bridge pump", err = %e);
+                        }
 
-                                // TODO PRE: We need to remove from the other persistor
-                                // let mut persist = persist_copy.borrow_mut();
-                                // if let Err(e) = persist.remove(p.0) {
-                                //     error!(message = "failed to remove message from store for bridge pump", err = %e);
-                                // }
-                                // drop(persist);
+                        let persist_borrow = persist.try_borrow_mut();
+                        match persist_borrow {
+                            Ok(mut persist_borrow) => {
+                                // TODO PRE: if removal fails, what do we do?
+                                if let Err(e) = persist_borrow.remove(key) {
+                                    error!(message = "failed removing publication from store", err = %e);
+                                }
+                                drop(persist_borrow);
                             }
-                        };
-
-                        fut.await;
-
-                        // if senders.len() < MAX_INFLIGHT {
-                        //     debug!("publishing message for outgoing pump");
-                        //     let persist_copy = persist.clone();
-                        //     let fut = async move {
-                        //         let mut persist = persist_copy.borrow_mut();
-                        //         if let Err(e) = publish_handle.publish(p.1).await {
-                        //             error!(message = "failed publishing message for bridge pump", err = %e);
-                        //         } else {
-                        //             // TODO PRE: should we be retrying?
-                        //             // if this failure is due to something that will keep failing it is probably safer to remove and never try again
-                        //             if let Err(e) = persist.remove(p.0) {
-                        //                 error!(message = "failed to remove message from store for bridge pump", err = %e);
-                        //             }
-                        //         }
-                        //     };
-                        //     senders.push(Box::pin(fut));
-                        // } else {
-                        //     debug!("outgoing pump max in-flight messages reached");
-                        //     senders.next().await;
-                        // }
+                            Err(e) => {
+                                error!(message = "failed to borrow persistence to remove publication", err = %e);
+                            }
+                        }
                     }
                 }
             }

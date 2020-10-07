@@ -46,16 +46,13 @@ impl StreamWakeableState for WakingMemoryStore {
             self.loaded.insert(*key);
         }
 
-        // TODO PRE: Should we log here or too much bloat?
-        // debug!("new state of loaded messages: {:?}", self.loaded);
-
         Ok(output)
     }
 
     fn remove(&mut self, key: Key) -> Result<(), PersistError> {
         debug!(
-            "Preparing to remove. Current state of loaded messages: {:?}",
-            self.loaded
+            "Preparing to remove message with key {:?}. Current state of loaded messages: {:?}",
+            key, self.loaded
         );
         if self.loaded.remove(&key) {
             Ok(())

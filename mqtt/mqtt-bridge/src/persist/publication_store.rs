@@ -1,26 +1,19 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::sync::Arc;
+use std::{cell::RefCell, rc::Rc};
 
 use anyhow::Result;
 use mqtt3::proto::Publication;
-use parking_lot::Mutex;
-// use rocksdb::DB;
-use tokio::sync::Mutex as AsyncMutex;
 use tracing::debug;
 
-// use crate::persist::{
-//     loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
-//     WakingRocksDBStore,
-// };
 use crate::persist::{
     loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
 };
 
 /// Persistence implementation used for the bridge
 pub struct PublicationStore<S: StreamWakeableState> {
-    state: Arc<Mutex<S>>,
+    state: Rc<RefCell<S>>,
     offset: u32,
-    loader: Arc<AsyncMutex<MessageLoader<S>>>,
+    loader: Rc<RefCell<MessageLoader<S>>>,
 }
 
 impl PublicationStore<WakingMemoryStore> {
@@ -29,22 +22,11 @@ impl PublicationStore<WakingMemoryStore> {
     }
 }
 
-// impl PublicationStore<WakingRocksDBStore> {
-//     pub fn new_disk(
-//         db: DB,
-//         column_family: String,
-//         batch_size: usize,
-//     ) -> Result<PublicationStore<WakingRocksDBStore>, PersistError> {
-//         let waking_store = WakingRocksDBStore::new(db, column_family)?;
-//         Ok(Self::new(waking_store, batch_size))
-//     }
-// }
-
 impl<S: StreamWakeableState> PublicationStore<S> {
     pub fn new(state: S, batch_size: usize) -> Self {
-        let state = Arc::new(Mutex::new(state));
-        let loader = MessageLoader::new(Arc::clone(&state), batch_size);
-        let loader = Arc::new(AsyncMutex::new(loader));
+        let state = Rc::new(RefCell::new(state));
+        let loader = MessageLoader::new(state.clone(), batch_size);
+        let loader = Rc::new(RefCell::new(loader));
 
         let offset = 0;
         Self {
@@ -64,8 +46,11 @@ impl<S: StreamWakeableState> PublicationStore<S> {
             offset: self.offset,
         };
 
-        let mut state_lock = self.state.lock();
-        state_lock.insert(key, message)?;
+        let mut state_borrow = self
+            .state
+            .try_borrow_mut()
+            .map_err(PersistError::BorrowSharedState)?;
+        state_borrow.insert(key, message)?;
         self.offset += 1;
         Ok(key)
     }
@@ -73,13 +58,16 @@ impl<S: StreamWakeableState> PublicationStore<S> {
     pub fn remove(&mut self, key: Key) -> Result<(), PersistError> {
         debug!("removing publication with key {:?}", key);
 
-        let mut state_lock = self.state.lock();
-        state_lock.remove(key)?;
+        let mut state_borrow = self
+            .state
+            .try_borrow_mut()
+            .map_err(PersistError::BorrowSharedState)?;
+        state_borrow.remove(key)?;
         Ok(())
     }
 
-    pub fn loader(&mut self) -> Arc<AsyncMutex<MessageLoader<S>>> {
-        Arc::clone(&self.loader)
+    pub fn loader(&mut self) -> Rc<RefCell<MessageLoader<S>>> {
+        self.loader.clone()
     }
 }
 
@@ -121,11 +109,11 @@ mod tests {
 
         // get loader
         let loader = persistence.loader();
-        let mut loader = loader.lock().await;
+        let mut loader_borrow = loader.borrow_mut();
 
         // make sure same publications come out in correct order
-        let extracted1 = loader.try_next().await.unwrap().unwrap();
-        let extracted2 = loader.try_next().await.unwrap().unwrap();
+        let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
+        let extracted2 = loader_borrow.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.0, key1);
         assert_eq!(extracted2.0, key2);
         assert_eq!(extracted1.1, pub1);
@@ -159,15 +147,15 @@ mod tests {
 
         // get loader
         let loader = persistence.loader();
-        let mut loader = loader.lock().await;
+        let mut loader_borrow = loader.borrow_mut();
 
         // process first message, forcing loader to get new batch on the next read
-        let (key1, _) = loader.try_next().await.unwrap().unwrap();
+        let (key1, _) = loader_borrow.try_next().await.unwrap().unwrap();
         assert_matches!(persistence.remove(key1), Ok(_));
 
         // add a second message and verify this is returned by loader
         persistence.push(pub2.clone()).unwrap();
-        let extracted = loader.try_next().await.unwrap().unwrap();
+        let extracted = loader_borrow.try_next().await.unwrap().unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
 
@@ -237,11 +225,11 @@ mod tests {
 
         // get loader with batch size
         let loader = persistence.loader();
-        let mut loader = loader.lock().await;
+        let mut loader_borrow = loader.borrow_mut();
 
         // verify the loader returns both elements
-        let extracted1 = loader.try_next().await.unwrap().unwrap();
-        let extracted2 = loader.try_next().await.unwrap().unwrap();
+        let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
+        let extracted2 = loader_borrow.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.0, key1);
         assert_eq!(extracted2.0, key2);
         assert_eq!(extracted1.1, pub1);
