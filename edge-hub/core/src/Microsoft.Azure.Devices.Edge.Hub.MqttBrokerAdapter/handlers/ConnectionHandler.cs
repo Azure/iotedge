@@ -14,9 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class ConnectionHandler : IConnectionRegistry, IMessageConsumer
+    public class ConnectionHandler : IConnectionRegistry, IMessageConsumer, IMessageProducer
     {
         const string TopicDeviceConnected = "$edgehub/connected";
+        const string TopicDisconnect = "$edgehub/disconnect";
 
         static readonly char[] identitySegmentSeparator = new[] { '/' };
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
@@ -25,6 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IIdentityProvider identityProvider;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly DeviceProxy.Factory deviceProxyFactory;
+
+        IMqttBrokerConnector connector;
 
         AsyncLock guard = new AsyncLock();
 
@@ -43,6 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         }
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
+
+        public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
         public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity)
         {
@@ -92,6 +97,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             return false;
+        }
+
+        public async Task CloseConnectionAsync(IIdentity identity)
+        {
+            var identityFound = false;
+            using (await this.guard.LockAsync())
+            {
+                identityFound = this.knownConnections.TryGetValue(identity, out var _);
+            }
+
+            if (identityFound)
+            {
+                await this.connector.SendAsync(TopicDisconnect, Encoding.UTF8.GetBytes($"\"{identity.Id}\""));
+            }
+            else
+            {
+                Events.CouldNotFindClientToClose(identity.Id);
+            }
         }
 
         async Task HandleDeviceConnectedAsync(MqttPublishInfo mqttPublishInfo)
@@ -189,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             foreach (var id in identityList)
             {
-                if (this.IsSystemComponent(id))
+                if (this.systemComponentIdProvider.IsSystemComponent(id))
                 {
                     continue;
                 }
@@ -215,8 +238,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Option.Some(result);
         }
 
-        bool IsSystemComponent(string id) => string.Equals(id, this.systemComponentIdProvider.EdgeHubBridgeId);
-
         static class Events
         {
             const int IdStart = MqttBridgeEventIds.ConnectionHandler;
@@ -230,7 +251,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 ExistingClientAdded,
                 BlockingDependencyInjection,
                 ErrorProcessingNotification,
-                FailedToObtainConnectionProvider
+                FailedToObtainConnectionProvider,
+                CouldNotFindClientToClose
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize connection update");
@@ -239,6 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void ExistingClientAdded(string identity) => Log.LogWarning((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
             public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing [Connect] notification");
             public static void FailedToObtainConnectionProvider() => Log.LogError((int)EventIds.FailedToObtainConnectionProvider, "Failed to obtain ConnectionProvider");
+            public static void CouldNotFindClientToClose(string identity) => Log.LogInformation((int)EventIds.CouldNotFindClientToClose, $"Could not find to close: {identity}. No signal will be sent to the broker");
         }
     }
 }

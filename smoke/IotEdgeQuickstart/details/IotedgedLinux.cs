@@ -187,7 +187,15 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        public async Task Configure(DeviceProvisioningMethod method, Option<string> agentImage, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(
+            DeviceProvisioningMethod method,
+            Option<string> agentImage,
+            string hostname,
+            Option<string> parentHostname,
+            string deviceCaCert,
+            string deviceCaPk,
+            string deviceCaCerts,
+            LogLevel runtimeLogLevel)
         {
             agentImage.ForEach(
                 image =>
@@ -248,6 +256,8 @@ namespace IotEdgeQuickstart.Details
             });
 
             doc.ReplaceOrAdd("hostname", hostname);
+
+            parentHostname.ForEach(v => doc.ReplaceOrAdd("parent_hostname", v));
 
             foreach (RegistryCredentials c in this.credentials)
             {

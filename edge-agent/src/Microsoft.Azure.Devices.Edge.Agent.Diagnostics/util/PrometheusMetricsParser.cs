@@ -12,11 +12,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
 
     public static class PrometheusMetricsParser
     {
-        // Extracts data from prometheous format. Read about prometheous format here:
+        // Extracts data from prometheus format. Read about prometheus format here:
         // https://prometheus.io/docs/concepts/data_model/
         // Example:
         // edgeagent_total_disk_read_bytes{iothub="lefitche-hub-3.azure-devices.net",edge_device="device4",instance_number="1",module="edgeHub"} 32908854
-        static readonly Regex PrometheusSchemaRegex = new Regex(@"^(?<metricname>[^#\{\}]+)(\{((?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]*)\"")(,(?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]*)\""))*)\})?\s(?<metricvalue>[\d\.]+)$", RegexOptions.Compiled);
+        private static readonly Regex PrometheusSchemaRegex = new Regex(
+            @"^(?<metricname>[^#\{\}]+)" + // metric name. The prometheus spec says metric names should match the regex [a-zA-Z_:][a-zA-Z0-9_:]*, but it doesn't hurt to be more permissive here
+            @"(\{(?:(?:(?<tagname>[^="",]+)=(?:\""(?<tagvalue>(?:\\.|[^\\""])*)\"")" + // first tag (name="value" pair)
+            @"(?:,(?<tagname>[^="",]+)=(?:\""(?<tagvalue>(?:\\.|[^\\""])*)\""))*))?\})?\s" + // all following tags
+            @"(?<metricvalue>[\d\.eE+-]+|NaN)$", // metric value (digits and .eE+-)
+            RegexOptions.Compiled);
 
         public static IEnumerable<Metric> ParseMetrics(DateTime timeGeneratedUtc, string prometheusMessage)
         {

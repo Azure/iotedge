@@ -27,6 +27,7 @@ mod module;
 mod network;
 mod parse_since;
 mod settings;
+mod virtualization;
 pub mod watchdog;
 pub mod workload;
 
@@ -44,8 +45,8 @@ pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
     DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
     ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
-    ModuleStatus, ModuleTop, ProvisioningResult, RegistryOperation, RuntimeOperation, SystemInfo,
-    SystemResources,
+    ModuleStatus, ModuleTop, ProvisioningInfo, ProvisioningResult, RegistryOperation,
+    RuntimeOperation, SystemInfo, SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;
@@ -55,6 +56,7 @@ pub use settings::{
     RetryLimit, RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
     WatchdogSettings, X509AttestationInfo,
 };
+pub use virtualization::is_virtualized_env;
 pub use workload::WorkloadConfig;
 
 /// This is the default auto generated certificate life

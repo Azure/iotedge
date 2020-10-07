@@ -7,7 +7,7 @@ use crate::errors::Result;
 use crate::{substituter::Substituter, Error, ResourceMatcher};
 
 mod builder;
-pub use builder::PolicyBuilder;
+pub use builder::{PolicyBuilder, PolicyDefinition, Statement};
 
 /// Policy engine. Represents a read-only set of rules and can
 /// evaluate `Request` based on those rules.
@@ -26,15 +26,15 @@ pub struct Policy<R, S> {
     variable_rules: BTreeMap<String, Operations>,
 }
 
-impl<R, S> Policy<R, S>
+impl<R, S, RC> Policy<R, S>
 where
-    R: ResourceMatcher,
-    S: Substituter,
+    R: ResourceMatcher<Context = RC>,
+    S: Substituter<Context = RC>,
 {
     /// Evaluates the provided `&Request` and produces the `Decision`.
     ///
     /// If no rules match the `&Request` - the default `Decision` is returned.
-    pub fn evaluate(&self, request: &Request) -> Result<Decision> {
+    pub fn evaluate(&self, request: &Request<RC>) -> Result<Decision> {
         match self.eval_static_rules(request) {
             // static rules not defined. Need to check variable rules.
             Ok(EffectOrd {
@@ -76,7 +76,7 @@ where
         }
     }
 
-    fn eval_static_rules(&self, request: &Request) -> Result<EffectOrd> {
+    fn eval_static_rules(&self, request: &Request<RC>) -> Result<EffectOrd> {
         // lookup an identity
         match self.static_rules.get(&request.identity) {
             // identity exists. Look up operations.
@@ -84,15 +84,20 @@ where
                 // operation exists.
                 Some(resources) => {
                     // Iterate over and match resources.
+                    // We need to go through all resources and find one with highest priority (smallest order).
+                    let mut result = &EffectOrd::undefined();
                     for (resource, effect) in &resources.0 {
-                        if self
-                            .resource_matcher
-                            .do_match(request, &request.resource, &resource)
+                        if effect.order < result.order // check the order
+                            && self.resource_matcher.do_match( // only then check that matches
+                                request,
+                                &request.resource,
+                                &resource,
+                            )
                         {
-                            return Ok(*effect);
+                            result = effect;
                         }
                     }
-                    Ok(EffectOrd::undefined())
+                    Ok(*result)
                 }
                 None => Ok(EffectOrd::undefined()),
             },
@@ -100,7 +105,7 @@ where
         }
     }
 
-    fn eval_variable_rules(&self, request: &Request) -> Result<EffectOrd> {
+    fn eval_variable_rules(&self, request: &Request<RC>) -> Result<EffectOrd> {
         for (identity, operations) in &self.variable_rules {
             // process identity variables.
             let identity = self.substituter.visit_identity(identity, request)?;
@@ -111,16 +116,21 @@ where
                     // operation exists.
                     Some(resources) => {
                         // Iterate over and match resources.
+                        // We need to go through all resources and find one with highest priority (smallest order).
+                        let mut result = &EffectOrd::undefined();
                         for (resource, effect) in &resources.0 {
                             let resource = self.substituter.visit_resource(resource, request)?;
-                            if self
-                                .resource_matcher
-                                .do_match(request, &request.resource, &resource)
+                            if effect.order < result.order // check the order
+                                && self.resource_matcher.do_match( // only then check that matches
+                                    request,
+                                    &request.resource,
+                                    &resource,
+                                )
                             {
-                                return Ok(*effect);
+                                result = effect;
                             }
                         }
-                        Ok(EffectOrd::undefined())
+                        Ok(*result)
                     }
                     None => Ok(EffectOrd::undefined()),
                 };
@@ -223,18 +233,39 @@ impl From<BTreeMap<String, EffectOrd>> for Resources {
 
 /// Represents a request that needs to be `evaluate`d by `Policy` engine.
 #[derive(Debug)]
-pub struct Request {
+pub struct Request<RC> {
     identity: String,
     operation: String,
     resource: String,
+
+    /// Optional request context that can be used for request processing.
+    context: Option<RC>,
 }
 
-impl Request {
+impl<RC> Request<RC> {
     /// Creates a new `Request`. Returns an error if either identity or operation is an empty string.
     pub fn new(
         identity: impl Into<String>,
         operation: impl Into<String>,
         resource: impl Into<String>,
+    ) -> Result<Self> {
+        Self::create(identity, operation, resource, None)
+    }
+
+    pub fn with_context(
+        identity: impl Into<String>,
+        operation: impl Into<String>,
+        resource: impl Into<String>,
+        context: RC,
+    ) -> Result<Self> {
+        Self::create(identity, operation, resource, Some(context))
+    }
+
+    fn create(
+        identity: impl Into<String>,
+        operation: impl Into<String>,
+        resource: impl Into<String>,
+        context: Option<RC>,
     ) -> Result<Self> {
         let (identity, operation, resource) = (identity.into(), operation.into(), resource.into());
 
@@ -250,7 +281,12 @@ impl Request {
             identity,
             operation,
             resource,
+            context,
         })
+    }
+
+    pub fn context(&self) -> Option<&RC> {
+        self.context.as_ref()
     }
 }
 
@@ -291,7 +327,7 @@ impl EffectOrd {
 
     pub fn undefined() -> Self {
         Self {
-            order: 0,
+            order: usize::MAX,
             effect: Effect::Undefined,
         }
     }
@@ -318,6 +354,15 @@ impl From<EffectOrd> for Decision {
             Effect::Allow => Decision::Allowed,
             Effect::Deny => Decision::Denied,
             Effect::Undefined => Decision::Denied,
+        }
+    }
+}
+
+impl From<&Statement> for EffectOrd {
+    fn from(statement: &Statement) -> Self {
+        match statement.effect() {
+            builder::Effect::Allow => EffectOrd::new(Effect::Allow, statement.order()),
+            builder::Effect::Deny => EffectOrd::new(Effect::Deny, statement.order()),
         }
     }
 }
@@ -401,12 +446,7 @@ pub(crate) mod tests {
         }"#;
 
         // assert default allow
-        let request = Request::new(
-            "contoso.azure-devices.net/some_other_device",
-            "write",
-            "resource_1",
-        )
-        .unwrap();
+        let request = Request::new("other_actor", "write", "resource_1").unwrap();
 
         let allow_default_policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Allowed)
@@ -565,17 +605,129 @@ pub(crate) mod tests {
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
 
+    /// Scenario:
+    /// - Have a policy with a custom resource matcher
+    /// - Have conflicting rules for resources that
+    ///   are different, but both will match according to
+    ///   custom resource matcher.
+    /// - Expected: match first "allow" rule
+    ///
+    /// This case is created as a result of a discovered bug.
+    #[test]
+    fn rule_ordering_should_work_for_custom_matchers() {
+        let json = r###"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "actor_a"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/b"
+                    ]
+                },
+                {
+                    "effect": "deny",
+                    "identities": [
+                        "actor_a"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/a"
+                    ]
+                }
+            ]
+        }"###;
+
+        let policy = PolicyBuilder::from_json(json)
+            .with_default_decision(Decision::Denied)
+            .with_substituter(TestSubstituter)
+            .with_matcher(StartWithMatcher)
+            .build()
+            .expect("Unable to build policy from json.");
+
+        let request = Request::new("actor_a", "write", "hello").unwrap();
+
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
+    /// See test case above for details.
+    #[test]
+    fn rule_ordering_should_work_for_custom_matchers_variable_rules() {
+        let json = r###"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "{{any}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/b"
+                    ]
+                },
+                {
+                    "effect": "deny",
+                    "identities": [
+                        "{{any}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/a"
+                    ]
+                }
+            ]
+        }"###;
+
+        let policy = PolicyBuilder::from_json(json)
+            .with_default_decision(Decision::Denied)
+            .with_substituter(TestSubstituter)
+            .with_matcher(StartWithMatcher)
+            .build()
+            .expect("Unable to build policy from json.");
+
+        let request = Request::new("actor_a", "write", "hello").unwrap();
+
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
     /// `TestSubstituter` replaces any value with the corresponding identity or resource
     /// from the request, thus making the variable rule to always match the request.
     struct TestSubstituter;
 
     impl Substituter for TestSubstituter {
-        fn visit_identity(&self, _value: &str, context: &Request) -> Result<String> {
+        type Context = ();
+
+        fn visit_identity(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
             Ok(context.identity.clone())
         }
 
-        fn visit_resource(&self, _value: &str, context: &Request) -> Result<String> {
+        fn visit_resource(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
             Ok(context.resource.clone())
+        }
+    }
+
+    /// `StartWithMatcher` matches resources that start with requested value. For
+    /// example, if a policy defines a resource "hello/world", then request for "hello/"
+    /// will match.
+    struct StartWithMatcher;
+
+    impl ResourceMatcher for StartWithMatcher {
+        type Context = ();
+
+        fn do_match(&self, _: &Request<Self::Context>, input: &str, policy: &str) -> bool {
+            policy.starts_with(input)
         }
     }
 }

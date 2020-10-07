@@ -5,8 +5,8 @@ use tracing::debug;
 use mqtt3::proto;
 
 use crate::{
-    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientId, Error, Publish,
-    SessionState,
+    snapshot::SessionSnapshot, subscription::Subscription, ClientEvent, ClientId, ClientInfo,
+    Error, Publish, SessionState,
 };
 
 #[derive(Debug)]
@@ -21,6 +21,10 @@ impl OfflineSession {
 
     pub fn client_id(&self) -> &ClientId {
         self.state.client_id()
+    }
+
+    pub fn last_client_info(&self) -> &ClientInfo {
+        self.state.client_info()
     }
 
     pub fn snapshot(&self) -> SessionSnapshot {

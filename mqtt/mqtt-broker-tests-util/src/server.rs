@@ -1,4 +1,5 @@
 use std::{
+    convert::Infallible,
     error::Error as StdError,
     sync::atomic::{AtomicU32, Ordering},
 };
@@ -13,7 +14,7 @@ use tokio::{
 
 use mqtt_broker::{
     auth::{AuthenticationContext, Authenticator, Authorizer},
-    AuthId, Broker, BrokerSnapshot, Error, Server,
+    AuthId, Broker, BrokerSnapshot, Error, MakePacketProcessor, Server,
 };
 
 /// Used to control server lifetime during tests. Implements
@@ -56,26 +57,39 @@ impl Drop for ServerHandle {
 
 /// Starts a test server with a provided broker and returns
 /// shutdown handle, broker task and server binding.
-pub fn start_server<N, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
+pub fn start_server<N, E, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
 where
-    N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
+    N: Authenticator<Error = E> + Send + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,
+    E: StdError + Send + Sync + 'static,
+{
+    run(|addr| {
+        let mut server = Server::from_broker(broker);
+        server.with_tcp(addr, authenticator, None).unwrap();
+        server
+    })
+}
+
+pub fn run<F, Z, P>(make_server: F) -> ServerHandle
+where
+    F: FnOnce(String) -> Server<Z, P>,
+    Z: Authorizer + Send + 'static,
+    P: MakePacketProcessor + Clone + Send + Sync + 'static,
 {
     lazy_static! {
         static ref PORT: AtomicU32 = AtomicU32::new(5555);
     }
 
     let port = PORT.fetch_add(1, Ordering::SeqCst);
-    let address = format!("localhost:{}", port);
+    let addr = format!("localhost:{}", port);
 
-    let mut server = Server::from_broker(broker);
-    server.tcp(&address, authenticator);
+    let server = make_server(addr.clone());
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let task = tokio::spawn(server.serve(rx.map(drop)));
 
     ServerHandle {
-        address,
+        address: addr,
         shutdown: Some(shutdown),
         task: Some(task),
     }
@@ -91,7 +105,7 @@ impl DummyAuthenticator {
 
 #[async_trait]
 impl Authenticator for DummyAuthenticator {
-    type Error = Box<dyn StdError>;
+    type Error = Infallible;
 
     async fn authenticate(&self, _: AuthenticationContext) -> Result<Option<AuthId>, Self::Error> {
         Ok(Some(self.0.clone()))
