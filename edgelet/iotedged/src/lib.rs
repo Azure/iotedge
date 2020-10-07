@@ -2031,7 +2031,7 @@ where
     if let Some(parent_hostname) = settings.parent_hostname() {
         env.insert(
             GATEWAY_HOSTNAME_KEY.to_string(),
-            parent_hostname.to_string().to_lowercase(),
+            parent_hostname.to_string(),
         );
     }
 
