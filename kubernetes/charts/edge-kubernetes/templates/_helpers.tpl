@@ -122,8 +122,8 @@ listen:
   workload_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
-memory_limit: {{ .Values.agent.limits.memoryLimit | quote }}
-cpu_limit: {{ .Values.agent.limits.cpuLimit | quote }}
+memory_limit: {{ .Values.edgeAgent.limits.memoryLimit | quote }}
+cpu_limit: {{ .Values.edgeAgent.limits.cpuLimit | quote }}
 device_hub_selector: ""
 proxy:
   image: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
