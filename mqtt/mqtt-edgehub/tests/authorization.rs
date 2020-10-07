@@ -7,7 +7,6 @@ use mqtt3::{
 use mqtt_broker::BrokerBuilder;
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
-    init_logging,
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
