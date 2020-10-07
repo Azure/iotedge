@@ -37,7 +37,7 @@ async fn disconnect_client_on_auth_update() {
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = start_server(broker, DummyAuthenticator::id("device-1"));
+    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
