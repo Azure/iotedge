@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<string> connectionString;
         readonly IDictionary<string, string> routes;
         readonly StoreAndForwardConfiguration storeAndForwardConfiguration;
+        readonly AuthorizationConfiguration authorizationConfiguration;
         readonly int connectionPoolSize;
         readonly bool isStoreAndForwardEnabled;
         readonly bool useTwinConfig;
@@ -68,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             IDictionary<string, string> routes,
             bool isStoreAndForwardEnabled,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
+            AuthorizationConfiguration authorizationConfiguration,
             int connectionPoolSize,
             bool useTwinConfig,
             VersionInfo versionInfo,
@@ -97,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.connectionString = Preconditions.CheckNotNull(connectionString, nameof(connectionString));
             this.routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.storeAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
+            this.authorizationConfiguration = Preconditions.CheckNotNull(authorizationConfiguration, nameof(authorizationConfiguration));
             this.edgeModuleId = edgeModuleId;
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.connectionPoolSize = connectionPoolSize;
@@ -577,11 +580,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 this.versionInfo,
                                 deviceScopeIdentitiesCache);
 
-                            return new TwinConfigSource(edgeHubConnection, edgeHubCredentials.Identity.Id, this.versionInfo, twinManager, twinMessageConverter, twinCollectionMessageConverter, routeFactory);
+                            return new TwinConfigSource(edgeHubConnection,
+                                edgeHubCredentials.Identity.Id,
+                                this.versionInfo,
+                                twinManager,
+                                twinMessageConverter,
+                                twinCollectionMessageConverter,
+                                routeFactory
+                            );
                         }
                         else
                         {
-                            return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
+                            return new LocalConfigSource(routeFactory,
+                                this.routes,
+                                this.storeAndForwardConfiguration,
+                                this.authorizationConfiguration
+                            );
                         }
                     })
                 .As<Task<IConfigSource>>()

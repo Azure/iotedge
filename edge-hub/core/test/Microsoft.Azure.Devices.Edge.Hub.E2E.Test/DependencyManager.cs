@@ -123,6 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs, storeLimits);
 
+            var authorizationConfiguration = new AuthorizationConfiguration();
+
             if (bool.TryParse(this.configuration["UsePersistentStorage"], out bool usePersistentStorage) && usePersistentStorage)
             {
                 storageFolder = GetOrCreateDirectoryPath(this.configuration["StorageFolder"], EdgeHubConstants.EdgeHubStorageFolder);
@@ -184,6 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     testRoutes,
                     true,
                     storeAndForwardConfiguration,
+                    authorizationConfiguration,
                     ConnectionPoolSize,
                     false,
                     versionInfo,

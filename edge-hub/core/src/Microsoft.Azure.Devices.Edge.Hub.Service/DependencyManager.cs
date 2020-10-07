@@ -163,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
             bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
+            var authorizationConfiguration = new AuthorizationConfiguration();
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -174,6 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     routes,
                     storeAndForward.isEnabled,
                     storeAndForward.config,
+                    authorizationConfiguration,
                     connectionPoolSize,
                     useTwinConfig,
                     this.versionInfo,
