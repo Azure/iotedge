@@ -1,3 +1,4 @@
+use assert_matches::assert_matches;
 use futures_util::StreamExt;
 
 use mqtt3::{
@@ -14,9 +15,6 @@ use mqtt_edgehub::{
     auth::EdgeHubAuthorizer, auth::IdentityUpdate, command::AuthorizedIdentitiesCommand,
     command::AUTHORIZED_IDENTITIES_TOPIC,
 };
-
-#[macro_use]
-extern crate assert_matches;
 
 mod common;
 use common::{BottomLevelDummyAuthorizer, DummyAuthorizer};
@@ -60,7 +58,7 @@ async fn disconnect_client_on_auth_update() {
     edgehub_client
         .publish_qos1(
             AUTHORIZED_IDENTITIES_TOPIC,
-            serde_json::to_string(&identities).ok().unwrap(),
+            serde_json::to_string(&identities).expect("unable to serialize identities"),
             false,
         )
         .await;
@@ -68,7 +66,8 @@ async fn disconnect_client_on_auth_update() {
     let s = Subscribe {
         packet_identifier: PacketIdentifier::new(1).unwrap(),
         subscribe_to: vec![SubscribeTo {
-            topic_filter: "$edgehub/device-1/inputs/telemetry/#".into(), // "devices/device-1/inputs/telemetry/#".into(),
+            // We need to use a post-translation topic here
+            topic_filter: "$edgehub/device-1/inputs/telemetry/#".into(),
             qos: QoS::AtLeastOnce,
         }],
     };
@@ -94,7 +93,7 @@ async fn disconnect_client_on_auth_update() {
     edgehub_client
         .publish_qos1(
             AUTHORIZED_IDENTITIES_TOPIC,
-            serde_json::to_string(&identities).ok().unwrap(),
+            serde_json::to_string(&identities).expect("unable to serialize identities"),
             false,
         )
         .await;
