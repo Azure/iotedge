@@ -1,17 +1,15 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::{
-    collections::HashSet, fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration,
-};
+use std::{fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration};
 
 use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info};
 
 use mqtt3::{
     proto, Client, Event, IoSource, PublishHandle, ReceivedPublication, ShutdownError,
-    SubscriptionUpdateEvent, UpdateSubscriptionError,
+    UpdateSubscriptionError,
 };
 
 use crate::{
@@ -340,7 +338,10 @@ impl<T: EventHandler> MqttClient<T> {
                         error!("error processing publication {}", e);
                     }
                 }
-                Event::SubscriptionUpdates(_sub) => {}
+                Event::SubscriptionUpdates(sub) => {
+                    // TODO: handle subscriptions which are not acq
+                    info!("Received subscription update {:?}", sub);
+                }
                 Event::NewConnection { reset_session: _ } | Event::Disconnected(_) => {
                     if let Some(handler) = self.connectivity_handler.as_mut() {
                         if let Err(e) = handler.handle_connectivity_event(event).await {
@@ -364,62 +365,6 @@ impl<T: EventHandler> MqttClient<T> {
             self.client
                 .subscribe(subscription)
                 .map_err(ClientError::Subscribe)?;
-        }
-
-        let mut subacks: HashSet<_> = topics.iter().collect();
-        if subacks.is_empty() {
-            debug!("no topics to subscribe to");
-            return Ok(());
-        }
-
-        // TODO PRE: Don't wait for subscription updates before starting the bridge.
-        //           We should move this logic to the handle events.
-        while let Some(event) = self
-            .client
-            .try_next()
-            .await
-            .map_err(ClientError::PollClient)?
-        {
-            //TODO: change the mqtt client to send an error back when the subscriotion fails instead of reconnecting and resending the sub
-            //right now it can't detect if the the broker doesn't allow to subscribe to the specific topic, but it will send a connect event
-            if let Event::SubscriptionUpdates(subscriptions) = event {
-                for subscription in subscriptions {
-                    match subscription {
-                        SubscriptionUpdateEvent::Subscribe(sub) => {
-                            subacks.remove(&sub.topic_filter);
-                            debug!("successfully subscribed to topics");
-                        }
-                        SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
-                            subacks.remove(&topic_filter);
-                            error!("subscription rejected by server {}", topic_filter);
-                        }
-                        SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
-                            warn!("Unsubscribed {}", topic_filter);
-                        }
-                    }
-                }
-
-                debug!("stop waiting for subscriptions");
-                break;
-            }
-
-            if let Event::NewConnection { reset_session: _ } = event {
-                debug!("****************ANCAN New connection");
-                return Ok(());
-            }
-
-            if let Event::Disconnected(reason) = event {
-                debug!("***************ANCAN Disconnected {}", reason);
-            }
-        }
-
-        if subacks.is_empty() {
-            debug!("successfully subscribed to topics");
-        } else {
-            error!(
-                "failed to receive expected subacks for topics: {0:?}",
-                subacks.iter().map(ToString::to_string).collect::<String>()
-            );
         }
 
         Ok(())
