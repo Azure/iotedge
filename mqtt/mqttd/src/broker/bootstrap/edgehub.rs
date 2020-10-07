@@ -26,10 +26,7 @@ use mqtt_broker::{
     ServerCertificate,
 };
 use mqtt_edgehub::{
-    auth::{
-        EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer,
-        PolicyAuthorizer,
-    },
+    auth::{EdgeHubAuthenticator, LocalAuthenticator},
     command::{
         AuthorizedIdentitiesCommand, CommandHandler, DisconnectCommand, PolicyUpdateCommand,
     },
@@ -72,7 +69,7 @@ pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
 ) -> Result<Broker<impl Authorizer>> {
-    let device_id = env::var(DEVICE_ID_ENV)?;
+    let _device_id = env::var(DEVICE_ID_ENV)?;
 
     // TODO: revert this change
     let authorizer = mqtt_broker::auth::AllowAll;
