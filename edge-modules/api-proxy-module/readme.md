@@ -208,7 +208,9 @@ It assumes that the blob storage module has already been deployed. Please follow
 
 >If you want to upload support bundle, currently, the only supported configuration is when the blob storage module is at the top level. To be able to upload a support bundle, a blob container needs to be created and as of now that is only possible when the blob storage module is at the top level.
 
+
 The configuration of the API Proxy module at the **top layer** for this scenario is the following
+It assumes that a Docker registry module named `AzureBlobStorageonIoTEdge` has been deployed
 
 - Environment variables:
 
