@@ -43,6 +43,19 @@ impl ConnectManagementUri {
             return Ok(CheckResult::Skipped);
         };
 
+        let diagnostics_image_name = if check
+            .diagnostics_image_name
+            .starts_with("/azureiotedge-diagnostics:")
+        {
+            if let Some(upstream_hostname) = settings.parent_hostname() {
+                upstream_hostname.to_string() + &check.diagnostics_image_name
+            } else {
+                "mcr.microsoft.com".to_string() + &check.diagnostics_image_name
+            }
+        } else {
+            return Ok(CheckResult::Skipped);
+        };
+
         let connect_management_uri = settings.connect().management_uri();
         let listen_management_uri = settings.listen().management_uri();
 
@@ -95,7 +108,7 @@ impl ConnectManagementUri {
     }
 
         args.extend(vec![
-            Cow::Borrowed(OsStr::new(&check.diagnostics_image_name)),
+            Cow::Borrowed(OsStr::new(&diagnostics_image_name)),
             Cow::Borrowed(OsStr::new("dotnet")),
             Cow::Borrowed(OsStr::new("IotedgeDiagnosticsDotnet.dll")),
             Cow::Borrowed(OsStr::new("edge-agent")),

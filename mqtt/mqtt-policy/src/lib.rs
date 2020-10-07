@@ -41,8 +41,7 @@ mod tests {
     ) -> Activity {
         let client_id = client_id.into();
         Activity::new(
-            client_id.clone(),
-            ClientInfo::new("127.0.0.1:80".parse().unwrap(), auth_id),
+            ClientInfo::new(client_id.clone(), "127.0.0.1:80".parse().unwrap(), auth_id),
             Operation::new_connect(proto::Connect {
                 username: None,
                 password: None,
@@ -60,8 +59,7 @@ mod tests {
         auth_id: impl Into<AuthId>,
     ) -> Activity {
         Activity::new(
-            client_id.into(),
-            ClientInfo::new("127.0.0.1:80".parse().unwrap(), auth_id),
+            ClientInfo::new(client_id.into(), "127.0.0.1:80".parse().unwrap(), auth_id),
             Operation::new_publish(proto::Publish {
                 packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
                     proto::PacketIdentifier::new(1).unwrap(),

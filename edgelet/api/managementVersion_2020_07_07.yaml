@@ -657,6 +657,8 @@ definitions:
         type: string
       cpus:
         type: integer
+      virtualized:
+        type: string        
     required:
       - osType
       - architecture

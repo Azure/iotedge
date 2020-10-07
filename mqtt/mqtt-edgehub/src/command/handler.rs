@@ -28,6 +28,7 @@ impl IoSource for BrokerConnection {
     }
 }
 
+/// Shutdown handle for `CommandHandler`
 pub struct ShutdownHandle {
     client_shutdown: mqtt3::ShutdownHandle,
 }
@@ -44,6 +45,11 @@ impl ShutdownHandle {
     }
 }
 
+/// `CommandHandler` is a, so called, "sidecar" that runs alongside
+/// the broker (in a separate task) and subscribes to a certain system
+/// topics to receive and dispatch commands.
+///
+/// For example, see `DisconnectCommand`.
 pub struct CommandHandler {
     client: Client<BrokerConnection>,
     commands: HashMap<String, Box<dyn Command<Error = Box<dyn StdError>> + Send>>,
@@ -154,8 +160,14 @@ async fn subscribe(
     {
         if let Event::SubscriptionUpdates(subscriptions) = event {
             for subscription in subscriptions {
-                if let SubscriptionUpdateEvent::Subscribe(sub) = subscription {
-                    subacks.remove(&sub.topic_filter);
+                match subscription {
+                    SubscriptionUpdateEvent::Subscribe(sub) => {
+                        subacks.remove(&sub.topic_filter);
+                    }
+                    SubscriptionUpdateEvent::RejectedByServer(sub) => {
+                        return Err(CommandHandlerError::SubscriptionRejectedByServer(sub));
+                    }
+                    SubscriptionUpdateEvent::Unsubscribe(_) => {}
                 }
             }
 
@@ -176,6 +188,9 @@ async fn subscribe(
 pub enum CommandHandlerError {
     #[error("failed to receive expected subacks for command topics: {0:?}")]
     MissingSubacks(Vec<String>),
+
+    #[error("subscription rejected by server: {0:?}")]
+    SubscriptionRejectedByServer(String),
 
     #[error("failed to subscribe command handler to command topic")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
