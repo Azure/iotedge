@@ -157,7 +157,7 @@ edgeAgent:
     pullPolicy: Always
   hostname: "localhost"
   limits: 
-    memoryLimit: "250Mi"
+    memoryLimit: "200Mi"
     cpuLimit: "50m"
   env:
     authScheme: 'sasToken'
