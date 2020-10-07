@@ -315,7 +315,7 @@ impl<H: EventHandler> MqttClient<H> {
             None
         }) {
             debug!("handle event {:?}", event);
-            if let Err(e) = self.event_handler.handle(event).await {
+            if let Err(e) = self.event_handler.handle(&event).await {
                 error!("error processing event {}", e);
             }
         }
@@ -385,7 +385,7 @@ impl<H: EventHandler> MqttClient<H> {
 pub trait EventHandler {
     type Error: Display;
 
-    async fn handle(&mut self, event: Event) -> Result<(), Self::Error>;
+    async fn handle(&mut self, event: &Event) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

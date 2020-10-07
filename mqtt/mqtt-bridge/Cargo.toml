@@ -14,9 +14,11 @@ chrono = "0.4"
 futures-util = "0.3"
 humantime = "2.0"
 humantime-serde = "1.0"
+lazy_static = "1.4"
 openssl = "0.10"
 parking_lot = "0.11"
 percent-encoding = "1.0"
+regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_bytes = "0.11.5"
 serde_derive = "1.0"
@@ -37,3 +39,4 @@ matches = "0.1"
 tokio = { version = "0.2", features = ["macros"] }
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
+test-case = "1.0.0"

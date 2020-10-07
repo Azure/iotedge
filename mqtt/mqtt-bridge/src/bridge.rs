@@ -1,7 +1,7 @@
 use std::{collections::HashMap, convert::TryFrom, convert::TryInto};
 
 use async_trait::async_trait;
-use mqtt3::{proto::Publication, Event, ReceivedPublication};
+use mqtt3::{proto::Publication, Event};
 use mqtt_broker::TopicFilter;
 use tracing::{debug, info, warn};
 
@@ -224,21 +224,16 @@ where
 impl EventHandler for MessageHandler<InMemoryPersist> {
     type Error = BridgeError;
 
-    async fn handle(&mut self, event: Event) -> Result<(), Self::Error> {
+    async fn handle(&mut self, event: &Event) -> Result<(), Self::Error> {
         if let Event::Publication(publication) = event {
-            let ReceivedPublication {
-                topic_name,
-                qos,
-                retain,
-                payload,
-                dup: _,
-            } = publication;
-            let forward_publication = self.transform(topic_name.as_ref()).map(|f| Publication {
-                topic_name: f,
-                qos,
-                retain,
-                payload,
-            });
+            let forward_publication =
+                self.transform(&publication.topic_name)
+                    .map(|topic_name| Publication {
+                        topic_name,
+                        qos: publication.qos,
+                        retain: publication.retain,
+                        payload: publication.payload.clone(),
+                    });
 
             if let Some(f) = forward_publication {
                 debug!("Save message to store");
@@ -347,7 +342,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
         let loader = handler.inner.loader().await;
 
@@ -387,7 +382,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
         let loader = handler.inner.loader().await;
 
@@ -427,7 +422,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
         let loader = handler.inner.loader().await;
 
@@ -460,7 +455,7 @@ mod tests {
             dup: false,
         };
 
-        handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
         let loader = handler.inner.loader().await;
 
