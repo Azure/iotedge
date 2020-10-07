@@ -7,7 +7,7 @@ use mqtt_broker_tests_util::{
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::DisconnectCommand;
+use mqtt_edgehub::command::{DisconnectCommand, DISCONNECT_TOPIC};
 
 mod common;
 
@@ -26,7 +26,7 @@ async fn disconnect_client() {
 
     let command = DisconnectCommand::new(&broker_handle);
     let (command_handler_shutdown_handle, join_handle) =
-        common::start_command_handler(common::TEST_SERVER_ADDRESS.to_string(), command)
+        common::start_command_handler(server_handle.address(), command)
             .await
             .expect("could not start command handler");
 
@@ -43,7 +43,7 @@ async fn disconnect_client() {
         .with_client_id(ClientId::IdWithCleanSession("$edgehub".into()))
         .build();
 
-    let topic = common::DISCONNECT_TOPIC;
+    let topic = DISCONNECT_TOPIC;
     edgehub_client
         .publish_qos1(topic, r#""test-client""#, false)
         .await;

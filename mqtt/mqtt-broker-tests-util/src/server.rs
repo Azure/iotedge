@@ -101,6 +101,10 @@ impl DummyAuthenticator {
     pub fn anonymous() -> Self {
         Self(AuthId::Anonymous)
     }
+
+    pub fn id(id: &str) -> Self {
+        Self(AuthId::Identity(id.into()))
+    }
 }
 
 #[async_trait]

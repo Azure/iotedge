@@ -1079,6 +1079,7 @@ name = "mqtt-broker-tests-util"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "atty",
  "bytes",
  "futures",
  "futures-util",
@@ -1088,6 +1089,8 @@ dependencies = [
  "tokio",
  "tokio-io-timeout",
  "tokio-util 0.2.0",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
