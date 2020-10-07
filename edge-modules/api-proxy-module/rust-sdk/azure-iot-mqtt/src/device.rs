@@ -154,8 +154,8 @@ impl futures_core::Stream for Client {
 					if *reset_session {
 						match std::pin::Pin::new(&mut this.inner).poll_next(cx) {
 							std::task::Poll::Ready(Some(Ok(mqtt3::Event::NewConnection { .. }))) => (),
-							                            
-                            std::task::Poll::Ready(Some(Ok(mqtt3::Event::Disconnected(_)))) => (),
+
+							std::task::Poll::Ready(Some(Ok(mqtt3::Event::Disconnected(_)))) => (),
 
 							std::task::Poll::Ready(Some(Ok(mqtt3::Event::Publication(publication)))) => match InternalMessage::parse(publication, &this.c2d_prefix) {
  								Ok(InternalMessage::CloudToDevice(message)) =>
@@ -221,7 +221,7 @@ impl futures_core::Stream for Client {
 								continue;
 							},
 						},
-						
+
 						std::task::Poll::Ready(Some(Ok(mqtt3::Event::Disconnected(_)))) => continue,
 
 						// Don't expect any subscription updates at this point
