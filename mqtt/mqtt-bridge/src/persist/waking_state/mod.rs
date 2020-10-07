@@ -7,7 +7,6 @@ use mqtt3::proto::Publication;
 use crate::persist::{Key, PersistError};
 
 pub mod memory;
-// pub mod rocksdb;
 
 /// Responsible for waking waiting streams when new elements are added.
 /// Exposes a get method for retrieving a count of elements in order of insertion.
@@ -38,8 +37,6 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
-    // use rocksdb::DB;
-    // use tempfile::TempDir;
     use test_case::test_case;
     use tokio::sync::Notify;
 
@@ -48,7 +45,6 @@ mod tests {
     };
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     fn insert(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -66,7 +62,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     fn ordering_maintained_across_insert(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
         let num_elements = 10 as usize;
@@ -93,7 +88,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     async fn ordering_maintained_across_removal(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
         let num_elements = 10 as usize;
@@ -132,7 +126,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     fn larger_batch_size_respected(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -153,7 +146,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     fn smaller_batch_size_respected(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -183,7 +175,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     async fn remove_loaded(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -202,7 +193,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     fn remove_loaded_dne(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let bad_removal = state.remove(key1);
@@ -210,7 +200,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     fn remove_loaded_inserted_but_not_yet_retrieved(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -226,7 +215,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     async fn remove_loaded_out_of_order(mut state: impl StreamWakeableState) {
         // setup data
         let key1 = Key { offset: 0 };
@@ -254,7 +242,6 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::new())]
-    // #[test_case(init_rocksdb_test_store())]
     async fn insert_wakes_stream(state: impl StreamWakeableState + Send + 'static) {
         // setup data
         let state = Arc::new(Mutex::new(state));
@@ -318,12 +305,4 @@ mod tests {
             }
         }
     }
-
-    // pub fn init_rocksdb_test_store() -> WakingRocksDBStore {
-    //     let tmp_dir = TempDir::new().unwrap();
-    //     let path = tmp_dir.path().to_owned();
-
-    //     let db = DB::open_default(path).unwrap();
-    //     WakingRocksDBStore::new(db, "test_cf".to_string()).unwrap()
-    // }
 }

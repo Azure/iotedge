@@ -8,7 +8,6 @@ use std::{
 use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
-// use tracing::debug;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
