@@ -11,6 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
 
+    /// <summary>
+    /// Receives config updates from <see cref="IConfigSource"/> and
+    /// updates EdgeHub internal state accordingly
+    /// (Routes and Store and Forward config).
+    /// </summary>
     public class ConfigUpdater
     {
         readonly Router router;
@@ -37,7 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
-                configProvider.SetConfigUpdatedCallback(this.HandleUpdateConfig);
+                configProvider.ConfigUpdates +=
+                    async (sender, serviceIdentities) => await this.HandleUpdateConfig(serviceIdentities);
+
                 this.configProvider = Option.Some(configProvider);
 
                 // first try to update config with the cached config

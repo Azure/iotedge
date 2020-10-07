@@ -6,14 +6,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
+
+    /// <summary>
+    /// DTO that is used to deserialize EdgeHub Desired properties of the twin
+    /// into <see cref="EdgeHubConfig" /> by <see cref="TwinConfigSource" />.
+    /// </summary>
     public class EdgeHubDesiredProperties
     {
         [JsonConstructor]
-        public EdgeHubDesiredProperties(string schemaVersion, IDictionary<string, RouteConfiguration> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
+        public EdgeHubDesiredProperties(string schemaVersion,
+            IDictionary<string, RouteConfiguration> routes,
+            StoreAndForwardConfiguration storeAndForwardConfiguration,
+            AuthorizationConfiguration authorizationConfiguration)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.StoreAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
+            this.AuthorizationConfiguration = Preconditions.CheckNotNull(authorizationConfiguration, nameof(authorizationConfiguration));
 
             this.ValidateSchemaVersion();
         }
@@ -24,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public IDictionary<string, RouteConfiguration> Routes;
 
         public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
+
+        public AuthorizationConfiguration AuthorizationConfiguration { get; }
 
         internal void ValidateSchemaVersion()
         {

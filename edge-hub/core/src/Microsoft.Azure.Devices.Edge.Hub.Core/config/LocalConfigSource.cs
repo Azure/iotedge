@@ -10,25 +10,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Routing.Core;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
 
+    /// <summary>
+    /// In-memory config source for EdgeHubConfig.
+    /// </summary>
     public class LocalConfigSource : IConfigSource
     {
         readonly EdgeHubConfig edgeHubConfig;
 
-        public LocalConfigSource(RouteFactory routeFactory, IDictionary<string, string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
+        public LocalConfigSource(RouteFactory routeFactory,
+            IDictionary<string, string> routes,
+            StoreAndForwardConfiguration storeAndForwardConfiguration,
+            AuthorizationConfiguration authorizationConfiguration)
         {
             Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
             Preconditions.CheckNotNull(routes, nameof(routes));
             Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
-            IDictionary<string, RouteConfig> parsedRoutes = routes.ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
-            this.edgeHubConfig = new EdgeHubConfig(Constants.ConfigSchemaVersion.ToString(), new ReadOnlyDictionary<string, RouteConfig>(parsedRoutes), storeAndForwardConfiguration);
+            Preconditions.CheckNotNull(authorizationConfiguration, nameof(authorizationConfiguration));
+
+            IDictionary<string, RouteConfig> parsedRoutes = routes.ToDictionary(
+                r => r.Key,
+                r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value))
+            );
+
+            this.edgeHubConfig = new EdgeHubConfig(Constants.ConfigSchemaVersion.ToString(),
+                new ReadOnlyDictionary<string, RouteConfig>(parsedRoutes),
+                storeAndForwardConfiguration,
+                authorizationConfiguration);
         }
+
+#pragma warning disable CS0067 // unused event but part of the interface.
+        public event EventHandler<EdgeHubConfig> ConfigUpdates;
+#pragma warning restore CS0067
 
         public Task<Option<EdgeHubConfig>> GetCachedConfig() => Task.FromResult(Option.Some(this.edgeHubConfig));
 
         public Task<Option<EdgeHubConfig>> GetConfig() => Task.FromResult(Option.Some(this.edgeHubConfig));
-
-        public void SetConfigUpdatedCallback(Func<EdgeHubConfig, Task> callback)
-        {
-        }
     }
 }

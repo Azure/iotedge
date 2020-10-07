@@ -8,12 +8,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
 
+    /// <summary>
+    /// Creates EdgeHubConfig out of EdgeHubDesiredProperties.
+    /// </summary>
     public class EdgeHubConfigParser
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubConfigParser>();
 
         public static EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)
         {
+            // TODO: Parse Policy changes here
+            // Validate policy changes here.
+            // set lastDesiredStatus to error if validation failed.
+
             Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
 
             var routes = new Dictionary<string, RouteConfig>();
@@ -33,7 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
             }
 
-            return new EdgeHubConfig(desiredProperties.SchemaVersion, new ReadOnlyDictionary<string, RouteConfig>(routes), desiredProperties.StoreAndForwardConfiguration);
+            return new EdgeHubConfig(desiredProperties.SchemaVersion,
+                new ReadOnlyDictionary<string, RouteConfig>(routes),
+                desiredProperties.StoreAndForwardConfiguration,
+                desiredProperties.AuthorizationConfiguration);
         }
     }
 }

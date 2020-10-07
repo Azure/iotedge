@@ -12,6 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using static System.FormattableString;
     using static Microsoft.Azure.Devices.Edge.Hub.Core.EdgeHubConnection;
 
+    /// <summary>
+    /// Config source that extracts EdgeHubConfig from the EdgeHub twin (via ITwinManager).
+    /// </summary>
     public class TwinConfigSource : IConfigSource
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<TwinConfigSource>();
@@ -25,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly VersionInfo versionInfo;
         readonly EdgeHubConnection edgeHubConnection;
         Option<TwinCollection> lastDesiredProperties;
-        Func<EdgeHubConfig, Task> configUpdateCallback;
 
         public TwinConfigSource(EdgeHubConnection edgeHubConnection, string id, VersionInfo versionInfo, ITwinManager twinManager, Core.IMessageConverter<Twin> messageConverter, Core.IMessageConverter<TwinCollection> twinCollectionMessageConverter, RouteFactory routeFactory)
         {
@@ -36,7 +38,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.twinCollectionMessageConverter = twinCollectionMessageConverter;
             this.routeFactory = Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
+
+            this.edgeHubConnection.SetDesiredPropertiesUpdateCallback((message) => this.HandleDesiredPropertiesUpdate(message));
         }
+
+        public event EventHandler<EdgeHubConfig> ConfigUpdates;
 
         public async Task<Option<EdgeHubConfig>> GetCachedConfig()
         {
@@ -77,12 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        public void SetConfigUpdatedCallback(Func<EdgeHubConfig, Task> callback)
-        {
-            this.configUpdateCallback = callback;
-            this.edgeHubConnection.SetDesiredPropertiesUpdateCallback((message) => this.HandleDesiredPropertiesUpdate(message));
-        }
-
         // This method updates local state and should be called only after acquiring edgeHubConfigLock
         async Task<Option<EdgeHubConfig>> GetConfigInternal()
         {
@@ -118,21 +118,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             try
             {
-                TwinCollection twinCollection = this.twinCollectionMessageConverter.FromMessage(desiredPropertiesUpdate);
+                TwinCollection patch = this.twinCollectionMessageConverter.FromMessage(desiredPropertiesUpdate);
                 using (await this.configLock.LockAsync())
                 {
                     Option<EdgeHubConfig> edgeHubConfig = await this.lastDesiredProperties
-                        .Map(e => this.PatchDesiredProperties(e, twinCollection))
+                        .Map(baseline => this.PatchDesiredProperties(baseline, patch))
                         .GetOrElse(() => this.GetConfigInternal());
 
-                    await edgeHubConfig.ForEachAsync(
-                        async config =>
+                    edgeHubConfig.ForEach(
+                        config =>
                         {
-                            if (this.configUpdateCallback != null)
-                            {
-                                await this.configUpdateCallback(config);
-                            }
-                        });
+                            this.ConfigUpdates?.Invoke(this, config);
+                        }
+                    );
                 }
             }
             catch (Exception ex)
