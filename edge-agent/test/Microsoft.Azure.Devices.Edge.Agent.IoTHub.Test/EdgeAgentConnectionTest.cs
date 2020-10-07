@@ -1528,6 +1528,91 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Theory]
+        [MemberData(nameof(GetTwinForVerifyingSignatures))]
+        public void ValidateTwinSignature(string type, string imageName, string algo, string cert1, string cert2, string signature)
+        {
+            var desiredProperties = new
+            {
+                modules = new { },
+                runtime = new
+                {
+                    settings = new
+                    {
+                        minDockerVersion = "v1.25"
+                    },
+                    type = "docker"
+                },
+                schemaVersion = "1.0",
+                systemModules = new
+                {
+                    edgeAgent = new
+                    {
+                        settings = new
+                        {
+                            image = imageName,
+                            createOptions = string.Empty,
+                        },
+                        type = "docker"
+                    },
+                    edgeHub = new
+                    {
+                        settings = new
+                        {
+                            image = "mcr.microsoft.com/azureiotedge-hub:1.0",
+                            createOptions = "{\"HostConfig\":{\"PortBindings\":{\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}",
+                        },
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "always"
+                    }
+                },
+                integrity = new
+                {
+                    header = new
+                    {
+                        version = "1",
+                        cert1,
+                        cert2,
+                    },
+                    signature = new
+                    {
+                        bytes = signature,
+                        algorithm = algo
+                    }
+                },
+                version = "10"
+            };
+
+            TwinCollection twinDesiredProperties = new TwinCollection(JsonConvert.SerializeObject(desiredProperties));
+            if (type == "good")
+            {
+                Assert.True(EdgeAgentConnection.ExtractAgentTwinAndVerify(twinDesiredProperties));
+            }
+            else
+            {
+                Assert.False(EdgeAgentConnection.ExtractAgentTwinAndVerify(twinDesiredProperties));
+            }
+        }
+
+        public static IEnumerable<object[]> GetTwinForVerifyingSignatures()
+        {
+            string goodImageName = "mcr.microsoft.com/azureiotedge-agent-good-image:1.0";
+            string maliciousImageName = "mcr.microsoft.com/azureiotedge-agent-malicious-image:1.0";
+            string ecdsaCert1 = "\rMIIBojCCAQMCFC9DNqy01WDwj8osN3vtP1WOvIK0MAoGCCqGSM49BAMCMC8xLTAr\rBgNVBAMMJE1hbmlmZXN0IFNpZ25lciBDbGllbnQgRUNEU0EgUm9vdCBDQTAeFw0y\rMDEwMDQwMTMxMzdaFw0yMDExMDMwMTMxMzdaMDMxMTAvBgNVBAMMKE1hbmlmZXN0\rIFNpZ25lciBDbGllbnQgRUNEU0EgU2lnbmVyIENlcnQwWTATBgcqhkjOPQIBBggq\rhkjOPQMBBwNCAAQkCRltNJxkeu";
+            string ecdsaCert2 = "ZpMzR8EyGplPN30VbGA5ZTDMXXMiGNykwDV2jA\ri9Z6vspIIqxpUibBEfd+5cnkl+Mw9T1ze0IlMAoGCCqGSM49BAMCA4GMADCBiAJC\rAQifI6gDU9Bv87aHikmxXtNW6Xvbzqhivd8cq9Xc6nKBt7zYLvsKzXBJhJNIrGCa\rJ3Yb+Q+FQfYOXfqMP/mcyKNdAkIBxRxVA1loN2VwoeG9IUG+rQhLdCzTvOgQrxZq\rhJRvXjMJxD52KClvXp/Bijq17yhV1aNNLTQuaV4Qiwh38fwA+kA=\r";
+            string rsaCert1 = "\rMIID5TCCAc0CFA3QH6TFwsq4ZQwX3hrcKfSFF0UfMA0GCSqGSIb3DQEBCwUAMC0x\rKzApBgNVBAMMIk1hbmlmZXN0IFNpZ25lciBDbGllbnQgUlNBIFJvb3QgQ0EwHhcN\rMjAwOTMwMjA1MDM1WhcNMjEwOTMwMjA1MDM1WjAxMS8wLQYDVQQDDCZNYW5pZmVz\rdCBTaWduZXIgQ2xpZW50IFJTQSBTaWduZXIgQ2VydDCCASIwDQYJKoZIhvcNAQEB\rBQADggEPADCCAQoCggEBALl7JhOI95LHlA0dNYIg6jnJJNLTEh3G8v/gzhB+61F6\rTXLV2DCjPxHwnYq09mFpjj4+JAwLw44MJtU9VEszw+XvXwibPCbxQ/GMYy5w+By6\rHVLMDF3l8QpLmNnhc+KNjgDQmwinGP+gmNrEF7oNIp/n2cA1x8s5q5LueisB4szt\rnMSKacpddm15h38KMxgJkfetpfBhQdojNvzaTeH4gmT34/39QLkUX3g6PJ88nHob\rZEwYQDZ4xGwbrypdVUm2xNGcZLmBgDYNYe5zYy/zWj2DkzOTCkypsf/8toL38Gqn\rUCPEdi7lGwN8/Lp8TASFeB3cc6WRDaiJYdeph7VpWaMCAwEAATANBgkqhkiG9w0B\rAQsFAAOCAgEARChMFj1Ktt/Gz58A";
+            string rsaCert2 = "4irJL/HocqDOTgjDEaz0sHGD8Cn8QegINW3H\rT96zJ0ra9uwIyHbZk6UWdIhQfmNRlsm9tqB/9XhiW+PAGjYaA28FDY19cyGHhB54\r94gNLS+DqIkhwab5i4QXADtoE6ni3T/Dre/gPf7QrVrLBezjYq+WKZdOxUUfpsDb\rukf0wmfcSjdDBeWyA605Q8KKsk9M77e7nuzezq/s+HIMFlMvM7xZEowRkqkHZqZ2\rZ8ksUBucjDqZUhH7iyIu4ohH3yZjzEGh77s+jPWk4Om9mUyma/hct9jIsO1+MvyR\rFt9uTfzm+2xrPc8YZfzv9FnAc+3APjskmo94W8daHUEMcOqs40RBwp4JHR8xv1vq\rcrX/PWTpG7/2RRcG4x3dc0TmnOFbcLsa2bMIrHAoFI98YW8yhHW7SZdIRdKJRJ1u\rdYSfoVcgBiQf0CHgIg++f+SyYsZsz0UEP1jtq3ieUDSvlxUgxnDfVx6h4TKCYxrV\rhln4hAR4wSA7+UM3UYYG2AMKrBCxV/cxOO/pFJCwveJtIJVGUi1cww2LTglJ9RRO\rQrMMrgXPtl4DBUzO7Kzvexfq4pmi4mCWBou+0PeCfI9aBnvt6nobrXKAxNkXUKIi\ruTOizMejEmrOWVGOTixXH1OMVvg0uHW65vbyxX/DvOErMaHubCHJNIk=\r";
+            string goodEcdsaSignature = "DPu2UJyq0K7WvhsnSA3TOjFZ6Z9/Y1zXR6Me9Xtdj3HctJrcrNY2rU5ukg3HGqZ/flEYSjGILvI66tl7EgsTdQ==";
+            string goodRsaSignature = "YTqJF9gbRo8CWPs92PJkA/HaGFR22brzE2V8y7mofoSRJMpeRgu51tPcclOTsyLgP45n339KtWQGAaeadmvOh5RsYbDF0ZeYR1X/6Hw6bT9gz7TQzYgvENuIWzpnRvhZ8tOWYbLb/739obBbyT6aYNdsc6qh5vyfzejMBJoV0Ie9Sw8ATb1WMub8ut+OLpU+/2rzP99PpjwKVgSSJ3GGiXapZ+GKMV2NCVpuXfu5iuvCA9iPaTNyIYhn2C2OwEKsUkoCZCTfRBH4YMlqUoJT5atKy+LWfIUe/fr2xusMn5mYuDEia+vofvJXDV1/CFoHm7+Fu9jnqAHkn9c4jaQmvw==";
+            string ecdsaAlgo = "ES256";
+            string rsaAlgo = "RS256";
+            yield return new object[] { "good", goodImageName, ecdsaAlgo, ecdsaCert1, ecdsaCert2, goodEcdsaSignature };
+            yield return new object[] { "bad", maliciousImageName, ecdsaAlgo, ecdsaCert1, ecdsaCert2, goodEcdsaSignature };
+            yield return new object[] { "good", goodImageName, rsaAlgo, rsaCert1, rsaCert2, goodRsaSignature };
+            yield return new object[] { "bad", maliciousImageName, rsaAlgo, rsaCert1, rsaCert2, goodRsaSignature };
+        }
+
+        [Theory]
         [Unit]
         [InlineData(typeof(InvalidOperationException))]
         [InlineData(typeof(TimeoutException))]

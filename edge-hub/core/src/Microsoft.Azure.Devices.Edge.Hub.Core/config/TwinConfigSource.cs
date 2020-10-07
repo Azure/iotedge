@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
+    using System.Security.Cryptography;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -9,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using static System.FormattableString;
     using static Microsoft.Azure.Devices.Edge.Hub.Core.EdgeHubConnection;
 
@@ -91,11 +94,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 Core.IMessage message = await this.twinManager.GetTwinAsync(this.id);
                 Twin twin = this.twinMessageConverter.FromMessage(message);
-                this.lastDesiredProperties = Option.Some(twin.Properties.Desired);
+                TwinCollection desiredProperties = twin.Properties.Desired;
+                Events.LogDesiredPropertiesAfterFullTwin(desiredProperties);
+                if (!CheckIfTwinPropertiesAreSigned(desiredProperties))
+                {
+                    Events.TwinPropertiesAreNotSigned();
+                }
+                else
+                {
+                    Events.TwinPropertiesAreSigned();
+                    if (ExtractHubTwinAndVerify(desiredProperties))
+                    {
+                        Events.VerifyTwinSignatureSuceeded();
+                    }
+                    else
+                    {
+                        // TODO: What about updating the Edgehub config?
+                        Events.VerifyTwinSignatureFailed();
+                        return Option.None<EdgeHubConfig>();
+                    }
+                }
+
+                this.lastDesiredProperties = Option.Some(desiredProperties);
                 try
                 {
-                    var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
-                    edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredProperties, this.routeFactory));
+                    var edgeHubDesiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredProperties.ToJson());
+                    edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(edgeHubDesiredProperties, this.routeFactory));
                     await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
                     Events.GetConfigSuccess();
                 }
@@ -149,7 +173,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             try
             {
                 string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
-                this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
+                var desiredProperties = new TwinCollection(desiredPropertiesJson);
+                Events.LogDesiredPropertiesAfterPatch(desiredProperties);
+                if (!CheckIfTwinPropertiesAreSigned(desiredProperties))
+                {
+                    Events.TwinPropertiesAreNotSigned();
+                }
+                else
+                {
+                    Events.TwinPropertiesAreSigned();
+                    if (ExtractHubTwinAndVerify(desiredProperties))
+                    {
+                        Events.VerifyTwinSignatureSuceeded();
+                    }
+                    else
+                    {
+                        // TODO: What about updating the Edgehub config?
+                        Events.VerifyTwinSignatureFailed();
+                        lastDesiredStatus = new LastDesiredStatus(400, "Twin Signature Verification failed");
+                        return Option.None<EdgeHubConfig>();
+                    }
+                }
+
+                this.lastDesiredProperties = Option.Some(desiredProperties);
                 var desiredPropertiesPatch = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredPropertiesJson);
                 edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredPropertiesPatch, this.routeFactory));
                 lastDesiredStatus = new LastDesiredStatus(200, string.Empty);
@@ -182,6 +228,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
+        private static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties) => JObject.Parse(twinDesiredProperties.ToString())["integrity"] != null;
+
+        public static bool ExtractHubTwinAndVerify(TwinCollection twinDesiredProperties)
+        {
+            try
+            {
+                // Extract Desired properties
+                JObject desiredProperties = new JObject();
+                JObject twinJobject = JObject.Parse(twinDesiredProperties.ToString());
+                desiredProperties["routes"] = twinJobject["routes"];
+                desiredProperties["schemaVersion"] = twinJobject["schemaVersion"];
+                desiredProperties["storeAndForwardConfiguration"] = twinJobject["storeAndForwardConfiguration"];
+
+                // Extract Integrity section
+                JToken integrity = twinJobject["integrity"];
+                JToken header = integrity["header"];
+                string combinedCert = integrity["header"]["cert1"].Value<string>() + integrity["header"]["cert2"].Value<string>();
+                X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(combinedCert));
+                JToken signature = integrity["signature"]["bytes"];
+
+                // Extract Signature and algorithm
+                byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
+                JToken algo = integrity["signature"]["algorithm"];
+                string algorithmScheme = VerifyTwinSignature.GetAlgorithmScheme(algo.ToString());
+                HashAlgorithmName hashAlgorithm = VerifyTwinSignature.GetHashAlgorithm(algo.ToString());
+                Events.ExtractHubTwinSucceeded();
+
+                return VerifyTwinSignature.VerifyModuleTwinSignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algorithmScheme, hashAlgorithm);
+            }
+            catch (Exception ex)
+            {
+                Events.ExtractHubTwinAndVerifyFailed(ex);
+                throw ex;
+            }
+        }
+
         static class Events
         {
             const int IdStart = HubCoreEventIds.TwinConfigSource;
@@ -195,7 +277,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 ErrorUpdatingLastDesiredStatus,
                 ErrorHandlingDesiredPropertiesUpdate,
                 PatchConfigSuccess,
-                ErrorGettingCachedConfig
+                ErrorGettingCachedConfig,
+                LogDesiredPropertiesAfterPatch,
+                LogDesiredPropertiesAfterFullTwin,
+                ExtractHubTwinAndVerifyFailed,
+                ExtractHubTwinSucceeded,
+                VerifyTwinSignatureFailed,
+                VerifyTwinSignatureSuceeded,
+                VerifyTwinSignatureException,
+                TwinPropertiesAreSigned,
+                TwinPropertiesAreNotSigned
             }
 
             internal static void ErrorGettingEdgeHubConfig(Exception ex)
@@ -246,6 +337,51 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     (int)EventIds.ErrorGettingCachedConfig,
                     ex,
                     Invariant($"Failed to get local config"));
+            }
+
+            internal static void LogDesiredPropertiesAfterPatch(TwinCollection twinCollection)
+            {
+                Log.LogDebug((int)EventIds.LogDesiredPropertiesAfterPatch, $"Obtained desired properties after apply patch: {twinCollection}");
+            }
+
+            internal static void LogDesiredPropertiesAfterFullTwin(TwinCollection twinCollection)
+            {
+                Log.LogDebug((int)EventIds.LogDesiredPropertiesAfterFullTwin, $"Obtained desired properites after processing full twin: {twinCollection}");
+            }
+
+            internal static void ExtractHubTwinAndVerifyFailed(Exception exception)
+            {
+                Log.LogError((int)EventIds.ExtractHubTwinAndVerifyFailed, exception, "Extract Edge Hub twin and verify failed");
+            }
+
+            internal static void ExtractHubTwinSucceeded()
+            {
+                Log.LogDebug((int)EventIds.ExtractHubTwinSucceeded, "Successfully Extracted twin for signature verification");
+            }
+
+            internal static void VerifyTwinSignatureException(Exception exception)
+            {
+                Log.LogError((int)EventIds.VerifyTwinSignatureException, exception, "Verify Twin Signature Failed Exception");
+            }
+
+            internal static void VerifyTwinSignatureFailed()
+            {
+                Log.LogError((int)EventIds.VerifyTwinSignatureFailed, "Twin Signature is not verified");
+            }
+
+            internal static void VerifyTwinSignatureSuceeded()
+            {
+                Log.LogInformation((int)EventIds.VerifyTwinSignatureSuceeded, "Twin Signature is verified");
+            }
+
+            internal static void TwinPropertiesAreSigned()
+            {
+                Log.LogDebug((int)EventIds.TwinPropertiesAreSigned, $"Twin Properties are signed");
+            }
+
+            internal static void TwinPropertiesAreNotSigned()
+            {
+                Log.LogDebug((int)EventIds.TwinPropertiesAreNotSigned, $"Twin Properties are not signed");
             }
         }
     }
