@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use futures_util::future::join_all;
+use tokio::time;
 use tracing::{error, info};
 
 use crate::bridge::{Bridge, BridgeError};
@@ -49,6 +50,11 @@ impl BridgeController {
                 error!(message = "error while running bridge", err = %e);
             }
         }
+
+        // TODO: bridge controller will eventually listen for updates via the twin
+        //       until this is complete we need to wait here indefinitely
+        //       if we stop the bridge controller, our startup/shutdown logic will shut eveything down
+        time::delay_for(Duration::from_secs(std::u64::MAX)).await;
 
         info!("bridge controller stopped");
     }
