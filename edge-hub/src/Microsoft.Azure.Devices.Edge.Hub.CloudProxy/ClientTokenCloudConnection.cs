@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
+    using System.Security.Authentication;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -18,16 +19,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     class ClientTokenCloudConnection : CloudConnection, IClientTokenCloudConnection
     {
         static readonly TimeSpan TokenExpiryBuffer = TimeSpan.FromMinutes(5); // Token is usable if it does not expire in 5 mins
-        static readonly TimeSpan TokenRetryWaitTime = TimeSpan.FromSeconds(20);
+        static readonly TimeSpan PollBuffer = TimeSpan.FromSeconds(20);
 
-        readonly AsyncLock identityUpdateLock = new AsyncLock();
-
+        readonly ClientTokenBasedTokenProvider tokenProvider;
         bool callbacksEnabled = true;
-        Option<TaskCompletionSource<string>> tokenGetter;
         Option<ICloudProxy> cloudProxy;
 
         ClientTokenCloudConnection(
             IIdentity identity,
+            ClientTokenBasedTokenProvider tokenProvider,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ITransportSettings[] transportSettings,
             IMessageConverterProvider messageConverterProvider,
@@ -51,12 +51,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 productInfo,
                 modelId)
         {
+            this.tokenProvider = tokenProvider;
         }
 
         protected override bool CallbacksEnabled => this.callbacksEnabled;
 
-        public static async Task<ClientTokenCloudConnection> Create(
-            ITokenCredentials tokenCredentials,
+        public static async Task<IClientTokenCloudConnection> Create(
+            IIdentity identity,
+            ICredentialsCache credentialsCache,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ITransportSettings[] transportSettings,
             IMessageConverterProvider messageConverterProvider,
@@ -66,11 +68,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
             string productInfo,
-            Option<string> modelId)
+            Option<string> modelId,
+            Option<string> initialToken)
         {
-            Preconditions.CheckNotNull(tokenCredentials, nameof(tokenCredentials));
+            Preconditions.CheckNotNull(identity, nameof(identity));
+            var tokenProvider = new ClientTokenBasedTokenProvider(identity, credentialsCache, initialToken);
             var cloudConnection = new ClientTokenCloudConnection(
-                tokenCredentials.Identity,
+                identity,
+                tokenProvider,
                 connectionStatusChangedHandler,
                 transportSettings,
                 messageConverterProvider,
@@ -81,12 +86,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 operationTimeout,
                 productInfo,
                 modelId);
-            Events.Debugging($"Before create new ClientTokenCloudConnection for device {tokenCredentials.Identity.Id} with token {tokenCredentials.Token}.");
-            ITokenProvider tokenProvider = new ClientTokenBasedTokenProvider(tokenCredentials, cloudConnection);
-            ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
+            Events.Debugging($"Before create new ClientTokenCloudConnection for device {identity.Id}.");
+            var cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);
-            Events.Debugging($"After create new ClientTokenCloudConnection for device {tokenCredentials.Identity.Id} with token {tokenCredentials.Token}.");
-            Events.Debugging($"Associated ClientTokenCloudConnection({cloudConnection.GetHashCode()}) to {tokenCredentials.Identity.Id}.");
+            Events.Debugging($"After create new ClientTokenCloudConnection for device {identity.Id}.");
+            Events.Debugging($"Associated ClientTokenCloudConnection({cloudConnection.GetHashCode()}) to {identity.Id}.");
             return cloudConnection;
         }
 
@@ -100,189 +104,135 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         ///             b. If not, then it creates a new cloud proxy (and device client) and closes the existing one
         ///         ii. Else, if there is no cloud proxy, then opens a device client and creates a cloud proxy.
         /// </summary>
-        public async Task<ICloudProxy> UpdateTokenAsync(ITokenCredentials newTokenCredentials)
+        /// <param name="tokenCredentials">New token credentials.</param>
+        /// <returns>CloudProxy instance.</returns>
+        public async Task<ICloudProxy> UpdateTokenAsync(ITokenCredentials tokenCredentials)
         {
-            Preconditions.CheckNotNull(newTokenCredentials, nameof(newTokenCredentials));
-
-            using (await this.identityUpdateLock.LockAsync())
+            Preconditions.CheckNotNull(tokenCredentials, nameof(tokenCredentials));
+            // Disable callbacks while we update the cloud proxy.
+            // TODO - instead of this, make convert Option<ICloudProxy> CloudProxy to Task<Option<ICloudProxy>> GetCloudProxy
+            // which can be awaited when an update is in progress.
+            this.callbacksEnabled = false;
+            try
             {
-                // Disable callbacks while we update the cloud proxy.
-                // TODO - instead of this, make convert Option<ICloudProxy> CloudProxy to Task<Option<ICloudProxy>> GetCloudProxy
-                // which can be awaited when an update is in progress.
-                this.callbacksEnabled = false;
-                try
-                {
-                    ITokenProvider tokenProvider = new ClientTokenBasedTokenProvider(newTokenCredentials, this);
-                    // First check if there is an existing cloud proxy
-                    ICloudProxy proxy = await this.CloudProxy.Map(
-                            async cp =>
-                            {
-                                // If the Identity has a token, and we have a tokenGetter, that means
-                                // the connection is waiting for a new token. So give it the token and
-                                // complete the tokenGetter
-                                if (this.tokenGetter.HasValue)
-                                {
-                                    if (TokenHelper.IsTokenExpired(this.Identity.IotHubHostName, newTokenCredentials.Token))
-                                    {
-                                        throw new InvalidOperationException($"Token for client {this.Identity.Id} is expired");
-                                    }
+                // First check if there is an existing cloud proxy
+                ICloudProxy proxy = await this.CloudProxy.Map(cp =>
+                    {
+                        // If CloudProxy exists, just update tokenProvider with new token
+                        this.tokenProvider.UpdateToken(tokenCredentials.Token);
+                        return Task.FromResult(cp);
+                    })
+                    // No existing cloud proxy, so just create a new one.
+                    .GetOrElse(() => this.CreateNewCloudProxyAsync(this.tokenProvider));
 
-                                    this.tokenGetter.ForEach(
-                                        tg =>
-                                        {
-                                            // First reset the token getter and then set the result.
-                                            this.tokenGetter = Option.None<TaskCompletionSource<string>>();
-                                            tg.SetResult(newTokenCredentials.Token);
-                                        });
-                                    return cp;
-                                }
-                                else
-                                {
-                                    // Else this is a new connection for the same device Id. So open a new connection,
-                                    // and if that is successful, close the existing one.
-                                    ICloudProxy newCloudProxy = await this.CreateNewCloudProxyAsync(tokenProvider);
-                                    await cp.CloseAsync();
-                                    return newCloudProxy;
-                                }
-                            })
-                        // No existing cloud proxy, so just create a new one.
-                        .GetOrElse(() => this.CreateNewCloudProxyAsync(tokenProvider));
-
-                    // Set Identity only after successfully opening cloud proxy
-                    // That way, if a we have one existing connection for a deviceA,
-                    // and a new connection for deviceA comes in with an invalid key/token,
-                    // the existing connection is not affected.
-                    this.cloudProxy = Option.Some(proxy);
-                    Events.UpdatedCloudConnection(this.Identity);
-                    return proxy;
-                }
-                catch (Exception ex)
-                {
-                    Events.CreateException(ex, this.Identity);
-                    throw;
-                }
-                finally
-                {
-                    this.callbacksEnabled = true;
-                }
+                // Set Identity only after successfully opening cloud proxy
+                // That way, if a we have one existing connection for a deviceA,
+                // and a new connection for deviceA comes in with an invalid key/token,
+                // the existing connection is not affected.
+                this.cloudProxy = Option.Some(proxy);
+                Events.UpdatedCloudConnection(this.Identity);
+                return proxy;
+            }
+            catch (Exception ex)
+            {
+                Events.CreateException(ex, this.Identity);
+                throw;
+            }
+            finally
+            {
+                this.callbacksEnabled = true;
             }
         }
 
         protected override Option<ICloudProxy> GetCloudProxy() => this.cloudProxy;
 
-        // Checks if the token expires too soon
-        static bool IsTokenUsable(string hostname, string token)
+        internal class ClientTokenBasedTokenProvider : ITokenProvider
         {
-            try
-            {
-                return TokenHelper.GetTokenExpiryTimeRemaining(hostname, token) > TokenExpiryBuffer;
-            }
-            catch (Exception e)
-            {
-                Events.ErrorCheckingTokenUsable(e);
-                return false;
-            }
-        }
+            IIdentity identity;
+            ICredentialsCache credentialsCache;
+            Option<string> cachedToken;
+            Option<DateTime> firstFailureTime;
 
-        /// <summary>
-        /// If the existing Identity has a usable token, then use it.
-        /// Else, generate a notification of token being near expiry and return a task that
-        /// can be completed later.
-        /// Keep retrying till we get a usable token.
-        /// Note - Don't use this.Identity in this method, as it may not have been set yet!
-        /// </summary>
-        async Task<string> GetNewToken(string currentToken)
-        {
-            var traceId = Guid.NewGuid().ToString();
-            Events.GetNewToken(this.Identity.Id);
-            Events.Debugging($"[traceId={traceId}]: Before GetNewToken for device {this.Identity.Id} with old token={currentToken}.");
-            bool retrying = false;
-            string token = currentToken;
-            while (true)
+            public ClientTokenBasedTokenProvider(IIdentity identity, ICredentialsCache credentialsCache, Option<string> initialToken)
             {
-                // We have to catch UnauthorizedAccessException, because on IsTokenUsable, we call parse from
-                // Device Client and it throws if the token is expired.
-                if (IsTokenUsable(this.Identity.IotHubHostName, token))
+                this.identity = identity;
+                this.cachedToken = initialToken;
+                this.credentialsCache = credentialsCache;
+                this.firstFailureTime = Option.None<DateTime>();
+            }
+
+            internal void UpdateToken(string token)
+            {
+                Events.Debugging($"Before UpdateToken for device {this.identity.Id} to token={token}.");
+                if (IsTokenUsable(this.identity.IotHubHostName, token))
                 {
-                    Events.Debugging($"[traceId={traceId}]: Obtained new token={token} for device {this.Identity.Id}.");
-                    if (retrying)
-                    {
-                        Events.NewTokenObtained(this.Identity, token);
-                    }
-                    else
-                    {
-                        Events.UsingExistingToken(this.Identity.Id);
-                    }
-
-                    Events.Debugging($"[traceId={traceId}]: After GetNewToken for device {this.Identity.Id}.");
-                    return token;
+                    this.cachedToken = Option.Some(token);
+                    Events.Debugging($"After UpdateToken for device {this.identity.Id} to token={token}.");
                 }
                 else
                 {
-                    Events.TokenNotUsable(this.Identity, token);
+                    Events.Debugging($"After UpdateToken for device {this.identity.Id} failed with invalid token={token}.");
+                    throw new ArgumentException("Invalid token.");
                 }
-
-                bool newTokenGetterCreated = false;
-                // No need to lock here as the lock is being held by the refresher.
-                TaskCompletionSource<string> tcs = this.tokenGetter
-                    .GetOrElse(
-                        () =>
-                        {
-                            Events.SafeCreateNewToken(this.Identity.Id);
-                            var taskCompletionSource = new TaskCompletionSource<string>();
-                            this.tokenGetter = Option.Some(taskCompletionSource);
-                            newTokenGetterCreated = true;
-                            return taskCompletionSource;
-                        });
-
-                // If a new tokenGetter was created, then invoke the connection status changed handler
-                if (newTokenGetterCreated)
-                {
-                    // If retrying, wait for some time.
-                    if (retrying)
-                    {
-                        await Task.Delay(TokenRetryWaitTime);
-                    }
-
-                    this.ConnectionStatusChangedHandler(this.Identity.Id, CloudConnectionStatus.TokenNearExpiry);
-                }
-
-                retrying = true;
-                // this.tokenGetter will be reset when this task returns.
-                token = await tcs.Task;
-            }
-        }
-
-        internal class ClientTokenBasedTokenProvider : ITokenProvider
-        {
-            readonly ClientTokenCloudConnection cloudConnection;
-            readonly AsyncLock tokenUpdateLock = new AsyncLock();
-            string identity;
-            string token;
-
-            public ClientTokenBasedTokenProvider(ITokenCredentials tokenCredentials, ClientTokenCloudConnection cloudConnection)
-            {
-                this.cloudConnection = cloudConnection;
-                this.identity = tokenCredentials.Identity.Id;
-                this.token = tokenCredentials.Token;
             }
 
             public async Task<string> GetTokenAsync(Option<TimeSpan> ttl)
             {
-                using (await this.tokenUpdateLock.LockAsync())
+                Events.Debugging($"Before GetTokenAsync for device {this.identity.Id}.");
+                try
                 {
-                    try
+                    string token = await this.cachedToken
+                        .Filter(tk => IsTokenUsable(this.identity.IotHubHostName, tk))
+                        .Map(tk => Task.FromResult(tk))
+                        .GetOrElse(() => GetTokenFromCredentialsCacheAsync(this.credentialsCache, this.identity));
+                    this.cachedToken = Option.Some(token);
+                    this.firstFailureTime = Option.None<DateTime>();
+                    Events.Debugging($"After GetTokenAsync for device {this.identity.Id}.");
+                    return token;
+                }
+                catch (AuthenticationException ex)
+                {
+                    var timestamp = DateTime.Now;
+                    if (this.firstFailureTime.Filter(fft => timestamp > fft + PollBuffer).HasValue)
                     {
-                        Events.Debugging($"Before GetTokenAsync for device {this.identity}.");
-                        this.token = await this.cloudConnection.GetNewToken(this.token);
-                        Events.Debugging($"After GetTokenAsync for device {this.identity}, token={this.token}.");
-                        return this.token;
-                    }
-                    catch (Exception ex)
-                    {
+                        // if firstFailureTime is post poll buffer
+                        Events.Debugging($"After GetTokenAsync for device {this.identity.Id} failed with error: {ex}.");
                         Events.ErrorRenewingToken(ex);
                         throw;
                     }
+                    else
+                    {
+                        // Convert to timeout exception to make DeviceClient retry
+                        this.firstFailureTime = Option.Some(this.firstFailureTime.GetOrElse(timestamp));
+                        Events.Debugging($"GetTokenAsync for device {this.identity.Id} temporary failed with error: {ex}.");
+                        throw new TimeoutException(ex.Message);
+                    }
+                }
+            }
+
+            static async Task<string> GetTokenFromCredentialsCacheAsync(ICredentialsCache credentialsCache, IIdentity identity)
+            {
+                Events.Debugging($"Before get new token for device {identity} from ICredentialsCache.");
+                var credentials = await credentialsCache.Get(identity);
+                var token = credentials.Map(cr => cr as ITokenCredentials)
+                    .Filter(tcr => IsTokenUsable(identity.IotHubHostName, tcr.Token))
+                    .Map(tcr => tcr.Token)
+                    .Expect(() => new AuthenticationException($"Unabled to get valid token from credentials cache for device {identity.Id}."));
+                Events.Debugging($"After get new token for device {identity} from ICredentialsCache.");
+                return token;
+            }
+
+            // Checks if the token expires too soon
+            static bool IsTokenUsable(string hostname, string token)
+            {
+                try
+                {
+                    return TokenHelper.GetTokenExpiryTimeRemaining(hostname, token) > TokenExpiryBuffer;
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorCheckingTokenUsable(e);
+                    return false;
                 }
             }
         }

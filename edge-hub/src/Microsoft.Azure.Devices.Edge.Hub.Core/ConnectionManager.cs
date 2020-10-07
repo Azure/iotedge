@@ -198,7 +198,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         Task<Try<ICloudConnection>> CreateOrUpdateCloudConnection(ConnectedDevice device, IClientCredentials credentials) =>
-            device.CloudConnection.Map(
+            device.CloudConnection.Filter(cc => cc.IsActive)
+                .Map(
                     async c =>
                     {
                         try
@@ -357,7 +358,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
                 catch (Exception e)
                 {
-                    Events.Debugging($"After create new connection for device {credentials.Identity.Id} with exception {e.StackTrace}.");
+                    Events.Debugging($"After create new connection for device {credentials.Identity.Id} with exception {e}.");
                     throw;
                 }
             }

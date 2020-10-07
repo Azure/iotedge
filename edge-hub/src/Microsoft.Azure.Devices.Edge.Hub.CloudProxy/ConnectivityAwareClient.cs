@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                Events.Debugging($"After SendEventAsync of device {this.identity.Id} with failure: {ex.StackTrace}");
+                Events.Debugging($"After SendEventAsync of device {this.identity.Id} with failure: {ex}");
                 throw;
             }
         }
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                Events.Debugging($"After SendEventBatchAsync of device {this.identity.Id} with failure: {ex.StackTrace}");
+                Events.Debugging($"After SendEventBatchAsync of device {this.identity.Id} with failure: {ex}");
                 throw;
             }
         }

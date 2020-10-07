@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception e)
             {
-                Debugging($"After connect DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e.StackTrace}.");
+                Debugging($"After connect DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e}.");
                 this.isActive.Set(false);
                 this.underlyingDeviceClient?.Dispose();
                 throw;
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception e)
             {
-                Debugging($"After SendEventAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e.StackTrace}.");
+                Debugging($"After SendEventAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e}.");
                 throw;
             }
         }
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception e)
             {
-                Debugging($"After SendEventBatchAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e.StackTrace}.");
+                Debugging($"After SendEventBatchAsync with DeviceClient {this.underlyingDeviceClient.GetHashCode()} of device {this.deviceId} failed with error {e}.");
                 throw;
             }
         }

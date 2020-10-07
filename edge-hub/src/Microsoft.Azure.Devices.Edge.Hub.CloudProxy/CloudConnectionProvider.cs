@@ -69,111 +69,97 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHub = Option.Some(Preconditions.CheckNotNull(edgeHubInstance, nameof(edgeHubInstance)));
         }
 
-        public async Task<Try<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        async Task<ICloudConnection> ConnectWithCredentialsCache(
+            IIdentity identity,
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
+            string productInfo,
+            Option<string> modelId,
+            Option<string> initialToken)
         {
-            Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
-
-            try
-            {
-                Events.CreatingCloudConnectionUsingClientCredentials(clientCredentials);
-                var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), clientCredentials.Identity.Id);
-                ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(clientCredentials.Identity.Id);
-                string productInfo = connectionMetadata.EdgeProductInfo;
-                Option<string> modelId = clientCredentials.ModelId.HasValue ? clientCredentials.ModelId : connectionMetadata.ModelId;
-                if (this.edgeHubIdentity.Id.Equals(clientCredentials.Identity.Id))
-                {
-                    ICloudConnection cc = await CloudConnection.Create(
-                        clientCredentials.Identity,
-                        connectionStatusChangedHandler,
-                        this.transportSettings,
-                        this.messageConverterProvider,
-                        this.clientProvider,
-                        cloudListener,
-                        this.edgeHubTokenProvider,
-                        this.idleTimeout,
-                        this.closeOnIdleTimeout,
-                        this.operationTimeout,
-                        productInfo,
-                        modelId);
-                    Events.SuccessCreatingCloudConnection(clientCredentials.Identity);
-                    return Try.Success(cc);
-                }
-                else if (clientCredentials is ITokenCredentials clientTokenCredentails)
-                {
-                    ICloudConnection cc = await ClientTokenCloudConnection.Create(
-                        clientTokenCredentails,
-                        connectionStatusChangedHandler,
-                        this.transportSettings,
-                        this.messageConverterProvider,
-                        this.clientProvider,
-                        cloudListener,
-                        this.idleTimeout,
-                        this.closeOnIdleTimeout,
-                        this.operationTimeout,
-                        productInfo,
-                        modelId);
-                    Events.SuccessCreatingCloudConnection(clientCredentials.Identity);
-                    return Try.Success(cc);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Cannot connect using client credentials of type {clientCredentials.AuthenticationType} for identity {clientCredentials.Identity.Id}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorCreatingCloudConnection(clientCredentials.Identity, ex);
-                return Try<ICloudConnection>.Failure(ex);
-            }
+            Events.CreatingCloudConnectionUsingClientCredentials(identity);
+            var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
+            var cloudConnection = await ClientTokenCloudConnection.Create(
+                    identity,
+                    this.credentialsCache,
+                    connectionStatusChangedHandler,
+                    this.transportSettings,
+                    this.messageConverterProvider,
+                    this.clientProvider,
+                    cloudListener,
+                    this.idleTimeout,
+                    this.closeOnIdleTimeout,
+                    this.operationTimeout,
+                    productInfo,
+                    modelId,
+                    initialToken);
+            Events.SuccessCreatingCloudConnection(identity);
+            return cloudConnection;
         }
 
-        public async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        public Task<Try<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        {
+            Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
+            return Option.Some(clientCredentials)
+                .Map(cr => cr as ITokenCredentials)
+                .Map(tcr => this.ConnectAsync(tcr.Identity, connectionStatusChangedHandler, Option.Maybe(tcr.Token)))
+                .GetOrElse(() => this.Connect(clientCredentials.Identity, connectionStatusChangedHandler));
+        }
+
+        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.ConnectAsync(identity, connectionStatusChangedHandler, Option.None<string>());
+
+        async Task<Try<ICloudConnection>> ConnectAsync(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, Option<string> initialToken)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
-
             try
             {
-                var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
-                Option<ServiceIdentity> serviceIdentity = (await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id))
-                    .Filter(s => s.Status == ServiceIdentityStatus.Enabled);
-                return await serviceIdentity
-                    .Map(
-                        async si =>
-                        {
-                            Events.CreatingCloudConnectionOnBehalfOf(identity);
-                            ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
-                            string productInfo = connectionMetadata.EdgeProductInfo;
-                            Option<string> modelId = connectionMetadata.ModelId;
-                            ICloudConnection cc = await CloudConnection.Create(
-                                identity,
-                                connectionStatusChangedHandler,
-                                this.transportSettings,
-                                this.messageConverterProvider,
-                                this.clientProvider,
-                                cloudListener,
-                                this.edgeHubTokenProvider,
-                                this.idleTimeout,
-                                this.closeOnIdleTimeout,
-                                this.operationTimeout,
-                                productInfo,
-                                modelId);
-                            Events.SuccessCreatingCloudConnection(identity);
-                            return Try.Success(cc);
-                        })
-                    .GetOrElse(
-                        async () =>
-                        {
-                            Events.ServiceIdentityNotFound(identity);
-                            Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
-                            return await clientCredentials
-                                .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
-                                .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
-                        });
+                ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
+                string productInfo = connectionMetadata.EdgeProductInfo;
+                Option<string> modelId = connectionMetadata.ModelId;
+
+                var serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id, true);
+                var cloudConnectionCreationTask = serviceIdentity.Map(si => this.ConnectOnBehalfOfAsync(si, identity, connectionStatusChangedHandler, productInfo, modelId))
+                    .GetOrElse(() => this.ConnectWithCredentialsCache(identity, connectionStatusChangedHandler, productInfo, modelId, initialToken));
+
+                var cloudConnection = await cloudConnectionCreationTask;
+                return Try.Success(cloudConnection);
             }
             catch (Exception ex)
             {
                 Events.ErrorCreatingCloudConnection(identity, ex);
                 return Try<ICloudConnection>.Failure(ex);
+            }
+        }
+
+        async Task<ICloudConnection> ConnectOnBehalfOfAsync(
+            ServiceIdentity serviceIdentity,
+            IIdentity identity,
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
+            string productInfo,
+            Option<string> modelId)
+        {
+            if (serviceIdentity.Status == ServiceIdentityStatus.Enabled)
+            {
+                Events.CreatingCloudConnectionOnBehalfOf(identity);
+                var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
+                ICloudConnection cloudConnection = await CloudConnection.Create(
+                    identity,
+                    connectionStatusChangedHandler,
+                    this.transportSettings,
+                    this.messageConverterProvider,
+                    this.clientProvider,
+                    cloudListener,
+                    this.edgeHubTokenProvider,
+                    this.idleTimeout,
+                    this.closeOnIdleTimeout,
+                    this.operationTimeout,
+                    productInfo,
+                    modelId);
+                Events.SuccessCreatingCloudConnection(identity);
+                return cloudConnection;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Device {identity.Id} state is {serviceIdentity.Status}.");
             }
         }
 
@@ -256,9 +242,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.CloudConnectError, exception, $"Error creating cloud connection for client {identity.Id}");
             }
 
-            public static void CreatingCloudConnectionUsingClientCredentials(IClientCredentials clientCredentials)
+            public static void CreatingCloudConnectionUsingClientCredentials(IIdentity identity)
             {
-                Log.LogDebug((int)EventIds.CreatingCloudConnectionUsingClientCredentials, $"Creating cloud connection for client {clientCredentials.Identity.Id} using client credentials");
+                Log.LogDebug((int)EventIds.CreatingCloudConnectionUsingClientCredentials, $"Creating cloud connection for client {identity.Id} using client credentials");
             }
 
             public static void CreatingCloudConnectionOnBehalfOf(IIdentity identity)

@@ -284,7 +284,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         static async Task EnterSendingAsync(EndpointExecutorFsm thisPtr)
         {
             var context = Events.GetContextString(thisPtr);
-            var traceId = Guid.NewGuid().ToString();
             ICommand next;
             TimeSpan retryAfter;
             ICollection<IMessage> messages = EmptyMessages;
@@ -298,7 +297,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 if (messages.Count > 0)
                 {
                     ISinkResult<IMessage> result;
-                    Events.Debugging($"[Trace]={traceId}: Before send messages with [{context}] BatchSize: {thisPtr.currentSendCommand.Messages.Count}, AdmittedSize: {messages.Count}");
+                    Events.Debugging($"Before send messages with [{context}] BatchSize: {thisPtr.currentSendCommand.Messages.Count}, AdmittedSize: {messages.Count}");
                     Events.Send(thisPtr, thisPtr.currentSendCommand.Messages, messages);
 
                     using (var cts = new CancellationTokenSource(endpointTimeout))
@@ -306,7 +305,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                         result = await thisPtr.processor.ProcessAsync(messages, cts.Token);
                     }
 
-                    Events.Debugging($"[Trace]={traceId}: After send messages result = {result.Succeeded}.");
+                    Events.Debugging($"After send messages result = {result.IsSuccessful}.");
                     if (result.IsSuccessful)
                     {
                         if (thisPtr.lastFailedRevivalTime.HasValue)
@@ -339,7 +338,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             }
             catch (Exception ex) when (thisPtr.ShouldRetry(ex, out retryAfter))
             {
-                Events.Debugging($"[Trace]={traceId}: After send messages failed with exception {ex.StackTrace}, will retry after {retryAfter}.");
+                Events.Debugging($"After send messages failed with exception {ex}, will retry after {retryAfter}.");
                 Events.SendFailureUnhandledException(thisPtr, messages, stopwatch, ex);
                 thisPtr.unhealthySince = !thisPtr.unhealthySince.HasValue
                     ? Option.Some(thisPtr.systemTime.UtcNow)
@@ -348,7 +347,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             }
             catch (Exception ex)
             {
-                Events.Debugging($"[Trace]={traceId}: After send messages failed with exception {ex.StackTrace}, won't retry.");
+                Events.Debugging($"After send messages failed with exception {ex}, won't retry.");
                 Events.SendFailureUnhandledException(thisPtr, messages, stopwatch, ex);
                 thisPtr.unhealthySince = !thisPtr.unhealthySince.HasValue
                     ? Option.Some(thisPtr.systemTime.UtcNow)
@@ -356,7 +355,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 next = thisPtr.config.ThrowOnDead ? (ICommand)Commands.Throw(ex) : Commands.Die;
             }
 
-            await RunInternalAsync(thisPtr, next, traceId);
+            await RunInternalAsync(thisPtr, next);
         }
 
         static async Task EnterDeadCheckpointingAsync(EndpointExecutorFsm thisPtr)
@@ -517,14 +516,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             thisPtr.retryAttempts = 0;
         }
 
-        static async Task RunInternalAsync(EndpointExecutorFsm thisPtr, ICommand command, string traceId = null)
+        static async Task RunInternalAsync(EndpointExecutorFsm thisPtr, ICommand command)
         {
             StateTransition transition;
             var pair = new StateCommandPair(thisPtr.state, command.Type);
             if (!Transitions.TryGetValue(pair, out transition))
             {
-                var error = $"[Trace]={traceId}: Unknown state transition. In state.{thisPtr.state}, Got command.{command.Type}";
-                throw new InvalidOperationException(error);
+                throw new InvalidOperationException($"Unknown state transition. In state.{thisPtr.state}, Got command.{command.Type}");
             }
 
             StateActions currentActions = Actions[thisPtr.state];
@@ -555,6 +553,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             {
                 Routing.UserMetricLogger.LogRetryOperation(1, this.Endpoint.IotHubName, this.Endpoint.Name, this.Endpoint.Type);
                 this.retryTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                Events.Debugging("Retrying...");
                 await this.RunAsync(Commands.Retry);
             }
             catch (Exception ex)

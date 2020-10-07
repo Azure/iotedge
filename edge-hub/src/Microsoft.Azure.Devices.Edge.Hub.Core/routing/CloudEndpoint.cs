@@ -261,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         }
                         catch (Exception ex)
                         {
-                            Events.Debugging($"[Trace]={traceId}: after send message for {id} with error {ex.StackTrace}.");
+                            Events.Debugging($"[Trace]={traceId}: after send message for {id} with error {ex}.");
                             return this.HandleException(ex, id, routingMessages);
                         }
                     },
@@ -405,7 +405,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             internal static void AfterProcessing(string traceId, string operation) => Log.LogDebug((int)EventIds.AfterProcessing, Invariant($"[Trace]={traceId}: after process {operation}."));
 
-            internal static void AfterProcessing(string traceId, string operation, Exception ex) => Log.LogDebug((int)EventIds.AfterProcessing, Invariant($"[Trace]={traceId}: after process {operation} with error {ex.StackTrace}."));
+            internal static void AfterProcessing(string traceId, string operation, Exception ex) => Log.LogDebug((int)EventIds.AfterProcessing, Invariant($"[Trace]={traceId}: after process {operation} with error {ex}."));
         }
 
         static class MetricsV0
