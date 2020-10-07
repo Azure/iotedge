@@ -8,7 +8,7 @@ jobs:
       vmImage: 'ubuntu-18.04'
     steps:
       - bash: |
-            # Need to login to EdgeBuild for base images.
+            # Need to login to EdgeBuilds Container Registry for base images.
             docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
             docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
         displayName: 'Docker Login'
