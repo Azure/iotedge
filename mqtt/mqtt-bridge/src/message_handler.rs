@@ -1,6 +1,4 @@
-use std::cell::RefCell;
-use std::convert::TryFrom;
-use std::rc::Rc;
+use std::{cell::RefCell, convert::TryFrom, rc::Rc};
 
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
 use mqtt_broker::TopicFilter;
@@ -36,7 +34,6 @@ impl TryFrom<TopicRule> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-// TODO PRE: make inner a locked version of the publication store
 pub struct MessageHandler<S>
 where
     S: StreamWakeableState,
@@ -83,7 +80,6 @@ where
     }
 }
 
-// TODO: implement for generic
 impl EventHandler for MessageHandler<WakingMemoryStore> {
     type Error = BridgeError;
 
@@ -105,8 +101,10 @@ impl EventHandler for MessageHandler<WakingMemoryStore> {
 
             if let Some(f) = forward_publication {
                 debug!("Save message to store");
-                // TODO PRE: Handle error in borrow
-                let mut publication_store = self.inner.borrow_mut();
+                let mut publication_store = self
+                    .inner
+                    .try_borrow_mut()
+                    .map_err(BridgeError::BorrowPersist)?;
                 publication_store.push(f).map_err(BridgeError::Store)?;
                 drop(publication_store);
             } else {

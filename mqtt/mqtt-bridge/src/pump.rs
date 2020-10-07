@@ -25,7 +25,7 @@ pub struct Pump {
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-    egress_persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+    persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
 }
 
 impl Pump {
@@ -46,7 +46,7 @@ impl Pump {
             publish_handle: publish_handle,
             subscriptions,
             loader,
-            egress_persist,
+            persist: egress_persist,
         })
     }
 
@@ -66,7 +66,7 @@ impl Pump {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
         let loader = self.loader.clone();
-        let egress_persist = self.egress_persist.clone();
+        let persist = self.persist.clone();
         let mut client_shutdown = self.client_shutdown.clone();
 
         let f1 = async move {
@@ -88,7 +88,7 @@ impl Pump {
                         break;
                     }
                     Either::Right((p, _)) => {
-                        debug!("outgoing pump extracted message from store");
+                        debug!("outgoing pump extracted publication from store");
 
                         // TODO_PRE: handle publication error
                         let (key, publication) = p.unwrap().unwrap();
@@ -96,17 +96,24 @@ impl Pump {
                         // TODO PRE: should we be retrying?
                         // if this failure is due to something that will keep failing it is probably safer to remove and never try again
                         // otherwise we should retry
-                        debug!("publishing message {:?} for outgoing pump", key);
+                        debug!("publishing publication {:?} for outgoing pump", key);
                         if let Err(e) = publish_handle.publish(publication).await {
-                            error!(message = "failed publishing message for bridge pump", err = %e);
+                            error!(message = "failed publishing publication for bridge pump", err = %e);
                         }
 
-                        // TODO PRE: if removal fails, what do we do?
-                        let mut persist_borrow = egress_persist.borrow_mut();
-                        if let Err(e) = persist_borrow.remove(key) {
-                            error!(message = "failed removing message from store", err = %e);
+                        let persist_borrow = persist.try_borrow_mut();
+                        match persist_borrow {
+                            Ok(mut persist_borrow) => {
+                                // TODO PRE: if removal fails, what do we do?
+                                if let Err(e) = persist_borrow.remove(key) {
+                                    error!(message = "failed removing publication from store", err = %e);
+                                }
+                                drop(persist_borrow);
+                            }
+                            Err(e) => {
+                                error!(message = "failed to borrow persistence to remove publication", err = %e);
+                            }
                         }
-                        drop(persist_borrow);
                     }
                 }
             }
@@ -125,11 +132,11 @@ impl Pump {
                 error!(message = "publish loop failed and exited for bridge pump");
             },
             _ = f2 => {
-                error!(message = "incoming message loop failed and exited for bridge pump");
+                error!(message = "incoming publication loop failed and exited for bridge pump");
             },
             _ = shutdown => {
                 if let Err(e) = client_shutdown.shutdown().await {
-                    error!(message = "failed to shutdown incoming message loop for bridge pump", err = %e);
+                    error!(message = "failed to shutdown incoming publication loop for bridge pump", err = %e);
                 }
 
                 if let Err(e) = loader_shutdown.send(()) {

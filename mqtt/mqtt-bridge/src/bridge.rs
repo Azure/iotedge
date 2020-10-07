@@ -1,16 +1,15 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::{collections::HashMap, convert::TryInto};
+use std::{
+    cell::{BorrowMutError, RefCell},
+    collections::HashMap,
+    convert::TryInto,
+    rc::Rc,
+};
 
-use futures_util::future::select;
-use futures_util::future::Either;
-use futures_util::pin_mut;
+use futures_util::{future::select, future::Either, pin_mut};
 use mqtt3::ShutdownError;
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::Sender;
-use tracing::debug;
-use tracing::error;
-use tracing::info;
+use tracing::{debug, error, info};
 
 use crate::{
     client::{ClientError, MqttClient},
@@ -115,13 +114,13 @@ impl Bridge {
             local_client,
             local_subscriptions,
             incoming_loader,
-            outgoing_persist,
+            incoming_persist,
         )?;
         let mut remote_pump = Pump::new(
             remote_client,
             remote_subscriptions,
             outgoing_loader,
-            incoming_persist,
+            outgoing_persist,
         )?;
 
         local_pump.subscribe().await?;
@@ -201,8 +200,10 @@ pub enum BridgeError {
 
     #[error("Failed to get publish handle from client.")]
     ClientShutdown(#[from] ShutdownError),
-}
 
+    #[error("Failed to borrow persistence to store publication")]
+    BorrowPersist(#[from] BorrowMutError),
+}
 // TODO PRE: move to integration test
 // #[cfg(test)]
 // mod tests {
