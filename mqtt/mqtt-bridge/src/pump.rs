@@ -3,8 +3,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use futures_util::{
     future::{select, Either, FutureExt},
-    pin_mut,
-    select,
+    pin_mut, select,
     stream::{StreamExt, TryStreamExt},
 };
 use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
@@ -26,7 +25,7 @@ pub struct Pump {
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
     loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-    persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+    egress_persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
 }
 
 impl Pump {
@@ -34,7 +33,7 @@ impl Pump {
         client: MqttClient<MessageHandler<WakingMemoryStore>>,
         subscriptions: Vec<String>,
         loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-        persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+        egress_persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()
@@ -47,7 +46,7 @@ impl Pump {
             publish_handle: publish_handle,
             subscriptions,
             loader,
-            persist,
+            egress_persist,
         })
     }
 
@@ -67,6 +66,7 @@ impl Pump {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
         let loader = self.loader.clone();
+        let egress_persist = self.egress_persist.clone();
         let mut client_shutdown = self.client_shutdown.clone();
 
         let f1 = async move {
@@ -91,15 +91,22 @@ impl Pump {
                         debug!("outgoing pump extracted message from store");
 
                         // TODO_PRE: handle publication error
-                        let p = p.unwrap().unwrap();
+                        let (key, publication) = p.unwrap().unwrap();
 
                         // TODO PRE: should we be retrying?
                         // if this failure is due to something that will keep failing it is probably safer to remove and never try again
                         // otherwise we should retry
-                        debug!("publishing message {:?} for outgoing pump", p.0);
-                        if let Err(e) = publish_handle.publish(p.1).await {
+                        debug!("publishing message {:?} for outgoing pump", key);
+                        if let Err(e) = publish_handle.publish(publication).await {
                             error!(message = "failed publishing message for bridge pump", err = %e);
                         }
+
+                        // TODO PRE: if removal fails, what do we do?
+                        let mut persist_borrow = egress_persist.borrow_mut();
+                        if let Err(e) = persist_borrow.remove(key) {
+                            error!(message = "failed removing message from store", err = %e);
+                        }
+                        drop(persist_borrow);
                     }
                 }
             }
