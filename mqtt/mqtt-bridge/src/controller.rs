@@ -54,7 +54,8 @@ impl BridgeController {
         // TODO: bridge controller will eventually listen for updates via the twin
         //       until this is complete we need to wait here indefinitely
         //       if we stop the bridge controller, our startup/shutdown logic will shut eveything down
-        time::delay_for(Duration::from_secs(std::u64::MAX)).await;
+        let century_in_secs = 60 * 60 * 24 * 365 * 100;
+        time::delay_for(Duration::from_secs(century_in_secs)).await;
 
         info!("bridge controller stopped");
     }
