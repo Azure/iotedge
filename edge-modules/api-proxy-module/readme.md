@@ -214,7 +214,7 @@ The configuration of the API Proxy module at the **top layer** for this scenario
 
     | Name  | Value |
     | ------------- |  ------------- |
-    |BLOB_UPLOAD_ROUTE_ADDRESS|module_blob:11002|
+    |BLOB_UPLOAD_ROUTE_ADDRESS|AzureBlobStorageonIoTEdge:11002|
     |NGINX_DEFAULT_PORT|8000|
 
 - CreateOptions:
