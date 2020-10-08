@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -22,10 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             if (clientCredentials is ITokenCredentials tokenCredentials)
             {
+                string targetId = AuthChainHelpers.GetAuthTarget(tokenCredentials.AuthChain).GetOrElse(tokenCredentials.Identity.Id);
+
                 try
                 {
-                    var tokenCredentialsData = new TokenCredentialsData(tokenCredentials.Token, tokenCredentials.IsUpdatable);
-                    await this.encryptedStore.Put(tokenCredentials.Identity.Id, tokenCredentialsData.ToJson());
+                    var tokenCredentialsData = new TokenCredentialsData(tokenCredentials.Token, tokenCredentials.IsUpdatable, tokenCredentials.AuthChain);
+                    string tokenCredentialsString = JsonConvert.SerializeObject(tokenCredentialsData);
+                    await this.encryptedStore.Put(targetId, tokenCredentialsString);
                     Events.Stored(clientCredentials.Identity.Id);
                 }
                 catch (Exception e)
@@ -46,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         return Option.Some(
                             ParseTokenCredentialsData(identity, t)
-                                .GetOrElse(() => new TokenCredentials(identity, t, string.Empty, Option.None<string>(), false) as IClientCredentials));
+                                .GetOrElse(() => new TokenCredentials(identity, t, string.Empty, Option.None<string>(), Option.None<string>(), false) as IClientCredentials));
                     }
                     catch (Exception e)
                     {
@@ -62,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 var tokenCredentialsData = json.FromJson<TokenCredentialsData>();
                 Events.Retrieved(identity.Id);
-                return Option.Some(new TokenCredentials(identity, tokenCredentialsData.Token, string.Empty, Option.None<string>(), tokenCredentialsData.IsUpdatable) as IClientCredentials);
+                return Option.Some(new TokenCredentials(identity, tokenCredentialsData.Token, string.Empty, Option.None<string>(), tokenCredentialsData.AuthChain, tokenCredentialsData.IsUpdatable) as IClientCredentials);
             }
             catch (Exception e)
             {
@@ -114,10 +118,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         class TokenCredentialsData
         {
             [JsonConstructor]
-            public TokenCredentialsData(string token, bool isUpdatable)
+            public TokenCredentialsData(string token, bool isUpdatable, string authChain)
             {
                 this.Token = token;
                 this.IsUpdatable = isUpdatable;
+                this.AuthChain = Option.Maybe(authChain);
+            }
+
+            public TokenCredentialsData(string token, bool isUpdatable, Option<string> authChain)
+            {
+                this.Token = token;
+                this.IsUpdatable = isUpdatable;
+                this.AuthChain = authChain;
             }
 
             [JsonProperty("isUpdatable")]
@@ -125,6 +137,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             [JsonProperty("token")]
             public string Token { get; }
+
+            [JsonConverter(typeof(OptionConverter<string>))]
+            [JsonProperty(PropertyName = "authChain")]
+            public Option<string> AuthChain { get; }
         }
     }
 }

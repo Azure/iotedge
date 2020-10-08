@@ -12,18 +12,13 @@ use tracing_futures::Instrument;
 use crate::{
     auth::{Authenticator, Authorizer, DynAuthenticator},
     broker::{Broker, BrokerHandle},
-    connection::{
-        self, MakeIncomingPacketProcessor, MakeMqttPacketProcessor, MakeOutgoingPacketProcessor,
-    },
+    connection::{self, MakeMqttPacketProcessor, MakePacketProcessor},
     transport::{GetPeerInfo, Transport},
     BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
     SystemEvent,
 };
 
-pub struct Server<Z, P>
-where
-    Z: Authorizer,
-{
+pub struct Server<Z, P> {
     broker: Broker<Z>,
     listeners: Vec<Listener>,
     make_processor: P,
@@ -45,7 +40,7 @@ where
 impl<Z, P> Server<Z, P>
 where
     Z: Authorizer + Send + 'static,
-    P: MakeIncomingPacketProcessor + MakeOutgoingPacketProcessor + Clone + Send + Sync + 'static,
+    P: MakePacketProcessor + Clone + Send + 'static,
 {
     pub fn with_tcp<A, N, E>(
         &mut self,
@@ -264,12 +259,7 @@ impl Listener {
     async fn run<F, P>(self, shutdown_signal: F, make_processor: P) -> Result<(), Error>
     where
         F: Future<Output = ()> + Unpin,
-        P: MakeIncomingPacketProcessor
-            + MakeOutgoingPacketProcessor
-            + Clone
-            + Send
-            + Sync
-            + 'static,
+        P: MakePacketProcessor + Clone + Send + 'static,
     {
         let Self {
             transport,
@@ -314,6 +304,7 @@ impl Listener {
                                 let span = inner_span.clone();
                                 let authenticator = authenticator.clone();
                                 let make_processor = make_processor.clone();
+
                                 tokio::spawn(async move {
                                     if let Err(e) =
                                         connection::process(stream, peer, broker_handle, &*authenticator, make_processor)

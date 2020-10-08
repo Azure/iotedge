@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task SendEventAsync(Message message)
+        public async Task SendEventBatchAsync(IEnumerable<Message> messages)
         {
             Events.UpdatingReportedProperties();
             try
@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     return;
                 }
 
-                await moduleClient.ForEachAsync(d => d.SendEventAsync(message));
+                await moduleClient.ForEachAsync(d => d.SendEventBatchAsync(messages));
                 Events.SendEvent();
             }
             catch (Exception e)

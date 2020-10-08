@@ -1,17 +1,18 @@
 use tracing::info;
 
 use mqtt3::ReceivedPublication;
-use mqtt_broker::{BrokerHandle, ClientId, Message, SystemEvent};
+use mqtt_broker::{BrokerHandle, ClientEvent, ClientId, Message};
 
 use crate::command::Command;
 
-const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
-
-pub struct Disconnect {
+/// When executed, `DisconnectCommand` disconnects a client from the broker.
+/// It is executed when `EdgeHub` sends a special packet to notify the broker
+/// that a client needs to be disconnected for whatever reason (usually SAS/cert expired).
+pub struct DisconnectCommand {
     broker_handle: BrokerHandle,
 }
 
-impl Disconnect {
+impl DisconnectCommand {
     pub fn new(broker_handle: &BrokerHandle) -> Self {
         Self {
             broker_handle: broker_handle.clone(),
@@ -19,11 +20,11 @@ impl Disconnect {
     }
 }
 
-impl Command for Disconnect {
+impl Command for DisconnectCommand {
     type Error = Error;
 
     fn topic(&self) -> &str {
-        DISCONNECT_TOPIC
+        super::DISCONNECT_TOPIC
     }
 
     fn handle(&mut self, publication: &ReceivedPublication) -> Result<(), Self::Error> {
@@ -32,7 +33,7 @@ impl Command for Disconnect {
 
         info!("received disconnection request for client {}", client_id);
 
-        let message = Message::System(SystemEvent::ForceClientDisconnect(client_id.clone()));
+        let message = Message::Client(client_id.clone(), ClientEvent::DropConnection);
         self.broker_handle
             .send(message)
             .map_err(Error::DisconnectSignal)?;

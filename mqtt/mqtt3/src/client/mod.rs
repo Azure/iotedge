@@ -520,6 +520,7 @@ pub enum Event {
 pub enum SubscriptionUpdateEvent {
     Subscribe(crate::proto::SubscribeTo),
     Unsubscribe(String),
+    RejectedByServer(String),
 }
 
 /// A message that was received from the server
@@ -797,14 +798,13 @@ impl Error {
 
     fn session_is_resumable(&self) -> bool {
         match self {
-            Error::DecodePacket(crate::proto::DecodeError::Io(err)) => match err.kind() {
-                std::io::ErrorKind::TimedOut => true,
-                _ => false,
-            },
-            Error::EncodePacket(crate::proto::EncodeError::Io(err)) => match err.kind() {
-                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WriteZero => true,
-                _ => false,
-            },
+            Error::DecodePacket(crate::proto::DecodeError::Io(err)) => {
+                matches!(err.kind(), std::io::ErrorKind::TimedOut)
+            }
+            Error::EncodePacket(crate::proto::EncodeError::Io(err)) => matches!(
+                err.kind(),
+                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WriteZero
+            ),
             Error::ServerClosedConnection => true,
             _ => false,
         }

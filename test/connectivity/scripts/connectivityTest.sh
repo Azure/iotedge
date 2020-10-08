@@ -343,12 +343,24 @@ function run_connectivity_test() {
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-    PARENT_HOSTNAME=$(printenv E2E_PARENT_HOSTNAME)
-    if [[ ! -z "$PARENT_HOSTNAME" ]]; then
+    
+    NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
+    echo "Nested edge test=$NESTED_EDGE_TEST"
+    
+    if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
+        PARENT_HOSTNAME=$(printenv E2E_parentHostname)
+        PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
+        DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
+        DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
+        TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
+        
         echo "Parent hostname=$PARENT_HOSTNAME"
-    fi
-
-    "$quickstart_working_folder/IotEdgeQuickstart" \
+        echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
+        echo "Device CA cert=$DEVICE_CA_CERT"
+        echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
+        echo "Trusted CA certs=$TRUSTED_CA_CERTS"
+        
+        "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
         -c "$IOT_HUB_CONNECTION_STRING" \
@@ -358,11 +370,32 @@ function run_connectivity_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         --parent-hostname "$PARENT_HOSTNAME" \
+        --parent-edge-device "$PARENT_EDGE_DEVICE" \
+        --device_ca_cert "$DEVICE_CA_CERT" \
+        --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
+        --trusted_ca_certs "$TRUSTED_CA_CERTS" \
+        --initialize-with-agent-artifact true \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
         --no-verify && funcRet=$? || funcRet=$?
+    else
+        "$quickstart_working_folder/IotEdgeQuickstart" \
+            -d "$device_id" \
+            -a "$iotedge_package" \
+            -c "$IOT_HUB_CONNECTION_STRING" \
+            -e "$EVENTHUB_CONNECTION_STRING" \
+            -r "$CONTAINER_REGISTRY" \
+            -u "$CONTAINER_REGISTRY_USERNAME" \
+            -p "$CONTAINER_REGISTRY_PASSWORD" \
+            -n "$(hostname)" \
+            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+            --leave-running=All \
+            -l "$deployment_working_file" \
+            --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
+            --no-verify && funcRet=$? || funcRet=$?
+    fi
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"

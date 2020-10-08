@@ -118,6 +118,13 @@ jobs:
           imageName: azureiotedge-metrics-validator
           project: MetricsValidator
 
+      # Number Logger
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Number Logger
+          imageName: azureiotedge-number-logger
+          project: NumberLogger
+
      # Module Restarter
       - template: templates/image-linux.yaml
         parameters:

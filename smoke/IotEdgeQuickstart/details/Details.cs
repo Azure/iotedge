@@ -125,6 +125,8 @@ namespace IotEdgeQuickstart.Details
 
         readonly Option<string> parentHostname;
 
+        readonly Option<string> parentEdgeDevice;
+
         readonly string deviceCaCert;
 
         readonly string deviceCaPk;
@@ -154,6 +156,7 @@ namespace IotEdgeQuickstart.Details
             string deviceId,
             string hostname,
             Option<string> parentHostname,
+            Option<string> parentEdgeDevice,
             Option<string> deploymentFileName,
             Option<string> twinTestFileName,
             string deviceCaCert,
@@ -193,6 +196,7 @@ namespace IotEdgeQuickstart.Details
             this.deviceId = deviceId;
             this.hostname = hostname;
             this.parentHostname = parentHostname;
+            this.parentEdgeDevice = parentEdgeDevice;
             this.DeploymentFileName = deploymentFileName;
             this.TwinTestFileName = twinTestFileName;
             this.deviceCaCert = deviceCaCert;
@@ -520,6 +524,12 @@ namespace IotEdgeQuickstart.Details
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
                 Capabilities = new DeviceCapabilities() { IotEdge = true }
             };
+
+            await this.parentEdgeDevice.ForEachAsync(async p =>
+            {
+                var parentDevice = await rm.GetDeviceAsync(p);
+                device.ParentScopes = new[] { parentDevice.Scope };
+            });
 
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");

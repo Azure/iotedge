@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         public readonly string MetricsStoragePath;
         public readonly TimeSpan ScrapeInterval;
         public readonly TimeSpan UploadInterval;
+        public readonly TimeSpan MaxUploadAge;
 
         public DiagnosticConfig(bool enabled, string storagePath, IConfiguration configuration)
         {
@@ -23,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.MetricsStoragePath = Path.Combine(Preconditions.CheckNotNull(storagePath, nameof(storagePath)), "metrics");
             this.ScrapeInterval = configuration.GetTimeSpan("MetricScrapeInterval", TimeSpan.FromHours(1));
             this.UploadInterval = configuration.GetTimeSpan("MetricUploadInterval", TimeSpan.FromDays(1));
+            this.MaxUploadAge = configuration.GetTimeSpan("MetricMaxUploadAge", TimeSpan.FromDays(7));
         }
     }
 }

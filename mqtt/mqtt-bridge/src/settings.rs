@@ -6,7 +6,7 @@ use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
-pub const ENVIRONMENT_PREFIX: &str = "iotedge";
+const DEFAULT_UPSTREAM_PORT: &str = "8883";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
@@ -22,7 +22,7 @@ impl Settings {
         let mut config = Config::new();
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(Environment::with_prefix(ENVIRONMENT_PREFIX))?;
+        config.merge(Environment::new())?;
 
         config.try_into()
     }
@@ -35,7 +35,7 @@ impl Settings {
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(File::from(path.as_ref()))?;
-        config.merge(Environment::with_prefix(ENVIRONMENT_PREFIX))?;
+        config.merge(Environment::new())?;
 
         config.try_into()
     }
@@ -61,7 +61,7 @@ impl<'de> serde::Deserialize<'de> for Settings {
         #[derive(Debug, serde_derive::Deserialize)]
         struct Inner {
             #[serde(flatten)]
-            nested_bridge: CredentialProviderSettings,
+            nested_bridge: Option<CredentialProviderSettings>,
 
             upstream: UpstreamSettings,
 
@@ -77,19 +77,26 @@ impl<'de> serde::Deserialize<'de> for Settings {
             messages,
         } = serde::Deserialize::deserialize(deserializer)?;
 
-        let upstream_connection_settings =
-            nested_bridge
-                .gateway_hostname
-                .clone()
-                .map(|gateway_hostname| ConnectionSettings {
-                    name: "upstream".into(),
-                    address: gateway_hostname,
-                    subscriptions: upstream.subscriptions,
-                    forwards: upstream.forwards,
-                    credentials: Credentials::Provider(nested_bridge),
-                    clean_session: upstream.clean_session,
-                    keep_alive: upstream.keep_alive,
-                });
+        let upstream_connection_settings = nested_bridge
+            .filter(|nested_bridge| {
+                nested_bridge
+                    .enable_upstream_bridge()
+                    .unwrap_or("false")
+                    .to_lowercase()
+                    == "true"
+            })
+            .map(|nested_bridge| ConnectionSettings {
+                name: "upstream".into(),
+                address: format!(
+                    "{}:{}",
+                    nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
+                ),
+                subscriptions: upstream.subscriptions,
+                forwards: upstream.forwards,
+                credentials: Credentials::Provider(nested_bridge),
+                clean_session: upstream.clean_session,
+                keep_alive: upstream.keep_alive,
+            });
 
         Ok(Settings {
             upstream: upstream_connection_settings,
@@ -108,9 +115,9 @@ pub struct ConnectionSettings {
     #[serde(flatten)]
     credentials: Credentials,
 
-    subscriptions: Vec<Subscription>,
+    subscriptions: Vec<Topic>,
 
-    forwards: Vec<Forward>,
+    forwards: Vec<Topic>,
 
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
@@ -131,16 +138,16 @@ impl ConnectionSettings {
         &self.credentials
     }
 
-    pub fn subscriptions(&self) -> &Vec<Subscription> {
+    pub fn subscriptions(&self) -> &Vec<Topic> {
         &self.subscriptions
     }
 
-    pub fn forwards(&self) -> &Vec<Forward> {
+    pub fn forwards(&self) -> &Vec<Topic> {
         &self.forwards
     }
 
-    pub fn keep_alive(&self) -> &Duration {
-        &self.keep_alive
+    pub fn keep_alive(&self) -> Duration {
+        self.keep_alive
     }
 
     pub fn clean_session(&self) -> bool {
@@ -151,6 +158,7 @@ impl ConnectionSettings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(untagged)]
 pub enum Credentials {
+    Anonymous(String),
     PlainText(AuthenticationSettings),
     Provider(CredentialProviderSettings),
 }
@@ -180,75 +188,78 @@ impl AuthenticationSettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
-    #[serde(rename = "gatewayhostname")]
-    gateway_hostname: Option<String>,
+    #[serde(rename = "enableupstreambridge")]
+    enable_upstream_bridge: Option<String>,
 
-    #[serde(rename = "deviceid")]
-    device_id: Option<String>,
+    #[serde(rename = "iotedge_iothubhostname")]
+    iothub_hostname: String,
 
-    #[serde(rename = "moduleid")]
-    module_id: Option<String>,
+    #[serde(rename = "iotedge_gatewayhostname")]
+    gateway_hostname: String,
 
-    #[serde(rename = "modulegenerationid")]
-    generation_id: Option<String>,
+    #[serde(rename = "iotedge_deviceid")]
+    device_id: String,
 
-    #[serde(rename = "workloaduri")]
-    workload_uri: Option<String>,
+    #[serde(rename = "iotedge_moduleid")]
+    module_id: String,
+
+    #[serde(rename = "iotedge_modulegenerationid")]
+    generation_id: String,
+
+    #[serde(rename = "iotedge_workloaduri")]
+    workload_uri: String,
 }
 
 impl CredentialProviderSettings {
-    pub fn gateway_hostname(&self) -> Option<&str> {
-        self.gateway_hostname.as_ref().map(AsRef::as_ref)
+    pub fn enable_upstream_bridge(&self) -> Option<&str> {
+        self.enable_upstream_bridge.as_deref()
     }
 
-    pub fn device_id(&self) -> Option<&str> {
-        self.device_id.as_ref().map(AsRef::as_ref)
+    pub fn iothub_hostname(&self) -> &str {
+        &self.iothub_hostname
     }
 
-    pub fn module_id(&self) -> Option<&str> {
-        self.module_id.as_ref().map(AsRef::as_ref)
+    pub fn gateway_hostname(&self) -> &str {
+        &self.gateway_hostname
     }
 
-    pub fn generation_id(&self) -> Option<&str> {
-        self.generation_id.as_ref().map(AsRef::as_ref)
+    pub fn device_id(&self) -> &str {
+        &self.device_id
     }
 
-    pub fn workload_uri(&self) -> Option<&str> {
-        self.workload_uri.as_ref().map(AsRef::as_ref)
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Subscription {
-    pattern: String,
-
-    remote: String,
-}
-
-impl Subscription {
-    pub fn pattern(&self) -> &str {
-        &self.pattern
+    pub fn module_id(&self) -> &str {
+        &self.module_id
     }
 
-    pub fn remote(&self) -> &str {
-        &self.remote
+    pub fn generation_id(&self) -> &str {
+        &self.generation_id
+    }
+
+    pub fn workload_uri(&self) -> &str {
+        &self.workload_uri
     }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct Forward {
+pub struct Topic {
     pattern: String,
 
-    remote: String,
+    local: Option<String>,
+
+    remote: Option<String>,
 }
 
-impl Forward {
+impl Topic {
     pub fn pattern(&self) -> &str {
         &self.pattern
     }
 
-    pub fn remote(&self) -> &str {
-        &self.remote
+    pub fn local(&self) -> Option<&str> {
+        self.local.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn remote(&self) -> Option<&str> {
+        self.remote.as_ref().map(AsRef::as_ref)
     }
 }
 
@@ -262,9 +273,9 @@ struct UpstreamSettings {
 
     clean_session: bool,
 
-    subscriptions: Vec<Subscription>,
+    subscriptions: Vec<Topic>,
 
-    forwards: Vec<Forward>,
+    forwards: Vec<Topic>,
 }
 
 #[cfg(test)]
@@ -284,19 +295,29 @@ mod tests {
 
     #[test]
     #[serial(env_settings)]
+    fn new_no_upstream_settings() {
+        let settings = Settings::new().unwrap();
+
+        assert_eq!(settings.remotes().len(), 0);
+        assert_eq!(settings.upstream(), None);
+    }
+
+    #[test]
+    #[serial(env_settings)]
     fn from_file_reads_nested_bridge_settings() {
         let settings = Settings::from_file("tests/config.json").unwrap();
         let upstream = settings.upstream().unwrap();
 
         assert_eq!(upstream.name(), "upstream");
-        assert_eq!(upstream.address(), "edge1");
+        assert_eq!(upstream.address(), "edge1:8883");
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {
-                assert_eq!(provider.device_id().unwrap(), "d1");
-                assert_eq!(provider.module_id().unwrap(), "mymodule");
-                assert_eq!(provider.generation_id().unwrap(), "321");
-                assert_eq!(provider.workload_uri().unwrap(), "uri");
+                assert_eq!(provider.iothub_hostname(), "iothub");
+                assert_eq!(provider.device_id(), "d1");
+                assert_eq!(provider.module_id(), "mymodule");
+                assert_eq!(provider.generation_id(), "321");
+                assert_eq!(provider.workload_uri(), "uri");
             }
             _ => panic!("Expected provider settings"),
         };
@@ -311,7 +332,7 @@ mod tests {
         assert_eq!(len, 1);
         let remote = settings.remotes().first().unwrap();
         assert_eq!(remote.name(), "r1");
-        assert_eq!(remote.address(), "remote");
+        assert_eq!(remote.address(), "remote:8883");
         assert_eq!(remote.keep_alive().as_secs(), 60);
         assert_eq!(remote.clean_session(), false);
 
@@ -339,6 +360,21 @@ mod tests {
         it_overrides_settings_from_env(|| Settings::from_file("tests/config.json"));
     }
 
+    #[test]
+    #[serial(env_settings)]
+    fn from_env_no_upstream_protcol() {
+        let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "upstream");
+        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
+        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
+        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
+        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
+        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
+
+        let settings = Settings::new().unwrap();
+
+        assert_eq!(settings.upstream(), None);
+    }
+
     fn it_overrides_settings_from_env<F>(make_settings: F)
     where
         F: FnOnce() -> Result<Settings, ConfigError>,
@@ -348,19 +384,22 @@ mod tests {
         let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
+        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
+        let _enable_bridge = env::set_var("enableupstreambridge", "true");
 
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();
 
         assert_eq!(upstream.name(), "upstream");
-        assert_eq!(upstream.address(), "upstream");
+        assert_eq!(upstream.address(), "upstream:8883");
 
         match upstream.credentials() {
             Credentials::Provider(provider) => {
-                assert_eq!(provider.device_id().unwrap(), "device1");
-                assert_eq!(provider.module_id().unwrap(), "m1");
-                assert_eq!(provider.generation_id().unwrap(), "123");
-                assert_eq!(provider.workload_uri().unwrap(), "workload");
+                assert_eq!(provider.iothub_hostname(), "iothub");
+                assert_eq!(provider.device_id(), "device1");
+                assert_eq!(provider.module_id(), "m1");
+                assert_eq!(provider.generation_id(), "123");
+                assert_eq!(provider.workload_uri(), "workload");
             }
             _ => panic!("Expected provider settings"),
         };

@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly IConnectionManager connectionManager;
         readonly ITwinManager twinManager;
         readonly string edgeDeviceId;
+        readonly string edgeModuleId;
         readonly IInvokeMethodHandler invokeMethodHandler;
         readonly ISubscriptionProcessor subscriptionProcessor;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
@@ -39,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             IConnectionManager connectionManager,
             ITwinManager twinManager,
             string edgeDeviceId,
+            string edgeModuleId,
             IInvokeMethodHandler invokeMethodHandler,
             ISubscriptionProcessor subscriptionProcessor,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
@@ -48,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.twinManager = Preconditions.CheckNotNull(twinManager, nameof(twinManager));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
+            this.edgeModuleId = Preconditions.CheckNonWhiteSpace(edgeModuleId, nameof(edgeModuleId));
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
             this.subscriptionProcessor = Preconditions.CheckNotNull(subscriptionProcessor, nameof(subscriptionProcessor));
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
@@ -105,6 +108,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(reportedPropertiesMessage, nameof(reportedPropertiesMessage));
             Events.UpdateReportedPropertiesReceived(identity);
             Task cloudSendMessageTask = this.twinManager.UpdateReportedPropertiesAsync(identity.Id, reportedPropertiesMessage);
+
+            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = this.edgeDeviceId;
+            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionModuleId] = this.edgeModuleId;
 
             IRoutingMessage routingMessage = this.ProcessMessageInternal(reportedPropertiesMessage, false);
             Task routingSendMessageTask = this.router.RouteAsync(routingMessage);

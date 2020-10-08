@@ -8,7 +8,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # create a user to allow agent to optionally run as non-root
-ARG EDGEAGENTUSER_ID=1000	
+ARG EDGEAGENTUSER_ID
+ENV EDGEAGENTUSER_ID ${EDGEAGENTUSER_ID:-1000}
 RUN useradd -ms /bin/bash -u ${EDGEAGENTUSER_ID} edgeagentuser 
 
 COPY librocksdb.so /usr/lib/
