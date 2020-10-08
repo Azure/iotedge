@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using static Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ClientTokenCloudConnection;
 
     /// <summary>
     /// This class creates and manages cloud connections (CloudProxy instances)
