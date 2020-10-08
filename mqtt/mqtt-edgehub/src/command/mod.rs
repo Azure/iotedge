@@ -12,6 +12,9 @@ use std::error::Error as StdError;
 
 use mqtt3::ReceivedPublication;
 
+pub const AUTHORIZED_IDENTITIES_TOPIC: &str = "$internal/identities";
+pub const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
+
 /// A command trait to be implemented and used with `CommandHandler`.
 pub trait Command {
     /// An error type that occurs when handling command.
