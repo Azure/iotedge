@@ -66,6 +66,7 @@ where
                     error!(message = "failed running sidecars", err = %e)
                 }
 
+                // extract state from server
                 server_output??
             }
             // sidecars finished first

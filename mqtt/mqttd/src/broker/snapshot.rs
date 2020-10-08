@@ -2,8 +2,7 @@ use tokio::{
     task::JoinHandle,
     time::{Duration, Instant},
 };
-use tracing::info;
-use tracing::warn;
+use tracing::{info, warn};
 
 use mqtt_broker::{
     BrokerHandle, FilePersistor, Message, ShutdownHandle, Snapshotter, StateSnapshotHandle,
