@@ -354,7 +354,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             underlyingCredentialsCache = new NullCredentialsCache();
                         }
 
-                        ICredentialsCache credentialsCache = new CredentialsCache(underlyingCredentialsCache);
+                        ICredentialsCache credentialsCache;
+
+                        if (this.nestedEdgeEnabled)
+                        {
+                            credentialsCache = new NestedCredentialsCache(underlyingCredentialsCache);
+                        }
+                        else
+                        {
+                            credentialsCache = new CredentialsCache(underlyingCredentialsCache);
+                        }
+
                         return credentialsCache;
                     })
                 .As<Task<ICredentialsCache>>()
