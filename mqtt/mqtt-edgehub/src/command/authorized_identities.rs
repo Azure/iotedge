@@ -5,8 +5,6 @@ use mqtt_broker::{BrokerHandle, Message, SystemEvent};
 
 use crate::{auth::AuthorizerUpdate, command::Command};
 
-const AUTHORIZED_IDENTITIES_TOPIC: &str = "$internal/identities";
-
 /// `AuthorizedIdentitiesCommand` is executed when `EdgeHub` sends a special packet
 /// to notify the broker that the list of authorized `IoTHub` identities has changed.
 /// That can happen by several reasons:
@@ -31,7 +29,7 @@ impl Command for AuthorizedIdentitiesCommand {
     type Error = Error;
 
     fn topic(&self) -> &str {
-        AUTHORIZED_IDENTITIES_TOPIC
+        super::AUTHORIZED_IDENTITIES_TOPIC
     }
 
     fn handle(&mut self, publication: &ReceivedPublication) -> Result<(), Self::Error> {

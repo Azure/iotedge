@@ -216,16 +216,7 @@ pub enum BridgeError {
 //     use crate::client::EventHandler;
 //     use crate::persist::PublicationStore;
 //     use crate::settings::Settings;
-/*
-pub struct Pump {
-    client: MqttClient<MessageHandler<WakingMemoryStore>>,
-    client_shutdown: ClientShutdownHandle,
-    publish_handle: PublishHandle,
-    subscriptions: Vec<String>,
-    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-    persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-}
-    */
+
 // #[tokio::test]
 // async fn bridge_new() {
 //     let settings = Settings::from_file("tests/config.json").unwrap();

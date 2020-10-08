@@ -23,8 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string iothubHostName = "iothub1.azure.net";
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
+            string authChain = "d1;edge1;edge2";
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, Option.None<string>(), Option.None<string>(), true);
+            var credentials = new TokenCredentials(identity, sasToken, callerProductInfo, Option.None<string>(), Option.Some(authChain), true);
 
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
@@ -41,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(storedTokenCredentials);
             Assert.Equal(sasToken, storedTokenCredentials.Token);
             Assert.Equal(credentials.IsUpdatable, storedTokenCredentials.IsUpdatable);
+            Assert.Equal(authChain, credentials.AuthChain.OrDefault());
         }
 
         [Fact]
