@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using static Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ClientTokenCloudConnection;
 
     /// <summary>
     /// This class creates and manages cloud connections (CloudProxy instances)
@@ -25,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly TimeSpan operationTimeout;
         readonly string productInfo;
         readonly Option<string> modelId;
-        Option<ICloudProxy> cloudProxy;
+        internal Option<ICloudProxy> cloudProxy;
 
         protected CloudConnection(
             IIdentity identity,
@@ -119,8 +120,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
             Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity, this.modelId);
-            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
 
+            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
             client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
             if (!string.IsNullOrWhiteSpace(this.productInfo))
