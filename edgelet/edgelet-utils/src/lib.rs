@@ -18,7 +18,7 @@ pub mod macros;
 mod ser_de;
 mod yaml_file_source;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, net::IpAddr, str::FromStr};
 
 pub use crate::error::{Error, ErrorKind};
 pub use crate::logging::log_failure;
@@ -90,7 +90,9 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
     let mut dns_sans = names
         .iter()
         .filter_map(|name| {
-            if name.trim().is_empty() {
+            if IpAddr::from_str(name).is_ok() {
+                Some(format!("IP:{}", name))
+            } else if name.trim().is_empty() {
                 None
             } else {
                 Some(format!("DNS:{}", name.to_lowercase()))
