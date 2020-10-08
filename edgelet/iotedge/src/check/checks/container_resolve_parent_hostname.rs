@@ -83,12 +83,15 @@ impl ContainerResolveParentHostname {
             "IotedgeDiagnosticsDotnet.dll".to_owned(),
             "parent-hostname".to_owned(),
             "--parent-hostname".to_owned(),
-            parent_hostname,
+            parent_hostname.clone(),
         ]);
 
         super::docker(docker_host_arg, args)
             .map_err(|(_, err)| err)
-            .context("Failed to resolve parent hostname {}", parent_hostname)?;
+            .context(format!(
+                "Failed to resolve parent hostname {}",
+                parent_hostname
+            ))?;
 
         Ok(CheckResult::Ok)
     }
