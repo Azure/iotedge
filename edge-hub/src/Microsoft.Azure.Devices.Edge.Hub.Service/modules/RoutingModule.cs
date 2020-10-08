@@ -229,7 +229,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             tokenProvider,
                             deviceScopeIdentitiesCache,
                             credentialsCache,
-                            edgeHubCredentials.Identity,
                             this.cloudConnectionIdleTimeout,
                             this.closeCloudConnectionOnIdleTimeout,
                             this.operationTimeout,

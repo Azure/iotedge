@@ -25,9 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITokenProvider edgeHubTokenProvider;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly bool closeOnIdleTimeout;
-        readonly bool useServerHeartbeat;
         readonly ICredentialsCache credentialsCache;
-        readonly IIdentity edgeHubIdentity;
         readonly TimeSpan operationTimeout;
         readonly IMetadataStore metadataStore;
         Option<IEdgeHub> edgeHub;
@@ -40,7 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             ITokenProvider edgeHubTokenProvider,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
             ICredentialsCache credentialsCache,
-            IIdentity edgeHubIdentity,
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
@@ -55,11 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHub = Option.None<IEdgeHub>();
             this.idleTimeout = idleTimeout;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
-            this.useServerHeartbeat = useServerHeartbeat;
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
-            this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             this.operationTimeout = operationTimeout;
             this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
         }

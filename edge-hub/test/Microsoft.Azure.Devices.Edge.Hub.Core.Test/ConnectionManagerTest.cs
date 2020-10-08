@@ -82,7 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // ReSharper disable once PossibleUnintendedReferenceComparison
             var deviceCredentials2 = Mock.Of<ITokenCredentials>(c => c.Identity == Mock.Of<IIdentity>(d => d.Id == "Device2"));
 
-            string edgeDeviceId = "edgeDevice";
             IClient client1 = GetDeviceClient();
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
@@ -103,7 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -258,7 +256,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsManager,
-                edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -370,7 +367,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -505,7 +501,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -566,7 +561,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -701,7 +695,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -879,7 +872,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                new ModuleIdentity(iotHub, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -938,7 +930,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -1006,7 +997,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                new ModuleIdentity(iotHub, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),

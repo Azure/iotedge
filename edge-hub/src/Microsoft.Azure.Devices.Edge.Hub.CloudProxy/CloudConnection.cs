@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly TimeSpan operationTimeout;
         readonly string productInfo;
         readonly Option<string> modelId;
-        internal Option<ICloudProxy> cloudProxy;
+        protected Option<ICloudProxy> cloudProxy;
 
         protected CloudConnection(
             IIdentity identity,

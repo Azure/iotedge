@@ -72,7 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                edgeHubCredentials.Identity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),

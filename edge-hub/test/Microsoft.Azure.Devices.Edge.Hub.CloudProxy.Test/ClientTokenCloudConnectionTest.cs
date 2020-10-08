@@ -22,8 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     public class ClientTokenCloudConnectionTest
     {
         const string DummyProductInfo = "IoTEdge 1.0.6 1.20.0-RC2";
-        static readonly ITokenProvider TokenProvider = Mock.Of<ITokenProvider>();
-        static readonly IDeviceScopeIdentitiesCache DeviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
         static readonly ICredentialsCache CredentialCache = Mock.Of<ICredentialsCache>();
 
         [Unit]
@@ -121,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var cloudConnection = await Create(
                 identity,
-                 CredentialCache,
+                CredentialCache,
                 (_, __) => { },
                 transportSettings,
                 messageConverterProvider,
@@ -172,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var cloudConnection = await Create(
                 identity,
-                 CredentialCache,
+                CredentialCache,
                 (_, __) => { },
                 transportSettings,
                 messageConverterProvider,
@@ -238,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var interval = pollInterval.GetOrElse(() => TimeSpan.FromMilliseconds(10));
             Exception e = null;
-            for (int i = 0; i< times; i++)
+            for (int i = 0; i < times; i++)
             {
                 try
                 {

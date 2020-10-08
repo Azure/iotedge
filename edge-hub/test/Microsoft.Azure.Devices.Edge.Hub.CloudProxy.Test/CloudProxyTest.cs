@@ -323,7 +323,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 Mock.Of<Util.ITokenProvider>(),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
                 credentialsCache,
-                Mock.Of<IIdentity>(i => i.Id == $"{deviceId}/$edgeHub"),
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),

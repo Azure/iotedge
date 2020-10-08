@@ -28,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static readonly ITokenProvider TokenProvider = Mock.Of<ITokenProvider>();
         static readonly IDeviceScopeIdentitiesCache DeviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
         static readonly ICredentialsCache CredentialsCache = Mock.Of<ICredentialsCache>();
-        static readonly IIdentity EdgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "device1/$edgeHub");
 
         public static IEnumerable<object[]> UpstreamProtocolTransportSettingsData()
         {
@@ -139,7 +138,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TokenProvider,
                 DeviceScopeIdentitiesCache,
                 CredentialsCache,
-                EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -184,7 +182,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TokenProvider,
                 DeviceScopeIdentitiesCache,
                 CredentialsCache,
-                EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -225,7 +222,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TokenProvider,
                 deviceScopeIdentitiesCache.Object,
                 CredentialsCache,
-                EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -269,7 +265,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TokenProvider,
                 deviceScopeIdentitiesCache.Object,
                 credentialsCache.Object,
-                EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -313,7 +308,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TokenProvider,
                 deviceScopeIdentitiesCache.Object,
                 credentialsCache.Object,
-                EdgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
