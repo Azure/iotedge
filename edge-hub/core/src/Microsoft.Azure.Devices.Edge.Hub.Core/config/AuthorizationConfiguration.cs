@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class Statement : IEquatable<Statement>
     {
         [JsonConstructor]
-        public Statement(IList<string> identities, IList<Rule> allow, IList<Rule> deny)
+        public Statement(IList<String> identities, IList<Rule> allow, IList<Rule> deny)
         {
             Identities = identities;
             Allow = allow;
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 && Enumerable.SequenceEqual(this.Deny, other.Deny);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(Object obj)
             => this.Equals(obj as Statement);
 
         public override int GetHashCode()
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class Rule : IEquatable<Rule>
     {
         [JsonConstructor]
-        public Rule(IList<string> operations, IList<string> resources)
+        public Rule(IList<String> operations, IList<String> resources)
         {
             Operations = operations;
             Resources = resources;
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 && Enumerable.SequenceEqual(this.Resources, other.Resources);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(Object obj)
             => this.Equals(obj as Rule);
 
         public override int GetHashCode()

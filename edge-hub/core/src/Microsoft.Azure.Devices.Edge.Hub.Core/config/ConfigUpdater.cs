@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
-                configProvider.ConfigUpdates +=
+                configProvider.ConfigUpdated +=
                     async (sender, serviceIdentities) => await this.HandleUpdateConfig(serviceIdentities);
 
                 this.configProvider = Option.Some(configProvider);

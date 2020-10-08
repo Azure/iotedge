@@ -110,33 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                       'storeAndForwardConfiguration': {
                         'timeToLiveSecs': 20
                       },
-                      'authorizations': [
-                          {
-                              'identities': [
-                                  'device_1'
-                              ],
-                              'allow': [
-                                  {
-                                      'operations': [
-                                          'mqtt:publish'
-                                      ],
-                                      'resources':[
-                                          '/telemetry/#'
-                                      ]
-                                  }
-                              ],
-                              'deny': [
-                                  {
-                                      'operations': [
-                                          'mqtt:subscribe'
-                                      ],
-                                      'resources':[
-                                          '/telemetry/#'
-                                      ]
-                                  }
-                              ]
-                          }
-                      ],
+                      'authorizations': [ ],
                       '$version': 2
                     }";
 
@@ -445,9 +419,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 @"{
                   'schemaVersion': '1.2.0',
                   'routes': {},
-                  'storeAndForwardConfiguration': {
-                    'timeToLiveSecs': 20
-                  },
+                  'storeAndForwardConfiguration': {},
                   'authorizations': [
                           {
                               'identities': [
@@ -493,6 +465,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             Assert.Equal("mqtt:subscribe", desiredProperties.Authorizations[0].Deny[0].Operations[0]);
             Assert.Single(desiredProperties.Authorizations[0].Deny[0].Resources);
             Assert.Equal("/alert/#", desiredProperties.Authorizations[0].Deny[0].Resources[0]);
+        }
+
+        [Fact]
+        public void AuthorizationsInvalidSchemaVersionTest()
+        {
+            string properties_1_1 =
+                @"{
+                  'schemaVersion': '1.1.0',
+                  'routes': {},
+                  'storeAndForwardConfiguration': {},
+                  'authorizations': [],
+                  '$version': 2
+                }";
+
+            string properties_1_0 =
+                @"{
+                  'schemaVersion': '1.0.0',
+                  'routes': {},
+                  'storeAndForwardConfiguration': {},
+                  'authorizations': [],
+                  '$version': 2
+                }";
+
+            Assert.Throws<InvalidSchemaVersionException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties_1_1));
+            Assert.Throws<InvalidSchemaVersionException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties_1_0));
         }
     }
 }

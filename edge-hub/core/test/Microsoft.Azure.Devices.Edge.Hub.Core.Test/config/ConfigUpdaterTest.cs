@@ -334,7 +334,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var authConfig3 = new AuthorizationConfiguration();
             var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3, authConfig3);
 
-            Func<EdgeHubConfig, Task> updateCallback = null;
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())
                 .ReturnsAsync(Option.Some(edgeHubConfig1))
@@ -345,7 +344,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             // Act
             var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object);
-            await configUpdater.Init(configProvider.Object);
+            IConfigSource config = configProvider.Object;
+            await configUpdater.Init(config);
 
             // Assert
             configProvider.Verify(c => c.GetConfig(), Times.Once);
@@ -354,7 +354,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             // call update with no changes
-            await updateCallback(edgeHubConfig1);
+            configProvider.Raise(m => m.ConfigUpdated += null, config, edgeHubConfig1);
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(1));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>(), It.IsAny<ICheckpointerFactory>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
@@ -367,7 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(2));
 
             // call update with changes
-            await updateCallback(edgeHubConfig3);
+            configProvider.Raise(m => m.ConfigUpdated += null, config, edgeHubConfig3);
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(2));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>(), It.IsAny<ICheckpointerFactory>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(3));

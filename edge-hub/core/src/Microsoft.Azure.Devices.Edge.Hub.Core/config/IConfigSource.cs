@@ -19,6 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         /// Occurres when config is updated in the config source.
         /// For example, by a twin update pushed from the cloud.
         /// </summary>
-        event EventHandler<EdgeHubConfig> ConfigUpdates;
+        event EventHandler<EdgeHubConfig> ConfigUpdated;
     }
 }

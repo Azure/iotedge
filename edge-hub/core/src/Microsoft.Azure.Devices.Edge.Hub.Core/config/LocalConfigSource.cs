@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         }
 
 #pragma warning disable CS0067 // unused event but part of the interface.
-        public event EventHandler<EdgeHubConfig> ConfigUpdates;
+        public event EventHandler<EdgeHubConfig> ConfigUpdated;
 #pragma warning restore CS0067
 
         public Task<Option<EdgeHubConfig>> GetCachedConfig() => Task.FromResult(Option.Some(this.edgeHubConfig));

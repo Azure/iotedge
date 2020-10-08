@@ -59,27 +59,96 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var storeAndForwardConfig6 = new StoreAndForwardConfiguration(3600);
 
             var statement1 = new Statement(
-                new List<String>(),
-                new List<Rule>(),
-                new List<Rule>()
+                identities: new List<String> { "device_1" },
+                allow: new List<Rule>
+                {
+                    new Rule(new List<String>
+                        {
+                            "read",
+                            "write"
+                        },
+                        new List<String>
+                        {
+                            "file1",
+                            "file2"
+                        }
+                    )
+                },
+                deny: new List<Rule>
+                {
+                    new Rule(new List<String>
+                        {
+                            "read"
+                        },
+                        new List<String>
+                        {
+                            "root1",
+                            "root2"
+                        }
+                    )
+                }
             );
             var statement2 = new Statement(
-                new List<String>(),
-                new List<Rule>(),
-                new List<Rule>()
+                identities: new List<String> { "device_2" },
+                allow: new List<Rule>
+                {
+                    new Rule(new List<String>
+                        {
+                            "read",
+                        },
+                        new List<String>
+                        {
+                            "file1",
+                        }
+                    )
+                },
+                deny: new List<Rule>
+                {
+                    new Rule(new List<String>
+                        {
+                            "read"
+                        },
+                        new List<String>
+                        {
+                            "root1",
+                        }
+                    )
+                }
             );
             var statement3 = new Statement(
-                new List<String>(),
-                new List<Rule>(),
-                new List<Rule>()
+                identities: new List<String> { "device_1" },
+                allow: new List<Rule>
+                {
+                    new Rule(new List<String>
+                        {
+                            "read",
+                            "write"
+                        },
+                        new List<String>
+                        {
+                            "file1",
+                            "file2"
+                        }
+                    )
+                },
+                deny: new List<Rule>
+                {
+                    new Rule(new List<String>
+                        {
+                            "read"
+                        },
+                        new List<String>
+                        {
+                            "root1",
+                            "root2"
+                        }
+                    )
+                }
             );
 
-            var authConfig1 = new AuthorizationConfiguration()
-            {
-                { statement1 }
-            };
-            var authConfig2 = new AuthorizationConfiguration();
-            var authConfig3 = new AuthorizationConfiguration();
+            var authConfig1 = new AuthorizationConfiguration { statement1 };
+            var authConfig2 = new AuthorizationConfiguration { statement2 };
+            var authConfig3 = new AuthorizationConfiguration { statement3 };
 
             string version = "1.0";
 
@@ -97,10 +166,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var edgeHubConfig12 = new EdgeHubConfig(version, routes3, storeAndForwardConfig5, authConfig1);
             var edgeHubConfig13 = new EdgeHubConfig(version, routes3, storeAndForwardConfig6, authConfig1);
 
-            var edgeHubConfig14 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, authConfig2);
-            var edgeHubConfig15 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, authConfig3);
-            var edgeHubConfig16 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, authConfig1);
-
             yield return new object[] { edgeHubConfig1, edgeHubConfig2, false };
             yield return new object[] { edgeHubConfig2, edgeHubConfig3, false };
             yield return new object[] { edgeHubConfig3, edgeHubConfig4, false };
@@ -115,9 +180,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             yield return new object[] { edgeHubConfig10, edgeHubConfig13, true };
             yield return new object[] { edgeHubConfig12, edgeHubConfig13, false };
 
-            yield return new object[] { edgeHubConfig12, edgeHubConfig13, false };
-            yield return new object[] { edgeHubConfig12, edgeHubConfig13, false };
-            yield return new object[] { edgeHubConfig12, edgeHubConfig13, false };
+            // authorization config equality check
+            var edgeHubConfig14 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, authConfig2);
+            var edgeHubConfig15 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, authConfig3);
+
+            yield return new object[] { edgeHubConfig1, edgeHubConfig14, false };
+            yield return new object[] { edgeHubConfig1, edgeHubConfig15, true };
         }
     }
 }

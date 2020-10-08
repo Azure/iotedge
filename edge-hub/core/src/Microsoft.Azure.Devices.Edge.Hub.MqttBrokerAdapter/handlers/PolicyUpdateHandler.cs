@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         async Task OnConnect()
         {
             var configSource = await this.configSource;
-            configSource.ConfigUpdates +=
+            configSource.ConfigUpdated +=
                 async (sender, config) => await this.ConfigUpdateHandler(config);
 
             var config = await configSource.GetConfig();

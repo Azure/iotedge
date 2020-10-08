@@ -243,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     return Task.CompletedTask;
                 }
 
-                configSource.ConfigUpdates +=
+                configSource.ConfigUpdated +=
                     async (sender, update) => await ConfigUpdatedCallback(update);
                 await this.UpdateDesiredProperties(registryManager, edgeDeviceId);
                 await Task.Delay(TimeSpan.FromSeconds(5));

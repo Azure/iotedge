@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.edgeHubConnection.SetDesiredPropertiesUpdateCallback((message) => this.HandleDesiredPropertiesUpdate(message));
         }
 
-        public event EventHandler<EdgeHubConfig> ConfigUpdates;
+        public event EventHandler<EdgeHubConfig> ConfigUpdated;
 
         public async Task<Option<EdgeHubConfig>> GetCachedConfig()
         {
@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     edgeHubConfig.ForEach(
                         config =>
                         {
-                            this.ConfigUpdates?.Invoke(this, config);
+                            this.ConfigUpdated?.Invoke(this, config);
                         }
                     );
                 }
