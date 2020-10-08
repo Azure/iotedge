@@ -5,8 +5,6 @@ use mqtt_broker::{BrokerHandle, ClientEvent, ClientId, Message};
 
 use crate::command::Command;
 
-const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
-
 /// When executed, `DisconnectCommand` disconnects a client from the broker.
 /// It is executed when `EdgeHub` sends a special packet to notify the broker
 /// that a client needs to be disconnected for whatever reason (usually SAS/cert expired).
@@ -26,7 +24,7 @@ impl Command for DisconnectCommand {
     type Error = Error;
 
     fn topic(&self) -> &str {
-        DISCONNECT_TOPIC
+        super::DISCONNECT_TOPIC
     }
 
     fn handle(&mut self, publication: &ReceivedPublication) -> Result<(), Self::Error> {
