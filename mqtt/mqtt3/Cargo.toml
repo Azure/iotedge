@@ -16,6 +16,7 @@ tokio = { version = "0.2", features = ["time"] }
 tokio-util = { version = "0.2", features = ["codec"] }
 
 serde = { version = "1.0", optional = true, features = ["derive"] }
+mockall = "0.8"
 
 [dev-dependencies]
 env_logger = "0.7"

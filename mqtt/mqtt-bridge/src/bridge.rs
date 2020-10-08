@@ -8,7 +8,6 @@ use tracing::{debug, info, warn};
 use crate::{
     client::{ClientConnectError, EventHandler, MqttClient},
     persist::{memory::InMemoryPersist, Persist},
-    rpc::RpcHandler,
     settings::{ConnectionSettings, Credentials, Topic},
 };
 
@@ -116,9 +115,8 @@ impl Bridge {
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
-        let _handler: MessageHandler<InMemoryPersist> =
+        let handler: MessageHandler<InMemoryPersist> =
             MessageHandler::new(topic_filters, BATCH_SIZE);
-        let handler = RpcHandler::new();
 
         let mut client = if secure {
             MqttClient::tls(
@@ -247,7 +245,7 @@ impl EventHandler for MessageHandler<InMemoryPersist> {
     }
 }
 
-/// Authentication error.
+/// Bridge error.
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
     #[error("failed to save to store.")]
