@@ -70,6 +70,7 @@ pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
 ) -> Result<Broker<impl Authorizer>> {
+    // TODO: Use AllowAll as bottom level authorizer until Policies are sent over from EdgeHub
     let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(AllowAll));
 
     let broker = BrokerBuilder::default()
