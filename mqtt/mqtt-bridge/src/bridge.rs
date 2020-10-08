@@ -1,9 +1,4 @@
-use std::{
-    cell::{BorrowMutError, RefCell},
-    collections::HashMap,
-    convert::TryInto,
-    rc::Rc,
-};
+use std::{cell::BorrowMutError, collections::HashMap, convert::TryInto, rc::Rc};
 
 use futures_util::{future::select, future::Either, pin_mut};
 use mqtt3::ShutdownError;
@@ -71,12 +66,10 @@ impl Bridge {
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let mut outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
-        let mut incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let outgoing_persist = Rc::new(PublicationStore::new_memory(BATCH_SIZE));
+        let incoming_persist = Rc::new(PublicationStore::new_memory(BATCH_SIZE));
         let outgoing_loader = outgoing_persist.loader();
         let incoming_loader = incoming_persist.loader();
-        let incoming_persist = Rc::new(RefCell::new(incoming_persist));
-        let outgoing_persist = Rc::new(RefCell::new(outgoing_persist));
 
         let (remote_subscriptions, remote_topic_rules): (Vec<_>, Vec<_>) =
             subscriptions.drain().unzip();

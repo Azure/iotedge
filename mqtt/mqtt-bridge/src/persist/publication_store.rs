@@ -9,11 +9,16 @@ use crate::persist::{
     loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
 };
 
-/// Persistence implementation used for the bridge
-pub struct PublicationStore<S: StreamWakeableState> {
+// TODO PRE: add comment explaining this pattern
+pub struct PublicationStoreInner<S: StreamWakeableState> {
     state: Rc<RefCell<S>>,
     offset: u32,
     loader: Rc<RefCell<MessageLoader<S>>>,
+}
+
+/// Persistence implementation used for the bridge
+pub struct PublicationStore<S: StreamWakeableState> {
+    inner: Rc<RefCell<PublicationStoreInner<S>>>,
 }
 
 impl PublicationStore<WakingMemoryStore> {
@@ -29,36 +34,45 @@ impl<S: StreamWakeableState> PublicationStore<S> {
         let loader = Rc::new(RefCell::new(loader));
 
         let offset = 0;
-        Self {
+        let inner = PublicationStoreInner {
             state,
             offset,
             loader,
-        }
+        };
+        let inner = Rc::new(RefCell::new(inner));
+
+        Self { inner }
     }
 
-    pub fn push(&mut self, message: Publication) -> Result<Key, PersistError> {
+    pub fn push(&self, message: Publication) -> Result<Key, PersistError> {
+        let mut inner = self.inner.borrow_mut();
+
         debug!(
             "persisting publication on topic {} with offset {}",
-            message.topic_name, self.offset
+            message.topic_name, inner.offset
         );
 
         let key = Key {
-            offset: self.offset,
+            offset: inner.offset,
         };
 
-        let mut state_borrow = self
+        let mut state_borrow = inner
             .state
             .try_borrow_mut()
             .map_err(PersistError::BorrowSharedState)?;
         state_borrow.insert(key, message)?;
-        self.offset += 1;
+        drop(state_borrow);
+
+        inner.offset += 1;
         Ok(key)
     }
 
-    pub fn remove(&mut self, key: Key) -> Result<(), PersistError> {
+    pub fn remove(&self, key: Key) -> Result<(), PersistError> {
+        let inner = self.inner.borrow_mut();
+
         debug!("removing publication with key {:?}", key);
 
-        let mut state_borrow = self
+        let mut state_borrow = inner
             .state
             .try_borrow_mut()
             .map_err(PersistError::BorrowSharedState)?;
@@ -66,8 +80,9 @@ impl<S: StreamWakeableState> PublicationStore<S> {
         Ok(())
     }
 
-    pub fn loader(&mut self) -> Rc<RefCell<MessageLoader<S>>> {
-        self.loader.clone()
+    pub fn loader(&self) -> Rc<RefCell<MessageLoader<S>>> {
+        let inner = self.inner.borrow_mut();
+        inner.loader.clone()
     }
 }
 
@@ -85,7 +100,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 5;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -125,7 +140,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key2 = Key { offset: 1 };
@@ -164,7 +179,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -186,7 +201,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -201,7 +216,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
