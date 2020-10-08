@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Xunit;
 
     [Unit]
-    public class EdgeDeploymentStatiusCommandTest
+    public class EdgeDeploymentStatusCommandTest
     {
         [Fact]
         public async void ExecuteAyncSuccessWithNoStatus()
@@ -35,7 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             EdgeDeploymentStatus failure = EdgeDeploymentStatus.Failure("failure message");
             EdgeDeploymentStatusCommand failStatus = new EdgeDeploymentStatusCommand(Option.Some(failure));
 
-            await Assert.ThrowsAsync<ConfigOperationFailureException>(() => failStatus.ExecuteAsync(CancellationToken.None));
+            ConfigOperationFailureException ex = await Assert.ThrowsAsync<ConfigOperationFailureException>(() => failStatus.ExecuteAsync(CancellationToken.None));
+            Assert.Equal("failure message", ex.Message);
         }
 
         [Fact]
