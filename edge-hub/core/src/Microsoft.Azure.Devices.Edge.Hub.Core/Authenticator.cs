@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -49,7 +50,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (isAuthenticated)
             {
-                await this.credentialsCache.Add(clientCredentials);
+                try
+                {
+                    await this.credentialsCache.Add(clientCredentials);
+                }
+                catch (Exception ex)
+                {
+                    // Authenticated but failed to add to cred cache,
+                    // this will eventually cause a re-auth error but
+                    // there's nothing we can do here
+                    Events.CredentialsCacheFailure(ex);
+                }
             }
             else
             {
@@ -69,7 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 AuthResult = IdStart,
-                InvalidDeviceError
+                InvalidDeviceError,
+                CredentialsCacheFailure,
             }
 
             public static void InvalidDeviceId(IModuleIdentity moduleIdentity, string edgeDeviceId)
@@ -88,6 +100,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Log.LogDebug((int)EventIds.AuthResult, Invariant($"{clientCredentials.Identity.Id} {operation} failure"));
                 }
+            }
+
+            public static void CredentialsCacheFailure(Exception ex)
+            {
+                Log.LogError((int)EventIds.CredentialsCacheFailure, Invariant($"Credentials cache failed with exception {ex.GetType()}:{ex.Message}"));
             }
         }
 
