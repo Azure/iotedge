@@ -147,7 +147,7 @@ where
             .and_then(|s| s.write_system_log("aziot-certd", "aziot-certd"))
             .and_then(|s| s.write_system_log("aziot-identityd", "aziot-identityd"))
             .and_then(|s| s.write_system_log("iotedged", "iotedge"))
-            .and_then(Self::write_docker_log)
+            .and_then(|s| s.write_system_log("docker", "docker"))
             .and_then(Self::write_all_inspects)
             .and_then(Self::write_all_network_inspects)
     }
@@ -305,61 +305,6 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.print_verbose(format!("Got logs for {}", name).as_str());
-        Ok(self)
-    }
-
-    fn write_docker_log(mut self) -> Result<Self, Error> {
-        self.print_verbose("Getting system logs for docker");
-        let since_time: DateTime<Utc> = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(self.log_options.since().into(), 0),
-            Utc,
-        );
-
-        #[cfg(unix)]
-        let inspect = ShellCommand::new("journalctl")
-            .arg("-a")
-            .args(&["-u", "docker"])
-            .args(&["-S", &since_time.format("%F %T").to_string()])
-            .arg("--no-pager")
-            .output();
-
-        /* from https://docs.microsoft.com/en-us/virtualization/windowscontainers/troubleshooting#finding-logs */
-        #[cfg(windows)]
-        let inspect = ShellCommand::new("powershell.exe")
-            .arg("-NoProfile")
-            .arg("-Command")
-            .arg(&format!(
-                r#"Get-EventLog -LogName Application -Source Docker -After "{}" |
-                    Sort-Object Time |
-                    Format-List"#,
-                since_time.to_rfc3339()
-            ))
-            .output();
-
-        let (file_name, output) = if let Ok(result) = inspect {
-            if result.status.success() {
-                ("docker.txt", result.stdout)
-            } else {
-                ("docker_err.txt", result.stderr)
-            }
-        } else {
-            let err_message = inspect.err().unwrap().to_string();
-            println!(
-            "Could not find system logs for docker. Including error in bundle.\nError message: {}",
-            err_message
-        );
-            ("docker_err.txt", err_message.as_bytes().to_vec())
-        };
-
-        self.zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), self.file_options)
-            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
-
-        self.zip_writer
-            .write_all(&output)
-            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
-
-        self.print_verbose("Got logs for docker");
         Ok(self)
     }
 
