@@ -110,6 +110,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                       'storeAndForwardConfiguration': {
                         'timeToLiveSecs': 20
                       },
+                      'authorizations': [
+                          {
+                              'identities': [
+                                  'device_1'
+                              ],
+                              'allow': [
+                                  {
+                                      'operations': [
+                                          'mqtt:publish'
+                                      ],
+                                      'resources':[
+                                          '/telemetry/#'
+                                      ]
+                                  }
+                              ],
+                              'deny': [
+                                  {
+                                      'operations': [
+                                          'mqtt:subscribe'
+                                      ],
+                                      'resources':[
+                                          '/telemetry/#'
+                                      ]
+                                  }
+                              ]
+                          }
+                      ],
                       '$version': 2
                     }";
 
@@ -159,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             yield return new object[] { version_1_0, null };
             yield return new object[] { version_1_1, null };
             yield return new object[] { version_1_1_0, null };
-            yield return new object[] { version_1_2, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_1_2, null };
             yield return new object[] { version_2_0, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_2_0_1, typeof(InvalidSchemaVersionException) };
             yield return new object[] { versionMismatch, typeof(InvalidSchemaVersionException) };
@@ -409,6 +436,63 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             yield return new object[] { emptyRouteString2, typeof(ArgumentException) };
             yield return new object[] { noRouteString, typeof(InvalidDataException) };
             yield return new object[] { badPriorityValue, typeof(ArgumentOutOfRangeException) };
+        }
+
+        [Fact]
+        public void AuthorizationsTest()
+        {
+            string properties =
+                @"{
+                  'schemaVersion': '1.2.0',
+                  'routes': {},
+                  'storeAndForwardConfiguration': {
+                    'timeToLiveSecs': 20
+                  },
+                  'authorizations': [
+                          {
+                              'identities': [
+                                  'device_1',
+                                  'device_2',
+                              ],
+                              'allow': [
+                                  {
+                                      'operations': [
+                                          'mqtt:publish'
+                                      ],
+                                      'resources':[
+                                          '/telemetry/#'
+                                      ]
+                                  }
+                              ],
+                              'deny': [
+                                  {
+                                      'operations': [
+                                          'mqtt:subscribe'
+                                      ],
+                                      'resources':[
+                                          '/alert/#'
+                                      ]
+                                  }
+                              ]
+                          }
+                      ],
+                  '$version': 2
+                }";
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties);
+            Assert.Single(desiredProperties.Authorizations);
+            Assert.Equal(2, desiredProperties.Authorizations[0].Identities.Count);
+            Assert.Equal("device_1", desiredProperties.Authorizations[0].Identities[0]);
+            Assert.Equal("device_2", desiredProperties.Authorizations[0].Identities[1]);
+            Assert.Single(desiredProperties.Authorizations[0].Allow);
+            Assert.Single(desiredProperties.Authorizations[0].Deny);
+            Assert.Single(desiredProperties.Authorizations[0].Allow[0].Operations);
+            Assert.Equal("mqtt:publish", desiredProperties.Authorizations[0].Allow[0].Operations[0]);
+            Assert.Single(desiredProperties.Authorizations[0].Allow[0].Resources);
+            Assert.Equal("/telemetry/#", desiredProperties.Authorizations[0].Allow[0].Resources[0]);
+            Assert.Single(desiredProperties.Authorizations[0].Deny[0].Operations);
+            Assert.Equal("mqtt:subscribe", desiredProperties.Authorizations[0].Deny[0].Operations[0]);
+            Assert.Single(desiredProperties.Authorizations[0].Deny[0].Resources);
+            Assert.Equal("/alert/#", desiredProperties.Authorizations[0].Deny[0].Resources[0]);
         }
     }
 }
