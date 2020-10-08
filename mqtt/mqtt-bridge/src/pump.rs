@@ -133,9 +133,7 @@ impl Pump {
         let has_receiver = receiver.is_some();
 
         let f3 = async move {
-            //let mut publish = publish_handle.clone();
             if let Some(r) = receiver {
-                //has_receiver = true;
                 while let Some(message) = r.recv().await {
                     match message {
                         BridgeMessage::ConnectivityUpdate(connectivity) => {
@@ -178,6 +176,8 @@ impl Pump {
                     break;
                 },
                 _ = f3 => {
+                    // if it has a receiver and the future finished there must be an error
+                    // if there was no receiver set then the future is finished right away, it should continue to loop for other futures to finish
                     if has_receiver {
                         error!(message = "incoming connectivity state loop failed and exited for bridge pump");
                         break;
