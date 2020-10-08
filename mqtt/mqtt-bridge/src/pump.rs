@@ -6,10 +6,8 @@ use futures_util::{
     pin_mut, select,
     stream::{StreamExt, TryStreamExt},
 };
-use tokio::sync::{mpsc::UnboundedReceiver, oneshot, oneshot::Receiver, Mutex};
-use tokio::sync::{oneshot, oneshot::Receiver};
-use tracing::debug;
-use tracing::error;
+use tokio::sync::{mpsc::UnboundedReceiver, oneshot, oneshot::Receiver};
+use tracing::{debug, error};
 
 use mqtt3::{proto::Publication, proto::QoS::AtLeastOnce, PublishHandle};
 
