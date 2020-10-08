@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     /// PolicyUpdate is a Data Transfer Object used for sending authorization policy
     /// definition from EdgeHub core to Mqtt Broker.
     /// </summary>
-    internal class PolicyUpdate : IComparable
+    internal class PolicyUpdate
     {
         [JsonConstructor]
         public PolicyUpdate(string policy)
@@ -22,11 +22,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         /// </summary>
         [JsonProperty]
         public string Definition { get; }
-
-        public int CompareTo(object obj)
-        {
-            PolicyUpdate that = obj as PolicyUpdate;
-            return this.Definition.CompareTo(that?.Definition);
-        }
     }
 }
