@@ -17,12 +17,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         public static EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)
         {
-            // TODO: Parse Policy changes here
-            // Validate policy changes here.
-            // set lastDesiredStatus to error if validation failed.
-
             Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
 
+            ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutes(desiredProperties, routeFactory);
+
+            ValidateAuthorizationPolicy(desiredProperties.Authorizations);
+
+            return new EdgeHubConfig(desiredProperties.SchemaVersion,
+                routes,
+                desiredProperties.StoreAndForwardConfiguration,
+                desiredProperties.Authorizations);
+        }
+
+        private static ReadOnlyDictionary<string, RouteConfig> ParseRoutes(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)
+        {
             var routes = new Dictionary<string, RouteConfig>();
             if (desiredProperties.Routes != null)
             {
@@ -40,10 +48,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
             }
 
-            return new EdgeHubConfig(desiredProperties.SchemaVersion,
-                new ReadOnlyDictionary<string, RouteConfig>(routes),
-                desiredProperties.StoreAndForwardConfiguration,
-                desiredProperties.AuthorizationConfiguration);
+            return new ReadOnlyDictionary<string, RouteConfig>(routes);
+        }
+
+        private static void ValidateAuthorizationPolicy(AuthorizationConfiguration authorizations)
+        {
+            if (authorizations != null)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

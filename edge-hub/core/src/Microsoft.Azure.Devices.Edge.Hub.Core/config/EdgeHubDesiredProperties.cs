@@ -17,12 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public EdgeHubDesiredProperties(string schemaVersion,
             IDictionary<string, RouteConfiguration> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
-            AuthorizationConfiguration authorizationConfiguration)
+            AuthorizationConfiguration authorizations)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.StoreAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
-            this.AuthorizationConfiguration = Preconditions.CheckNotNull(authorizationConfiguration, nameof(authorizationConfiguration));
+            // can be null for previous versions.
+            this.Authorizations = authorizations;
 
             this.ValidateSchemaVersion();
         }
@@ -32,11 +33,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         [JsonConverter(typeof(RouteConfigurationConverter))]
         public IDictionary<string, RouteConfiguration> Routes;
 
+        [JsonProperty(PropertyName = "storeAndForwardConfiguration")]
         public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
 
-        public AuthorizationConfiguration AuthorizationConfiguration { get; }
+        [JsonProperty(PropertyName = "authorizations")]
+        public AuthorizationConfiguration Authorizations { get; }
 
-        internal void ValidateSchemaVersion()
+        void ValidateSchemaVersion()
         {
             if (string.IsNullOrWhiteSpace(this.SchemaVersion) || !Version.TryParse(this.SchemaVersion, out Version version))
             {
@@ -66,12 +69,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         throw new InvalidSchemaVersionException($"Route priority/TTL is not supported in schema {this.SchemaVersion}.");
                     }
                 }
+                // Authorization policies not allowed.
+                if (this.Authorizations != null)
+                {
+                    throw new InvalidSchemaVersionException($"Authorization policy is not supported in schema {this.SchemaVersion}.");
+                }
             }
             else if (version.Minor == 1)
             {
                 // 1.1.0
                 //
-                // Everything from 1.0 is supported
+                // Authorization policies not allowed.
+                if (this.Authorizations != null)
+                {
+                    throw new InvalidSchemaVersionException($"Authorization policy is not supported in schema {this.SchemaVersion}.");
+                }
+            }
+            else if (version.Minor == 2)
+            {
+                // 1.2.0
+                //
+                // Everything is supported
             }
             else
             {
