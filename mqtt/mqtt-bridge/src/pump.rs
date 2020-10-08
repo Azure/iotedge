@@ -25,7 +25,7 @@ pub struct Pump {
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
     loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
-    persist: Rc<PublicationStore<WakingMemoryStore>>,
+    persist: PublicationStore<WakingMemoryStore>,
 }
 
 impl Pump {
@@ -33,7 +33,7 @@ impl Pump {
         client: MqttClient<MessageHandler<WakingMemoryStore>>,
         subscriptions: Vec<String>,
         loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
-        persist: Rc<PublicationStore<WakingMemoryStore>>,
+        persist: PublicationStore<WakingMemoryStore>,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()

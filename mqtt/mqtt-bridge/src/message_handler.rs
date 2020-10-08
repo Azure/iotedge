@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, rc::Rc};
+use std::convert::TryFrom;
 
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
 use mqtt_broker::TopicFilter;
@@ -39,14 +39,14 @@ where
     S: StreamWakeableState,
 {
     topic_mappers: Vec<TopicMapper>,
-    inner: Rc<PublicationStore<S>>,
+    inner: PublicationStore<S>,
 }
 
 impl<S> MessageHandler<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(persistor: Rc<PublicationStore<S>>, topic_mappers: Vec<TopicMapper>) -> Self {
+    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
             inner: persistor,

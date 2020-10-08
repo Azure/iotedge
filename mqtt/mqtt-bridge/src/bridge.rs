@@ -1,4 +1,4 @@
-use std::{cell::BorrowMutError, collections::HashMap, convert::TryInto, rc::Rc};
+use std::{cell::BorrowMutError, collections::HashMap, convert::TryInto};
 
 use futures_util::{future::select, future::Either, pin_mut};
 use mqtt3::ShutdownError;
@@ -37,7 +37,6 @@ impl BridgeShutdownHandle {
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
-// TODO PRE: make persistence generic
 pub struct Bridge {
     local_pump: Pump,
     remote_pump: Pump,
@@ -66,8 +65,8 @@ impl Bridge {
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let outgoing_persist = Rc::new(PublicationStore::new_memory(BATCH_SIZE));
-        let incoming_persist = Rc::new(PublicationStore::new_memory(BATCH_SIZE));
+        let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
         let outgoing_loader = outgoing_persist.loader();
         let incoming_loader = incoming_persist.loader();
 

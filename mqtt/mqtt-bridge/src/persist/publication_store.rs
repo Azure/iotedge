@@ -9,7 +9,8 @@ use crate::persist::{
     loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
 };
 
-// TODO PRE: add comment explaining this pattern
+/// Pattern allows for the wrapping PublicationStore to be cloned and have non mutable methods
+/// This facilitates sharing between multiple futures in a single threaded environment
 pub struct PublicationStoreInner<S: StreamWakeableState> {
     state: Rc<RefCell<S>>,
     offset: u32,
@@ -83,6 +84,14 @@ impl<S: StreamWakeableState> PublicationStore<S> {
     pub fn loader(&self) -> Rc<RefCell<MessageLoader<S>>> {
         let inner = self.inner.borrow_mut();
         inner.loader.clone()
+    }
+}
+
+impl<S: StreamWakeableState> Clone for PublicationStore<S> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
     }
 }
 
