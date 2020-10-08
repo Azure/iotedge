@@ -1,3 +1,5 @@
+use std::{net::IpAddr, str::FromStr};
+
 use crate::check::{checker::Checker, Check, CheckResult};
 use edgelet_core::RuntimeSettings;
 use failure::ResultExt;
@@ -35,6 +37,11 @@ impl ContainerResolveParentHostname {
         } else {
             return Ok(CheckResult::Ignored);
         };
+
+        //If parent hostname is an IP, we ignore
+        if IpAddr::from_str(&parent_hostname).is_ok() {
+            return Ok(CheckResult::Ignored);
+        }
 
         let diagnostics_image_name = if check
             .diagnostics_image_name
@@ -81,7 +88,7 @@ impl ContainerResolveParentHostname {
 
         super::docker(docker_host_arg, args)
             .map_err(|(_, err)| err)
-            .context("Failed to resolve parent hostname")?;
+            .context("Failed to resolve parent hostname {}", parent_hostname)?;
 
         Ok(CheckResult::Ok)
     }
