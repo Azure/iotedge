@@ -83,7 +83,7 @@ where
         };
     } else {
         let server_output = server_join_handle.await;
-        state = collapse_snapshot_result(server_output)?;
+        state = server_output??;
     }
 
     snapshotter_shutdown_handle.shutdown().await?;
@@ -96,12 +96,6 @@ where
 
     info!("exiting... goodbye");
     Ok(())
-}
-
-fn collapse_snapshot_result(
-    server_output: Result<Result<BrokerSnapshot>, JoinError>,
-) -> Result<BrokerSnapshot> {
-    server_output?
 }
 
 #[derive(Debug, thiserror::Error)]
