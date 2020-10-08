@@ -299,12 +299,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
-                            var serviceIdentityTree = new ServiceIdentityTree(this.edgeDeviceId);
+
+                            IServiceIdentityHierarchy serviceIdentityHierarchy;
+                            if (this.nestedEdgeEnabled)
+                            {
+                                serviceIdentityHierarchy = new ServiceIdentityTree(this.edgeDeviceId);
+                            }
+                            else
+                            {
+                                serviceIdentityHierarchy = new ServiceIdentityDictionary(this.edgeDeviceId);
+                            }
+
                             string hostName = this.gatewayHostName.GetOrElse(this.iothubHostName);
-                            IDeviceScopeApiClientProvider securityScopesApiClientProvider = new DeviceScopeApiClientProvider(hostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, serviceIdentityTree, proxy);
+                            IDeviceScopeApiClientProvider securityScopesApiClientProvider = new DeviceScopeApiClientProvider(hostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, serviceIdentityHierarchy, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClientProvider, this.nestedEdgeEnabled);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
-                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityTree, serviceProxy, encryptedStore, this.scopeCacheRefreshRate, this.scopeCacheRefreshDelay);
+                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy, serviceProxy, encryptedStore, this.scopeCacheRefreshRate, this.scopeCacheRefreshDelay);
                         }
                         else
                         {
@@ -344,7 +354,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             underlyingCredentialsCache = new NullCredentialsCache();
                         }
 
-                        ICredentialsCache credentialsCache = new CredentialsCache(underlyingCredentialsCache);
+                        ICredentialsCache credentialsCache;
+
+                        if (this.nestedEdgeEnabled)
+                        {
+                            credentialsCache = new NestedCredentialsCache(underlyingCredentialsCache);
+                        }
+                        else
+                        {
+                            credentialsCache = new CredentialsCache(underlyingCredentialsCache);
+                        }
+
                         return credentialsCache;
                     })
                 .As<Task<ICredentialsCache>>()

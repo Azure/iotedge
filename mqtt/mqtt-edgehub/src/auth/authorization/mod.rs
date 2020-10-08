@@ -3,7 +3,7 @@ mod local;
 mod policy;
 
 pub use self::policy::{PolicyAuthorizer, PolicyUpdate};
-pub use edgehub::{AuthorizerUpdate, EdgeHubAuthorizer};
+pub use edgehub::{AuthorizerUpdate, EdgeHubAuthorizer, IdentityUpdate};
 pub use local::LocalAuthorizer;
 
 #[cfg(test)]
