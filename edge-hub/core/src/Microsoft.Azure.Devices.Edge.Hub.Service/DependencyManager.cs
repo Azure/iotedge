@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, false);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -208,11 +208,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, false);
+            bool hasParentEdge = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
-                authenticationMode = AuthenticationMode.CloudAndScope;
+                if (!hasParentEdge)
+                {
+                    // Default setting should be local auth with fallback to cloud auth
+                    authenticationMode = AuthenticationMode.CloudAndScope;
+                }
+                else
+                {
+                    // If the Edge is nested and connects to a parent Edge, then we
+                    // should only allow local authentication as we don't expect to
+                    // have internet connectivity.
+                    authenticationMode = AuthenticationMode.Scope;
+                }
             }
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
