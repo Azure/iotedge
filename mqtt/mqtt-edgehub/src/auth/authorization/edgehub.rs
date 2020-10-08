@@ -287,9 +287,17 @@ pub struct IdentityUpdate {
 }
 
 impl IdentityUpdate {
+    pub fn new(identity: String, auth_chain: Option<String>) -> Self {
+        Self {
+            identity,
+            auth_chain,
+        }
+    }
+
     pub fn identity(&self) -> &str {
         &self.identity
     }
+
     pub fn auth_chain(&self) -> Option<&str> {
         self.auth_chain.as_deref()
     }
