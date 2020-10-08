@@ -1,11 +1,12 @@
 use assert_matches::assert_matches;
 use futures_util::StreamExt;
+use mqtt_broker::auth::authorize_fn_ok;
 
 use mqtt3::{
-    proto::ClientId, proto::Packet, proto::PacketIdentifier, proto::QoS, proto::Subscribe,
-    proto::SubscribeTo,
+    proto::ClientId, proto::ConnectReturnCode, proto::Packet, proto::PacketIdentifier, proto::QoS,
+    proto::SubAckQos, proto::Subscribe, proto::SubscribeTo,
 };
-use mqtt_broker::{auth::authorize_fn_ok, auth::Authorization, auth::Operation, BrokerBuilder};
+use mqtt_broker::{auth::Authorization, auth::Operation, BrokerBuilder};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,
@@ -25,12 +26,19 @@ use common::DummyAuthorizer;
 /// connect authorized client
 /// verify client has not been connected, since authorized identities haven't been sent
 #[tokio::test]
-async fn connect_not_allowed_identity_not_in_cache() {
+async fn publish_not_allowed_identity_not_in_cache() {
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to EdgeHubAuthorizer
+    // EdgeHubAuthorizer has DenyAll for this test because it simulates if PolicyAuthorizer was allowing this case (in the case of default IoTHub policy)
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(EdgeHubAuthorizer::new(
-            authorize_fn_ok(|_| Authorization::Forbidden("not allowed".to_string())),
+            authorize_fn_ok(|activity| {
+                if matches!(activity.operation(), Operation::Connect(_)) {
+                    Authorization::Allowed
+                } else {
+                    Authorization::Forbidden("not allowed".to_string())
+                }
+            }),
         )))
         .build();
     let broker_handle = broker.handle();
@@ -44,10 +52,6 @@ async fn connect_not_allowed_identity_not_in_cache() {
             .await
             .expect("could not start command handler");
 
-    let mut edgehub_client = TestClientBuilder::new(server_handle.address())
-        .with_client_id(ClientId::IdWithCleanSession("$edgehub".into()))
-        .build();
-
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
         server_handle.address(),
@@ -55,9 +59,35 @@ async fn connect_not_allowed_identity_not_in_cache() {
         None,
     )
     .await;
-    // assert connack
-    let x = device_client.next().await;
-    assert_matches!(device_client.next().await, Some(Packet::ConnAck(_)));
+
+    // We should be able to connect because inner authorizer is AllowAll
+    match device_client.next().await {
+        Some(Packet::ConnAck(c)) => assert_matches!(c.return_code, ConnectReturnCode::Accepted),
+        _ => panic!("device client did not receive ConnAck"),
+    }
+
+    let s = Subscribe {
+        packet_identifier: PacketIdentifier::new(1).unwrap(),
+        subscribe_to: vec![SubscribeTo {
+            // We need to use a post-translation topic here
+            topic_filter: "$edgehub/device-1/inputs/telemetry/#".into(),
+            qos: QoS::AtLeastOnce,
+        }],
+    };
+
+    device_client.send_subscribe(s).await; // client subscribes to topic
+
+    // assert device_client couldn't connect because it was refused
+    if let Some(Packet::SubAck(x)) = device_client.next().await {
+        assert_matches!(x.qos.get(0).unwrap(), SubAckQos::Failure);
+    }
+
+    command_handler_shutdown_handle
+        .shutdown()
+        .await
+        .expect("failed to stop command handler client");
+
+    join_handle.await.unwrap();
 }
 
 /// Scenario:
