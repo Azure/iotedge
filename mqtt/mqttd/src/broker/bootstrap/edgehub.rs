@@ -23,14 +23,11 @@ use tracing::{error, info, warn};
 
 use mqtt_bridge::BridgeController;
 use mqtt_broker::{
-    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerSnapshot, Server,
-    ServerCertificate,
+    auth::{AllowAll, Authorizer},
+    Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerSnapshot, Server, ServerCertificate,
 };
 use mqtt_edgehub::{
-    auth::{
-        EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer,
-        PolicyAuthorizer,
-    },
+    auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     command::{
         AuthorizedIdentitiesCommand, CommandHandler, DisconnectCommand, PolicyUpdateCommand,
     },
@@ -73,9 +70,7 @@ pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
 ) -> Result<Broker<impl Authorizer>> {
-    let device_id = env::var(DEVICE_ID_ENV)?;
-
-    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(device_id)));
+    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(AllowAll));
 
     let broker = BrokerBuilder::default()
         .with_authorizer(authorizer)
