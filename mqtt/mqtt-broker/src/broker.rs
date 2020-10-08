@@ -2466,10 +2466,10 @@ pub(crate) mod tests {
     pub fn is_notify_equal(payload: &Bytes, expected: &[&str]) {
         let payload: String = String::from_utf8(payload.to_vec()).unwrap();
         let mut payload: Vec<&str> = serde_json::from_str(&payload).unwrap();
-        payload.sort();
+        payload.sort_unstable();
 
-        let mut expected: Vec<&str> = expected.into();
-        expected.sort();
+        let mut expected = expected.to_vec();
+        expected.sort_unstable();
 
         assert_eq!(payload, expected);
     }
