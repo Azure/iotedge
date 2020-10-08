@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-
     /// <summary>
     /// DTO that is used to deserialize EdgeHub Desired properties of the twin
     /// into <see cref="EdgeHubConfig" /> by <see cref="TwinConfigSource" />.
@@ -14,7 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class EdgeHubDesiredProperties
     {
         [JsonConstructor]
-        public EdgeHubDesiredProperties(string schemaVersion,
+        public EdgeHubDesiredProperties(
+            string schemaVersion,
             IDictionary<string, RouteConfiguration> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
             AuthorizationConfiguration authorizations)
@@ -69,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         throw new InvalidSchemaVersionException($"Route priority/TTL is not supported in schema {this.SchemaVersion}.");
                     }
                 }
+
                 // Authorization policies not allowed.
                 if (this.Authorizations != null)
                 {

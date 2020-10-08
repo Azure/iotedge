@@ -59,92 +59,92 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var storeAndForwardConfig6 = new StoreAndForwardConfiguration(3600);
 
             var statement1 = new Statement(
-                identities: new List<String> { "device_1" },
+                identities: new List<string>
+                {
+                    "device_1"
+                },
                 allow: new List<Rule>
                 {
-                    new Rule(new List<String>
+                    new Rule(
+                        new List<string>
                         {
                             "read",
                             "write"
                         },
-                        new List<String>
+                        new List<string>
                         {
                             "file1",
                             "file2"
-                        }
-                    )
+                        })
                 },
                 deny: new List<Rule>
                 {
-                    new Rule(new List<String>
+                    new Rule(
+                        new List<string>
                         {
                             "read"
                         },
-                        new List<String>
+                        new List<string>
                         {
                             "root1",
                             "root2"
-                        }
-                    )
-                }
-            );
+                        })
+                });
             var statement2 = new Statement(
-                identities: new List<String> { "device_2" },
+                identities: new List<string> { "device_2" },
                 allow: new List<Rule>
                 {
-                    new Rule(new List<String>
+                    new Rule(
+                        new List<string>
                         {
                             "read",
                         },
-                        new List<String>
+                        new List<string>
                         {
                             "file1",
-                        }
-                    )
+                        })
                 },
                 deny: new List<Rule>
                 {
-                    new Rule(new List<String>
+                    new Rule(
+                        new List<string>
                         {
                             "read"
                         },
-                        new List<String>
+                        new List<string>
                         {
                             "root1",
-                        }
-                    )
-                }
-            );
+                        })
+                });
             var statement3 = new Statement(
-                identities: new List<String> { "device_1" },
+                identities: new List<string> { "device_1" },
                 allow: new List<Rule>
                 {
-                    new Rule(new List<String>
+                    new Rule(
+                        new List<string>
                         {
                             "read",
                             "write"
                         },
-                        new List<String>
+                        new List<string>
                         {
                             "file1",
                             "file2"
-                        }
-                    )
+                        })
                 },
                 deny: new List<Rule>
                 {
-                    new Rule(new List<String>
+                    new Rule(
+                        new List<string>
                         {
                             "read"
                         },
-                        new List<String>
+                        new List<string>
                         {
                             "root1",
                             "root2"
-                        }
-                    )
-                }
-            );
+                        })
+                });
 
             var authConfig1 = new AuthorizationConfiguration { statement1 };
             var authConfig2 = new AuthorizationConfiguration { statement2 };

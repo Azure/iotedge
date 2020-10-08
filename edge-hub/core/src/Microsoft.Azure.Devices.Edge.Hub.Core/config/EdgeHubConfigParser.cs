@@ -23,7 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             ValidateAuthorizationPolicy(desiredProperties.Authorizations);
 
-            return new EdgeHubConfig(desiredProperties.SchemaVersion,
+            return new EdgeHubConfig(
+                desiredProperties.SchemaVersion,
                 routes,
                 desiredProperties.StoreAndForwardConfiguration,
                 desiredProperties.Authorizations);

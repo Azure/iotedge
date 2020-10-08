@@ -129,8 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         config =>
                         {
                             this.ConfigUpdated?.Invoke(this, config);
-                        }
-                    );
+                        });
                 }
             }
             catch (Exception ex)

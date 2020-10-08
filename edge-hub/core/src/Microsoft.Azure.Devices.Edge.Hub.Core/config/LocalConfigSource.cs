@@ -17,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     {
         readonly EdgeHubConfig edgeHubConfig;
 
-        public LocalConfigSource(RouteFactory routeFactory,
+        public LocalConfigSource(
+            RouteFactory routeFactory,
             IDictionary<string, string> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
             AuthorizationConfiguration authorizationConfiguration)
@@ -29,10 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             IDictionary<string, RouteConfig> parsedRoutes = routes.ToDictionary(
                 r => r.Key,
-                r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value))
-            );
+                r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
 
-            this.edgeHubConfig = new EdgeHubConfig(Constants.ConfigSchemaVersion.ToString(),
+            this.edgeHubConfig = new EdgeHubConfig(
+                Constants.ConfigSchemaVersion.ToString(),
                 new ReadOnlyDictionary<string, RouteConfig>(parsedRoutes),
                 storeAndForwardConfiguration,
                 authorizationConfiguration);

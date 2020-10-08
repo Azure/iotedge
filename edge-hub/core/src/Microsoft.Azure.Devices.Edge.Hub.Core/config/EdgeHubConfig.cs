@@ -13,7 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     /// </summary>
     public class EdgeHubConfig : IEquatable<EdgeHubConfig>
     {
-        public EdgeHubConfig(string schemaVersion,
+        public EdgeHubConfig(
+            string schemaVersion,
             IReadOnlyDictionary<string, RouteConfig> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
             AuthorizationConfiguration authorizationConfiguration)

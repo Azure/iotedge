@@ -580,22 +580,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 this.versionInfo,
                                 deviceScopeIdentitiesCache);
 
-                            return new TwinConfigSource(edgeHubConnection,
+                            return new TwinConfigSource(
+                                edgeHubConnection,
                                 edgeHubCredentials.Identity.Id,
                                 this.versionInfo,
                                 twinManager,
                                 twinMessageConverter,
                                 twinCollectionMessageConverter,
-                                routeFactory
-                            );
+                                routeFactory);
                         }
                         else
                         {
-                            return new LocalConfigSource(routeFactory,
+                            return new LocalConfigSource(
+                                routeFactory,
                                 this.routes,
                                 this.storeAndForwardConfiguration,
-                                this.authorizationConfiguration
-                            );
+                                this.authorizationConfiguration);
                         }
                     })
                 .As<Task<IConfigSource>>()

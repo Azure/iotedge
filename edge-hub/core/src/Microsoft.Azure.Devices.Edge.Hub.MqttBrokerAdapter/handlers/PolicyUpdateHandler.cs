@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static PolicyUpdate ConfigToPolicyUpdate(EdgeHubConfig config)
         {
             // TODO: conversion here.
-            return new PolicyUpdate("");
+            return new PolicyUpdate(string.Empty);
         }
 
         async Task PublishPolicyUpdate(PolicyUpdate update)

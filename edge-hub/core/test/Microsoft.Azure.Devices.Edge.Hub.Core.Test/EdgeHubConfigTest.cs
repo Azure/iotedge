@@ -26,15 +26,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 null,
                 new StoreAndForwardConfiguration(1000),
                 new AuthorizationConfiguration()
-
             };
-            yield return new object[] {
+            yield return new object[]
+            {
                 "1.0",
                 new Dictionary<string, RouteConfig>(),
                 null,
                 new AuthorizationConfiguration()
             };
-            yield return new object[] {
+            yield return new object[]
+            {
                 "1.0",
                 new Dictionary<string, RouteConfig>(),
                 new StoreAndForwardConfiguration(1000),
@@ -59,7 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Theory]
         [MemberData(nameof(GetConstructorInvalidParameters))]
-        public void ConstructorInvalidParameters(string schemaVersion,
+        public void ConstructorInvalidParameters(
+            string schemaVersion,
             Dictionary<string, RouteConfig> routes,
             StoreAndForwardConfiguration configuration,
             AuthorizationConfiguration authConfiguration)

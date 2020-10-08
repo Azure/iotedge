@@ -47,15 +47,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class Statement : IEquatable<Statement>
     {
         [JsonConstructor]
-        public Statement(IList<String> identities, IList<Rule> allow, IList<Rule> deny)
+        public Statement(IList<string> identities, IList<Rule> allow, IList<Rule> deny)
         {
-            Identities = identities;
-            Allow = allow;
-            Deny = deny;
+            this.Identities = identities;
+            this.Allow = allow;
+            this.Deny = deny;
         }
 
         [JsonProperty(PropertyName = "identities")]
-        public IList<String> Identities { get; }
+        public IList<string> Identities { get; }
 
         [JsonProperty(PropertyName = "allow")]
         public IList<Rule> Allow { get; }
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 && Enumerable.SequenceEqual(this.Deny, other.Deny);
         }
 
-        public override bool Equals(Object obj)
+        public override bool Equals(object obj)
             => this.Equals(obj as Statement);
 
         public override int GetHashCode()
@@ -99,17 +99,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class Rule : IEquatable<Rule>
     {
         [JsonConstructor]
-        public Rule(IList<String> operations, IList<String> resources)
+        public Rule(IList<string> operations, IList<string> resources)
         {
-            Operations = operations;
-            Resources = resources;
+            this.Operations = operations;
+            this.Resources = resources;
         }
 
         [JsonProperty(PropertyName = "operations")]
-        public IList<String> Operations { get; }
+        public IList<string> Operations { get; }
 
         [JsonProperty(PropertyName = "resources")]
-        public IList<String> Resources { get; }
+        public IList<string> Resources { get; }
 
         public bool Equals(Rule other)
         {
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 && Enumerable.SequenceEqual(this.Resources, other.Resources);
         }
 
-        public override bool Equals(Object obj)
+        public override bool Equals(object obj)
             => this.Equals(obj as Rule);
 
         public override int GetHashCode()
