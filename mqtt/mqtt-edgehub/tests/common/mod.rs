@@ -28,6 +28,7 @@ where
     E: StdError,
 {
     type Error = E;
+
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         if activity
             .client_id()
