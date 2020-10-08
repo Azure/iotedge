@@ -197,6 +197,17 @@ mod tests {
     }
 
     #[test]
+    fn append_dns_san_entries_ip_test() {
+        assert_eq!(
+            "IP:127.0.0.1, IP:2001:db8::8a2e:370:7334, DNS:edgehub",
+            append_dns_san_entries(
+                &prepare_dns_san_entries(&["edgehub"]),
+                &["127.0.0.1", "   ", "2001:db8::8a2e:370:7334"]
+            )
+        );
+    }
+
+    #[test]
     fn dns_san() {
         assert_eq!("DNS:edgehub", prepare_dns_san_entries(&["edgehub"]));
         assert_eq!("DNS:edgehub", prepare_dns_san_entries(&["EDGEhub"]));

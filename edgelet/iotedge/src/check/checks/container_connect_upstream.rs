@@ -105,12 +105,17 @@ impl ContainerConnectUpstream {
             return Ok(CheckResult::Skipped);
         };
 
-        let upstream_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
+        let parent_hostname: String;
+        let upstream_hostname = if let Some(upstream_hostname) = settings.parent_hostname() {
+            parent_hostname = upstream_hostname.to_string();
+            &parent_hostname
+        } else if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
         } else {
             return Ok(CheckResult::Skipped);
         };
-        self.upstream_hostname = Some(upstream_hostname.to_owned());
+
+        self.upstream_hostname = Some(upstream_hostname.clone());
 
         let network_name = settings.moby_runtime().network().name();
         self.network_name = Some(network_name.to_owned());
