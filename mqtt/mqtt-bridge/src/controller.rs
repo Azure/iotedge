@@ -1,7 +1,6 @@
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
-use futures_util::future::join_all;
-use tokio::time;
+use futures_util::future::{self, join_all};
 use tracing::{error, info};
 
 use crate::bridge::{Bridge, BridgeError};
@@ -54,10 +53,6 @@ impl BridgeController {
         // TODO: bridge controller will eventually listen for updates via the twin
         //       until this is complete we need to wait here indefinitely
         //       if we stop the bridge controller, our startup/shutdown logic will shut eveything down
-        // loop necessary because of https://github.com/tokio-rs/tokio/issues/2408
-        let day_in_secs = 60 * 60 * 24;
-        loop {
-            time::delay_for(Duration::from_secs(day_in_secs)).await;
-        }
+        future::pending::<()>().await;
     }
 }

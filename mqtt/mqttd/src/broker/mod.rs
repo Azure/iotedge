@@ -61,9 +61,6 @@ where
         state = match select(server_join_handle, sidecars_fut).await {
             // server finished first
             Either::Left((server_output, sidecars_fut)) => {
-                // extract state from finished server
-                let state = collapse_snapshot_result(server_output);
-
                 // shutdown sidecars
                 sidecar_shutdown_handle.shutdown().await?;
 
@@ -72,7 +69,7 @@ where
                     error!(message = "failed running sidecars", err = %e)
                 }
 
-                state?
+                server_output??
             }
             // sidecars finished first
             Either::Right((_, server_join_handle)) => {
@@ -81,9 +78,7 @@ where
 
                 // extract state from server
                 let server_output = server_join_handle.await;
-                let state = collapse_snapshot_result(server_output);
-
-                state?
+                server_output??
             }
         };
     } else {
