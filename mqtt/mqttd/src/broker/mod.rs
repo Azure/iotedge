@@ -9,12 +9,9 @@ use futures_util::{
     future::{select, Either},
     pin_mut,
 };
-use tokio::task::JoinError;
 use tracing::{error, info};
 
-use mqtt_broker::{
-    BrokerSnapshot, FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat,
-};
+use mqtt_broker::{FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat};
 
 use crate::broker::snapshot::start_snapshotter;
 
