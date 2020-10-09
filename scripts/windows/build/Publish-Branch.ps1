@@ -150,6 +150,7 @@ $appProjectList.Add("TestResultCoordinator.csproj")
 $appProjectList.Add("DeploymentTester.csproj")
 $appProjectList.Add("EdgeHubRestartTester.csproj")
 $appProjectList.Add("MetricsValidator.csproj")
+$appProjectList.Add("NumberLogger.csproj")
 $appProjectList.Add("CloudToDeviceMessageTester.csproj")
 $appProjectList.Add("IotedgeDiagnosticsDotnet.csproj")
 
