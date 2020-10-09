@@ -298,7 +298,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_deserizes_from_bson() {
+    fn it_deserializes_from_bson() {
         let commands = vec![
             (
                 bson!({
