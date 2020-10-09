@@ -192,13 +192,16 @@ where
         operation_id: &str,
         token_source: Option<DpsTokenSource<K>>,
     ) -> Box<dyn Future<Item = Option<DeviceRegistrationResult>, Error = Error> + Send> {
-        let c = token_source.map_or(client.read().expect("RwLock read failure").clone(), |ts| {
-            client
-                .read()
-                .expect("RwLock read failure")
-                .clone()
-                .with_token_source(ts)
-        });
+        let c = token_source.map_or_else(
+            || client.read().expect("RwLock read failure").clone(),
+            |ts| {
+                client
+                    .read()
+                    .expect("RwLock read failure")
+                    .clone()
+                    .with_token_source(ts)
+            },
+        );
         let request = c.request::<(), RegistrationOperationStatus>(
                 Method::GET,
                 &format!(

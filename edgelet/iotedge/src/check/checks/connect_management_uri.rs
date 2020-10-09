@@ -47,8 +47,8 @@ impl ConnectManagementUri {
             .diagnostics_image_name
             .starts_with("/azureiotedge-diagnostics:")
         {
-            settings.parent_hostname().map_or(
-                "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
+            settings.parent_hostname().map_or_else(
+                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
                 |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
             )
         } else {
