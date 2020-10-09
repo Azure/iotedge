@@ -17,7 +17,7 @@ pub mod controller;
 mod message_handler;
 mod persist;
 mod pump;
-mod settings;
+pub mod settings;
 mod token_source;
 
 pub use crate::controller::BridgeController;

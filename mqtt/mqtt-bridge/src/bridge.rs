@@ -136,7 +136,7 @@ impl Bridge {
     }
 
     pub async fn start(&mut self) -> Result<(), BridgeError> {
-        info!("Starting bridge...{}", self.connection_settings.name());
+        info!("Starting {} bridge...", self.connection_settings.name());
 
         let (local_shutdown, local_shutdown_listener) = oneshot::channel::<()>();
         let (remote_shutdown, remote_shutdown_listener) = oneshot::channel::<()>();
@@ -155,7 +155,10 @@ impl Bridge {
         //
         //           If there is a client error then this can potentially get reset without the pump shutting down
         //           Alternatively, if this client error shuts down the pump, we will need to recreate it.
-        debug!("Starting pumps...{}", self.connection_settings.name());
+        debug!(
+            "Starting pumps for {} bridge...",
+            self.connection_settings.name()
+        );
         match select(local_pump, remote_pump).await {
             Either::Left(_) => {
                 shutdown_handle.shutdown().await?;
@@ -165,6 +168,7 @@ impl Bridge {
             }
         }
 
+        debug!("Bridge {} stopped...", self.connection_settings.name());
         Ok(())
     }
 }
@@ -196,6 +200,7 @@ pub enum BridgeError {
     #[error("Failed to borrow persistence to store publication")]
     BorrowPersist(#[from] BorrowMutError),
 }
+
 // TODO PRE: move to integration test
 // #[cfg(test)]
 // mod tests {
