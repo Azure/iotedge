@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             yield return new object[] { version_1_2, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_2_0, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_2_0_1, typeof(InvalidSchemaVersionException) };
-            yield return new object[] { versionMismatch, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { versionMismatch, null };
         }
 
         [Fact]

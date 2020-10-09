@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             // Check major version and upper bound
             if (actualSchemaVersion.Major != ExpectedSchemaVersion.Major ||
-                actualSchemaVersion.Major > ExpectedSchemaVersion.Major)
+                actualSchemaVersion > ExpectedSchemaVersion)
             {
                 throw new InvalidSchemaVersionException($"The desired properties schema version {schemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
             }
