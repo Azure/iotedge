@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public string GetActorDeviceId() => this.actorDeviceId;
 
-        public Task<Option<string>> GetAuthChain(string id) => throw new NotImplementedException("Nested Edge not enabled");
+        public Task<Option<string>> GetAuthChain(string id) => Task.FromResult(Option.None<string>());
 
         public Task<Option<string>> GetEdgeAuthChain(string id) => throw new NotImplementedException("Nested Edge not enabled");
 
