@@ -107,7 +107,7 @@ First, list all the environment variables that you want to update in the `PROXY_
 
 | Environment variable  | comments |
 | ------------- |  ------------- |
-| PROXY_CONFIG_ENV_VAR_LIST | List all the variable to be replaced. By default it contains: NGINX_DEFAULT_PORT, NGINX_HAS_BLOB_MODULE, NGINX_BLOB_MODULE_NAME_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS, NGINX_NOT_ROOT, PARENT_HOSTNAME  |
+| PROXY_CONFIG_ENV_VAR_LIST | List all the variable to be replaced. By default it contains: NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME  |
 
 Next, set each environment variable's value by listing them directly.
 
@@ -115,10 +115,8 @@ Next, set each environment variable's value by listing them directly.
 | ------------- |  ------------- |
 | NGINX_DEFAULT_PORT  | Changes the port Nginx listens too. If you change this option, make sure that the port you select is exposed in the dockerfile. Default is 443  |
 | DOCKER_REQUEST_ROUTE_ADDRESS | Address to route docker requests. By default it points to the parent.  |
-| NGINX_HAS_BLOB_MODULE| TBD - why is this prefix NGNIX? |
-| NGINX_BLOB_MODULE_NAME_ADDRESS | TBD - why is this prefix NGNIX? |
-| NGINX_NOT_ROOT | TBD - why is this prefix NGNIX? and what does this do? |
-| PARENT_HOSTNAME | TBD |
+| BLOB_UPLOAD_ROUTE_ADDRESS| Address to route blob registry requests. By default it points to the parent. |
+| IOTEDGE_PARENTHOSTNAME | Parent hostname |
 
 ### Update the proxy configuration dynamically
 
@@ -156,8 +154,8 @@ The configuration of the API Proxy module at the **top layer** for this scenario
 
     | Name  | Value |
     | ------------- |  ------------- |
-    |NGINX_ROOT|1|
     |DOCKER_REQUEST_ROUTE_ADDRESS|registry:5000|
+    |NGINX_DEFAULT_PORT|8000|
 
 - CreateOptions:
 
@@ -181,7 +179,7 @@ The configuration of the API Proxy module at **any lower layer** for this scenar
 
     | Name  | Value |
     | ------------- |  ------------- |
-    |DOCKER_REQUEST_ROUTE_ADDRESS|registry:5000|
+    |NGINX_DEFAULT_PORT|8000|    
 
 - CreateOptions:
 
@@ -205,8 +203,77 @@ Lastly, all the module image URIs in **any lower layer** should use the domain n
 
 ### Upload blob
 
-TBD
+This section describes how to use the [blob storage module](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-blob) to [upload support bundle](https://github.com/Azure/iotedge/blob/master/doc/built-in-logs-pull.md). 
+It assumes that the blob storage module has already been deployed. Please follow this [link](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-blob) for detail on how to deploy it. 
 
-### Limit the number of open ports
+>If you want to upload support bundle, currently, the only supported configuration is when the blob storage module is at the top level. To be able to upload a support bundle, a blob container needs to be created and as of now that is only possible when the blob storage module is at the top level.
 
-TBD
+
+The configuration of the API Proxy module at the **top layer** for this scenario is the following
+It assumes that a Docker registry module named `AzureBlobStorageonIoTEdge` has been deployed
+
+- Environment variables:
+
+    | Name  | Value |
+    | ------------- |  ------------- |
+    |BLOB_UPLOAD_ROUTE_ADDRESS|AzureBlobStorageonIoTEdge:11002|
+    |NGINX_DEFAULT_PORT|8000|
+
+- CreateOptions:
+
+    ```json
+    {
+        "HostConfig": {
+            "PortBindings": {
+                "8000/tcp": [
+                    {
+                        "HostPort": "8000"
+                    }
+                ]
+            }
+        }
+    }
+    ```
+
+The configuration of the API Proxy module at **any lower layer** for this scenario is the following:
+
+- Environment variables:
+
+    | Name  | Value |
+    | ------------- |  ------------- |
+    |NGINX_DEFAULT_PORT|8000|    
+
+- CreateOptions:
+
+    ```json
+    {
+        "HostConfig": {
+            "PortBindings": {
+                "8000/tcp": [
+                    {
+                        "HostPort": "8000"
+                    }
+                ]
+            }
+        }
+    }
+    ```
+
+These settings are set by default when deploying from the [Azure Marketplace](http://aka.ms/iot-edge-marketplace).
+
+To upload the support bundle and/or log file to the blob module located at the root:
+1. First create a blob container, you can use azure storage explorer for that or the rest APIs (the process is described [here](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-store-data-blob))
+
+2. follow the process described at this [link](https://github.com/Azure/iotedge/blob/master/doc/built-in-logs-pull.md) to request a log/bundle upload, but replace the address of the blob storage module by `$upstream`.
+For example:  
+***UploadSupportBundle***
+```json
+{    
+    "schemaVersion": "1.0",
+    "sasUrl": "https://$upstream:8000/myBlobStorageName/myContainerName?SAS_key",
+    "since": "2d",
+    "until": "1d",
+    "edgeRuntimeOnly": false
+}
+```
+
