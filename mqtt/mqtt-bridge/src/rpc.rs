@@ -29,7 +29,7 @@ use crate::client::EventHandler;
 /// The main purpose of this handler is to establish a communication channel
 /// between EdgeHub and the upstream bridge.
 /// EdgeHub will use low level commands SUB, UNSUB, PUB. In turn the bridge
-/// sends corresposponding MQTT packet to upstream broker and waits for an ack
+/// sends corresponding MQTT packet to upstream broker and waits for an ack
 /// from the upstream. After ack is received it sends a special publish to
 /// downstream broker.
 pub struct RpcHandler {
