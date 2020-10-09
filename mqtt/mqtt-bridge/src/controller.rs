@@ -21,9 +21,9 @@ impl BridgeController {
         &mut self,
         system_address: String,
         device_id: &str,
+        settings: Settings,
     ) -> Result<(), BridgeError> {
         info!("starting bridge controller...");
-        let settings = Settings::new().map_err(BridgeError::LoadingSettings)?;
 
         if let Some(upstream) = settings.upstream() {
             let bridge = Bridge::new(system_address, device_id.into(), upstream.clone()).await?;

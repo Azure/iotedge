@@ -19,9 +19,15 @@ use crate::{
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
 };
 
-//const MAX_INFLIGHT: usize = 16;
 const CONNECTIVITY_TOPIC: &str = "$internal/connectivity";
 
+#[derive(Debug, Clone)]
+pub enum PumpType {
+    Local,
+    Remote,
+}
+
+// TODO PRE: add enum for local or remote pump
 pub struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
     client_shutdown: ClientShutdownHandle,
@@ -30,6 +36,8 @@ pub struct Pump {
     loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
     persist: PublicationStore<WakingMemoryStore>,
     connectivity_receiver: Option<UnboundedReceiver<BridgeMessage>>,
+    pump_type: PumpType,
+    bridge_name: String,
 }
 
 impl Pump {
@@ -39,6 +47,8 @@ impl Pump {
         loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
         persist: PublicationStore<WakingMemoryStore>,
         connectivity_receiver: Option<UnboundedReceiver<BridgeMessage>>,
+        pump_type: PumpType,
+        bridge_name: String,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()
@@ -53,6 +63,8 @@ impl Pump {
             loader,
             persist,
             connectivity_receiver,
+            pump_type,
+            bridge_name,
         })
     }
 
@@ -69,6 +81,8 @@ impl Pump {
     // TODO PRE: add comments
     // TODO PRE: clean up logging
     pub async fn run(&mut self, shutdown: Receiver<()>) {
+        debug!("starting pumps for {} bridge...", self.bridge_name);
+
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
         let mut connectivity_publish_handle = self.publish_handle.clone();
@@ -76,19 +90,25 @@ impl Pump {
         let loader = self.loader.clone();
         let mut client_shutdown = self.client_shutdown.clone();
         let receiver = self.connectivity_receiver.as_mut();
+        let bridge_name = self.bridge_name.clone();
+        let pump_type = self.pump_type.clone();
 
+        // egress pump
         let f1 = async move {
             // TODO PRE: move this to init somehow
             let mut loader_borrow = loader.borrow_mut();
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
-            debug!("started outgoing pump");
+            debug!(
+                "{} bridge starting egress publication processing for {:?} pump...",
+                bridge_name, pump_type
+            );
 
             loop {
                 let mut publish_handle = publish_handle.clone();
                 match select(receive_fut.next(), loader_borrow.try_next()).await {
                     Either::Left((shutdown, _)) => {
-                        debug!("outgoing pump received shutdown signal");
+                        debug!("egress pump received shutdown signal");
                         if let None = shutdown {
                             error!(message = "unexpected behavior from shutdown signal while signalling bridge pump shutdown")
                         }
@@ -96,30 +116,40 @@ impl Pump {
                         debug!("bridge pump stopped");
                         break;
                     }
-                    Either::Right((p, _)) => {
-                        debug!("outgoing pump extracted publication from store");
+                    Either::Right((loaded_element, _)) => {
+                        debug!("egress pump extracted publication from store");
 
-                        // TODO_PRE: handle publication error
-                        let (key, publication) = p.unwrap().unwrap();
+                        if let Ok(Some((key, publication))) = loaded_element {
+                            // TODO REVIEW: should we be retrying?
+                            // if this failure is due to something that will keep failing it is probably safer to remove and never try again
+                            // otherwise we should retry
+                            debug!("publishing publication {:?} for egress pump", key);
+                            if let Err(e) = publish_handle.publish(publication).await {
+                                error!(message = "failed publishing publication for bridge pump", err = %e);
+                            }
 
-                        // TODO PRE: should we be retrying?
-                        // if this failure is due to something that will keep failing it is probably safer to remove and never try again
-                        // otherwise we should retry
-                        debug!("publishing publication {:?} for outgoing pump", key);
-                        if let Err(e) = publish_handle.publish(publication).await {
-                            error!(message = "failed publishing publication for bridge pump", err = %e);
-                        }
-
-                        // TODO PRE: if removal fails, what do we do?
-                        if let Err(e) = persist.remove(key) {
-                            error!(message = "failed removing publication from store", err = %e);
+                            // TODO REVIEW: if removal fails, what do we do?
+                            if let Err(e) = persist.remove(key) {
+                                error!(message = "failed removing publication from store", err = %e);
+                            }
                         }
                     }
                 }
             }
+
+            debug!("pumps for {} bridge stopped...", bridge_name);
         };
 
-        let f2 = self.client.handle_events();
+        // incoming pump
+        let bridge_name = self.bridge_name.clone();
+        let pump_type = self.pump_type.clone();
+        let f2 = async move {
+            debug!(
+                "{} bridge starting ingress publication processing for pump {:?}...",
+                bridge_name, pump_type
+            );
+            self.client.handle_events().await;
+        };
 
         let has_receiver = receiver.is_some();
 
