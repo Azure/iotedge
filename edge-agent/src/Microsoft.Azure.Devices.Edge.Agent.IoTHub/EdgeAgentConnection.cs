@@ -165,33 +165,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 throw new InvalidSchemaVersionException($"The desired properties schema version {schemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
             }
-
-            // Validate minor versions
-            if (actualSchemaVersion.Minor == 0)
-            {
-                // 1.0
-                //
-                // Module startup order is not supported
-                foreach (KeyValuePair<string, IModule> kvp in config.Modules)
-                {
-                    IModule moduleConfig = kvp.Value;
-
-                    if (moduleConfig.StartupOrder != Constants.DefaultStartupOrder)
-                    {
-                        throw new InvalidSchemaVersionException($"Module startup order is not supported in schema {actualSchemaVersion}, module: {moduleConfig.Name}, startupOrder: {moduleConfig.StartupOrder}");
-                    }
-                }
-            }
-            else if (actualSchemaVersion.Minor == 1)
-            {
-                // 1.1.0
-                //
-                // Everything from 1.0 is supported
-            }
-            else
-            {
-                throw new InvalidSchemaVersionException($"The deployment schema version {actualSchemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
-            }
         }
 
         async Task ForceRefreshTwin()
