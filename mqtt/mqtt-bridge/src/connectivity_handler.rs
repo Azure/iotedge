@@ -68,3 +68,115 @@ impl ConnectivityHandler {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use mqtt3::Event;
+    use tokio::sync::{mpsc, mpsc::error::TryRecvError};
+
+    use crate::bridge::{BridgeMessage, ConnectivityState};
+
+    use super::ConnectivityHandler;
+
+    #[tokio::test]
+    async fn sends_connected_state() {
+        // component_sender can be used for configuration changes
+        let (connectivity_sender, mut connectivity_receiver) =
+            mpsc::unbounded_channel::<BridgeMessage>();
+
+        let mut ch = ConnectivityHandler::new(connectivity_sender);
+
+        let _ = ch
+            .handle_connectivity_event(Event::NewConnection {
+                reset_session: true,
+            })
+            .await;
+
+        let msg = connectivity_receiver.try_recv().unwrap();
+        assert_eq!(
+            msg,
+            BridgeMessage::ConnectivityUpdate(ConnectivityState::Connected)
+        );
+        assert_eq!(ch.state, ConnectivityState::Connected);
+    }
+
+    #[tokio::test]
+    async fn sends_disconnected_state() {
+        // component_sender can be used for configuration changes
+        let (connectivity_sender, mut connectivity_receiver) =
+            mpsc::unbounded_channel::<BridgeMessage>();
+
+        let mut ch = ConnectivityHandler::new(connectivity_sender);
+
+        let _ = ch
+            .handle_connectivity_event(Event::NewConnection {
+                reset_session: true,
+            })
+            .await;
+
+        let _ = ch
+            .handle_connectivity_event(Event::Disconnected("reason".to_owned()))
+            .await;
+
+        let _msg = connectivity_receiver.try_recv().unwrap();
+        let msg = connectivity_receiver.try_recv().unwrap();
+
+        assert_eq!(
+            msg,
+            BridgeMessage::ConnectivityUpdate(ConnectivityState::Disconnected)
+        );
+        assert_eq!(ch.state, ConnectivityState::Disconnected);
+    }
+
+    #[tokio::test]
+    async fn not_sends_connected_state_when_already_connected() {
+        // component_sender can be used for configuration changes
+        let (connectivity_sender, mut connectivity_receiver) =
+            mpsc::unbounded_channel::<BridgeMessage>();
+
+        let mut ch = ConnectivityHandler::new(connectivity_sender);
+
+        let _ = ch
+            .handle_connectivity_event(Event::NewConnection {
+                reset_session: true,
+            })
+            .await;
+
+        let _ = ch
+            .handle_connectivity_event(Event::NewConnection {
+                reset_session: true,
+            })
+            .await;
+
+        let _msg = connectivity_receiver.try_recv().unwrap();
+        let msg = connectivity_receiver.try_recv();
+        assert_eq!(msg, Err(TryRecvError::Empty));
+        assert_eq!(ch.state, ConnectivityState::Connected);
+    }
+
+    #[tokio::test]
+    async fn not_sends_disconnected_state_when_already_disconnected() {
+        // component_sender can be used for configuration changes
+        let (connectivity_sender, mut connectivity_receiver) =
+            mpsc::unbounded_channel::<BridgeMessage>();
+
+        let mut ch = ConnectivityHandler::new(connectivity_sender);
+
+        let _ = ch
+            .handle_connectivity_event(Event::Disconnected("reason".to_owned()))
+            .await;
+
+        let msg = connectivity_receiver.try_recv();
+        assert_eq!(msg, Err(TryRecvError::Empty));
+        assert_eq!(ch.state, ConnectivityState::Disconnected);
+    }
+
+    async fn default_disconnected_state() {
+        // component_sender can be used for configuration changes
+        let (connectivity_sender, _) = mpsc::unbounded_channel::<BridgeMessage>();
+
+        let ch = ConnectivityHandler::new(connectivity_sender);
+
+        assert_eq!(ch.state, ConnectivityState::Disconnected);
+    }
+}
