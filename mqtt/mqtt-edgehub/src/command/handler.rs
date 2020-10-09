@@ -2,7 +2,7 @@ use std::{collections::HashMap, collections::HashSet, error::Error as StdError, 
 
 use futures_util::future::BoxFuture;
 use tokio::{net::TcpStream, stream::StreamExt};
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
@@ -29,6 +29,7 @@ impl IoSource for BrokerConnection {
 }
 
 /// Shutdown handle for `CommandHandler`
+#[derive(Clone, Debug)]
 pub struct ShutdownHandle {
     client_shutdown: mqtt3::ShutdownHandle,
 }
@@ -87,6 +88,7 @@ impl CommandHandler {
 
     // TODO refactor and move it inside the [`run`] method
     pub async fn init(&mut self) -> Result<(), CommandHandlerError> {
+        info!("initializing command handler...");
         let topics: Vec<_> = self.commands.keys().map(String::as_str).collect();
         subscribe(&mut self.client, &topics).await?;
         Ok(())
@@ -99,7 +101,7 @@ impl CommandHandler {
     }
 
     pub async fn run(mut self) {
-        debug!("starting command handler");
+        info!("starting command handler...");
 
         loop {
             match self.client.try_next().await {
