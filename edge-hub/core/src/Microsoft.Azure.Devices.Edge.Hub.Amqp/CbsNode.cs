@@ -119,8 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                                 // as we're effectively using it as a thread-safe HashSet
                                 this.authenticatedClients[id] = default(byte);
 
-                                // TODO: After auth success, we should be adding the client
-                                // token to the credentials cache
+                                // No need to add the new credentials to the cache, as the
+                                // authenticator already implicitly handles it
                                 return true;
                             }
                         }
@@ -222,12 +222,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 return (AmqpResponseStatusCode.BadRequest, e.Message);
             }
 
+            bool isNewClient = !this.clientTokens.ContainsKey(clientToken.Id);
+
             // Insert/update the cached tokens with the new value
             this.clientTokens[clientToken.Id] = clientToken;
 
-            // TODO: This check is incorrect for OnBehalfOf auth, as the
-            // token might be from the actor EdgeHub, but a leaf identity
-            // gets authenticated instead
             if (this.authenticatedClients.ContainsKey(clientToken.Id))
             {
                 IClientCredentials clientCredentials = this.clientCredentialsFactory.GetWithSasToken(
@@ -242,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 await this.credentialsCache.Add(clientCredentials);
                 Events.CbsTokenUpdated(clientToken.Id);
             }
-            else
+            else if (!isNewClient)
             {
                 Events.CbsTokenNotUpdated(clientToken.Id);
             }

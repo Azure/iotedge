@@ -45,8 +45,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 await this.SendResponse(result.Status, JsonConvert.SerializeObject(result));
             }
 
+            string authChain = request.AuthChain;
+            string[] ids = AuthChainHelpers.GetAuthChainIds(authChain);
+            if (ids.Length == 1)
+            {
+                // A child EdgeHub can use its module credentials to calls upstream
+                // OnBehalfOf its device identity, so the auth-chain would just have
+                // one element denoting the target device scope but no actor.
+                // However, the auth stack requires an actor to be specified for OnBehalfOf
+                // connections, so we manually add the actor to the auth-chain for this
+                // special case.
+                authChain = $"{ids[0]}/{Constants.EdgeHubModuleId};{ids[0]}";
+            }
+
             IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), Option.Some(request.AuthChain), this.HttpContext);
+            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), Option.Some(authChain), this.HttpContext);
 
             if (authResult.Authenticated)
             {

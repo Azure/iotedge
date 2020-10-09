@@ -188,10 +188,10 @@ mod tests {
         let certs = X509::stack_from_pem(CERTIFICATE.as_ref()).unwrap();
         if let Some((cert, _)) = certs.split_first() {
             let not_before = parse_openssl_time(cert.not_before()).unwrap();
-            assert_eq!(Utc.ymd(2020, 7, 9).and_hms(21, 29, 53), not_before);
+            assert_eq!(Utc.ymd(2020, 10, 7).and_hms(22, 40, 37), not_before);
 
             let not_after = super::parse_openssl_time(cert.not_after()).unwrap();
-            assert_eq!(Utc.ymd(2020, 10, 7).and_hms(20, 10, 2), not_after);
+            assert_eq!(Utc.ymd(2030, 10, 5).and_hms(22, 40, 37), not_after);
         } else {
             panic!("server cert expected");
         }

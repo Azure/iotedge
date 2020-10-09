@@ -5,12 +5,15 @@ mod policy_update;
 
 pub use authorized_identities::AuthorizedIdentitiesCommand;
 pub use disconnect::DisconnectCommand;
-pub use handler::{CommandHandler, ShutdownHandle};
+pub use handler::{CommandHandler, CommandHandlerError, ShutdownHandle};
 pub use policy_update::PolicyUpdateCommand;
 
 use std::error::Error as StdError;
 
 use mqtt3::ReceivedPublication;
+
+pub const AUTHORIZED_IDENTITIES_TOPIC: &str = "$internal/identities";
+pub const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
 
 /// A command trait to be implemented and used with `CommandHandler`.
 pub trait Command {
