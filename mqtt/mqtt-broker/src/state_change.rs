@@ -151,7 +151,7 @@ mod tests {
         if let StateChange::Subscriptions(stored_id, stored_subs) = &many_subs {
             assert_eq!(&&expected_id, stored_id);
             let mut actual: Vec<&str> = stored_subs.clone().unwrap();
-            actual.sort();
+            actual.sort_unstable();
             assert_eq!(vec!["Sub1", "Sub2", "Sub3"], actual);
         }
 
@@ -232,7 +232,7 @@ mod tests {
         let many_connections = StateChange::new_connection_change(&sessions);
         if let StateChange::Connections(many_connections) = &many_connections {
             let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
-            actual.sort();
+            actual.sort_unstable();
             assert_eq!(vec!["Session 1", "Session 2", "Session 3"], actual);
         } else {
             panic!("Expected Connection Change")
@@ -258,7 +258,7 @@ mod tests {
         let many_connections = StateChange::new_connection_change(&sessions);
         if let StateChange::Connections(many_connections) = &many_connections {
             let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
-            actual.sort();
+            actual.sort_unstable();
             assert_eq!(vec!["Session 2", "Session 4", "Session 6"], actual);
         } else {
             panic!("Expected Connection Change")
@@ -329,7 +329,7 @@ mod tests {
         let many_sessions = StateChange::new_session_change(&sessions);
         if let StateChange::Sessions(many_sessions) = &many_sessions {
             let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
-            actual.sort();
+            actual.sort_unstable();
             assert_eq!(vec!["Session 1", "Session 2", "Session 3"], actual);
         } else {
             panic!("Expected Session Change")
@@ -355,7 +355,7 @@ mod tests {
         let many_sessions = StateChange::new_session_change(&sessions);
         if let StateChange::Sessions(many_sessions) = &many_sessions {
             let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
-            actual.sort();
+            actual.sort_unstable();
             assert_eq!(
                 vec![
                     "Session 1",
