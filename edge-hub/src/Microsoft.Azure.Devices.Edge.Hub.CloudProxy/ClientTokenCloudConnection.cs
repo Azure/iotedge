@@ -55,8 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         protected override bool CallbacksEnabled => this.callbacksEnabled;
 
         public static async Task<IClientTokenCloudConnection> Create(
-            IIdentity identity,
-            ICredentialsCache credentialsCache,
+            ITokenCredentials tokenCredentials,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ITransportSettings[] transportSettings,
             IMessageConverterProvider messageConverterProvider,
@@ -66,13 +65,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
             string productInfo,
-            Option<string> modelId,
-            Option<string> initialToken)
+            Option<string> modelId)
         {
-            Preconditions.CheckNotNull(identity, nameof(identity));
-            var tokenProvider = new ClientTokenBasedTokenProvider(identity, credentialsCache, initialToken);
+            Preconditions.CheckNotNull(tokenCredentials, nameof(tokenCredentials));
+            var tokenProvider = new ClientTokenBasedTokenProvider(tokenCredentials);
             var cloudConnection = new ClientTokenCloudConnection(
-                identity,
+                tokenCredentials.Identity,
                 tokenProvider,
                 connectionStatusChangedHandler,
                 transportSettings,
@@ -84,9 +82,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 operationTimeout,
                 productInfo,
                 modelId);
-            var cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
-            cloudConnection.cloudProxy = Option.Some(cloudProxy);
-            return cloudConnection;
+            try
+            {
+                var cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
+                cloudConnection.cloudProxy = Option.Some(cloudProxy);
+                return cloudConnection;
+            }
+            catch (Exception ex)
+            {
+                Events.Error($"Create failed for device {tokenCredentials.Identity} with token {tokenCredentials.Token} error: {ex}");
+                throw;
+            }
         }
 
         /// <summary>
@@ -112,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ICloudProxy proxy = await this.CloudProxy.Map(cp =>
                     {
                         // If CloudProxy exists, just update tokenProvider with new token
-                        this.tokenProvider.UpdateToken(tokenCredentials.Token);
+                        this.tokenProvider.UpdateToken(tokenCredentials);
                         return Task.FromResult(cp);
                     })
                     // No existing cloud proxy, so just create a new one.
@@ -139,77 +145,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         internal class ClientTokenBasedTokenProvider : ITokenProvider
         {
-            IIdentity identity;
-            ICredentialsCache credentialsCache;
-            Option<string> cachedToken;
-            Option<DateTime> firstFailureTime;
+            ITokenCredentials tokenCredentials;
 
-            public ClientTokenBasedTokenProvider(IIdentity identity, ICredentialsCache credentialsCache, Option<string> initialToken)
+            public ClientTokenBasedTokenProvider(ITokenCredentials tokenCredentials)
             {
-                this.identity = identity;
-                this.cachedToken = initialToken;
-                this.credentialsCache = credentialsCache;
-                this.firstFailureTime = Option.None<DateTime>();
-            }
-
-            internal void UpdateToken(string token)
-            {
-                if (IsTokenUsable(this.identity.IotHubHostName, token))
+                if (IsTokenUsable(tokenCredentials))
                 {
-                    this.cachedToken = Option.Some(token);
+                    this.tokenCredentials = tokenCredentials;
                 }
                 else
                 {
+                    Events.Error($"Invalid token {tokenCredentials.Token} for device {tokenCredentials.Identity}.");
                     throw new ArgumentException("Invalid token.");
                 }
             }
 
-            public async Task<string> GetTokenAsync(Option<TimeSpan> ttl)
+            internal void UpdateToken(ITokenCredentials tokenCredentials)
             {
-                try
+                if (Equals(this.tokenCredentials.Identity, tokenCredentials.Identity))
                 {
-                    string token = await this.cachedToken
-                        .Filter(tk => IsTokenUsable(this.identity.IotHubHostName, tk))
-                        .Map(tk => Task.FromResult(tk))
-                        .GetOrElse(() => GetTokenFromCredentialsCacheAsync(this.credentialsCache, this.identity));
-                    this.cachedToken = Option.Some(token);
-                    this.firstFailureTime = Option.None<DateTime>();
-                    return token;
-                }
-                catch (AuthenticationException ex)
-                {
-                    var timestamp = DateTime.Now;
-                    if (this.firstFailureTime.Filter(fft => timestamp > fft + PollBuffer).HasValue)
+                    if (IsTokenUsable(tokenCredentials))
                     {
-                        // if firstFailureTime is post poll buffer
-                        Events.ErrorRenewingToken(ex);
-                        throw;
+                        this.tokenCredentials = tokenCredentials;
                     }
                     else
                     {
-                        // Convert to timeout exception to make DeviceClient retry
-                        this.firstFailureTime = Option.Some(this.firstFailureTime.GetOrElse(timestamp));
-                        throw new TimeoutException(ex.Message);
+                        Events.Error($"UpdateToken failed with Invalid token {tokenCredentials.Token} for device {tokenCredentials.Identity}.");
+                        throw new ArgumentException("Invalid token.");
                     }
+                }
+                else
+                {
+                    Events.Error($"UpdateToken failed with invalid identity {tokenCredentials.Identity}, was {this.tokenCredentials.Identity}.");
+                    throw new ArgumentException("Invalid token.");
                 }
             }
 
-            static async Task<string> GetTokenFromCredentialsCacheAsync(ICredentialsCache credentialsCache, IIdentity identity)
+            public Task<string> GetTokenAsync(Option<TimeSpan> ttl)
             {
-                var credentials = await credentialsCache.Get(identity);
-                var token = credentials.Map(cr => cr as ITokenCredentials)
-                    .Filter(tcr => IsTokenUsable(identity.IotHubHostName, tcr.Token))
-                    .Map(tcr => tcr.Token)
-                    .Expect(() => new AuthenticationException($"Unabled to get valid token from credentials cache for device {identity.Id}."));
-                return token;
+                if (IsTokenUsable(this.tokenCredentials))
+                {
+                    return Task.FromResult(this.tokenCredentials.Token);
+                }
+
+                Events.Error($"Invalid token {this.tokenCredentials.Token} for for device {this.tokenCredentials.Identity}.");
+                throw new AuthenticationException($"Unabled to get valid token for device {this.tokenCredentials.Identity}.");
             }
 
             // Checks if the token expires too soon
-            static bool IsTokenUsable(string hostname, string token)
+            static bool IsTokenUsable(ITokenCredentials tokenCredentials)
             {
                 try
                 {
-                    return TokenHelper.GetTokenExpiryTimeRemaining(hostname, token) > TokenExpiryBuffer;
+                    return TokenHelper.GetTokenExpiryTimeRemaining(tokenCredentials.Identity.IotHubHostName, tokenCredentials.Token) > TokenExpiryBuffer;
                 }
                 catch (Exception e)
                 {
@@ -231,7 +219,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 UpdatedCloudConnection,
                 ObtainedNewToken,
                 ErrorRenewingToken,
-                ErrorCheckingTokenUsability
+                ErrorCheckingTokenUsability,
+                Error
+            }
+
+            public static void Error(string message)
+            {
+                Log.LogError((int)EventIds.Error, $"[ClientTokenCloudConnection] {message}.");
             }
 
             public static void ErrorCheckingTokenUsable(Exception ex)

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System;
     using System.ComponentModel;
     using System.Net;
+    using System.Security.Authentication;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -13,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Nito.AsyncEx;
 
     public class CloudConnectionProvider : ICloudConnectionProvider
     {
@@ -64,31 +66,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHub = Option.Some(Preconditions.CheckNotNull(edgeHubInstance, nameof(edgeHubInstance)));
         }
 
-        async Task<ICloudConnection> ConnectWithCredentialsCache(
+        async Task<ICloudConnection> ConnectWithoutScopeAsync(
             IIdentity identity,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             string productInfo,
             Option<string> modelId,
-            Option<string> initialToken)
+            Option<IClientCredentials> credentials)
         {
             Events.CreatingCloudConnectionUsingClientCredentials(identity);
-            var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
-            var cloudConnection = await ClientTokenCloudConnection.Create(
-                    identity,
-                    this.credentialsCache,
-                    connectionStatusChangedHandler,
-                    this.transportSettings,
-                    this.messageConverterProvider,
-                    this.clientProvider,
-                    cloudListener,
-                    this.idleTimeout,
-                    this.closeOnIdleTimeout,
-                    this.operationTimeout,
-                    productInfo,
-                    modelId,
-                    initialToken);
-            Events.SuccessCreatingCloudConnection(identity);
-            return cloudConnection;
+            if (!credentials.HasValue)
+            {
+                credentials = await this.credentialsCache.Get(identity);
+            }
+            else if (!Equals(credentials.OrDefault().Identity, identity))
+            {
+                throw new ArgumentException("Invalid credentials");
+            }
+
+            if (credentials.Expect(() => new AuthenticationException($"Unabled to get credentials for device {identity}")) is ITokenCredentials tokenCredentials)
+            {
+                var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
+                var cloudConnection = await ClientTokenCloudConnection.Create(
+                        tokenCredentials,
+                        connectionStatusChangedHandler,
+                        this.transportSettings,
+                        this.messageConverterProvider,
+                        this.clientProvider,
+                        cloudListener,
+                        this.idleTimeout,
+                        this.closeOnIdleTimeout,
+                        this.operationTimeout,
+                        productInfo,
+                        modelId);
+                Events.SuccessCreatingCloudConnection(identity);
+                return cloudConnection;
+            }
+            else
+            {
+                throw new AuthenticationException("Unabled to get token credentials for device.");
+            }
         }
 
         public Task<Try<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
@@ -96,13 +112,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
             return Option.Some(clientCredentials)
                 .Map(cr => cr as ITokenCredentials)
-                .Map(tcr => this.ConnectAsync(tcr.Identity, connectionStatusChangedHandler, Option.Maybe(tcr.Token)))
+                .Map(tcr => this.ConnectAsync(tcr.Identity, connectionStatusChangedHandler, Option.Some(clientCredentials)))
                 .GetOrElse(() => this.Connect(clientCredentials.Identity, connectionStatusChangedHandler));
         }
 
-        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.ConnectAsync(identity, connectionStatusChangedHandler, Option.None<string>());
+        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.ConnectAsync(identity, connectionStatusChangedHandler, Option.None<IClientCredentials>());
 
-        async Task<Try<ICloudConnection>> ConnectAsync(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, Option<string> initialToken)
+        async Task<Try<ICloudConnection>> ConnectAsync(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, Option<IClientCredentials> initialCredentials)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             try
@@ -113,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 var serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id, true);
                 var cloudConnectionCreationTask = serviceIdentity.Map(si => this.ConnectOnBehalfOfAsync(si, identity, connectionStatusChangedHandler, productInfo, modelId))
-                    .GetOrElse(() => this.ConnectWithCredentialsCache(identity, connectionStatusChangedHandler, productInfo, modelId, initialToken));
+                    .GetOrElse(() => this.ConnectWithoutScopeAsync(identity, connectionStatusChangedHandler, productInfo, modelId, initialCredentials));
 
                 var cloudConnection = await cloudConnectionCreationTask;
                 return Try.Success(cloudConnection);

@@ -145,11 +145,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Try<ICloudProxy>> CreateCloudConnectionAsync(IClientCredentials credentials)
         {
+            // This function only be called as cloud authenticate. We're going to create a new ConnectedDevice instance and connect to cloud. If it succeed, replace existing instance
             Preconditions.CheckNotNull(credentials, nameof(credentials));
 
-            ConnectedDevice device = this.CreateOrUpdateConnectedDevice(credentials.Identity);
+            ConnectedDevice device = this.CreateNewConnectedDevice(credentials.Identity);
             Try<ICloudConnection> newCloudConnection = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, credentials));
             Events.NewCloudConnection(credentials.Identity, newCloudConnection);
+
+            if (newCloudConnection.Success)
+            {
+                await this.ReplaceDeviceConnectionAsync(credentials.Identity.Id, device);
+            }
+
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(newCloudConnection, credentials.Identity);
             return cloudProxyTry.Success
                 ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
@@ -168,10 +175,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection((c) => this.CreateOrUpdateCloudConnection(c, credentials));
             Events.GetCloudConnection(credentials.Identity, cloudConnectionTry);
+
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, credentials.Identity);
             return cloudProxyTry.Success
                 ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
                 : cloudProxyTry;
+        }
+
+        async Task ReplaceDeviceConnectionAsync(string id, ConnectedDevice connectedDevice)
+        {
+            ConnectedDevice device;
+            lock (this.deviceConnLock)
+            {
+                this.devices.TryRemove(id, out device);
+                this.devices[id] = connectedDevice;
+            }
+
+            if (device != null)
+            {
+                await device.DeviceConnection.Filter(dp => dp.IsActive)
+                    .ForEachAsync(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {device.Identity.Id}.")));
+                await device.CloudConnection.Filter(cp => cp.IsActive)
+                     .ForEachAsync(cp => cp.CloseAsync());
+            }
         }
 
         static Try<ICloudProxy> GetCloudProxyFromCloudConnection(Try<ICloudConnection> cloudConnection, IIdentity identity) => cloudConnection.Success
@@ -310,27 +336,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 id => this.CreateNewConnectedDevice(identity));
         }
 
-        ConnectedDevice CreateOrUpdateConnectedDevice(IIdentity identity)
-        {
-            string deviceId = Preconditions.CheckNotNull(identity, nameof(identity)).Id;
-            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            return this.devices.AddOrUpdate(
-                deviceId,
-                id => this.CreateNewConnectedDevice(identity),
-                (id, cd) => new ConnectedDevice(identity, cd.CloudConnection, cd.DeviceConnection));
-        }
-
         ConnectedDevice CreateNewConnectedDevice(IIdentity identity)
         {
             lock (this.deviceConnLock)
             {
-                if (this.devices.Values.Count(d => d.DeviceConnection.Filter(d1 => d1.IsActive).HasValue) >= this.maxClients)
+                var max = this.maxClients;
+                if (this.devices.TryGetValue(identity.Id, out var existingConnectedDevice) && this.IsDeviceConnectionActive(existingConnectedDevice))
+                {
+                    // this is a replace, allow one more
+                    max++;
+                }
+
+                if (this.devices.Values.Count(d => d.DeviceConnection.Filter(d1 => d1.IsActive).HasValue) >= max)
                 {
                     throw new EdgeHubConnectionException($"Edge hub already has maximum allowed clients ({this.maxClients - 1}) connected.");
                 }
 
                 return new ConnectedDevice(identity);
             }
+        }
+
+        bool IsDeviceConnectionActive(ConnectedDevice connectedDevice)
+        {
+            return connectedDevice.DeviceConnection.Filter(dc => dc.IsActive).HasValue;
         }
 
         async Task<Try<ICloudConnection>> ConnectToCloud(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
