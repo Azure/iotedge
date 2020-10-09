@@ -1,4 +1,4 @@
-use std::{cell::RefCell, convert::TryFrom, rc::Rc};
+use std::convert::TryFrom;
 
 use mqtt3::{proto::Publication, ReceivedPublication};
 use mqtt_broker::TopicFilter;
@@ -39,17 +39,14 @@ where
     S: StreamWakeableState,
 {
     topic_mappers: Vec<TopicMapper>,
-    inner: Rc<RefCell<PublicationStore<S>>>,
+    inner: PublicationStore<S>,
 }
 
 impl<S> MessageHandler<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(
-        persistor: Rc<RefCell<PublicationStore<S>>>,
-        topic_mappers: Vec<TopicMapper>,
-    ) -> Self {
+    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
             inner: persistor,
@@ -100,12 +97,7 @@ impl EventHandler for MessageHandler<WakingMemoryStore> {
 
         if let Some(f) = forward_publication {
             debug!("Save message to store");
-            let mut publication_store = self
-                .inner
-                .try_borrow_mut()
-                .map_err(BridgeError::BorrowPersist)?;
-            publication_store.push(f).map_err(BridgeError::Store)?;
-            drop(publication_store);
+            self.inner.push(f).map_err(BridgeError::Store)?;
         } else {
             warn!("No topic matched");
         }

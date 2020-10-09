@@ -54,6 +54,7 @@ impl StreamWakeableState for WakingMemoryStore {
             "Preparing to remove message with key {:?}. Current state of loaded messages: {:?}",
             key, self.loaded
         );
+
         if self.loaded.remove(&key) {
             Ok(())
         } else {

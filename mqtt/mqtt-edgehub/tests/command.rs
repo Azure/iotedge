@@ -1,19 +1,15 @@
-use std::error::Error as StdError;
-
 use futures_util::StreamExt;
-use tokio::task::JoinHandle;
 
-use mqtt3::{proto::ClientId, ShutdownError};
+use mqtt3::proto::ClientId;
 use mqtt_broker::{auth::AllowAll, BrokerBuilder};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,
     server::{start_server, DummyAuthenticator},
 };
-use mqtt_edgehub::command::{Command, CommandHandler, DisconnectCommand, ShutdownHandle};
+use mqtt_edgehub::command::{DisconnectCommand, DISCONNECT_TOPIC};
 
-const DISCONNECT_TOPIC: &str = "$edgehub/disconnect";
-const TEST_SERVER_ADDRESS: &str = "localhost:5555";
+mod common;
 
 /// Scenario:
 // create broker
@@ -30,7 +26,7 @@ async fn disconnect_client() {
 
     let command = DisconnectCommand::new(&broker_handle);
     let (command_handler_shutdown_handle, join_handle) =
-        start_command_handler(TEST_SERVER_ADDRESS.to_string(), command)
+        common::start_command_handler(server_handle.address(), command)
             .await
             .expect("could not start command handler");
 
@@ -62,24 +58,4 @@ async fn disconnect_client() {
     join_handle.await.unwrap();
 
     edgehub_client.shutdown().await;
-}
-
-async fn start_command_handler<C, E>(
-    system_address: String,
-    command: C,
-) -> Result<(ShutdownHandle, JoinHandle<()>), ShutdownError>
-where
-    C: Command<Error = E> + Send + 'static,
-    E: StdError + 'static,
-{
-    let mut command_handler = CommandHandler::new(system_address, "test-device");
-    command_handler.add_command(command);
-
-    command_handler.init().await.unwrap();
-
-    let shutdown_handle: ShutdownHandle = command_handler.shutdown_handle().unwrap();
-
-    let join_handle = tokio::spawn(command_handler.run());
-
-    Ok((shutdown_handle, join_handle))
 }

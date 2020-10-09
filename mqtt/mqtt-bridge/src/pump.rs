@@ -28,7 +28,7 @@ pub struct Pump {
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
     loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
-    persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+    persist: PublicationStore<WakingMemoryStore>,
     connectivity_receiver: Option<UnboundedReceiver<BridgeMessage>>,
 }
 
@@ -37,7 +37,7 @@ impl Pump {
         client: MqttClient<MessageHandler<WakingMemoryStore>>,
         subscriptions: Vec<String>,
         loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
-        egress_persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
+        persist: PublicationStore<WakingMemoryStore>,
         connectivity_receiver: Option<UnboundedReceiver<BridgeMessage>>,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
@@ -51,7 +51,7 @@ impl Pump {
             publish_handle,
             subscriptions,
             loader,
-            persist: egress_persist,
+            persist,
             connectivity_receiver,
         })
     }
@@ -72,8 +72,8 @@ impl Pump {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
         let mut connectivity_publish_handle = self.publish_handle.clone();
-        let loader = self.loader.clone();
         let persist = self.persist.clone();
+        let loader = self.loader.clone();
         let mut client_shutdown = self.client_shutdown.clone();
         let receiver = self.connectivity_receiver.as_mut();
 
@@ -110,18 +110,9 @@ impl Pump {
                             error!(message = "failed publishing publication for bridge pump", err = %e);
                         }
 
-                        let persist_borrow = persist.try_borrow_mut();
-                        match persist_borrow {
-                            Ok(mut persist_borrow) => {
-                                // TODO PRE: if removal fails, what do we do?
-                                if let Err(e) = persist_borrow.remove(key) {
-                                    error!(message = "failed removing publication from store", err = %e);
-                                }
-                                drop(persist_borrow);
-                            }
-                            Err(e) => {
-                                error!(message = "failed to borrow persistence to remove publication", err = %e);
-                            }
+                        // TODO PRE: if removal fails, what do we do?
+                        if let Err(e) = persist.remove(key) {
+                            error!(message = "failed removing publication from store", err = %e);
                         }
                     }
                 }

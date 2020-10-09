@@ -1101,6 +1101,8 @@ dependencies = [
  "tokio",
  "tokio-io-timeout",
  "tokio-util 0.2.0",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

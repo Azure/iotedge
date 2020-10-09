@@ -8,6 +8,11 @@ use crate::persist::{Key, PersistError};
 
 pub mod memory;
 
+// TODO: Currently rocksdb does not compile on musl.
+//       Once we fix compilation we can add this module back.
+//       If we decide fixing compilation is not efficient, we can reuse code in rocksdb.rs by substituting rocksdb wrapping abstraction.
+// pub mod rocksdb;
+
 /// Responsible for waking waiting streams when new elements are added.
 /// Exposes a get method for retrieving a count of elements in order of insertion.
 ///

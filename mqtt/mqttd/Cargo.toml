@@ -18,10 +18,10 @@ tracing-log = "0.1"
 tracing-subscriber = "0.1"
 
 edgelet-client = { path = "../edgelet-client", optional = true }
+mqtt-bridge = { path = "../mqtt-bridge", optional = true }
 mqtt-broker = { path = "../mqtt-broker" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt-generic = { path = "../mqtt-generic", optional = true }
-mqtt-bridge = { path = "../mqtt-bridge" }
 
 [dev-dependencies]
 mockito = "0.25"
@@ -29,5 +29,5 @@ serde_json = "1.0"
 
 [features]
 default = ["edgehub"]
-edgehub = ["mqtt-edgehub", "edgelet-client"]
+edgehub = ["mqtt-bridge", "mqtt-edgehub", "edgelet-client"]
 generic = ["mqtt-generic"]

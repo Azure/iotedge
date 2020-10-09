@@ -1,9 +1,4 @@
-use std::{
-    cell::{BorrowMutError, RefCell},
-    collections::HashMap,
-    convert::TryInto,
-    rc::Rc,
-};
+use std::{cell::BorrowMutError, collections::HashMap, convert::TryInto};
 
 use futures_util::{future::select, future::Either, pin_mut};
 use mpsc::error::SendError;
@@ -56,7 +51,6 @@ impl BridgeShutdownHandle {
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
-// TODO PRE: make persistence generic
 pub struct Bridge {
     local_pump: Pump,
     remote_pump: Pump,
@@ -85,12 +79,10 @@ impl Bridge {
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let mut outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
-        let mut incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
         let outgoing_loader = outgoing_persist.loader();
         let incoming_loader = incoming_persist.loader();
-        let incoming_persist = Rc::new(RefCell::new(incoming_persist));
-        let outgoing_persist = Rc::new(RefCell::new(outgoing_persist));
 
         let (remote_subscriptions, remote_topic_rules): (Vec<_>, Vec<_>) =
             subscriptions.drain().unzip();
@@ -249,16 +241,7 @@ pub enum BridgeError {
 //     use crate::client::EventHandler;
 //     use crate::persist::PublicationStore;
 //     use crate::settings::Settings;
-/*
-pub struct Pump {
-    client: MqttClient<MessageHandler<WakingMemoryStore>>,
-    client_shutdown: ClientShutdownHandle,
-    publish_handle: PublishHandle,
-    subscriptions: Vec<String>,
-    loader: Arc<Mutex<MessageLoader<WakingMemoryStore>>>,
-    persist: Rc<RefCell<PublicationStore<WakingMemoryStore>>>,
-}
-    */
+
 // #[tokio::test]
 // async fn bridge_new() {
 //     let settings = Settings::from_file("tests/config.json").unwrap();
