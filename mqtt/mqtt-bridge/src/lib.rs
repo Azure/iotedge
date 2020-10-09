@@ -13,6 +13,7 @@
 
 mod bridge;
 mod client;
+mod connectivity_handler;
 pub mod controller;
 mod persist;
 mod settings;

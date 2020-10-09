@@ -508,6 +508,8 @@ pub enum Event {
         reset_session: bool,
     },
 
+    Disconnected(String),
+
     /// A publication received from the server
     Publication(ReceivedPublication),
 

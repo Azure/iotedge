@@ -1,8 +1,11 @@
+#![allow(dead_code)] // TODO remove when ready
+
 use std::{collections::HashMap, convert::TryFrom, convert::TryInto, marker::PhantomData};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event, ReceivedPublication};
 use mqtt_broker::TopicFilter;
+use tokio::sync::mpsc::error::SendError;
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -12,6 +15,18 @@ use crate::{
 };
 
 const BATCH_SIZE: usize = 10;
+
+#[derive(Debug, PartialEq)]
+pub enum BridgeMessage {
+    ConnectivityUpdate(ConnectivityState),
+    ConfigurationUpdate(ConnectionSettings),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ConnectivityState {
+    Connected,
+    Disconnected,
+}
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 pub struct Bridge {
@@ -263,6 +278,9 @@ pub enum BridgeError {
 
     #[error("failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
+
+    #[error("Failed to get send bridge message.")]
+    SenderError(#[from] SendError<BridgeMessage>),
 }
 
 #[cfg(test)]
