@@ -5,7 +5,7 @@ mod policy_update;
 
 pub use authorized_identities::AuthorizedIdentitiesCommand;
 pub use disconnect::DisconnectCommand;
-pub use handler::{CommandHandler, ShutdownHandle};
+pub use handler::{CommandHandler, CommandHandlerError, ShutdownHandle};
 pub use policy_update::PolicyUpdateCommand;
 
 use std::error::Error as StdError;
