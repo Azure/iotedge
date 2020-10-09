@@ -4,14 +4,17 @@ use std::{
 };
 
 use anyhow::{Context, Result};
+use futures_util::pin_mut;
+use thiserror::Error;
 use tracing::info;
 
+use super::SidecarManager;
 use mqtt_broker::{
     auth::{authenticate_fn_ok, AllowAll, Authorizer},
     settings::BrokerConfig,
-    AuthId, Broker, BrokerBuilder, BrokerSnapshot, Error, Server, ServerCertificate,
+    AuthId, Broker, BrokerBuilder, BrokerHandle, BrokerSnapshot, Error, Server, ServerCertificate,
 };
-use mqtt_generic::settings::{CertificateConfig, Settings};
+use mqtt_generic::settings::{CertificateConfig, ListenerConfig, Settings};
 
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
 where
@@ -48,8 +51,9 @@ pub async fn start_server<Z, F>(
 ) -> Result<BrokerSnapshot>
 where
     Z: Authorizer + Send + 'static,
-    F: Future<Output = ()> + Unpin,
+    F: Future<Output = ()>,
 {
+    info!("starting server...");
     let mut server = Server::from_broker(broker);
 
     if let Some(tcp) = config.listener().tcp() {
@@ -63,8 +67,29 @@ where
         server.with_tls(tls.addr(), identity, authenticator, None)?;
     }
 
+    pin_mut!(shutdown_signal);
     let state = server.serve(shutdown_signal).await?;
     Ok(state)
+}
+
+// There are currently no sidecars for the generic feature flag, so this is empty
+#[derive(Debug, Error)]
+pub enum SidecarError {}
+
+#[derive(Clone, Debug)]
+pub struct SidecarShutdownHandle;
+
+// There are currently no sidecars for the generic feature flag, so this is a no-op
+impl SidecarShutdownHandle {
+    pub async fn shutdown(self) -> Result<(), SidecarError> {
+        info!("no sidecars to stop");
+        Ok(())
+    }
+}
+
+pub async fn start_sidecars(_: BrokerHandle, _: ListenerConfig) -> Result<Option<SidecarManager>> {
+    info!("no sidecars to start");
+    Ok(None)
 }
 
 fn load_server_certificate(config: &CertificateConfig) -> Result<ServerCertificate> {

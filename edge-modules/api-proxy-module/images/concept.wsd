@@ -1,0 +1,21 @@
+@startuml concept
+
+package "Bottom level" {
+[dockerd]
+}
+
+package "Middle level" {
+[dockerd]-right->[API Proxy 1]: Pull through image
+}
+
+package "Top level (root)" {
+[API Proxy 1]-down->[API Proxy 0]: Pull through image
+[API Proxy 0]-left->[registry module]: Pull through image
+note bottom of [registry module]: Pull through cache. Works offline & check latest version
+}
+
+cloud {
+  [registry module]-->[private registry]
+}
+
+@enduml
