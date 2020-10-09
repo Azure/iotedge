@@ -141,15 +141,8 @@ impl Pump {
         };
 
         // incoming pump
-        let bridge_name = self.bridge_name.clone();
-        let pump_type = self.pump_type.clone();
-        let f2 = async move {
-            debug!(
-                "{} bridge starting ingress publication processing for pump {:?}...",
-                bridge_name, pump_type
-            );
-            self.client.handle_events().await;
-        };
+        debug!("{} bridge starting ingress publication processing for pump {:?}...", self.bridge_name, self.pump_type);
+        let f2 =  self.client.handle_events();
 
         let has_receiver = receiver.is_some();
 
