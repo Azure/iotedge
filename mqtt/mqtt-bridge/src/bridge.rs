@@ -18,13 +18,13 @@ use crate::{
 
 const BATCH_SIZE: usize = 10;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BridgeMessage {
     ConnectivityUpdate(ConnectivityState),
     ConfigurationUpdate(ConnectionSettings),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConnectivityState {
     Connected,
     Disconnected,
@@ -135,7 +135,7 @@ impl Bridge {
             remote_subscriptions,
             outgoing_loader,
             outgoing_persist,
-            None
+            None,
         )?;
 
         local_pump.subscribe().await?;

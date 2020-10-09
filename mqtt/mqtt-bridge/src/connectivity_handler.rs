@@ -80,7 +80,6 @@ mod tests {
 
     #[tokio::test]
     async fn sends_connected_state() {
-        // component_sender can be used for configuration changes
         let (connectivity_sender, mut connectivity_receiver) =
             mpsc::unbounded_channel::<BridgeMessage>();
 
@@ -102,7 +101,6 @@ mod tests {
 
     #[tokio::test]
     async fn sends_disconnected_state() {
-        // component_sender can be used for configuration changes
         let (connectivity_sender, mut connectivity_receiver) =
             mpsc::unbounded_channel::<BridgeMessage>();
 
@@ -130,7 +128,6 @@ mod tests {
 
     #[tokio::test]
     async fn not_sends_connected_state_when_already_connected() {
-        // component_sender can be used for configuration changes
         let (connectivity_sender, mut connectivity_receiver) =
             mpsc::unbounded_channel::<BridgeMessage>();
 
@@ -156,7 +153,6 @@ mod tests {
 
     #[tokio::test]
     async fn not_sends_disconnected_state_when_already_disconnected() {
-        // component_sender can be used for configuration changes
         let (connectivity_sender, mut connectivity_receiver) =
             mpsc::unbounded_channel::<BridgeMessage>();
 
@@ -172,7 +168,6 @@ mod tests {
     }
 
     async fn default_disconnected_state() {
-        // component_sender can be used for configuration changes
         let (connectivity_sender, _) = mpsc::unbounded_channel::<BridgeMessage>();
 
         let ch = ConnectivityHandler::new(connectivity_sender);
