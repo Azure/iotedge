@@ -18,12 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             string schemaVersion,
             IDictionary<string, RouteConfiguration> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
-            BrokerConfig brokerConfiguration)
+            BrokerProperties brokerConfiguration)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.StoreAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
-            this.BrokerConfiguration = Option.Maybe(brokerConfiguration);
+            // can be null for old versions.
+            this.BrokerConfiguration = brokerConfiguration;
 
             this.ValidateSchemaVersion();
         }
@@ -37,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
 
         [JsonProperty(PropertyName = "mqttBroker")]
-        public Option<BrokerConfig> BrokerConfiguration { get; }
+        public BrokerProperties BrokerConfiguration { get; }
 
         void ValidateSchemaVersion()
         {
@@ -73,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 // Authorization policies not allowed.
                 if (this.BrokerConfiguration != null)
                 {
-                    throw new InvalidSchemaVersionException($"Authorization policy is not supported in schema {this.SchemaVersion}.");
+                    throw new InvalidSchemaVersionException($"Broker configuration is not supported in schema {this.SchemaVersion}.");
                 }
             }
             else if (version.Minor == 1)
@@ -83,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 // Authorization policies not allowed.
                 if (this.BrokerConfiguration != null)
                 {
-                    throw new InvalidSchemaVersionException($"Authorization policy is not supported in schema {this.SchemaVersion}.");
+                    throw new InvalidSchemaVersionException($"Broker configuration is not supported in schema {this.SchemaVersion}.");
                 }
             }
             else if (version.Minor == 2)

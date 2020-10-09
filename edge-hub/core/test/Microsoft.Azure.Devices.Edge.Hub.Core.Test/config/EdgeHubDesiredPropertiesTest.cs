@@ -453,10 +453,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   '$version': 2
                 }";
             var props = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties);
-            var authConfig = props.BrokerConfiguration
-                                    .Expect(() => new InvalidOperationException("missing broker config"))
-                                    .Authorizations
-                                    .Expect(() => new InvalidOperationException("missing authorizations"));
+            var authConfig = props.BrokerConfiguration.Authorizations;
             Assert.Single(authConfig);
             Assert.Equal(2, authConfig[0].Identities.Count);
             Assert.Equal("device_1", authConfig[0].Identities[0]);
@@ -483,7 +480,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                     'storeAndForwardConfiguration': {},
                     'mqttBroker': {
                         'authorizations': []
-                    }
+                    },
                     '$version': 2
                 }";
 
@@ -494,7 +491,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                     'storeAndForwardConfiguration': {},
                     'mqttBroker': {
                         'authorizations': []
-                    }
+                    },
                     '$version': 2
                 }";
 

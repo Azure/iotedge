@@ -148,8 +148,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 });
 
             var brokerConfig1 = new BrokerConfig(Option.None<BridgeConfig>(), Option.Some(new AuthorizationConfig { statement1 }));
-            var brokerConfig2 = new BrokerConfig(Option.None<BridgeConfig>(), Option.Some(new AuthorizationConfig { statement1 }));
-            var brokerConfig3 = new BrokerConfig(Option.None<BridgeConfig>(), Option.Some(new AuthorizationConfig { statement1 }));
+            var brokerConfig2 = new BrokerConfig(Option.None<BridgeConfig>(), Option.Some(new AuthorizationConfig { statement2 }));
+            var brokerConfig3 = new BrokerConfig(Option.None<BridgeConfig>(), Option.Some(new AuthorizationConfig { statement3 }));
 
             string version = "1.0";
 

@@ -21,13 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutes(desiredProperties, routeFactory);
 
-            ValidateAuthorizationPolicy(desiredProperties.BrokerConfiguration);
+            Option<BrokerConfig> brokerConfig = ParseBrokerConfig(desiredProperties.BrokerConfiguration);
 
             return new EdgeHubConfig(
                 desiredProperties.SchemaVersion,
                 routes,
                 desiredProperties.StoreAndForwardConfiguration,
-                desiredProperties.BrokerConfiguration);
+                brokerConfig);
         }
 
         static ReadOnlyDictionary<string, RouteConfig> ParseRoutes(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)
@@ -52,12 +52,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return new ReadOnlyDictionary<string, RouteConfig>(routes);
         }
 
-        static void ValidateAuthorizationPolicy(Option<BrokerConfig> configuration)
+        static Option<BrokerConfig> ParseBrokerConfig(BrokerProperties configuration)
         {
-            if (configuration.HasValue)
+            if (configuration != null)
             {
                 throw new NotImplementedException();
             }
+
+            return Option.None<BrokerConfig>();
         }
     }
 }

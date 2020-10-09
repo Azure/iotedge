@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     /// Domain object that represents MQTT Broker configuration for Edge Hub Module.
     ///
     /// This object is being eventually constructed from the EdgeHub twin's desired properties.
-    /// See <see cref="EdgeHubDesiredProperties"/> for DTO.
+    /// See <see cref="BrokerProperties"/> for DTO.
     /// </summary>
     public class BrokerConfig : IEquatable<BrokerConfig>
     {
@@ -19,19 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
         }
 
-        [JsonConstructor]
         public BrokerConfig(Option<BridgeConfig> bridges, Option<AuthorizationConfig> authorizations)
         {
             this.Bridges = bridges;
             this.Authorizations = authorizations;
         }
 
-        [JsonConverter(typeof(OptionConverter<BridgeConfig>))]
-        [JsonProperty(PropertyName = "bridges")]
         public Option<BridgeConfig> Bridges { get; }
 
-        [JsonConverter(typeof(OptionConverter<AuthorizationConfig>))]
-        [JsonProperty(PropertyName = "authorizations")]
         public Option<AuthorizationConfig> Authorizations { get; }
 
         public bool Equals(BrokerConfig other)
