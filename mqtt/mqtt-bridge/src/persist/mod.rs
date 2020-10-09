@@ -1,4 +1,5 @@
-use bincode::ErrorKind;
+use std::cell::BorrowMutError;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -18,15 +19,9 @@ pub struct Key {
 
 #[derive(Debug, Error)]
 pub enum PersistError {
-    #[error("Failed to deserialize database entry")]
-    Deserialization(#[source] Box<ErrorKind>),
-
-    #[error("Failed to get rocksdb column family")]
-    GetColumnFamily,
-
     #[error("Attempted to remove entry which does not exist")]
     RemovalForMissing,
 
-    #[error("Failed to serialize on database insert")]
-    Serialization(#[source] Box<ErrorKind>),
+    #[error("Failed to borrow shared state for persistence")]
+    BorrowSharedState(#[from] BorrowMutError),
 }

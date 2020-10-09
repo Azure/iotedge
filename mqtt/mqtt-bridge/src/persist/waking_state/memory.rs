@@ -5,6 +5,7 @@ use std::{
 };
 
 use mqtt3::proto::Publication;
+use tracing::debug;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
@@ -49,6 +50,11 @@ impl StreamWakeableState for WakingMemoryStore {
     }
 
     fn remove(&mut self, key: Key) -> Result<(), PersistError> {
+        debug!(
+            "Preparing to remove message with key {:?}. Current state of loaded messages: {:?}",
+            key, self.loaded
+        );
+
         if self.loaded.remove(&key) {
             Ok(())
         } else {
