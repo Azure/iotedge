@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
 
         [Unit]
         [Fact]
-        public async void StatusIsFailedWhenUnexpectedExceptionIsThrown()
+        public async void StatusIsFailedWhenDeploymentControllerThrowsUnexpectedException()
         {
             Exception controllerException = new Exception(ExceptionMessage);
             EdgeDeploymentStatus expectedStatus = EdgeDeploymentStatus.Failure(controllerException);
@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
 
         [Unit]
         [Fact]
-        public async void StatusIsFailedWithSpecialMessageWhenHttpExceptionIsThrown()
+        public async void StatusIsFailedWhenDeploymentControllerThrowsHttpExceptionIsThrown()
         {
             HttpOperationException controllerException = new HttpOperationException(ExceptionMessage)
             {
