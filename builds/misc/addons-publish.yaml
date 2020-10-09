@@ -47,5 +47,5 @@ jobs:
             displayName: 'Publish Api Proxy Manifest'
             inputs:
               targetType: filePath
-              filePath: './$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
               arguments: '-r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/repo/edge-modules/api-proxy-module/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
