@@ -1662,7 +1662,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             yield return new object[] { version_1_2, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_2_0, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_2_0_1, typeof(InvalidSchemaVersionException) };
-            yield return new object[] { version_schema_mismatch, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_schema_mismatch, null };
         }
 
         static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
