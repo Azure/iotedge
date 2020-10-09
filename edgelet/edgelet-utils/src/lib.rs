@@ -87,7 +87,7 @@ pub fn prepare_dns_san_entries(names: &[&str]) -> String {
 }
 
 pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
-    let mut dns_sans = names
+    let mut dns_ip_sans= names
         .iter()
         .filter_map(|name| {
             if IpAddr::from_str(name).is_ok() {
@@ -100,9 +100,9 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
         })
         .collect::<Vec<String>>()
         .join(", ");
-    dns_sans.push_str(", ");
-    dns_sans.push_str(sans);
-    dns_sans
+    dns_ip_sans.push_str(", ");
+    dns_ip_sans.push_str(sans);
+    dns_ip_sans
 }
 
 #[cfg(test)]
