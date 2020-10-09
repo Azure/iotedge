@@ -29,7 +29,6 @@ use common::DummyAuthorizer;
 async fn publish_not_allowed_identity_not_in_cache() {
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to EdgeHubAuthorizer
-    // EdgeHubAuthorizer has DenyAll for this test because it simulates if PolicyAuthorizer was allowing this case (in the case of default IoTHub policy)
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(EdgeHubAuthorizer::new(
             authorize_fn_ok(|activity| {
@@ -60,7 +59,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
     )
     .await;
 
-    // We should be able to connect because inner authorizer is AllowAll
+    // We should be able to connect because inner authorizer allows connects
     match device_client.next().await {
         Some(Packet::ConnAck(c)) => assert_matches!(c.return_code, ConnectReturnCode::Accepted),
         _ => panic!("device client did not receive ConnAck"),
@@ -77,7 +76,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
 
     device_client.send_subscribe(s).await; // client subscribes to topic
 
-    // assert device_client couldn't connect because it was refused
+    // assert device_client couldn't subscribe because it was refused
     if let Some(Packet::SubAck(x)) = device_client.next().await {
         assert_matches!(x.qos.get(0).unwrap(), SubAckQos::Failure);
     }
@@ -173,6 +172,7 @@ async fn auth_update_happy_case() {
         .await;
 
     assert_matches!(device_client.next().await, Some(Packet::Publish(_)));
+
     command_handler_shutdown_handle
         .shutdown()
         .await
