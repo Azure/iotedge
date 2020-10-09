@@ -38,34 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 throw new InvalidSchemaVersionException($"The deployment schema version {this.SchemaVersion} is not compatible with the expected version {Core.Constants.ConfigSchemaVersion}");
             }
-
-            // Validate minor versions
-            if (version.Minor == 0)
-            {
-                // 1.0
-                //
-                // Routes cannot have priority or TTL
-                foreach (KeyValuePair<string, RouteConfiguration> kvp in this.Routes)
-                {
-                    RouteConfiguration route = kvp.Value;
-
-                    if (route.Priority != Routing.EdgeRouteFactory.DefaultPriority ||
-                        route.TimeToLiveSecs != 0)
-                    {
-                        throw new InvalidSchemaVersionException($"Route priority/TTL is not supported in schema {this.SchemaVersion}.");
-                    }
-                }
-            }
-            else if (version.Minor == 1)
-            {
-                // 1.1.0
-                //
-                // Everything from 1.0 is supported
-            }
-            else
-            {
-                throw new InvalidSchemaVersionException($"The deployment schema version {this.SchemaVersion} is not compatible with the expected version {Core.Constants.ConfigSchemaVersion}");
-            }
         }
     }
 }
