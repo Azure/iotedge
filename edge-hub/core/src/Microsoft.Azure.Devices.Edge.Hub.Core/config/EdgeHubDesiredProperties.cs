@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -17,13 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             string schemaVersion,
             IDictionary<string, RouteConfiguration> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
-            AuthorizationConfiguration authorizations)
+            BrokerConfig brokerConfiguration)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.StoreAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
-            // can be null for previous versions.
-            this.Authorizations = authorizations;
+            this.BrokerConfiguration = Option.Maybe(brokerConfiguration);
 
             this.ValidateSchemaVersion();
         }
@@ -36,8 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         [JsonProperty(PropertyName = "storeAndForwardConfiguration")]
         public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
 
-        [JsonProperty(PropertyName = "authorizations")]
-        public AuthorizationConfiguration Authorizations { get; }
+        [JsonProperty(PropertyName = "mqttBroker")]
+        public Option<BrokerConfig> BrokerConfiguration { get; }
 
         void ValidateSchemaVersion()
         {
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
 
                 // Authorization policies not allowed.
-                if (this.Authorizations != null)
+                if (this.BrokerConfiguration != null)
                 {
                     throw new InvalidSchemaVersionException($"Authorization policy is not supported in schema {this.SchemaVersion}.");
                 }
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 // 1.1.0
                 //
                 // Authorization policies not allowed.
-                if (this.Authorizations != null)
+                if (this.BrokerConfiguration != null)
                 {
                     throw new InvalidSchemaVersionException($"Authorization policy is not supported in schema {this.SchemaVersion}.");
                 }

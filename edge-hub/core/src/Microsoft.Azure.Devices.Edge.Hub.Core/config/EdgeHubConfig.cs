@@ -17,12 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             string schemaVersion,
             IReadOnlyDictionary<string, RouteConfig> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
-            AuthorizationConfiguration authorizationConfiguration)
+            Option<BrokerConfig> brokerConfiguration)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.StoreAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
-            this.AuthorizationConfiguration = Preconditions.CheckNotNull(authorizationConfiguration, nameof(authorizationConfiguration));
+            this.BrokerConfiguration = brokerConfiguration;
         }
 
         public string SchemaVersion { get; }
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
 
-        public AuthorizationConfiguration AuthorizationConfiguration { get; }
+        public Option<BrokerConfig> BrokerConfiguration { get; }
 
         public static bool operator ==(EdgeHubConfig left, EdgeHubConfig right) => Equals(left, right);
 
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return string.Equals(this.SchemaVersion, other.SchemaVersion, StringComparison.OrdinalIgnoreCase)
                    && new ReadOnlyDictionaryComparer<string, RouteConfig>().Equals(this.Routes, other.Routes)
                    && Equals(this.StoreAndForwardConfiguration, other.StoreAndForwardConfiguration)
-                   && Equals(this.AuthorizationConfiguration, other.AuthorizationConfiguration);
+                   && Equals(this.BrokerConfiguration, other.BrokerConfiguration);
         }
 
         public override bool Equals(object obj)
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 int hashCode = this.SchemaVersion != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(this.SchemaVersion) : 0;
                 hashCode = (hashCode * 397) ^ (this.Routes?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ (this.StoreAndForwardConfiguration?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (this.AuthorizationConfiguration?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ this.BrokerConfiguration.GetHashCode();
                 return hashCode;
             }
         }

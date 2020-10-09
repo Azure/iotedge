@@ -420,11 +420,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   'schemaVersion': '1.2.0',
                   'routes': {},
                   'storeAndForwardConfiguration': {},
-                  'authorizations': [
+                  'mqttBroker': {
+                      'authorizations': [
                           {
                               'identities': [
                                   'device_1',
-                                  'device_2',
+                                  'device_2'
                               ],
                               'allow': [
                                   {
@@ -448,23 +449,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                               ]
                           }
                       ],
+                  },
                   '$version': 2
                 }";
-            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties);
-            Assert.Single(desiredProperties.Authorizations);
-            Assert.Equal(2, desiredProperties.Authorizations[0].Identities.Count);
-            Assert.Equal("device_1", desiredProperties.Authorizations[0].Identities[0]);
-            Assert.Equal("device_2", desiredProperties.Authorizations[0].Identities[1]);
-            Assert.Single(desiredProperties.Authorizations[0].Allow);
-            Assert.Single(desiredProperties.Authorizations[0].Deny);
-            Assert.Single(desiredProperties.Authorizations[0].Allow[0].Operations);
-            Assert.Equal("mqtt:publish", desiredProperties.Authorizations[0].Allow[0].Operations[0]);
-            Assert.Single(desiredProperties.Authorizations[0].Allow[0].Resources);
-            Assert.Equal("/telemetry/#", desiredProperties.Authorizations[0].Allow[0].Resources[0]);
-            Assert.Single(desiredProperties.Authorizations[0].Deny[0].Operations);
-            Assert.Equal("mqtt:subscribe", desiredProperties.Authorizations[0].Deny[0].Operations[0]);
-            Assert.Single(desiredProperties.Authorizations[0].Deny[0].Resources);
-            Assert.Equal("/alert/#", desiredProperties.Authorizations[0].Deny[0].Resources[0]);
+            var props = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties);
+            var authConfig = props.BrokerConfiguration
+                                    .Expect(() => new InvalidOperationException("missing broker config"))
+                                    .Authorizations
+                                    .Expect(() => new InvalidOperationException("missing authorizations"));
+            Assert.Single(authConfig);
+            Assert.Equal(2, authConfig[0].Identities.Count);
+            Assert.Equal("device_1", authConfig[0].Identities[0]);
+            Assert.Equal("device_2", authConfig[0].Identities[1]);
+            Assert.Single(authConfig[0].Allow);
+            Assert.Single(authConfig[0].Deny);
+            Assert.Single(authConfig[0].Allow[0].Operations);
+            Assert.Equal("mqtt:publish", authConfig[0].Allow[0].Operations[0]);
+            Assert.Single(authConfig[0].Allow[0].Resources);
+            Assert.Equal("/telemetry/#", authConfig[0].Allow[0].Resources[0]);
+            Assert.Single(authConfig[0].Deny[0].Operations);
+            Assert.Equal("mqtt:subscribe", authConfig[0].Deny[0].Operations[0]);
+            Assert.Single(authConfig[0].Deny[0].Resources);
+            Assert.Equal("/alert/#", authConfig[0].Deny[0].Resources[0]);
         }
 
         [Fact]
@@ -472,20 +478,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             string properties_1_1 =
                 @"{
-                  'schemaVersion': '1.1.0',
-                  'routes': {},
-                  'storeAndForwardConfiguration': {},
-                  'authorizations': [],
-                  '$version': 2
+                    'schemaVersion': '1.1.0',
+                    'routes': {},
+                    'storeAndForwardConfiguration': {},
+                    'mqttBroker': {
+                        'authorizations': []
+                    }
+                    '$version': 2
                 }";
 
             string properties_1_0 =
                 @"{
-                  'schemaVersion': '1.0.0',
-                  'routes': {},
-                  'storeAndForwardConfiguration': {},
-                  'authorizations': [],
-                  '$version': 2
+                    'schemaVersion': '1.0.0',
+                    'routes': {},
+                    'storeAndForwardConfiguration': {},
+                    'mqttBroker': {
+                        'authorizations': []
+                    }
+                    '$version': 2
                 }";
 
             Assert.Throws<InvalidSchemaVersionException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties_1_1));

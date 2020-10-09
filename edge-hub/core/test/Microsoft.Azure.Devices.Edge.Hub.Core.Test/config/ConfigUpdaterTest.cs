@@ -54,14 +54,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routes1 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
-            var authConfig1 = new AuthorizationConfiguration();
-            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, authConfig1);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, Option.None<BrokerConfig>());
 
             var routes2 = Routes.Take(3)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration2 = new StoreAndForwardConfiguration(7200);
-            var authConfig2 = new AuthorizationConfiguration();
-            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, authConfig2);
+            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, Option.None<BrokerConfig>());
 
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())
@@ -116,8 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routes1 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
-            var authConfig1 = new AuthorizationConfiguration();
-            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, authConfig1);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, Option.None<BrokerConfig>());
 
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())
@@ -171,50 +168,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routes1 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
-            var authConfig1 = new AuthorizationConfiguration();
-            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, authConfig1);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, Option.None<BrokerConfig>());
 
             var routes2 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration2 = new StoreAndForwardConfiguration(7200);
-            var authConfig2 = new AuthorizationConfiguration();
-            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, authConfig2);
+            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, Option.None<BrokerConfig>());
 
             var routes3 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration3 = new StoreAndForwardConfiguration(7200);
-            var authConfig3 = new AuthorizationConfiguration();
-            var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3, authConfig3);
+            var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3, Option.None<BrokerConfig>());
 
             var routes4 = Routes.Skip(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration4 = new StoreAndForwardConfiguration(7200);
-            var authConfig4 = new AuthorizationConfiguration();
-            var edgeHubConfig4 = new EdgeHubConfig("1.0", routes4, storeAndForwardConfiguration4, authConfig4);
+            var edgeHubConfig4 = new EdgeHubConfig("1.0", routes4, storeAndForwardConfiguration4, Option.None<BrokerConfig>());
 
             var routes5 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration5 = new StoreAndForwardConfiguration(7200);
-            var authConfig5 = new AuthorizationConfiguration();
-            var edgeHubConfig5 = new EdgeHubConfig("1.0", routes5, storeAndForwardConfiguration5, authConfig5);
+            var edgeHubConfig5 = new EdgeHubConfig("1.0", routes5, storeAndForwardConfiguration5, Option.None<BrokerConfig>());
 
             var routes6 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration6 = new StoreAndForwardConfiguration(3600);
-            var authConfig6 = new AuthorizationConfiguration();
-            var edgeHubConfig6 = new EdgeHubConfig("1.0", routes6, storeAndForwardConfiguration6, authConfig6);
+            var edgeHubConfig6 = new EdgeHubConfig("1.0", routes6, storeAndForwardConfiguration6, Option.None<BrokerConfig>());
 
             var routes7 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration7 = new StoreAndForwardConfiguration(3600, new StoreLimits(10L));
-            var authConfig7 = new AuthorizationConfiguration();
-            var edgeHubConfig7 = new EdgeHubConfig("1.0", routes7, storeAndForwardConfiguration7, authConfig7);
+            var edgeHubConfig7 = new EdgeHubConfig("1.0", routes7, storeAndForwardConfiguration7, Option.None<BrokerConfig>());
 
             var routes8 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration8 = new StoreAndForwardConfiguration(3600, new StoreLimits(20L));
-            var authConfig8 = new AuthorizationConfiguration();
-            var edgeHubConfig8 = new EdgeHubConfig("1.0", routes8, storeAndForwardConfiguration8, authConfig8);
+            var edgeHubConfig8 = new EdgeHubConfig("1.0", routes8, storeAndForwardConfiguration8, Option.None<BrokerConfig>());
 
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())
@@ -319,20 +308,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routes1 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
-            var authConfig1 = new AuthorizationConfiguration();
-            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, authConfig1);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, Option.None<BrokerConfig>());
 
             var routes2 = Routes.Take(3)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration2 = new StoreAndForwardConfiguration(7200);
-            var authConfig2 = new AuthorizationConfiguration();
-            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, authConfig2);
+            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, Option.None<BrokerConfig>());
 
             var routes3 = Routes.Take(4)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration3 = new StoreAndForwardConfiguration(7200);
-            var authConfig3 = new AuthorizationConfiguration();
-            var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3, authConfig3);
+            var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3, Option.None<BrokerConfig>());
 
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())

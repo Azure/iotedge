@@ -20,13 +20,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public LocalConfigSource(
             RouteFactory routeFactory,
             IDictionary<string, string> routes,
-            StoreAndForwardConfiguration storeAndForwardConfiguration,
-            AuthorizationConfiguration authorizationConfiguration)
+            StoreAndForwardConfiguration storeAndForwardConfiguration)
         {
             Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
             Preconditions.CheckNotNull(routes, nameof(routes));
             Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
-            Preconditions.CheckNotNull(authorizationConfiguration, nameof(authorizationConfiguration));
 
             IDictionary<string, RouteConfig> parsedRoutes = routes.ToDictionary(
                 r => r.Key,
@@ -36,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 Constants.ConfigSchemaVersion.ToString(),
                 new ReadOnlyDictionary<string, RouteConfig>(parsedRoutes),
                 storeAndForwardConfiguration,
-                authorizationConfiguration);
+                Option.None<BrokerConfig>());
         }
 
 #pragma warning disable CS0067 // unused event but part of the interface.

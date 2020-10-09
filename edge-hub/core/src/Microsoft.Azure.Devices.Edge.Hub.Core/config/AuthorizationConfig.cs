@@ -13,9 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     /// This object is being eventually constructed from the EdgeHub twin's desired properties.
     /// See <see cref="EdgeHubDesiredProperties"/> for DTO.
     /// </summary>
-    public class AuthorizationConfiguration : List<Statement>, IEquatable<AuthorizationConfiguration>
+    public class AuthorizationConfig : List<Statement>, IEquatable<AuthorizationConfig>
     {
-        public bool Equals(AuthorizationConfiguration other)
+        public bool Equals(AuthorizationConfig other)
         {
             if (ReferenceEquals(null, other))
             {
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         }
 
         public override bool Equals(object obj)
-            => this.Equals(obj as AuthorizationConfiguration);
+            => this.Equals(obj as AuthorizationConfig);
 
         public override int GetHashCode()
         {

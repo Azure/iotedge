@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             try
             {
                 configProvider.ConfigUpdated +=
-                    async (sender, serviceIdentities) => await this.HandleUpdateConfig(serviceIdentities);
+                    async (sender, config) => await this.HandleUpdateConfig(config);
 
                 this.configProvider = Option.Some(configProvider);
 
