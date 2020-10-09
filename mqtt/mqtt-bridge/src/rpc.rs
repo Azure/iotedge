@@ -1,24 +1,25 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-
 use bson::{doc, Document};
 use bytes::{buf::BufExt, Bytes};
 use lazy_static::lazy_static;
-use mqtt3::{
-    proto::Publication, proto::QoS, proto::SubscribeTo, Event, PublishError,
-    SubscriptionUpdateEvent,
-};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tracing::{error, warn};
 
+// Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
 pub use mqtt3::{
     MockPublishHandle as PublishHandle, MockUpdateSubscriptionHandle as UpdateSubscriptionHandle,
 };
 #[cfg(not(test))]
 pub use mqtt3::{PublishHandle, UpdateSubscriptionHandle};
+
+use mqtt3::{
+    proto::Publication, proto::QoS, proto::SubscribeTo, Event, PublishError,
+    SubscriptionUpdateEvent,
+};
 
 use crate::client::EventHandler;
 
@@ -39,7 +40,7 @@ pub struct RpcHandler {
 }
 
 impl RpcHandler {
-    #[allow(dead_code)]
+    #[allow(dead_code)] // TODO remove when used in the code
     pub fn new(
         upstream_subs: UpdateSubscriptionHandle,
         upstream_pubs: PublishHandle,
