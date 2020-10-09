@@ -15,6 +15,7 @@ use tokio::{
 };
 use tracing::{error, info, warn};
 
+use mqtt_bridge::settings::Settings;
 use mqtt_bridge::BridgeController;
 use mqtt_broker::{
     BrokerHandle, FilePersistor, Message, Persist, ShutdownHandle, Snapshotter,
@@ -51,8 +52,10 @@ where
     let server_fut = bootstrap::start_server(config, broker, shutdown);
 
     let device_id = env::var(DEVICE_ID_ENV)?;
+    let settings = Settings::new()?; // TODO PRE: might wanna move this back
     let mut bridge_controller = BridgeController::new();
-    let bridge_controller_fut = bridge_controller.start(system_address, device_id.as_str());
+    let bridge_controller_fut =
+        bridge_controller.start(system_address, device_id.as_str(), settings);
 
     // TODO PRE: merge conflict resolution with sidecar startup
     pin_mut!(bridge_controller_fut);

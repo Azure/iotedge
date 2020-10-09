@@ -19,9 +19,10 @@ use crate::{
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
 };
 
-pub PumpContext {
-    // local or remote
-    // bridge name
+#[derive(Debug, Clone)]
+pub enum PumpType {
+    Local,
+    Remote,
 }
 
 // TODO PRE: add enum for local or remote pump
@@ -32,6 +33,8 @@ pub struct Pump {
     subscriptions: Vec<String>,
     loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
     persist: PublicationStore<WakingMemoryStore>,
+    pump_type: PumpType,
+    bridge_name: String,
 }
 
 impl Pump {
@@ -40,6 +43,8 @@ impl Pump {
         subscriptions: Vec<String>,
         loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
         persist: PublicationStore<WakingMemoryStore>,
+        pump_type: PumpType,
+        bridge_name: String,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()
@@ -53,6 +58,8 @@ impl Pump {
             subscriptions,
             loader,
             persist,
+            pump_type,
+            bridge_name,
         })
     }
 
@@ -69,12 +76,15 @@ impl Pump {
     // TODO PRE: add comments
     // TODO PRE: clean up logging
     pub async fn run(&mut self, shutdown: Receiver<()>) {
+        debug!("starting pumps for {} bridge...", self.bridge_name);
+
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
         let persist = self.persist.clone();
         let loader = self.loader.clone();
         let mut client_shutdown = self.client_shutdown.clone();
-        debug!("starting pumps");
+        let bridge_name = self.bridge_name.clone();
+        let pump_type = self.pump_type.clone();
 
         // egress pump
         let f1 = async move {
@@ -82,7 +92,10 @@ impl Pump {
             let mut loader_borrow = loader.borrow_mut();
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
-            debug!("starting egress message processing for pump []...");
+            debug!(
+                "{} bridge starting egress publication processing for {:?} pump...",
+                bridge_name, pump_type
+            );
 
             loop {
                 let mut publish_handle = publish_handle.clone();
@@ -116,11 +129,18 @@ impl Pump {
                     }
                 }
             }
+
+            debug!("pumps for {} bridge stopped...", bridge_name);
         };
 
         // incoming pump
+        let bridge_name = self.bridge_name.clone();
+        let pump_type = self.pump_type.clone();
         let f2 = async move {
-            debug!("started ingress pump...");
+            debug!(
+                "{} bridge starting ingress publication processing for pump {:?}...",
+                bridge_name, pump_type
+            );
             self.client.handle_events().await;
         };
 

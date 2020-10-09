@@ -10,7 +10,7 @@ use crate::{
     client::{ClientError, MqttClient},
     message_handler::MessageHandler,
     persist::{PersistError, PublicationStore},
-    pump::Pump,
+    pump::{Pump, PumpType},
     settings::{ConnectionSettings, Credentials, TopicRule},
 };
 
@@ -44,8 +44,6 @@ pub struct Bridge {
 }
 
 impl Bridge {
-    // TODO PRE: make init method with some of this logic
-    // TODO PRE: sort out logging
     pub async fn new(
         system_address: String,
         device_id: String,
@@ -107,12 +105,16 @@ impl Bridge {
             local_subscriptions,
             incoming_loader,
             incoming_persist,
+            PumpType::Local,
+            connection_settings.name().to_string(),
         )?;
         let mut remote_pump = Pump::new(
             remote_client,
             remote_subscriptions,
             outgoing_loader,
             outgoing_persist,
+            PumpType::Remote,
+            connection_settings.name().to_string(),
         )?;
 
         local_pump.subscribe().await?;
@@ -200,59 +202,3 @@ pub enum BridgeError {
     #[error("Failed to borrow persistence to store publication")]
     BorrowPersist(#[from] BorrowMutError),
 }
-
-// TODO PRE: move to integration test
-// #[cfg(test)]
-// mod tests {
-//     use bytes::Bytes;
-//     use futures_util::stream::StreamExt;
-//     use futures_util::stream::TryStreamExt;
-//     use std::str::FromStr;
-
-//     use mqtt3::{
-//         proto::{Publication, QoS},
-//         Event, ReceivedPublication,
-//     };
-//     use mqtt_broker::TopicFilter;
-
-//     use crate::bridge::Bridge;
-//     use crate::bridge::MessageHandler;
-//     use crate::client::EventHandler;
-//     use crate::persist::PublicationStore;
-//     use crate::settings::Settings;
-
-// #[tokio::test]
-// async fn bridge_new() {
-//     let settings = Settings::from_file("tests/config.json").unwrap();
-//     let connection_settings = settings.upstream().unwrap();
-
-//     let bridge = Bridge::new(
-//         "localhost:5555".into(),
-//         "d1".into(),
-//         connection_settings.clone(),
-//     )
-//     .await
-//     .unwrap();
-
-//     bridge.local_pump;
-
-// let (key, value) = bridge.forwards.get_key_value("temp/#").unwrap();
-// assert_eq!(key, "temp/#");
-// assert_eq!(value.remote().unwrap(), "floor/kitchen");
-// assert_eq!(value.local(), None);
-
-// let (key, value) = bridge.forwards.get_key_value("pattern/#").unwrap();
-// assert_eq!(key, "pattern/#");
-// assert_eq!(value.remote(), None);
-
-// let (key, value) = bridge.forwards.get_key_value("local/floor/#").unwrap();
-// assert_eq!(key, "local/floor/#");
-// assert_eq!(value.local().unwrap(), "local");
-// assert_eq!(value.remote().unwrap(), "remote");
-
-// let (key, value) = bridge.subscriptions.get_key_value("temp/#").unwrap();
-// assert_eq!(key, "temp/#");
-// assert_eq!(value.remote().unwrap(), "floor/kitchen");
-// }
-
-// }
