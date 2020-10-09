@@ -1,3 +1,42 @@
+# 1.0.10 (2020-10-09)
+## Edge Agent
+### Features
+* Add the following metrics {provisioning type, and virtualized environment} [e2ed141](https://github.com/Azure/iotedge/commit/e2ed141b569be5e4bd42c339b98ca7109ae4b940) [be747cc](https://github.com/Azure/iotedge/commit/be747cc0429f7c22df4c6d484347f62837aeb9b7)
+* Allow scientific notation and escaped quotes inside Prometheus metric label [9c3d211](https://github.com/Azure/iotedge/commit/9c3d21146d1fbf5254310b7f97dcffbbe2a51f2a)
+* Enable `MetricsHistogramMaxAge` [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [c958739](https://github.com/Azure/iotedge/commit/c958739a18a1a9a1213ce8c22e3fa7823fba2dfd)
+* Make Histogram quantiles { 0.1, 0.5, 0.9 and 0.99 } [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [64d488e](https://github.com/Azure/iotedge/commit/64d488ece9065dbfdd857ab47ba9b57054462da0)
+* Aggregate metrics before upload [c456806](https://github.com/Azure/iotedge/commit/c4568069a27d778c1b2a623604e2b79d7bf12fbe) [fadf5fa](https://github.com/Azure/iotedge/commit/fadf5fa1f6571c0898dfdb83e56887b5a287bde7) 
+* Allows Agent to run as non-root in docker, and as `ContainerUser` in Windows [3ce2fa5](https://github.com/Azure/iotedge/commit/3ce2fa5cfbb3eda1ec22165199c572afd9b4d0e4)
+
+
+### Bug Fixes
+* Expose the MaxOpenFiles setting in RocksDb to the user [f733205](https://github.com/Azure/iotedge/commit/f733205a9d88891398e3e7a65343575f97d106f9)
+* Fix edgeHub stuck in a restart loop when `version` is specified [de9873e](https://github.com/Azure/iotedge/commit/de9873eeb61e207dbdbfb9158f085fa9b2f92d43)
+* Remove potentially non-useful metrics from RQT [14b928b](https://github.com/Azure/iotedge/commit/14b928b4d46afdb28a8bf994eb698f3c07a2ee3e)
+* Fix Api version set in "IOTEDGE_APIVERSION" to current Workload [e71286f](https://github.com/Azure/iotedge/commit/e71286f0351ee2d1dbef545ee03ba4fefee3b536)
+* Returns an error message if logs file is too large for a request [9bea6e6](https://github.com/Azure/iotedge/commit/9bea6e6ffab8c4dd9a60e1040adda576c4d33719)
+
+
+## Edge Hub
+### Features
+* Enable `MetricsHistogramMaxAge` [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [c958739](https://github.com/Azure/iotedge/commit/c958739a18a1a9a1213ce8c22e3fa7823fba2dfd)
+
+### Bug Fixes
+* Expose the MaxOpenFiles setting in RocksDb to the user [f733205](https://github.com/Azure/iotedge/commit/f733205a9d88891398e3e7a65343575f97d106f9)
+* Correct `edgehub_messages_dropped_total` metric calculation [4233168](https://github.com/Azure/iotedge/commit/42331688ab9c8d60503ab9ad3f572efc812d016b)
+* Make Histogram quantiles { 0.1, 0.5, 0.9 and 0.99 } [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [64d488e](https://github.com/Azure/iotedge/commit/64d488ece9065dbfdd857ab47ba9b57054462da0)
+
+
+## iotedged
+### Features
+* Add the following metrics {provisioning type, virtualized environment} [e2ed141](https://github.com/Azure/iotedge/commit/e2ed141b569be5e4bd42c339b98ca7109ae4b940) [be747cc](https://github.com/Azure/iotedge/commit/be747cc0429f7c22df4c6d484347f62837aeb9b7)
+* Enable DPS hub name check [7fe23f6](https://github.com/Azure/iotedge/commit/7fe23f6982b25dedd0b119e47db7cb971dae83bc)
+* Enable iotedged support bundle [45e33a0](https://github.com/Azure/iotedge/commit/45e33a045d9c9f31abb3d9cccea0a8f9c10d39f5)
+
+### Bug Fixes
+* Make `always_reprovision_on_startup` setting to DPS provisioning configurable [ab2de15](https://github.com/Azure/iotedge/commit/ab2de1510ae99ae8c83bc5d8144a8dc1d4287597)
+* Fix IotEdgeSecurityDaemon.ps1 script for WSL2 [1766c1d](https://github.com/Azure/iotedge/commit/1766c1d97adbe2d3a1fd04e070e41209a6e90aec)
+
 # 1.0.10-rc2 (2020-08-26)
 ## Edge Agent
 ### Features
