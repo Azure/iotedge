@@ -25,6 +25,10 @@ pub struct WakingRocksDBStore {
     waker: Option<Waker>,
 }
 
+// TODO: When we restart while using persistence, we need to not reset the offset used to store messages.
+//       Rocksdb probably provides some mechanism for getting the highest value key.
+//       We will likely need to plumb the offset currently stored in publication store into the shared StreamWakeableState.
+//       Also, we should add an integration test for the restart scenario.
 impl WakingRocksDBStore {
     pub fn new(db: DB, column_family: String) -> Result<Self, PersistError> {
         let db = RocksDbWrapper::new(db, column_family)?;
