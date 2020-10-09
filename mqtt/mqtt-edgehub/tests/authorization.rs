@@ -60,10 +60,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
     .await;
 
     // We should be able to connect because inner authorizer allows connects
-    match device_client.next().await {
-        Some(Packet::ConnAck(c)) => assert_matches!(c.return_code, ConnectReturnCode::Accepted),
-        _ => panic!("device client did not receive ConnAck"),
-    }
+    assert_matches!(device_client.next().await, Some(Packet::ConnAck(c)) if c.return_code == ConnectReturnCode::Accepted);
 
     let s = Subscribe {
         packet_identifier: PacketIdentifier::new(1).unwrap(),
@@ -77,9 +74,10 @@ async fn publish_not_allowed_identity_not_in_cache() {
     device_client.send_subscribe(s).await; // client subscribes to topic
 
     // assert device_client couldn't subscribe because it was refused
-    if let Some(Packet::SubAck(x)) = device_client.next().await {
-        assert_matches!(x.qos.get(0).unwrap(), SubAckQos::Failure);
-    }
+    assert_matches!(
+        device_client.next().await,
+        Some(Packet::SubAck(x)) if matches!(x.qos.get(0), Some(SubAckQos::Failure))
+    );
 
     command_handler_shutdown_handle
         .shutdown()
@@ -94,8 +92,8 @@ async fn publish_not_allowed_identity_not_in_cache() {
 /// create command handler
 /// publish authorization update from edgehub
 /// connect authorized client and subscribe
-/// publish authorization update with client removed
-/// verify client has disconnected
+/// publish message from edgehub on topic that client has subscribed to
+/// verify client received a publication
 #[tokio::test]
 async fn auth_update_happy_case() {
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
