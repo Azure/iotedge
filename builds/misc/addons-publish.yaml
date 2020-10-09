@@ -1,3 +1,4 @@
+name: $(version)
 trigger: none
 pr: none
 
@@ -20,30 +21,29 @@ jobs:
       inputs:
         targetType: Inline
         script: |
-          docker login $(from.registry.address) --username $(from.registry.user) --password $(from.registry.password)
-          docker login $(to.registry.address) --username $(to.registry.user) --password $(to.registry.password)
+          docker login $(registry.address) --username $(registry.user) --password $(registry.password)
   
     - task: Bash@3
       displayName: 'Publish Api Proxy - Linux amd64'
       inputs:
         filePath: '$(System.DefaultWorkingDirectory)/repo/scripts/linux/moveImage.sh'
-        arguments: '--from $(from.registry.address)/$(from.registry.namespace)/api-proxy-module:$(version)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/api-proxy-module:$(version)-linux-amd64'
+        arguments: '--from $(registry.address)/$(from.registry.namespace)/api-proxy-module:$(version)-linux-amd64 --to $(registry.address)/$(to.registry.namespace)/api-proxy-module:$(version)-linux-amd64'
 
     - task: Bash@3
       displayName: 'Publish Api Proxy - Linux arm32v7'
       inputs:
         filePath: '$(System.DefaultWorkingDirectory)/repo/scripts/linux/moveImage.sh'
-        arguments: '--from $(from.registry.address)/$(from.registry.namespace)/api-proxy-module:$(version)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/api-proxy-module:$(version)-linux-arm32v7'
+        arguments: '--from $(registry.address)/$(from.registry.namespace)/api-proxy-module:$(version)-linux-arm32v7 --to $(registry.address)/$(to.registry.namespace)/api-proxy-module:$(version)-linux-arm32v7'
 
     - task: Bash@3
       displayName: 'Publish Api Proxy - Linux arm64v8'
       inputs:
         filePath: '$(System.DefaultWorkingDirectory)/repo/scripts/linux/moveImage.sh'
-        arguments: '--from $(from.registry.address)/$(from.registry.namespace)/api-proxy-module:$(version)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/api-proxy-module:$(version)-linux-arm64v8'
+        arguments: '--from $(registry.address)/$(from.registry.namespace)/api-proxy-module:$(version)-linux-arm64v8 --to $(registry.address)/$(to.registry.namespace)/api-proxy-module:$(version)-linux-arm64v8'
 
     - task: Bash@3
       displayName: 'Publish Api Proxy Manifest'
       inputs:
         targetType: filePath
         filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
-        arguments: '-r $(to.registry.address) -u $(to.registry.user) -p $(to.registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/repo/edge-modules/api-proxy-module/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+        arguments: '-r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/repo/edge-modules/api-proxy-module/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
