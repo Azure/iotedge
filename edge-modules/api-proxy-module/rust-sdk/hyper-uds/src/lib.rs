@@ -130,14 +130,8 @@ impl UnixStream {
 							Err(_) => break 'outer,
 						};
 
-						let result =
-							if let Some(pending_write_bytes) = pending_write_bytes {
-								std::io::Write::write_all(&mut &*inner, &*pending_write_bytes)
-								.and_then(|_| std::io::Write::flush(&mut &*inner))
-							}
-							else {
-								Ok(())
-							};
+						let result = pending_write_bytes.map_or(Ok(()), |pending_write_bytes| std::io::Write::write_all(&mut &*inner, &*pending_write_bytes)
+							.and_then(|_| std::io::Write::flush(&mut &*inner)));
 
 						match pending_write.lock() {
 							Ok(mut pending_write) => {
