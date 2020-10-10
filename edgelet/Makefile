@@ -60,9 +60,6 @@ all:
 release:
 	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release -p iotedged -p iotedge
 
-release-kube:
-	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(KUBE_CARGOFLAGS) --no-default-features --features runtime-kubernetes --release
-
 dist:
 	$(MKDIR_P) $(TARGET)
 	$(MKDIR_P) .cargo

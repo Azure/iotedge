@@ -4,10 +4,10 @@ use std::fmt::{self, Display};
 
 use edgelet_core::{IdentityOperation, ModuleOperation, RuntimeOperation};
 use edgelet_docker::ErrorKind as DockerErrorKind;
-use edgelet_iothub::Error as IoTHubError;
 use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
+use identity_client::Error as IdentityClientError;
 use log::error;
 
 use management::apis::Error as MgmtError;
@@ -169,7 +169,7 @@ impl IntoResponse for Error {
     }
 }
 
-impl IntoResponse for IoTHubError {
+impl IntoResponse for IdentityClientError {
     fn into_response(self) -> Response<Body> {
         Error::from(self.context(ErrorKind::IotHub)).into_response()
     }

@@ -16,8 +16,7 @@ use serde_derive::Serialize;
 use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::error::{Error, ErrorKind, Result};
-use crate::settings::{Provisioning, RuntimeSettings};
-use crate::GetTrustBundle;
+use crate::settings::RuntimeSettings;
 
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -484,15 +483,12 @@ pub trait ProvisioningResult {
 pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<Config = Self::Config>;
-    type ProvisioningResult: ProvisioningResult;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
     type Error: Fail;
     type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
 
     fn make_runtime(
         settings: Self::Settings,
-        provisioning_result: Self::ProvisioningResult,
-        crypto: impl GetTrustBundle + Send + 'static,
     ) -> Self::Future;
 }
 

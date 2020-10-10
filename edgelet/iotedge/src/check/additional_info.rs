@@ -39,7 +39,6 @@ impl AdditionalInfo {
 ///  Debian 9            | debian              | 9
 ///  openSUSE Tumbleweed | opensuse-tumbleweed | 20190325
 ///  Ubuntu 18.04        | ubuntu              | 18.04
-///  Windows 10          | windows             | 10.0.17763
 /// ```
 ///
 /// Ref: <https://www.freedesktop.org/software/systemd/man/os-release.html>
@@ -52,30 +51,6 @@ pub(super) struct OsInfo {
 }
 
 impl OsInfo {
-    #[cfg(windows)]
-    pub(super) fn new() -> Self {
-        let mut result = OsInfo {
-            id: Some("windows".to_owned()),
-            version_id: None,
-            arch: ARCH,
-            // Technically wrong if someone compiles and runs a x86 build on an x64 OS, but we don't provide
-            // Windows x86 builds.
-            bitness: std::mem::size_of::<usize>() * 8,
-        };
-
-        result.version_id = os_version()
-            .map(
-                |(major_version, minor_version, build_number, csd_version)| {
-                    format!(
-                        "{}.{}.{} {}",
-                        major_version, minor_version, build_number, csd_version,
-                    )
-                },
-            )
-            .ok();
-
-        result
-    }
 
     #[cfg(unix)]
     pub(super) fn new() -> Self {
@@ -140,62 +115,6 @@ fn parse_os_release_line(line: &str) -> Option<(&str, &str)> {
     };
 
     Some((key, value))
-}
-
-#[cfg(windows)]
-pub(super) fn os_version() -> Result<
-    (
-        winapi::shared::minwindef::DWORD,
-        winapi::shared::minwindef::DWORD,
-        winapi::shared::minwindef::DWORD,
-        String,
-    ),
-    failure::Error,
-> {
-    use failure::Context;
-    use winapi::shared::ntdef::NTSTATUS;
-    use winapi::shared::ntstatus::STATUS_SUCCESS;
-    use winapi::um::winnt::{LPOSVERSIONINFOW, OSVERSIONINFOW};
-
-    extern "system" {
-        // Can't use GetVersion(Ex) since it reports version N if the caller doesn't have a manifest indicating that it supports Windows N + 1.
-        // Rust binaries don't have a manifest by default, so GetVersion(Ex) always reports Windows 8.
-        pub(super) fn RtlGetVersion(lpVersionInformation: LPOSVERSIONINFOW) -> NTSTATUS;
-    }
-
-    unsafe {
-        let mut os_version_info: OSVERSIONINFOW = std::mem::zeroed();
-
-        #[allow(clippy::cast_possible_truncation)]
-        {
-            os_version_info.dwOSVersionInfoSize = std::mem::size_of_val(&os_version_info) as _;
-        }
-
-        let status = RtlGetVersion(&mut os_version_info);
-        if status != STATUS_SUCCESS {
-            return Err(Context::new(format!("RtlGetVersion failed with 0x{:08x}", status)).into());
-        }
-
-        let len = os_version_info
-            .szCSDVersion
-            .iter()
-            .position(|&c| c == 0)
-            .ok_or_else(|| {
-                Context::new("null terminator not found in szCSDVersion returned by RtlGetVersion")
-            })?;
-        let csd_version: std::ffi::OsString =
-            std::os::windows::ffi::OsStringExt::from_wide(&os_version_info.szCSDVersion[..len]);
-        let csd_version = csd_version
-            .into_string()
-            .map_err(|_| Context::new("could not parse szCSDVersion returned by RtlGetVersion: contains invalid unicode codepoints"))?;
-
-        Ok((
-            os_version_info.dwMajorVersion,
-            os_version_info.dwMinorVersion,
-            os_version_info.dwBuildNumber,
-            csd_version,
-        ))
-    }
 }
 #[derive(Clone, Debug, Default, serde_derive::Serialize)]
 struct SystemInfo {

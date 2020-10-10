@@ -19,7 +19,6 @@ mod pull_agent_from_upstream;
 mod storage_mounted_from_host;
 mod well_formed_config;
 mod well_formed_connection_string;
-mod windows_host_version;
 
 pub(crate) use self::certificates_quickstart::CertificatesQuickstart;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
@@ -42,7 +41,6 @@ pub(crate) use self::pull_agent_from_upstream::PullAgentFromUpstream;
 pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};
 pub(crate) use self::well_formed_config::WellFormedConfig;
 pub(crate) use self::well_formed_connection_string::WellFormedConnectionString;
-pub(crate) use self::windows_host_version::WindowsHostVersion;
 
 use std::ffi::OsStr;
 use std::process::Command;

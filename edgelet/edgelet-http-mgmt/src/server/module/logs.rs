@@ -111,9 +111,8 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
 mod tests {
     use chrono::prelude::*;
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
-    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::{
-        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+        TestConfig, TestModule, TestRuntime, TestSettings,
     };
     use futures::Stream;
     use management::models::ErrorResponse;
@@ -192,8 +191,6 @@ mod tests {
         );
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
         )
         .wait()
         .unwrap()
@@ -225,8 +222,6 @@ mod tests {
     fn runtime_error() {
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
         )
         .wait()
         .unwrap()
@@ -272,8 +267,6 @@ mod tests {
             TestModule::new("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
         )
         .wait()
         .unwrap()

@@ -28,6 +28,12 @@ pub enum ErrorKind {
     #[fail(display = "{}", _0)]
     EncryptionOperation(EncryptionOperation),
 
+    #[fail(display = "Failed to get identity")]
+    GetIdentity,
+    
+    #[fail(display = "Invalid certificate type")]
+    InvalidCertificateType,
+    
     #[fail(display = "Request body is malformed")]
     MalformedRequestBody,
 
