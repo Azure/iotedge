@@ -143,8 +143,11 @@ where
         future::ok(self)
             .and_then(Self::write_check)
             .and_then(Self::write_module_logs)
-            .and_then(Self::write_edgelet_log)
-            .and_then(Self::write_docker_log)
+            .and_then(|s| s.write_system_log("aziot-keyd", "aziot-keyd"))
+            .and_then(|s| s.write_system_log("aziot-certd", "aziot-certd"))
+            .and_then(|s| s.write_system_log("aziot-identityd", "aziot-identityd"))
+            .and_then(|s| s.write_system_log("iotedged", "iotedge"))
+            .and_then(|s| s.write_system_log("docker", "docker"))
             .and_then(Self::write_all_inspects)
             .and_then(Self::write_all_network_inspects)
     }
@@ -252,8 +255,8 @@ where
             })
     }
 
-    fn write_edgelet_log(mut self) -> Result<Self, Error> {
-        self.print_verbose("Getting system logs for iotedged");
+    fn write_system_log(mut self, name: &str, unit: &str) -> Result<Self, Error> {
+        self.print_verbose(format!("Getting system logs for {}", name).as_str());
         let since_time: DateTime<Utc> = DateTime::from_utc(
             NaiveDateTime::from_timestamp(self.log_options.since().into(), 0),
             Utc,
@@ -268,7 +271,7 @@ where
             let mut command = ShellCommand::new("journalctl");
             command
                 .arg("-a")
-                .args(&["-u", "iotedge"])
+                .args(&["-u", unit])
                 .args(&["-S", &since_time.format("%F %T").to_string()])
                 .arg("--no-pager");
             if let Some(until) = until_time {
@@ -278,34 +281,19 @@ where
             command.output()
         };
 
-        #[cfg(windows)]
-        let command = {
-            let until = until_time
-                .map(|until| format!(";EndTime='{}'", until))
-                .unwrap_or_else(String::new);
-            ShellCommand::new("powershell.exe")
-                .arg("-NoProfile")
-                .arg("-Command")
-                .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'{}}} |
-                                Select TimeCreated, Message |
-                                Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
-                                Format-List", since_time.to_rfc3339(), until))
-                .output()
-        };
-
         let (file_name, output) = if let Ok(result) = command {
             if result.status.success() {
-                ("iotedged.txt", result.stdout)
+                (format!("{}.txt", name), result.stdout)
             } else {
-                ("iotedged_err.txt", result.stderr)
+                (format!("{}_err.txt", name), result.stderr)
             }
         } else {
             let err_message = command.err().unwrap().to_string();
             println!(
-            "Could not find system logs for iotedge. Including error in bundle.\nError message: {}",
-            err_message
-        );
-            ("iotedged_err.txt", err_message.as_bytes().to_vec())
+                "Could not find system logs for {}. Including error in bundle.\nError message: {}",
+                name, err_message
+            );
+            (format!("{}_err.txt", name), err_message.as_bytes().to_vec())
         };
 
         self.zip_writer
@@ -316,62 +304,7 @@ where
             .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
-        self.print_verbose("Got logs for iotedged");
-        Ok(self)
-    }
-
-    fn write_docker_log(mut self) -> Result<Self, Error> {
-        self.print_verbose("Getting system logs for docker");
-        let since_time: DateTime<Utc> = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(self.log_options.since().into(), 0),
-            Utc,
-        );
-
-        #[cfg(unix)]
-        let inspect = ShellCommand::new("journalctl")
-            .arg("-a")
-            .args(&["-u", "docker"])
-            .args(&["-S", &since_time.format("%F %T").to_string()])
-            .arg("--no-pager")
-            .output();
-
-        /* from https://docs.microsoft.com/en-us/virtualization/windowscontainers/troubleshooting#finding-logs */
-        #[cfg(windows)]
-        let inspect = ShellCommand::new("powershell.exe")
-            .arg("-NoProfile")
-            .arg("-Command")
-            .arg(&format!(
-                r#"Get-EventLog -LogName Application -Source Docker -After "{}" |
-                    Sort-Object Time |
-                    Format-List"#,
-                since_time.to_rfc3339()
-            ))
-            .output();
-
-        let (file_name, output) = if let Ok(result) = inspect {
-            if result.status.success() {
-                ("docker.txt", result.stdout)
-            } else {
-                ("docker_err.txt", result.stderr)
-            }
-        } else {
-            let err_message = inspect.err().unwrap().to_string();
-            println!(
-            "Could not find system logs for docker. Including error in bundle.\nError message: {}",
-            err_message
-        );
-            ("docker_err.txt", err_message.as_bytes().to_vec())
-        };
-
-        self.zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), self.file_options)
-            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
-
-        self.zip_writer
-            .write_all(&output)
-            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
-
-        self.print_verbose("Got logs for docker");
+        self.print_verbose(format!("Got logs for {}", name).as_str());
         Ok(self)
     }
 
@@ -612,31 +545,26 @@ mod tests {
         .unwrap();
         assert_eq!("Roses are redviolets are blue", mod_log);
 
-        let iotedged_log = Regex::new(r"iotedged.*\.txt").unwrap();
-        assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
-            .unwrap()
-            .map(|file| file
+        for name in &[
+            "iotedged",
+            "aziot-certd",
+            "aziot-keyd",
+            "aziot-identityd",
+            "docker",
+        ] {
+            let logfile = Regex::new(format!(r"{}.*\.txt", name).as_str()).unwrap();
+            assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
                 .unwrap()
-                .path()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned())
-            .any(|f| iotedged_log.is_match(&f)));
-
-        let docker_log = Regex::new(r"docker.*\.txt").unwrap();
-        assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
-            .unwrap()
-            .map(|file| file
-                .unwrap()
-                .path()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned())
-            .any(|f| docker_log.is_match(&f)));
+                .map(|file| file
+                    .unwrap()
+                    .path()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_owned())
+                .any(|f| logfile.is_match(&f)), format!("Missing log file: {}*.txt", name));
+        }
 
         //expect inspect
         let module_in_inspect = Regex::new(&format!(r"{}.*\.json", module_name)).unwrap();
