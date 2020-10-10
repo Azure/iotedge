@@ -365,32 +365,11 @@ pub struct SystemInfo {
     pub architecture: String,
     /// iotedge version string
     pub version: &'static str,
-    pub provisioning: ProvisioningInfo,
     pub server_version: String,
     pub kernel_version: String,
     pub operating_system: String,
     pub cpus: i32,
     pub virtualized: &'static str,
-}
-
-#[derive(Clone, Debug, Default, Serialize)]
-pub struct ProvisioningInfo {
-    /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
-    pub r#type: String,
-    #[serde(rename = "dynamicReprovisioning")]
-    pub dynamic_reprovisioning: bool,
-    #[serde(rename = "alwaysReprovisionOnStartup")]
-    pub always_reprovision_on_startup: bool,
-}
-
-impl ProvisioningInfo {
-    pub fn new(provisioning: &Provisioning) -> Self {
-        ProvisioningInfo {
-            r#type: provisioning.provisioning_type().to_string(),
-            dynamic_reprovisioning: provisioning.dynamic_reprovisioning(),
-            always_reprovision_on_startup: provisioning.always_reprovision_on_startup(),
-        }
-    }
 }
 
 #[derive(Debug, serde_derive::Serialize)]

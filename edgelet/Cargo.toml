@@ -12,7 +12,6 @@ members = [
     "identity-client",
     # "iotedge",
     "iotedged",
-    "iotedge-diagnostics",
     "management",
     "mini-sntp",
     "systemd",

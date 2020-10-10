@@ -10,24 +10,6 @@ use url::Url;
 
 use crate::module::ModuleSpec;
 
-impl std::fmt::Display for ProvisioningType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let result = match self {
-            ProvisioningType::Manual(manual) => match manual.authentication_method() {
-                ManualAuthMethod::DeviceConnectionString(_) => "manual.device_connection_string",
-                ManualAuthMethod::X509(_) => "manual.x509",
-            },
-            ProvisioningType::Dps(dps) => match dps.attestation() {
-                AttestationMethod::Tpm(_) => "dps.tpm",
-                AttestationMethod::SymmetricKey(_) => "dps.symmetric_key",
-                AttestationMethod::X509(_) => "dps.x509",
-            },
-            ProvisioningType::External(_) => "external",
-        };
-        write!(f, "{}", result)
-    }
-}
-
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Connect {
     workload_uri: Url,

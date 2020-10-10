@@ -58,7 +58,7 @@ use edgelet_core::crypto::{
 use edgelet_core::{
     Authenticator, Certificate, CertificateIssuer, CertificateProperties,
     CertificateType, MakeModuleRuntime, Module, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
+    ModuleRuntimeErrorReason, ModuleSpec,
     RuntimeSettings, 
     WorkloadConfig, 
 };

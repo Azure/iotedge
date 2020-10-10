@@ -21,7 +21,7 @@ use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig
 use edgelet_core::{
     AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
+    RegistryOperation, RuntimeOperation, RuntimeSettings,
     SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
@@ -64,7 +64,6 @@ pub struct DockerModuleRuntime {
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
-    provisioning_info: ProvisioningInfo,
 }
 
 impl DockerModuleRuntime {
@@ -315,7 +314,6 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             notary_registries,
                             notary_lock,
-                            provisioning_info: ProvisioningInfo::new(settings.provisioning()),
                         }
                     });
                 Ok(future::Either::A(fut))
@@ -702,8 +700,6 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
-        let provisioning = self.provisioning_info.clone();
-
         Box::new(
             self.client
                 .system_api()
@@ -720,7 +716,6 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
                             version: edgelet_core::version_with_source_version(),
-                            provisioning,
                             cpus: system_info.NCPU().unwrap_or_default(),
                             virtualized: match edgelet_core::is_virtualized_env() {
                                 Ok(Some(true)) => "yes",
