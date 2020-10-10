@@ -303,13 +303,15 @@ where
     fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture {
         let module_id = id.module_id().to_string();
 
-        let result = id.generation_id().map_or(
-            Either::B(future::err(Error::from(
-                ErrorKind::UpdateIdentityWithReason(
-                    module_id.clone(),
-                    IdentityOperationReason::MissingGenerationId,
-                ),
-            ))),
+        let result = id.generation_id().map_or_else(
+            || {
+                Either::B(future::err(Error::from(
+                    ErrorKind::UpdateIdentityWithReason(
+                        id.module_id().to_string(),
+                        IdentityOperationReason::MissingGenerationId,
+                    ),
+                )))
+            },
             |generation_id| match self.get_key_pair(&module_id, generation_id) {
                 Ok((primary_key, secondary_key)) => {
                     let auth = AuthMechanism::default()
