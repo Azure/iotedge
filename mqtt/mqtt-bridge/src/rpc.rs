@@ -21,14 +21,14 @@ use mqtt3::{
     SubscriptionUpdateEvent,
 };
 
-use crate::client::EventHandler;
+use crate::client::{EventHandler, Handled};
 
-/// MQTT client event handler to react on RPC commands that EdgeHub sends
+/// MQTT client event handler to react on RPC commands that `EdgeHub` sends
 /// to execute.
 ///
 /// The main purpose of this handler is to establish a communication channel
-/// between EdgeHub and the upstream bridge.
-/// EdgeHub will use low level commands SUB, UNSUB, PUB. In turn the bridge
+/// between `EdgeHub` and the upstream bridge.
+/// `EdgeHub` will use low level commands SUB, UNSUB, PUB. In turn the bridge
 /// sends corresponding MQTT packet to upstream broker and waits for an ack
 /// from the upstream. After ack is received it sends a special publish to
 /// downstream broker.
@@ -145,27 +145,30 @@ impl RpcHandler {
     async fn handle_subcription_update(
         &mut self,
         subscription: &SubscriptionUpdateEvent,
-    ) -> Result<(), RpcError> {
+    ) -> Result<bool, RpcError> {
         match subscription {
             SubscriptionUpdateEvent::Subscribe(sub) => {
                 if let Some(command_id) = self.subscriptions.remove(&sub.topic_filter) {
                     self.publish_ack(command_id).await?;
+                    return Ok(true);
                 }
             }
             SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
                 if let Some(command_id) = self.subscriptions.remove(topic_filter) {
                     let reason = format!("subscription rejected by server {}", topic_filter);
                     self.publish_nack(command_id, reason).await?;
+                    return Ok(true);
                 }
             }
             SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
                 if let Some(command_id) = self.subscriptions.remove(topic_filter) {
                     self.publish_ack(command_id).await?;
+                    return Ok(true);
                 }
             }
         }
 
-        Ok(())
+        Ok(false)
     }
 
     async fn publish_nack(&mut self, command_id: String, reason: String) -> Result<(), RpcError> {
@@ -205,7 +208,7 @@ impl RpcHandler {
 impl EventHandler for RpcHandler {
     type Error = RpcError;
 
-    async fn handle(&mut self, event: &Event) -> Result<(), Self::Error> {
+    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
         match event {
             Event::Publication(publication) => {
                 if let Some(command_id) = capture_command_id(&publication.topic_name) {
@@ -213,19 +216,30 @@ impl EventHandler for RpcHandler {
                     match bson::from_document(doc)? {
                         VersionedRpcCommand::V1(command) => {
                             self.handle_command(command_id, command).await?;
+
+                            return Ok(Handled::Fully);
                         }
                     }
                 }
             }
             Event::SubscriptionUpdates(subscriptions) => {
+                let mut handled = 0;
                 for subscription in subscriptions {
-                    self.handle_subcription_update(subscription).await?;
+                    if self.handle_subcription_update(subscription).await? {
+                        handled += 1;
+                    }
+                }
+
+                if handled == subscriptions.len() {
+                    return Ok(Handled::Fully);
+                } else {
+                    return Ok(Handled::Partially);
                 }
             }
             _ => {}
         }
 
-        Ok(())
+        Ok(Handled::Skipped)
     }
 }
 
@@ -371,7 +385,7 @@ mod tests {
         // send a command to subscribe to topic /foo
         let event = command("1", "sub", "/foo", None);
         let res = handler.handle(&event).await;
-        assert_matches!(res, Ok(()));
+        assert_matches!(res, Ok(Handled::Fully));
 
         // emulate server response
         let event =
@@ -380,7 +394,7 @@ mod tests {
                 qos: QoS::AtLeastOnce,
             })]);
         let res = handler.handle(&event).await;
-        assert_matches!(res, Ok(()));
+        assert_matches!(res, Ok(Handled::Fully));
     }
 
     #[tokio::test]
@@ -405,14 +419,14 @@ mod tests {
         // send a command to subscribe to topic /foo
         let event = command("1", "sub", "/foo", None);
         let res = handler.handle(&event).await;
-        assert_matches!(res, Ok(()));
+        assert_matches!(res, Ok(Handled::Fully));
 
         // emulate server response
         let event = Event::SubscriptionUpdates(vec![SubscriptionUpdateEvent::RejectedByServer(
             "/foo".into(),
         )]);
         let res = handler.handle(&event).await;
-        assert_matches!(res, Ok(()));
+        assert_matches!(res, Ok(Handled::Fully));
     }
 
     #[tokio::test]
@@ -437,13 +451,13 @@ mod tests {
         // send a command to unsubscribe from topic /foo
         let event = command("1", "unsub", "/foo", None);
         let res = handler.handle(&event).await;
-        assert_matches!(res, Ok(()));
+        assert_matches!(res, Ok(Handled::Fully));
 
         // emulate server response
         let event =
             Event::SubscriptionUpdates(vec![SubscriptionUpdateEvent::Unsubscribe("/foo".into())]);
         let res = handler.handle(&event).await;
-        assert_matches!(res, Ok(()));
+        assert_matches!(res, Ok(Handled::Fully));
     }
 
     #[tokio::test]
@@ -471,7 +485,7 @@ mod tests {
         let event = command("1", "pub", "/foo", Some(b"hello".to_vec()));
         let res = handler.handle(&event).await;
 
-        assert_matches!(res, Ok(()));
+        assert_matches!(res, Ok(Handled::Fully));
     }
 
     fn command(id: &str, cmd: &str, topic: &str, payload: Option<Vec<u8>>) -> Event {

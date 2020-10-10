@@ -385,7 +385,14 @@ impl<H: EventHandler> MqttClient<H> {
 pub trait EventHandler {
     type Error: Display;
 
-    async fn handle(&mut self, event: &Event) -> Result<(), Self::Error>;
+    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error>;
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Handled {
+    Fully,
+    Partially,
+    Skipped,
 }
 
 #[derive(Debug, thiserror::Error)]
