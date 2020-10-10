@@ -4,13 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Json;
-    using Newtonsoft.Json;
 
     /// <summary>
     /// Domain object that represents MQTT Broker configuration for Edge Hub Module.
     ///
-    /// This object is being eventually constructed from the EdgeHub twin's desired properties.
+    /// This object is being constructed from the EdgeHub twin's desired properties.
     /// See <see cref="BrokerProperties"/> for DTO.
     /// </summary>
     public class BrokerConfig : IEquatable<BrokerConfig>

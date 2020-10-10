@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     /// <summary>
     /// Domain object that represents EdgeHub configuration.
     ///
-    /// This object is being eventually constructed from the EdgeHub twin's desired properties.
+    /// This object is being constructed from the EdgeHub twin's desired properties.
     /// See <see cref="EdgeHubDesiredProperties"/> for DTO.
     /// </summary>
     public class EdgeHubConfig : IEquatable<EdgeHubConfig>

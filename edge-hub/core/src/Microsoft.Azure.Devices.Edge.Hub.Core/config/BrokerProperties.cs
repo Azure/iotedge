@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Newtonsoft.Json;
 
     /// <summary>
-    /// DTO that is used to deserialize EdgeHub Desired properties of the twin
+    /// DTO that is used to deserialize MQTT Broker Config from EdgeHub twin
     /// into <see cref="BrokerConfig" />.
     /// </summary>
     public class BrokerProperties
