@@ -9,22 +9,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     public class TryTests
     {
         [Fact]
-        public void TryWithNullValueThrowsTest()
-        {
-            // Act/Assert
-            Assert.Throws<ArgumentNullException>(() => Try.Success<string>(null));
-            Assert.Throws<ArgumentNullException>(() => new Try<string>((string)null));
-        }
-
-        [Fact]
         public void OkWithValueTest()
         {
             // Arrange
             string value = "Foo";
-            Try<string> tryVal = Try.Success(value);
+            var tryVal = Try.Success(value);
 
             // Act
-            Option<string> valueOption = tryVal.Ok();
+            var valueOption = tryVal.Ok();
 
             // Assert
             Assert.True(valueOption.HasValue);
@@ -36,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             // Arrange
             Exception ex = new InvalidOperationException();
-            Try<string> tryVal = Try<string>.Failure(ex);
+            var tryVal = Try.Failure<string>(ex);
 
             // Act
             Option<string> valueOption = tryVal.Ok();

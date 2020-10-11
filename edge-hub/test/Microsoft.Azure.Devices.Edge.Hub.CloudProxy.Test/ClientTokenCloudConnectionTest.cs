@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxy.HasValue);
             Assert.True(cloudProxy.OrDefault().IsActive);
 
-            var expiredTokenCredentials = GetMockClientCredentialsWithToken(expired:true);
+            var expiredTokenCredentials = GetMockClientCredentialsWithToken(expired: true);
             await Assert.ThrowsAsync<ArgumentException>(() => cloudConnection.UpdateTokenAsync(expiredTokenCredentials));
             Assert.Equal(initialTokenCredentials.Token, await tokenProvider.GetTokenAsync(Option.None<TimeSpan>()));
             Assert.True(cloudProxy.HasValue);

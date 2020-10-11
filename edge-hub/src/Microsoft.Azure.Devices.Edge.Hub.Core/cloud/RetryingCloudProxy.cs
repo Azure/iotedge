@@ -13,12 +13,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
     {
         const int RetryCount = 2;
         readonly AsyncLock cloudProxyLock = new AsyncLock();
-        readonly Func<Task<Try<ICloudProxy>>> cloudProxyGetter;
+        readonly Func<Task<ITry<ICloudProxy>>> cloudProxyGetter;
         readonly string id;
 
         ICloudProxy innerCloudProxy;
 
-        public RetryingCloudProxy(string id, Func<Task<Try<ICloudProxy>>> cloudProxyGetter, ICloudProxy cloudProxyImplementation)
+        public RetryingCloudProxy(string id, Func<Task<ITry<ICloudProxy>>> cloudProxyGetter, ICloudProxy cloudProxyImplementation)
         {
             this.id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
             this.cloudProxyGetter = Preconditions.CheckNotNull(cloudProxyGetter, nameof(cloudProxyGetter));
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                     if (!this.innerCloudProxy.IsActive)
                     {
                         Events.GettingNewCloudProxy(this.id);
-                        Try<ICloudProxy> cloudProxyTry = await this.cloudProxyGetter();
+                        ITry<ICloudProxy> cloudProxyTry = await this.cloudProxyGetter();
                         if (!cloudProxyTry.Success)
                         {
                             throw new EdgeHubIOException("Unable to create IoTHub connection", cloudProxyTry.Exception);

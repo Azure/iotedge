@@ -520,7 +520,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             public static async Task<TestDevice> Create(string deviceId, IEdgeHub edgeHub, IConnectionManager connectionManager)
             {
                 IClientCredentials deviceCredentials = SetupDeviceIdentity(deviceId);
-                Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
+                ITry<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
                 Assert.True(cloudProxy.Success);
                 var deviceProxy = Mock.Of<IDeviceProxy>();
                 var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
@@ -562,7 +562,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             public static async Task<TestModule> Create(string deviceId, string moduleId, string outputEndpointId, List<string> inputEndpointIds, IEdgeHub edgeHub, IConnectionManager connectionManager)
             {
                 IClientCredentials moduleCredentials = SetupModuleCredentials(moduleId, deviceId);
-                Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(moduleCredentials);
+                ITry<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(moduleCredentials);
                 Assert.True(cloudProxy.Success);
                 var deviceListener = new DeviceMessageHandler(moduleCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
 

@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == Mock.Of<IIdentity>());
 
-            Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(clientCredentials)).ReturnsAsync(Try<ICloudProxy>.Failure(new ArgumentException()));
+            Mock.Get(connectionManager).Setup(cm => cm.CreateCloudConnectionAsync(clientCredentials)).ReturnsAsync(Try.Failure<ICloudProxy>(new ArgumentException()));
             Mock.Get(connectionManager).Setup(cm => cm.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>())).Returns(Task.CompletedTask);
             Mock.Get(cloudProxy).Setup(cp => cp.IsActive).Returns(true);
 

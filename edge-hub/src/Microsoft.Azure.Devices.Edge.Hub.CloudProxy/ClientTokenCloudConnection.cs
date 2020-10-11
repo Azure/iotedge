@@ -17,9 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     /// </summary>
     internal class ClientTokenCloudConnection : CloudConnection, IClientTokenCloudConnection
     {
-        static readonly TimeSpan TokenExpiryBuffer = TimeSpan.FromMinutes(5); // Token is usable if it does not expire in 5 mins
-        static readonly TimeSpan PollBuffer = TimeSpan.FromSeconds(20);
-
         readonly ClientTokenBasedTokenProvider tokenProvider;
         bool callbacksEnabled = true;
 
@@ -90,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                Events.Error($"Create failed for device {tokenCredentials.Identity} with token {tokenCredentials.Token} error: {ex}");
+                Events.Error($"Create ClientTokenCloudConnection failed for device {tokenCredentials.Identity} with token {tokenCredentials.Token} error: {ex}");
                 throw;
             }
         }
@@ -155,7 +152,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
                 else
                 {
-                    Events.Error($"Invalid token {tokenCredentials.Token} for device {tokenCredentials.Identity}.");
                     throw new ArgumentException("Invalid token.");
                 }
             }
@@ -170,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     }
                     else
                     {
-                        Events.Error($"UpdateToken failed with Invalid token {tokenCredentials.Token} for device {tokenCredentials.Identity}.");
+                        Events.Error($"UpdateToken failed for device {tokenCredentials.Identity}.");
                         throw new ArgumentException("Invalid token.");
                     }
                 }
@@ -188,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     return Task.FromResult(this.tokenCredentials.Token);
                 }
 
-                Events.Error($"Invalid token {this.tokenCredentials.Token} for for device {this.tokenCredentials.Identity}.");
+                Events.Error($"GetTokenAsync failed for device {this.tokenCredentials.Identity}.");
                 throw new AuthenticationException($"Unabled to get valid token for device {this.tokenCredentials.Identity}.");
             }
 
@@ -197,7 +193,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 try
                 {
-                    return TokenHelper.GetTokenExpiryTimeRemaining(tokenCredentials.Identity.IotHubHostName, tokenCredentials.Token) > TokenExpiryBuffer;
+                    if (TokenHelper.GetTokenExpiryTimeRemaining(tokenCredentials.Identity.IotHubHostName, tokenCredentials.Token) > TimeSpan.Zero)
+                    {
+                        return true;
+                    }
+
+                    Events.Error($"Expiring token {tokenCredentials.Token} for device {tokenCredentials.Identity}.");
+                    return false;
                 }
                 catch (Exception e)
                 {

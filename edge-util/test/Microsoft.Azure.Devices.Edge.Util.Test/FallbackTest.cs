@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         public async Task FallbackInvokesPrimaryNotSecondary()
         {
             bool secondary = false;
-            Try<int> result = await Fallback.ExecuteAsync(
+            ITry<int> result = await Fallback.ExecuteAsync(
                 () => Task.FromResult(1),
                 () =>
                 {
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public async Task FallbackInvokesSecondaryIfPrimaryThrows()
         {
-            Try<int> result = await Fallback.ExecuteAsync(
+            ITry<int> result = await Fallback.ExecuteAsync(
                 () => throw new Exception(),
                 () => Task.FromResult(2));
             Assert.True(result.Success);
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             var exception1 = new Exception();
             var exception2 = new SecondaryException();
-            Try<int> result = await Fallback.ExecuteAsync<int>(
+            ITry<int> result = await Fallback.ExecuteAsync<int>(
                 () => throw exception1,
                 () => throw exception2);
             Assert.False(result.Success);
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 });
             Assert.Equal(3, touched);
 
-            Try<bool> result = await Fallback.ExecuteAsync(
+            ITry<bool> result = await Fallback.ExecuteAsync(
                 () => throw new Exception(),
                 () => throw new Exception(),
                 () => throw new Exception(),
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public async Task FallbackAcceptsMultipleOptions()
         {
-            Try<int> result = await Fallback.ExecuteAsync(
+            ITry<int> result = await Fallback.ExecuteAsync(
                 () => throw new Exception(),
                 () => throw new Exception(),
                 () => throw new Exception(),
@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             var exception1 = new InvalidOperationException();
             var exception2 = new ArgumentException();
             var exception3 = new IOException();
-            Try<bool> result = await Fallback.ExecuteAsync(
+            ITry<bool> result = await Fallback.ExecuteAsync(
                 () => throw exception1,
                 () => throw exception2,
                 () => throw exception3);

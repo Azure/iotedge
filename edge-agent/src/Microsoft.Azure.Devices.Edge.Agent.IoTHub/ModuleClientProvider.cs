@@ -175,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                         // so we'll do it explicitly until we can get the SDK sorted out.
                         UpstreamProtocol protocol;
-                        Try<(ISdkModuleClient, UpstreamProtocol)> result = await Fallback.ExecuteAsync(
+                        ITry<(ISdkModuleClient, UpstreamProtocol)> result = await Fallback.ExecuteAsync(
                             async () =>
                             {
                                 protocol = UpstreamProtocol.Amqp;

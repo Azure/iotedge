@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
             channel.Setup(x => x.Handle(It.IsAny<IProtocolGatewayMessage>()));
 
-            var deviceProxy = new DeviceProxy(channel.Object, Mock.Of<IIdentity>(), converter.Object, ByteBufferConverter);
+            var deviceProxy = new Mqtt.DeviceProxy(channel.Object, Mock.Of<IIdentity>(), converter.Object, ByteBufferConverter);
             deviceProxy.OnDesiredPropertyUpdates(message.CoreMessage);
 
             converter.Verify(x => x.FromMessage(It.Is<IMessage>(actualCore => message.CoreMessage.Equals(actualCore))));

@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             var deviceIdentity = Mock.Of<IDeviceIdentity>(d => d.Id == "d1" && d.DeviceId == "d1");
             IClientCredentials credentials = new TokenCredentials(deviceIdentity, Guid.NewGuid().ToString(), string.Empty, Option.None<string>(), false);
-            var connectionManager = Mock.Of<IConnectionManager>(c => c.CreateCloudConnectionAsync(credentials) == Task.FromResult(Try<ICloudProxy>.Failure(new TimeoutException())));
+            var connectionManager = Mock.Of<IConnectionManager>(c => c.CreateCloudConnectionAsync(credentials) == Task.FromResult(Try.Failure<ICloudProxy>(new TimeoutException())));
             IAuthenticator cloudAuthenticator = new CloudTokenAuthenticator(connectionManager, IotHubHostName);
 
             // Act

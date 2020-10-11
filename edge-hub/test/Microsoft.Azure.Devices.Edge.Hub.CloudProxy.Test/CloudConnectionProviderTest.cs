@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), false);
 
             // Act
-            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(tokenCreds, null);
+            ITry<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(tokenCreds, null);
 
             // Assert
             Assert.True(cloudProxy.Success);
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), false);
 
             // Act
-            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(tokenCreds, null);
+            ITry<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(tokenCreds, null);
 
             // Assert
             Assert.False(cloudProxy.Success);
@@ -231,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
-            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
+            ITry<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
 
             // Assert
             Assert.True(cloudProxy.Success);
@@ -274,7 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
-            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
+            ITry<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
 
             // Assert
             Assert.True(cloudProxy.Success);
@@ -317,7 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
-            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
+            ITry<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
 
             // Assert
             Assert.True(cloudProxy.Success);

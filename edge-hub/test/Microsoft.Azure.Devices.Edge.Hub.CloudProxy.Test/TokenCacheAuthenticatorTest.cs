@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
-                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try<ICloudProxy>.Failure(new UnauthorizedException("Not authorized"))));
+                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try.Failure<ICloudProxy>(new UnauthorizedException("Not authorized"))));
 
             string iothubHostName = "iothub1.azure.net";
             string callerProductInfo = "productInfo";
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
-                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try<ICloudProxy>.Failure(new UnauthorizedException("Not authorized"))));
+                    c.CreateCloudConnectionAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(Try.Failure<ICloudProxy>(new UnauthorizedException("Not authorized"))));
 
             string iothubHostName = "iothub1.azure.net";
             string callerProductInfo = "productInfo";

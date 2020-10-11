@@ -334,7 +334,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolGatewayMessage msg = null;
 
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var dp = new DeviceProxy(Channel.Object, MockIdentity, messageConverter, ByteBufferConverter);
+            var dp = new Mqtt.DeviceProxy(Channel.Object, MockIdentity, messageConverter, ByteBufferConverter);
 
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>())).Callback<string, FeedbackStatus>(
@@ -367,7 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolGatewayMessage msg = null;
 
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var dp = new DeviceProxy(Channel.Object, MockIdentity, messageConverter, ByteBufferConverter);
+            var dp = new Mqtt.DeviceProxy(Channel.Object, MockIdentity, messageConverter, ByteBufferConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>())).Callback<string, FeedbackStatus>(
                 (mid, status) => { Assert.Equal(FeedbackStatus.Reject, status); });
@@ -398,7 +398,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolGatewayMessage msg = null;
 
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var dp = new DeviceProxy(Channel.Object, MockIdentity, messageConverter, ByteBufferConverter);
+            var dp = new Mqtt.DeviceProxy(Channel.Object, MockIdentity, messageConverter, ByteBufferConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.SendFeedbackMessageAsync(It.IsAny<string>(), It.IsAny<FeedbackStatus>())).Callback<string, FeedbackStatus>(
                 (mid, status) => { Assert.Equal(FeedbackStatus.Abandon, status); });
@@ -429,7 +429,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IProtocolGatewayMessage msg = null;
 
             IMessageConverter<IProtocolGatewayMessage> messageConverter = ProtocolGatewayMessageConverter.Value;
-            var dp = new DeviceProxy(Channel.Object, MockIdentity, messageConverter, ByteBufferConverter);
+            var dp = new Mqtt.DeviceProxy(Channel.Object, MockIdentity, messageConverter, ByteBufferConverter);
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(d => d.CloseAsync()).Callback(
                 () => { });

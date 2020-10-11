@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
                 return false;
             }
 
-            Try<ICloudProxy> cloudProxyTry = await this.connectionManager.CreateCloudConnectionAsync(clientCredentials);
+            ITry<ICloudProxy> cloudProxyTry = await this.connectionManager.CreateCloudConnectionAsync(clientCredentials);
             if (cloudProxyTry.Success)
             {
                 Events.AuthenticatedWithIotHub(clientCredentials.Identity);

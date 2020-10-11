@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task<Try<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        public Task<ITry<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
             Preconditions.CheckNotNull(clientCredentials, nameof(clientCredentials));
             return Option.Some(clientCredentials)
@@ -116,9 +116,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .GetOrElse(() => this.Connect(clientCredentials.Identity, connectionStatusChangedHandler));
         }
 
-        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.ConnectAsync(identity, connectionStatusChangedHandler, Option.None<IClientCredentials>());
+        public Task<ITry<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.ConnectAsync(identity, connectionStatusChangedHandler, Option.None<IClientCredentials>());
 
-        async Task<Try<ICloudConnection>> ConnectAsync(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, Option<IClientCredentials> initialCredentials)
+        async Task<ITry<ICloudConnection>> ConnectAsync(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, Option<IClientCredentials> initialCredentials)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             try
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorCreatingCloudConnection(identity, ex);
-                return Try<ICloudConnection>.Failure(ex);
+                return Try.Failure<ICloudConnection>(ex);
             }
         }
 

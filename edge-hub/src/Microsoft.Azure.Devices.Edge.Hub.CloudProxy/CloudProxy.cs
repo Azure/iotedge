@@ -101,7 +101,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception ex)
             {
                 Events.ErrorOpening(this.clientId, ex);
-                await this.HandleException(ex);
                 throw;
             }
         }
@@ -491,7 +490,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ErrorUpdatingReportedProperties,
                 ErrorSendingFeedbackMessageAsync,
                 ErrorGettingTwin,
-                HandleNre
+                HandleNre,
+                Error
             }
 
             public static void Closed(CloudProxy cloudProxy)

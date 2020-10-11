@@ -8,21 +8,21 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class Fallback
     {
-        public static Task<Try<bool>> ExecuteAsync(Func<Task> primary, Func<Task> secondary)
+        public static Task<ITry<bool>> ExecuteAsync(Func<Task> primary, Func<Task> secondary)
         {
             Preconditions.CheckNotNull(primary, nameof(primary));
             Preconditions.CheckNotNull(secondary, nameof(secondary));
             return ExecuteAsync(new[] { primary, secondary });
         }
 
-        public static Task<Try<T>> ExecuteAsync<T>(Func<Task<T>> primary, Func<Task<T>> secondary)
+        public static Task<ITry<T>> ExecuteAsync<T>(Func<Task<T>> primary, Func<Task<T>> secondary)
         {
             Preconditions.CheckNotNull(primary, nameof(primary));
             Preconditions.CheckNotNull(secondary, nameof(secondary));
             return ExecuteAsync(new[] { primary, secondary });
         }
 
-        public static Task<Try<bool>> ExecuteAsync(params Func<Task>[] options)
+        public static Task<ITry<bool>> ExecuteAsync(params Func<Task>[] options)
         {
             Preconditions.CheckNotNull(options, nameof(options));
             return ExecuteAsync(
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     })).ToArray());
         }
 
-        public static async Task<Try<T>> ExecuteAsync<T>(params Func<Task<T>>[] options)
+        public static async Task<ITry<T>> ExecuteAsync<T>(params Func<Task<T>>[] options)
         {
             Preconditions.CheckNotNull(options, nameof(options));
 
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
             }
 
-            return Try<T>.Failure(new AggregateException(exceptions));
+            return Try.Failure<T>(new AggregateException(exceptions));
         }
     }
 }
