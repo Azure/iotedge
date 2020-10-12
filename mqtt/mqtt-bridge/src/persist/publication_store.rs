@@ -11,7 +11,7 @@ use crate::persist::{
 };
 
 /// Persistence implementation used for the bridge
-pub struct PublicationStore<S: StreamWakeableState> {
+pub struct PublicationStore<S> {
     state: Arc<Mutex<S>>,
     offset: u32,
     loader: Arc<Mutex<MessageLoader<S>>>,
@@ -23,7 +23,10 @@ impl PublicationStore<WakingMemoryStore> {
     }
 }
 
-impl<S: StreamWakeableState> PublicationStore<S> {
+impl<S> PublicationStore<S>
+where
+    S: StreamWakeableState,
+{
     pub fn new(state: S, batch_size: usize) -> Self {
         let state = Arc::new(Mutex::new(state));
         let loader = MessageLoader::new(Arc::clone(&state), batch_size);

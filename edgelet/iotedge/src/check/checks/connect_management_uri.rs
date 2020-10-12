@@ -47,11 +47,10 @@ impl ConnectManagementUri {
             .diagnostics_image_name
             .starts_with("/azureiotedge-diagnostics:")
         {
-            if let Some(upstream_hostname) = settings.parent_hostname() {
-                upstream_hostname.to_string() + &check.diagnostics_image_name
-            } else {
-                "mcr.microsoft.com".to_string() + &check.diagnostics_image_name
-            }
+            settings.parent_hostname().map_or_else(
+                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
+                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+            )
         } else {
             return Ok(CheckResult::Skipped);
         };
