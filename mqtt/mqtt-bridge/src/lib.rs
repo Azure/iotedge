@@ -12,9 +12,10 @@
 )]
 
 mod bridge;
-mod client;
+pub mod client;
 pub mod controller;
 mod persist;
+mod rpc;
 mod settings;
 mod token_source;
 
