@@ -5,10 +5,12 @@ mod connect;
 mod ping;
 
 mod publish;
-pub use publish::{PublishError, PublishHandle};
+pub use publish::{MockPublishHandle, PublishError, PublishHandle};
 
 mod subscriptions;
-pub use subscriptions::{UpdateSubscriptionError, UpdateSubscriptionHandle};
+pub use subscriptions::{
+    MockUpdateSubscriptionHandle, UpdateSubscriptionError, UpdateSubscriptionHandle,
+};
 
 /// An MQTT v3.1.1 client.
 ///

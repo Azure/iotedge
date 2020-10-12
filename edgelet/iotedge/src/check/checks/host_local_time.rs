@@ -38,6 +38,7 @@ impl HostLocalTime {
             return Ok(CheckResult::Skipped);
         };
 
+        #[allow(clippy::option_if_let_else)]
         if let Some(parent_hostname) = settings.parent_hostname() {
             self.check_vs_parent_time(runtime, parent_hostname)
         } else {
