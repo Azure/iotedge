@@ -1,11 +1,16 @@
 #![allow(dead_code)] // TODO remove when ready
 
-use std::{collections::HashMap, convert::TryFrom, convert::TryInto};
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    convert::TryInto,
+    fmt::{Display, Formatter, Result as FmtResult},
+};
 
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, Event};
 use mqtt_broker::TopicFilter;
-use tokio::sync::mpsc::error::SendError;
+use tokio::sync::mpsc::error::TrySendError;
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -19,7 +24,7 @@ use crate::{
 const BATCH_SIZE: usize = 10;
 
 #[derive(Debug, PartialEq)]
-pub enum BridgeMessage {
+pub enum PumpMessage {
     ConnectivityUpdate(ConnectivityState),
     ConfigurationUpdate(ConnectionSettings),
 }
@@ -28,6 +33,15 @@ pub enum BridgeMessage {
 pub enum ConnectivityState {
     Connected,
     Disconnected,
+}
+
+impl Display for ConnectivityState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match *self {
+            ConnectivityState::Connected => f.write_str("Connected"),
+            ConnectivityState::Disconnected => f.write_str("Disconnected"),
+        }
+    }
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
@@ -295,8 +309,8 @@ pub enum BridgeError {
     #[error("failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
 
-    #[error("Failed to get send bridge message.")]
-    SenderError(#[from] SendError<BridgeMessage>),
+    #[error("Failed to get send pump message.")]
+    SenderError(#[from] TrySendError<PumpMessage>),
 
     #[error("failed to execute RPC command")]
     Rpc(#[from] RpcError),

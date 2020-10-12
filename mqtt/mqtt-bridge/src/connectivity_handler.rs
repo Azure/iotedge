@@ -1,35 +1,37 @@
 #![allow(dead_code)] // TODO remove when ready
 
+use async_trait::async_trait;
+
 use mqtt3::Event;
-use tokio::sync::mpsc::UnboundedSender;
-use tracing::{debug, info, warn};
+use tokio::sync::mpsc::Sender;
+use tracing::{debug, info};
 
-use crate::bridge::{BridgeError, BridgeMessage, ConnectivityState};
-
-impl ToString for ConnectivityState {
-    fn to_string(&self) -> String {
-        match self {
-            ConnectivityState::Connected => "Connected".to_string(),
-            ConnectivityState::Disconnected => "Disconnected".to_string(),
-        }
-    }
-}
+use crate::{
+    bridge::{BridgeError, ConnectivityState, PumpMessage},
+    client::EventHandler,
+    client::Handled,
+};
 
 /// Handles connection and disconnection events and sends a notification when status changes
 pub struct ConnectivityHandler {
     state: ConnectivityState,
-    sender: UnboundedSender<BridgeMessage>,
+    sender: Sender<PumpMessage>,
 }
 
 impl ConnectivityHandler {
-    pub fn new(sender: UnboundedSender<BridgeMessage>) -> Self {
+    pub fn new(sender: Sender<PumpMessage>) -> Self {
         ConnectivityHandler {
             state: ConnectivityState::Disconnected,
             sender,
         }
     }
+}
 
-    pub async fn handle_connectivity_event(&mut self, event: Event) -> Result<(), BridgeError> {
+#[async_trait]
+impl EventHandler for ConnectivityHandler {
+    type Error = BridgeError;
+
+    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
         match event {
             Event::Disconnected(reason) => {
                 debug!("Received disconnected state {}", reason);
@@ -37,7 +39,7 @@ impl ConnectivityHandler {
                     ConnectivityState::Connected => {
                         self.state = ConnectivityState::Disconnected;
                         self.sender
-                            .send(BridgeMessage::ConnectivityUpdate(
+                            .try_send(PumpMessage::ConnectivityUpdate(
                                 ConnectivityState::Disconnected,
                             ))
                             .map_err(BridgeError::SenderError)?;
@@ -47,128 +49,159 @@ impl ConnectivityHandler {
                         debug!("Already disconnected");
                     }
                 }
+
+                return Ok(Handled::Fully);
             }
-            Event::NewConnection { reset_session: _ } => match self.state {
-                ConnectivityState::Connected => {
-                    debug!("Already connected");
+
+            Event::NewConnection { reset_session: _ } => {
+                match self.state {
+                    ConnectivityState::Connected => {
+                        debug!("Already connected");
+                    }
+                    ConnectivityState::Disconnected => {
+                        self.state = ConnectivityState::Connected;
+                        self.sender
+                            .try_send(PumpMessage::ConnectivityUpdate(
+                                ConnectivityState::Connected,
+                            ))
+                            .map_err(BridgeError::SenderError)?;
+                        info!("Sent connected state")
+                    }
                 }
-                ConnectivityState::Disconnected => {
-                    self.state = ConnectivityState::Connected;
-                    self.sender
-                        .send(BridgeMessage::ConnectivityUpdate(
-                            ConnectivityState::Connected,
-                        ))
-                        .map_err(BridgeError::SenderError)?;
-                    info!("Sent connected state")
-                }
-            },
-            _ => warn!("Can only handle connectivity event"),
+                return Ok(Handled::Fully);
+            }
+
+            _ => {}
         }
 
-        Ok(())
+        Ok(Handled::Skipped)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use mqtt3::Event;
+    use mqtt3::{proto::QoS, proto::SubscribeTo, Event, SubscriptionUpdateEvent};
     use tokio::sync::{mpsc, mpsc::error::TryRecvError};
 
-    use crate::bridge::{BridgeMessage, ConnectivityState};
+    use crate::bridge::{ConnectivityState, PumpMessage};
+    use crate::client::Handled;
 
-    use super::ConnectivityHandler;
+    use super::*;
 
     #[tokio::test]
     async fn sends_connected_state() {
-        let (connectivity_sender, mut connectivity_receiver) =
-            mpsc::unbounded_channel::<BridgeMessage>();
+        let (connectivity_sender, mut connectivity_receiver) = mpsc::channel::<PumpMessage>(1);
 
         let mut ch = ConnectivityHandler::new(connectivity_sender);
-
-        let _ = ch
-            .handle_connectivity_event(Event::NewConnection {
-                reset_session: true,
-            })
-            .await;
+        let event = Event::NewConnection {
+            reset_session: true,
+        };
+        let res = ch.handle(&event).await.unwrap();
 
         let msg = connectivity_receiver.try_recv().unwrap();
         assert_eq!(
             msg,
-            BridgeMessage::ConnectivityUpdate(ConnectivityState::Connected)
+            PumpMessage::ConnectivityUpdate(ConnectivityState::Connected)
         );
         assert_eq!(ch.state, ConnectivityState::Connected);
+        assert_eq!(res, Handled::Fully);
     }
 
     #[tokio::test]
     async fn sends_disconnected_state() {
-        let (connectivity_sender, mut connectivity_receiver) =
-            mpsc::unbounded_channel::<BridgeMessage>();
+        let (connectivity_sender, mut connectivity_receiver) = mpsc::channel::<PumpMessage>(1);
 
         let mut ch = ConnectivityHandler::new(connectivity_sender);
 
-        let _ = ch
-            .handle_connectivity_event(Event::NewConnection {
+        let res_connected = ch
+            .handle(&Event::NewConnection {
                 reset_session: true,
             })
-            .await;
-
-        let _ = ch
-            .handle_connectivity_event(Event::Disconnected("reason".to_owned()))
-            .await;
-
+            .await
+            .unwrap();
         let _msg = connectivity_receiver.try_recv().unwrap();
+
+        let res_disconnected = ch
+            .handle(&Event::Disconnected("reason".to_owned()))
+            .await
+            .unwrap();
+
         let msg = connectivity_receiver.try_recv().unwrap();
 
         assert_eq!(
             msg,
-            BridgeMessage::ConnectivityUpdate(ConnectivityState::Disconnected)
+            PumpMessage::ConnectivityUpdate(ConnectivityState::Disconnected)
         );
         assert_eq!(ch.state, ConnectivityState::Disconnected);
+        assert_eq!(res_connected, Handled::Fully);
+        assert_eq!(res_disconnected, Handled::Fully);
     }
 
     #[tokio::test]
     async fn not_sends_connected_state_when_already_connected() {
-        let (connectivity_sender, mut connectivity_receiver) =
-            mpsc::unbounded_channel::<BridgeMessage>();
+        let (connectivity_sender, mut connectivity_receiver) = mpsc::channel::<PumpMessage>(1);
 
         let mut ch = ConnectivityHandler::new(connectivity_sender);
 
-        let _ = ch
-            .handle_connectivity_event(Event::NewConnection {
+        let res_connected1 = ch
+            .handle(&Event::NewConnection {
                 reset_session: true,
             })
-            .await;
+            .await
+            .unwrap();
 
-        let _ = ch
-            .handle_connectivity_event(Event::NewConnection {
+        let res_connected2 = ch
+            .handle(&Event::NewConnection {
                 reset_session: true,
             })
-            .await;
+            .await
+            .unwrap();
 
         let _msg = connectivity_receiver.try_recv().unwrap();
         let msg = connectivity_receiver.try_recv();
         assert_eq!(msg, Err(TryRecvError::Empty));
         assert_eq!(ch.state, ConnectivityState::Connected);
+        assert_eq!(res_connected1, Handled::Fully);
+        assert_eq!(res_connected2, Handled::Fully);
     }
 
     #[tokio::test]
     async fn not_sends_disconnected_state_when_already_disconnected() {
-        let (connectivity_sender, mut connectivity_receiver) =
-            mpsc::unbounded_channel::<BridgeMessage>();
+        let (connectivity_sender, mut connectivity_receiver) = mpsc::channel::<PumpMessage>(1);
 
         let mut ch = ConnectivityHandler::new(connectivity_sender);
 
-        let _ = ch
-            .handle_connectivity_event(Event::Disconnected("reason".to_owned()))
-            .await;
+        let res_disconnected = ch
+            .handle(&Event::Disconnected("reason".to_owned()))
+            .await
+            .unwrap();
 
         let msg = connectivity_receiver.try_recv();
         assert_eq!(msg, Err(TryRecvError::Empty));
         assert_eq!(ch.state, ConnectivityState::Disconnected);
+        assert_eq!(res_disconnected, Handled::Fully)
     }
 
+    #[tokio::test]
+    async fn not_handles_other_events() {
+        let (connectivity_sender, _) = mpsc::channel::<PumpMessage>(1);
+
+        let mut ch = ConnectivityHandler::new(connectivity_sender);
+
+        let event =
+            Event::SubscriptionUpdates(vec![SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                topic_filter: "/foo".into(),
+                qos: QoS::AtLeastOnce,
+            })]);
+
+        let res = ch.handle(&event).await.unwrap();
+
+        assert_eq!(res, Handled::Skipped)
+    }
+
+    #[tokio::test]
     async fn default_disconnected_state() {
-        let (connectivity_sender, _) = mpsc::unbounded_channel::<BridgeMessage>();
+        let (connectivity_sender, _) = mpsc::channel::<PumpMessage>(1);
 
         let ch = ConnectivityHandler::new(connectivity_sender);
 
