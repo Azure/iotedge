@@ -1,12 +1,13 @@
-# 1.0.10 (2020-10-09)
+# 1.0.10 (2020-10-12)
 ## Edge Agent
 ### Features
+* Disable deployment manifest minor version validation [4a4f880](https://github.com/Azure/iotedge/commit/4a4f880e800620c3c8b0e330a29252a54cf51496)
 * Add the following metrics {provisioning type, and virtualized environment} [e2ed141](https://github.com/Azure/iotedge/commit/e2ed141b569be5e4bd42c339b98ca7109ae4b940) [be747cc](https://github.com/Azure/iotedge/commit/be747cc0429f7c22df4c6d484347f62837aeb9b7)
 * Allow scientific notation and escaped quotes inside Prometheus metric label [9c3d211](https://github.com/Azure/iotedge/commit/9c3d21146d1fbf5254310b7f97dcffbbe2a51f2a)
 * Enable `MetricsHistogramMaxAge` [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [c958739](https://github.com/Azure/iotedge/commit/c958739a18a1a9a1213ce8c22e3fa7823fba2dfd)
 * Make Histogram quantiles { 0.1, 0.5, 0.9 and 0.99 } [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [64d488e](https://github.com/Azure/iotedge/commit/64d488ece9065dbfdd857ab47ba9b57054462da0)
 * Aggregate metrics before upload [c456806](https://github.com/Azure/iotedge/commit/c4568069a27d778c1b2a623604e2b79d7bf12fbe) [fadf5fa](https://github.com/Azure/iotedge/commit/fadf5fa1f6571c0898dfdb83e56887b5a287bde7) 
-* Allows Agent to run as non-root in docker, and as `ContainerUser` in Windows [3ce2fa5](https://github.com/Azure/iotedge/commit/3ce2fa5cfbb3eda1ec22165199c572afd9b4d0e4)
+* Allows Agent to run as non-root in Linux, and as `ContainerUser` in Windows [3ce2fa5](https://github.com/Azure/iotedge/commit/3ce2fa5cfbb3eda1ec22165199c572afd9b4d0e4)
 * Ability to remotely get support-bundle via edge agent direct method [b0a872a](https://github.com/Azure/iotedge/commit/b0a872aeca22865d2f1d558122aa62057d97669a) [186ff12](https://github.com/Azure/iotedge/commit/186ff12105bc360f21de6858fe750579475fe5f6)
 * Edge agent periodically sends product quality telemetry. You can opt-out by setting the environment variable `SendRuntimeQualityTelemetry` to `false` for the edge agent. [f379462](https://github.com/Azure/iotedge/commit/f379462c1bb10caea0b17c15befcab0f410f1480)
 * Edge agent now hash all instances of module ids in device telemetry. [46f40fc](https://github.com/Azure/iotedge/commit/46f40fcaccebcd5b9eb4fc006e30cd4db5ff22e4)
@@ -51,6 +52,7 @@
 * Add array support in twin [8a69b77](https://github.com/Azure/iotedge/commit/8a69b776c930f1697c4e6a173cc4a8dd4ee67b9c)
 
 ### Bug Fixes
+* Fix incorrect source for Reported Property Updates (RPU) as telemetry messages [94e456c](https://github.com/Azure/iotedge/commit/94e456cfa3a3ff9135d032aaceaba12cf41bd803)
 * Expose the MaxOpenFiles setting in RocksDb to the user [f733205](https://github.com/Azure/iotedge/commit/f733205a9d88891398e3e7a65343575f97d106f9)
 * Correct `edgehub_messages_dropped_total` metric calculation [4233168](https://github.com/Azure/iotedge/commit/42331688ab9c8d60503ab9ad3f572efc812d016b)
 * Make Histogram quantiles { 0.1, 0.5, 0.9 and 0.99 } [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [64d488e](https://github.com/Azure/iotedge/commit/64d488ece9065dbfdd857ab47ba9b57054462da0)
