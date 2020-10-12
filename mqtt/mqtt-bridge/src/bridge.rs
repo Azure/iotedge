@@ -152,7 +152,7 @@ impl Bridge {
         pin_mut!(local_pump);
         pin_mut!(remote_pump);
 
-        // TODO PRE: Do we want to shut down?
+        // TODO REVIEW: Do we want to shut down?
         //           We can either recreate the pump or shut everything down and start over.
         //
         //           If there is a client error then this can potentially get reset without the pump shutting down

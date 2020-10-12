@@ -19,15 +19,21 @@ impl BridgeController {
                 let bridge =
                     Bridge::new(system_address, device_id.into(), upstream_settings.clone()).await;
 
-                // TODO PRE: find way to parameterize logs
+                // TODO REVIEW: Better way to log?
                 match bridge {
                     Ok(bridge) => {
                         if let Err(e) = bridge.run().await {
-                            error!(message = "failed running upstream bridge", err = %e);
+                            let err_msg =
+                                format!("failed running {} bridge", upstream_settings.name());
+                            let err_msg = err_msg.as_str();
+                            error!(message = err_msg, err = %e);
                         }
                     }
                     Err(e) => {
-                        error!(message = "failed to create upstream bridge", err = %e);
+                        let err_msg =
+                            format!("failed to create {} bridge", upstream_settings.name());
+                        let err_msg = err_msg.as_str();
+                        error!(message = err_msg, err = %e);
                     }
                 };
             };

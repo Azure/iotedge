@@ -318,8 +318,10 @@ impl<T: EventHandler> MqttClient<T> {
     }
 
     pub async fn handle_events(&mut self) {
-        // TODO PRE: give information about the client
-        debug!("polling bridge client");
+        // TODO REVIEW: Is client id ever not set
+        let client_id = self.client_id.clone().unwrap_or(String::new());
+        debug!("polling bridge client {}", client_id);
+
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
             // TODO: handle the error by recreting the connection
@@ -352,8 +354,11 @@ impl<T: EventHandler> MqttClient<T> {
             return Ok(());
         }
 
-        // TODO PRE: Don't wait for subscription updates before starting the bridge.
-        //           We should move this logic to the handle events.
+        // TODO: Don't wait for subscription updates before starting the bridge.
+        //       We should move this logic to the handle events.
+        //
+        //       This is fine for now when dealing with only the upstream edge device.
+        //       But when remote brokers are introduced this will be an issue.
         while let Some(event) = self
             .client
             .try_next()

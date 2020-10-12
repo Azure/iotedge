@@ -25,7 +25,6 @@ pub enum PumpType {
     Remote,
 }
 
-// TODO PRE: add enum for local or remote pump
 pub struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
     client_shutdown: ClientShutdownHandle,
@@ -72,9 +71,6 @@ impl Pump {
         Ok(())
     }
 
-    // TODO PRE: Give logging context. Say which bridge pump.
-    // TODO PRE: add comments
-    // TODO PRE: clean up logging
     pub async fn run(&mut self, shutdown: Receiver<()>) {
         debug!("starting pumps for {} bridge...", self.bridge_name);
 
@@ -88,7 +84,7 @@ impl Pump {
 
         // egress pump
         let f1 = async move {
-            // TODO PRE: move this to init somehow
+            // TODO REVIEW: Is panicking fine?
             let mut loader_borrow = loader.borrow_mut();
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
