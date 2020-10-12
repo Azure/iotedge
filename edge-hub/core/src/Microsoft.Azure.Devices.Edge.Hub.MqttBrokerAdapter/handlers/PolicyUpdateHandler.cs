@@ -56,8 +56,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static PolicyUpdate ConfigToPolicyUpdate(EdgeHubConfig config)
         {
-            // TODO: conversion here.
-            return new PolicyUpdate(string.Empty);
+            Option<AuthorizationConfig> maybe_policy = config.BrokerConfiguration.AndThen(
+                config => config.Authorizations.Map(policy => policy));
+
+            return maybe_policy.Match(
+                policy => new PolicyUpdate(JsonConvert.SerializeObject(policy)),
+                () => GetEmptyPolicy());
+        }
+
+        static PolicyUpdate GetEmptyPolicy()
+        {
+            return new PolicyUpdate(@"
+            {
+                'schemaVersion': '2020-10-30',
+                'statements': [ ]
+            }");
         }
 
         async Task PublishPolicyUpdate(PolicyUpdate update)
