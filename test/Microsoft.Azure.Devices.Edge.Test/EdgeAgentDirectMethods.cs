@@ -125,12 +125,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual(expected, response.Payload.Replace("\r\n", "\n"));
         }
 
-        // [Test]
+        [Test]
         public async Task TestUploadModuleLogs()
         {
+            Assert.Ignore("This test currently does not run automatically. To manually run, replace the sas url below with one pointing to a valid blob store");
+
             string moduleName = "NumberLogger";
             int count = 10;
-            string sasUrl = "https://lefitcheblobtest1.blob.core.windows.net/upload-test?sv=2019-02-02&st=2020-08-03T17%3A14%3A16Z&se=2020-11-04T18%3A14%3A00Z&sr=c&sp=racwdl&sig=phKgqaaxSJTcZzUcggE%2FnhDljs4%2BhvCg7IOKk8iWTcY%3D";
+            string sasUrl = "ADD SAS URL HERE";
 
             CancellationToken token = this.TestToken;
 
