@@ -1606,7 +1606,7 @@ function Validate-GatewaySettings {
 }
 
 function Get-DpsProvisioningSettings {
-$attestationMethod = ''
+    $attestationMethod = ''
     if ($DpsTpm) {
         $attestationMethod = 'tpm'
     }
