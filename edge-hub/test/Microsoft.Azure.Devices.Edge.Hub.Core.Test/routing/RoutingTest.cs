@@ -467,7 +467,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
             var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>();
             var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, edegeHubModuleId invokeMethodHandler, subscriptionProcessor);
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, edgeHubModuleId, invokeMethodHandler, subscriptionProcessor);
             return (edgeHub, connectionManager);
         }
 
