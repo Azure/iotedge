@@ -824,8 +824,7 @@ impl Error {
         match self {
             Error::DecodePacket(crate::proto::DecodeError::Io(_))
             | Error::EncodePacket(crate::proto::EncodeError::Io(_))
-            | Error::ServerClosedConnection
-            | Error::PingTimer(_) => true,
+            | Error::ServerClosedConnection => true,
             _ => false,
         }
     }
