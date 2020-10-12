@@ -81,7 +81,9 @@ where
 
 impl IoSource for BridgeIoSource {
     type Io = Pin<Box<dyn BridgeIo>>;
+
     type Error = Error;
+
     #[allow(clippy::type_complexity)]
     type Future = BoxFuture<'static, Result<(Self::Io, Option<String>), Self::Error>>;
 
@@ -183,29 +185,28 @@ impl BridgeIoSource {
 }
 
 /// This is a wrapper over mqtt3 client
-pub struct MqttClient<T>
+pub struct MqttClient<H>
 where
-    T: EventHandler,
+    H: EventHandler,
 {
     client_id: Option<String>,
     username: Option<String>,
     io_source: BridgeIoSource,
     keep_alive: Duration,
     client: Client<BridgeIoSource>,
-    event_handler: T,
+    event_handler: H,
 }
 
-impl<T: EventHandler> MqttClient<T> {
+impl<H: EventHandler> MqttClient<H> {
     pub fn tcp(
         address: &str,
         keep_alive: Duration,
         clean_session: bool,
-        event_handler: T,
+        event_handler: H,
         connection_credentials: &Credentials,
     ) -> Self {
         let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection =
-            TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, None);
+        let tcp_connection = TcpConnection::new(address.to_owned(), token_source, None);
         let io_source = BridgeIoSource::Tcp(tcp_connection);
 
         Self::new(
@@ -221,14 +222,13 @@ impl<T: EventHandler> MqttClient<T> {
         address: &str,
         keep_alive: Duration,
         clean_session: bool,
-        event_handler: T,
+        event_handler: H,
         connection_credentials: &Credentials,
     ) -> Self {
         let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
 
         let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection =
-            TcpConnection::<SasTokenSource>::new(address.to_owned(), token_source, trust_bundle);
+        let tcp_connection = TcpConnection::new(address.to_owned(), token_source, trust_bundle);
         let io_source = BridgeIoSource::Tls(tcp_connection);
 
         Self::new(
@@ -243,7 +243,7 @@ impl<T: EventHandler> MqttClient<T> {
     fn new(
         keep_alive: Duration,
         clean_session: bool,
-        event_handler: T,
+        event_handler: H,
         connection_credentials: &Credentials,
         io_source: BridgeIoSource,
     ) -> Self {
@@ -315,7 +315,7 @@ impl<T: EventHandler> MqttClient<T> {
             None
         }) {
             debug!("handle event {:?}", event);
-            if let Err(e) = self.event_handler.handle_event(event).await {
+            if let Err(e) = self.event_handler.handle(&event).await {
                 error!("error processing event {}", e);
             }
         }
@@ -385,7 +385,14 @@ impl<T: EventHandler> MqttClient<T> {
 pub trait EventHandler {
     type Error: Display;
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error>;
+    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error>;
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Handled {
+    Fully,
+    Partially,
+    Skipped,
 }
 
 #[derive(Debug, thiserror::Error)]
