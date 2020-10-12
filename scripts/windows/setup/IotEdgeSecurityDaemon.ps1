@@ -48,15 +48,6 @@ Set-Variable MobyLinuxNamedPipeUrl -Value 'npipe://./pipe/docker_engine' -Option
 Set-Variable MobyNamedPipeUrl -Value 'npipe://./pipe/iotedge_moby_engine' -Option Constant
 Set-Variable MobyServiceName -Value 'iotedge-moby' -Option Constant
 
-Set-Variable LegacyEdgeInstallDirectory -Value 'C:\ProgramData\iotedge' -Option Constant
-Set-Variable LegacyEdgeEventLogName -Value 'iotedged' -Option Constant
-Set-Variable LegacyEdgeEventLogInstallDirectory -Value 'C:\ProgramData\iotedge-eventlog' -Option Constant
-Set-Variable LegacyEventLogApplicationRegPath -Value 'HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application' -Option Constant
-Set-Variable LegacyMobyDataRootDirectory -Value "$env:ProgramData\iotedge-moby-data" -Option Constant
-Set-Variable LegacyMobyStaticDataRootDirectory -Value 'C:\ProgramData\iotedge-moby-data' -Option Constant
-Set-Variable LegacyMobyInstallDirectory -Value "$env:ProgramData\iotedge-moby" -Option Constant
-Set-Variable LegacyMobyStaticInstallDirectory -Value 'C:\ProgramData\iotedge-moby' -Option Constant
-
 Set-Variable ReinstallMessage -Value 'To reinstall, first remove the existing installation using "Uninstall-IoTEdge".' -Option Constant
 Set-Variable InstallMessage -Value 'To install, run "Deploy-IoTEdge" first.' -Option Constant
 
@@ -197,7 +188,7 @@ function Initialize-IoTEdge {
         [String] $DeviceConnectionString,
 
         # The IoT Hub hostname the Edge device is a part of
-        [Parameter(Mandatory = $true, ParameterSetName ='ManualX509')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
         [ValidateNotNullOrEmpty()]
         [String] $IotHubHostName,
 
@@ -316,12 +307,6 @@ function Initialize-IoTEdge {
 
     if (-not (Test-VcRuntimePresent)) {
         Write-HostRed 'VC Runtime must be installed before IoT Edge can be initialized.'
-        throw
-    }
-
-    if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-        Write-HostRed
-        Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
         throw
     }
 
@@ -812,7 +797,7 @@ function Install-IoTEdge {
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
     $Params["-DynamicReprovisioning"] = $DynamicReprovisioning
-    
+
     # Used to suppress some messages from Initialize-IoTEdge that have already been emitted by Deploy-IoTEdge
     $initializeCalledFromInstall = $true
 
@@ -862,12 +847,10 @@ function Uninstall-IoTEdge {
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
 
-    $legacyInstaller = Test-LegacyInstaller
-
-    if ((Test-IoTCore) -and (-not $legacyInstaller)) {
+    if ((Test-IoTCore)) {
         Write-HostRed
-        Write-HostRed ('Uninstall-IoTEdge is only supported on IoTCore to uninstall legacy installation. ' +
-            'For new installations, please use "Update-IoTEdge" directly to update.')
+        Write-HostRed ('Uninstall-IoTEdge is not supported on IoTCore. ' +
+            'Please use "Update-IoTEdge" directly to update if desired.')
         throw
     }
 
@@ -882,8 +865,8 @@ function Uninstall-IoTEdge {
     $ContainerOs = Get-ContainerOs
 
     $restartNeeded = $false
-    Uninstall-Services -RestartNeeded ([ref] $restartNeeded) -LegacyInstaller $legacyInstaller
-    $success = Remove-IoTEdgeResources -LegacyInstaller $legacyInstaller
+    Uninstall-Services -RestartNeeded ([ref] $restartNeeded)
+    $success = Remove-IoTEdgeResources
     Reset-SystemPath
 
     Remove-MachineEnvironmentVariable 'IOTEDGE_HOST'
@@ -945,12 +928,6 @@ function Install-Packages(
             throw
         }
 
-        if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-            Write-HostRed
-            Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
-            throw
-        }
-
         if (-not (Test-MobyAlreadyInstalled)) {
             Write-HostRed
             Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
@@ -959,28 +936,16 @@ function Install-Packages(
     }
     else {
         if (Test-EdgeAlreadyInstalled) {
-            if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-                Write-HostRed
-                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
-            }
-            else {
-                Write-HostRed
-                Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
-                    'Alternatively, if you want to finalize the installation, run "Initialize-IoTEdge".')
-            }
+            Write-HostRed
+            Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
+                'Alternatively, if you want to finalize the installation, run "Initialize-IoTEdge".')
             throw
         }
 
         if (Test-MobyAlreadyInstalled) {
-            if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-                Write-HostRed
-                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
-            }
-            else {
-                Write-HostRed
-                Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' +
-                    $ReinstallMessage)
-            }
+            Write-HostRed
+            Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' +
+                $ReinstallMessage)
             throw
         }
     }
@@ -1205,33 +1170,12 @@ function Get-WindowsBuild {
 
 function Test-EdgeAlreadyInstalled {
     return (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) -or
-        (Test-Path -Path "$EdgeInstallDirectory\iotedged.exe") -or
-        (Test-path -Path "$LegacyEdgeInstallDirectory\iotedged.exe")
+        (Test-Path -Path "$EdgeInstallDirectory\iotedged.exe")
 }
 
 function Test-MobyAlreadyInstalled {
     return (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) -or
         (Test-Path -Path $MobyInstallDirectory)
-}
-
-function Test-MobyNeedsToBeMoved {
-    if ($LegacyMobyStaticInstallDirectory -ne $LegacyMobyInstallDirectory) {
-        return $(Test-Path -Path $LegacyMobyStaticInstallDirectory)
-    }
-    else {
-        return $false
-    }
-}
-
-function Test-LegacyInstaller {
-    $legacyMobyData = (Test-Path -Path $LegacyMobyDataRootDirectory) -or
-        (Test-Path -Path $LegacyMobyStaticDataRootDirectory)
-    if ($legacyMobyData) {
-        return $true
-    }
-
-    $newPackage = Get-Package $EdgePackage
-    return -not ([bool] $newPackage)
 }
 
 function Test-AgentRegistryArgs {
@@ -1431,71 +1375,20 @@ function Delete-Directory([string] $Path) {
     throw
 }
 
-function Remove-IoTEdgeResources([bool] $LegacyInstaller) {
+function Remove-IoTEdgeResources() {
     $success = $true
 
-    if ($LegacyEdgeInstallDirectory -ne $EdgeDataDirectory) {
-        Remove-SecurityDaemonDirectory $LegacyEdgeInstallDirectory
-    }
     Remove-SecurityDaemonDirectory $EdgeDataDirectory
-
-    if (Test-Path $LegacyEdgeEventLogInstallDirectory) {
-        Remove-Item -Recurse $LegacyEdgeEventLogInstallDirectory -ErrorAction SilentlyContinue -ErrorVariable cmdErr
-        if ($?) {
-            Write-Verbose "Deleted install directory '$LegacyEdgeEventLogInstallDirectory'"
-        }
-        elseif ($cmdErr.FullyQualifiedErrorId -ne 'PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand') {
-            Write-Verbose "$cmdErr"
-            Write-Warning "Could not delete '$LegacyEdgeEventLogInstallDirectory'."
-            Write-Warning 'If you are reinstalling or updating IoT Edge, then this is safe to ignore.'
-            Write-Warning ('Otherwise, please close Event Viewer, or any PowerShell windows where you ran Get-WinEvent, ' +
-                'then run "Uninstall-IoTEdge" again with "-Force".')
-        }
-        else {
-            Write-Verbose "$cmdErr"
-        }
-    }
-
-    if ($LegacyInstaller) {
-        # Check whether we need to clean up after an errant installation into the OS partition on IoT Core
-        if ($env:ProgramData -ne 'C:\ProgramData') {
-            Write-Verbose 'Multiple ProgramData directories found'
-            $existingMobyDataRoots = $LegacyMobyDataRootDirectory, $LegacyMobyStaticDataRootDirectory
-            $existingMobyInstallations = $LegacyMobyInstallDirectory, $LegacyMobyStaticInstallDirectory
-        }
-        else {
-            $existingMobyDataRoots = $LegacyMobyDataRootDirectory
-            $existingMobyInstallations = $LegacyMobyInstallDirectory
-        }
-    }
-    else {
-        $existingMobyDataRoots = $MobyDataRootDirectory
-        $existingMobyInstallations = @()
-    }
-
-    foreach ($root in $existingMobyDataRoots | ?{ Test-Path $_ }) {
+    
+    if (Test-Path $MobyDataRootDirectory) {
         try {
-            Write-Host "Deleting Moby data root directory '$root'..."
-            Delete-Directory $root
-            Write-Verbose "Deleted Moby data root directory '$root'"
+            Write-Host "Deleting Moby data root directory '$MobyDataRootDirectory'..."
+            Delete-Directory $MobyDataRootDirectory
+            Write-Verbose "Deleted Moby data root directory '$MobyDataRootDirectory'"
         }
         catch {
             Write-Verbose "$_"
-            Write-HostRed ("Could not delete Moby data root directory '$root'. Please reboot " +
-                'your device and run "Uninstall-IoTEdge" again with "-Force".')
-            $success = $false
-        }
-    }
-
-    foreach ($install in $existingMobyInstallations | ?{ Test-Path $_ }) {
-        try {
-            Write-Host "Deleting directory '$install'..."
-            Delete-Directory $install
-            Write-Verbose "Deleted directory '$install'"
-        }
-        catch {
-            Write-Verbose $_
-            Write-HostRed ("Could not delete directory '$install'. Please reboot " +
+                Write-HostRed ("Could not delete Moby data root directory '$MobyDataRootDirectory'. Please reboot " +
                 'your device and run "Uninstall-IoTEdge" again with "-Force".')
             $success = $false
         }
@@ -1569,20 +1462,14 @@ function Reset-SystemPath {
 
     $needsModification =
         ($systemPath -contains $EdgeInstallDirectory) -or
-        ($systemPath -contains $MobyInstallDirectory) -or
-        ($systemPath -contains $LegacyMobyStaticInstallDirectory) -or
-        ($systemPath -contains $LegacyEdgeInstallDirectory) -or
-        ($systemPath -contains $LegacyMobyInstallDirectory)
+        ($systemPath -contains $MobyInstallDirectory)
     if (-not $needsModification) {
         return
     }
 
     $systemPath = $systemPath | Where-Object {
         return ($_ -ne $EdgeInstallDirectory) -and
-            ($_ -ne $MobyInstallDirectory) -and
-            ($_ -ne $LegacyMobyStaticInstallDirectory) -and
-            ($_ -ne $LegacyEdgeInstallDirectory) -and
-            ($_ -ne $LegacyMobyInstallDirectory)
+            ($_ -ne $MobyInstallDirectory)
     }
     Set-MachineEnvironmentVariable 'PATH' ($systemPath -join ';')
 
@@ -1639,7 +1526,7 @@ function Start-IoTEdgeService([bool] $RestartNeeded = $false) {
     Write-HostGreen 'Initialized the IoT Edge service.'
 }
 
-function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
+function Uninstall-Services([ref] $RestartNeeded) {
     if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
         Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
@@ -1665,22 +1552,8 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         }
     }
 
-    if ($LegacyInstaller) {
-        if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
-            if (Invoke-Native "sc.exe delete ""$EdgeServiceName""" -ErrorAction SilentlyContinue) {
-                Write-Verbose 'Removed IoT Edge service subkey from the registry'
-            }
-        }
-        if (Get-Service $MobyServiceName -ErrorAction SilentlyContinue) {
-            if (Invoke-Native "sc.exe delete ""$MobyServiceName""" -ErrorAction SilentlyContinue) {
-                Write-Verbose 'Removed IoT Edge Moby Engine service subkey from the registry'
-            }
-        }
-    }
-    else {
-        Write-Verbose 'Uninstalling IoT Edge package.'
-        Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
-    }
+    Write-Verbose 'Uninstalling IoT Edge package.'
+    Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
 }
 
 function Add-FirewallExceptions {
@@ -1733,7 +1606,7 @@ function Validate-GatewaySettings {
 }
 
 function Get-DpsProvisioningSettings {
-    $attestationMethod = ''
+$attestationMethod = ''
     if ($DpsTpm) {
         $attestationMethod = 'tpm'
     }
