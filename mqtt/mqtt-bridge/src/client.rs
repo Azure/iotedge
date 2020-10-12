@@ -318,7 +318,6 @@ impl<T: EventHandler> MqttClient<T> {
     }
 
     pub async fn handle_events(&mut self) {
-        // TODO REVIEW: Is client id ever not set
         let client_id = self.client_id.clone().unwrap_or(String::new());
         debug!("polling bridge client {}", client_id);
 

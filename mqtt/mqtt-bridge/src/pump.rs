@@ -84,7 +84,6 @@ impl Pump {
 
         // egress pump
         let f1 = async move {
-            // TODO REVIEW: Is panicking fine?
             let mut loader_borrow = loader.borrow_mut();
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
@@ -109,15 +108,11 @@ impl Pump {
                         debug!("egress pump extracted publication from store");
 
                         if let Ok(Some((key, publication))) = loaded_element {
-                            // TODO REVIEW: should we be retrying?
-                            // if this failure is due to something that will keep failing it is probably safer to remove and never try again
-                            // otherwise we should retry
                             debug!("publishing publication {:?} for egress pump", key);
                             if let Err(e) = publish_handle.publish(publication).await {
                                 error!(message = "failed publishing publication for bridge pump", err = %e);
                             }
 
-                            // TODO REVIEW: if removal fails, what do we do?
                             if let Err(e) = persist.remove(key) {
                                 error!(message = "failed removing publication from store", err = %e);
                             }

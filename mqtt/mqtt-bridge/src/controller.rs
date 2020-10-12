@@ -19,7 +19,6 @@ impl BridgeController {
                 let bridge =
                     Bridge::new(system_address, device_id.into(), upstream_settings.clone()).await;
 
-                // TODO REVIEW: Better way to log?
                 match bridge {
                     Ok(bridge) => {
                         if let Err(e) = bridge.run().await {

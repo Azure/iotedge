@@ -152,11 +152,6 @@ impl Bridge {
         pin_mut!(local_pump);
         pin_mut!(remote_pump);
 
-        // TODO REVIEW: Do we want to shut down?
-        //           We can either recreate the pump or shut everything down and start over.
-        //
-        //           If there is a client error then this can potentially get reset without the pump shutting down
-        //           Alternatively, if this client error shuts down the pump, we will need to recreate it.
         debug!(
             "Starting pumps for {} bridge...",
             self.connection_settings.name()
