@@ -313,6 +313,13 @@ jobs:
           imageName: azureiotedge-metrics-validator
           project: MetricsValidator
 
+      # NumberLogger
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Number Logger
+          imageName: azureiotedge-number-logger
+          project: NumberLogger
+
      # Module Restarter
       - template: templates/image-windows.yaml
         parameters:
