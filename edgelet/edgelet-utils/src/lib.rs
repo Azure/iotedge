@@ -18,7 +18,7 @@ pub mod macros;
 mod ser_de;
 mod yaml_file_source;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, net::IpAddr, str::FromStr};
 
 pub use crate::error::{Error, ErrorKind};
 pub use crate::logging::log_failure;
@@ -34,13 +34,10 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
                 None
             } else {
                 let mut tokens = seg.splitn(2, '=');
-                if let Some(key) = tokens.next() {
+                tokens.next().map(|key| {
                     let val = tokens.next().unwrap_or("");
-                    Some((key, val))
-                } else {
-                    // if there's no key then we ignore this token
-                    None
-                }
+                    (key, val)
+                })
             }
         })
         .collect()
@@ -87,10 +84,12 @@ pub fn prepare_dns_san_entries(names: &[&str]) -> String {
 }
 
 pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
-    let mut dns_sans = names
+    let mut dns_ip_sans = names
         .iter()
         .filter_map(|name| {
-            if name.trim().is_empty() {
+            if IpAddr::from_str(name).is_ok() {
+                Some(format!("IP:{}", name))
+            } else if name.trim().is_empty() {
                 None
             } else {
                 Some(format!("DNS:{}", name.to_lowercase()))
@@ -98,9 +97,9 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
         })
         .collect::<Vec<String>>()
         .join(", ");
-    dns_sans.push_str(", ");
-    dns_sans.push_str(sans);
-    dns_sans
+    dns_ip_sans.push_str(", ");
+    dns_ip_sans.push_str(sans);
+    dns_ip_sans
 }
 
 #[cfg(test)]
@@ -191,6 +190,17 @@ mod tests {
         assert_eq!(
             expected_name,
             sanitize_dns_label("$a23456789-123456789-123456789-123456789-123456789-123456789-1234")
+        );
+    }
+
+    #[test]
+    fn append_dns_san_entries_ip_test() {
+        assert_eq!(
+            "IP:127.0.0.1, IP:2001:db8::8a2e:370:7334, DNS:edgehub",
+            append_dns_san_entries(
+                &prepare_dns_san_entries(&["edgehub"]),
+                &["127.0.0.1", "   ", "2001:db8::8a2e:370:7334"]
+            )
         );
     }
 
