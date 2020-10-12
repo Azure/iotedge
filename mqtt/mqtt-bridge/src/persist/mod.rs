@@ -1,6 +1,5 @@
 use bincode::ErrorKind;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 mod loader;
 mod publication_store;
@@ -16,7 +15,7 @@ pub struct Key {
     offset: u32,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum PersistError {
     #[error("Failed to deserialize database entry")]
     Deserialization(#[source] Box<ErrorKind>),
