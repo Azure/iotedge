@@ -512,6 +512,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             connectionManager,
                             twinManager,
                             this.edgeDeviceId,
+                            this.edgeModuleId,
                             invokeMethodHandler,
                             subscriptionProcessor);
                         return hub;
