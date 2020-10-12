@@ -140,8 +140,19 @@ mod tests {
             },
             "homedir": "/var/lib/iotedge",
             "namespace": "default",
-            "memory_limit": "300Mi",
-            "cpu_limit" : "200m",
+            "config_map_name": "iotedged-agent-config",
+            "config_path": "/etc/edgeAgent",
+            "config_map_volume": "agent-config-volume",
+            "resources" : {
+                "limits":{
+                    "cpu":"200m",
+                    "memory":"300Mi"
+                },
+                "requests":{
+                    "cpu":"199m",
+                    "memory":"299Mi"
+                }
+            },
             "iot_hub_hostname": "iotHub",
             "device_id": "device1",
             "device_hub_selector": "",
@@ -153,8 +164,16 @@ mod tests {
                "config_map_name": PROXY_CONFIG_MAP_NAME,
                "trust_bundle_path": "/etc/trust-bundle",
                "trust_bundle_config_map_name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
-               "memory_limit": "50Mi",
-               "cpu_limit" : "20m",
+               "resources" : {
+                "limits":{
+                    "cpu":"20m",
+                    "memory":"50Mi"
+                },
+                "requests":{
+                    "cpu":"19m",
+                    "memory":"49Mi"
+                }
+            }
            },
         });
 

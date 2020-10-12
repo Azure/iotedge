@@ -87,9 +87,13 @@ iotedged:
     #   All module container resources should be set through edge deployment on the 
     #   IoT Hub via module's createOptions
     ###############################################################################
-    limits:
-      memoryLimit: "100Mi"
-      cpuLimit: "100m"
+    resources:
+      requests:
+        memoryLimit: "100Mi"
+        cpuLimit: "100m"
+      limits:
+        memoryLimit: "100Mi"
+        cpuLimit: "100m"
 
   ###############################################################################
   # Certificate settings
@@ -129,23 +133,27 @@ iotedged:
 #   username:
 #   password:
 #   serveraddress:
-# limits:  
-#   memoryLimit: 
-#   cpuLimit:
+# resources:  
+
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
     tag: 0.1.0-beta10
     pullPolicy: Always
-  limits: 
-    memoryLimit: "25Mi"
-    cpuLimit: "5m"
+  resources:
+    requests:
+      memoryLimit: "25Mi"
+      cpuLimit: "5m"
+    limits:
+      memoryLimit: "25Mi"
+      cpuLimit: "5m"
+    
 
 # Edge Agent image configuration
 # Settings:
 #     containerName  - name of the edge agent module. Expected to be "edgeAgent".
 #     image          - Image tag and image pull policy
-#     limits         - cpu and memory limit may be set here for bootstrap agent.
+#     resources      - cpu and memory limit may be set here for bootstrap agent.
 #     env            - Any environment variable that needs to be set for edge agent module.
 #                      Some environment variables affect how Edge Agent creates modules in the
 #                      cluster see the descriptions below.
@@ -156,9 +164,13 @@ edgeAgent:
     tag: 0.1.0-beta10
     pullPolicy: Always
   hostname: "localhost"
-  limits: 
-    memoryLimit: "200Mi"
-    cpuLimit: "50m"
+  resources:
+    requests:
+      memoryLimit: "200Mi"
+      cpuLimit: "50m"
+    limits:
+      memoryLimit: "200Mi"
+      cpuLimit: "50m"
   env:
     authScheme: 'sasToken'
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the

@@ -10,23 +10,20 @@ use failure::ResultExt;
 use k8s_openapi::api::apps::v1 as api_apps;
 use k8s_openapi::api::core::v1 as api_core;
 use k8s_openapi::api::rbac::v1 as api_rbac;
-use k8s_openapi::apimachinery::pkg::api::resource as api_resource;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use log::warn;
 
 use crate::constants::env::{
-    AGENT_CONFIG_CPU_LIMIT_KEY, AGENT_CONFIG_MEMORY_LIMIT_KEY, EDGE_NETWORK_ID_KEY,
-    EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY, EDGE_OBJECT_OWNER_NAME_KEY,
-    EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY, PROXY_CONFIG_CPU_LIMIT_KEY,
-    PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_MEMORY_LIMIT_KEY, PROXY_CONFIG_PATH_KEY,
-    PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY, PROXY_IMAGE_PULL_SECRET_NAME_KEY,
-    PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY, PROXY_TRUST_BUNDLE_PATH_KEY,
-    PROXY_TRUST_BUNDLE_VOLUME_KEY,
+    EDGE_NETWORK_ID_KEY, EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY,
+    EDGE_OBJECT_OWNER_NAME_KEY, EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY,
+    PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_PATH_KEY, PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY,
+    PROXY_IMAGE_PULL_SECRET_NAME_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+    PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
 };
 use crate::constants::{
-    CPU_RESOURCE, EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_MODULE_LABEL,
-    EDGE_ORIGINAL_MODULEID, MEMORY_RESOURCE, PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME,
-    PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
+    EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
+    PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
+    PROXY_TRUST_BUNDLE_VOLUME_NAME,
 };
 use crate::convert::{sanitize_dns_value, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
@@ -91,16 +88,6 @@ fn spec_to_podspec(
             settings.proxy().trust_bundle_config_map_name(),
         ));
         env_vars.push(env(
-            PROXY_CONFIG_MEMORY_LIMIT_KEY,
-            settings.proxy().memory_limit(),
-        ));
-        env_vars.push(env(
-            PROXY_CONFIG_CPU_LIMIT_KEY,
-            settings.proxy().cpu_limit(),
-        ));
-        env_vars.push(env(AGENT_CONFIG_MEMORY_LIMIT_KEY, settings.memory_limit()));
-        env_vars.push(env(AGENT_CONFIG_CPU_LIMIT_KEY, settings.cpu_limit()));
-        env_vars.push(env(
             PROXY_TRUST_BUNDLE_VOLUME_KEY,
             PROXY_TRUST_BUNDLE_VOLUME_NAME,
         ));
@@ -123,41 +110,9 @@ fn spec_to_podspec(
     }
 
     // Resource requirements:
-    let mut proxy_limits = BTreeMap::new();
-    if !settings.proxy().memory_limit().is_empty() {
-        proxy_limits.insert(
-            MEMORY_RESOURCE.to_string(),
-            api_resource::Quantity(settings.proxy().memory_limit().to_string()),
-        );
-    }
-    if !settings.proxy().cpu_limit().is_empty() {
-        proxy_limits.insert(
-            CPU_RESOURCE.to_string(),
-            api_resource::Quantity(settings.proxy().cpu_limit().to_string()),
-        );
-    }
-    let proxy_resource_requirements = api_core::ResourceRequirements {
-        limits: Some(proxy_limits.clone()),
-        requests: Some(proxy_limits),
-    };
+    let proxy_resource_requirements = settings.proxy().resources().cloned();
 
-    let mut module_limits = BTreeMap::new();
-    if !settings.memory_limit().is_empty() {
-        module_limits.insert(
-            MEMORY_RESOURCE.to_string(),
-            api_resource::Quantity(settings.memory_limit().to_string()),
-        );
-    }
-    if !settings.cpu_limit().is_empty() {
-        module_limits.insert(
-            CPU_RESOURCE.to_string(),
-            api_resource::Quantity(settings.cpu_limit().to_string()),
-        );
-    }
-    let module_resource_requirments = api_core::ResourceRequirements {
-        limits: Some(module_limits.clone()),
-        requests: Some(module_limits),
-    };
+    let module_resource_requirements = settings.resources().cloned();
 
     // Bind/volume mounts
     // ConfigMap volume name is fixed: "config-volume"
@@ -169,6 +124,19 @@ fn spec_to_podspec(
     let proxy_config_volume = api_core::Volume {
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         config_map: Some(proxy_config_volume_source),
+        ..api_core::Volume::default()
+    };
+
+    // ConfigMap for Agent Settings, set to be optional for backwards compatibility
+    let agent_config_volume_source = api_core::ConfigMapVolumeSource {
+        name: Some(settings.config_map_name().to_string()),
+        optional: Some(true),
+        ..api_core::ConfigMapVolumeSource::default()
+    };
+    // Volume entry for proxy's config map
+    let agent_config_volume = api_core::Volume {
+        name: settings.config_map_volume().to_string(),
+        config_map: Some(agent_config_volume_source),
         ..api_core::Volume::default()
     };
 
@@ -184,11 +152,23 @@ fn spec_to_podspec(
         ..api_core::Volume::default()
     };
 
-    let mut volumes = vec![proxy_config_volume, trust_bundle_config_volume];
+    let mut volumes = vec![
+        agent_config_volume,
+        proxy_config_volume,
+        trust_bundle_config_volume,
+    ];
 
     // Where to mount proxy config map
     let proxy_volume_mount = api_core::VolumeMount {
         mount_path: settings.proxy().config_path().to_string(),
+        name: settings.config_map_volume().to_string(),
+        read_only: Some(true),
+        ..api_core::VolumeMount::default()
+    };
+
+    // Where to mount agent config map
+    let agent_volume_mount = api_core::VolumeMount {
+        mount_path: settings.config_path().to_string(),
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
@@ -203,7 +183,7 @@ fn spec_to_podspec(
     };
 
     let proxy_volume_mounts = vec![proxy_volume_mount, trust_bundle_volume_mount];
-    let mut volume_mounts = Vec::new();
+    let mut volume_mounts = vec![agent_volume_mount];
 
     if let Some(binds) = spec
         .config()
@@ -333,7 +313,7 @@ fn spec_to_podspec(
                 image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()), //todo user edgeagent imagepullpolicy instead
                 security_context: security,
                 volume_mounts: Some(volume_mounts),
-                resources: Some(module_resource_requirments),
+                resources: module_resource_requirements,
                 ..api_core::Container::default()
             },
             // proxy
@@ -343,7 +323,7 @@ fn spec_to_podspec(
                 image: Some(settings.proxy().image().to_string()),
                 image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()),
                 volume_mounts: Some(proxy_volume_mounts),
-                resources: Some(proxy_resource_requirements),
+                resources: proxy_resource_requirements,
                 ..api_core::Container::default()
             },
         ],
@@ -580,17 +560,14 @@ mod tests {
     use edgelet_test_utils::cert::TestCert;
 
     use crate::constants::env::{
-        AGENT_CONFIG_CPU_LIMIT_KEY, AGENT_CONFIG_MEMORY_LIMIT_KEY,
         EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY, EDGE_OBJECT_OWNER_NAME_KEY,
-        EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY, PROXY_CONFIG_CPU_LIMIT_KEY,
-        PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_MEMORY_LIMIT_KEY, PROXY_CONFIG_PATH_KEY,
+        EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY, PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_PATH_KEY,
         PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
         PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
     };
     use crate::constants::{
-        CPU_RESOURCE, EDGE_DEVICE_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
-        MEMORY_RESOURCE, PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME,
-        PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        EDGE_DEVICE_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID, PROXY_CONFIG_VOLUME_NAME,
+        PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
     };
     use crate::convert::{
         spec_to_deployment, spec_to_role_binding, spec_to_service_account,
@@ -694,30 +671,11 @@ mod tests {
                 assert_eq!(podspec.containers.len(), 2);
                 if let Some(module) = podspec.containers.iter().find(|c| c.name == "edgeagent") {
                     validate_container_env(module.env.as_ref().unwrap());
-                    assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 6);
+                    assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 7);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
                     assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                     assert!(module.resources.is_some());
-                    if let Some(resources) = &module.resources {
-                        let mem = api_resource::Quantity("300Mi".to_string());
-                        let cpu = api_resource::Quantity("200m".to_string());
-                        assert_eq!(
-                            resources.limits.as_ref().unwrap().get(MEMORY_RESOURCE),
-                            Some(&mem)
-                        );
-                        assert_eq!(
-                            resources.limits.as_ref().unwrap().get(CPU_RESOURCE),
-                            Some(&cpu)
-                        );
-                        assert_eq!(
-                            resources.requests.as_ref().unwrap().get(MEMORY_RESOURCE),
-                            Some(&mem)
-                        );
-                        assert_eq!(
-                            resources.requests.as_ref().unwrap().get(CPU_RESOURCE),
-                            Some(&cpu)
-                        );
-                    }
+                    validate_resources(&module.resources, "300Mi", "200m", "299Mi", "199m");
                 }
                 if let Some(proxy) = podspec
                     .containers
@@ -729,26 +687,7 @@ mod tests {
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                     assert!(proxy.resources.is_some());
-                    if let Some(resources) = &proxy.resources {
-                        let mem = api_resource::Quantity("50Mi".to_string());
-                        let cpu = api_resource::Quantity("20m".to_string());
-                        assert_eq!(
-                            resources.limits.as_ref().unwrap().get(MEMORY_RESOURCE),
-                            Some(&mem)
-                        );
-                        assert_eq!(
-                            resources.limits.as_ref().unwrap().get(CPU_RESOURCE),
-                            Some(&cpu)
-                        );
-                        assert_eq!(
-                            resources.requests.as_ref().unwrap().get(MEMORY_RESOURCE),
-                            Some(&mem)
-                        );
-                        assert_eq!(
-                            resources.requests.as_ref().unwrap().get(CPU_RESOURCE),
-                            Some(&cpu)
-                        );
-                    }
+                    validate_resources(&proxy.resources, "50Mi", "20m", "49Mi", "19m");
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
                 assert!(podspec.security_context.is_some());
@@ -765,13 +704,35 @@ mod tests {
                     );
                 }
                 // 4 bind mounts, 2 volume mounts, 1 proxy configmap, 1 trust bundle configmap
-                assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 8);
+                // 1 agent configmap
+                assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 9);
             }
         }
     }
 
+    fn validate_resources(
+        resources: &Option<api_core::ResourceRequirements>,
+        mem_limit: &str,
+        cpu_limit: &str,
+        mem_req: &str,
+        cpu_req: &str,
+    ) {
+        if let Some(resources) = &*resources {
+            let mem_limit = api_resource::Quantity(mem_limit.to_string());
+            let cpu_limit = api_resource::Quantity(cpu_limit.to_string());
+            let mem_req = api_resource::Quantity(mem_req.to_string());
+            let cpu_req = api_resource::Quantity(cpu_req.to_string());
+            let limits = resources.limits.as_ref().unwrap();
+            let requests = resources.requests.as_ref().unwrap();
+            assert_eq!(limits.get("memory"), Some(&mem_limit));
+            assert_eq!(limits.get("cpu"), Some(&cpu_limit));
+            assert_eq!(requests.get("memory"), Some(&mem_req));
+            assert_eq!(requests.get("cpu"), Some(&cpu_req));
+        }
+    }
+
     fn validate_container_env(env: &[api_core::EnvVar]) {
-        assert_eq!(env.len(), 19);
+        assert_eq!(env.len(), 15);
         assert!(env.contains(&super::env("a", "b")));
         assert!(env.contains(&super::env("C", "D")));
         assert!(env.contains(&super::env(NAMESPACE_KEY, "default")));
@@ -797,10 +758,6 @@ mod tests {
             &PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
         )));
-        assert!(env.contains(&super::env(&PROXY_CONFIG_MEMORY_LIMIT_KEY, "50Mi",)));
-        assert!(env.contains(&super::env(&PROXY_CONFIG_CPU_LIMIT_KEY, "20m",)));
-        assert!(env.contains(&super::env(&AGENT_CONFIG_MEMORY_LIMIT_KEY, "300Mi",)));
-        assert!(env.contains(&super::env(&AGENT_CONFIG_CPU_LIMIT_KEY, "200m",)));
         assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_API_VERSION_KEY, "v1",)));
         assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_KIND_KEY, "Deployment",)));
         assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_NAME_KEY, "iotedged",)));

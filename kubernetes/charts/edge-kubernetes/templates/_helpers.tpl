@@ -122,9 +122,12 @@ listen:
   workload_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
-memory_limit: {{ .Values.edgeAgent.limits.memoryLimit | quote }}
-cpu_limit: {{ .Values.edgeAgent.limits.cpuLimit | quote }}
 device_hub_selector: ""
+config_map_name: "iotedged-agent-config"
+config_path: "/etc/edgeAgent"
+config_map_volume: "agent-config-volume"
+resources:
+{{ toYaml .Values.edgeAgent.resources | indent 2 }}
 proxy:
   image: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
   image_pull_policy: {{ .Values.iotedgedProxy.image.pullPolicy | quote }}
@@ -140,8 +143,31 @@ proxy:
   config_path: "/etc/iotedge-proxy"
   trust_bundle_config_map_name: "iotedged-proxy-trust-bundle"
   trust_bundle_path: "/etc/trust-bundle"
-  memory_limit: {{ .Values.iotedgedProxy.limits.memoryLimit | quote }}
-  cpu_limit: {{ .Values.iotedgedProxy.limits.cpuLimit | quote }}
+  resources:
+{{ toYaml .Values.iotedgedProxy.resources | indent 4 }}
+
+{{ end }}
+
+{{/* Template for iotedged's configuration YAML. */}}
+{{- define "edge-kubernetes.agentconfig" }}
+AgentConfigPath: "/etc/edgeAgent"
+AgentConfigMapName: "iotedged-agent-config"
+AgentConfigVolume: "agent-config-volume"
+ProxyImage: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
+ProxyConfigVolume: "config-volume"
+ProxyConfigMapName: "iotedged-proxy-config"
+ProxyConfigPath: "/etc/iotedge-proxy"
+ProxyTrustBundlePath: "/etc/trust-bundle"
+ProxyTrustBundleVolume: "trust-bundle-volume"
+ProxyTrustBundleConfigMapName: "iotedged-proxy-trust-bundle"
+{{- if .Values.iotedgedProxy.resources }}
+ProxyResourceRequests:
+{{ toYaml .Values.iotedgedProxy.resources | indent 2 }}
+{{- end }}
+{{- if .Values.edgeAgent.resources }}
+agentResourceRequests:
+{{ toYaml .Values.edgeAgent.resources | indent 2 }}
+{{- end }}
 {{ end }}
 
 {{/* Template for rendering registry credentials. */}}

@@ -2,7 +2,10 @@
 
 use std::path::Path;
 
+use crate::error::Error;
+use crate::ErrorKind;
 use config::{Config, Environment};
+use docker::models::AuthConfig;
 use edgelet_core::{
     Certificates, Connect, Listen, ModuleSpec, Provisioning, RuntimeSettings,
     Settings as BaseSettings, WatchdogSettings,
@@ -10,10 +13,7 @@ use edgelet_core::{
 use edgelet_docker::{DockerConfig, DEFAULTS};
 use edgelet_utils::YamlFileSource;
 use failure::ResultExt;
-
-use crate::error::Error;
-use crate::ErrorKind;
-use docker::models::AuthConfig;
+use k8s_openapi::api::core::v1::ResourceRequirements;
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
@@ -24,8 +24,10 @@ pub struct Settings {
     device_id: Option<String>,
     device_hub_selector: String,
     proxy: ProxySettings,
-    memory_limit: String,
-    cpu_limit: String,
+    config_path: String,
+    config_map_name: String,
+    config_map_volume: String,
+    resources: Option<ResourceRequirements>,
     #[serde(default = "Settings::default_nodes_rbac")]
     has_nodes_rbac: bool,
 }
@@ -84,13 +86,20 @@ impl Settings {
     pub fn device_hub_selector(&self) -> &str {
         &self.device_hub_selector
     }
-
-    pub fn memory_limit(&self) -> &str {
-        &self.memory_limit
+    pub fn config_path(&self) -> &str {
+        &self.config_path
     }
 
-    pub fn cpu_limit(&self) -> &str {
-        &self.cpu_limit
+    pub fn config_map_name(&self) -> &str {
+        &self.config_map_name
+    }
+
+    pub fn config_map_volume(&self) -> &str {
+        &self.config_map_volume
+    }
+
+    pub fn resources(&self) -> Option<&ResourceRequirements> {
+        self.resources.as_ref()
     }
 
     pub fn has_nodes_rbac(&self) -> bool {
@@ -151,8 +160,7 @@ pub struct ProxySettings {
     config_map_name: String,
     trust_bundle_path: String,
     trust_bundle_config_map_name: String,
-    memory_limit: String,
-    cpu_limit: String,
+    resources: Option<ResourceRequirements>,
 }
 
 impl ProxySettings {
@@ -184,11 +192,7 @@ impl ProxySettings {
         &self.image_pull_policy
     }
 
-    pub fn memory_limit(&self) -> &str {
-        &self.memory_limit
-    }
-
-    pub fn cpu_limit(&self) -> &str {
-        &self.cpu_limit
+    pub fn resources(&self) -> Option<&ResourceRequirements> {
+        self.resources.as_ref()
     }
 }
