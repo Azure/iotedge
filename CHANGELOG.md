@@ -1,3 +1,89 @@
+# 1.0.10 (2020-10-12)
+## Edge Agent
+### Features
+* Disable deployment manifest minor version validation [4a4f880](https://github.com/Azure/iotedge/commit/4a4f880e800620c3c8b0e330a29252a54cf51496)
+* Add the following metrics {provisioning type, and virtualized environment} [e2ed141](https://github.com/Azure/iotedge/commit/e2ed141b569be5e4bd42c339b98ca7109ae4b940) [be747cc](https://github.com/Azure/iotedge/commit/be747cc0429f7c22df4c6d484347f62837aeb9b7)
+* Allow scientific notation and escaped quotes inside Prometheus metric label [9c3d211](https://github.com/Azure/iotedge/commit/9c3d21146d1fbf5254310b7f97dcffbbe2a51f2a)
+* Enable `MetricsHistogramMaxAge` [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [c958739](https://github.com/Azure/iotedge/commit/c958739a18a1a9a1213ce8c22e3fa7823fba2dfd)
+* Make Histogram quantiles { 0.1, 0.5, 0.9 and 0.99 } [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [64d488e](https://github.com/Azure/iotedge/commit/64d488ece9065dbfdd857ab47ba9b57054462da0)
+* Aggregate metrics before upload [c456806](https://github.com/Azure/iotedge/commit/c4568069a27d778c1b2a623604e2b79d7bf12fbe) [fadf5fa](https://github.com/Azure/iotedge/commit/fadf5fa1f6571c0898dfdb83e56887b5a287bde7) 
+* Allows Agent to run as non-root in Linux, and as `ContainerUser` in Windows [3ce2fa5](https://github.com/Azure/iotedge/commit/3ce2fa5cfbb3eda1ec22165199c572afd9b4d0e4)
+* Ability to remotely get support-bundle via edge agent direct method [b0a872a](https://github.com/Azure/iotedge/commit/b0a872aeca22865d2f1d558122aa62057d97669a) [186ff12](https://github.com/Azure/iotedge/commit/186ff12105bc360f21de6858fe750579475fe5f6)
+* Edge agent periodically sends product quality telemetry. You can opt-out by setting the environment variable `SendRuntimeQualityTelemetry` to `false` for the edge agent. [f379462](https://github.com/Azure/iotedge/commit/f379462c1bb10caea0b17c15befcab0f410f1480)
+* Edge agent now hash all instances of module ids in device telemetry. [46f40fc](https://github.com/Azure/iotedge/commit/46f40fcaccebcd5b9eb4fc006e30cd4db5ff22e4)
+* Rename log upload method from `UploadLogs` to `UploadModuleLogs`  [b567801](https://github.com/Azure/iotedge/commit/b5678011925d0b8ee2eee716a9b7264863608e03)
+* Rename reboot order from `priority` to be `startupOrder` [eed9c06](https://github.com/Azure/iotedge/commit/eed9c064ae0ad5342a2196bd42feff2d8b7e9cdc)
+* Update SDK version {Microsoft.Azure.Devices.Client.1.28.0}. [cdf36b0](https://github.com/Azure/iotedge/commit/cdf36b01a7a18b0a4f9a1e3d5943fb9aa44029ea)
+* Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
+* Install Trust Bundle. [4f85dcc](https://github.com/Azure/iotedge/commit/4f85dcc7d3fd6d4772d4a9b86ec3ecad651938fd)
+* Add metrics upload to IoTHub feature [eff5c85](https://github.com/Azure/iotedge/commit/eff5c859e101d14eda85b80513136a2f3a473892)
+* Add "Cmd", "Entrypoint", and "WorkingDir" translations for Kubernetes. [7cbc607](https://github.com/Azure/iotedge/commit/7cbc607ccc483d6e0ab9642be76c8b2d8bc09605)
+* Add Experimental k8s create option feature for pod security context, resources, volumes, nodeSelector, and strategy. [cf2eba9](https://github.com/Azure/iotedge/commit/cf2eba9518a947bb09ebff5dcd6ae42f66d2d045) [23b40e1](https://github.com/Azure/iotedge/commit/23b40e1bf5e9cd04af1246b2214f0759c6446ea9)
+* Preserve any extra properties in createOptions set by the user (NVidia support through moby) [5a6d506](https://github.com/Azure/iotedge/commit/5a6d5067c832ad85b39cc15d323442a973b3d3f7)  [a747950](https://github.com/Azure/iotedge/commit/a747950864403ee8f201bbf9e78aaf0a2c067411)
+
+
+### Bug Fixes
+* Expose the MaxOpenFiles setting in RocksDb to the user [f733205](https://github.com/Azure/iotedge/commit/f733205a9d88891398e3e7a65343575f97d106f9)
+* Fix edgeHub stuck in a restart loop when `version` is specified [de9873e](https://github.com/Azure/iotedge/commit/de9873eeb61e207dbdbfb9158f085fa9b2f92d43)
+* Remove potentially non-useful metrics from RQT [14b928b](https://github.com/Azure/iotedge/commit/14b928b4d46afdb28a8bf994eb698f3c07a2ee3e)
+* Fix Api version set in "IOTEDGE_APIVERSION" to current Workload [e71286f](https://github.com/Azure/iotedge/commit/e71286f0351ee2d1dbef545ee03ba4fefee3b536)
+* Returns an error message if logs file is too large for a request [9bea6e6](https://github.com/Azure/iotedge/commit/9bea6e6ffab8c4dd9a60e1040adda576c4d33719)
+* Fix edge agent connectivity issue after receiving an exception [23ffb26](https://github.com/Azure/iotedge/commit/23ffb26484fd73f35e614c401a114a695b5339bf)
+* Fix support bundle autofac [7c1706a](https://github.com/Azure/iotedge/commit/7c1706a19b1abc9256827c92f783d7f31bc6f806)
+* Make edge agent reported state as "406" when modules are in backoff.  [5a68ced](https://github.com/Azure/iotedge/commit/5a68cedab1d0e97c89552dd51ed5657ebcf81dd8)
+* Stop existing modules when iotedged starts [7066164](https://github.com/Azure/iotedge/commit/70661641799d16a940b191ee1c7faa24842fd4be)
+* Reprovision device for all protocols when the connection status change reason is Bad_Credential. [3601a56](https://github.com/Azure/iotedge/commit/3601a566e728f697176398b7f92deb79b60278fe)
+* Fix vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
+
+
+## Edge Hub
+### Features
+* Enable `MetricsHistogramMaxAge` [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [c958739](https://github.com/Azure/iotedge/commit/c958739a18a1a9a1213ce8c22e3fa7823fba2dfd)
+* Enable twin encrypt by default [12b7306](https://github.com/Azure/iotedge/commit/12b7306fe9b750a9014e064e2cbdbd777d36edd1)
+* Support Plug-and-Play [f8da2f6](https://github.com/Azure/iotedge/commit/f8da2f65a98568c463a3083a81018a6a05ef7da7)
+* Update SDK version {Microsoft.Azure.Devices.Client.1.28.0}. [cdf36b0](https://github.com/Azure/iotedge/commit/cdf36b01a7a18b0a4f9a1e3d5943fb9aa44029ea)
+* Update codebase to dotnet 3.1. [f87a18a](https://github.com/Azure/iotedge/commit/f87a18a487ea0c05752254aaba04a4f89028120a)
+* Install Trust Bundle. [4f85dcc](https://github.com/Azure/iotedge/commit/4f85dcc7d3fd6d4772d4a9b86ec3ecad651938fd)
+* Add metrics upload to IoTHub feature . [eff5c85](https://github.com/Azure/iotedge/commit/eff5c859e101d14eda85b80513136a2f3a473892)
+* Unify TLS protocol parsing. [f319228](https://github.com/Azure/iotedge/commit/f3192289d29be33222dedb93ce7d49ffc532fcd5)
+* Add support for priorities on routes (limited to 0-9). [9cf0203](https://github.com/Azure/iotedge/commit/9cf02037ff0f43dc9f8a1e72cde09fd06507e2c8)
+* Add support for Time-To-Live on routes. [2662d9c](https://github.com/Azure/iotedge/commit/2662d9cd46f0abbe91e1e0260b37d1f9372609a7)
+* Add support module booting order in IoT Edge [6fce17b](https://github.com/Azure/iotedge/commit/6fce17bddff05b6d5f805b43330ec7a25a79ba2a)
+* Add array support in twin [8a69b77](https://github.com/Azure/iotedge/commit/8a69b776c930f1697c4e6a173cc4a8dd4ee67b9c)
+
+### Bug Fixes
+* Fix incorrect source for Reported Property Updates (RPU) as telemetry messages [94e456c](https://github.com/Azure/iotedge/commit/94e456cfa3a3ff9135d032aaceaba12cf41bd803)
+* Expose the MaxOpenFiles setting in RocksDb to the user [f733205](https://github.com/Azure/iotedge/commit/f733205a9d88891398e3e7a65343575f97d106f9)
+* Correct `edgehub_messages_dropped_total` metric calculation [4233168](https://github.com/Azure/iotedge/commit/42331688ab9c8d60503ab9ad3f572efc812d016b)
+* Make Histogram quantiles { 0.1, 0.5, 0.9 and 0.99 } [c550463](https://github.com/Azure/iotedge/commit/c550463919e0994ac2a977fe3cca66e02959d8ce) [64d488e](https://github.com/Azure/iotedge/commit/64d488ece9065dbfdd857ab47ba9b57054462da0)
+* Automatically get cloud connection if adding device with subscriptions [063744d](https://github.com/Azure/iotedge/commit/063744d5920088f7c96eb4fde231979294fafb70)
+* Fix processed message priority tagging for metrics [14aaee0](https://github.com/Azure/iotedge/commit/14aaee06c3140474e9607bbc59f1f45a23814dba)
+* Fix Subscription Processing Workaround  [331aaf9](https://github.com/Azure/iotedge/commit/331aaf9965542852f33af05c9449b018c73094d4)
+* Fix ECC certificates parsing [7411daf](https://github.com/Azure/iotedge/commit/7411dafd658d251f9f0565af5b7089bdfbe44a4b)
+* Fix vulnerability issues for docker images. [d88fa52](https://github.com/Azure/iotedge/commit/d88fa52d910a71df0ea7b2d38b1e357514027f38) [7873079](https://github.com/Azure/iotedge/commit/7873079c5a3d4e28dcf6c979a1533d6d950fc428)
+
+
+## iotedged
+### Features
+* Add the following metrics {provisioning type, virtualized environment} [e2ed141](https://github.com/Azure/iotedge/commit/e2ed141b569be5e4bd42c339b98ca7109ae4b940) [be747cc](https://github.com/Azure/iotedge/commit/be747cc0429f7c22df4c6d484347f62837aeb9b7)
+* Enable DPS hub name check [7fe23f6](https://github.com/Azure/iotedge/commit/7fe23f6982b25dedd0b119e47db7cb971dae83bc)
+* Enable iotedged support bundle [45e33a0](https://github.com/Azure/iotedge/commit/45e33a045d9c9f31abb3d9cccea0a8f9c10d39f5)
+* Update Windows Moby engine and cli to latest release [3987b9e](https://github.com/Azure/iotedge/commit/3987b9ea181b8a8c03c3952d2978ce3857e37eb2)
+* Update Rust to stable 1.42.0 [cf01536](https://github.com/Azure/iotedge/commit/cf01536ab40e2c4592ed9b2211394d9e9aa464b3)
+* Support X.509 authentication type in external provisioning. [0a43fdb](https://github.com/Azure/iotedge/commit/0a43fdba90537d0747a3b51d2a8006a1f4a89d09)
+* Add support for manual X.509 provisioning. [b872869](https://github.com/Azure/iotedge/commit/b872869169a76a2f334f0d2800847eaf5664c1b0)
+* Better PVC story for iotedged Kubernetes. [debf498](https://github.com/Azure/iotedge/commit/debf4987b10adf49304ead523677d5f5507a3bf6)
+* Update k8s-openapi to v0.7.1 [877c8e8](https://github.com/Azure/iotedge/commit/877c8e8f57e4926dafb8607340b24614c3f93984)
+* Unify TLS protocol parsing. [f319228](https://github.com/Azure/iotedge/commit/f3192289d29be33222dedb93ce7d49ffc532fcd5)
+* Add support to specify min TLS version in config.yaml [6b1e19b](https://github.com/Azure/iotedge/commit/6b1e19b5ef2c01a920e25129377bd57d5ef6e934)
+
+### Bug Fixes
+* Make `always_reprovision_on_startup` setting to DPS provisioning configurable [ab2de15](https://github.com/Azure/iotedge/commit/ab2de1510ae99ae8c83bc5d8144a8dc1d4287597)
+* Fix IotEdgeSecurityDaemon.ps1 script for WSL2 [1766c1d](https://github.com/Azure/iotedge/commit/1766c1d97adbe2d3a1fd04e070e41209a6e90aec)
+* Fix Edgelet unable to pull using certain passwords. [0569489](https://github.com/Azure/iotedge/commit/0569489084962cfd303e69ba578e41e4d70c95b2)
+* Stop existing modules when iotedged starts [7066164](https://github.com/Azure/iotedge/commit/70661641799d16a940b191ee1c7faa24842fd4be)
+* Update `iotedge check`'s Moby check for new Moby version scheme [1c30f57](https://github.com/Azure/iotedge/commit/1c30f57cc2cbf9407a2bd1323b835478accfed14)
+
 # 1.0.10-rc2 (2020-08-26)
 ## Edge Agent
 ### Features
