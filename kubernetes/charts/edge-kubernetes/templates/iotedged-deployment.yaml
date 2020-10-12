@@ -32,7 +32,11 @@ spec:
           {{- if .Values.iotedged.data.httpsProxy }}
           - name: "https_proxy"
             value: {{ .Values.iotedged.data.httpsProxy | quote}}
-          {{end}}
+          {{- end}}
+          {{- if .Values.iotedged.data.noProxy }}
+          - name: "no_proxy"
+            value: {{ .Values.iotedged.data.noProxy | quote}}
+          {{- end}}
           volumeMounts:
           - name: config
             mountPath: "/etc/iotedged"
