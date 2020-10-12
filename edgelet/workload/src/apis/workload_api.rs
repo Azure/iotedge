@@ -70,7 +70,7 @@ pub trait WorkloadApi {
 
 impl<C: hyper::client::connect::Connect> WorkloadApi for WorkloadApiClient<C>
 where
-    C: hyper::client::connect::Connect + 'static,
+    C: 'static,
     <C as hyper::client::connect::Connect>::Transport: 'static,
     <C as hyper::client::connect::Connect>::Future: 'static,
 {

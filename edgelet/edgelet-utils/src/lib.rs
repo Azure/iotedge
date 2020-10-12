@@ -34,13 +34,10 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
                 None
             } else {
                 let mut tokens = seg.splitn(2, '=');
-                if let Some(key) = tokens.next() {
+                tokens.next().map(|key| {
                     let val = tokens.next().unwrap_or("");
-                    Some((key, val))
-                } else {
-                    // if there's no key then we ignore this token
-                    None
-                }
+                    (key, val)
+                })
             }
         })
         .collect()
