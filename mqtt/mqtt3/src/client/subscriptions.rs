@@ -1,3 +1,5 @@
+use mockall::automock;
+
 #[derive(Debug)]
 pub(super) struct State {
     subscriptions: std::collections::BTreeMap<String, crate::proto::QoS>,
@@ -606,6 +608,7 @@ impl Iterator for NewConnectionIter {
 #[derive(Clone, Debug)]
 pub struct UpdateSubscriptionHandle(futures_channel::mpsc::Sender<SubscriptionUpdate>);
 
+#[automock]
 impl UpdateSubscriptionHandle {
     #[allow(clippy::doc_markdown)]
     /// Subscribe to a topic with the given parameters.
