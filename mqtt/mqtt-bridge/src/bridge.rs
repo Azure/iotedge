@@ -8,10 +8,11 @@ use std::{
 };
 
 use async_trait::async_trait;
+use tokio::sync::mpsc::{error::TrySendError, Sender};
+use tracing::{debug, info, warn};
+
 use mqtt3::{proto::Publication, Event};
 use mqtt_broker::TopicFilter;
-use tokio::sync::mpsc::error::TrySendError;
-use tracing::{debug, info, warn};
 
 use crate::{
     client::{ClientConnectError, EventHandler, Handled, MqttClient},
@@ -27,6 +28,22 @@ const BATCH_SIZE: usize = 10;
 pub enum PumpMessage {
     ConnectivityUpdate(ConnectivityState),
     ConfigurationUpdate(ConnectionSettings),
+}
+
+pub struct PumpHandle {
+    sender: Sender<PumpMessage>,
+}
+
+impl PumpHandle {
+    pub fn new(sender: Sender<PumpMessage>) -> Self {
+        Self { sender }
+    }
+
+    pub fn send(&mut self, message: PumpMessage) -> Result<(), BridgeError> {
+        self.sender
+            .try_send(message)
+            .map_err(BridgeError::SenderError)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
