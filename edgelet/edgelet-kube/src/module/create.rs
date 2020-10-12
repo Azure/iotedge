@@ -142,41 +142,46 @@ where
                 )
                 .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |service_accounts| {
-                    if let Some(current) =
-                        service_accounts.items.into_iter().find(|service_account| {
+                    service_accounts
+                        .items
+                        .into_iter()
+                        .find(|service_account| {
                             service_account.metadata.as_ref().map_or(false, |meta| {
                                 meta.name.as_ref().map_or(false, |n| *n == name)
                             })
                         })
-                    {
-                        if current == new_service_account {
-                            Either::A(Either::A(future::ok(())))
-                        } else {
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .replace_service_account(
-                                    &namespace_copy,
-                                    &name,
-                                    &new_service_account,
-                                )
-                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                                .map(|_| ());
-
-                            Either::A(Either::B(fut))
-                        }
-                    } else {
-                        let fut = client_copy
-                            .lock()
-                            .expect("Unexpected lock error")
-                            .borrow_mut()
-                            .create_service_account(&namespace_copy, &new_service_account)
-                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                            .map(|_| ());
-
-                        Either::B(fut)
-                    }
+                        .map_or_else(
+                            || {
+                                let fut = client_copy
+                                    .lock()
+                                    .expect("Unexpected lock error")
+                                    .borrow_mut()
+                                    .create_service_account(&namespace_copy, &new_service_account)
+                                    .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
+                                    .map(|_| ());
+                                Either::B(fut)
+                            },
+                            |current| {
+                                if current == new_service_account {
+                                    Either::A(Either::A(future::ok(())))
+                                } else {
+                                    let fut = client_copy
+                                        .lock()
+                                        .expect("Unexpected lock error")
+                                        .borrow_mut()
+                                        .replace_service_account(
+                                            &namespace_copy,
+                                            &name,
+                                            &new_service_account,
+                                        )
+                                        .map_err(|err| {
+                                            Error::from(err.context(ErrorKind::KubeClient))
+                                        })
+                                        .map(|_| ());
+                                    Either::A(Either::B(fut))
+                                }
+                            },
+                        )
                 })
         })
         .into_future()
@@ -256,35 +261,46 @@ where
                 )
                 .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |deployments| {
-                    if let Some(current) = deployments.items.into_iter().find(|deployment| {
-                        deployment.metadata.as_ref().map_or(false, |meta| {
-                            meta.name.as_ref().map_or(false, |n| *n == name)
+                    deployments
+                        .items
+                        .into_iter()
+                        .find(|deployment| {
+                            deployment.metadata.as_ref().map_or(false, |meta| {
+                                meta.name.as_ref().map_or(false, |n| *n == name)
+                            })
                         })
-                    }) {
-                        if current == new_deployment {
-                            Either::A(Either::A(future::ok(())))
-                        } else {
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .replace_deployment(namespace_copy.as_str(), &name, &new_deployment)
-                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                                .map(|_| ());
-
-                            Either::A(Either::B(fut))
-                        }
-                    } else {
-                        let fut = client_copy
-                            .lock()
-                            .expect("Unexpected lock error")
-                            .borrow_mut()
-                            .create_deployment(namespace_copy.as_str(), &new_deployment)
-                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                            .map(|_| ());
-
-                        Either::B(fut)
-                    }
+                        .map_or_else(
+                            || {
+                                let fut = client_copy
+                                    .lock()
+                                    .expect("Unexpected lock error")
+                                    .borrow_mut()
+                                    .create_deployment(namespace_copy.as_str(), &new_deployment)
+                                    .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
+                                    .map(|_| ());
+                                Either::B(fut)
+                            },
+                            |current| {
+                                if current == new_deployment {
+                                    Either::A(Either::A(future::ok(())))
+                                } else {
+                                    let fut = client_copy
+                                        .lock()
+                                        .expect("Unexpected lock error")
+                                        .borrow_mut()
+                                        .replace_deployment(
+                                            namespace_copy.as_str(),
+                                            &name,
+                                            &new_deployment,
+                                        )
+                                        .map_err(|err| {
+                                            Error::from(err.context(ErrorKind::KubeClient))
+                                        })
+                                        .map(|_| ());
+                                    Either::A(Either::B(fut))
+                                }
+                            },
+                        )
                 })
         })
         .into_future()

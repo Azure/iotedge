@@ -1,3 +1,5 @@
+use std::{net::IpAddr, str::FromStr};
+
 use crate::check::{checker::Checker, Check, CheckResult};
 use edgelet_core::RuntimeSettings;
 use failure::ResultExt;
@@ -36,15 +38,19 @@ impl ContainerResolveParentHostname {
             return Ok(CheckResult::Ignored);
         };
 
+        //If parent hostname is an IP, we ignore
+        if IpAddr::from_str(&parent_hostname).is_ok() {
+            return Ok(CheckResult::Ignored);
+        }
+
         let diagnostics_image_name = if check
             .diagnostics_image_name
             .starts_with("/azureiotedge-diagnostics:")
         {
-            if let Some(upstream_hostname) = settings.parent_hostname() {
-                upstream_hostname.to_string() + &check.diagnostics_image_name
-            } else {
-                "mcr.microsoft.com".to_string() + &check.diagnostics_image_name
-            }
+            settings.parent_hostname().map_or_else(
+                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
+                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+            )
         } else {
             return Ok(CheckResult::Skipped);
         };
@@ -76,12 +82,15 @@ impl ContainerResolveParentHostname {
             "IotedgeDiagnosticsDotnet.dll".to_owned(),
             "parent-hostname".to_owned(),
             "--parent-hostname".to_owned(),
-            parent_hostname,
+            parent_hostname.clone(),
         ]);
 
         super::docker(docker_host_arg, args)
             .map_err(|(_, err)| err)
-            .context("Failed to resolve parent hostname")?;
+            .context(format!(
+                "Failed to resolve parent hostname {}",
+                parent_hostname
+            ))?;
 
         Ok(CheckResult::Ok)
     }
