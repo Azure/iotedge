@@ -57,7 +57,7 @@ where
     }
 }
 
-/// A handle to await all readiness events collected buy the handle.
+/// A handle to await all readiness events collected by the handle.
 pub struct BrokerReadySignal<E>(Receiver<E>);
 
 impl<E> BrokerReadySignal<E>
