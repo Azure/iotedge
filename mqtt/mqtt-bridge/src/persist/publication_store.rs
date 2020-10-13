@@ -13,7 +13,7 @@ use crate::persist::{
 /// This facilitates sharing between multiple futures in a single threaded environment
 pub struct PublicationStoreInner<S> {
     state: Rc<RefCell<S>>,
-    offset: u32,
+    offset: u64,
     loader: Rc<RefCell<MessageLoader<S>>>,
 }
 
