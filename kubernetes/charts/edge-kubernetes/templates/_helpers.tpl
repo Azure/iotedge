@@ -148,7 +148,7 @@ proxy:
 
 {{ end }}
 
-{{/* Template for iotedged's configuration YAML. */}}
+{{/* Template for agent's configuration. */}}
 {{- define "edge-kubernetes.agentconfig" }}
 AgentConfigPath: "/etc/edgeAgent"
 AgentConfigMapName: "iotedged-agent-config"
@@ -165,7 +165,7 @@ ProxyResourceRequests:
 {{ toYaml .Values.iotedgedProxy.resources | indent 2 }}
 {{- end }}
 {{- if .Values.edgeAgent.resources }}
-agentResourceRequests:
+AgentResourceRequests:
 {{ toYaml .Values.edgeAgent.resources | indent 2 }}
 {{- end }}
 {{ end }}

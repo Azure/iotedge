@@ -74,7 +74,7 @@ iotedged:
     ###############################################################################
     # 
     # We want QoS to be "Guaranteed" so we are setting resource requests and limits
-    # to equal values.  Values can be adjusted here.
+    # to equal values.  Values can be adjusted, or may be set to null to remove.
     # iotedged:
     #   Values set here will apply directly to iotedged deployment.
     # Proxy: 
@@ -133,7 +133,7 @@ iotedged:
 #   username:
 #   password:
 #   serveraddress:
-# resources:  
+# resources:  (Set to null to remove.)
 
 iotedgedProxy:
   image:
@@ -154,6 +154,7 @@ iotedgedProxy:
 #     containerName  - name of the edge agent module. Expected to be "edgeAgent".
 #     image          - Image tag and image pull policy
 #     resources      - cpu and memory limit may be set here for bootstrap agent.
+#                      (Set to null to remove resource requests.)
 #     env            - Any environment variable that needs to be set for edge agent module.
 #                      Some environment variables affect how Edge Agent creates modules in the
 #                      cluster see the descriptions below.
