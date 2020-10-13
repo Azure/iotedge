@@ -42,10 +42,10 @@ pub struct MessageHandler<S> {
 }
 
 impl<S> MessageHandler<S> {
-    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
+    pub fn new(store: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
-            store: persistor,
+            store: store,
         }
     }
 
@@ -159,8 +159,8 @@ mod tests {
             })
             .collect();
 
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = MessageHandler::new(store, topics);
 
         let pub1 = ReceivedPublication {
             topic_name: "local/floor/1".to_string(),
@@ -201,8 +201,8 @@ mod tests {
             })
             .collect();
 
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = MessageHandler::new(store, topics);
 
         let pub1 = ReceivedPublication {
             topic_name: "temp/1".to_string(),
@@ -243,8 +243,8 @@ mod tests {
             })
             .collect();
 
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = MessageHandler::new(store, topics);
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -285,8 +285,8 @@ mod tests {
             })
             .collect();
 
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = MessageHandler::new(store, topics);
 
         let pub1 = ReceivedPublication {
             topic_name: "local/temp/1".to_string(),
