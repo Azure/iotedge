@@ -5,7 +5,7 @@ use futures_util::{
     pin_mut,
     stream::StreamExt,
 };
-use tokio::sync::{broadcast::Receiver, oneshot};
+use tokio::sync::oneshot;
 use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
 
@@ -14,8 +14,8 @@ use crate::{
     broker::{Broker, BrokerHandle},
     connection::{self, MakeMqttPacketProcessor, MakePacketProcessor},
     transport::{GetPeerInfo, Transport},
-    BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, ServerCertificate,
-    SystemEvent,
+    BrokerReadySignal, BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message,
+    ServerCertificate, SystemEvent,
 };
 
 pub struct Server<Z, P> {
@@ -46,7 +46,7 @@ where
         &mut self,
         addr: A,
         authenticator: N,
-        ready: Option<Receiver<()>>,
+        ready: Option<BrokerReadySignal>,
     ) -> Result<&mut Self, InitializeBrokerError>
     where
         A: ToSocketAddrs + Display,
@@ -69,7 +69,7 @@ where
         addr: A,
         identity: ServerCertificate,
         authenticator: N,
-        ready: Option<Receiver<()>>,
+        ready: Option<BrokerReadySignal>,
     ) -> Result<&mut Self, Error>
     where
         A: ToSocketAddrs + Display,
@@ -232,7 +232,7 @@ where
 struct Listener {
     transport: Transport,
     authenticator: Arc<(dyn Authenticator<Error = Box<dyn StdError + Send + Sync>> + Send + Sync)>,
-    ready: Option<Receiver<()>>,
+    ready: Option<BrokerReadySignal>,
     broker_handle: BrokerHandle,
 }
 
@@ -241,7 +241,7 @@ impl Listener {
         transport: Transport,
         authenticator: N,
         broker_handle: BrokerHandle,
-        ready: Option<Receiver<()>>,
+        ready: Option<BrokerReadySignal>,
     ) -> Self
     where
         N: Authenticator<Error = E> + Send + Sync + 'static,
@@ -274,20 +274,19 @@ impl Listener {
         let inner_span = span.clone();
 
         async move {
-            let ready = match ready {
-                Some(mut ready) => {
-                    info!("Waiting for broker to be ready to serve requests");
-                    // async block required to consume ready and make a future with
-                    // a 'static lifetime
-                    Either::Left(async move { ready.recv().await })
+            let ready = async {
+                match ready {
+                    Some(ready) => {
+                        info!("Waiting for broker to be ready to serve requests");
+                        ready.wait().await
+                    }
+                    None => Ok(()),
                 }
-                None => Either::Right(future::ready(Ok(()))),
             };
             pin_mut!(ready);
 
             // wait until broker is ready to serve external clients or a shutdown request
-            match future::select(ready, shutdown_signal).await
-            {
+            match future::select(ready, shutdown_signal).await {
                 Either::Left((Ok(_), mut shutdown_signal)) => {
                     // start listening incoming connections on given network address
                     let mut incoming = transport.incoming().await?;
