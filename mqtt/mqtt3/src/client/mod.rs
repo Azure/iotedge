@@ -821,12 +821,7 @@ impl Error {
     }
 
     fn is_connection_error(&self) -> bool {
-        match self {
-            Error::DecodePacket(crate::proto::DecodeError::Io(_))
-            | Error::EncodePacket(crate::proto::EncodeError::Io(_))
-            | Error::ServerClosedConnection => true,
-            _ => false,
-        }
+        matches!(self, Error::DecodePacket(crate::proto::DecodeError::Io(_)) | Error::EncodePacket(crate::proto::EncodeError::Io(_)) | Error::ServerClosedConnection)
     }
 }
 
