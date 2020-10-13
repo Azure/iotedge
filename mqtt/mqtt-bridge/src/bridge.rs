@@ -53,8 +53,7 @@ impl Bridge {
             connection_settings.name()
         );
 
-        let mut pumps =
-            PumpPair::new(connection_settings.clone(), system_address, local_client_id)?;
+        let mut pumps = PumpPair::new(&connection_settings, &system_address, local_client_id)?;
 
         pumps.local_pump.subscribe().await?;
         pumps.remote_pump.subscribe().await?;

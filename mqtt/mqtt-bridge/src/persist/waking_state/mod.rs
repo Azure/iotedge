@@ -287,7 +287,7 @@ mod tests {
     impl<S: StreamWakeableState> TestStream<S> {
         fn new(state: Rc<RefCell<S>>, notify: Rc<Notify>) -> Self {
             TestStream {
-                state: state,
+                state,
                 notify,
                 should_return_pending: true,
             }

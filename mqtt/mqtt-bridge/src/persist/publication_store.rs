@@ -9,7 +9,7 @@ use crate::persist::{
     loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
 };
 
-/// Pattern allows for the wrapping PublicationStore to be cloned and have non mutable methods
+/// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
 pub struct PublicationStoreInner<S> {
     state: Rc<RefCell<S>>,

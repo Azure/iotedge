@@ -97,8 +97,8 @@ pub struct PumpPair {
 
 impl PumpPair {
     pub fn new(
-        connection_settings: ConnectionSettings,
-        system_address: String,
+        connection_settings: &ConnectionSettings,
+        system_address: &str,
         local_client_id: String,
     ) -> Result<Self, BridgeError> {
         let mut forwards: HashMap<String, TopicRule> = connection_settings
@@ -150,7 +150,7 @@ impl PumpPair {
         let local_pump_context =
             PumpContext::new(PumpType::Local, connection_settings.name().to_string());
         let local_client = MqttClient::tcp(
-            system_address.as_str(),
+            system_address,
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(outgoing_persist, local_topic_filters),
@@ -244,7 +244,7 @@ impl Pump {
         let pump_type = self.pump_context.pump_type.clone();
 
         // egress pump
-        let f1 = async move {
+        let egress_pump = async move {
             let mut loader_borrow = loader.borrow_mut();
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
@@ -258,7 +258,7 @@ impl Pump {
                 match select(receive_fut.next(), loader_borrow.try_next()).await {
                     Either::Left((shutdown, _)) => {
                         debug!("egress pump received shutdown signal");
-                        if let None = shutdown {
+                        if shutdown.is_none() {
                             error!(message = "unexpected behavior from shutdown signal while signalling bridge pump shutdown")
                         }
 
@@ -285,10 +285,10 @@ impl Pump {
             debug!("pumps for {} bridge stopped...", bridge_name);
         };
 
-        // incoming pump
+        // ingress pump
         let bridge_name = self.pump_context.bridge_name.clone();
         let pump_type = self.pump_context.pump_type.clone();
-        let f2 = async move {
+        let ingress_pump_fut = async move {
             debug!(
                 "{} bridge starting ingress publication processing for pump {:?}...",
                 bridge_name, pump_type
@@ -296,17 +296,16 @@ impl Pump {
             self.client.handle_events().await;
         };
 
-        let f1 = f1.fuse();
-        let f2 = f2.fuse();
+        let egress_pump = egress_pump.fuse();
+        let ingress_pump = ingress_pump_fut.fuse();
         let mut shutdown = shutdown.fuse();
-        pin_mut!(f1);
-        pin_mut!(f2);
+        pin_mut!(egress_pump, ingress_pump);
 
         select! {
-            _ = f1 => {
+            _ = egress_pump => {
                 error!(message = "publish loop failed and exited for bridge pump");
             },
-            _ = f2 => {
+            _ = ingress_pump => {
                 error!(message = "incoming publication loop failed and exited for bridge pump");
             },
             _ = shutdown => {
@@ -318,9 +317,9 @@ impl Pump {
                     error!(message = "failed to shutdown publish loop for bridge pump");
                 }
             },
-        }
+        };
 
-        f1.await;
-        f2.await;
+        egress_pump.await;
+        ingress_pump.await;
     }
 }

@@ -345,7 +345,7 @@ impl<H: EventHandler> MqttClient<H> {
         }
     }
 
-    pub async fn subscribe(&mut self, topics: &Vec<String>) -> Result<(), ClientError> {
+    pub async fn subscribe(&mut self, topics: &[String]) -> Result<(), ClientError> {
         debug!("subscribing to topics for pump {:?}", self.pump_context);
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
