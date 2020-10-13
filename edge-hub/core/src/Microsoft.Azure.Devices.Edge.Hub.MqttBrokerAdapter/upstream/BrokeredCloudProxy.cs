@@ -9,11 +9,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
     public class BrokeredCloudProxy : ICloudProxy
     {
         BrokeredCloudProxyDispatcher cloudProxyDispatcher;
         IIdentity identity;
+
+        AtomicBoolean twinNeedsSubscribe = new AtomicBoolean(true);
 
         public BrokeredCloudProxy(IIdentity identity, BrokeredCloudProxyDispatcher cloudProxyDispatcher)
         {
@@ -24,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public bool IsActive => this.cloudProxyDispatcher.IsActive;
 
         public Task<bool> CloseAsync() => this.cloudProxyDispatcher.CloseAsync(this.identity);
-        public Task<IMessage> GetTwinAsync() => this.cloudProxyDispatcher.GetTwinAsync(this.identity);
         public Task<bool> OpenAsync() => this.cloudProxyDispatcher.OpenAsync(this.identity);
         public Task RemoveCallMethodAsync() => this.cloudProxyDispatcher.RemoveCallMethodAsync(this.identity);
         public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.RemoveDesiredPropertyUpdatesAsync(this.identity);
@@ -34,6 +36,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public Task SetupCallMethodAsync() => this.cloudProxyDispatcher.SetupCallMethodAsync(this.identity);
         public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.SetupDesiredPropertyUpdatesAsync(this.identity);
         public Task StartListening() => this.cloudProxyDispatcher.StartListening(this.identity);
-        public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage) => this.cloudProxyDispatcher.UpdateReportedPropertiesAsync(this.identity, reportedPropertiesMessage);
+
+
+        public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
+        {
+            return this.cloudProxyDispatcher.UpdateReportedPropertiesAsync(this.identity, reportedPropertiesMessage, this.twinNeedsSubscribe.GetAndSet(false));
+        }
+
+        public Task<IMessage> GetTwinAsync()
+        {
+            return this.cloudProxyDispatcher.GetTwinAsync(this.identity, this.twinNeedsSubscribe.GetAndSet(false));
+        }
     }
 }

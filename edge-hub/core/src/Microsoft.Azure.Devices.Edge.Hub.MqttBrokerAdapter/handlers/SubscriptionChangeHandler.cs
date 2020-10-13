@@ -84,66 +84,46 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return true;
             }
 
-            var id1 = match.Groups["id1"];
-            var id2 = match.Groups["id2"];
-
-            var identity = id2.Success
-                                ? this.identityProvider.Create(id1.Value, id2.Value)
-                                : this.identityProvider.Create(id1.Value);
-
-            var listener = default(IDeviceListener);
-            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
-
-            if (!maybeListener.HasValue)
-            {
-                return true;
-            }
-            else
-            {
-                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
-            }
-
+            // FIXME: the following solution is to unblock the case when in a nested scenario a child edgehub
+            // subscribes in the name of a device/module. However changes needed to support unsubscribe
             foreach (var subscriptionPattern in this.subscriptionPatterns)
             {
-                var subscribes = false;
-
                 foreach (var subscription in subscriptionList)
                 {
                     var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
-                    if (IsMatchWithIds(subscriptionMatch, id1, id2))
+                    if (match.Success)
                     {
-                        subscribes = true;
+                        var id1 = match.Groups["id1"];
+                        var id2 = match.Groups["id2"];
+
+                        var identity = id2.Success
+                                            ? this.identityProvider.Create(id1.Value, id2.Value)
+                                            : this.identityProvider.Create(id1.Value);
+
+                        var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+                        if (maybeListener.HasValue)
+                        {
+                            try
+                            {
+                                var listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
+                                await AddOrRemoveSubscription(listener, true, subscriptionPattern.Subscrition);
+                            }
+                            catch (Exception e)
+                            {
+                                Events.FailedToChangeSubscriptionState(e, subscriptionPattern.Subscrition.ToString(), identity.Id);
+                            }
+                        }
+                        else
+                        {
+                            Events.CouldNotObtainListener(subscriptionPattern.Subscrition.ToString(), identity.Id);
+                        }
+
                         break;
                     }
-                }
-
-                try
-                {
-                    await AddOrRemoveSubscription(listener, subscribes, subscriptionPattern.Subscrition);
-                }
-                catch (Exception e)
-                {
-                    Events.FailedToChangeSubscriptionState(e, subscriptionPattern.Subscrition.ToString(), identity.Id);
                 }
             }
 
             return true;
-        }
-
-        static bool IsMatchWithIds(Match match, Group id1, Group id2)
-        {
-            if (match.Success)
-            {
-                var subscriptionId1 = match.Groups["id1"];
-                var subscriptionId2 = match.Groups["id2"];
-
-                var id1Match = id1.Success && subscriptionId1.Success && id1.Value == subscriptionId1.Value;
-                var id2Match = (id2.Success && subscriptionId2.Success && id2.Value == subscriptionId2.Value) || (!id2.Success && !subscriptionId2.Success);
-
-                return id1Match && id2Match;
-            }
-
-            return false;
         }
 
         static Task AddOrRemoveSubscription(IDeviceListener listener, bool add, DeviceSubscription subscription)
@@ -167,11 +147,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 BadPayloadFormat = IdStart,
                 FailedToChangeSubscriptionState,
+                CouldNotObtainListener,
                 HandlingSubscriptionChange,
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToChangeSubscriptionState(Exception e, string subscription, string id) => Log.LogError((int)EventIds.FailedToChangeSubscriptionState, e, $"Failed to change subscrition status {subscription} for {id}");
+            public static void CouldNotObtainListener(string subscription, string id) => Log.LogError((int)EventIds.CouldNotObtainListener, $"Could not obtain DeviceListener to change subscrition status {subscription} for {id}");
             public static void HandlingSubscriptionChange(string content) => Log.LogDebug((int)EventIds.HandlingSubscriptionChange, $"Handling subscription change {content}");
         }
     }

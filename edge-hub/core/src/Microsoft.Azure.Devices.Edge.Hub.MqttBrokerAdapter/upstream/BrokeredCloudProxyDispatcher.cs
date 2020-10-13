@@ -21,8 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class BrokeredCloudProxyDispatcher : IMessageConsumer, IMessageProducer
     {
         const string TelemetryTopicTemplate = "$iothub/{0}/messages/events/{1}";
-        const string TwinDesiredUpdateSubscriptionTemplate = "$iothub/{0}/twin/res/#";
-        const string DirectMethodSubscriptionTemplate = "$iothub/{0}/methods/POST/#";
+        const string TwinDesiredUpdateSubscriptionTemplate = "$iothub/{0}/twin/desired/#";
+        const string DirectMethodSubscriptionTemplate = "$iothub/{0}/methods/post/#";
         const string GetTwinTemplate = "$iothub/{0}/twin/get/?$rid={1}";
         const string UpdateReportedTemplate = "$iothub/{0}/twin/reported/?$rid={1}";
         const string DirectMethodResponseTemplate = "$iothub/{0}/methods/res/{1}/?$rid={2}";
@@ -33,10 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string RpcCmdUnsub = "unsub";
         const string RpcCmdPub = "pub";
 
-        const string RpcAckPattern = @"^\$downstream/rpc/ack/(?<guid>[^/\+\#]+)";
+        const string RpcAckPattern = @"^\$downstream/rpc/ack/(?<cmd>[^/\+\#]+)/(?<guid>[^/\+\#]+)";
         const string TwinGetResponsePattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/(?<res>.+)/\?\$rid=(?<rid>.+)";
         const string TwinSubscriptionForPatchPattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\?\$version=(?<version>.+)";
-        const string MethodCallPattern = @"^\$downstream/(?<id1>[^/\+\#]+)/methods/(?<mname>[^/\+\#]+)/\?\$rid=(?<rid>.+)";
+        const string MethodCallPattern = @"^\$downstream/(?<id1>[^/\+\#]+)/methods/post/(?<mname>[^/\+\#]+)/\?\$rid=(?<rid>.+)";
 
         readonly TimeSpan responseTimeout = TimeSpan.FromSeconds(30); // FIXME make this configurable
         readonly byte[] emptyArray = new byte[0];
@@ -55,14 +55,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public void BindEdgeHub(IEdgeHub edgeHub)
         {
             this.edgeHub = edgeHub;
+            this.isActive.Set(true);
         }
 
         public bool IsActive => this.isActive;
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connectorGetter.SetResult(connector);
 
-        public Task<bool> OpenAsync(IIdentity identity) => Task.FromResult(true);
-        public Task<bool> CloseAsync(IIdentity identity) => Task.FromResult(true);
+        public Task<bool> OpenAsync(IIdentity identity)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> CloseAsync(IIdentity identity)
+        {
+            this.isActive.Set(false);
+            return Task.FromResult(true);
+        }
 
         public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {
@@ -71,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 var match = Regex.Match(publishInfo.Topic, RpcAckPattern);
                 if (match.Success)
                 {
-                    this.HandleRpcAck(match.Groups["guid"].Value, publishInfo.Payload);
+                    this.HandleRpcAck(match.Groups["guid"].Value, match.Groups["cmd"].Value);
                     return Task.FromResult(true);
                 }
 
@@ -166,8 +175,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.CompletedTask;
         }
 
-        public async Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage)
+        public async Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage, bool needSubscribe)
         {
+            if (needSubscribe)
+            {
+                // FIXME c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
+                // and how to handle the related state (the needSubscribe flag)
+                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format("$iothub/{0}/twin/res/#", identity.Id), this.emptyArray);
+            }
+
             var rid = this.GetRid();
             var taskCompletion = new TaskCompletionSource<IMessage>();
 
@@ -183,8 +199,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             Events.TwinUpdateHasConfirmed(identity.Id, rid);
         }
 
-        public async Task<IMessage> GetTwinAsync(IIdentity identity)
+        public async Task<IMessage> GetTwinAsync(IIdentity identity, bool needSubscribe)
         {
+            if (needSubscribe)
+            {
+                // FIXME c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
+                // and how to handle the related state (the needSubscribe flag)
+                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format("$iothub/{0}/twin/res/#", identity.Id), this.emptyArray);
+            }
+
             var rid = this.GetRid();
             var taskCompletion = new TaskCompletionSource<IMessage>();
 
@@ -202,10 +225,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return taskCompletion.Task.Result;
         }
 
-        void HandleRpcAck(string ackedGuid, byte[] payload)
+        void HandleRpcAck(string ackedGuid, string cmd)
         {
-            var ackInfo = this.GetAckInfo(payload);
-            switch (ackInfo.Cmd)
+            switch (cmd)
             {
                 case RpcCmdPub:
                 case RpcCmdSub:
@@ -230,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     break;
 
                 default:
-                    Events.UnknownAckType(ackInfo.Cmd, ackedGuid);
+                    Events.UnknownAckType(cmd, ackedGuid);
                     break;
             }
         }
@@ -273,7 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 {
                     [SystemProperties.Version] = version
                 });
-
+            Console.WriteLine($"!!!!!!! Detected desired prop change, sending to edgeHub... {id}");
             _ = this.edgeHub.UpdateDesiredPropertiesAsync(id, messageBuilder.Build());
         }
 
@@ -334,6 +356,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task SendUpstreamMessageAsync(string command, string topic, byte[] payload)
         {
+            Console.WriteLine($"!!!!!! sending message upstream: topic {topic}, content: {System.Text.Encoding.UTF8.GetString(payload)}");
+
             var messageId = Guid.NewGuid();
 
             Events.SendingUpstreamMessage(messageId);
@@ -390,22 +414,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             return stream.ToArray();
-        }
-
-        RpcPacket GetAckInfo(byte[] rawAckInfo)
-        {
-            using (var reader = new BsonDataReader(new MemoryStream(rawAckInfo)))
-            {
-                var serializer = new JsonSerializer
-                {
-                    ContractResolver = new DefaultContractResolver
-                    {
-                        NamingStrategy = new CamelCaseNamingStrategy()
-                    }
-                };
-
-                return serializer.Deserialize<RpcPacket>(reader);
-            }
         }
 
         long GetRid() => Interlocked.Increment(ref this.lastRid);
@@ -489,10 +497,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public static void SentUpstreamTimeout(Guid guid) => Log.LogWarning((int)EventIds.SentUpstreamTimeout, $"Timeout waiting for upstream message confirmation. Message id: {guid}");
         public static void ReceivedConfirmation(Guid guid) => Log.LogDebug((int)EventIds.ReceivedConfirmation, $"Received confirmation for upstream message. Message id: {guid}");
 
-        public static void AddingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.AddingDirectMethodCallSubscription, $"Adding direct method call subscritpions for client: {id}");
-        public static void AddingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.AddingDesiredPropertyUpdateSubscription, $"Adding desired property update subscritpions for client: {id}");
-        public static void RemovingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDirectMethodCallSubscription, $"Removing direct method call subscritpions for client: {id}");
-        public static void RemovingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDesiredPropertyUpdateSubscription, $"Removing desired property update subscritpions for client: {id}");
+        public static void AddingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.AddingDirectMethodCallSubscription, $"Adding direct method call subscriptions for client: {id}");
+        public static void AddingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.AddingDesiredPropertyUpdateSubscription, $"Adding desired property update subscriptions for client: {id}");
+        public static void RemovingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDirectMethodCallSubscription, $"Removing direct method call subscriptions for client: {id}");
+        public static void RemovingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDesiredPropertyUpdateSubscription, $"Removing desired property update subscriptions for client: {id}");
 
         public static void ErrorHandlingDownstreamMessage(string topic, Exception e) => Log.LogError((int)EventIds.ErrorHandlingDownstreamMessage, e, $"Error handling downstream message on topic: {topic}");
         public static void CannotParseGuid(string guid) => Log.LogError((int)EventIds.CannotParseGuid, $"Cannot parse guid: {guid}");
