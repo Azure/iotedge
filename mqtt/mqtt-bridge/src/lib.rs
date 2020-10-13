@@ -13,6 +13,7 @@
 
 mod bridge;
 pub mod client;
+mod connectivity;
 pub mod controller;
 mod persist;
 mod rpc;
