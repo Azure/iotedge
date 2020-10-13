@@ -11,14 +11,14 @@ use crate::persist::{
 
 /// Pattern allows for the wrapping PublicationStore to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
-pub struct PublicationStoreInner<S: StreamWakeableState> {
+pub struct PublicationStoreInner<S> {
     state: Rc<RefCell<S>>,
     offset: u32,
     loader: Rc<RefCell<MessageLoader<S>>>,
 }
 
 /// Persistence implementation used for the bridge
-pub struct PublicationStore<S: StreamWakeableState> {
+pub struct PublicationStore<S> {
     inner: Rc<RefCell<PublicationStoreInner<S>>>,
 }
 
@@ -28,7 +28,10 @@ impl PublicationStore<WakingMemoryStore> {
     }
 }
 
-impl<S: StreamWakeableState> PublicationStore<S> {
+impl<S> PublicationStore<S>
+where
+    S: StreamWakeableState,
+{
     pub fn new(state: S, batch_size: usize) -> Self {
         let state = Rc::new(RefCell::new(state));
         let loader = MessageLoader::new(state.clone(), batch_size);

@@ -18,13 +18,16 @@ use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 /// Then, will return these elements in order
 ///
 /// When the batch is exhausted it will grab a new batch
-pub struct MessageLoader<S: StreamWakeableState> {
+pub struct MessageLoader<S> {
     state: Rc<RefCell<S>>,
     batch: VecDeque<(Key, Publication)>,
     batch_size: usize,
 }
 
-impl<S: StreamWakeableState> MessageLoader<S> {
+impl<S> MessageLoader<S>
+where
+    S: StreamWakeableState,
+{
     pub fn new(state: Rc<RefCell<S>>, batch_size: usize) -> Self {
         let batch = VecDeque::new();
 
@@ -46,7 +49,10 @@ impl<S: StreamWakeableState> MessageLoader<S> {
     }
 }
 
-impl<S: StreamWakeableState> Stream for MessageLoader<S> {
+impl<S> Stream for MessageLoader<S>
+where
+    S: StreamWakeableState,
+{
     type Item = Result<(Key, Publication), PersistError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

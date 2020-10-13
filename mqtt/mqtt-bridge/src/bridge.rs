@@ -7,7 +7,8 @@ use tokio::sync::oneshot::Sender;
 use tracing::{debug, error, info};
 
 use crate::{
-    client::ClientError, persist::PersistError, pump::PumpPair, settings::ConnectionSettings,
+    client::ClientError, persist::PersistError, pump::PumpPair, rpc::RpcError,
+    settings::ConnectionSettings,
 };
 
 #[derive(Debug)]
@@ -95,7 +96,7 @@ impl Bridge {
     }
 }
 
-/// Authentication error.
+/// Bridge error.
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
     #[error("Failed to save to store.")]
@@ -109,6 +110,9 @@ pub enum BridgeError {
 
     #[error("Failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
+
+    #[error("failed to execute RPC command")]
+    Rpc(#[from] RpcError),
 
     #[error("Failed to signal bridge shutdown.")]
     ShutdownBridge(()),

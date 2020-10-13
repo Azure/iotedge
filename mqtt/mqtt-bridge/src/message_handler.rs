@@ -1,13 +1,15 @@
 use std::convert::TryFrom;
 
-use mqtt3::{proto::Publication, Event, ReceivedPublication};
+use async_trait::async_trait;
+use mqtt3::{proto::Publication, Event};
 use mqtt_broker::TopicFilter;
 use tracing::{debug, warn};
 
 use crate::{
     bridge::BridgeError,
-    client::EventHandler,
-    persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
+    client::{EventHandler, Handled},
+    persist::{PublicationStore, StreamWakeableState},
+    rpc::RpcHandler,
     settings::TopicRule,
 };
 
@@ -34,26 +36,20 @@ impl TryFrom<TopicRule> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-pub struct MessageHandler<S>
-where
-    S: StreamWakeableState,
-{
+pub struct MessageHandler<S> {
     topic_mappers: Vec<TopicMapper>,
-    inner: PublicationStore<S>,
+    store: PublicationStore<S>,
 }
 
-impl<S> MessageHandler<S>
-where
-    S: StreamWakeableState,
-{
+impl<S> MessageHandler<S> {
     pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
-            inner: persistor,
+            store: persistor,
         }
     }
 
-    pub fn transform(&self, topic_name: &str) -> Option<String> {
+    fn transform(&self, topic_name: &str) -> Option<String> {
         self.topic_mappers.iter().find_map(|mapper| {
             mapper
                 .topic_settings
@@ -77,42 +73,65 @@ where
     }
 }
 
-impl EventHandler for MessageHandler<WakingMemoryStore> {
+#[async_trait(?Send)]
+impl<S> EventHandler for MessageHandler<S>
+where
+    S: StreamWakeableState,
+{
     type Error = BridgeError;
 
-    fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
+    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
         if let Event::Publication(publication) = event {
-            let ReceivedPublication {
-                topic_name,
-                qos,
-                retain,
-                payload,
-                dup: _,
-            } = publication;
-            let forward_publication = self.transform(topic_name.as_ref()).map(|f| Publication {
-                topic_name: f,
-                qos,
-                retain,
-                payload,
-            });
+            let forward_publication =
+                self.transform(&publication.topic_name)
+                    .map(|topic_name| Publication {
+                        topic_name,
+                        qos: publication.qos,
+                        retain: publication.retain,
+                        payload: publication.payload.clone(),
+                    });
 
-            if let Some(f) = forward_publication {
+            if let Some(publication) = forward_publication {
                 debug!("Save message to store");
-                self.inner.push(f).map_err(BridgeError::Store)?;
+                self.store.push(publication).map_err(BridgeError::Store)?;
+
+                return Ok(Handled::Fully);
             } else {
                 warn!("No topic matched");
             }
         }
 
-        Ok(())
+        Ok(Handled::Skipped)
+    }
+}
+
+pub struct UpstreamHandler<S> {
+    messages: MessageHandler<S>,
+    rpc: RpcHandler,
+}
+
+#[async_trait(?Send)]
+impl<S> EventHandler for UpstreamHandler<S>
+where
+    S: StreamWakeableState,
+{
+    type Error = BridgeError;
+
+    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
+        // try to handle as RPC command first
+        if self.rpc.handle(&event).await? == Handled::Fully {
+            return Ok(Handled::Fully);
+        }
+
+        // handle as an event for regular message handler
+        self.messages.handle(&event).await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use bytes::Bytes;
-    use futures_util::stream::StreamExt;
-    use futures_util::stream::TryStreamExt;
+    use futures_util::{stream::StreamExt, TryStreamExt};
     use std::str::FromStr;
 
     use mqtt3::{
@@ -121,11 +140,9 @@ mod tests {
     };
     use mqtt_broker::TopicFilter;
 
-    use super::MessageHandler;
-    use super::TopicMapper;
-    use crate::client::EventHandler;
+    use super::{MessageHandler, TopicMapper};
     use crate::persist::PublicationStore;
-    use crate::settings::BridgeSettings;
+    use crate::{client::EventHandler, settings::BridgeSettings};
 
     #[tokio::test]
     async fn message_handler_saves_message_with_local_and_forward_topic() {
@@ -160,9 +177,9 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle_event(Event::Publication(pub1)).unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.store.loader();
         let mut loader_borrow = loader.borrow_mut();
 
         let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
@@ -202,9 +219,9 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle_event(Event::Publication(pub1)).unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.store.loader();
         let mut loader_borrow = loader.borrow_mut();
 
         let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
@@ -244,9 +261,9 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle_event(Event::Publication(pub1)).unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.store.loader();
         let mut loader_borrow = loader.borrow_mut();
 
         let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
@@ -279,9 +296,9 @@ mod tests {
             dup: false,
         };
 
-        handler.handle_event(Event::Publication(pub1)).unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.store.loader();
         let mut loader_borrow = loader.borrow_mut();
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
