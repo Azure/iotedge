@@ -2,12 +2,14 @@ use std::cell::BorrowMutError;
 
 use futures_util::{future::select, future::Either, pin_mut};
 use mqtt3::ShutdownError;
-use tokio::sync::oneshot;
-use tokio::sync::oneshot::Sender;
+use tokio::sync::{mpsc::error::SendError, oneshot, oneshot::Sender};
 use tracing::{debug, error, info};
 
 use crate::{
-    client::ClientError, persist::PersistError, pump::PumpPair, rpc::RpcError,
+    client::ClientError,
+    persist::PersistError,
+    pump::{PumpMessage, PumpPair},
+    rpc::RpcError,
     settings::ConnectionSettings,
 };
 
@@ -110,6 +112,9 @@ pub enum BridgeError {
 
     #[error("Failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
+
+    #[error("Failed to get send pump message.")]
+    SenderToPump(#[from] SendError<PumpMessage>),
 
     #[error("failed to execute RPC command")]
     Rpc(#[from] RpcError),

@@ -1,14 +1,19 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, collections::HashMap, convert::TryInto, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    convert::TryInto,
+    fmt::{Display, Formatter, Result as FmtResult},
+    rc::Rc,
+};
 
 use futures_util::{
     future::{select, Either, FutureExt},
     pin_mut, select,
     stream::{StreamExt, TryStreamExt},
 };
-use tokio::sync::{oneshot, oneshot::Receiver};
-use tracing::debug;
-use tracing::error;
+use tokio::sync::{mpsc::Sender, oneshot, oneshot::Receiver};
+use tracing::{debug, error};
 
 use mqtt3::PublishHandle;
 
@@ -21,6 +26,44 @@ use crate::{
 };
 
 const BATCH_SIZE: usize = 10;
+
+#[derive(Debug, PartialEq)]
+pub enum PumpMessage {
+    ConnectivityUpdate(ConnectivityState),
+    ConfigurationUpdate(ConnectionSettings),
+}
+
+pub struct PumpHandle {
+    sender: Sender<PumpMessage>,
+}
+
+impl PumpHandle {
+    pub fn new(sender: Sender<PumpMessage>) -> Self {
+        Self { sender }
+    }
+
+    pub async fn send(&mut self, message: PumpMessage) -> Result<(), BridgeError> {
+        self.sender
+            .send(message)
+            .await
+            .map_err(BridgeError::SenderToPump)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ConnectivityState {
+    Connected,
+    Disconnected,
+}
+
+impl Display for ConnectivityState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Self::Connected => write!(f, "Connected"),
+            Self::Disconnected => write!(f, "Disconnected"),
+        }
+    }
+}
 
 /// Provides context used for logging in the bridge pumps and client implementations
 #[derive(Debug, Clone)]
