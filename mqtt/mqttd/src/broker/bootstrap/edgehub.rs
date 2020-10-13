@@ -15,8 +15,7 @@ use tokio::{sync::broadcast, time};
 use tracing::{error, info, warn};
 
 use super::SidecarManager;
-use mqtt_bridge::settings::BridgeSettings;
-use mqtt_bridge::BridgeController;
+use mqtt_bridge::{BridgeController, settings::BridgeSettings};
 use mqtt_broker::{
     auth::{AllowAll, Authorizer},
     Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerSnapshot, Server, ServerCertificate,

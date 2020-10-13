@@ -2,8 +2,7 @@ use futures_util::future::{self, join_all};
 use tokio::task;
 use tracing::{error, info};
 
-use crate::bridge::Bridge;
-use crate::settings::BridgeSettings;
+use crate::{bridge::Bridge, settings::BridgeSettings};
 
 /// Controller that handles the settings and monitors changes, spawns new Bridges and monitors shutdown signal.
 pub struct BridgeController {}

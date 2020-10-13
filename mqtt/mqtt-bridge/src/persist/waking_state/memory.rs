@@ -4,8 +4,9 @@ use std::{
     task::Waker,
 };
 
-use mqtt3::proto::Publication;
 use tracing::debug;
+
+use mqtt3::proto::Publication;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 

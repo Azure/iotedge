@@ -18,8 +18,7 @@ use mqtt3::{
 use crate::{
     pump::PumpContext,
     settings::Credentials,
-    token_source::TrustBundleSource,
-    token_source::{SasTokenSource, TokenSource},
+    token_source::{SasTokenSource, TokenSource, TrustBundleSource},
 };
 
 const DEFAULT_TOKEN_DURATION_MINS: i64 = 60;

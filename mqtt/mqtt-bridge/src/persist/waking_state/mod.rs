@@ -1,5 +1,4 @@
-use std::collections::VecDeque;
-use std::task::Waker;
+use std::{collections::VecDeque, task::Waker};
 
 use async_trait::async_trait;
 use mqtt3::proto::Publication;
