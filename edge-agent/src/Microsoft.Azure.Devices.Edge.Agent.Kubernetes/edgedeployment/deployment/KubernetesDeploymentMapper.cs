@@ -302,7 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     this.agentConfigVolume.HasValue)
                 {
                     var agentConfigVolume = this.agentConfigVolume.OrDefault();
-                    volumeList.Add(new V1Volume { Name = agentConfigVolume, ConfigMap = new V1ConfigMapVolumeSource(name: this.agentConfigMapName.OrDefault()) });
+                    volumeList.Add(new V1Volume { Name = agentConfigVolume, ConfigMap = new V1ConfigMapVolumeSource(name: this.agentConfigMapName.OrDefault(), optional: true) });
                     volumeMountList.Add(new V1VolumeMount { MountPath = this.agentConfigPath.OrDefault(), Name = agentConfigVolume, ReadOnlyProperty = true });
                 }
             }
