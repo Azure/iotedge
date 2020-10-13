@@ -7,7 +7,7 @@ use tracing::{debug, warn};
 /// `Broker` is ready to serve external clients. It awaits on several events
 /// from components Broker depends on.
 ///
-/// Notes: Authenticator and Authorizer both needs some data which not
+/// Notes: Authenticator and Authorizer both needs some data which is not
 /// available when process started. They receive it using internal
 /// communication channels. Once data is loaded and components initialized
 /// they send corresponding events to the `BrokerReady` which in turn unblocks
