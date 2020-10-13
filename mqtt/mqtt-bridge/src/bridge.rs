@@ -74,13 +74,23 @@ impl Bridge {
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
+        let remote_pump_context =
+            PumpContext::new(PumpType::Remote, connection_settings.name().to_string());
         let remote_client = MqttClient::tls(
             connection_settings.address(),
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(incoming_persist.clone(), remote_topic_filters),
             connection_settings.credentials(),
+            remote_pump_context.clone(),
         );
+        let mut remote_pump = Pump::new(
+            remote_client,
+            remote_subscriptions,
+            outgoing_loader,
+            outgoing_persist.clone(),
+            remote_pump_context,
+        )?;
 
         let local_client_id = format!(
             "{}/$edgeHub/$bridge/{}",
@@ -92,32 +102,22 @@ impl Bridge {
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
+        let local_pump_context =
+            PumpContext::new(PumpType::Local, connection_settings.name().to_string());
         let local_client = MqttClient::tcp(
             system_address.as_str(),
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
-            MessageHandler::new(outgoing_persist.clone(), local_topic_filters),
+            MessageHandler::new(outgoing_persist, local_topic_filters),
             &Credentials::Anonymous(local_client_id),
+            local_pump_context.clone(),
         );
-
-        let local_pump_context =
-            PumpContext::new(PumpType::Local, connection_settings.name().to_string());
         let mut local_pump = Pump::new(
             local_client,
             local_subscriptions,
             incoming_loader,
             incoming_persist,
             local_pump_context,
-        )?;
-
-        let remote_pump_context =
-            PumpContext::new(PumpType::Remote, connection_settings.name().to_string());
-        let mut remote_pump = Pump::new(
-            remote_client,
-            remote_subscriptions,
-            outgoing_loader,
-            outgoing_persist,
-            remote_pump_context,
         )?;
 
         local_pump.subscribe().await?;

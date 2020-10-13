@@ -25,6 +25,7 @@ pub enum PumpType {
     Remote,
 }
 
+#[derive(Debug, Clone)]
 pub struct PumpContext {
     pump_type: PumpType,
     bridge_name: String,

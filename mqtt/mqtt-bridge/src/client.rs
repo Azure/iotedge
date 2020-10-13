@@ -15,6 +15,7 @@ use mqtt3::{
 };
 
 use crate::{
+    pump::PumpContext,
     settings::Credentials,
     token_source::TrustBundleSource,
     token_source::{SasTokenSource, TokenSource},
@@ -193,6 +194,7 @@ where
     keep_alive: Duration,
     client: Client<BridgeIoSource>,
     event_handler: T,
+    pump_context: PumpContext,
 }
 
 impl<T: EventHandler> MqttClient<T> {
@@ -202,6 +204,7 @@ impl<T: EventHandler> MqttClient<T> {
         clean_session: bool,
         event_handler: T,
         connection_credentials: &Credentials,
+        pump_context: PumpContext,
     ) -> Self {
         let token_source = Self::token_source(&connection_credentials);
         let tcp_connection =
@@ -214,6 +217,7 @@ impl<T: EventHandler> MqttClient<T> {
             event_handler,
             connection_credentials,
             io_source,
+            pump_context,
         )
     }
 
@@ -223,6 +227,7 @@ impl<T: EventHandler> MqttClient<T> {
         clean_session: bool,
         event_handler: T,
         connection_credentials: &Credentials,
+        pump_context: PumpContext,
     ) -> Self {
         let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
 
@@ -237,6 +242,7 @@ impl<T: EventHandler> MqttClient<T> {
             event_handler,
             connection_credentials,
             io_source,
+            pump_context,
         )
     }
 
@@ -246,6 +252,7 @@ impl<T: EventHandler> MqttClient<T> {
         event_handler: T,
         connection_credentials: &Credentials,
         io_source: BridgeIoSource,
+        pump_context: PumpContext,
     ) -> Self {
         let (client_id, username) = match connection_credentials {
             Credentials::Provider(provider_settings) => (
@@ -288,6 +295,7 @@ impl<T: EventHandler> MqttClient<T> {
             keep_alive,
             client,
             event_handler,
+            pump_context,
         }
     }
 
@@ -318,30 +326,36 @@ impl<T: EventHandler> MqttClient<T> {
     }
 
     pub async fn handle_events(&mut self) {
-        let client_id = self.client_id.clone().unwrap_or(String::new());
-        debug!("polling bridge client {}", client_id);
+        debug!("polling bridge client for pump {:?}", self.pump_context);
 
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
-            error!(message = "failed to poll events", error=%e);
+            let err_msg = format!("failed to poll events for pump {:?}", self.pump_context);
+            error!(message = err_msg.as_str(), error=%e);
             // TODO: handle the error by recreating the connection
             None
         }) {
             debug!("handle event {:?}", event);
             if let Err(e) = self.event_handler.handle_event(event) {
-                error!("error processing event {}", e);
+                error!(
+                    "error processing event {} for pump {:?}",
+                    e, self.pump_context
+                );
             }
         }
     }
 
     pub async fn subscribe(&mut self, topics: &Vec<String>) -> Result<(), ClientError> {
-        debug!("subscribing to topics");
+        debug!("subscribing to topics for pump {:?}", self.pump_context);
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: DEFAULT_QOS,
         });
 
         for subscription in subscriptions {
-            debug!("subscribing to topic {}", subscription.topic_filter);
+            debug!(
+                "subscribing to topic {} for pump {:?}",
+                subscription.topic_filter, self.pump_context
+            );
             self.client
                 .subscribe(subscription)
                 .map_err(ClientError::Subscribe)?;
@@ -349,7 +363,7 @@ impl<T: EventHandler> MqttClient<T> {
 
         let mut subacks: HashSet<_> = topics.iter().collect();
         if subacks.is_empty() {
-            debug!("no topics to subscribe to");
+            debug!("no topics to subscribe to for pump {:?}", self.pump_context);
             return Ok(());
         }
 
@@ -369,29 +383,45 @@ impl<T: EventHandler> MqttClient<T> {
                     match subscription {
                         SubscriptionUpdateEvent::Subscribe(sub) => {
                             subacks.remove(&sub.topic_filter);
-                            debug!("successfully subscribed to topics");
+                            debug!(
+                                "successfully subscribed to topics for pump {:?}",
+                                self.pump_context
+                            );
                         }
                         SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
                             subacks.remove(&topic_filter);
-                            error!("subscription rejected by server {}", topic_filter);
+                            error!(
+                                "subscription rejected by server {} for pump {:?}",
+                                topic_filter, self.pump_context
+                            );
                         }
                         SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
-                            warn!("Unsubscribed {}", topic_filter);
+                            warn!(
+                                "Unsubscribed {} for pump {:?}",
+                                topic_filter, self.pump_context
+                            );
                         }
                     }
                 }
 
-                debug!("stop waiting for subscriptions");
+                debug!(
+                    "stop waiting for subscriptions for pump {:?}",
+                    self.pump_context
+                );
                 break;
             }
         }
 
         if subacks.is_empty() {
-            debug!("successfully subscribed to topics");
+            debug!(
+                "successfully subscribed to topics for pump {:?}",
+                self.pump_context
+            );
         } else {
             error!(
-                "failed to receive expected subacks for topics: {0:?}",
-                subacks.iter().map(ToString::to_string).collect::<String>()
+                "failed to receive expected subacks for topics: {:?} on pump {:?}",
+                subacks.iter().map(ToString::to_string).collect::<String>(),
+                self.pump_context
             );
         }
 
