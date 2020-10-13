@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         }
 
         public override bool Equals(object obj)
-            => this.Equals(obj as AuthorizationConfig);
+            => this.Equals(obj as BrokerConfig);
 
         public override int GetHashCode()
         {
