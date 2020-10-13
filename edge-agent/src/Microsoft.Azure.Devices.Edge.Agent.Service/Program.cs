@@ -187,16 +187,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             .AddJsonFile(K8sConfigFileName, true)
                             .AddEnvironmentVariables()
                             .Build();
-                        // k8s options 
+                        // k8s options
                         KubernetesApplicationSettings k8sSettings = k8sConfiguration.Get<KubernetesApplicationSettings>();
-                        // string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
                         Option<string> proxyImagePullSecretName = Option.Maybe(configuration.GetValue<string>(K8sConstants.ProxyImagePullSecretNameEnvKey));
-                        // string proxyConfigPath = configuration.GetValue<string>(K8sConstants.ProxyConfigPathEnvKey);
-                        // string proxyConfigVolumeName = configuration.GetValue<string>(K8sConstants.ProxyConfigVolumeEnvKey);
-                        // string proxyConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyConfigMapNameEnvKey);
-                        // string proxyTrustBundlePath = configuration.GetValue<string>(K8sConstants.ProxyTrustBundlePathEnvKey);
-                        // string proxyTrustBundleVolumeName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleVolumeEnvKey);
-                        // string proxyTrustBundleConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleConfigMapEnvKey);
                         PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         bool useMountSourceForVolumeName = configuration.GetValue<bool>(K8sConstants.UseMountSourceForVolumeNameKey, false);

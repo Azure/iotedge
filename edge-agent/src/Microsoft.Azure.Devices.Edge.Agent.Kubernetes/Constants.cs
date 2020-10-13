@@ -65,14 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string ProxyTrustBundleConfigMapEnvKey = "ProxyTrustBundleConfigMapName";
 
-        public const string ProxyConfigMemoryLimitKey = "ProxyMemoryLimit";
-
-        public const string ProxyConfigCpuLimitKey = "ProxyCpuLimit";
-
-        public const string AgentConfigMemoryLimitKey = "AgentMemoryLimit";
-
-        public const string AgentConfigCpuLimitKey = "AgentCpuLimit";
-
         public const string UseMountSourceForVolumeNameKey = "UseMountSourceForVolumeName";
 
         public const string StorageClassNameKey = "StorageClassName";
@@ -94,16 +86,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string HostIPC = "host";
         public const string HostNetwork = "host";
         public const string HostNetworkDnsPolicy = "ClusterFirstWithHostNet";
-
-        public const string ResourceMemoryLimitKey = "memory";
-
-        public const string ResourceCpuLimitKey = "cpu";
-
-        public const string ProxyMemoryLimitDefault = "25M";
-
-        public const string ProxyCpuLimitDefault = "5m";
-        public const string AgentMemoryLimitDefault = "200M";
-
-        public const string AgentCpuLimitDefault = "50m";
     }
 }
