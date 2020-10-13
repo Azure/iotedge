@@ -1,9 +1,9 @@
 #![allow(dead_code)] // TODO remove when ready
 
 use async_trait::async_trait;
+use tracing::{debug, info};
 
 use mqtt3::Event;
-use tracing::{debug, info};
 
 use crate::{
     bridge::{BridgeError, ConnectivityState, PumpHandle, PumpMessage},
