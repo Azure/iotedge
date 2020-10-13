@@ -88,6 +88,7 @@ fn server_publishes_at_most_once() {
                 retain: false,
                 payload: [0x01, 0x02, 0x03][..].into(),
             }),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
@@ -333,6 +334,7 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
@@ -342,6 +344,7 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
                     qos: mqtt3::proto::QoS::AtLeastOnce,
                 },
             )]),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
@@ -352,6 +355,7 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
                 retain: false,
                 payload: [0x01, 0x02, 0x03][..].into(),
             }),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
@@ -508,6 +512,7 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
@@ -524,6 +529,10 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
                 retain: false,
                 payload: [0x01, 0x02, 0x03][..].into(),
             }),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::Io(std::io::Error::new(
+                std::io::ErrorKind::WriteZero,
+                "failed to write frame to transport",
+            ))),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
@@ -534,6 +543,7 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
                 retain: false,
                 payload: [0x01, 0x02, 0x03][..].into(),
             }),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
