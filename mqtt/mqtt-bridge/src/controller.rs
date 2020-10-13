@@ -14,7 +14,9 @@ pub struct BridgeController {
 
 impl BridgeController {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            bridges: HashMap::new(),
+        }
     }
 
     pub async fn init(

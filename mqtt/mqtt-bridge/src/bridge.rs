@@ -17,9 +17,8 @@ use mqtt_broker::TopicFilter;
 use crate::{
     client::{ClientConnectError, EventHandler, Handled, MqttClient},
     persist::{PersistError, PublicationStore, StreamWakeableState},
-    rpc::RpcError,
-    rpc::RpcHandler,
-    settings::{ConnectionSettings, Credentials, Topic},
+    rpc::{RpcError, RpcHandler},
+    settings::{ConnectionSettings, Credentials, Direction, Topic},
 };
 
 const BATCH_SIZE: usize = 10;
@@ -78,14 +77,16 @@ impl Bridge {
         connection_settings: ConnectionSettings,
     ) -> Self {
         let forwards = connection_settings
-            .forwards()
+            .subscriptions()
             .iter()
+            .filter(|s| *s.direction() == Direction::Out)
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
         let subscriptions = connection_settings
             .subscriptions()
             .iter()
+            .filter(|s| *s.direction() == Direction::In)
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
@@ -99,10 +100,10 @@ impl Bridge {
     }
 
     fn format_key_value(topic: &Topic) -> (String, Topic) {
-        let key = if let Some(local) = topic.local() {
-            format!("{}/{}", local, topic.pattern().to_string())
+        let key = if let Some(local) = topic.in_prefix() {
+            format!("{}/{}", local, topic.topic().to_string())
         } else {
-            topic.pattern().into()
+            topic.topic().into()
         };
         (key, topic.clone())
     }
@@ -208,7 +209,7 @@ impl TryFrom<Topic> for TopicMapper {
 
     fn try_from(topic: Topic) -> Result<Self, BridgeError> {
         let topic_filter = topic
-            .pattern()
+            .topic()
             .parse()
             .map_err(BridgeError::TopicFilterParse)?;
 
@@ -237,7 +238,7 @@ impl<S> MessageHandler<S> {
         self.topic_mappers.iter().find_map(|mapper| {
             mapper
                 .topic_settings
-                .local()
+                .in_prefix()
                 // maps if local does not have a value it uses the topic that was received,
                 // else it checks that the received topic starts with local prefix and removes the local prefix
                 .map_or(Some(topic_name), |local_prefix| {
@@ -247,7 +248,7 @@ impl<S> MessageHandler<S> {
                 // match topic without local prefix with the topic filter pattern
                 .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
                 .map(|stripped_topic| {
-                    if let Some(remote_prefix) = mapper.topic_settings.remote() {
+                    if let Some(remote_prefix) = mapper.topic_settings.out_prefix() {
                         format!("{}/{}", remote_prefix, stripped_topic)
                     } else {
                         stripped_topic.to_string()
@@ -347,10 +348,13 @@ mod tests {
     };
     use mqtt_broker::TopicFilter;
 
-    use crate::bridge::{Bridge, MessageHandler, TopicMapper};
     use crate::client::EventHandler;
     use crate::persist::PublicationStore;
     use crate::settings::Settings;
+    use crate::{
+        bridge::{Bridge, MessageHandler, TopicMapper},
+        settings::Direction,
+    };
 
     #[tokio::test]
     async fn bridge_new() {
@@ -365,21 +369,22 @@ mod tests {
 
         let (key, value) = bridge.forwards.get_key_value("temp/#").unwrap();
         assert_eq!(key, "temp/#");
-        assert_eq!(value.remote().unwrap(), "floor/kitchen");
-        assert_eq!(value.local(), None);
+        assert_eq!(value.out_prefix().unwrap(), "floor/kitchen");
+        assert_eq!(value.in_prefix(), None);
 
         let (key, value) = bridge.forwards.get_key_value("pattern/#").unwrap();
         assert_eq!(key, "pattern/#");
-        assert_eq!(value.remote(), None);
+        assert_eq!(value.out_prefix(), None);
+        assert_eq!(value.in_prefix(), None);
 
         let (key, value) = bridge.forwards.get_key_value("local/floor/#").unwrap();
         assert_eq!(key, "local/floor/#");
-        assert_eq!(value.local().unwrap(), "local");
-        assert_eq!(value.remote().unwrap(), "remote");
+        assert_eq!(value.in_prefix().unwrap(), "local");
+        assert_eq!(value.out_prefix().unwrap(), "remote");
 
         let (key, value) = bridge.subscriptions.get_key_value("temp/#").unwrap();
         assert_eq!(key, "temp/#");
-        assert_eq!(value.remote().unwrap(), "floor/kitchen");
+        assert_eq!(value.out_prefix().unwrap(), "floor/kitchen");
     }
 
     #[tokio::test]
@@ -389,11 +394,12 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
+            .subscriptions()
             .iter()
+            .filter(|sub| *sub.direction() == Direction::Out)
             .map(move |sub| TopicMapper {
                 topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -430,11 +436,12 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
+            .subscriptions()
             .iter()
+            .filter(|sub| *sub.direction() == Direction::Out)
             .map(move |sub| TopicMapper {
                 topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -471,11 +478,12 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
+            .subscriptions()
             .iter()
+            .filter(|sub| *sub.direction() == Direction::Out)
             .map(move |sub| TopicMapper {
                 topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -512,11 +520,12 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
+            .subscriptions()
             .iter()
+            .filter(|sub| *sub.direction() == Direction::Out)
             .map(move |sub| TopicMapper {
                 topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
