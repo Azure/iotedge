@@ -469,34 +469,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             Assert.Single(authConfig[0].Deny[0].Resources);
             Assert.Equal("/alert/#", authConfig[0].Deny[0].Resources[0]);
         }
-
-        [Fact]
-        public void AuthorizationsInvalidSchemaVersionTest()
-        {
-            string properties_1_1 =
-                @"{
-                    'schemaVersion': '1.1.0',
-                    'routes': {},
-                    'storeAndForwardConfiguration': {},
-                    'mqttBroker': {
-                        'authorizations': []
-                    },
-                    '$version': 2
-                }";
-
-            string properties_1_0 =
-                @"{
-                    'schemaVersion': '1.0.0',
-                    'routes': {},
-                    'storeAndForwardConfiguration': {},
-                    'mqttBroker': {
-                        'authorizations': []
-                    },
-                    '$version': 2
-                }";
-
-            Assert.Throws<InvalidSchemaVersionException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties_1_1));
-            Assert.Throws<InvalidSchemaVersionException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties_1_0));
-        }
     }
 }
