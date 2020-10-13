@@ -78,7 +78,7 @@ impl EventHandler for ConnectivityHandler {
 
 #[cfg(test)]
 mod tests {
-    use mqtt3::{proto::QoS, proto::SubscribeTo, Event, SubscriptionUpdateEvent};
+    use mqtt3::{proto::QoS, proto::SubscribeTo, ConnectionError, Event, SubscriptionUpdateEvent};
     use tokio::sync::{mpsc, mpsc::error::TryRecvError};
 
     use crate::bridge::{ConnectivityState, PumpMessage};
@@ -120,7 +120,9 @@ mod tests {
         let _msg = connectivity_receiver.try_recv().unwrap();
 
         let res_disconnected = ch
-            .handle(&Event::Disconnected("reason".to_owned()))
+            .handle(&Event::Disconnected(
+                ConnectionError::ServerClosedConnection,
+            ))
             .await
             .unwrap();
 
@@ -170,7 +172,9 @@ mod tests {
         let mut ch = ConnectivityHandler::new(PumpHandle::new(sender));
 
         let res_disconnected = ch
-            .handle(&Event::Disconnected("reason".to_owned()))
+            .handle(&Event::Disconnected(
+                ConnectionError::ServerClosedConnection,
+            ))
             .await
             .unwrap();
 
