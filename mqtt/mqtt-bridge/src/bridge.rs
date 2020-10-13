@@ -136,7 +136,7 @@ impl Bridge {
             )
         };
 
-        debug!("subscribe to remote {:?}", subscriptions);
+        debug!("subscribe to {:?} {:?}", address.to_owned(), subscriptions);
 
         client
             .subscribe(subscriptions)
