@@ -342,7 +342,7 @@ where
 
                                 if err.is_connection_error() {
                                     return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
-                                        format!("Connection failed {}", err),
+                                        err.into(),
                                     ))));
                                 }
                             }
@@ -516,7 +516,7 @@ pub enum Event {
         reset_session: bool,
     },
 
-    Disconnected(String),
+    Disconnected(ConnectionError),
 
     /// A publication received from the server
     Publication(ReceivedPublication),
@@ -905,6 +905,39 @@ impl std::fmt::Display for UnexpectedSubUnsubAckReason {
             UnexpectedSubUnsubAckReason::ExpectedUnsubAck(packet_identifier) => {
                 write!(f, "expected UNSUBACK {}", packet_identifier)
             }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ConnectionError {
+    Io(std::io::Error),
+    ServerClosedConnection,
+}
+
+impl std::fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectionError::Io(err) => write!(f, "connection closed because I/O error: {}", err),
+            ConnectionError::ServerClosedConnection => write!(f, "connection closed by server"),
+        }
+    }
+}
+
+impl PartialEq for ConnectionError {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_string() == other.to_string()
+    }
+}
+
+impl Eq for ConnectionError {}
+
+impl From<Error> for ConnectionError {
+    fn from(state: Error) -> Self {
+        match state {
+            Error::EncodePacket(crate::proto::EncodeError::Io(io))
+            | Error::DecodePacket(crate::proto::DecodeError::Io(io)) => ConnectionError::Io(io),
+            _ => ConnectionError::ServerClosedConnection,
         }
     }
 }

@@ -91,11 +91,11 @@ fn server_generated_id_can_connect_and_idle() {
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
-            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
-            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
@@ -233,15 +233,15 @@ fn client_id_can_connect_and_idle() {
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
-            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
-            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
-            mqtt3::Event::Disconnected("Connection failed connection closed by server".to_owned()),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
