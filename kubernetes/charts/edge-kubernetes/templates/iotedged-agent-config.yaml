@@ -10,4 +10,4 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
   appsettings_k8s.json: |-
-    {{ include "edge-kubernetes.agentconfig" . | fromYaml | toJson | b64enc }}
+    {{ include "edge-kubernetes.agentconfig" . | fromYaml | toJson }}
