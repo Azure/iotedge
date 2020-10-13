@@ -22,12 +22,7 @@ use crate::{
 
 const BATCH_SIZE: usize = 10;
 
-#[derive(Debug, Clone)]
-pub enum PumpType {
-    Local,
-    Remote,
-}
-
+/// Provides context used for logging in the bridge pumps and client implementations
 #[derive(Debug, Clone)]
 pub struct PumpContext {
     pump_type: PumpType,
@@ -43,6 +38,15 @@ impl PumpContext {
     }
 }
 
+/// Specifies if a pump is local or remote
+#[derive(Debug, Clone)]
+pub enum PumpType {
+    Local,
+    Remote,
+}
+
+/// Pumps always exists in a pair
+/// This abstraction provides a convenience function to create two pumps at once
 pub struct PumpPair {
     pub local_pump: Pump,
     pub remote_pump: Pump,
@@ -134,6 +138,11 @@ impl PumpPair {
     }
 }
 
+/// Pump used to connect to either local broker or remote brokers (including the upstream edge device)
+/// It contains an mqtt client that connects to a local/remote broker
+/// After connection there are two simultaneous processes:
+/// 1) persist incoming messages into an ingress store to be used by another pump
+/// 2) publish outgoing messages from an egress store to the local/remote broker
 pub struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
     client_shutdown: ClientShutdownHandle,
