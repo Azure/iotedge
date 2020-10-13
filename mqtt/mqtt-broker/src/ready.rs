@@ -1,7 +1,7 @@
 use std::{collections::HashSet, fmt::Display, hash::Hash};
 
 use tokio::sync::broadcast::{self, Receiver, RecvError, Sender};
-use tracing::{debug, warn};
+use tracing::{debug, error, warn};
 
 /// `BrokerReady` component acts as a intermidiate entity to determine whether
 /// `Broker` is ready to serve external clients. It awaits on several events
@@ -45,14 +45,9 @@ where
     E: Clone + Display,
 {
     pub fn send(&mut self, event: E) {
-        loop {
-            let event = event.clone();
-            debug!("sending broker ready event {}", event);
-
-            // attempt to send event until all recepients receive it
-            if matches!(self.0.send(event), Ok(recv) if recv == self.0.receiver_count()) {
-                break;
-            }
+        debug!("sending broker ready event {}", event);
+        if self.0.send(event).is_err() {
+            error!("no active receiver found")
         }
     }
 }

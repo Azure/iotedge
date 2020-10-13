@@ -265,20 +265,22 @@ where
             Ok(update) => {
                 debug!("authorizer update received. Identities: {:?}", update);
 
+                // update identities cache
                 self.identities_cache = update
                     .0
                     .into_iter()
                     .map(|id| (id.identity().into(), id))
                     .collect();
+
+                // signal that authorizer has been initialized
+                if let Some(mut broker_ready) = self.broker_ready.take() {
+                    broker_ready.send(BrokerReadyEvent::AuthorizerReady);
+                }
             }
             Err(update) => {
                 self.inner.update(update)?;
             }
         };
-
-        if let Some(mut broker_ready) = self.broker_ready.take() {
-            broker_ready.send(BrokerReadyEvent::AuthorizerReady);
-        }
 
         Ok(())
     }
