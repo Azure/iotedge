@@ -89,11 +89,11 @@ iotedged:
     ###############################################################################
     resources:
       requests:
-        memoryLimit: "100Mi"
-        cpuLimit: "100m"
+        memory: "100Mi"
+        cpu: "100m"
       limits:
-        memoryLimit: "100Mi"
-        cpuLimit: "100m"
+        memory: "100Mi"
+        cpu: "100m"
 
   ###############################################################################
   # Certificate settings
@@ -142,11 +142,11 @@ iotedgedProxy:
     pullPolicy: Always
   resources:
     requests:
-      memoryLimit: "25Mi"
-      cpuLimit: "5m"
+      memory: "25Mi"
+      cpu: "5m"
     limits:
-      memoryLimit: "25Mi"
-      cpuLimit: "5m"
+      memory: "25Mi"
+      cpu: "5m"
     
 
 # Edge Agent image configuration
@@ -167,11 +167,11 @@ edgeAgent:
   hostname: "localhost"
   resources:
     requests:
-      memoryLimit: "200Mi"
-      cpuLimit: "50m"
+      memory: "200Mi"
+      cpu: "50m"
     limits:
-      memoryLimit: "200Mi"
-      cpuLimit: "50m"
+      memory: "200Mi"
+      cpu: "50m"
   env:
     authScheme: 'sasToken'
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the

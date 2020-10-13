@@ -133,7 +133,7 @@ fn spec_to_podspec(
         optional: Some(true),
         ..api_core::ConfigMapVolumeSource::default()
     };
-    // Volume entry for proxy's config map
+    // Volume entry for agent's config map
     let agent_config_volume = api_core::Volume {
         name: settings.config_map_volume().to_string(),
         config_map: Some(agent_config_volume_source),
@@ -161,7 +161,7 @@ fn spec_to_podspec(
     // Where to mount proxy config map
     let proxy_volume_mount = api_core::VolumeMount {
         mount_path: settings.proxy().config_path().to_string(),
-        name: settings.config_map_volume().to_string(),
+        name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
     };
@@ -169,7 +169,7 @@ fn spec_to_podspec(
     // Where to mount agent config map
     let agent_volume_mount = api_core::VolumeMount {
         mount_path: settings.config_path().to_string(),
-        name: PROXY_CONFIG_VOLUME_NAME.to_string(),
+        name: settings.config_map_volume().to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
     };
