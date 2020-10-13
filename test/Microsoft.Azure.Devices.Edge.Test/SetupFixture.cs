@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             CancellationToken token = cts.Token;
-            Option<Registry> bootstrapRegistry = Option.Maybe(Context.Current.Registries.First());
+            Option<Registry> bootstrapRegistry = Option.Maybe(Context.Current.Registries.FirstOrDefault());
 
             this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(
                 Context.Current.InstallerPath,
