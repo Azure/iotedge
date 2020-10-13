@@ -154,7 +154,7 @@ pub struct Pump {
 }
 
 impl Pump {
-    pub fn new(
+    fn new(
         client: MqttClient<MessageHandler<WakingMemoryStore>>,
         subscriptions: Vec<String>,
         loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
