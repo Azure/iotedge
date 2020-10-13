@@ -30,7 +30,7 @@ impl Command for PolicyUpdateCommand {
     }
 
     fn handle(&mut self, publication: &ReceivedPublication) -> Result<(), Self::Error> {
-        info!("received policy update from edgeHub.");
+        info!("received policy update from EdgeHub.");
         let identities: Vec<PolicyUpdate> =
             serde_json::from_slice(&publication.payload).map_err(Error::ParsePolicyUpdate)?;
 
