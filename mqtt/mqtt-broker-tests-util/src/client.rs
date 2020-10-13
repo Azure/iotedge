@@ -269,7 +269,6 @@ where
                                     Event::Disconnected(_) => conn_sender
                                         .send(event)
                                         .expect("can't send an event to a conn channel"),
-
                                 }
                             }
                             None => {
