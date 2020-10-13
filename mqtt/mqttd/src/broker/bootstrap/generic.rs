@@ -12,7 +12,7 @@ use super::SidecarManager;
 use mqtt_broker::{
     auth::{authenticate_fn_ok, AllowAll, Authorizer},
     settings::BrokerConfig,
-    AuthId, Broker, BrokerBuilder, BrokerHandle, BrokerSnapshot, Error, Server, ServerCertificate,
+    AuthId, Broker, BrokerBuilder, BrokerHandle, BrokerSnapshot, Error, Server, ServerCertificate,BrokerReady
 };
 use mqtt_generic::settings::{CertificateConfig, ListenerConfig, Settings};
 
@@ -34,6 +34,7 @@ where
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
+    _: &BrokerReady
 ) -> Result<Broker<impl Authorizer>, Error> {
     let broker = BrokerBuilder::default()
         .with_authorizer(AllowAll)
@@ -48,6 +49,7 @@ pub async fn start_server<Z, F>(
     config: Settings,
     broker: Broker<Z>,
     shutdown_signal: F,
+    _: BrokerReady
 ) -> Result<BrokerSnapshot>
 where
     Z: Authorizer + Send + 'static,

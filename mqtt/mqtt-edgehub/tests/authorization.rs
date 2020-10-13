@@ -5,13 +5,11 @@ use mqtt3::{
     proto::ClientId, proto::Packet, proto::PacketIdentifier, proto::QoS, proto::Subscribe,
     proto::SubscribeTo,
 };
-use mqtt_broker::{
-    auth::authorize_fn_ok, auth::Authorization, auth::Operation, BrokerBuilder, BrokerReady,
-};
+use mqtt_broker::{auth::authorize_fn_ok, auth::Authorization, auth::Operation, BrokerBuilder};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,
-    server::{start_server, DummyAuthenticator},
+    server::{self, DummyAuthenticator},
 };
 use mqtt_edgehub::{
     auth::EdgeHubAuthorizer, auth::IdentityUpdate, command::AuthorizedIdentitiesCommand,
@@ -32,22 +30,20 @@ use common::DummyAuthorizer;
 async fn disconnect_client_on_auth_update() {
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to EdgeHubAuthorizer
-    let broker_ready = BrokerReady::new();
     let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::new(EdgeHubAuthorizer::new(
-            authorize_fn_ok(|activity| {
+        .with_authorizer(DummyAuthorizer::new(
+            EdgeHubAuthorizer::without_ready_handle(authorize_fn_ok(|activity| {
                 if matches!(activity.operation(), Operation::Connect(_)) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden("not allowed".to_string())
                 }
-            }),
-            broker_ready.handle(),
-        )))
+            })),
+        ))
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
+    let server_handle = server::start_server(broker, DummyAuthenticator::with_id("device-1"));
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);

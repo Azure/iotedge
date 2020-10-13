@@ -30,6 +30,10 @@ where
         Self::create(authorizer, Some(broker_ready))
     }
 
+    pub fn without_ready_handle(authorizer: Z) -> Self {
+        Self::create(authorizer, None)
+    }
+
     fn create(authorizer: Z, broker_ready: Option<BrokerReadyHandle>) -> Self {
         Self {
             iothub_allowed_topics: RefCell::default(),
@@ -405,7 +409,7 @@ mod tests {
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic subscribe")]
     fn it_delegates_to_inner(activity: &Activity) {
         let inner = authorize_fn_ok(|_| Authorization::Forbidden("not allowed inner".to_string()));
-        let authorizer = EdgeHubAuthorizer::create(inner, None);
+        let authorizer = EdgeHubAuthorizer::without_ready_handle(inner);
 
         let auth = authorizer.authorize(&activity);
 
@@ -485,7 +489,7 @@ mod tests {
     where
         Z: Authorizer,
     {
-        let mut authorizer = EdgeHubAuthorizer::create(inner, None);
+        let mut authorizer = EdgeHubAuthorizer::without_ready_handle(inner);
 
         let service_identity = IdentityUpdate {
             identity: "device-1".to_string(),
