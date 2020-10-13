@@ -7,8 +7,7 @@ use tracing::{debug, info};
 
 use crate::{
     bridge::{BridgeError, ConnectivityState, PumpHandle, PumpMessage},
-    client::EventHandler,
-    client::Handled,
+    client::{EventHandler, Handled},
 };
 
 /// Handles connection and disconnection events and sends a notification when status changes
@@ -37,9 +36,11 @@ impl EventHandler for ConnectivityHandler {
                 match self.state {
                     ConnectivityState::Connected => {
                         self.state = ConnectivityState::Disconnected;
-                        self.sender.send(PumpMessage::ConnectivityUpdate(
-                            ConnectivityState::Disconnected,
-                        ))?;
+                        self.sender
+                            .send(PumpMessage::ConnectivityUpdate(
+                                ConnectivityState::Disconnected,
+                            ))
+                            .await?;
                         info!("Sent disconnected state");
                     }
                     ConnectivityState::Disconnected => {
@@ -57,9 +58,11 @@ impl EventHandler for ConnectivityHandler {
                     }
                     ConnectivityState::Disconnected => {
                         self.state = ConnectivityState::Connected;
-                        self.sender.send(PumpMessage::ConnectivityUpdate(
-                            ConnectivityState::Connected,
-                        ))?;
+                        self.sender
+                            .send(PumpMessage::ConnectivityUpdate(
+                                ConnectivityState::Connected,
+                            ))
+                            .await?;
                         info!("Sent connected state")
                     }
                 }

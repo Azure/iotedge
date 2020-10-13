@@ -8,7 +8,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use tokio::sync::mpsc::{error::TrySendError, Sender};
+use tokio::sync::mpsc::{error::SendError, Sender};
 use tracing::{debug, info, warn};
 
 use mqtt3::{proto::Publication, Event};
@@ -39,10 +39,11 @@ impl PumpHandle {
         Self { sender }
     }
 
-    pub fn send(&mut self, message: PumpMessage) -> Result<(), BridgeError> {
+    pub async fn send(&mut self, message: PumpMessage) -> Result<(), BridgeError> {
         self.sender
-            .try_send(message)
-            .map_err(BridgeError::SenderError)
+            .send(message)
+            .await
+            .map_err(BridgeError::SenderToPump)
     }
 }
 
@@ -54,9 +55,9 @@ pub enum ConnectivityState {
 
 impl Display for ConnectivityState {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match *self {
-            ConnectivityState::Connected => f.write_str("Connected"),
-            ConnectivityState::Disconnected => f.write_str("Disconnected"),
+        match self {
+            Self::Connected => write!(f, "Connected"),
+            Self::Disconnected => write!(f, "Disconnected"),
         }
     }
 }
@@ -327,7 +328,7 @@ pub enum BridgeError {
     LoadingSettings(#[from] config::ConfigError),
 
     #[error("Failed to get send pump message.")]
-    SenderError(#[from] TrySendError<PumpMessage>),
+    SenderToPump(#[from] SendError<PumpMessage>),
 
     #[error("failed to execute RPC command")]
     Rpc(#[from] RpcError),
