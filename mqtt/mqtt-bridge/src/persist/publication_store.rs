@@ -49,25 +49,25 @@ where
     }
 
     pub fn push(&self, message: Publication) -> Result<Key, PersistError> {
-        let mut inner = self.inner.borrow_mut();
+        let mut inner_borrow = self.inner.borrow_mut();
 
         debug!(
             "persisting publication on topic {} with offset {}",
-            message.topic_name, inner.offset
+            message.topic_name, inner_borrow.offset
         );
 
         let key = Key {
-            offset: inner.offset,
+            offset: inner_borrow.offset,
         };
 
-        let mut state_borrow = inner
+        let mut state_borrow = inner_borrow
             .state
             .try_borrow_mut()
             .map_err(PersistError::BorrowSharedState)?;
         state_borrow.insert(key, message)?;
         drop(state_borrow);
 
-        inner.offset += 1;
+        inner_borrow.offset += 1;
         Ok(key)
     }
 

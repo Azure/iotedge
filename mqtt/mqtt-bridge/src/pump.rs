@@ -99,8 +99,14 @@ impl PumpPair {
     pub fn new(
         connection_settings: &ConnectionSettings,
         system_address: &str,
-        local_client_id: String,
+        device_id: String,
     ) -> Result<Self, BridgeError> {
+        let local_client_id = format!(
+            "{}/$edgeHub/$bridge/{}",
+            device_id,
+            connection_settings.name()
+        );
+
         let mut forwards: HashMap<String, TopicRule> = connection_settings
             .forwards()
             .iter()

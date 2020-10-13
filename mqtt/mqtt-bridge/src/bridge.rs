@@ -47,13 +47,7 @@ impl Bridge {
     ) -> Result<Self, BridgeError> {
         debug!("creating bridge...{}", connection_settings.name());
 
-        let local_client_id = format!(
-            "{}/$edgeHub/$bridge/{}",
-            device_id,
-            connection_settings.name()
-        );
-
-        let mut pumps = PumpPair::new(&connection_settings, &system_address, local_client_id)?;
+        let mut pumps = PumpPair::new(&connection_settings, &system_address, device_id)?;
 
         pumps.local_pump.subscribe().await?;
         pumps.remote_pump.subscribe().await?;
