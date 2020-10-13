@@ -15,7 +15,7 @@ mod bridge;
 pub mod client;
 mod connectivity;
 pub mod controller;
-mod message_handler;
+mod messages;
 mod persist;
 mod pump;
 mod rpc;

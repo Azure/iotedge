@@ -20,7 +20,7 @@ use mqtt3::PublishHandle;
 use crate::{
     bridge::BridgeError,
     client::{ClientShutdownHandle, MqttClient},
-    message_handler::MessageHandler,
+    messages::MessageHandler,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
     settings::{ConnectionSettings, Credentials, TopicRule},
 };
