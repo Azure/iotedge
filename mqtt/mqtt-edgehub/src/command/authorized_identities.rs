@@ -33,7 +33,7 @@ impl Command for AuthorizedIdentitiesCommand {
     }
 
     fn handle(&mut self, publication: &ReceivedPublication) -> Result<(), Self::Error> {
-        info!("received authorized identities from edgeHub.");
+        info!("received authorized identities from EdgeHub.");
         let update: AuthorizerUpdate = serde_json::from_slice(&publication.payload)
             .map_err(Error::ParseAuthorizedIdentities)?;
 

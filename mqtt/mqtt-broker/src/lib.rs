@@ -16,6 +16,7 @@ mod broker;
 mod connection;
 mod error;
 mod persist;
+mod ready;
 mod server;
 mod session;
 pub mod settings;
@@ -60,6 +61,11 @@ pub use crate::snapshot::{
 };
 pub use crate::subscription::{Segment, Subscription, TopicFilter};
 pub use crate::tls::ServerCertificate;
+pub use ready::BrokerReadyEvent;
+
+pub type BrokerReady = ready::BrokerReady<ready::BrokerReadyEvent>;
+pub type BrokerReadySignal = ready::BrokerReadySignal<ready::BrokerReadyEvent>;
+pub type BrokerReadyHandle = ready::BrokerReadyHandle<ready::BrokerReadyEvent>;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
