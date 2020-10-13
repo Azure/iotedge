@@ -12,8 +12,7 @@ futures-channel = { version = "0.3", features = ["sink"] }
 futures-sink = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 log = "0.4"
-# TODO change it back when the fix go into a new release https://github.com/asomers/mockall/issues/212
-mockall = { git = "https://github.com/asomers/mockall", rev = "21bd10b"}
+mockall = "0.8"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 tokio = { version = "0.2", features = ["time"] }
 tokio-util = { version = "0.2", features = ["codec"] }
