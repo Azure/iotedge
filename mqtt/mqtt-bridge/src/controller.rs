@@ -43,6 +43,9 @@ impl BridgeController {
             info!("No upstream settings detected. Not starting bridge controller.")
         };
 
+        // join_all is fine because the bridge shouldn't fail and exit
+        // if a pump in the bridge fails, it should internally recreate it
+        // this means that if a bridge stops, then shutdown was triggered
         let bridges_status = join_all(bridge_handles).await;
         for status in bridges_status {
             if let Err(e) = status {
