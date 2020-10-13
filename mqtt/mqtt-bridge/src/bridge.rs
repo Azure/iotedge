@@ -10,7 +10,7 @@ use crate::{
     client::{ClientError, MqttClient},
     message_handler::MessageHandler,
     persist::{PersistError, PublicationStore},
-    pump::{Pump, PumpType},
+    pump::{Pump, PumpContext, PumpType},
     settings::{ConnectionSettings, Credentials, TopicRule},
 };
 
@@ -100,21 +100,24 @@ impl Bridge {
             &Credentials::Anonymous(local_client_id),
         );
 
+        let local_pump_context =
+            PumpContext::new(PumpType::Local, connection_settings.name().to_string());
         let mut local_pump = Pump::new(
             local_client,
             local_subscriptions,
             incoming_loader,
             incoming_persist,
-            PumpType::Local,
-            connection_settings.name().to_string(),
+            local_pump_context,
         )?;
+
+        let remote_pump_context =
+            PumpContext::new(PumpType::Remote, connection_settings.name().to_string());
         let mut remote_pump = Pump::new(
             remote_client,
             remote_subscriptions,
             outgoing_loader,
             outgoing_persist,
-            PumpType::Remote,
-            connection_settings.name().to_string(),
+            remote_pump_context,
         )?;
 
         local_pump.subscribe().await?;

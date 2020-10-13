@@ -323,7 +323,7 @@ impl<T: EventHandler> MqttClient<T> {
 
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             error!(message = "failed to poll events", error=%e);
-            // TODO: handle the error by recreting the connection
+            // TODO: handle the error by recreating the connection
             None
         }) {
             debug!("handle event {:?}", event);

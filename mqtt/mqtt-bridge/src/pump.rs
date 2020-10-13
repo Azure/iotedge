@@ -25,6 +25,20 @@ pub enum PumpType {
     Remote,
 }
 
+pub struct PumpContext {
+    pump_type: PumpType,
+    bridge_name: String,
+}
+
+impl PumpContext {
+    pub fn new(pump_type: PumpType, bridge_name: String) -> Self {
+        Self {
+            pump_type,
+            bridge_name,
+        }
+    }
+}
+
 pub struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
     client_shutdown: ClientShutdownHandle,
@@ -32,8 +46,7 @@ pub struct Pump {
     subscriptions: Vec<String>,
     loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
     persist: PublicationStore<WakingMemoryStore>,
-    pump_type: PumpType,
-    bridge_name: String,
+    pump_context: PumpContext,
 }
 
 impl Pump {
@@ -42,8 +55,7 @@ impl Pump {
         subscriptions: Vec<String>,
         loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
         persist: PublicationStore<WakingMemoryStore>,
-        pump_type: PumpType,
-        bridge_name: String,
+        pump_context: PumpContext,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()
@@ -57,8 +69,7 @@ impl Pump {
             subscriptions,
             loader,
             persist,
-            pump_type,
-            bridge_name,
+            pump_context,
         })
     }
 
@@ -72,15 +83,18 @@ impl Pump {
     }
 
     pub async fn run(&mut self, shutdown: Receiver<()>) {
-        debug!("starting pumps for {} bridge...", self.bridge_name);
+        debug!(
+            "starting pumps for {} bridge...",
+            self.pump_context.bridge_name
+        );
 
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
         let persist = self.persist.clone();
         let loader = self.loader.clone();
         let mut client_shutdown = self.client_shutdown.clone();
-        let bridge_name = self.bridge_name.clone();
-        let pump_type = self.pump_type.clone();
+        let bridge_name = self.pump_context.bridge_name.clone();
+        let pump_type = self.pump_context.pump_type.clone();
 
         // egress pump
         let f1 = async move {
@@ -125,8 +139,8 @@ impl Pump {
         };
 
         // incoming pump
-        let bridge_name = self.bridge_name.clone();
-        let pump_type = self.pump_type.clone();
+        let bridge_name = self.pump_context.bridge_name.clone();
+        let pump_type = self.pump_context.pump_type.clone();
         let f2 = async move {
             debug!(
                 "{} bridge starting ingress publication processing for pump {:?}...",
