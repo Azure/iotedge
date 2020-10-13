@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, convert::TryInto, rc::Rc};
 
 use futures_util::{
     future::{select, Either, FutureExt},
@@ -17,7 +17,10 @@ use crate::{
     client::{ClientShutdownHandle, MqttClient},
     message_handler::MessageHandler,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
+    settings::{ConnectionSettings, Credentials, TopicRule},
 };
+
+const BATCH_SIZE: usize = 10;
 
 #[derive(Debug, Clone)]
 pub enum PumpType {
@@ -37,6 +40,97 @@ impl PumpContext {
             pump_type,
             bridge_name,
         }
+    }
+}
+
+pub struct PumpPair {
+    pub local_pump: Pump,
+    pub remote_pump: Pump,
+}
+
+impl PumpPair {
+    pub fn new(
+        connection_settings: ConnectionSettings,
+        system_address: String,
+        local_client_id: String,
+    ) -> Result<Self, BridgeError> {
+        let mut forwards: HashMap<String, TopicRule> = connection_settings
+            .forwards()
+            .iter()
+            .map(|sub| Self::format_key_value(sub))
+            .collect();
+
+        let mut subscriptions: HashMap<String, TopicRule> = connection_settings
+            .subscriptions()
+            .iter()
+            .map(|sub| Self::format_key_value(sub))
+            .collect();
+
+        let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
+        let outgoing_loader = outgoing_persist.loader();
+        let incoming_loader = incoming_persist.loader();
+
+        let (remote_subscriptions, remote_topic_rules): (Vec<_>, Vec<_>) =
+            subscriptions.drain().unzip();
+        let remote_topic_filters = remote_topic_rules
+            .into_iter()
+            .map(|topic| topic.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
+        let remote_pump_context =
+            PumpContext::new(PumpType::Remote, connection_settings.name().to_string());
+        let remote_client = MqttClient::tls(
+            connection_settings.address(),
+            connection_settings.keep_alive(),
+            connection_settings.clean_session(),
+            MessageHandler::new(incoming_persist.clone(), remote_topic_filters),
+            connection_settings.credentials(),
+            remote_pump_context.clone(),
+        );
+        let remote_pump = Pump::new(
+            remote_client,
+            remote_subscriptions,
+            outgoing_loader,
+            outgoing_persist.clone(),
+            remote_pump_context,
+        )?;
+
+        let (local_subscriptions, local_topic_rules): (Vec<_>, Vec<_>) = forwards.drain().unzip();
+        let local_topic_filters = local_topic_rules
+            .into_iter()
+            .map(|topic| topic.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
+        let local_pump_context =
+            PumpContext::new(PumpType::Local, connection_settings.name().to_string());
+        let local_client = MqttClient::tcp(
+            system_address.as_str(),
+            connection_settings.keep_alive(),
+            connection_settings.clean_session(),
+            MessageHandler::new(outgoing_persist, local_topic_filters),
+            &Credentials::Anonymous(local_client_id),
+            local_pump_context.clone(),
+        );
+        let local_pump = Pump::new(
+            local_client,
+            local_subscriptions,
+            incoming_loader,
+            incoming_persist,
+            local_pump_context,
+        )?;
+
+        Ok(Self {
+            local_pump,
+            remote_pump,
+        })
+    }
+
+    fn format_key_value(topic: &TopicRule) -> (String, TopicRule) {
+        let key = if let Some(local) = topic.local() {
+            format!("{}/{}", local, topic.pattern().to_string())
+        } else {
+            topic.pattern().into()
+        };
+        (key, topic.clone())
     }
 }
 

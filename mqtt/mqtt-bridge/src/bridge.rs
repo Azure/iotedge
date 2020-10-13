@@ -1,4 +1,4 @@
-use std::{cell::BorrowMutError, collections::HashMap, convert::TryInto};
+use std::cell::BorrowMutError;
 
 use futures_util::{future::select, future::Either, pin_mut};
 use mqtt3::ShutdownError;
@@ -7,14 +7,8 @@ use tokio::sync::oneshot::Sender;
 use tracing::{debug, error, info};
 
 use crate::{
-    client::{ClientError, MqttClient},
-    message_handler::MessageHandler,
-    persist::{PersistError, PublicationStore},
-    pump::{Pump, PumpContext, PumpType},
-    settings::{ConnectionSettings, Credentials, TopicRule},
+    client::ClientError, persist::PersistError, pump::PumpPair, settings::ConnectionSettings,
 };
-
-const BATCH_SIZE: usize = 10;
 
 #[derive(Debug)]
 pub struct BridgeShutdownHandle {
@@ -38,8 +32,7 @@ impl BridgeShutdownHandle {
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 pub struct Bridge {
-    local_pump: Pump,
-    remote_pump: Pump,
+    pumps: PumpPair,
     connection_settings: ConnectionSettings,
 }
 
@@ -51,93 +44,23 @@ impl Bridge {
     ) -> Result<Self, BridgeError> {
         debug!("creating bridge...{}", connection_settings.name());
 
-        let mut forwards: HashMap<String, TopicRule> = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| Self::format_key_value(sub))
-            .collect();
-
-        let mut subscriptions: HashMap<String, TopicRule> = connection_settings
-            .subscriptions()
-            .iter()
-            .map(|sub| Self::format_key_value(sub))
-            .collect();
-
-        let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
-        let incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
-        let outgoing_loader = outgoing_persist.loader();
-        let incoming_loader = incoming_persist.loader();
-
-        let (remote_subscriptions, remote_topic_rules): (Vec<_>, Vec<_>) =
-            subscriptions.drain().unzip();
-        let remote_topic_filters = remote_topic_rules
-            .into_iter()
-            .map(|topic| topic.try_into())
-            .collect::<Result<Vec<_>, _>>()?;
-        let remote_pump_context =
-            PumpContext::new(PumpType::Remote, connection_settings.name().to_string());
-        let remote_client = MqttClient::tls(
-            connection_settings.address(),
-            connection_settings.keep_alive(),
-            connection_settings.clean_session(),
-            MessageHandler::new(incoming_persist.clone(), remote_topic_filters),
-            connection_settings.credentials(),
-            remote_pump_context.clone(),
-        );
-        let mut remote_pump = Pump::new(
-            remote_client,
-            remote_subscriptions,
-            outgoing_loader,
-            outgoing_persist.clone(),
-            remote_pump_context,
-        )?;
-
         let local_client_id = format!(
             "{}/$edgeHub/$bridge/{}",
             device_id,
             connection_settings.name()
         );
-        let (local_subscriptions, local_topic_rules): (Vec<_>, Vec<_>) = forwards.drain().unzip();
-        let local_topic_filters = local_topic_rules
-            .into_iter()
-            .map(|topic| topic.try_into())
-            .collect::<Result<Vec<_>, _>>()?;
-        let local_pump_context =
-            PumpContext::new(PumpType::Local, connection_settings.name().to_string());
-        let local_client = MqttClient::tcp(
-            system_address.as_str(),
-            connection_settings.keep_alive(),
-            connection_settings.clean_session(),
-            MessageHandler::new(outgoing_persist, local_topic_filters),
-            &Credentials::Anonymous(local_client_id),
-            local_pump_context.clone(),
-        );
-        let mut local_pump = Pump::new(
-            local_client,
-            local_subscriptions,
-            incoming_loader,
-            incoming_persist,
-            local_pump_context,
-        )?;
 
-        local_pump.subscribe().await?;
-        remote_pump.subscribe().await?;
+        let mut pumps =
+            PumpPair::new(connection_settings.clone(), system_address, local_client_id)?;
+
+        pumps.local_pump.subscribe().await?;
+        pumps.remote_pump.subscribe().await?;
 
         debug!("created bridge...{}", connection_settings.name());
         Ok(Bridge {
-            local_pump,
-            remote_pump,
+            pumps,
             connection_settings,
         })
-    }
-
-    fn format_key_value(topic: &TopicRule) -> (String, TopicRule) {
-        let key = if let Some(local) = topic.local() {
-            format!("{}/{}", local, topic.pattern().to_string())
-        } else {
-            topic.pattern().into()
-        };
-        (key, topic.clone())
     }
 
     pub async fn run(mut self) -> Result<(), BridgeError> {
@@ -150,10 +73,9 @@ impl Bridge {
             remote_shutdown,
         };
 
-        let local_pump = self.local_pump.run(local_shutdown_listener);
-        let remote_pump = self.remote_pump.run(remote_shutdown_listener);
-        pin_mut!(local_pump);
-        pin_mut!(remote_pump);
+        let local_pump = self.pumps.local_pump.run(local_shutdown_listener);
+        let remote_pump = self.pumps.remote_pump.run(remote_shutdown_listener);
+        pin_mut!(local_pump, remote_pump);
 
         debug!(
             "Starting pumps for {} bridge...",
