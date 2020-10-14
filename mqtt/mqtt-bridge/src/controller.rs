@@ -21,17 +21,11 @@ impl BridgeController {
                 match bridge {
                     Ok(bridge) => {
                         if let Err(e) = bridge.run().await {
-                            let err_msg =
-                                format!("failed running {} bridge", upstream_settings.name());
-                            let err_msg = err_msg.as_str();
-                            error!(message = err_msg, err = %e);
+                            error!(err = %e, "failed running {} bridge", upstream_settings.name());
                         }
                     }
                     Err(e) => {
-                        let err_msg =
-                            format!("failed to create {} bridge", upstream_settings.name());
-                        let err_msg = err_msg.as_str();
-                        error!(message = err_msg, err = %e);
+                        error!(err = %e, "failed to create {} bridge", upstream_settings.name());
                     }
                 };
             };

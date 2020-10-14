@@ -279,7 +279,7 @@ impl Pump {
                             pump_context
                         );
                         if shutdown.is_none() {
-                            error!("{} has unexpected behavior from shutdown signal while signalling bridge pump shutdown", pump_context);
+                            error!("{} has unexpected behavior from shutdown signal while signaling bridge pump shutdown", pump_context);
                         }
 
                         break;
@@ -290,16 +290,11 @@ impl Pump {
                         if let Ok(Some((key, publication))) = loaded_element {
                             debug!("{} publishing {:?}", pump_context, key);
                             if let Err(e) = publish_handle.publish(publication).await {
-                                let err_msg = format!("{} failed publish", pump_context);
-                                error!(message = err_msg.as_str(), err = %e);
+                                error!(error = %e, "{} failed publish", pump_context);
                             }
 
                             if let Err(e) = persist.remove(key) {
-                                let err_msg = format!(
-                                    "{} failed removing publication from store",
-                                    pump_context
-                                );
-                                error!(message = err_msg.as_str(), err = %e);
+                                error!(error = %e, "{} failed removing publication from store", pump_context);
                             }
                         }
                     }
@@ -332,22 +327,17 @@ impl Pump {
                 match pump_processes {
                     Either::Left((_, ingress_loop)) => {
                         if let Err(e) = client_shutdown.shutdown().await {
-                            let err_msg = format!(
-                                "{} failed to shutdown ingress publication loop",
-                                pump_context
-                            );
-                            error!(message = err_msg.as_str(), err = %e);
+                            error!(error = %e, "{} failed to shutdown ingress publication loop", pump_context);
                         }
 
                         ingress_loop.await;
                     }
                     Either::Right((_, egress_loop)) => {
                         if let Err(e) = loader_shutdown.send(()) {
-                            let err_msg = format!(
-                                "{} failed to shutdown egress publication loop",
-                                pump_context
+                            error!(
+                                "{} failed to shutdown egress publication loop {:?}",
+                                pump_context, e
                             );
-                            error!("{} {:?}", err_msg, e);
                         }
 
                         egress_loop.await;
@@ -357,24 +347,18 @@ impl Pump {
             // shutdown was signaled
             Either::Right((shutdown, pump_processes)) => {
                 if let Err(e) = shutdown {
-                    let err_msg = format!("{} failed listening for shutdown", pump_context);
-                    error!(message = err_msg.as_str(), err = %e);
+                    error!(err = %e, "{} failed listening for shutdown", pump_context);
                 }
 
                 if let Err(e) = client_shutdown.shutdown().await {
-                    let err_msg = format!(
-                        "{} failed to shutdown ingress publication loop",
-                        pump_context
-                    );
-                    error!(message = err_msg.as_str(), err = %e);
+                    error!(err = %e, "{} failed to shutdown ingress publication loop", pump_context);
                 }
 
                 if let Err(e) = loader_shutdown.send(()) {
-                    let err_msg = format!(
-                        "{} failed to shutdown egress publication loop",
-                        pump_context
+                    error!(
+                        "{} failed to shutdown egress publication loop {:?}",
+                        pump_context, e
                     );
-                    error!("{} {:?}", err_msg, e);
                 }
 
                 match pump_processes.await {

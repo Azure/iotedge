@@ -329,15 +329,13 @@ impl<H: EventHandler> MqttClient<H> {
         debug!("{} polling bridge client", self.pump_context);
 
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
-            let err_msg = format!("{} failed to poll events", self.pump_context);
-            error!(message = err_msg.as_str(), error=%e);
             // TODO: handle the error by recreating the connection
+            error!(error=%e, "{} failed to poll events", self.pump_context);
             None
         }) {
             debug!("{} handling event {:?}", self.pump_context, event);
             if let Err(e) = self.event_handler.handle(&event).await {
-                let err_msg = format!("{} error processing event {:?}", self.pump_context, event);
-                error!(message = err_msg.as_str(), err = %e);
+                error!(error = %e, "{} error processing event {:?}", self.pump_context, event);
             }
         }
     }
