@@ -11,6 +11,14 @@ use mqtt3::proto::Publication;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
+/// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
+/// This facilitates sharing between multiple futures in a single threaded environment
+pub struct MessageLoaderInner<S> {
+    state: Rc<RefCell<S>>,
+    batch: VecDeque<(Key, Publication)>,
+    batch_size: usize,
+}
+
 /// Message loader used to extract elements from bridge persistence
 ///
 /// This component is responsible for message extraction from the persistence
@@ -18,11 +26,7 @@ use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 /// Then, will return these elements in order
 ///
 /// When the batch is exhausted it will grab a new batch
-pub struct MessageLoader<S> {
-    state: Rc<RefCell<S>>,
-    batch: VecDeque<(Key, Publication)>,
-    batch_size: usize,
-}
+pub struct MessageLoader<S>(Rc<RefCell<MessageLoaderInner<S>>>);
 
 impl<S> MessageLoader<S>
 where
@@ -31,18 +35,28 @@ where
     pub fn new(state: Rc<RefCell<S>>, batch_size: usize) -> Self {
         let batch = VecDeque::new();
 
-        Self {
+        let inner = MessageLoaderInner {
             state,
             batch,
             batch_size,
-        }
+        };
+        let inner = Rc::new(RefCell::new(inner));
+
+        Self(inner)
     }
 
     fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-        let mut state_borrow = self.state.borrow_mut();
-        let batch: VecDeque<_> = state_borrow.batch(self.batch_size)?;
+        let inner = self.0.borrow_mut();
+        let mut state_borrow = inner.state.borrow_mut();
+        let batch: VecDeque<_> = state_borrow.batch(inner.batch_size)?;
 
         Ok(batch)
+    }
+}
+
+impl<S: StreamWakeableState> Clone for MessageLoader<S> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
     }
 }
 
@@ -53,23 +67,29 @@ where
     type Item = Result<(Key, Publication), PersistError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        if let Some(item) = self.batch.pop_front() {
+        // return element if available
+        let mut inner = self.0.borrow_mut();
+        if let Some(item) = inner.batch.pop_front() {
             return Poll::Ready(Some(Ok((item.0, item.1))));
         }
+        drop(inner);
 
-        let mut_self = self.get_mut();
+        // refresh next batch
+        // if error, either someone forged the database or we have a database schema change
+        let next_batch = self.next_batch()?;
+        let mut inner = self.0.borrow_mut();
+        inner.batch = next_batch;
 
-        // If error, either someone forged the database or we have a database schema change
-        mut_self.batch = mut_self.next_batch()?;
-
-        let mut state_borrow = mut_self.state.borrow_mut();
-        mut_self.batch.pop_front().map_or_else(
-            || {
+        // get next element and return it
+        let maybe_extracted = inner.batch.pop_front();
+        let mut state_borrow = inner.state.borrow_mut();
+        match maybe_extracted {
+            Some(extracted) => Poll::Ready(Some(Ok(extracted))),
+            None => {
                 state_borrow.set_waker(cx.waker());
                 Poll::Pending
-            },
-            |item| Poll::Ready(Some(Ok((item.0, item.1)))),
-        )
+            }
+        }
     }
 }
 

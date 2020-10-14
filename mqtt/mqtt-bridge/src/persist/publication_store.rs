@@ -11,12 +11,11 @@ use crate::persist::{
 
 /// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
-pub struct PublicationStoreInner<S> {
+struct PublicationStoreInner<S> {
     state: Rc<RefCell<S>>,
     offset: u64,
-    loader: Rc<RefCell<MessageLoader<S>>>,
+    loader: MessageLoader<S>,
 }
-
 /// Persistence implementation used for the bridge
 pub struct PublicationStore<S>(Rc<RefCell<PublicationStoreInner<S>>>);
 
@@ -33,7 +32,6 @@ where
     pub fn new(state: S, batch_size: usize) -> Self {
         let state = Rc::new(RefCell::new(state));
         let loader = MessageLoader::new(state.clone(), batch_size);
-        let loader = Rc::new(RefCell::new(loader));
 
         let offset = 0;
         let inner = PublicationStoreInner {
@@ -76,7 +74,7 @@ where
         Ok(())
     }
 
-    pub fn loader(&self) -> Rc<RefCell<MessageLoader<S>>> {
+    pub fn loader(&self) -> MessageLoader<S> {
         let inner = self.0.borrow_mut();
         inner.loader.clone()
     }
@@ -125,12 +123,11 @@ mod tests {
         persistence.push(pub2.clone()).unwrap();
 
         // get loader
-        let loader = persistence.loader();
-        let mut loader_borrow = loader.borrow_mut();
+        let mut loader = persistence.loader();
 
         // make sure same publications come out in correct order
-        let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
-        let extracted2 = loader_borrow.try_next().await.unwrap().unwrap();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.0, key1);
         assert_eq!(extracted2.0, key2);
         assert_eq!(extracted1.1, pub1);
@@ -163,16 +160,15 @@ mod tests {
         persistence.push(pub1.clone()).unwrap();
 
         // get loader
-        let loader = persistence.loader();
-        let mut loader_borrow = loader.borrow_mut();
+        let mut loader = persistence.loader();
 
         // process first message, forcing loader to get new batch on the next read
-        let (key1, _) = loader_borrow.try_next().await.unwrap().unwrap();
+        let (key1, _) = loader.try_next().await.unwrap().unwrap();
         assert_matches!(persistence.remove(key1), Ok(_));
 
         // add a second message and verify this is returned by loader
         persistence.push(pub2.clone()).unwrap();
-        let extracted = loader_borrow.try_next().await.unwrap().unwrap();
+        let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
 
@@ -241,12 +237,11 @@ mod tests {
         persistence.push(pub2.clone()).unwrap();
 
         // get loader with batch size
-        let loader = persistence.loader();
-        let mut loader_borrow = loader.borrow_mut();
+        let mut loader = persistence.loader();
 
         // verify the loader returns both elements
-        let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
-        let extracted2 = loader_borrow.try_next().await.unwrap().unwrap();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.0, key1);
         assert_eq!(extracted2.0, key2);
         assert_eq!(extracted1.1, pub1);

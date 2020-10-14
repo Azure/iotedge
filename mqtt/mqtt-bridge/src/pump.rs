@@ -1,10 +1,8 @@
 #![allow(dead_code)]
 use std::{
-    cell::RefCell,
     collections::HashMap,
     convert::TryInto,
     fmt::{Display, Formatter, Result as FmtResult},
-    rc::Rc,
 };
 
 use futures_util::{
@@ -163,7 +161,7 @@ impl PumpPair {
     }
 
     fn prepare_pump(
-        loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
+        loader: MessageLoader<WakingMemoryStore>,
         ingress_store: PublicationStore<WakingMemoryStore>,
         egress_store: PublicationStore<WakingMemoryStore>,
         address: &str,
@@ -215,7 +213,7 @@ pub struct Pump {
     client_shutdown: ClientShutdownHandle,
     publish_handle: PublishHandle,
     subscriptions: Vec<String>,
-    loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
+    loader: MessageLoader<WakingMemoryStore>,
     persist: PublicationStore<WakingMemoryStore>,
     pump_context: PumpContext,
 }
@@ -224,7 +222,7 @@ impl Pump {
     fn new(
         client: MqttClient<MessageHandler<WakingMemoryStore>>,
         subscriptions: Vec<String>,
-        loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
+        loader: MessageLoader<WakingMemoryStore>,
         persist: PublicationStore<WakingMemoryStore>,
         pump_context: PumpContext,
     ) -> Result<Self, BridgeError> {
@@ -262,20 +260,19 @@ impl Pump {
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
         let persist = self.persist.clone();
-        let loader = self.loader.clone();
+        let mut loader = self.loader.clone();
         let mut client_shutdown = self.client_shutdown.clone();
         let pump_context = self.pump_context.clone();
 
         // egress pump
         let egress_pump = async {
-            let mut loader_borrow = loader.borrow_mut();
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
             info!("{} starting egress publication processing", pump_context);
 
             loop {
                 let mut publish_handle = publish_handle.clone();
-                match select(receive_fut.next(), loader_borrow.try_next()).await {
+                match select(receive_fut.next(), loader.try_next()).await {
                     Either::Left((shutdown, _)) => {
                         info!(
                             "{} received shutdown signal for egress messages",

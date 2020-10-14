@@ -179,10 +179,9 @@ mod tests {
 
         handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.store.loader();
-        let mut loader_borrow = loader.borrow_mut();
+        let mut loader = handler.store.loader();
 
-        let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
     }
 
@@ -221,10 +220,9 @@ mod tests {
 
         handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.store.loader();
-        let mut loader_borrow = loader.borrow_mut();
+        let mut loader = handler.store.loader();
 
-        let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
     }
 
@@ -263,10 +261,9 @@ mod tests {
 
         handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.store.loader();
-        let mut loader_borrow = loader.borrow_mut();
+        let mut loader = handler.store.loader();
 
-        let extracted1 = loader_borrow.try_next().await.unwrap().unwrap();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
     }
 
@@ -298,10 +295,9 @@ mod tests {
 
         handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.store.loader();
-        let mut loader_borrow = loader.borrow_mut();
+        let mut loader = handler.store.loader();
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-        futures_util::future::select(interval.next(), loader_borrow.next()).await;
+        futures_util::future::select(interval.next(), loader.next()).await;
     }
 }
