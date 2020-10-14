@@ -11,7 +11,7 @@ The overall setup includes three VMs:
 Follow the steps below to deploy the three VMs and set them up. The steps are in bash, but there are notes at the bottom about doing the same thing in PowerShell. In both cases, the Azure CLI `az` is required. If the deployment completes successfully, that means the environment is set up, the agent can reach the runners via SSH, and the runners can't reach the internet without the proxy.
 
 ```sh
-cd ./builds/e2e/
+cd ./builds/e2e/proxy/
 
 # ----------
 # Parameters
