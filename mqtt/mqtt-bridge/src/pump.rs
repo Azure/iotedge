@@ -7,7 +7,7 @@ use std::{
 
 use futures_util::{
     future::{select, Either, FutureExt},
-    pin_mut, select,
+    pin_mut,
     stream::{StreamExt, TryStreamExt},
 };
 use tokio::sync::{mpsc::Sender, oneshot, oneshot::Receiver};
@@ -253,11 +253,9 @@ impl Pump {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     pub async fn run(&mut self, shutdown: Receiver<()>) {
-        debug!(
-            "starting pumps for {} bridge...",
-            self.pump_context.bridge_name
-        );
+        debug!("starting {}", self.pump_context);
 
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
@@ -266,8 +264,8 @@ impl Pump {
         let mut client_shutdown = self.client_shutdown.clone();
         let pump_context = self.pump_context.clone();
 
-        // egress pump
-        let egress_pump = async {
+        // egress loop
+        let egress_loop = async {
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
             info!("{} starting egress publication processing", pump_context);
@@ -311,39 +309,83 @@ impl Pump {
             info!("{} stopped sending egress messages", pump_context);
         };
 
-        // ingress pump
+        // ingress loop
         let pump_context = self.pump_context.clone();
-        let ingress_pump_fut = async {
+        let ingress_loop = async {
             debug!("{} starting ingress publication processing", pump_context);
             self.client.handle_events().await;
         };
 
-        let egress_pump = egress_pump.fuse();
-        let ingress_pump = ingress_pump_fut.fuse();
-        let mut shutdown = shutdown.fuse();
-        pin_mut!(egress_pump, ingress_pump);
+        // run pumps
+        let egress_loop = egress_loop.fuse();
+        let ingress_loop = ingress_loop.fuse();
+        let shutdown = shutdown.fuse();
+        pin_mut!(egress_loop, ingress_loop);
+        let pump_processes = select(egress_loop, ingress_loop);
 
-        select! {
-            _ = egress_pump => {
-                error!("{} failed egress publication loop and exited", pump_context);
-            },
-            _ = ingress_pump => {
-                error!("{} failed ingress publication loop and exited", pump_context);
-            },
-            _ = shutdown => {
+        // wait for shutdown
+        match select(pump_processes, shutdown).await {
+            // early-stop error
+            Either::Left((pump_processes, _)) => {
+                error!("{} stopped early so will shut down", pump_context);
+
+                match pump_processes {
+                    Either::Left((_, ingress_loop)) => {
+                        if let Err(e) = client_shutdown.shutdown().await {
+                            let err_msg = format!(
+                                "{} failed to shutdown ingress publication loop",
+                                pump_context
+                            );
+                            error!(message = err_msg.as_str(), err = %e);
+                        }
+
+                        ingress_loop.await;
+                    }
+                    Either::Right((_, egress_loop)) => {
+                        if let Err(e) = loader_shutdown.send(()) {
+                            let err_msg = format!(
+                                "{} failed to shutdown egress publication loop",
+                                pump_context
+                            );
+                            error!("{} {:?}", err_msg, e);
+                        }
+
+                        egress_loop.await;
+                    }
+                }
+            }
+            // shutdown was signaled
+            Either::Right((shutdown, pump_processes)) => {
+                if let Err(e) = shutdown {
+                    let err_msg = format!("{} failed listening for shutdown", pump_context);
+                    error!(message = err_msg.as_str(), err = %e);
+                }
+
                 if let Err(e) = client_shutdown.shutdown().await {
-                    let err_msg = format!("{} failed to shutdown ingress publication loop", pump_context);
+                    let err_msg = format!(
+                        "{} failed to shutdown ingress publication loop",
+                        pump_context
+                    );
                     error!(message = err_msg.as_str(), err = %e);
                 }
 
                 if let Err(e) = loader_shutdown.send(()) {
-                    let err_msg = format!("{} failed to shutdown egress publication loop", pump_context);
+                    let err_msg = format!(
+                        "{} failed to shutdown egress publication loop",
+                        pump_context
+                    );
                     error!("{} {:?}", err_msg, e);
                 }
-            },
-        };
 
-        egress_pump.await;
-        ingress_pump.await;
+                match pump_processes.await {
+                    Either::Left((_, ingress_loop)) => {
+                        ingress_loop.await;
+                    }
+                    Either::Right((_, egress_loop)) => {
+                        egress_loop.await;
+                    }
+                }
+            }
+        }
     }
 }
