@@ -103,6 +103,7 @@ steps:
       networkControllerImage = "$imagePrefix-network-controller:$imageTag";
       testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
+      numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
       edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
       registries = @(
         @{
@@ -117,12 +118,7 @@ steps:
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
 
-    if ($IsWindows)
-    {
-      $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
-    }
-
-    if ('$(arch)' -eq 'arm32v7')
+    if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 6

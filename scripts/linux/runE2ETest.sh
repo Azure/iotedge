@@ -99,6 +99,12 @@ function get_long_haul_deployment_artifact_file() {
     local path
     path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
 
+    local nestedEdgeTest=$(printenv E2E_nestedEdgeTest)
+
+    if [[ ! -z "$nestedEdgeTest" ]]; then
+      path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nested_long_haul_deployment.template.json"
+    fi
+
     echo "$path"
 }
 
@@ -744,27 +750,70 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
+    NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
+    echo "Nested edge test=$NESTED_EDGE_TEST"
     local ret=0
-    "$quickstart_working_folder/IotEdgeQuickstart" \
-        -d "$device_id" \
-        -a "$iotedge_package" \
-        -c "$IOTHUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
-        -r "$CONTAINER_REGISTRY" \
-        -u "$CONTAINER_REGISTRY_USERNAME" \
-        -p "$CONTAINER_REGISTRY_PASSWORD" \
-        -n "$(hostname)" \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
-        --leave-running=All \
-        -l "$deployment_working_file" \
-        --runtime-log-level "$RUNTIME_LOG_LEVEL" \
-        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
-        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
-        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
-        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-        $BYPASS_EDGE_INSTALLATION \
-        --no-verify && ret=$? || ret=$?
+    
+    if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
+        PARENT_HOSTNAME=$(printenv E2E_parentHostname)
+        PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
+        DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
+        DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
+        TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
+        
+        echo "Parent hostname=$PARENT_HOSTNAME"
+        echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
+        echo "Device CA cert=$DEVICE_CA_CERT"
+        echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
+        echo "Trusted CA certs=$TRUSTED_CA_CERTS"
+        
+        "$quickstart_working_folder/IotEdgeQuickstart" \
+            -d "$device_id" \
+            -a "$iotedge_package" \
+            -c "$IOTHUB_CONNECTION_STRING" \
+            -e "$EVENTHUB_CONNECTION_STRING" \
+            -r "$CONTAINER_REGISTRY" \
+            -u "$CONTAINER_REGISTRY_USERNAME" \
+            -p "$CONTAINER_REGISTRY_PASSWORD" \
+            -n "$(hostname)" \
+            --parent-hostname "$PARENT_HOSTNAME" \
+            --parent-edge-device "$PARENT_EDGE_DEVICE" \
+            --device_ca_cert "$DEVICE_CA_CERT" \
+            --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
+            --trusted_ca_certs "$TRUSTED_CA_CERTS" \
+            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+            --initialize-with-agent-artifact "true" \
+            --leave-running=All \
+            -l "$deployment_working_file" \
+            --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+            --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+            --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+            --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+            --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+            $BYPASS_EDGE_INSTALLATION \
+            --no-verify && ret=$? || ret=$?
+    else
+        "$quickstart_working_folder/IotEdgeQuickstart" \
+            -d "$device_id" \
+            -a "$iotedge_package" \
+            -c "$IOTHUB_CONNECTION_STRING" \
+            -e "$EVENTHUB_CONNECTION_STRING" \
+            -r "$CONTAINER_REGISTRY" \
+            -u "$CONTAINER_REGISTRY_USERNAME" \
+            -p "$CONTAINER_REGISTRY_PASSWORD" \
+            -n "$(hostname)" \
+            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+            --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+            --leave-running=All \
+            -l "$deployment_working_file" \
+            --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+            --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+            --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+            --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+            --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+            $BYPASS_EDGE_INSTALLATION \
+            --no-verify && ret=$? || ret=$?
+    fi
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -1006,7 +1055,7 @@ function run_test()
 function test_setup() {
     validate_test_parameters
 
-    if [ $BYPASS_EDGE_INSTALLATION -ne "--bypass-edge-installation" ]; then
+    if [ -z $BYPASS_EDGE_INSTALLATION ]; then
         clean_up
     fi
     prepare_test_from_artifacts

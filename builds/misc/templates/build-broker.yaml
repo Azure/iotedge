@@ -1,0 +1,16 @@
+steps:
+  - task: Bash@3
+    displayName: Build MQTT Broker - amd64
+    inputs:
+      filePath: scripts/linux/cross-platform-rust-build.sh
+      arguments: --os ubuntu18.04 --arch amd64 --build-path mqtt/mqttd
+  - task: Bash@3
+    displayName: Build MQTT Broker - arm32
+    inputs:
+      filePath: scripts/linux/cross-platform-rust-build.sh
+      arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd
+  - task: Bash@3
+    displayName: Build MQTT Broker - arm64
+    inputs:
+      filePath: scripts/linux/cross-platform-rust-build.sh
+      arguments: --os ubuntu18.04 --arch aarch64 --build-path mqtt/mqttd

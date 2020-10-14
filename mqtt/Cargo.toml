@@ -1,9 +1,14 @@
 [workspace]
 members = [
+    "edgelet-client",
     "mqtt3",
     "mqtt-broker",
-    "mqttd",
+    "mqtt-broker-tests-util",
     "mqtt-edgehub",
+    "mqtt-generic",
+    "mqtt-policy",
+    "mqttd",
+    "policy"
 ]
 
 [profile.release]

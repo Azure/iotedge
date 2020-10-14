@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -22,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             CancellationToken token = cts.Token;
-            Option<Registry> bootstrapRegistry = Option.Maybe(Context.Current.Registries.First());
+            Option<Registry> bootstrapRegistry = Option.Maybe(Context.Current.Registries.FirstOrDefault());
 
             this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(
                 Context.Current.InstallerPath,
@@ -50,19 +52,31 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.ConfigureAsync(
                         config =>
                         {
-                            var msg = string.Empty;
-                            var props = new object[] { };
+                            var msgBuilder = new StringBuilder();
+                            var props = new List<object>();
 
-                            config.SetDeviceHostname(Dns.GetHostName());
+                            string hostname = Dns.GetHostName();
+                            config.SetDeviceHostname(hostname);
+                            msgBuilder.Append("with hostname '{hostname}'");
+                            props.Add(hostname);
+
+                            Context.Current.ParentHostname.ForEach(parentHostname =>
+                            {
+                                config.SetParentHostname(parentHostname);
+                                msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
+                                props.Add(parentHostname);
+                            });
+
                             Context.Current.Proxy.ForEach(proxy =>
                             {
                                 config.AddHttpsProxy(proxy);
-                                msg = "with proxy '{ProxyUri}'";
-                                props = new object[] { proxy.ToString() };
+                                msgBuilder.AppendLine(", proxy '{ProxyUri}'");
+                                props.Add(proxy.ToString());
                             });
+
                             config.Update();
 
-                            return Task.FromResult((msg, props));
+                            return Task.FromResult((msgBuilder.ToString(), props.ToArray()));
                         },
                         token,
                         restart: false);

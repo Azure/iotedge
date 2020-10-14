@@ -57,6 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string GatewayHostnameVariableName = "IOTEDGE_GATEWAYHOSTNAME";
 
+        public const string ParentEdgeHostnameVariableName = "IOTEDGE_PARENTHOSTNAME";
+
         public const string DeviceIdVariableName = "IOTEDGE_DEVICEID";
 
         public const string ModuleIdVariableName = "IOTEDGE_MODULEID";
@@ -95,6 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
 
+        public const string StorageMaxOpenFiles = "RocksDB_MaxOpenFiles";
+
         public const string StorageLogLevel = "Storage_LogLevel";
 
         public const string WorkloadApiVersion = "2019-01-30";
@@ -113,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             public const string ConfigurationId = "net.azure-devices.edge.configurationId";
             public const string CreateOptions = "net.azure-devices.edge.create-options";
             public const string Env = "net.azure-devices.edge.env";
+            public const string OriginalImage = "net.azure-devices.edge.original-image";
         }
     }
 }

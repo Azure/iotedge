@@ -99,6 +99,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("hostname", value);
         }
 
+        public void SetParentHostname(string value)
+        {
+            this.config.ReplaceOrAdd("parent_hostname", value);
+        }
+
         public void SetCertificates(CaCertificates certs)
         {
             this.config.ReplaceOrAdd("certificates.device_ca_cert", certs.CertificatePath);

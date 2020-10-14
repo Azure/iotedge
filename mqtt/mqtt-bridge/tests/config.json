@@ -1,0 +1,55 @@
+{
+    "iotedge_gatewayhostname": "edge1",
+    "iotedge_deviceid": "d1",
+    "iotedge_moduleid": "mymodule",
+    "iotedge_modulegenerationid": "321",
+    "iotedge_workloaduri": "uri",
+    "iotedge_iothubhostname": "iothub",
+    "enableupstreambridge": "true",
+    "upstream": {
+        "subscriptions": [
+            {
+                "pattern": "temp/#",
+                "remote": "floor/kitchen"
+            }
+        ],
+        "forwards": [
+            {
+                "local": "local",
+                "pattern": "floor/#",
+                "remote": "remote"
+            },
+            {
+                "pattern": "temp/#",
+                "remote": "floor/kitchen"
+            },
+            {
+                "pattern": "pattern/#"
+            }
+        ]
+    },
+    "remotes": [
+        {
+            "name": "r1",
+            "address": "remote:8883",
+            "client_id": "client",
+            "username": "mymodule",
+            "password": "pass",
+            "keep_alive": "1m",
+            "clean_session": false,
+            "subscriptions": [
+                {
+                    "pattern": "temp/#",
+                    "remote": "floor/kitchen"
+                }
+            ],
+            "forwards": [
+                {
+                    "pattern": "some",
+                    "remote": "remote"
+                }
+            ]
+        }
+    ],
+    "messages": {}
+}

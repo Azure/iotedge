@@ -1,77 +1,114 @@
-#![allow(dead_code)]
+use std::{any::Any, convert::Infallible, error::Error as StdError};
 
 use mqtt3::proto;
 
-use crate::{AuthId, ClientId};
+use crate::{ClientId, ClientInfo};
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
     /// Authentication error.
-    type Error: std::error::Error + Send;
+    type Error: StdError;
 
     /// Authorizes a MQTT client to perform some action.
-    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
+    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error>;
+
+    fn update(&mut self, _update: Box<dyn Any>) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
-impl<F> Authorizer for F
-where
-    F: Fn(Activity) -> Result<bool, AuthorizeError> + Sync,
-{
-    type Error = AuthorizeError;
+/// Authorization result.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Authorization {
+    Allowed,
+    Forbidden(String),
+}
 
-    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
+/// Creates an authorizer from a function.
+/// It wraps any provided function with an interface aligned with authorizer.
+pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
+where
+    F: Fn(&Activity) -> Authorization + Sync + 'static,
+{
+    move |activity: &Activity| Ok::<_, Infallible>(f(activity))
+}
+
+impl<F, E> Authorizer for F
+where
+    F: Fn(&Activity) -> Result<Authorization, E> + Sync,
+    E: StdError,
+{
+    type Error = E;
+
+    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         self(activity)
     }
 }
 
-/// Authorization error type placeholder.
-#[derive(Debug, thiserror::Error)]
-#[error("An error occurred checking client permissions.")]
-pub struct AuthorizeError;
-
 /// Default implementation that always denies any operation a client intends to perform.
 /// This implementation will be used if custom authorization mechanism was not provided.
-pub struct DefaultAuthorizer;
+pub struct DenyAll;
 
-impl Authorizer for DefaultAuthorizer {
-    type Error = AuthorizeError;
+impl Authorizer for DenyAll {
+    type Error = Infallible;
 
-    fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
-        Ok(false)
+    fn authorize(&self, _: &Activity) -> Result<Authorization, Self::Error> {
+        Ok(Authorization::Forbidden(
+            "not allowed by default".to_string(),
+        ))
+    }
+}
+
+/// Default implementation that always allows any operation a client intends to perform.
+/// This implementation will be used if custom authorization mechanism was not provided.
+pub struct AllowAll;
+
+impl Authorizer for AllowAll {
+    type Error = Infallible;
+
+    fn authorize(&self, _: &Activity) -> Result<Authorization, Self::Error> {
+        Ok(Authorization::Allowed)
     }
 }
 
 /// Describes a client activity to authorized.
+#[derive(Clone, Debug)]
 pub struct Activity {
-    auth_id: AuthId,
-    client_id: ClientId,
+    client_info: ClientInfo,
     operation: Operation,
 }
 
 impl Activity {
-    pub fn new(
-        auth_id: impl Into<AuthId>,
-        client_id: impl Into<ClientId>,
-        operation: Operation,
-    ) -> Self {
+    pub fn new(client_info: ClientInfo, operation: Operation) -> Self {
         Self {
-            auth_id: auth_id.into(),
-            client_id: client_id.into(),
+            client_info,
             operation,
         }
+    }
+
+    pub fn client_id(&self) -> &ClientId {
+        &self.client_info.client_id()
+    }
+
+    pub fn client_info(&self) -> &ClientInfo {
+        &self.client_info
     }
 
     pub fn operation(&self) -> &Operation {
         &self.operation
     }
+
+    pub fn into_parts(self) -> (ClientInfo, Operation) {
+        (self.client_info, self.operation)
+    }
 }
 
 /// Describes a client operation to be authorized.
+#[derive(Clone, Debug)]
 pub enum Operation {
     Connect(Connect),
     Publish(Publish),
     Subscribe(Subscribe),
-    Receive(Receive),
 }
 
 impl Operation {
@@ -89,19 +126,18 @@ impl Operation {
     pub fn new_subscribe(subscribe_to: proto::SubscribeTo) -> Self {
         Self::Subscribe(subscribe_to.into())
     }
-
-    /// Creates a new operation context for RECEIVE request.
-    ///
-    /// RECEIVE request happens when broker decides to publish a message to a certain
-    /// topic client subscribed to.
-    pub fn new_receive(publication: proto::Publication) -> Self {
-        Self::Receive(publication.into())
-    }
 }
 
 /// Represents a client attempt to connect to the broker.
+#[derive(Clone, Debug)]
 pub struct Connect {
     will: Option<Publication>,
+}
+
+impl Connect {
+    pub fn will(&self) -> Option<&Publication> {
+        self.will.as_ref()
+    }
 }
 
 impl From<proto::Connect> for Connect {
@@ -113,10 +149,25 @@ impl From<proto::Connect> for Connect {
 }
 
 /// Represents a publication description without payload to be used for authorization.
+#[derive(Clone, Debug)]
 pub struct Publication {
     topic_name: String,
     qos: proto::QoS,
     retain: bool,
+}
+
+impl Publication {
+    pub fn topic_name(&self) -> &str {
+        &self.topic_name
+    }
+
+    pub fn qos(&self) -> proto::QoS {
+        self.qos
+    }
+
+    pub fn retain(&self) -> bool {
+        self.retain
+    }
 }
 
 impl From<proto::Publication> for Publication {
@@ -130,8 +181,15 @@ impl From<proto::Publication> for Publication {
 }
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
+#[derive(Clone, Debug)]
 pub struct Publish {
     publication: Publication,
+}
+
+impl Publish {
+    pub fn publication(&self) -> &Publication {
+        &self.publication
+    }
 }
 
 impl From<proto::Publish> for Publish {
@@ -151,6 +209,7 @@ impl From<proto::Publish> for Publish {
 }
 
 /// Represents a client attempt to subscribe to a specified MQTT topic in order to received messages.
+#[derive(Clone, Debug)]
 pub struct Subscribe {
     topic_filter: String,
     qos: proto::QoS,
@@ -159,6 +218,10 @@ pub struct Subscribe {
 impl Subscribe {
     pub fn topic_filter(&self) -> &str {
         &self.topic_filter
+    }
+
+    pub fn qos(&self) -> proto::QoS {
+        self.qos
     }
 }
 
@@ -171,28 +234,16 @@ impl From<proto::SubscribeTo> for Subscribe {
     }
 }
 
-/// Represents a client to received a message from a specified MQTT topic.
-pub struct Receive {
-    publication: Publication,
-}
-
-impl From<proto::Publication> for Receive {
-    fn from(publication: proto::Publication) -> Self {
-        Self {
-            publication: publication.into(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{net::SocketAddr, time::Duration};
 
     use matches::assert_matches;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
+    use super::{Activity, AllowAll, Authorization, Authorizer, DenyAll, Operation};
+    use crate::ClientInfo;
 
     fn connect() -> proto::Connect {
         proto::Connect {
@@ -206,29 +257,33 @@ mod tests {
         }
     }
 
+    #[test]
     fn default_auth_always_deny_any_action() {
-        let auth = DefaultAuthorizer;
+        let auth = DenyAll;
         let activity = Activity::new(
-            "client-auth-id",
-            "client-id",
+            ClientInfo::new("client-auth-id", peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 
-        let res = auth.authorize(activity);
+        let res = auth.authorize(&activity);
 
-        assert_matches!(res, Ok(false));
+        assert_matches!(res, Ok(Authorization::Forbidden(_)));
     }
 
+    #[test]
     fn authorizer_wrapper_around_function() {
-        let auth = |_| Ok(true);
+        let auth = AllowAll;
         let activity = Activity::new(
-            "client-auth-id",
-            "client-id",
+            ClientInfo::new("client-auth-id", peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 
-        let res = auth.authorize(activity);
+        let res = auth.authorize(&activity);
 
-        assert_matches!(res, Ok(true));
+        assert_matches!(res, Ok(Authorization::Allowed));
+    }
+
+    fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
     }
 }

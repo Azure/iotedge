@@ -1662,7 +1662,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             yield return new object[] { version_1_2, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_2_0, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_2_0_1, typeof(InvalidSchemaVersionException) };
-            yield return new object[] { version_schema_mismatch, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_schema_mismatch, null };
         }
 
         static async Task SetAgentDesiredProperties(RegistryManager rm, string deviceId)
@@ -1934,7 +1934,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             var desiredProperties = new
             {
-                schemaVersion = "1.0",
+                schemaVersion = "1.1.0",
                 runtime = new
                 {
                     type = "docker",
@@ -2001,7 +2001,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             var desiredProperties = new
             {
-                schemaVersion = "1.0",
+                schemaVersion = "1.1.0",
                 runtime = new
                 {
                     type = "docker",

@@ -371,6 +371,7 @@ function Initialize-IoTEdge {
     Set-Hostname
     if ($ContainerOs -eq 'Linux') {
         Set-ListenConnectUriForLinuxContainers
+        Disable-IoTEdgeMoby
     }
     else {
         Set-CorrectProgramData
@@ -989,7 +990,7 @@ function Install-Packages(
     $restartNeeded = $false
 
     if (-not $Update) {
-        if (-not (Test-IotCore)) {
+        if ((-not (Test-IotCore)) -and ($ContainerOs -eq 'Windows')) {
             $result = Get-WindowsOptionalFeature -Online -FeatureName 'Containers'
             if ($result -and ($result.State -ne 'Enabled')) {
                 $result = Enable-WindowsOptionalFeature -FeatureName 'Containers' -Online -NoRestart
@@ -1833,7 +1834,7 @@ function Set-ProvisioningMode {
                 $selectionRegex += '\s*#?\s*identity_cert:\s".*"\s*#?\s*identity_pk:\s".*"'
             }
 
-            $selectionRegex += '\s*#?\s*dynamic_reprovisioning:\s*.*'
+            $selectionRegex += '\s*#?\s*always_reprovision_on_startup:\s*.*\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''dps''',
@@ -1857,6 +1858,7 @@ function Set-ProvisioningMode {
             }
 
             $replacementContent += "  dynamic_reprovisioning: $DynamicReprovisioning"
+            $replacementContent += '  always_reprovision_on_startup: true'
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
@@ -1960,6 +1962,12 @@ function Set-ListenConnectUriForLinuxContainers {
 
     Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "${listenAddress}:15580" 
     $env:IOTEDGE_HOST = "${listenAddress}:15580"
+}
+
+function Disable-IoTEdgeMoby {
+    Invoke-Native 'sc config iotedge depend= ""' 
+    Invoke-Native 'sc config iotedge-moby start= disabled' 
+    Stop-Service iotedge-moby
 }
 
 function Set-CorrectProgramData {
