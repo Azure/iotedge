@@ -39,10 +39,7 @@ where
     }
 
     fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-        let mut state_borrow = self
-            .state
-            .try_borrow_mut()
-            .map_err(PersistError::BorrowSharedState)?;
+        let mut state_borrow = self.state.borrow_mut();
         let batch: VecDeque<_> = state_borrow.batch(self.batch_size)?;
 
         Ok(batch)
@@ -65,10 +62,7 @@ where
         // If error, either someone forged the database or we have a database schema change
         mut_self.batch = mut_self.next_batch()?;
 
-        let mut state_borrow = mut_self
-            .state
-            .try_borrow_mut()
-            .map_err(PersistError::BorrowSharedState)?;
+        let mut state_borrow = mut_self.state.borrow_mut();
         mut_self.batch.pop_front().map_or_else(
             || {
                 state_borrow.set_waker(cx.waker());

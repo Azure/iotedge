@@ -1,5 +1,3 @@
-use std::cell::BorrowMutError;
-
 use futures_util::{future::select, future::Either, pin_mut};
 use mqtt3::ShutdownError;
 use tokio::sync::{mpsc::error::SendError, oneshot, oneshot::Sender};
@@ -120,7 +118,4 @@ pub enum BridgeError {
 
     #[error("failed to get publish handle from client.")]
     ClientShutdown(#[from] ShutdownError),
-
-    #[error("failed to borrow persistence to store publication")]
-    BorrowPersist(#[from] BorrowMutError),
 }

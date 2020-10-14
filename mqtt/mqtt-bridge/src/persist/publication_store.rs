@@ -58,10 +58,7 @@ where
             offset: inner_borrow.offset,
         };
 
-        let mut state_borrow = inner_borrow
-            .state
-            .try_borrow_mut()
-            .map_err(PersistError::BorrowSharedState)?;
+        let mut state_borrow = inner_borrow.state.borrow_mut();
         state_borrow.insert(key, message)?;
         drop(state_borrow);
 
@@ -74,10 +71,7 @@ where
 
         debug!("removing publication with key {:?}", key);
 
-        let mut state_borrow = inner
-            .state
-            .try_borrow_mut()
-            .map_err(PersistError::BorrowSharedState)?;
+        let mut state_borrow = inner.state.borrow_mut();
         state_borrow.remove(key)?;
         Ok(())
     }
