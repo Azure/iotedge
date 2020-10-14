@@ -54,12 +54,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routes1 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, Option.None<BrokerConfig>());
 
             var routes2 = Routes.Take(3)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration2 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2);
+            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, Option.None<BrokerConfig>());
 
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())
@@ -68,8 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
                     await Task.Delay(5000);
                     return Option.Some(edgeHubConfig2);
                 });
-
-            configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
 
             configProvider.Setup(c => c.GetCachedConfig())
                 .Returns(() => Task.FromResult(Option.Some(edgeHubConfig1)));
@@ -116,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routes1 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, Option.None<BrokerConfig>());
 
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())
@@ -125,8 +123,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
                     await Task.Delay(5000);
                     return Option.Some(edgeHubConfig1);
                 });
-
-            configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
 
             configProvider.Setup(c => c.GetCachedConfig())
                 .Returns(() => Task.FromResult(Option.None<EdgeHubConfig>()));
@@ -172,42 +168,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routes1 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, Option.None<BrokerConfig>());
 
             var routes2 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration2 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2);
+            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, Option.None<BrokerConfig>());
 
             var routes3 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration3 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3);
+            var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3, Option.None<BrokerConfig>());
 
             var routes4 = Routes.Skip(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration4 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig4 = new EdgeHubConfig("1.0", routes4, storeAndForwardConfiguration4);
+            var edgeHubConfig4 = new EdgeHubConfig("1.0", routes4, storeAndForwardConfiguration4, Option.None<BrokerConfig>());
 
             var routes5 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration5 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig5 = new EdgeHubConfig("1.0", routes5, storeAndForwardConfiguration5);
+            var edgeHubConfig5 = new EdgeHubConfig("1.0", routes5, storeAndForwardConfiguration5, Option.None<BrokerConfig>());
 
             var routes6 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration6 = new StoreAndForwardConfiguration(3600);
-            var edgeHubConfig6 = new EdgeHubConfig("1.0", routes6, storeAndForwardConfiguration6);
+            var edgeHubConfig6 = new EdgeHubConfig("1.0", routes6, storeAndForwardConfiguration6, Option.None<BrokerConfig>());
 
             var routes7 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration7 = new StoreAndForwardConfiguration(3600, new StoreLimits(10L));
-            var edgeHubConfig7 = new EdgeHubConfig("1.0", routes7, storeAndForwardConfiguration7);
+            var edgeHubConfig7 = new EdgeHubConfig("1.0", routes7, storeAndForwardConfiguration7, Option.None<BrokerConfig>());
 
             var routes8 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration8 = new StoreAndForwardConfiguration(3600, new StoreLimits(20L));
-            var edgeHubConfig8 = new EdgeHubConfig("1.0", routes8, storeAndForwardConfiguration8);
+            var edgeHubConfig8 = new EdgeHubConfig("1.0", routes8, storeAndForwardConfiguration8, Option.None<BrokerConfig>());
 
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())
@@ -220,7 +216,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
                 .ReturnsAsync(Option.Some(edgeHubConfig7))
                 .ReturnsAsync(Option.Some(edgeHubConfig8))
                 .ReturnsAsync(Option.Some(edgeHubConfig8));
-            configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
             configProvider.Setup(c => c.GetCachedConfig())
                 .Returns(() => Task.FromResult(Option.None<EdgeHubConfig>()));
 
@@ -313,32 +308,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routes1 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1, Option.None<BrokerConfig>());
 
             var routes2 = Routes.Take(3)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration2 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2);
+            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2, Option.None<BrokerConfig>());
 
             var routes3 = Routes.Take(4)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
             var storeAndForwardConfiguration3 = new StoreAndForwardConfiguration(7200);
-            var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3);
+            var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3, Option.None<BrokerConfig>());
 
-            Func<EdgeHubConfig, Task> updateCallback = null;
             var configProvider = new Mock<IConfigSource>();
             configProvider.SetupSequence(c => c.GetConfig())
                 .ReturnsAsync(Option.Some(edgeHubConfig1))
                 .ReturnsAsync(Option.Some(edgeHubConfig2))
                 .ReturnsAsync(Option.Some(edgeHubConfig3));
-            configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()))
-                .Callback<Func<EdgeHubConfig, Task>>(callback => { updateCallback = callback; });
             configProvider.Setup(c => c.GetCachedConfig())
                 .Returns(() => Task.FromResult(Option.None<EdgeHubConfig>()));
 
             // Act
             var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object);
-            await configUpdater.Init(configProvider.Object);
+            IConfigSource config = configProvider.Object;
+            await configUpdater.Init(config);
 
             // Assert
             configProvider.Verify(c => c.GetConfig(), Times.Once);
@@ -347,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             // call update with no changes
-            await updateCallback(edgeHubConfig1);
+            configProvider.Raise(m => m.ConfigUpdated += null, config, edgeHubConfig1);
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(1));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>(), It.IsAny<ICheckpointerFactory>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
@@ -360,7 +353,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(2));
 
             // call update with changes
-            await updateCallback(edgeHubConfig3);
+            configProvider.Raise(m => m.ConfigUpdated += null, config, edgeHubConfig3);
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(2));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>(), It.IsAny<ICheckpointerFactory>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(3));

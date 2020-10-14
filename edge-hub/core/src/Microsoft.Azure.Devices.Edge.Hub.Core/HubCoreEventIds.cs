@@ -24,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const int EdgeHubConfigParser = EventIdStart + 1800;
         public const int TwinConfigSource = EventIdStart + 1900;
         public const int ServiceIdentityTree = EventIdStart + 2000;
+        public const int PolicyUpdateHandler = EventIdStart + 2100;
+
         const int EventIdStart = 1000;
     }
 }
