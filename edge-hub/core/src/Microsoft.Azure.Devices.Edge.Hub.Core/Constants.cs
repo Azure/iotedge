@@ -28,6 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string ServiceApiIdHeaderKey = "x-ms-edge-moduleId";
         public const string OriginEdgeHeaderKey = "x-ms-edge-origin";
 
-        public static readonly Version ConfigSchemaVersion = new Version("1.1.0");
+        public static readonly Version ConfigSchemaVersion = new Version("1.2.0");
     }
 }
