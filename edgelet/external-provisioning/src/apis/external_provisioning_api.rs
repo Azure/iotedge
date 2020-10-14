@@ -47,7 +47,7 @@ pub trait ExternalProvisioningApi: Send + Sync {
 impl<C: hyper::client::connect::Connect> ExternalProvisioningApi
     for ExternalProvisioningApiClient<C>
 where
-    C: hyper::client::connect::Connect + 'static,
+    C: 'static,
     <C as hyper::client::connect::Connect>::Transport: 'static,
     <C as hyper::client::connect::Connect>::Future: 'static,
 {

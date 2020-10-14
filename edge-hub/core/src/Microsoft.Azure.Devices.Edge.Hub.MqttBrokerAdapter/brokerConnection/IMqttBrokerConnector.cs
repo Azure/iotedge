@@ -11,6 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         Task<bool> SendAsync(string topic, byte[] payload);
 
-        public event EventHandler OnConnected;
+        event EventHandler OnConnected;
     }
 }
