@@ -1,22 +1,35 @@
 use std::collections::HashMap;
 
 use futures_util::future::{self, join_all};
+use thiserror::Error;
+use tokio::sync::mpsc::{self, UnboundedSender};
 use tracing::{error, info};
 
-use crate::bridge::{Bridge, BridgeError};
 use crate::settings::Settings;
+use crate::{
+    bridge::{Bridge, BridgeError},
+    BridgeUpdate,
+};
 
 /// Controller that handles the settings and monitors changes, spawns new Bridges and monitors shutdown signal.
-#[derive(Default)]
 pub struct BridgeController {
     bridges: HashMap<String, Bridge>,
+    handle: BridgeControllerHandle,
 }
 
 impl BridgeController {
     pub fn new() -> Self {
+        let (sender, _updates) = mpsc::unbounded_channel();
+        let handle = BridgeControllerHandle { sender };
+
         Self {
             bridges: HashMap::new(),
+            handle,
         }
+    }
+
+    pub fn handle(&self) -> BridgeControllerHandle {
+        self.handle.clone()
     }
 
     pub async fn init(
@@ -57,4 +70,23 @@ impl BridgeController {
         //       if we stop the bridge controller, our startup/shutdown logic will shut eveything down
         future::pending::<()>().await;
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct BridgeControllerHandle {
+    sender: UnboundedSender<BridgeUpdate>,
+}
+
+impl BridgeControllerHandle {
+    pub fn send(&mut self, message: BridgeUpdate) -> Result<(), Error> {
+        self.sender
+            .send(message)
+            .map_err(Error::SendControllerMessage)
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("An error occurred sending a message to the controller.")]
+    SendControllerMessage(#[source] tokio::sync::mpsc::error::SendError<BridgeUpdate>),
 }

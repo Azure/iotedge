@@ -23,8 +23,8 @@ use mqtt_broker::{
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     command::{
-        AuthorizedIdentitiesCommand, CommandHandler, CommandHandlerError, DisconnectCommand,
-        PolicyUpdateCommand, ShutdownHandle,
+        AuthorizedIdentitiesCommand, BridgeUpdateCommand, CommandHandler, CommandHandlerError,
+        DisconnectCommand, PolicyUpdateCommand, ShutdownHandle,
     },
     connection::MakeEdgeHubPacketProcessor,
     settings::{ListenerConfig, Settings},
@@ -165,18 +165,18 @@ pub async fn start_sidecars(
 
     let system_address = listener_settings.system().addr().to_string();
 
-    // command handler
+    let mut bridge_controller = BridgeController::new();
+
     let device_id = env::var(DEVICE_ID_ENV)?;
     let mut command_handler = CommandHandler::new(system_address.clone(), &device_id);
     command_handler.add_command(DisconnectCommand::new(&broker_handle));
     command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
     command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
+    command_handler.add_command(BridgeUpdateCommand::new(&bridge_controller.handle()));
     command_handler.init().await?;
     let command_handler_shutdown = command_handler.shutdown_handle()?;
     let command_handler_join_handle = tokio::spawn(command_handler.run());
 
-    // bridge
-    let mut bridge_controller = BridgeController::new();
     bridge_controller.init(system_address, &device_id).await?;
     let bridge_controller_join_handle = tokio::spawn(bridge_controller.run());
 
