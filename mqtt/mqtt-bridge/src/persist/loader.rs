@@ -11,7 +11,7 @@ use mqtt3::proto::Publication;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
-/// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
+/// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
 pub struct MessageLoaderInner<S> {
     state: Rc<RefCell<S>>,
