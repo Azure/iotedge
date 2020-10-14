@@ -1,5 +1,3 @@
-use std::cell::BorrowMutError;
-
 use serde::{Deserialize, Serialize};
 
 mod loader;
@@ -20,7 +18,4 @@ pub struct Key {
 pub enum PersistError {
     #[error("Attempted to remove entry which does not exist")]
     RemovalForMissing,
-
-    #[error("Failed to borrow shared state for persistence")]
-    BorrowSharedState(#[from] BorrowMutError),
 }
