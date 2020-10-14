@@ -107,7 +107,7 @@ impl PumpPair {
     pub fn new(
         connection_settings: &ConnectionSettings,
         system_address: &str,
-        device_id: String,
+        device_id: &str,
     ) -> Result<Self, BridgeError> {
         let local_client_id = format!(
             "{}/$edgeHub/$bridge/{}",
@@ -134,8 +134,8 @@ impl PumpPair {
 
         let remote_pump = Self::prepare_pump(
             outgoing_loader,
-            incoming_persist.clone(),
-            outgoing_persist.clone(),
+            &incoming_persist,
+            &outgoing_persist,
             connection_settings.address(),
             connection_settings.credentials(),
             PumpType::Remote,
@@ -145,8 +145,8 @@ impl PumpPair {
 
         let local_pump = Self::prepare_pump(
             incoming_loader,
-            outgoing_persist.clone(),
-            incoming_persist.clone(),
+            &outgoing_persist,
+            &incoming_persist,
             system_address,
             &Credentials::Anonymous(local_client_id),
             PumpType::Local,
@@ -160,10 +160,12 @@ impl PumpPair {
         })
     }
 
+    // If this grows by even more we can find a workaround
+    #[allow(clippy::too_many_arguments)]
     fn prepare_pump(
         loader: MessageLoader<WakingMemoryStore>,
-        ingress_store: PublicationStore<WakingMemoryStore>,
-        egress_store: PublicationStore<WakingMemoryStore>,
+        ingress_store: &PublicationStore<WakingMemoryStore>,
+        egress_store: &PublicationStore<WakingMemoryStore>,
         address: &str,
         credentials: &Credentials,
         pump_type: PumpType,
@@ -188,7 +190,7 @@ impl PumpPair {
             client,
             subscriptions,
             loader,
-            egress_store,
+            egress_store.clone(),
             pump_context,
         )?)
     }

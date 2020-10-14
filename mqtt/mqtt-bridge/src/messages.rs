@@ -45,7 +45,7 @@ impl<S> MessageHandler<S> {
     pub fn new(store: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
-            store: store,
+            store,
         }
     }
 

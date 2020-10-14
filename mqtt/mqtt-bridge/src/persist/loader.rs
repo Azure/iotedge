@@ -83,12 +83,11 @@ where
         // get next element and return it
         let maybe_extracted = inner.batch.pop_front();
         let mut state_borrow = inner.state.borrow_mut();
-        match maybe_extracted {
-            Some(extracted) => Poll::Ready(Some(Ok(extracted))),
-            None => {
-                state_borrow.set_waker(cx.waker());
-                Poll::Pending
-            }
+        if let Some(extracted) = maybe_extracted {
+            Poll::Ready(Some(Ok(extracted)))
+        } else {
+            state_borrow.set_waker(cx.waker());
+            Poll::Pending
         }
     }
 }
