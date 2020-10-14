@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (SyncLock.Lock(this.stateLock, OperationTimeout))
             {
-                return this.deviceProxy.IsActive ? this.deviceProxy : null;
+                return this.deviceProxy != null && this.deviceProxy.IsActive ? this.deviceProxy : null;
             }
         }
 
@@ -66,11 +66,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(deviceProxy, nameof(deviceProxy));
             using (SyncLock.Lock(this.stateLock, OperationTimeout))
             {
-                Task closeDownstreamConnectionTask = this.deviceProxy == null ? Task.CompletedTask
+                Task closeDeviceProxyTask = this.deviceProxy == null ? Task.CompletedTask
                     : this.deviceProxy.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {this.Identity}"));
                 // TODO what about subscriptions???
                 this.deviceProxy = deviceProxy;
-                return closeDownstreamConnectionTask;
+                return closeDeviceProxyTask;
             }
         }
 
@@ -80,13 +80,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 var closeDeviceProxyTask = this.deviceProxy == null ? Task.CompletedTask
                     : this.deviceProxy.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {this.Identity}."));
-                var closeCloudProxyTask = this.closeCloudConnectionOnDeviceDisconnect && this.cloudProxy == null ? Task.CompletedTask : this.cloudProxy.CloseAsync();
+                var closeCloudProxyTask = this.closeCloudConnectionOnDeviceDisconnect && this.cloudProxy != null ? this.cloudProxy.CloseAsync() : Task.CompletedTask;
 
                 this.deviceProxy = null;
                 this.cloudProxy = null;
                 this.createCloudProxyTask = null;
-                // TODO clear subscriptions???
-                this.subscriptions.Clear();
                 return Task.WhenAll(closeDeviceProxyTask, closeCloudProxyTask);
             }
         }
@@ -140,12 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (SyncLock.Lock(this.stateLock, OperationTimeout))
             {
-                if (!this.deviceProxy?.IsActive ?? false)
-                {
-                    throw new ArgumentException($"DeviceProxy {this.Identity.Id} is inactive.");
-                }
-
-                return ImmutableHashSet.CreateRange(this.subscriptions);
+                return this.deviceProxy?.IsActive ?? false ? ImmutableHashSet.CreateRange(this.subscriptions) : null;
             }
         }
 
@@ -221,7 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             var cloudConnection = await this.tokenCredentials.Map(tc => this.cloudConnectionProvider.Connect(tc, this.CloudConnectionStatusChangedHandler))
                 .GetOrElse(() => this.cloudConnectionProvider.Connect(this.Identity, this.CloudConnectionStatusChangedHandler));
             return cloudConnection.Map(cc => cc.CloudProxy)
-                .Map(cp => cp.Expect(() => new EdgeHubConnectionException($"Unable to get cloud proxy for device {this.Identity}")));
+                .Map(cp => cp.Expect(() => new EdgeHubConnectionException($"Unable to get cloud proxy for device {this.Identity}")))
+                .Map(cp => new RetryingCloudProxy(this.Identity.Id, this.TryCreateCloudProxyAsync, cp) as ICloudProxy);
         }
 
         async void CloudConnectionStatusChangedHandler(

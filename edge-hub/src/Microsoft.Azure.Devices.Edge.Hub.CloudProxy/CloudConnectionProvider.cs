@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             else
             {
-                throw new InvalidOperationException($"Device {identity.Id} state is {serviceIdentity.Status}.");
+                throw new AuthenticationException($"Device {identity.Id} state is {serviceIdentity.Status}.");
             }
         }
 

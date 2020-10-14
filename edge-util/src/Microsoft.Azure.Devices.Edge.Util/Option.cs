@@ -174,9 +174,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [Pure]
         public Option<TResult> Map<TResult>(Func<T, TResult> mapping)
         {
-            return this.HasValue
-                ? Option.Some(mapping(this.Value))
-                : Option.None<TResult>();
+            if (this.HasValue)
+            {
+                TResult result = mapping(this.Value);
+                return result == null ? Option.None<TResult>() : Option.Some(result);
+            }
+            else
+            {
+                return Option.None<TResult>();
+            }
         }
 
         [Pure]

@@ -226,6 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         public async Task InvokeMethodAsyncTest()
         {
             // Create a mock endpoint capable of returning a mock processor
+            var iotHubHostName = "myIotHub";
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
@@ -251,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var twinManager = Mock.Of<ITwinManager>();
 
             // DeviceListener
-            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
+            var identity = new ModuleIdentity(iotHubHostName, "device1", "module1");
             var cloudProxy = new Mock<ICloudProxy>();
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
             underlyingDeviceProxy.Setup(d => d.InvokeMethodAsync(It.IsAny<DirectMethodRequest>())).ReturnsAsync(default(DirectMethodResponse));
@@ -260,9 +261,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             // ICloudConnectionProvider
             var cloudConnection = Mock.Of<ICloudConnection>(c => c.IsActive && c.CloudProxy == Option.Some(cloudProxy.Object));
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
-            cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
+            cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .ReturnsAsync(Try.Success(cloudConnection));
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider("myIotHub"), Mock.Of<IDeviceConnectivityManager>());
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubHostName), Mock.Of<IDeviceConnectivityManager>());
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
 
@@ -284,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             // Act
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             await deviceMessageHandler.AddSubscription(DeviceSubscription.Methods);
-            Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
+            var responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
             // Assert
             Assert.False(responseTask.IsCompleted);
@@ -384,6 +385,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         public async Task InvokeMethodLateSubscriptionTest()
         {
             // Create a mock endpoint capable of returning a mock processor
+            var iotHubHostName = "myIotHub";
+            var identity = new ModuleIdentity(iotHubHostName, "device1", "module1");
             var processor = Mock.Of<IProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             endpoint.Setup(ep => ep.CreateProcessor()).Returns(processor);
@@ -410,7 +413,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var twinManager = Mock.Of<ITwinManager>();
 
             // DeviceListener
-            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
             var cloudProxy = new Mock<ICloudProxy>();
 
             // ICloudConnectionProvider
@@ -420,7 +422,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 .ReturnsAsync(Try.Success(cloudConnection));
 
             var deviceConnectivitymanager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider("myIotHub"), deviceConnectivitymanager);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubHostName), deviceConnectivitymanager);
 
             IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
             var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, Mock.Of<IDeviceConnectivityManager>());

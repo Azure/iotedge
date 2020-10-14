@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 3));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, It.IsAny<bool>()))
                 .ReturnsAsync(
                     Option.Some(
                         new ServiceIdentity(
@@ -126,7 +126,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             // Arrange
             const string Id = "id1";
-            var identity = Mock.Of<IIdentity>(i => i.Id == Id);
+            const string HubHostName = "myhub";
+            var identity = new DeviceIdentity(HubHostName, Id);
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
             var messageConverterProvider = new MessageConverterProvider(
@@ -142,11 +143,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var clientWatcher = new ClientWatcher();
 
             var clientProvider = new Mock<IClientProvider>();
-            clientProvider.Setup(c => c.Create(identity, edgeHubTokenProvider.Object, It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            clientProvider.Setup(c => c.Create(It.IsAny<IIdentity>(), edgeHubTokenProvider.Object, It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(() => new ThrowingClient(clientWatcher, 3));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, It.IsAny<bool>()))
                 .ReturnsAsync(
                     Option.Some(
                         new ServiceIdentity(
@@ -230,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 15));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, It.IsAny<bool>()))
                 .ReturnsAsync(
                     Option.Some(
                         new ServiceIdentity(

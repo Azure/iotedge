@@ -146,65 +146,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public ClientTokenBasedTokenProvider(ITokenCredentials tokenCredentials)
             {
-                if (IsTokenUsable(tokenCredentials))
-                {
-                    this.tokenCredentials = tokenCredentials;
-                }
-                else
-                {
-                    throw new ArgumentException("Invalid token.");
-                }
+                this.tokenCredentials = ValidateTokenCredentials(tokenCredentials);
             }
 
             internal void UpdateToken(ITokenCredentials tokenCredentials)
             {
                 if (Equals(this.tokenCredentials.Identity, tokenCredentials.Identity))
                 {
-                    if (IsTokenUsable(tokenCredentials))
-                    {
-                        this.tokenCredentials = tokenCredentials;
-                    }
-                    else
-                    {
-                        Events.Error($"UpdateToken failed for device {tokenCredentials.Identity}.");
-                        throw new ArgumentException("Invalid token.");
-                    }
+                    this.tokenCredentials = ValidateTokenCredentials(tokenCredentials);
                 }
                 else
                 {
-                    Events.Error($"UpdateToken failed with invalid identity {tokenCredentials.Identity}, was {this.tokenCredentials.Identity}.");
-                    throw new ArgumentException("Invalid token.");
+                    throw new AuthenticationException("Invalid token: identity mismatch.");
                 }
             }
 
-            public Task<string> GetTokenAsync(Option<TimeSpan> ttl)
-            {
-                if (IsTokenUsable(this.tokenCredentials))
-                {
-                    return Task.FromResult(this.tokenCredentials.Token);
-                }
+            public Task<string> GetTokenAsync(Option<TimeSpan> ttl) => Task.FromResult(ValidateTokenCredentials(this.tokenCredentials).Token);
 
-                Events.Error($"GetTokenAsync failed for device {this.tokenCredentials.Identity}.");
-                throw new AuthenticationException($"Unabled to get valid token for device {this.tokenCredentials.Identity}.");
-            }
-
-            // Checks if the token expires too soon
-            static bool IsTokenUsable(ITokenCredentials tokenCredentials)
+            // Checks if the token is valid and not expired
+            static ITokenCredentials ValidateTokenCredentials(ITokenCredentials tokenCredentials)
             {
                 try
                 {
-                    if (TokenHelper.GetTokenExpiryTimeRemaining(tokenCredentials.Identity.IotHubHostName, tokenCredentials.Token) > TimeSpan.Zero)
+                    if (TokenHelper.GetTokenExpiryTimeRemaining(tokenCredentials.Identity.IotHubHostName, tokenCredentials.Token) <= TimeSpan.Zero)
                     {
-                        return true;
+                        throw new AuthenticationException($"Token credentials is exipred.");
                     }
 
-                    Events.Error($"Expiring token {tokenCredentials.Token} for device {tokenCredentials.Identity}.");
-                    return false;
+                    return tokenCredentials;
                 }
                 catch (Exception e)
                 {
                     Events.ErrorCheckingTokenUsable(e);
-                    return false;
+                    throw new AuthenticationException($"Token credentials is invalid.", e);
                 }
             }
         }

@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         public Option<IDeviceProxy> GetDeviceConnection(string id) => this.RetrieveDeviceBridge(this.ConvertIdToIdentity(id), false)
-                .Map(db => db.GetDeviceProxy());
+                .FlatMap(db => Option.Maybe(db.GetDeviceProxy()));
 
         public Task<Option<ICloudProxy>> GetCloudConnection(string id) => this.RetrieveDeviceBridge(this.ConvertIdToIdentity(id), true)
                 .Map(db => db.RetrieveCloudProxyAsync())
@@ -209,19 +209,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 try
                 {
-                    this.deviceBridges.TryGetValue(Preconditions.CheckNotNull(identity, nameof(identity)), out var connectionProxy);
-                    if (createIfAbsent && connectionProxy == null)
+                    this.deviceBridges.TryGetValue(Preconditions.CheckNotNull(identity, nameof(identity)), out var deviceBridge);
+                    if (createIfAbsent && deviceBridge == null)
                     {
                         if (this.deviceBridges.Values.Count(db => db.IsDeviceProxyActive()) >= this.maxClients)
                         {
                             throw new EdgeHubConnectionException($"Edge hub already has maximum allowed clients ({this.maxClients - 1}) connected.");
                         }
 
-                        connectionProxy = new DeviceBridge(identity, this.closeCloudConnectionOnDeviceDisconnect, this.cloudConnectionProvider, this.OnCloudConnectionStatusChanged);
-                        this.deviceBridges[identity] = connectionProxy;
+                        deviceBridge = new DeviceBridge(identity, this.closeCloudConnectionOnDeviceDisconnect, this.cloudConnectionProvider, this.OnCloudConnectionStatusChanged);
+                        this.deviceBridges[identity] = deviceBridge;
                     }
 
-                    return Option.Maybe(connectionProxy);
+                    return Option.Maybe(deviceBridge);
                 }
                 finally
                 {
