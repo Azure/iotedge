@@ -38,7 +38,7 @@ async fn it_sends_delivery_confirmation_for_m2m_messages() {
         .build();
 
     // subscribe to module inputs
-    let inputs = "devices/device-1/modules/module-1/inputs/telemetry/#";
+    let inputs = "devices/device-1/modules/module-1/telemetry/#";
     module.subscribe(inputs, QoS::AtLeastOnce).await;
 
     let mut edgehub = TestClientBuilder::new(server_handle.address())
@@ -56,7 +56,7 @@ async fn it_sends_delivery_confirmation_for_m2m_messages() {
     assert_eq!(
         module.publications().next().await,
         Some(ReceivedPublication {
-            topic_name: "devices/device-1/modules/module-1/inputs/telemetry/?rid=1".into(),
+            topic_name: "devices/device-1/modules/module-1/telemetry/?rid=1".into(),
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
