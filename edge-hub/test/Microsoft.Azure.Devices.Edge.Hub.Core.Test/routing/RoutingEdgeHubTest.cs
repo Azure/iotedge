@@ -67,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 twinManager,
                 "testEdgeDevice",
+                "$edgeHub",
                 Mock.Of<IInvokeMethodHandler>(),
                 Mock.Of<ISubscriptionProcessor>());
             var identity = new Mock<IIdentity>();
@@ -120,6 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 twinManager,
                 "testEdgeDevice",
+                "$edgeHub",
                 Mock.Of<IInvokeMethodHandler>(),
                 Mock.Of<ISubscriptionProcessor>());
 
@@ -170,6 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 twinManager.Object,
                 "testEdgeDevice",
+                "$edgeHub",
                 Mock.Of<IInvokeMethodHandler>(),
                 Mock.Of<ISubscriptionProcessor>());
 
@@ -213,6 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 twinManager.Object,
                 "testEdgeDevice",
+                "$edgeHub",
                 Mock.Of<IInvokeMethodHandler>(),
                 Mock.Of<ISubscriptionProcessor>());
 
@@ -276,6 +280,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 twinManager,
                 "testEdgeDevice",
+                "$edgeHub",
                 invokeMethodHandler,
                 subscriptionProcessor);
 
@@ -357,6 +362,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 twinManager,
                 "testEdgeDevice",
+                "$edgeHub",
                 invokeMethodHandler,
                 Mock.Of<ISubscriptionProcessor>());
 
@@ -434,6 +440,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 twinManager,
                 "testEdgeDevice",
+                "$edgeHub",
                 invokeMethodHandler,
                 subscriptionProcessor);
 
@@ -504,6 +511,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 twinManager,
                 edgeDeviceId,
+                "$edgeHub",
                 Mock.Of<IInvokeMethodHandler>(),
                 Mock.Of<ISubscriptionProcessor>());
 
@@ -549,6 +557,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 connectionManager,
                 Mock.Of<ITwinManager>(),
                 "ed1",
+                "$edgeHub",
                 Mock.Of<IInvokeMethodHandler>(),
                 Mock.Of<ISubscriptionProcessor>());
             return edgeHub;
