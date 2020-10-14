@@ -209,13 +209,24 @@ where
 
         let include_ms_only = self.include_ms_only;
 
-        self.runtime
+        let runtime_modules = self
+            .runtime
             .list_with_details()
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            .map(|(module, _s)| module.name().to_owned())
-            .filter(move |name| !include_ms_only || MS_MODULES.iter().any(|ms| ms == name))
             .collect()
-            .map(|names| (names, self))
+            .then(move |result| {
+                future::ok(match result {
+                    Ok(modules) => modules
+                        .into_iter()
+                        .map(|(module, _s)| module.name().to_owned())
+                        .filter(move |name| {
+                            !include_ms_only || MS_MODULES.iter().any(|ms| ms == name)
+                        })
+                        .collect(),
+                    Err(_) => Vec::new(),
+                })
+            });
+
+        runtime_modules.map(|names| (names, self))
     }
 
     fn write_log_to_file(
