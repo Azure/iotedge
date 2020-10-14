@@ -266,7 +266,7 @@ impl Topic {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(tag = "direction", content = "c")]
+#[serde(tag = "direction")]
 pub enum Direction {
     #[serde(rename = "in")]
     In,
