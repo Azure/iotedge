@@ -97,9 +97,9 @@ mod tests {
     use std::{cell::RefCell, rc::Rc, time::Duration};
 
     use bytes::Bytes;
-    use futures_util::stream::TryStreamExt;
+    use futures_util::{future::join, stream::TryStreamExt};
     use mqtt3::proto::{Publication, QoS};
-    use tokio::{task, time};
+    use tokio::time;
 
     use crate::persist::{
         loader::{Key, MessageLoader},
@@ -350,14 +350,17 @@ mod tests {
             assert_eq!((key_copy, pub_copy), extracted);
         };
 
-        // start the function and make sure it starts polling the stream before next step
-        let poll_stream_handle = task::spawn_local(poll_stream);
-        time::delay_for(Duration::from_secs(2)).await;
-
         // add an element to the state
-        let mut state_borrow = state.borrow_mut();
-        state_borrow.insert(key1, pub1).unwrap();
-        drop(state_borrow);
-        poll_stream_handle.await.unwrap();
+        let insert = async move {
+            // wait to make sure that stream is polled initially
+            time::delay_for(Duration::from_secs(2)).await;
+
+            // insert element once stream is polled
+            let mut state_borrow = state.borrow_mut();
+            state_borrow.insert(key1, pub1).unwrap();
+            drop(state_borrow);
+        };
+
+        join(poll_stream, insert).await;
     }
 }
