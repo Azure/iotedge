@@ -326,26 +326,24 @@ impl<H: EventHandler> MqttClient<H> {
     }
 
     pub async fn handle_events(&mut self) {
-        debug!("polling bridge client for pump {:?}", self.pump_context);
+        debug!("{} polling bridge client", self.pump_context);
 
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
-            let err_msg = format!("failed to poll events for pump {:?}", self.pump_context);
+            let err_msg = format!("{} failed to poll events", self.pump_context);
             error!(message = err_msg.as_str(), error=%e);
             // TODO: handle the error by recreating the connection
             None
         }) {
-            debug!("handle event {:?}", event);
+            debug!("{} handling event {:?}", self.pump_context, event);
             if let Err(e) = self.event_handler.handle(&event).await {
-                error!(
-                    "error processing event {} for pump {:?}",
-                    e, self.pump_context
-                );
+                let err_msg = format!("{} error processing event {:?}", self.pump_context, event);
+                error!(message = err_msg.as_str(), err = %e);
             }
         }
     }
 
     pub async fn subscribe(&mut self, topics: &[String]) -> Result<(), ClientError> {
-        debug!("subscribing to topics for pump {:?}", self.pump_context);
+        debug!("{} subscribing to topics", self.pump_context);
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: DEFAULT_QOS,
@@ -353,8 +351,8 @@ impl<H: EventHandler> MqttClient<H> {
 
         for subscription in subscriptions {
             debug!(
-                "subscribing to topic {} for pump {:?}",
-                subscription.topic_filter, self.pump_context
+                "{} subscribing to topic {}",
+                self.pump_context, subscription.topic_filter
             );
             self.client
                 .subscribe(subscription)
@@ -363,7 +361,7 @@ impl<H: EventHandler> MqttClient<H> {
 
         let mut subacks: HashSet<_> = topics.iter().collect();
         if subacks.is_empty() {
-            debug!("no topics to subscribe to for pump {:?}", self.pump_context);
+            debug!("{} has no topics to subscribe to", self.pump_context);
             return Ok(());
         }
 
@@ -383,45 +381,33 @@ impl<H: EventHandler> MqttClient<H> {
                     match subscription {
                         SubscriptionUpdateEvent::Subscribe(sub) => {
                             subacks.remove(&sub.topic_filter);
-                            debug!(
-                                "successfully subscribed to topics for pump {:?}",
-                                self.pump_context
-                            );
+                            debug!("{} successfully subscribed to topics", self.pump_context);
                         }
                         SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
                             subacks.remove(&topic_filter);
                             error!(
-                                "subscription rejected by server {} for pump {:?}",
-                                topic_filter, self.pump_context
+                                "{} subscription rejected by server {}",
+                                self.pump_context, topic_filter
                             );
                         }
                         SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
-                            warn!(
-                                "Unsubscribed {} for pump {:?}",
-                                topic_filter, self.pump_context
-                            );
+                            warn!("{} unsubscribed to {}", self.pump_context, topic_filter);
                         }
                     }
                 }
 
-                debug!(
-                    "stop waiting for subscriptions for pump {:?}",
-                    self.pump_context
-                );
+                debug!("{} stopped waiting for subscriptions", self.pump_context);
                 break;
             }
         }
 
         if subacks.is_empty() {
-            debug!(
-                "successfully subscribed to topics for pump {:?}",
-                self.pump_context
-            );
+            debug!("{} successfully subscribed to topics", self.pump_context);
         } else {
             error!(
-                "failed to receive expected subacks for topics: {:?} on pump {:?}",
+                "{} failed to receive expected subacks for topics: {:?}",
+                self.pump_context,
                 subacks.iter().map(ToString::to_string).collect::<String>(),
-                self.pump_context
             );
         }
 
