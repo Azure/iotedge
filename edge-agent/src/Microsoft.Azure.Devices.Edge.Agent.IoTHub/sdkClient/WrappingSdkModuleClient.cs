@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 {
     using System;
     using System.Collections.Generic;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -12,6 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
     public class WrappingSdkModuleClient : ISdkModuleClient
     {
         readonly ModuleClient sdkModuleClient;
+        readonly object getTwinTaskLock = new object();
+        Task<Twin> getTwinTask;
 
         public WrappingSdkModuleClient(ModuleClient sdkModuleClient)
             => this.sdkModuleClient = Preconditions.CheckNotNull(sdkModuleClient, nameof(sdkModuleClient));
@@ -46,7 +47,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         public Task SetDefaultMethodHandlerAsync(MethodCallback callback)
             => this.sdkModuleClient.SetMethodDefaultHandlerAsync(callback, null);
 
-        public Task<Twin> GetTwinAsync() => this.sdkModuleClient.GetTwinAsync();
+        public Task<Twin> GetTwinAsync()
+        {
+            // limit get twin call to single one to avoid redundant network flow
+            lock (this.getTwinTaskLock)
+            {
+                if (this.getTwinTask?.Status != TaskStatus.Running)
+                {
+                    this.getTwinTask = this.sdkModuleClient.GetTwinAsync();
+                }
+            }
+
+            return this.getTwinTask;
+        }
 
         public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
             => this.sdkModuleClient.UpdateReportedPropertiesAsync(reportedProperties);
