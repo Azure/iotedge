@@ -18,9 +18,7 @@ pub struct PublicationStoreInner<S> {
 }
 
 /// Persistence implementation used for the bridge
-pub struct PublicationStore<S> {
-    inner: Rc<RefCell<PublicationStoreInner<S>>>,
-}
+pub struct PublicationStore<S>(Rc<RefCell<PublicationStoreInner<S>>>);
 
 impl PublicationStore<WakingMemoryStore> {
     pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
@@ -45,11 +43,11 @@ where
         };
         let inner = Rc::new(RefCell::new(inner));
 
-        Self { inner }
+        Self(inner)
     }
 
     pub fn push(&self, message: Publication) -> Result<Key, PersistError> {
-        let mut inner_borrow = self.inner.borrow_mut();
+        let mut inner_borrow = self.0.borrow_mut();
 
         debug!(
             "persisting publication on topic {} with offset {}",
@@ -72,7 +70,7 @@ where
     }
 
     pub fn remove(&self, key: Key) -> Result<(), PersistError> {
-        let inner = self.inner.borrow_mut();
+        let inner = self.0.borrow_mut();
 
         debug!("removing publication with key {:?}", key);
 
@@ -85,16 +83,14 @@ where
     }
 
     pub fn loader(&self) -> Rc<RefCell<MessageLoader<S>>> {
-        let inner = self.inner.borrow_mut();
+        let inner = self.0.borrow_mut();
         inner.loader.clone()
     }
 }
 
 impl<S: StreamWakeableState> Clone for PublicationStore<S> {
     fn clone(&self) -> Self {
-        Self {
-            inner: self.inner.clone(),
-        }
+        Self(self.0.clone())
     }
 }
 
