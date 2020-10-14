@@ -94,33 +94,33 @@ impl Bridge {
 /// Bridge error.
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
-    #[error("Failed to save to store.")]
+    #[error("failed to save to store.")]
     Store(#[from] PersistError),
 
-    #[error("Failed to subscribe to topic.")]
+    #[error("failed to subscribe to topic.")]
     Subscribe(#[source] ClientError),
 
-    #[error("Failed to parse topic pattern.")]
+    #[error("failed to parse topic pattern.")]
     TopicFilterParse(#[from] mqtt_broker::Error),
 
-    #[error("Failed to load settings.")]
+    #[error("failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
 
-    #[error("Failed to get send pump message.")]
+    #[error("failed to get send pump message.")]
     SenderToPump(#[from] SendError<PumpMessage>),
 
     #[error("failed to execute RPC command")]
     Rpc(#[from] RpcError),
 
-    #[error("Failed to signal bridge shutdown.")]
+    #[error("failed to signal bridge shutdown.")]
     ShutdownBridge(()),
 
-    #[error("Failed to get publish handle from client.")]
+    #[error("failed to get publish handle from client.")]
     PublishHandle(#[source] ClientError),
 
-    #[error("Failed to get publish handle from client.")]
+    #[error("failed to get publish handle from client.")]
     ClientShutdown(#[from] ShutdownError),
 
-    #[error("Failed to borrow persistence to store publication")]
+    #[error("failed to borrow persistence to store publication")]
     BorrowPersist(#[from] BorrowMutError),
 }
