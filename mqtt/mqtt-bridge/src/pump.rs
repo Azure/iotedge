@@ -117,13 +117,13 @@ impl PumpPair {
             connection_settings.name()
         );
 
-        let mut forwards: HashMap<String, TopicRule> = connection_settings
+        let forwards: HashMap<String, TopicRule> = connection_settings
             .forwards()
             .iter()
             .map(|sub| Self::format_key_value(sub))
             .collect();
 
-        let mut subscriptions: HashMap<String, TopicRule> = connection_settings
+        let subscriptions: HashMap<String, TopicRule> = connection_settings
             .subscriptions()
             .iter()
             .map(|sub| Self::format_key_value(sub))
@@ -134,57 +134,65 @@ impl PumpPair {
         let outgoing_loader = outgoing_persist.loader();
         let incoming_loader = incoming_persist.loader();
 
-        let (remote_subscriptions, remote_topic_rules): (Vec<_>, Vec<_>) =
-            subscriptions.drain().unzip();
-        let remote_topic_filters = remote_topic_rules
-            .into_iter()
-            .map(|topic| topic.try_into())
-            .collect::<Result<Vec<_>, _>>()?;
-        let remote_pump_context =
-            PumpContext::new(PumpType::Remote, connection_settings.name().to_string());
-        let remote_client = MqttClient::tls(
-            connection_settings.address(),
-            connection_settings.keep_alive(),
-            connection_settings.clean_session(),
-            MessageHandler::new(incoming_persist.clone(), remote_topic_filters),
-            connection_settings.credentials(),
-            remote_pump_context.clone(),
-        );
-        let remote_pump = Pump::new(
-            remote_client,
-            remote_subscriptions,
+        let remote_pump = Self::prepare_pump(
             outgoing_loader,
+            incoming_persist.clone(),
             outgoing_persist.clone(),
-            remote_pump_context,
+            connection_settings.address(),
+            connection_settings.credentials(),
+            PumpType::Remote,
+            subscriptions,
+            connection_settings,
         )?;
 
-        let (local_subscriptions, local_topic_rules): (Vec<_>, Vec<_>) = forwards.drain().unzip();
-        let local_topic_filters = local_topic_rules
-            .into_iter()
-            .map(|topic| topic.try_into())
-            .collect::<Result<Vec<_>, _>>()?;
-        let local_pump_context =
-            PumpContext::new(PumpType::Local, connection_settings.name().to_string());
-        let local_client = MqttClient::tcp(
-            system_address,
-            connection_settings.keep_alive(),
-            connection_settings.clean_session(),
-            MessageHandler::new(outgoing_persist, local_topic_filters),
-            &Credentials::Anonymous(local_client_id),
-            local_pump_context.clone(),
-        );
-        let local_pump = Pump::new(
-            local_client,
-            local_subscriptions,
+        let local_pump = Self::prepare_pump(
             incoming_loader,
-            incoming_persist,
-            local_pump_context,
+            outgoing_persist.clone(),
+            incoming_persist.clone(),
+            system_address,
+            &Credentials::Anonymous(local_client_id),
+            PumpType::Local,
+            forwards,
+            connection_settings,
         )?;
 
         Ok(Self {
             local_pump,
             remote_pump,
         })
+    }
+
+    fn prepare_pump(
+        loader: Rc<RefCell<MessageLoader<WakingMemoryStore>>>,
+        ingress_store: PublicationStore<WakingMemoryStore>,
+        egress_store: PublicationStore<WakingMemoryStore>,
+        address: &str,
+        credentials: &Credentials,
+        pump_type: PumpType,
+        mut topic_mappings: HashMap<String, TopicRule>,
+        connection_settings: &ConnectionSettings,
+    ) -> Result<Pump, BridgeError> {
+        let (subscriptions, topic_rules): (Vec<_>, Vec<_>) = topic_mappings.drain().unzip();
+        let topic_filters = topic_rules
+            .into_iter()
+            .map(|topic| topic.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
+        let pump_context = PumpContext::new(pump_type, connection_settings.name().to_string());
+        let client = MqttClient::tls(
+            address,
+            connection_settings.keep_alive(),
+            connection_settings.clean_session(),
+            MessageHandler::new(ingress_store.clone(), topic_filters),
+            credentials,
+            pump_context.clone(),
+        );
+        Ok(Pump::new(
+            client,
+            subscriptions,
+            loader,
+            egress_store,
+            pump_context,
+        )?)
     }
 
     fn format_key_value(topic: &TopicRule) -> (String, TopicRule) {
