@@ -290,11 +290,11 @@ impl Pump {
                         if let Ok(Some((key, publication))) = loaded_element {
                             debug!("{} publishing {:?}", pump_context, key);
                             if let Err(e) = publish_handle.publish(publication).await {
-                                error!(error = %e, "{} failed publish", pump_context);
+                                error!(err = %e, "{} failed publish", pump_context);
                             }
 
                             if let Err(e) = persist.remove(key) {
-                                error!(error = %e, "{} failed removing publication from store", pump_context);
+                                error!(err = %e, "{} failed removing publication from store", pump_context);
                             }
                         }
                     }
@@ -327,7 +327,7 @@ impl Pump {
                 match pump_processes {
                     Either::Left((_, ingress_loop)) => {
                         if let Err(e) = client_shutdown.shutdown().await {
-                            error!(error = %e, "{} failed to shutdown ingress publication loop", pump_context);
+                            error!(err = %e, "{} failed to shutdown ingress publication loop", pump_context);
                         }
 
                         ingress_loop.await;

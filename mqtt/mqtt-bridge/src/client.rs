@@ -335,7 +335,7 @@ impl<H: EventHandler> MqttClient<H> {
         }) {
             debug!("{} handling event {:?}", self.pump_context, event);
             if let Err(e) = self.event_handler.handle(&event).await {
-                error!(error = %e, "{} error processing event {:?}", self.pump_context, event);
+                error!(err = %e, "{} error processing event {:?}", self.pump_context, event);
             }
         }
     }
