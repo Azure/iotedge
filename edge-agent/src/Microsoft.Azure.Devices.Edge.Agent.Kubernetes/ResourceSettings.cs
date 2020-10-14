@@ -7,6 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Util;
 
+    /// <summary>
+    /// K8s Resource requirements as read in by autofac
+    /// </summary>
     public class ResourceSettings
     {
         public Dictionary<string, string> Limits { get; set; }
