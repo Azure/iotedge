@@ -173,19 +173,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxy.OrDefault().IsActive);
 
             var expiredTokenCredentials = GetMockClientCredentialsWithToken(expired: true);
-            await Assert.ThrowsAsync<ArgumentException>(() => cloudConnection.UpdateTokenAsync(expiredTokenCredentials));
+            await Assert.ThrowsAsync<AuthenticationException>(() => cloudConnection.UpdateTokenAsync(expiredTokenCredentials));
             Assert.Equal(initialTokenCredentials.Token, await tokenProvider.GetTokenAsync(Option.None<TimeSpan>()));
             Assert.True(cloudProxy.HasValue);
             Assert.True(cloudProxy.OrDefault().IsActive);
 
             var invalidDeviceCredentials = GetMockClientCredentialsWithToken(deviceId: "testDevice2");
-            await Assert.ThrowsAsync<ArgumentException>(() => cloudConnection.UpdateTokenAsync(expiredTokenCredentials));
+            await Assert.ThrowsAsync<AuthenticationException>(() => cloudConnection.UpdateTokenAsync(expiredTokenCredentials));
             Assert.Equal(initialTokenCredentials.Token, await tokenProvider.GetTokenAsync(Option.None<TimeSpan>()));
             Assert.True(cloudProxy.HasValue);
             Assert.True(cloudProxy.OrDefault().IsActive);
 
             var invalidHostCredentials = GetMockClientCredentialsWithToken(hostname: "dummy2.azure-devices.net");
-            await Assert.ThrowsAsync<ArgumentException>(() => cloudConnection.UpdateTokenAsync(invalidHostCredentials));
+            await Assert.ThrowsAsync<AuthenticationException>(() => cloudConnection.UpdateTokenAsync(invalidHostCredentials));
             Assert.Equal(initialTokenCredentials.Token, await tokenProvider.GetTokenAsync(Option.None<TimeSpan>()));
             Assert.True(cloudProxy.HasValue);
             Assert.True(cloudProxy.OrDefault().IsActive);
