@@ -134,9 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // This function only be called as cloud authenticate. We're going to create a new ConnectedDevice instance and connect to cloud.
             // It should replace existing instance if succeed
             Preconditions.CheckNotNull(credentials, nameof(credentials));
-            var deviceBridge = Option.Maybe(credentials as ITokenCredentials)
-                                    .Map(tcr => new DeviceBridge(tcr, this.closeCloudConnectionOnDeviceDisconnect, this.cloudConnectionProvider, this.OnCloudConnectionStatusChanged))
-                                    .GetOrElse(() => new DeviceBridge(credentials.Identity, this.closeCloudConnectionOnDeviceDisconnect, this.cloudConnectionProvider, this.OnCloudConnectionStatusChanged));
+            var deviceBridge = new DeviceBridge(credentials, this.closeCloudConnectionOnDeviceDisconnect, this.cloudConnectionProvider, this.OnCloudConnectionStatusChanged);
             var cloudProxy = await deviceBridge.TryRetrieveCloudProxyAsync();
 
             if (cloudProxy.Success)

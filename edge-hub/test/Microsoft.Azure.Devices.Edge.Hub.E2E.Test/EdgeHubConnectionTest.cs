@@ -59,10 +59,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
 
             IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
+            Assert.NotNull(edgeHubCredentials);
+            Assert.NotNull(edgeHubCredentials.Identity);
+
             string sasKey = ConnectionStringHelper.GetSharedAccessKey(deviceConnStr);
             var signatureProvider = new SharedAccessKeySignatureProvider(sasKey);
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var metadataStore = new Mock<IMetadataStore>();
+            Mock.Get(credentialsCache)
+                .Setup(c => c.Get(edgeHubCredentials.Identity))
+                .ReturnsAsync(Option.Some(edgeHubCredentials));
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
@@ -79,16 +85,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Option.None<IWebProxy>(),
                 metadataStore.Object);
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider, deviceConnectivityManager);
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, identityProvider, deviceConnectivityManager);
 
             try
             {
-                Mock.Get(credentialsCache)
-                    .Setup(c => c.Get(edgeHubCredentials.Identity))
-                    .ReturnsAsync(Option.Some(edgeHubCredentials));
-                Assert.NotNull(edgeHubCredentials);
-                Assert.NotNull(edgeHubCredentials.Identity);
-
                 // Set Edge hub desired properties
                 await this.SetDesiredProperties(registryManager, edgeDeviceId);
 
@@ -163,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal("from /modules/module3 INTO BrokeredEndpoint(\"/modules/module4/inputs/input1\")", route4.Value);
 
                 // Make sure reported properties were updated appropriately
+                await Task.Delay(TimeSpan.FromSeconds(10));
                 EdgeHubConnection.ReportedProperties reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Equal(200, reportedProperties.LastDesiredStatus.Code);
                 Assert.NotNull(reportedProperties.Clients);

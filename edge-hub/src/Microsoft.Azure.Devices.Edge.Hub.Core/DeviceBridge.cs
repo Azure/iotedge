@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         IDeviceProxy deviceProxy;
 
         // connection to upstream
-        Option<ITokenCredentials> tokenCredentials;
+        Option<IClientCredentials> clientCredentials;
         ICloudProxy cloudProxy;
         Task<ITry<ICloudProxy>> createCloudProxyTask;
         Action<DeviceBridge, CloudConnectionStatus> onCloudConnectionStatusChanged;
@@ -39,18 +39,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.onCloudConnectionStatusChanged = onCloudConnectionStatusChanged;
             this.cloudConnectionProvider = cloudConnectionProvider;
-            this.tokenCredentials = Option.None<ITokenCredentials>();
+            this.clientCredentials = Option.None<IClientCredentials>();
             this.Debugging($"Created new DeviceBridge instance for {this.Identity} without token credentials.");
         }
 
-        internal DeviceBridge(ITokenCredentials tokenCredentials, bool closeCloudConnectionOnDeviceDisconnect, ICloudConnectionProvider cloudConnectionProvider, Action<DeviceBridge, CloudConnectionStatus> onCloudConnectionStatusChanged)
+        internal DeviceBridge(IClientCredentials clientCredentials, bool closeCloudConnectionOnDeviceDisconnect, ICloudConnectionProvider cloudConnectionProvider, Action<DeviceBridge, CloudConnectionStatus> onCloudConnectionStatusChanged)
         {
-            this.Identity = tokenCredentials.Identity;
+            this.Identity = clientCredentials.Identity;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.onCloudConnectionStatusChanged = onCloudConnectionStatusChanged;
             this.cloudConnectionProvider = cloudConnectionProvider;
-            this.tokenCredentials = Option.Some(tokenCredentials);
-            this.Debugging($"Created new DeviceBridge instance for {this.Identity} with token credentials {tokenCredentials.Token}.");
+            this.clientCredentials = Option.Some(clientCredentials);
+            this.Debugging($"Created new DeviceBridge instance for {this.Identity} with token credentials.");
         }
 
         internal IDeviceProxy GetDeviceProxy()
@@ -166,24 +166,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     return Try.Success(this.cloudProxy);
                 }
 
-                if (this.createCloudProxyTask == null)
+                // reuse existing createCloudProxyTask
+                if (this.createCloudProxyTask != null)
                 {
-                    // if no running createCloudProxyTask, create new createCloudProxyTask
-                    task = this.TryCreateCloudProxyAsync();
-                    this.createCloudProxyTask = task;
+                    return await this.createCloudProxyTask;
                 }
-                else
-                {
-                    // reuse running createCloudProxyTask
-                    task = this.createCloudProxyTask;
-                }
+
+                // if no createCloudProxyTask, create new createCloudProxyTask
+                task = this.TryCreateCloudProxyAsync();
+                this.createCloudProxyTask = task;
             }
 
             var result = await task;
 
             using (SyncLock.Lock(this.stateLock, OperationTimeout))
             {
-                // if task is the same as existing createCloudProxyTask, return the result
+                // double check if task is the same as existing createCloudProxyTask, return the result
                 if (task == this.createCloudProxyTask)
                 {
                     this.Debugging($"Create cloud proxy for {this.Identity} result={result.Success}.");
@@ -211,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<ITry<ICloudProxy>> TryCreateCloudProxyAsync()
         {
-            var cloudConnection = await this.tokenCredentials.Map(tc => this.cloudConnectionProvider.Connect(tc, this.CloudConnectionStatusChangedHandler))
+            var cloudConnection = await this.clientCredentials.Map(cc => this.cloudConnectionProvider.Connect(cc, this.CloudConnectionStatusChangedHandler))
                 .GetOrElse(() => this.cloudConnectionProvider.Connect(this.Identity, this.CloudConnectionStatusChangedHandler));
             return cloudConnection.Map(cc => cc.CloudProxy)
                 .Map(cp => cp.Expect(() => new EdgeHubConnectionException($"Unable to get cloud proxy for device {this.Identity}")))
@@ -241,8 +239,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                     if (!cloudProxyTry.Success)
                     {
-                        // We're not sure if the token credentials is valid anymore, so close DeviceProxy
-                        if (this.tokenCredentials != null)
+                        // We're not sure if the credentials is valid anymore, so close DeviceProxy
+                        if (this.clientCredentials != null)
                         {
                             this.Debugging($"Closing device proxy for {this.Identity}...");
                             await this.CloseDeviceProxyAsync();

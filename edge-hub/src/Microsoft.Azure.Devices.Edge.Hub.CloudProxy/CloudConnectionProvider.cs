@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -19,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     public class CloudConnectionProvider : ICloudConnectionProvider
     {
         static readonly TimeSpan HeartbeatTimeout = TimeSpan.FromSeconds(60);
+        static readonly TimeSpan DefaultSasTokenTTL = TimeSpan.FromHours(1);
 
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverterProvider messageConverterProvider;
@@ -83,28 +85,51 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 throw new ArgumentException("Invalid credentials");
             }
 
-            if (credentials.Expect(() => new AuthenticationException($"Unabled to get credentials for device {identity}")) is ITokenCredentials tokenCredentials)
+            var deviceCredentials = credentials.Expect(() => new AuthenticationException($"Unabled to get credentials for device {identity}"));
+            var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
+
+            ICloudConnection cloudConnection = null;
+            if (deviceCredentials is TokenCredentials tokenCredentials)
             {
-                var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
-                var cloudConnection = await ClientTokenCloudConnection.Create(
-                        tokenCredentials,
-                        connectionStatusChangedHandler,
-                        this.transportSettings,
-                        this.messageConverterProvider,
-                        this.clientProvider,
-                        cloudListener,
-                        this.idleTimeout,
-                        this.closeOnIdleTimeout,
-                        this.operationTimeout,
-                        productInfo,
-                        modelId);
-                Events.SuccessCreatingCloudConnection(identity);
-                return cloudConnection;
+                cloudConnection = await ClientTokenCloudConnection.Create(
+                    tokenCredentials,
+                    connectionStatusChangedHandler,
+                    this.transportSettings,
+                    this.messageConverterProvider,
+                    this.clientProvider,
+                    cloudListener,
+                    this.idleTimeout,
+                    this.closeOnIdleTimeout,
+                    this.operationTimeout,
+                    productInfo,
+                    modelId);
+            }
+            else if (deviceCredentials is SharedKeyCredentials sharedKeyCredentials)
+            {
+                var iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(sharedKeyCredentials.ConnectionString);
+                var signatureProvider = new SharedAccessKeySignatureProvider(iotHubConnectionStringBuilder.SharedAccessKey);
+                var tokenProvider = new ClientTokenProvider(signatureProvider, iotHubConnectionStringBuilder.HostName, iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId, DefaultSasTokenTTL);
+                cloudConnection = await CloudConnection.Create(
+                    identity,
+                    connectionStatusChangedHandler,
+                    this.transportSettings,
+                    this.messageConverterProvider,
+                    this.clientProvider,
+                    cloudListener,
+                    tokenProvider,
+                    this.idleTimeout,
+                    this.closeOnIdleTimeout,
+                    this.operationTimeout,
+                    productInfo,
+                    modelId);
             }
             else
             {
-                throw new AuthenticationException("Unabled to get token credentials for device.");
+                throw new AuthenticationException($"Unabled to connectwith credentials type {deviceCredentials.GetType()} for device {identity}");
             }
+
+            Events.SuccessCreatingCloudConnection(identity);
+            return cloudConnection;
         }
 
         public Task<ITry<ICloudConnection>> Connect(IClientCredentials clientCredentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
