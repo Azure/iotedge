@@ -20,4 +20,6 @@ mod rpc;
 mod settings;
 mod token_source;
 
-pub use crate::controller::{BridgeController, BridgeControllerHandle, Error};
+pub use crate::controller::{
+    BridgeController, BridgeControllerHandle, BridgeControllerUpdate, Error,
+};

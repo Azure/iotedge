@@ -2,7 +2,7 @@ use tracing::info;
 
 use mqtt3::ReceivedPublication;
 
-use mqtt_bridge::{BridgeControllerHandle, BridgeUpdate};
+use mqtt_bridge::{BridgeControllerHandle, BridgeControllerUpdate};
 
 use crate::command::Command;
 
@@ -31,7 +31,7 @@ impl Command for BridgeUpdateCommand {
 
     fn handle(&mut self, publication: &ReceivedPublication) -> Result<(), Self::Error> {
         info!("received bridge update from EdgeHub.");
-        let update: BridgeUpdate =
+        let update: BridgeControllerUpdate =
             serde_json::from_slice(&publication.payload).map_err(Error::ParseBridgeUpdate)?;
 
         self.controller_handle
