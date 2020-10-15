@@ -1,5 +1,6 @@
 use futures_util::future::{self, join_all};
-use tracing::{error, info};
+use tracing::{error, info, info_span};
+use tracing_futures::Instrument;
 
 use crate::{bridge::Bridge, settings::BridgeSettings};
 
@@ -13,6 +14,7 @@ impl BridgeController {
         let mut bridge_handles = vec![];
         if let Some(upstream_settings) = settings.upstream() {
             let upstream_settings = upstream_settings.clone();
+            let span = info_span!("upstream bridge");
             let upstream_bridge = async move {
                 let bridge =
                     Bridge::new(system_address, device_id, upstream_settings.clone()).await;
@@ -27,7 +29,8 @@ impl BridgeController {
                         error!(err = %e, "failed to create {} bridge", upstream_settings.name());
                     }
                 };
-            };
+            }
+            .instrument(span);
 
             bridge_handles.push(upstream_bridge);
         } else {

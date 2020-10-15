@@ -1,7 +1,8 @@
 use futures_util::{future::select, future::Either, pin_mut};
 use mqtt3::ShutdownError;
 use tokio::sync::{mpsc::error::SendError, oneshot, oneshot::Sender};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, info_span};
+use tracing_futures::Instrument;
 
 use crate::{
     client::ClientError,
@@ -67,8 +68,19 @@ impl Bridge {
             remote_shutdown,
         };
 
-        let local_pump = self.pumps.local_pump.run(local_shutdown_listener);
-        let remote_pump = self.pumps.remote_pump.run(remote_shutdown_listener);
+        let local_pump_span = info_span!("local pump");
+        let local_pump = self
+            .pumps
+            .local_pump
+            .run(local_shutdown_listener)
+            .instrument(local_pump_span);
+
+        let remote_pump_span = info_span!("remote pump");
+        let remote_pump = self
+            .pumps
+            .remote_pump
+            .run(remote_shutdown_listener)
+            .instrument(remote_pump_span);
         pin_mut!(local_pump, remote_pump);
 
         debug!(
