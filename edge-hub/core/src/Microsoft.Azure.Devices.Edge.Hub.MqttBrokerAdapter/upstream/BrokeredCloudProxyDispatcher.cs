@@ -295,7 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 {
                     [SystemProperties.Version] = version
                 });
-            Console.WriteLine($"!!!!!!! Detected desired prop change, sending to edgeHub... {id}");
+
             _ = this.edgeHub.UpdateDesiredPropertiesAsync(id, messageBuilder.Build());
         }
 
@@ -356,8 +356,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task SendUpstreamMessageAsync(string command, string topic, byte[] payload)
         {
-            Console.WriteLine($"!!!!!! sending message upstream: topic {topic}, content: {System.Text.Encoding.UTF8.GetString(payload)}");
-
             var messageId = Guid.NewGuid();
 
             Events.SendingUpstreamMessage(messageId);
