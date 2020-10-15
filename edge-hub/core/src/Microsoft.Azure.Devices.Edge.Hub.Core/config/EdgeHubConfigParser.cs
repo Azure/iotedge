@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         /// </summary>
         static Option<AuthorizationConfig> ParseAuthorizationConfig(BrokerProperties properties)
         {
-            ValidateAuthorizationConfig(properties.Authorizations);
+            BrokerPropertiesValidator.ValidateAuthorizationConfig(properties.Authorizations);
 
             var order = 1;
             var result = new List<Statement>(properties.Authorizations?.Count ?? 0);
@@ -108,113 +108,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return Option.Some(new AuthorizationConfig(result));
         }
 
-        static void ValidateAuthorizationConfig(AuthorizationProperties statements)
-        {
-            var order = 0;
-            var errors = new List<string>();
-            foreach (var statement in statements)
-            {
-                if (statement.Identities.Count == 0)
-                {
-                    errors.Add($"Statement {order}: Identities list must not be empty.");
-                }
-
-                foreach (var identity in statement.Identities)
-                {
-                    if (string.IsNullOrEmpty(identity))
-                    {
-                        errors.Add($"Statement {order}: Identity name is invalid: {identity}");
-                    }
-
-                    ValidateVariables(identity, order, errors);
-                }
-
-                foreach (var rule in statement.Allow)
-                {
-                    ValidateRule(rule, order, errors);
-                }
-
-                foreach (var rule in statement.Deny)
-                {
-                    ValidateRule(rule, order, errors);
-                }
-            }
-        }
-
-        private static void ValidateRule(AuthorizationProperties.Rule rule, int order, List<string> errors)
-        {
-            if (rule.Operations.Count == 0)
-            {
-                errors.Add($"Statement {order}: Allow: Operations list must not be empty.");
-            }
-
-            if (rule.Resources.Count == 0)
-            {
-                errors.Add($"Statement {order}: Allow: Resources list must not be empty.");
-            }
-
-            foreach (var operation in rule.Operations)
-            {
-                if (!validOperations.Contains(operation))
-                {
-                    errors.Add($"Statement {order}: Unknown mqtt operation: {operation}. List of supported operations: mqtt:publish, mqtt:subscribe, mqtt:connect");
-                }
-
-                ValidateVariables(operation, order, errors);
-            }
-
-            foreach (var resource in rule.Resources)
-            {
-                if (string.IsNullOrEmpty(resource)
-                    || !IsValidTopicFilter(resource))
-                {
-                    errors.Add($"Statement {order}: Resource (topic filter) is invalid: {resource}");
-                }
-
-                ValidateVariables(resource, order, errors);
-            }
-        }
-
-        static void ValidateVariables(string value, int order, List<string> errors)
-        {
-            foreach (var variable in ExtractVariable(value))
-            {
-                if (!validVariables.Contains(variable))
-                {
-                    errors.Add($"Statement {order}: Invalid variable name: {variable}");
-                }
-            }
-        }
-
         static Option<BridgeConfig> ParseBridgeConfig(BrokerProperties properties)
         {
             return Option.None<BridgeConfig>();
         }
-
-        static bool IsValidTopicFilter(string topic)
-        {
-            return true;
-        }
-
-        static IEnumerable<string> ExtractVariable(string value)
-        {
-            foreach (Match match in varRegex.Matches(value))
-            {
-                yield return match.Value;
-            }
-        }
-
-        static readonly string[] validOperations = new[] { "mqtt:publish", "mqtt:subscribe", "mqtt:connect" };
-
-        static readonly string[] validVariables = new[]
-        {
-            "{{iot:identity}}",
-            "{{iot:device_id}}",
-            "{{iot:module_id}}",
-            "{{mqtt:client_id}}",
-            "{{iot:this_device_id}}",
-        };
-
-        static readonly Regex varRegex = new Regex("{{[^}]*}}");
     }
 }
