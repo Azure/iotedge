@@ -5,7 +5,7 @@ use tracing::debug;
 
 use mqtt_broker::{
     auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
-    AuthId, ClientId,
+    AuthId, BrokerReadyEvent, BrokerReadyHandle, ClientId,
 };
 
 /// `EdgeHubAuthorizer` implements authorization rules for iothub-specific primitives.
@@ -14,11 +14,11 @@ use mqtt_broker::{
 /// telemetry messages, etc...
 ///
 /// For non-iothub-specific primitives it delegates the request to an inner authorizer (`PolicyAuthorizer`).
-#[derive(Debug)]
 pub struct EdgeHubAuthorizer<Z> {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
     identities_cache: HashMap<ClientId, IdentityUpdate>,
     inner: Z,
+    broker_ready: Option<BrokerReadyHandle>,
 }
 
 impl<Z, E> EdgeHubAuthorizer<Z>
@@ -26,11 +26,20 @@ where
     Z: Authorizer<Error = E>,
     E: StdError,
 {
-    pub fn new(authorizer: Z) -> Self {
+    pub fn new(authorizer: Z, broker_ready: BrokerReadyHandle) -> Self {
+        Self::create(authorizer, Some(broker_ready))
+    }
+
+    pub fn without_ready_handle(authorizer: Z) -> Self {
+        Self::create(authorizer, None)
+    }
+
+    fn create(authorizer: Z, broker_ready: Option<BrokerReadyHandle>) -> Self {
         Self {
             iothub_allowed_topics: RefCell::default(),
             identities_cache: HashMap::default(),
             inner: authorizer,
+            broker_ready,
         }
     }
 
@@ -256,16 +265,23 @@ where
             Ok(update) => {
                 debug!("authorizer update received. Identities: {:?}", update);
 
+                // update identities cache
                 self.identities_cache = update
                     .0
                     .into_iter()
                     .map(|id| (id.identity().into(), id))
                     .collect();
+
+                // signal that authorizer has been initialized
+                if let Some(mut broker_ready) = self.broker_ready.take() {
+                    broker_ready.send(BrokerReadyEvent::AuthorizerReady);
+                }
             }
             Err(update) => {
                 self.inner.update(update)?;
             }
         };
+
         Ok(())
     }
 }
@@ -395,7 +411,7 @@ mod tests {
     #[test_case(&tests::subscribe_activity("device-1", "device-1", "topic"); "generic MQTT topic subscribe")]
     fn it_delegates_to_inner(activity: &Activity) {
         let inner = authorize_fn_ok(|_| Authorization::Forbidden("not allowed inner".to_string()));
-        let authorizer = EdgeHubAuthorizer::new(inner);
+        let authorizer = EdgeHubAuthorizer::without_ready_handle(inner);
 
         let auth = authorizer.authorize(&activity);
 
@@ -475,7 +491,7 @@ mod tests {
     where
         Z: Authorizer,
     {
-        let mut authorizer = EdgeHubAuthorizer::new(inner);
+        let mut authorizer = EdgeHubAuthorizer::without_ready_handle(inner);
 
         let service_identity = IdentityUpdate {
             identity: "device-1".to_string(),
