@@ -1,5 +1,5 @@
 use futures_util::future::{self, join_all};
-use tracing::{debug_span, error, error_span, info, info_span};
+use tracing::{error, info, info_span};
 use tracing_futures::Instrument;
 
 use crate::{bridge::Bridge, settings::BridgeSettings};
@@ -15,10 +15,7 @@ impl BridgeController {
         if let Some(upstream_settings) = settings.upstream() {
             let upstream_settings = upstream_settings.clone();
 
-            let info_span = info_span!("upstream bridge");
-            let debug_span = debug_span!("upstream bridge");
-            let error_span = error_span!("upstream bridge");
-
+            let span = info_span!("upstream bridge");
             let upstream_bridge = async move {
                 let bridge =
                     Bridge::new(system_address, device_id, upstream_settings.clone()).await;
@@ -34,9 +31,7 @@ impl BridgeController {
                     }
                 };
             }
-            .instrument(info_span)
-            .instrument(debug_span)
-            .instrument(error_span);
+            .instrument(span);
 
             bridge_handles.push(upstream_bridge);
         } else {

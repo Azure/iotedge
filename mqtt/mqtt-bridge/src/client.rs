@@ -8,7 +8,7 @@ use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 use mqtt3::{
     proto, Client, Event, IoSource, PublishHandle, ShutdownError, SubscriptionUpdateEvent,
@@ -333,7 +333,7 @@ impl<H: EventHandler> MqttClient<H> {
     }
 
     pub async fn subscribe(&mut self, topics: &[String]) -> Result<(), ClientError> {
-        debug!("subscribing to topics");
+        info!("subscribing to topics");
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: DEFAULT_QOS,
@@ -348,7 +348,7 @@ impl<H: EventHandler> MqttClient<H> {
 
         let mut subacks: HashSet<_> = topics.iter().collect();
         if subacks.is_empty() {
-            debug!("has no topics to subscribe to");
+            info!("has no topics to subscribe to");
             return Ok(());
         }
 
@@ -380,13 +380,13 @@ impl<H: EventHandler> MqttClient<H> {
                     }
                 }
 
-                debug!("stopped waiting for subscriptions");
+                info!("stopped waiting for subscriptions");
                 break;
             }
         }
 
         if subacks.is_empty() {
-            debug!("successfully subscribed to topics");
+            info!("successfully subscribed to topics");
         } else {
             error!(
                 "failed to receive expected subacks for topics: {:?}",
