@@ -29,7 +29,10 @@ steps:
 
 - script: |
     echo "https_proxy=$AGENT_PROXYURL"
+    echo "https_proxy=$https_proxy"
   displayName: Try to get proxy info
+  env:
+    https_proxy: $(Agent.ProxyUrl)
 
 - script: |
     sudo find . -type f -group root -execdir rm {} +
