@@ -110,7 +110,7 @@ process_args()
 
     case ${ARCH} in
         amd64) TARGET="x86_64-unknown-linux-musl";;
-        arm32v7) TARGET="armv7-unknown-linux-gnueabihf";;
+        arm32v7) TARGET="armv7-unknown-linux-musleabihf";;
         arm64v8) TARGET="aarch64-unknown-linux-gnu";;
     esac
 
