@@ -30,7 +30,11 @@ fn main() -> Result<()> {
     init_logging();
     info!("Starting Watchdog");
 
-    let should_start_broker = std::env::var("experimentalFeatures:mqttBrokerEnabled")
+    let experimental_features_enabled = std::env::var("experimentalFeatures:enabled")
+        .unwrap_or_else(|_| "false".to_string())
+        == "true";
+
+    let mqtt_broker_enabled = std::env::var("experimentalFeatures:mqttBrokerEnabled")
         .unwrap_or_else(|_| "false".to_string())
         == "true";
 
@@ -46,7 +50,7 @@ fn main() -> Result<()> {
 
     let mut broker_handle = None;
 
-    if should_start_broker {
+    if experimental_features_enabled && mqtt_broker_enabled {
         broker_handle = match run(
             "MQTT Broker",
             "/usr/local/bin/mqttd",

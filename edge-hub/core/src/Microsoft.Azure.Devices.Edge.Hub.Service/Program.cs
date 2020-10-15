@@ -146,12 +146,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
         {
-            bool mqttBrokerEnabled = configuration.GetValue($"{Constants.ConfigKey.ExperimentalFeatures}:{Constants.ConfigKey.MqttBrokerEnabled}", false);
+            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
 
             var protocolHeads = new List<IProtocolHead>();
 
             // MQTT broker overrides the legacy MQTT protocol head
-            if (configuration.GetValue("mqttSettings:enabled", true) && !mqttBrokerEnabled)
+            if (configuration.GetValue("mqttSettings:enabled", true) && !experimentalFeatures.EnableMqttBroker)
             {
                 protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
             }
@@ -167,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             var orderedProtocolHeads = new List<IProtocolHead>();
-            if (mqttBrokerEnabled)
+            if (experimentalFeatures.EnableMqttBroker)
             {
                 orderedProtocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
                 orderedProtocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
