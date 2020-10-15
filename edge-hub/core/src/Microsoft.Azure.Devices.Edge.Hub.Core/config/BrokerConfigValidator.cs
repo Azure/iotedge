@@ -15,9 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class BrokerPropertiesValidator
     {
         /// <summary>
+        /// Important!: Validation logic should be in sync with mqtt_policy::MqttValidator in the Broker.
+        ///
         /// Validates authorization policies and returns a list of errors (if any).
         /// </summary>
-        public static IList<string> ValidateAuthorizationConfig(AuthorizationProperties properties)
+        public IList<string> ValidateAuthorizationConfig(AuthorizationProperties properties)
         {
             Preconditions.CheckNotNull(properties, nameof(properties));
 

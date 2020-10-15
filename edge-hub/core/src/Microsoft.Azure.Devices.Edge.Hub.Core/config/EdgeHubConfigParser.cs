@@ -4,8 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
-    using System.Linq;
-    using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
@@ -19,9 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         readonly RouteFactory routeFactory;
 
-        public EdgeHubConfigParser(RouteFactory routeFactory)
+        readonly BrokerPropertiesValidator validator;
+
+        public EdgeHubConfigParser(RouteFactory routeFactory, BrokerPropertiesValidator validator)
         {
-            this.routeFactory = routeFactory;
+            this.routeFactory = Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
+            this.validator = Preconditions.CheckNotNull(validator, nameof(validator));
         }
 
         public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties desiredProperties)
@@ -30,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutes(desiredProperties, this.routeFactory);
 
-            Option<BrokerConfig> brokerConfig = ParseBrokerConfig(desiredProperties.BrokerConfiguration);
+            Option<BrokerConfig> brokerConfig = this.ParseBrokerConfig(desiredProperties.BrokerConfiguration);
 
             return new EdgeHubConfig(
                 desiredProperties.SchemaVersion,
@@ -61,29 +62,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return new ReadOnlyDictionary<string, RouteConfig>(routes);
         }
 
-        static Option<BrokerConfig> ParseBrokerConfig(BrokerProperties properties)
+        Option<BrokerConfig> ParseBrokerConfig(BrokerProperties properties)
         {
             if (properties != null)
             {
                 return Option.Some(
                     new BrokerConfig(
-                        ParseBridgeConfig(properties),
-                        ParseAuthorizationConfig(properties)));
+                        this.ParseBridgeConfig(properties),
+                        this.ParseAuthorizationConfig(properties)));
             }
 
             return Option.None<BrokerConfig>();
         }
 
         /// <summary>
-        /// Important!: Validation logic should be in sync with mqtt_policy::MqttValidator in the Broker.
-        ///
         /// EH Twin and policy definition in the Broker have different json schemas.
         /// This method converts twin schema (BrokerProperties) into broker policy schema (AuthorizationConfig),
         /// and validates it.
         /// </summary>
-        static Option<AuthorizationConfig> ParseAuthorizationConfig(BrokerProperties properties)
+        Option<AuthorizationConfig> ParseAuthorizationConfig(BrokerProperties properties)
         {
-            BrokerPropertiesValidator.ValidateAuthorizationConfig(properties.Authorizations);
+            this.validator.ValidateAuthorizationConfig(properties.Authorizations);
 
             var order = 1;
             var result = new List<Statement>(properties.Authorizations?.Count ?? 0);
@@ -115,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return Option.Some(new AuthorizationConfig(result));
         }
 
-        static Option<BridgeConfig> ParseBridgeConfig(BrokerProperties properties)
+        Option<BridgeConfig> ParseBridgeConfig(BrokerProperties properties)
         {
             return Option.None<BridgeConfig>();
         }

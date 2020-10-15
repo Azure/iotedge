@@ -532,12 +532,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IEdgeHub>>()
                 .SingleInstance();
 
+            // BrokerPropertiesValidator
+            builder.Register(
+                    c =>
+                    {
+                        return new BrokerPropertiesValidator();
+                    })
+                .As<BrokerPropertiesValidator>()
+                .SingleInstance();
+
             // Task<EdgeHubConfigParser>
             builder.Register(
                     async c =>
                     {
                         RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
-                        var configParser = new EdgeHubConfigParser(routeFactory);
+                        BrokerPropertiesValidator validator = c.Resolve<BrokerPropertiesValidator>();
+                        var configParser = new EdgeHubConfigParser(routeFactory, validator);
                         return configParser;
                     })
                 .As<Task<EdgeHubConfigParser>>()
