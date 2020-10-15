@@ -20,9 +20,12 @@ steps:
     E2E_PREVIEW_IOT_HUB_CONNECTION_STRING: $(TestPreviewIotHubConnectionString)
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
-
+    http_proxy: $(Agent.ProxyUrl)
+    https_proxy: $(Agent.ProxyUrl)
+  
 - task: PublishTestResults@2
   displayName: Publish test results
+  enabled: false
   inputs:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
