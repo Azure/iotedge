@@ -28,8 +28,7 @@ steps:
       EventHubConnStr2
 
 - script: |
-    whoami
-    env
+    echo "https_proxy=$AGENT_PROXYURL"
   displayName: Try to get proxy info
 
 - script: |
