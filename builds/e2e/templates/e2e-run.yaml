@@ -25,7 +25,7 @@ steps:
   
 - task: PublishTestResults@2
   displayName: Publish test results
-  enabled: not($[variables.Agent.ProxyUrl])
+  enabled: not($(Agent.ProxyUrl))
   inputs:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
