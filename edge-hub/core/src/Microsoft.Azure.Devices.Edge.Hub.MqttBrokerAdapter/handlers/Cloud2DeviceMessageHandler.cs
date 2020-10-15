@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             if (!message.SystemProperties.TryGetValue(SystemProperties.LockToken, out var lockToken))
             {
                 Events.NoLockToken(identity.Id);
-                throw new Exception("Cannot send M2M message without lock token");
+                throw new Exception("Cannot send C2D message without lock token");
             }
 
             bool result;
