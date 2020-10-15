@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         static bool IsValidTopicFilter(string topic)
         {
-            return true;
+            return !invalidTopicFilterRegex.IsMatch(topic);
         }
 
         static IEnumerable<string> ExtractVariable(string value)
@@ -124,5 +124,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         };
 
         static readonly Regex varRegex = new Regex("{{[^}]*}}");
+
+        // This regex matches if any of the following is violated:
+        //  - The multi-level wildcard character MUST be specified either
+        //    on its own or following a topic level separator. In either case
+        //    it MUST be the last character specified in the Topic Filter [MQTT-4.7.1-2].
+        //
+        // - The single-level wildcard can be used at any level in the Topic Filter,
+        //   including first and last levels. Where it is used it MUST occupy an entire
+        //   level of the filter [MQTT-4.7.1-3].
+        //
+        // In other words, the regex matches if a topic filter:
+        // - has + that is surrounded by any char other than '/'.
+        // - has # not at the end.
+        // - has # lead by any char other than '/'.
+        static readonly Regex invalidTopicFilterRegex = new Regex(@"[^\/]\+[^\/]?|\+[^\/]|[^\/]#|#.+$");
     }
 }
