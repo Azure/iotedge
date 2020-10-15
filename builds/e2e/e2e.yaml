@@ -100,6 +100,8 @@ jobs:
       arch: amd64
       artifactName: iotedged-ubuntu18.04-amd64
 
+    timeoutInMinutes: 120
+
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
