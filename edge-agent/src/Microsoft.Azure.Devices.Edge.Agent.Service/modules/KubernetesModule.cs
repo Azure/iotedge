@@ -36,14 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(120);
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
-        readonly string proxyImage;
+        readonly KubernetesApplicationSettings k8sSettings;
         readonly Option<string> proxyImagePullSecretName;
-        readonly string proxyConfigPath;
-        readonly string proxyConfigVolumeName;
-        readonly string proxyConfigMapName;
-        readonly string proxyTrustBundlePath;
-        readonly string proxyTrustBundleVolumeName;
-        readonly string proxyTrustBundleConfigMapName;
         readonly string apiVersion;
         readonly string deviceNamespace;
         readonly string deviceSelector;
@@ -69,14 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string iotHubHostname,
             string deviceId,
             string edgeDeviceHostName,
-            string proxyImage,
+            KubernetesApplicationSettings k8sSettings,
             Option<string> proxyImagePullSecretName,
-            string proxyConfigPath,
-            string proxyConfigVolumeName,
-            string proxyConfigMapName,
-            string proxyTrustBundlePath,
-            string proxyTrustBundleVolumeName,
-            string proxyTrustBundleConfigMapName,
             string apiVersion,
             string deviceNamespace,
             Uri managementUri,
@@ -99,14 +87,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
-            this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
+            this.k8sSettings = Preconditions.CheckNotNull(k8sSettings, nameof(k8sSettings));
+            Preconditions.CheckNonWhiteSpace(k8sSettings.ProxyImage, nameof(k8sSettings.ProxyImage));
+            Preconditions.CheckNonWhiteSpace(k8sSettings.ProxyConfigPath, nameof(k8sSettings.ProxyConfigPath));
+            Preconditions.CheckNonWhiteSpace(k8sSettings.ProxyConfigVolume, nameof(k8sSettings.ProxyConfigVolume));
+            Preconditions.CheckNonWhiteSpace(k8sSettings.ProxyConfigMapName, nameof(k8sSettings.ProxyConfigMapName));
+            Preconditions.CheckNonWhiteSpace(k8sSettings.ProxyTrustBundlePath, nameof(k8sSettings.ProxyTrustBundlePath));
+            Preconditions.CheckNonWhiteSpace(k8sSettings.ProxyTrustBundleVolume, nameof(k8sSettings.ProxyTrustBundleVolume));
+            Preconditions.CheckNonWhiteSpace(k8sSettings.ProxyTrustBundleConfigMapName, nameof(k8sSettings.ProxyTrustBundleConfigMapName));
             this.proxyImagePullSecretName = proxyImagePullSecretName;
-            this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
-            this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
-            this.proxyConfigMapName = Preconditions.CheckNonWhiteSpace(proxyConfigMapName, nameof(proxyConfigMapName));
-            this.proxyTrustBundlePath = Preconditions.CheckNonWhiteSpace(proxyTrustBundlePath, nameof(proxyTrustBundlePath));
-            this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
-            this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId)}";
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
@@ -247,14 +236,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     c => new KubernetesDeploymentMapper(
                             this.deviceNamespace,
                             this.edgeDeviceHostName,
-                            this.proxyImage,
+                            this.k8sSettings.ProxyImage,
                             this.proxyImagePullSecretName,
-                            this.proxyConfigPath,
-                            this.proxyConfigVolumeName,
-                            this.proxyConfigMapName,
-                            this.proxyTrustBundlePath,
-                            this.proxyTrustBundleVolumeName,
-                            this.proxyTrustBundleConfigMapName,
+                            this.k8sSettings.ProxyConfigPath,
+                            this.k8sSettings.ProxyConfigVolume,
+                            this.k8sSettings.ProxyConfigMapName,
+                            this.k8sSettings.ProxyTrustBundlePath,
+                            this.k8sSettings.ProxyTrustBundleVolume,
+                            this.k8sSettings.ProxyTrustBundleConfigMapName,
+                            this.k8sSettings.GetProxyResourceRequirements(),
+                            Option.Maybe(this.k8sSettings.AgentConfigMapName),
+                            Option.Maybe(this.k8sSettings.AgentConfigPath),
+                            Option.Maybe(this.k8sSettings.AgentConfigVolume),
+                            this.k8sSettings.GetAgentResourceRequirements(),
                             this.defaultMapServiceType,
                             this.useMountSourceForVolumeName,
                             this.storageClassName,

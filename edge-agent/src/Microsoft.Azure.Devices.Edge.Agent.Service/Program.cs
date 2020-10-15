@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     public class Program
     {
         const string ConfigFileName = "appsettings_agent.json";
+        const string K8sConfigFileName = "/etc/edgeAgent/appsettings_k8s.json";
         const string DefaultLocalConfigFilePath = "config.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
         const string EdgeAgentStorageBackupFolder = "edgeAgent_backup";
@@ -181,14 +182,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         builder.RegisterInstance(new NullMetricsProvider() as IMetricsProvider);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
+                        // Get additional k8s configuration from the configmap and environment.
+                        IConfigurationRoot k8sConfiguration = new ConfigurationBuilder()
+                            .AddJsonFile(K8sConfigFileName, true)
+                            .AddEnvironmentVariables()
+                            .Build();
+                        // k8s options
+                        KubernetesApplicationSettings k8sSettings = k8sConfiguration.Get<KubernetesApplicationSettings>();
                         Option<string> proxyImagePullSecretName = Option.Maybe(configuration.GetValue<string>(K8sConstants.ProxyImagePullSecretNameEnvKey));
-                        string proxyConfigPath = configuration.GetValue<string>(K8sConstants.ProxyConfigPathEnvKey);
-                        string proxyConfigVolumeName = configuration.GetValue<string>(K8sConstants.ProxyConfigVolumeEnvKey);
-                        string proxyConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyConfigMapNameEnvKey);
-                        string proxyTrustBundlePath = configuration.GetValue<string>(K8sConstants.ProxyTrustBundlePathEnvKey);
-                        string proxyTrustBundleVolumeName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleVolumeEnvKey);
-                        string proxyTrustBundleConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleConfigMapEnvKey);
                         PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         bool useMountSourceForVolumeName = configuration.GetValue<bool>(K8sConstants.UseMountSourceForVolumeNameKey, false);
@@ -209,14 +210,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 iothubHostname,
                                 deviceId,
                                 edgeDeviceHostName,
-                                proxyImage,
+                                k8sSettings,
                                 proxyImagePullSecretName,
-                                proxyConfigPath,
-                                proxyConfigVolumeName,
-                                proxyConfigMapName,
-                                proxyTrustBundlePath,
-                                proxyTrustBundleVolumeName,
-                                proxyTrustBundleConfigMapName,
                                 apiVersion,
                                 deviceNamespace,
                                 new Uri(managementUri),

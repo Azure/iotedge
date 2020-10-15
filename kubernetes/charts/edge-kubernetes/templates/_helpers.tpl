@@ -120,6 +120,13 @@ listen:
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
 device_hub_selector: ""
+config_map_name: "iotedged-agent-config"
+config_path: "/etc/edgeAgent"
+config_map_volume: "agent-config-volume"
+{{- if .Values.edgeAgent.resources }}
+resources:
+{{ toYaml .Values.edgeAgent.resources | indent 2 }}
+{{- end }}
 proxy:
   image: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
   image_pull_policy: {{ .Values.iotedgedProxy.image.pullPolicy | quote }}
@@ -135,6 +142,32 @@ proxy:
   config_path: "/etc/iotedge-proxy"
   trust_bundle_config_map_name: "iotedged-proxy-trust-bundle"
   trust_bundle_path: "/etc/trust-bundle"
+{{- if .Values.iotedgedProxy.resources }}
+  resources:
+{{ toYaml .Values.iotedgedProxy.resources | indent 4 }}
+{{- end }}
+{{ end }}
+
+{{/* Template for agent's configuration. */}}
+{{- define "edge-kubernetes.agentconfig" }}
+AgentConfigPath: "/etc/edgeAgent"
+AgentConfigMapName: "iotedged-agent-config"
+AgentConfigVolume: "agent-config-volume"
+ProxyImage: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
+ProxyConfigVolume: "config-volume"
+ProxyConfigMapName: "iotedged-proxy-config"
+ProxyConfigPath: "/etc/iotedge-proxy"
+ProxyTrustBundlePath: "/etc/trust-bundle"
+ProxyTrustBundleVolume: "trust-bundle-volume"
+ProxyTrustBundleConfigMapName: "iotedged-proxy-trust-bundle"
+{{- if .Values.iotedgedProxy.resources }}
+ProxyResourceRequests:
+{{ toYaml .Values.iotedgedProxy.resources | indent 2 }}
+{{- end }}
+{{- if .Values.edgeAgent.resources }}
+AgentResourceRequests:
+{{ toYaml .Values.edgeAgent.resources | indent 2 }}
+{{- end }}
 {{ end }}
 
 {{/* Template for rendering registry credentials. */}}
