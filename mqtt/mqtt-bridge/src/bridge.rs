@@ -87,15 +87,25 @@ impl Bridge {
         let forwards = connection_settings
             .subscriptions()
             .iter()
-            .filter(|s| *s.direction() == Direction::Out)
-            .map(|sub| Self::format_key_value(sub))
+            .filter_map(|s| {
+                if *s.direction() == Direction::Out {
+                    Some(Self::format_key_value(s))
+                } else {
+                    None
+                }
+            })
             .collect();
 
         let subscriptions = connection_settings
             .subscriptions()
             .iter()
-            .filter(|s| *s.direction() == Direction::In)
-            .map(|sub| Self::format_key_value(sub))
+            .filter_map(|s| {
+                if *s.direction() == Direction::In {
+                    Some(Self::format_key_value(s))
+                } else {
+                    None
+                }
+            })
             .collect();
 
         Bridge {

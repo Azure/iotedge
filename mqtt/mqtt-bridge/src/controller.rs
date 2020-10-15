@@ -72,6 +72,12 @@ impl BridgeController {
     }
 }
 
+impl Default for BridgeController {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct BridgeControllerHandle {
     sender: UnboundedSender<BridgeUpdate>,
