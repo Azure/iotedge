@@ -8,7 +8,6 @@ use std::{
 };
 
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{error::SendError, Sender};
 use tracing::{debug, info, warn};
 
@@ -23,11 +22,6 @@ use crate::{
 };
 
 const BATCH_SIZE: usize = 10;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BridgeUpdate {
-    // TODO: add update settings here
-}
 
 #[derive(Debug, PartialEq)]
 pub enum PumpMessage {
