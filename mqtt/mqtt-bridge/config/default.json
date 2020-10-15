@@ -2,8 +2,8 @@
     "upstream": {
         "keep_alive": "1m",
         "clean_session": false,
-        "forwards": [],
-        "subscriptions": []
+        "subscriptions": [],
+        "forwards": []
     },
     "remotes": [],
     "messages": {}
