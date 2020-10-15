@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 {
     using System;
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -179,6 +181,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues("blah"));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
             httpContext.Connection.ClientCertificate = clientCert;
+            var authenticator = new Mock<IAuthenticator>();
+            authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
+
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
+
+            var httpRequestAuthenticator = new HttpRequestAuthenticator(authenticator.Object, identityFactory, iothubHostName);
+            HttpAuthResult result = await httpRequestAuthenticator.AuthenticateAsync(deviceId, Option.Some(moduleId), Option.None<string>(), httpContext);
+            Assert.True(result.Authenticated);
+            Assert.Equal(string.Empty, result.ErrorMessage);
+        }
+
+        [Fact]
+        public async Task AuthenticateRequestTestX509ApiProxyIgnoresAuthorizationHeader_Success()
+        {
+            string iothubHostName = "TestHub.azure-devices.net";
+            string deviceId = "device_2";
+            string moduleId = "module_1";
+            var httpContext = new DefaultHttpContext();
+            var certContentBytes = CertificateHelper.GenerateSelfSignedCert($"test_cert").Export(X509ContentType.Cert);
+            string certContentBase64 = Convert.ToBase64String(certContentBytes);
+            string clientCertString = $"-----BEGIN CERTIFICATE-----\n{certContentBase64}\n-----END CERTIFICATE-----\n";
+            clientCertString = WebUtility.UrlEncode(clientCertString);
+            httpContext.Request.Headers.Add(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
+            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues("blah"));
+            httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
 
