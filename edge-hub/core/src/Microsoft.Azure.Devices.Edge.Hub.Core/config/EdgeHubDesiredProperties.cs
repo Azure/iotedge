@@ -4,16 +4,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
+    /// <summary>
+    /// DTO that is used to deserialize EdgeHub Desired properties of the twin
+    /// into <see cref="EdgeHubConfig" /> by <see cref="TwinConfigSource" />.
+    /// </summary>
     public class EdgeHubDesiredProperties
     {
         [JsonConstructor]
-        public EdgeHubDesiredProperties(string schemaVersion, IDictionary<string, RouteConfiguration> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
+        public EdgeHubDesiredProperties(
+            string schemaVersion,
+            IDictionary<string, RouteConfiguration> routes,
+            StoreAndForwardConfiguration storeAndForwardConfiguration,
+            BrokerProperties brokerConfiguration)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.StoreAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
+            // can be null for old versions.
+            this.BrokerConfiguration = brokerConfiguration;
 
             this.ValidateSchemaVersion();
         }
@@ -23,9 +34,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         [JsonConverter(typeof(RouteConfigurationConverter))]
         public IDictionary<string, RouteConfiguration> Routes;
 
+        [JsonProperty(PropertyName = "storeAndForwardConfiguration")]
         public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
 
-        internal void ValidateSchemaVersion()
+        [JsonProperty(PropertyName = "mqttBroker")]
+        public BrokerProperties BrokerConfiguration { get; }
+
+        void ValidateSchemaVersion()
         {
             if (string.IsNullOrWhiteSpace(this.SchemaVersion) || !Version.TryParse(this.SchemaVersion, out Version version))
             {
