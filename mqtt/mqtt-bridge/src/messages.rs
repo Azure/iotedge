@@ -73,10 +73,10 @@ impl<S> MessageHandler<S> {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl<S> EventHandler for MessageHandler<S>
 where
-    S: StreamWakeableState,
+    S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
@@ -110,10 +110,10 @@ pub struct UpstreamHandler<S> {
     rpc: RpcHandler,
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl<S> EventHandler for UpstreamHandler<S>
 where
-    S: StreamWakeableState,
+    S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 

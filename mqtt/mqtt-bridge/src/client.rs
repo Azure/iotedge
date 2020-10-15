@@ -413,7 +413,7 @@ impl<H: EventHandler> MqttClient<H> {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 pub trait EventHandler {
     type Error: Display;
 

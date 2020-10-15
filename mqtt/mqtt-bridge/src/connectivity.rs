@@ -26,7 +26,7 @@ impl ConnectivityHandler {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl EventHandler for ConnectivityHandler {
     type Error = BridgeError;
 

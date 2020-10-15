@@ -204,7 +204,7 @@ impl RpcHandler {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl EventHandler for RpcHandler {
     type Error = RpcError;
 

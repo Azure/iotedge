@@ -1,8 +1,9 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::{cell::RefCell, rc::Rc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use mqtt3::proto::Publication;
+use parking_lot::Mutex;
 use tracing::debug;
 
 use crate::persist::{
@@ -12,12 +13,12 @@ use crate::persist::{
 /// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
 struct PublicationStoreInner<S> {
-    state: Rc<RefCell<S>>,
+    state: Arc<Mutex<S>>,
     offset: u64,
     loader: MessageLoader<S>,
 }
 /// Persistence implementation used for the bridge
-pub struct PublicationStore<S>(Rc<RefCell<PublicationStoreInner<S>>>);
+pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 
 impl PublicationStore<WakingMemoryStore> {
     pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
@@ -30,7 +31,7 @@ where
     S: StreamWakeableState,
 {
     pub fn new(state: S, batch_size: usize) -> Self {
-        let state = Rc::new(RefCell::new(state));
+        let state = Arc::new(Mutex::new(state));
         let loader = MessageLoader::new(state.clone(), batch_size);
 
         let offset = 0;
@@ -39,13 +40,13 @@ where
             offset,
             loader,
         };
-        let inner = Rc::new(RefCell::new(inner));
+        let inner = Arc::new(Mutex::new(inner));
 
         Self(inner)
     }
 
     pub fn push(&self, message: Publication) -> Result<Key, PersistError> {
-        let mut inner_borrow = self.0.borrow_mut();
+        let mut inner_borrow = self.0.lock();
 
         debug!(
             "persisting publication on topic {} with offset {}",
@@ -56,26 +57,26 @@ where
             offset: inner_borrow.offset,
         };
 
-        let mut state_borrow = inner_borrow.state.borrow_mut();
-        state_borrow.insert(key, message)?;
-        drop(state_borrow);
+        let mut state_lock = inner_borrow.state.lock();
+        state_lock.insert(key, message)?;
+        drop(state_lock);
 
         inner_borrow.offset += 1;
         Ok(key)
     }
 
     pub fn remove(&self, key: Key) -> Result<(), PersistError> {
-        let inner = self.0.borrow_mut();
+        let inner = self.0.lock();
 
         debug!("removing publication with key {:?}", key);
 
-        let mut state_borrow = inner.state.borrow_mut();
-        state_borrow.remove(key)?;
+        let mut state_lock = inner.state.lock();
+        state_lock.remove(key)?;
         Ok(())
     }
 
     pub fn loader(&self) -> MessageLoader<S> {
-        let inner = self.0.borrow_mut();
+        let inner = self.0.lock();
         inner.loader.clone()
     }
 }
