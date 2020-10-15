@@ -37,6 +37,7 @@ steps:
 - pwsh: |
     $context = @{
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+      proxy = "http://e2eproxy-server:3128";
     }
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
