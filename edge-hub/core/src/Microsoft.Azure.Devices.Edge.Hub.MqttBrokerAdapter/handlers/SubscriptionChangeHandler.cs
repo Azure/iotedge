@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return true;
             }
 
-            // FIXME: the following solution is to unblock the case when in a nested scenario a child edgehub
+            // TODO: the following solution is to unblock the case when in a nested scenario a child edgehub
             // subscribes in the name of a device/module. However changes needed to support unsubscribe
             foreach (var subscriptionPattern in this.subscriptionPatterns)
             {

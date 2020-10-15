@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
-            // FIXME: the connectionStatusChangeHandler is not wired
+            // TODO: the connectionStatusChangeHandler is not wired
             var cloudProxy = new BrokeredCloudProxy(identity, this.cloudProxyDispatcher);
             return Task.FromResult(new Try<ICloudConnection>(new BrokeredCloudConnection(cloudProxy)));
         }

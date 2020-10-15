@@ -20,7 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public Task<bool> CloseAsync()
         {
-            // FIXME, probably should do other stuff
+            // TODO, in order to tear down the connection higher level,
+            // it should unsubscribe from all topics
             this.IsActive = false;
             return Task.FromResult(true);
         }

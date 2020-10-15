@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string TwinSubscriptionForPatchPattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\?\$version=(?<version>.+)";
         const string MethodCallPattern = @"^\$downstream/(?<id1>[^/\+\#]+)/methods/post/(?<mname>[^/\+\#]+)/\?\$rid=(?<rid>.+)";
 
-        readonly TimeSpan responseTimeout = TimeSpan.FromSeconds(30); // FIXME make this configurable
+        readonly TimeSpan responseTimeout = TimeSpan.FromSeconds(30); // TODO should come from configuration
         readonly byte[] emptyArray = new byte[0];
 
         AtomicBoolean isActive = new AtomicBoolean(false);
@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public Task SendFeedbackMessageAsync(IIdentity identity, string messageId, FeedbackStatus feedbackStatus)
         {
-            // FIXME
+            // TODO: when M2M/C2D is implemented, this may need to do something
             return Task.CompletedTask;
         }
 
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public Task StartListening(IIdentity identity)
         {
-            // FIXME not need to do anything, but think it over again
+            // No need to listen as the notifications will be pushed by the normal event handling mechanism
             return Task.CompletedTask;
         }
 
@@ -179,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             if (needSubscribe)
             {
-                // FIXME c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
+                // TODO c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
                 // and how to handle the related state (the needSubscribe flag)
                 await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format("$iothub/{0}/twin/res/#", identity.Id), this.emptyArray);
             }
@@ -203,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             if (needSubscribe)
             {
-                // FIXME c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
+                // TODO c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
                 // and how to handle the related state (the needSubscribe flag)
                 await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format("$iothub/{0}/twin/res/#", identity.Id), this.emptyArray);
             }
@@ -270,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var message = messageBuilder.Build();
 
             long ridAsLong;
-            if (!long.TryParse(rid, out ridAsLong)) // FIXME should use as string itself to make less sensitive to the actual format?
+            if (!long.TryParse(rid, out ridAsLong)) // TODO should use as string itself to make less sensitive to the actual format?
             {
                 Events.CannotParseRid(rid);
                 return;
@@ -301,11 +301,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void HandleDirectMethodCall(string id, string method, string rid, byte[] payload)
         {
-            var callingTask = this.edgeHub.InvokeMethodAsync(rid, new DirectMethodRequest(id, method, payload, TimeSpan.FromMinutes(1))); // FIXME response timeout
+            // TODO acquire the response timeout from the message
+            var callingTask = this.edgeHub.InvokeMethodAsync(rid, new DirectMethodRequest(id, method, payload, TimeSpan.FromMinutes(1)));
             callingTask.ContinueWith(
                     async response =>
                     {
-                        var status = response.IsCompletedSuccessfully ? response.Result.Status : 500; // FIXME status in case of error?
+                        var status = response.IsCompletedSuccessfully ? response.Result.Status : 500; // TODO check the correct status code to return
                         var topic = string.Format(DirectMethodResponseTemplate, id, response.Result.Status, rid);
 
                         await this.SendUpstreamMessageAsync(RpcCmdPub, topic, response.Result.Data ?? this.emptyArray);
