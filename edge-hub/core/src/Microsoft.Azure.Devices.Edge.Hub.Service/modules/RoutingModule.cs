@@ -532,6 +532,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IEdgeHub>>()
                 .SingleInstance();
 
+            // Task<EdgeHubConfigParser>
+            builder.Register(
+                    async c =>
+                    {
+                        RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
+                        var configParser = new EdgeHubConfigParser(routeFactory);
+                        return configParser;
+                    })
+                .As<Task<EdgeHubConfigParser>>()
+                .SingleInstance();
+
             // Task<ConfigUpdater>
             builder.Register(
                     async c =>
@@ -555,6 +566,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
+                        EdgeHubConfigParser configParser = await c.Resolve<Task<EdgeHubConfigParser>>();
                         if (this.useTwinConfig)
                         {
                             var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
@@ -584,7 +596,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 twinManager,
                                 twinMessageConverter,
                                 twinCollectionMessageConverter,
-                                routeFactory);
+                                configParser);
                         }
                         else
                         {

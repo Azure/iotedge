@@ -17,11 +17,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubConfigParser>();
 
-        public static EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)
+        readonly RouteFactory routeFactory;
+
+        public EdgeHubConfigParser(RouteFactory routeFactory)
+        {
+            this.routeFactory = routeFactory;
+        }
+
+        public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties desiredProperties)
         {
             Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
 
-            ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutes(desiredProperties, routeFactory);
+            ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutes(desiredProperties, this.routeFactory);
 
             Option<BrokerConfig> brokerConfig = ParseBrokerConfig(desiredProperties.BrokerConfiguration);
 
