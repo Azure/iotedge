@@ -75,7 +75,7 @@ impl Config {
             let connector = builder.build().context(ErrorKind::Initialization)?;
             let mut http = HttpConnector::new(DNS_WORKER_THREADS);
             http.enforce_http(false);
-            let https_connector = HttpsConnector::from((http, connector));
+            let https_connector = HttpsConnector::from((http, connector.clone()));
 
             match &self.proxy_uri {
                 None => Ok(Client::NoProxy(
@@ -83,9 +83,10 @@ impl Config {
                 )),
                 Some(uri) => {
                     let proxy = uri_to_proxy(uri.clone())?;
-                    let conn = ProxyConnector::from_proxy(https_connector, proxy)
+                    let mut conn = ProxyConnector::from_proxy(https_connector, proxy)
                         .context(ErrorKind::Proxy(uri.clone()))
                         .context(ErrorKind::Initialization)?;
+                    conn.set_tls(Some(connector));
                     Ok(Client::Proxy(HyperClient::builder().build(conn)))
                 }
             }
