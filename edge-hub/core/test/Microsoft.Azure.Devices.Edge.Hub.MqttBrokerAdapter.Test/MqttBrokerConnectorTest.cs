@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         const string HOST = "localhost";        
         const int PORT = 4567;
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public void WhenStartedThenHooksUpToProducers()
         {
             var producers = new[] { new ProducerStub(), new ProducerStub() };
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.All(producers, p => Assert.Equal(sut, p.Connector));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task WhenStartedThenConnectsToServer()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(1, broker.ConnectionCounter);
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task WhenStartedTwiceThenSecondFails()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(1, broker.ConnectionCounter);
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task WhenStartedThenSubscribesForConsumers()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(expected,  broker.Subscriptions.OrderBy(s => s));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task WhenMessageReceivedThenForwardsToConsumers()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.All(consumers, c => Assert.Equal("hoo", Encoding.ASCII.GetString(c.PacketsToHandle.First().Payload)));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task WhenMessageHandledThenForwardingLoopBreaks()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(0, Volatile.Read(ref callCounter));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task WhenConsumerThrowsThenProcessingLoopContinues()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal("hoo", Encoding.ASCII.GetString(consumers[1].PacketsToHandle.First().Payload));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task ProducersCanSendMessages()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal("hoo", Encoding.ASCII.GetString(broker.Publications.First().Item2));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task ProducersWaitForAck()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -220,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal("hoo", Encoding.ASCII.GetString(broker.Publications.First().Item2));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task SendAsyncCancelsWhenDisconnecting()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -243,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo")));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task TriesReconnect()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -261,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(2, broker.ConnectionCounter);            
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task WhenReconnectsThenResubscribes()
         {
             using var broker = new MiniMqttServer(PORT);
@@ -291,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(expected, broker.Subscriptions.OrderBy(s => s));
         }
 
-        [Fact(Skip = "temporarily disabling for CI investigation")]
+        [Fact]
         public async Task OfflineSendGetSentAfterReconnect()
         {
             var producer = new ProducerStub();

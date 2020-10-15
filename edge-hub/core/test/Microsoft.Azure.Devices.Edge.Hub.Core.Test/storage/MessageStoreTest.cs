@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Theory]
+        [Theory(Skip = "disable for testing")]
         [InlineData(false)]
         [InlineData(true)]
         public async Task CleanupTestTimeout(bool checkEntireQueueOnCleanup)
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Theory]
+        [Theory(Skip = "disable for testing")]
         [InlineData(false)]
         [InlineData(true)]
         public async Task CleanupTestTimeoutWithRead(bool checkEntireQueueOnCleanup)
@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Theory]
+        [Theory(Skip = "disable for testing")]
         [InlineData(false)]
         [InlineData(true)]
         public async Task CleanupTestCheckpointed(bool checkEntireQueueOnCleanup)
@@ -227,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Theory]
+        [Theory(Skip = "disable for testing")]
         [InlineData(false)]
         [InlineData(true)]
         public async Task CleanupTestTimeoutMultipleTTLs(bool checkEntireQueueOnCleanup)
@@ -281,7 +281,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Theory]
+        [Theory(Skip = "disable for testing")]
         [InlineData(false)]
         [InlineData(true)]
         public async Task CleanupTestTimeoutUpdateGlobalTimeToLive(bool checkEntireQueueOnCleanup)
@@ -363,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Theory]
+        [Theory(Skip = "disable for testing")]
         [InlineData(false)]
         [InlineData(true)]
         public async Task CleanupTestTimeoutUpdateIndividualMessageTimeToLive(bool checkEntireQueueOnCleanup)

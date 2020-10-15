@@ -49,7 +49,7 @@ jobs:
           CERT_VALUE: $(IotHubMqttHeadCert)
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         displayName: Build
-      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category!=Kubernetes&Name!~Mqtt" $(Build.Configuration)'
+      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category!=Kubernetes" $(Build.Configuration)'
         displayName: Integration Tests
         env:
           DummySecret1: $(DummySecret1)

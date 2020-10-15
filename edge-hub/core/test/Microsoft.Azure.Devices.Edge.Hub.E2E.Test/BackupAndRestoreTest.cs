@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.logger.Dispose();
         }
 
-        [Theory]
+        [Theory(Skip = "disable for testing")]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreMessageDeliveryTest(ITransportSettings[] transportSettings)
         {
@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Console.WriteLine("Finished test BackupAndRestoreCorruptBackupMetadataTest");
         }
 
-        [Theory]
+        [Theory(Skip = "disable for testing")]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreCorruptBackupDataTest(ITransportSettings[] transportSettings)
         {

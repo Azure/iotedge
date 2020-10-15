@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(moduleAsa.HasReceivedMessages(mlMessages2));
         }
 
-        [Fact]
+        [Fact(Skip = "disable for testing")]
         public async Task MultipleRoutesTest_WithNoModuleOutput()
         {
             var routes = new List<string>
