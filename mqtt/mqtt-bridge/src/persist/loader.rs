@@ -48,7 +48,7 @@ where
     fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let inner = self.0.borrow_mut();
         let mut state_borrow = inner.state.borrow_mut();
-        let batch: VecDeque<_> = state_borrow.batch(inner.batch_size)?;
+        let batch = state_borrow.batch(inner.batch_size)?;
 
         Ok(batch)
     }
@@ -67,29 +67,31 @@ where
     type Item = Result<(Key, Publication), PersistError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        // return element if available
         let mut inner = self.0.borrow_mut();
+
+        // return element if available
         if let Some(item) = inner.batch.pop_front() {
             return Poll::Ready(Some(Ok((item.0, item.1))));
+        } else {
+            drop(inner);
+
+            // refresh next batch
+            // if error, either someone forged the database or we have a database schema change
+            let next_batch = self.next_batch()?;
+            let mut inner = self.0.borrow_mut();
+            inner.batch = next_batch;
+
+            // get next element and return it
+            let maybe_extracted = inner.batch.pop_front();
+            let mut state_borrow = inner.state.borrow_mut();
+            maybe_extracted.map_or_else(
+                || {
+                    state_borrow.set_waker(cx.waker());
+                    Poll::Pending
+                },
+                |extracted| Poll::Ready(Some(Ok(extracted))),
+            )
         }
-        drop(inner);
-
-        // refresh next batch
-        // if error, either someone forged the database or we have a database schema change
-        let next_batch = self.next_batch()?;
-        let mut inner = self.0.borrow_mut();
-        inner.batch = next_batch;
-
-        // get next element and return it
-        let maybe_extracted = inner.batch.pop_front();
-        let mut state_borrow = inner.state.borrow_mut();
-        maybe_extracted.map_or_else(
-            || {
-                state_borrow.set_waker(cx.waker());
-                Poll::Pending
-            },
-            |extracted| Poll::Ready(Some(Ok(extracted))),
-        )
     }
 }
 
