@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
     [Integration]
     public class MessageStoreTest
     {
-        [Theory]
+        [Theory(Skip = "disabling for testing")]
         [InlineData(0, false)]
         [InlineData(0, true)]
         [InlineData(10150, false)]

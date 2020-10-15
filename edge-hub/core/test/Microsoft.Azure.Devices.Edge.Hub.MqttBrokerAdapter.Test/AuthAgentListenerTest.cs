@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         readonly AuthAgentProtocolHeadConfig config = new AuthAgentProtocolHeadConfig(PORT, "/authenticate/");
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task StartsUpAndServes()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task CannotStartTwice()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }                
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task DeniesNoPasswordNorCertificate()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task DeniesBothPasswordAndCertificate()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task DeniesBadCertificateFormat()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task DeniesNoVersion()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task DeniesBadVersion()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task AcceptsGoodTokenDeniesBadToken()
         {
             (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task AcceptsGoodThumbprintDeniesBadThumbprint()
         {
             (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task AcceptsGoodCaDeniesBadCa()
         {
             (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -242,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task ReturnsDeviceIdentity()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -262,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task ReturnsModuleIdentity()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -282,7 +282,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task AcceptsRequestWithContentLength()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -296,7 +296,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task AcceptsRequestWithNoContentLength()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -310,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task DeniesMalformedJsonRequest()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -324,7 +324,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "DRB temporarily disable for ci")]
+        [Fact]
         public async Task DeniesBadContentLengthLongBody()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -515,7 +515,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             using (var httpContent = CreateContent(content))
             {
                 request.Content = httpContent;
-                using (var response = await client.SendAsync(request))
+                using (var response = await client.SendAsync(request).TimeoutAfter(TimeSpan.FromSeconds(5)))
                 {
                     // Note, the AuthAgent protocol is such that it always should return 200 even in case of errors.
                     // A test never should throw here, even if it tests a failure case
