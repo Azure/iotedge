@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             proxy.ForEach(url =>
             {
                 curl += $" {url}";
-                prefix = $"{url} ";
+                prefix = $"HTTP_PROXY={url} HTTPS_PROXY={url} ";
             });
 
             return this.packageExtension switch
