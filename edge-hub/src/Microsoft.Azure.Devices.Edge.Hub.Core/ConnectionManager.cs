@@ -238,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.HandlingConnectionStatusChangedHandler(identity.Id, connectionStatus);
             if (!this.deviceBridges.TryGetValue(identity, out var db) || db != deviceBridge)
             {
-                Events.Debugging($"Ignored: Device {identity} not found in the list of connected devices, it's during switching device bridge instance.");
+                Events.Error($"Ignored: Device {identity} not found in the list of connected devices, it's during switching device bridge instance.");
                 return;
             }
 
@@ -280,10 +280,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 CloudConnectionLostClosingClient,
                 CloudConnectionLostClosingAllClients,
                 GettingCloudConnectionForDeviceSubscriptions,
-                Debugging
+                Error
             }
 
-            public static void Debugging(string message) => Log.LogDebug($"[ConnectionManager]: {message}");
+            public static void Error(string message) => Log.LogError($"[ConnectionManager]: {message}");
 
             public static void NewCloudConnection(IIdentity identity, ITry<ICloudConnection> cloudConnection)
             {

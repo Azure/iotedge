@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         ICloudProxy cloudProxy;
         Task<ITry<ICloudProxy>> createCloudProxyTask;
         Action<DeviceBridge, CloudConnectionStatus> onCloudConnectionStatusChanged;
+        string cloudConnectionStatusChangedHandlerId;
 
         internal IIdentity Identity { get; }
 
@@ -157,6 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal async Task<ITry<ICloudProxy>> TryRetrieveCloudProxyAsync()
         {
+            var newTask = false;
             Task<ITry<ICloudProxy>> task;
             using (SyncLock.Lock(this.stateLock, OperationTimeout))
             {
@@ -169,18 +171,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // reuse existing createCloudProxyTask
                 if (this.createCloudProxyTask != null)
                 {
-                    return await this.createCloudProxyTask;
+                    task = this.createCloudProxyTask;
                 }
-
-                // if no createCloudProxyTask, create new createCloudProxyTask
-                task = this.TryCreateCloudProxyAsync();
-                this.createCloudProxyTask = task;
+                else
+                {
+                    // if no createCloudProxyTask, create new createCloudProxyTask
+                    task = this.TryCreateCloudProxyAsync();
+                    this.createCloudProxyTask = task;
+                    newTask = true;
+                }
             }
 
             var result = await task;
 
             using (SyncLock.Lock(this.stateLock, OperationTimeout))
             {
+                if (!newTask)
+                {
+                    // if reuse existing task, just return result
+                    return result;
+                }
+
                 // double check if task is the same as existing createCloudProxyTask, return the result
                 if (task == this.createCloudProxyTask)
                 {
@@ -209,23 +220,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<ITry<ICloudProxy>> TryCreateCloudProxyAsync()
         {
-            var cloudConnection = await this.clientCredentials.Map(cc => this.cloudConnectionProvider.Connect(cc, this.CloudConnectionStatusChangedHandler))
-                .GetOrElse(() => this.cloudConnectionProvider.Connect(this.Identity, this.CloudConnectionStatusChangedHandler));
+            Action<string, CloudConnectionStatus> cloudConnectionStatusChangedHandler;
+            using (SyncLock.Lock(this.stateLock, OperationTimeout))
+            {
+                var id = Guid.NewGuid().ToString();
+                this.cloudConnectionStatusChangedHandlerId = id;
+                cloudConnectionStatusChangedHandler = async (deviceId, status) =>
+                {
+                    await this.CloudConnectionStatusChangedHandler(id, deviceId, status);
+                };
+            }
+
+            var cloudConnection = await this.clientCredentials.Map(cc => this.cloudConnectionProvider.Connect(cc, cloudConnectionStatusChangedHandler))
+                .GetOrElse(() => this.cloudConnectionProvider.Connect(this.Identity, cloudConnectionStatusChangedHandler));
             return cloudConnection.Map(cc => cc.CloudProxy)
                 .Map(cp => cp.Expect(() => new EdgeHubConnectionException($"Unable to get cloud proxy for device {this.Identity}")))
                 .Map(cp => new RetryingCloudProxy(this.Identity.Id, this.TryCreateCloudProxyAsync, cp) as ICloudProxy);
         }
 
-        async void CloudConnectionStatusChangedHandler(
+        async Task CloudConnectionStatusChangedHandler(
+            string id,
             string deviceId,
             CloudConnectionStatus connectionStatus)
         {
+            this.Debugging($"Cloud proxy for {this.Identity} status changed to {connectionStatus}.");
+            using (SyncLock.Lock(this.stateLock, OperationTimeout))
+            {
+                if (this.cloudConnectionStatusChangedHandlerId != id)
+                {
+                    this.Debugging($"Cloud proxy for {this.Identity} status changed ignored since the handle id mismatch.");
+                    return;
+                }
+            }
+
             if (this.Identity.Id != deviceId)
             {
                 throw new AggregateException($"DeviceBridge with {this.Identity} got a event {connectionStatus} for {deviceId}");
             }
-
-            this.Debugging($"Cloud proxy for {this.Identity} status changed to {connectionStatus}.");
 
             switch (connectionStatus)
             {

@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class CloudEndpoint : Endpoint
     {
-        readonly Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc;
+        readonly Func<string, Task<Option<ICloudProxy>>> cloudProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
 
@@ -200,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     return HandleCancelled(routingMessages);
                 }
 
-                Util.Option<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
+                Option<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
                 ISinkResult result = await cloudProxy.Match(
                     async cp =>
                     {
@@ -281,7 +281,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 InvalidMessageNoIdentity,
                 CancelledProcessing,
                 Created,
-                DoneProcessing
+                DoneProcessing,
+                Debugging
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)

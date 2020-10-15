@@ -140,6 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             // this.CloudProxy has been set/updated, so the old CloudProxy object may be returned.
             if (this.CallbacksEnabled)
             {
+                Events.Debugging(this.Identity, $"Connection status changed to {status} with reason {reason}.");
                 if (status == ConnectionStatus.Connected)
                 {
                     this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.ConnectionEstablished);
@@ -166,8 +167,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             enum EventIds
             {
                 AttemptingTransport = IdStart,
-                TransportConnected
+                TransportConnected,
+                Debugging
             }
+
+            public static void Debugging(IIdentity identity, string message) => Log.LogDebug((int)EventIds.Debugging, $"[CloudConnection]-[{identity.Id}]: {message}");
 
             public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity, Option<string> modelId)
             {
