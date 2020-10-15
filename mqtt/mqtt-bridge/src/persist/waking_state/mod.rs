@@ -34,12 +34,13 @@ pub trait StreamWakeableState {
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, pin::Pin, rc::Rc, task::Context, task::Poll};
+    use std::{cell::RefCell, pin::Pin, rc::Rc, sync::Arc, task::Context, task::Poll};
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt, TryStreamExt};
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
+    use parking_lot::Mutex;
     use test_case::test_case;
     use tokio::{sync::Notify, task};
 
@@ -108,7 +109,7 @@ mod tests {
         }
 
         // extract some, check that they are in order
-        let state = Rc::new(RefCell::new(state));
+        let state = Arc::new(Mutex::new(state));
         let mut loader = MessageLoader::new(state.clone(), num_elements);
         let (key1, _) = loader.try_next().await.unwrap().unwrap();
         let (key2, _) = loader.try_next().await.unwrap().unwrap();
@@ -116,9 +117,9 @@ mod tests {
         assert_eq!(key2, Key { offset: 1 });
 
         // remove some
-        let mut state_borrow = state.borrow_mut();
-        state_borrow.remove(key1).unwrap();
-        state_borrow.remove(key2).unwrap();
+        let mut state_lock = state.lock();
+        state_lock.remove(key1).unwrap();
+        state_lock.remove(key2).unwrap();
 
         // check that the ordering is maintained
         for count in 2..num_elements {

@@ -97,7 +97,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, rc::Rc, time::Duration};
+    use std::{sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::{future::join, stream::TryStreamExt};
@@ -109,12 +109,13 @@ mod tests {
         waking_state::StreamWakeableState,
         WakingMemoryStore,
     };
+    use parking_lot::Mutex;
 
     #[test]
     fn smaller_batch_size_respected() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Rc::new(RefCell::new(state));
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -133,10 +134,10 @@ mod tests {
         };
 
         // insert elements
-        let mut state_borrow = state.borrow_mut();
-        state_borrow.insert(key1, pub1.clone()).unwrap();
-        state_borrow.insert(key2, pub2).unwrap();
-        drop(state_borrow);
+        let mut state_lock = state.lock();
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2).unwrap();
+        drop(state_lock);
 
         // get batch size elements
         let batch_size = 1;
@@ -153,7 +154,7 @@ mod tests {
     fn larger_batch_size_respected() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Rc::new(RefCell::new(state));
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -172,10 +173,10 @@ mod tests {
         };
 
         // insert elements
-        let mut state_borrow = state.borrow_mut();
-        state_borrow.insert(key1, pub1.clone()).unwrap();
-        state_borrow.insert(key2, pub2.clone()).unwrap();
-        drop(state_borrow);
+        let mut state_lock = state.lock();
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
+        drop(state_lock);
 
         // get batch size elements
         let batch_size = 5;
@@ -194,10 +195,10 @@ mod tests {
     fn ordering_maintained_across_inserts() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Rc::new(RefCell::new(state));
+        let state = Arc::new(Mutex::new(state));
 
         // add many elements
-        let mut state_borrow = state.borrow_mut();
+        let mut state_lock = state.lock();
         let num_elements = 10 as usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
@@ -209,9 +210,9 @@ mod tests {
                 payload: Bytes::new(),
             };
 
-            state_borrow.insert(key, publication).unwrap();
+            state_lock.insert(key, publication).unwrap();
         }
-        drop(state_borrow);
+        drop(state_lock);
 
         // verify insertion order
         let mut loader = MessageLoader::new(state, num_elements);
@@ -229,7 +230,7 @@ mod tests {
     async fn retrieve_elements() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Rc::new(RefCell::new(state));
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -248,10 +249,10 @@ mod tests {
         };
 
         // insert some elements
-        let mut state_borrow = state.borrow_mut();
-        state_borrow.insert(key1, pub1.clone()).unwrap();
-        state_borrow.insert(key2, pub2.clone()).unwrap();
-        drop(state_borrow);
+        let mut state_lock = state.lock();
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
+        drop(state_lock);
 
         // get loader
         let batch_size = 5;
@@ -270,7 +271,7 @@ mod tests {
     async fn delete_and_retrieve_new_elements() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Rc::new(RefCell::new(state));
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -289,10 +290,10 @@ mod tests {
         };
 
         // insert some elements
-        let mut state_borrow = state.borrow_mut();
-        state_borrow.insert(key1, pub1.clone()).unwrap();
-        state_borrow.insert(key2, pub2.clone()).unwrap();
-        drop(state_borrow);
+        let mut state_lock = state.lock();
+        state_lock.insert(key1, pub1.clone()).unwrap();
+        state_lock.insert(key2, pub2.clone()).unwrap();
+        drop(state_lock);
 
         // get loader
         let batch_size = 5;
@@ -303,10 +304,10 @@ mod tests {
         loader.try_next().await.unwrap().unwrap();
 
         // remove inserted elements
-        let mut state_borrow = state.borrow_mut();
-        state_borrow.remove(key1).unwrap();
-        state_borrow.remove(key2).unwrap();
-        drop(state_borrow);
+        let mut state_lock = state.lock();
+        state_lock.remove(key1).unwrap();
+        state_lock.remove(key2).unwrap();
+        drop(state_lock);
 
         // insert new elements
         let key3 = Key { offset: 2 };
@@ -316,9 +317,9 @@ mod tests {
             retain: true,
             payload: Bytes::new(),
         };
-        let mut state_borrow = state.borrow_mut();
-        state_borrow.insert(key3, pub3.clone()).unwrap();
-        drop(state_borrow);
+        let mut state_lock = state.lock();
+        state_lock.insert(key3, pub3.clone()).unwrap();
+        drop(state_lock);
 
         // verify new elements are there
         let extracted = loader.try_next().await.unwrap().unwrap();
@@ -330,7 +331,7 @@ mod tests {
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state
         let state = WakingMemoryStore::new();
-        let state = Rc::new(RefCell::new(state));
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -359,9 +360,9 @@ mod tests {
             time::delay_for(Duration::from_secs(2)).await;
 
             // insert element once stream is polled
-            let mut state_borrow = state.borrow_mut();
-            state_borrow.insert(key1, pub1).unwrap();
-            drop(state_borrow);
+            let mut state_lock = state.lock();
+            state_lock.insert(key1, pub1).unwrap();
+            drop(state_lock);
         };
 
         join(poll_stream, insert).await;
