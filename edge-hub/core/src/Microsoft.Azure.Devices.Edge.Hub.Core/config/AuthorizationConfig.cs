@@ -12,6 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     /// This object is being constructed from the EdgeHub twin's desired properties.
     /// See <see cref="AuthorizationProperties"/> for DTO.
     /// </summary>
+    /// <remarks>
+    /// This model must be in sync with policy::core::builder::PolicyDefinition from MQTT Broker,
+    /// since it is being sent to the Broker as json policy definition on every twin update.
+    /// (<see cref="Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.PolicyUpdateHandler"/>).
+    /// </remarks>
     public class AuthorizationConfig : IEquatable<AuthorizationConfig>
     {
         public IList<Statement> Statements { get; }

@@ -82,7 +82,7 @@ fn visit_identity(value: &str) -> Result<(), Error> {
         return Err(Error::InvalidIdentity(value.into()));
     }
     if let Some(variable) = substituter::extract_variable(value) {
-        if VALID_IDENTITY_VARIABLES.get(variable).is_none() {
+        if VALID_VARIABLES.get(variable).is_none() {
             return Err(Error::InvalidIdentityVariable(variable.into()));
         }
     }
@@ -101,7 +101,7 @@ fn visit_resource(value: &str) -> Result<(), Error> {
         return Err(Error::InvalidResource(value.into()));
     }
     if let Some(variable) = substituter::extract_variable(value) {
-        if VALID_RESOURCE_VARIABLES.get(variable).is_none() {
+        if VALID_VARIABLES.get(variable).is_none() {
             return Err(Error::InvalidResourceVariable(variable.into()));
         }
     }
@@ -117,20 +117,12 @@ fn is_connect_op(statement: &Statement) -> bool {
 }
 
 lazy_static! {
-    static ref VALID_IDENTITY_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
+    static ref VALID_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
         crate::IDENTITY_VAR.into(),
         crate::DEVICE_ID_VAR.into(),
         crate::MODULE_ID_VAR.into(),
         crate::CLIENT_ID_VAR.into(),
         crate::EDGEHUB_ID_VAR.into(),
-    ]);
-    static ref VALID_RESOURCE_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
-        crate::IDENTITY_VAR.into(),
-        crate::DEVICE_ID_VAR.into(),
-        crate::MODULE_ID_VAR.into(),
-        crate::CLIENT_ID_VAR.into(),
-        crate::EDGEHUB_ID_VAR.into(),
-        crate::TOPIC_VAR.into(),
     ]);
 }
 
