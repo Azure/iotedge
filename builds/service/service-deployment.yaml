@@ -28,6 +28,11 @@ steps:
       EventHubConnStr2
 
 - pwsh: |
+    sudo find . -type f -group root -execdir rm {} +
+    sudo find . -type d -group root -print0 | sudo xargs -0 /bin/rm -rf
+  displayName: Clean up files (as sudo)
+
+- pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     $env:HTTP_PROXY='http://e2eproxy-server:3128'
     $env:HTTPS_PROXY='http://e2eproxy-server:3128'
