@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using static System.FormattableString;
 
     /// <summary>
-    /// EdgeHubConnection is responsible for connecting to the cloud as the Edge hub and getting/upating the edge hub twin.
+    /// EdgeHubConnection is responsible for connecting to the cloud as the Edge hub and getting/updating the edge hub twin.
     /// </summary>
     public class EdgeHubConnection
     {

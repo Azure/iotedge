@@ -110,7 +110,7 @@ process_args()
 
     case ${ARCH} in
         amd64) TARGET="x86_64-unknown-linux-musl";;
-        arm32v7) TARGET="armv7-unknown-linux-gnueabihf";;
+        arm32v7) TARGET="armv7-unknown-linux-musleabihf";;
         arm64v8) TARGET="aarch64-unknown-linux-gnu";;
     esac
 
@@ -153,7 +153,7 @@ build_project()
     if [[ "$ARCH" == "amd64" ]]; then
         execute scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch "amd64" --build-path edge-modules/api-proxy-module
     elif [[ "$ARCH" == "arm32v7" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch "arm32v7" --build-path edge-modules/api-proxy-module
+        docker run --rm -t -v "${API_PROXY_DIR}"/../..:/home/rust/src messense/rust-musl-cross:armv7-musleabihf  /bin/bash -c " rm -frv ~/.rustup/toolchains/* &&curl -sSLf https://sh.rustup.rs | sh -s -- -y && rustup target add armv7-unknown-linux-musleabihf && cargo build --target=armv7-unknown-linux-musleabihf --release --manifest-path /home/rust/src/edge-modules/api-proxy-module/Cargo.toml"
     elif [[ "$ARCH" == "arm64v8" ]]; then
         execute scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch "aarch64" --build-path edge-modules/api-proxy-module
     else
