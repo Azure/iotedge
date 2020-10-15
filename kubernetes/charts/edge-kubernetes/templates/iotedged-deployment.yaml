@@ -26,6 +26,10 @@ spec:
           imagePullPolicy: {{ .Values.iotedged.image.pullPolicy }}
           command: ["/app/iotedged"]
           args: ["-c", "/etc/iotedged/config.yaml"]
+          {{- if .Values.iotedged.data.resources }}
+          resources:
+{{ toYaml .Values.iotedged.data.resources | indent 12 }}
+          {{- end }}
           env:
           - name: "IOTEDGE_LOG"
             value: "info"

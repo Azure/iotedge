@@ -70,6 +70,31 @@ iotedged:
     #               1 - All other errors.
     ###############################################################################
     #  maxRetries: 2
+    ###############################################################################
+    # Resource limit settings
+    ###############################################################################
+    # 
+    # We want QoS to be "Guaranteed" so we are setting resource requests and limits
+    # to equal values.  Values can be adjusted, or may be set to null to remove.
+    # iotedged:
+    #   Values set here will apply directly to iotedged deployment.
+    # Proxy: 
+    #   Values set in iotedgedProxy section will apply to all proxy containers in deployment.
+    # Agent: 
+    #   Values set in agent section will apply to agent as the bootstrap values.  
+    #   It may be overwritten in the edge deployment on the IoT Hub via $edgeAgent's 
+    #   createOptions.
+    # modules: 
+    #   All module container resources should be set through edge deployment on the 
+    #   IoT Hub via module's createOptions
+    ###############################################################################
+    resources:
+      requests:
+        memory: "100Mi"
+        cpu: "100m"
+      limits:
+        memory: "100Mi"
+        cpu: "100m"
 
   ###############################################################################
   # Certificate settings
@@ -99,16 +124,38 @@ iotedged:
   #   trusted_ca_certs: "<ADD SECRET ITEM NAME FOR CA CERTIFICATES HERE>"
   #   auto_generated_ca_lifetime_days: <value>
 
+# module to iotedged proxy sidecar settings.
+# Available Settings:
+# image:
+#   repository: 
+#   tag: 
+#   pullPolicy:
+# registryCredentials:
+#   username:
+#   password:
+#   serveraddress:
+# resources:  (Set to null to remove.)
+
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
     tag: 0.1.0-beta10
     pullPolicy: Always
+  resources:
+    requests:
+      memory: "25Mi"
+      cpu: "5m"
+    limits:
+      memory: "25Mi"
+      cpu: "5m"
+    
 
 # Edge Agent image configuration
 # Settings:
 #     containerName  - name of the edge agent module. Expected to be "edgeAgent".
 #     image          - Image tag and image pull policy
+#     resources      - cpu and memory limit may be set here for bootstrap agent.
+#                      (Set to null to remove resource requests.)
 #     env            - Any environment variable that needs to be set for edge agent module.
 #                      Some environment variables affect how Edge Agent creates modules in the
 #                      cluster see the descriptions below.
@@ -119,6 +166,13 @@ edgeAgent:
     tag: 0.1.0-beta10
     pullPolicy: Always
   hostname: "localhost"
+  resources:
+    requests:
+      memory: "200Mi"
+      cpu: "50m"
+    limits:
+      memory: "200Mi"
+      cpu: "50m"
   env:
     authScheme: 'sasToken'
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the
