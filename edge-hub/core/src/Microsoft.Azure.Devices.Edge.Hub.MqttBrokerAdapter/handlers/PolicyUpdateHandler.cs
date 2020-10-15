@@ -78,7 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             return new PolicyUpdate(@"
             {
-                'schemaVersion': '2020-10-30',
                 'statements': [ ]
             }");
         }

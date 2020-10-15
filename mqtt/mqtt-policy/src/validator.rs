@@ -21,10 +21,7 @@ impl PolicyValidator for MqttValidator {
     type Error = Error;
 
     fn validate(&self, definition: &PolicyDefinition) -> Result<(), Error> {
-        match definition.schema_version().as_ref() {
-            "2020-10-30" => visit_definition(definition),
-            version => Err(Error::UnsupportedVersion(version.into())),
-        }
+        visit_definition(definition)
     }
 }
 
@@ -171,32 +168,6 @@ mod tests {
         }"#;
 
         assert_matches!(MqttValidator.validate(&build_definition(json)), Ok(()));
-    }
-
-    #[test]
-    fn unsupported_schema_version() {
-        let json = r#"{
-            "schemaVersion": "invalid!!!",
-            "statements": [
-                {
-                    "effect": "allow",
-                    "identities": [
-                        "contoso.azure-devices.net/monitor_a"
-                    ],
-                    "operations": [
-                        "mqtt:publish"
-                    ],
-                    "resources": [
-                        "topic/a"
-                    ]
-                }
-            ]
-        }"#;
-
-        assert_eq!(
-            MqttValidator.validate(&build_definition(json)),
-            Err(Error::UnsupportedVersion("invalid!!!".into()))
-        );
     }
 
     #[test]
