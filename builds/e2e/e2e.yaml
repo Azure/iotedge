@@ -86,22 +86,22 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
-# ################################################################################
-# - job: proxy
-# ################################################################################
-#   displayName: Linux amd64 behind a proxy
+################################################################################
+  - job: proxy
+################################################################################
+    displayName: Linux amd64 behind a proxy
 
-#   pool:
-#     name: $(pool.name)
-#     demands: new-e2e-proxy
+    pool:
+      name: $(pool.name)
+      demands: new-e2e-proxy
 
-#   variables:
-#     os: linux
-#     arch: amd64
-#     artifactName: iotedged-ubuntu18.04-amd64
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
 
-#   steps:
-#   - template: templates/e2e-clean-directory.yaml
-#   - template: templates/e2e-setup.yaml
-#   - template: templates/e2e-clear-docker-cached-images.yaml
-#   - template: templates/e2e-run.yaml
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
