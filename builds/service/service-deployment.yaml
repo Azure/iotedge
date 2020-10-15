@@ -28,9 +28,7 @@ steps:
       EventHubConnStr2
 
 - pwsh: |
-    # Can I use proxy info that is made available to tasks?
-    $proxy = Get-VstsWebProxy
-    Write-Output $proxy
+    Write-Output ">> $env:https_proxy <<"
   displayName: Try to get proxy info
 
 - script: |
