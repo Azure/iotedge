@@ -85,8 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward =
                 this.GetStoreAndForwardConfiguration();
 
-            IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
-            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
+            IConfiguration experimentalFeaturesConfig = this.configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
 
             MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
@@ -96,10 +96,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule(this.iotHubHostname));
 
-            var authConfig = this.configuration.GetSection("authAgentSettings");
-            builder.RegisterModule(new AuthModule(authConfig));
-            var mqttBrokerConfig = this.configuration.GetSection("mqttBrokerSettings");
-            builder.RegisterModule(new MqttBrokerModule(mqttBrokerConfig));
+            if (experimentalFeaturesConfig.GetValue(Constants.ConfigKey.MqttBrokerEnabled, false))
+            {
+                var authConfig = this.configuration.GetSection("authAgentSettings");
+                builder.RegisterModule(new AuthModule(authConfig));
+
+                var mqttBrokerConfig = this.configuration.GetSection("mqttBrokerSettings");
+                builder.RegisterModule(new MqttBrokerModule(mqttBrokerConfig));
+            }
         }
 
         internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
@@ -123,7 +127,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
 
             IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
+
+            if (mqttSettingsConfiguration.GetValue("enabled", false))
+            {
+                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
+            }
         }
 
         void RegisterRoutingModule(
@@ -162,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, false);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>($"{Constants.ConfigKey.ExperimentalFeatures}:{Constants.ConfigKey.NestedEdgeEnabled}", false);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -208,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, false);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>($"{Constants.ConfigKey.ExperimentalFeatures}:{Constants.ConfigKey.NestedEdgeEnabled}", false);
             bool hasParentEdge = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
