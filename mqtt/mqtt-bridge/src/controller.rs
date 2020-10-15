@@ -30,7 +30,8 @@ impl BridgeController {
                 };
             };
 
-            bridge_handles.push(upstream_bridge);
+            let upstream_bridge_handle = task::spawn_local(upstream_bridge);
+            bridge_handles.push(upstream_bridge_handle);
         } else {
             info!("No upstream settings detected. Not starting bridge controller.")
         };
@@ -38,7 +39,12 @@ impl BridgeController {
         // join_all is fine because the bridge shouldn't fail and exit
         // if a pump in the bridge fails, it should internally recreate it
         // this means that if a bridge stops, then shutdown was triggered
-        join_all(bridge_handles).await;
+        let bridges_status = join_all(bridge_handles).await;
+        for status in bridges_status {
+            if let Err(e) = status {
+                error!(message = "error while running bridge", err = %e);
+            }
+        }
 
         // TODO: bridge controller will eventually listen for updates via the twin
         //       until this is complete we need to wait here indefinitely
