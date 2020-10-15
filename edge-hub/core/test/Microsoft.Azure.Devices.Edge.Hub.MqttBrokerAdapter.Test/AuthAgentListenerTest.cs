@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Newtonsoft.Json;
-
     using Xunit;
 
     [Integration]
@@ -32,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         readonly AuthAgentProtocolHeadConfig config = new AuthAgentProtocolHeadConfig(PORT, "/authenticate/");
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task StartsUpAndServes()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -52,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task CannotStartTwice()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -64,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task DeniesNoPasswordNorCertificate()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -83,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task DeniesBothPasswordAndCertificate()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -104,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task DeniesBadCertificateFormat()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -124,6 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task DeniesNoVersion()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -143,6 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task DeniesBadVersion()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -163,6 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task AcceptsGoodTokenDeniesBadToken()
         {
             (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -188,6 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task AcceptsGoodThumbprintDeniesBadThumbprint()
         {
             (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -213,6 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task AcceptsGoodCaDeniesBadCa()
         {
             (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -243,6 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task ReturnsDeviceIdentity()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -263,6 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task ReturnsModuleIdentity()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -283,6 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task AcceptsRequestWithContentLength()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -297,6 +309,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task AcceptsRequestWithNoContentLength()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -311,6 +324,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task DeniesMalformedJsonRequest()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -325,6 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        [VisualStudio.TestTools.UnitTesting.Timeout(10000)]
         public async Task DeniesBadContentLengthLongBody()
         {
             (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -342,7 +357,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             using (var client = new TcpClient())
             {
-                await client.ConnectAsync(HOST, PORT);
+                await client.ConnectAsync(HOST, PORT).TimeoutAfter(TimeSpan.FromSeconds(5));
                 
                 using (var stream = client.GetStream())
                 {

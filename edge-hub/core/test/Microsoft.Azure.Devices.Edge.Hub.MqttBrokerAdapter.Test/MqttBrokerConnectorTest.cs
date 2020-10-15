@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using Moq;
     using Xunit;
 
-    [Integration]
+    // [Integration]
     public class MqttBrokerConnectorTest
     {
         const string HOST = "localhost";        
