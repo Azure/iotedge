@@ -71,7 +71,7 @@ where
 
         // return element if available
         if let Some(item) = inner.batch.pop_front() {
-            return Poll::Ready(Some(Ok((item.0, item.1))));
+            Poll::Ready(Some(Ok(item)))
         } else {
             drop(inner);
 
