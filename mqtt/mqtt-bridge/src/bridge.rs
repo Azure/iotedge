@@ -52,15 +52,15 @@ impl Bridge {
         pumps
             .local_pump
             .subscribe()
-            .await?
-            .instrument(local_pump_span);
+            .instrument(local_pump_span)
+            .await?;
 
         let remote_pump_span = info_span!("remote pump");
         pumps
             .remote_pump
             .subscribe()
-            .await?
-            .instrument(remote_pump_span);
+            .instrument(remote_pump_span)
+            .await?;
 
         debug!("created bridge...{}", connection_settings.name());
         Ok(Bridge {
