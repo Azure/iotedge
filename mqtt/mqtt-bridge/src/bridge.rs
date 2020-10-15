@@ -26,10 +26,8 @@ const BATCH_SIZE: usize = 10;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BridgeUpdate {
-    definition: String,
+    // TODO: add update settings here
 }
-
-impl BridgeUpdate {}
 
 #[derive(Debug, PartialEq)]
 pub enum PumpMessage {
