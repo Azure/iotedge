@@ -27,8 +27,9 @@ steps:
       IotHubConnStr2,
       EventHubConnStr2
 
-- pwsh: |
-    Write-Output ">> $env:https_proxy <<"
+- script: |
+    whoami
+    env
   displayName: Try to get proxy info
 
 - script: |
