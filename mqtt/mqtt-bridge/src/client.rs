@@ -368,7 +368,7 @@ impl<H: EventHandler> MqttClient<H> {
                     match subscription {
                         SubscriptionUpdateEvent::Subscribe(sub) => {
                             subacks.remove(&sub.topic_filter);
-                            debug!("successfully subscribed to topics");
+                            debug!("successfully subscribed to topic {}", &sub.topic_filter);
                         }
                         SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
                             subacks.remove(&topic_filter);
