@@ -151,13 +151,24 @@ impl PumpPair {
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
-        let client = MqttClient::tls(
-            address,
-            connection_settings.keep_alive(),
-            connection_settings.clean_session(),
-            MessageHandler::new(ingress_store.clone(), topic_filters),
-            credentials,
-        );
+
+        let client = match pump_type {
+            PumpType::Local => MqttClient::tcp(
+                address,
+                connection_settings.keep_alive(),
+                connection_settings.clean_session(),
+                MessageHandler::new(ingress_store.clone(), topic_filters),
+                credentials,
+            ),
+            PumpType::Remote => MqttClient::tls(
+                address,
+                connection_settings.keep_alive(),
+                connection_settings.clean_session(),
+                MessageHandler::new(ingress_store.clone(), topic_filters),
+                credentials,
+            ),
+        };
+
         Ok(Pump::new(
             client,
             subscriptions,
