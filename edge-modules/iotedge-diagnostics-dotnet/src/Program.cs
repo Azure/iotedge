@@ -43,11 +43,14 @@ namespace Diagnostics
             var config = new ConfigurationBuilder().AddCommandLine(args).Build();
             switch (args[0])
             {
+                case "parent-hostname":
+                    ParentHostname(config["parent-hostname"]);
+                    break;
                 case "edge-agent":
                     await EdgeAgent(config["management-uri"]);
                     break;
-                case "iothub":
-                    await Iothub(config["hostname"], config["port"], config["proxy"]);
+                case "upstream":
+                    await Upstream(config["hostname"], config["port"], config["proxy"]);
                     break;
                 case "local-time":
                     Console.WriteLine(DateTime.Now.ToUnixTimestamp());
@@ -80,7 +83,7 @@ namespace Diagnostics
             }
         }
 
-        static async Task Iothub(string hostname, string port, string proxy)
+        static async Task Upstream(string hostname, string port, string proxy)
         {
             if (proxy != null)
             {
@@ -101,6 +104,11 @@ namespace Diagnostics
                 await client.ConnectAsync(hostname, int.Parse(port));
                 client.GetStream();
             }
+        }
+
+        static void ParentHostname(string parent_hostname)
+        {
+            _ = Dns.GetHostEntry(parent_hostname);
         }
 
         static IProxyClient MakeProxy(Uri proxyUri)

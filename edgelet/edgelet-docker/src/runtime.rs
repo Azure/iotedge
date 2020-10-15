@@ -417,6 +417,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                         let image_with_tag = image_with_tag.clone();
                         move |lock| {
                             let digest_from_notary = lock.get(&image_with_tag);
+                            #[allow(clippy::option_if_let_else)]
                             if let Some(digest_from_notary) = digest_from_notary {
                                 future::Either::A(future::ok((digest_from_notary.clone(), lock)))
                             }
@@ -726,6 +727,11 @@ impl ModuleRuntime for DockerModuleRuntime {
                             version: edgelet_core::version_with_source_version(),
                             provisioning,
                             cpus: system_info.NCPU().unwrap_or_default(),
+                            virtualized: match edgelet_core::is_virtualized_env() {
+                                Ok(Some(true)) => "yes",
+                                Ok(Some(false)) => "no",
+                                Ok(None) | Err(_) => "unknown",
+                            },
                             kernel_version: system_info
                                 .kernel_version()
                                 .map(std::string::ToString::to_string)

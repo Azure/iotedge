@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use std::{ffi::CStr, net::IpAddr, str::FromStr};
 
 #[cfg(unix)]
 use failure::Fail;
@@ -6,7 +6,7 @@ use failure::{self, Context, ResultExt};
 
 use edgelet_core::{self, RuntimeSettings};
 
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{checker::Checker, hostname_checks_common, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct Hostname {
@@ -40,6 +40,12 @@ impl Hostname {
 
         let config_hostname = settings.hostname();
         self.config_hostname = Some(config_hostname.to_owned());
+
+        if IpAddr::from_str(&config_hostname).is_ok() {
+            self.machine_hostname = self.config_hostname.clone();
+            //We can only check that it is a valid IP
+            return Ok(CheckResult::Ok);
+        }
 
         let machine_hostname = unsafe {
             let mut result = vec![0_u8; 256];
@@ -128,7 +134,7 @@ impl Hostname {
 
         // Some software like the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
-        if !is_rfc_1035_valid(config_hostname) {
+        if !hostname_checks_common::is_rfc_1035_valid(config_hostname) {
             return Ok(CheckResult::Warning(Context::new(format!(
             "config.yaml has hostname {} which does not comply with RFC 1035.\n\
              \n\
@@ -143,89 +149,16 @@ impl Hostname {
         .into()));
         }
 
+        if !hostname_checks_common::check_length_for_local_issuer(config_hostname) {
+            return Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "config.yaml hostname {} is too long to be used as a certificate issuer",
+                    config_hostname,
+                ))
+                .into(),
+            ));
+        }
+
         Ok(CheckResult::Ok)
-    }
-}
-
-fn is_rfc_1035_valid(name: &str) -> bool {
-    if name.is_empty() || name.len() > 255 {
-        return false;
-    }
-
-    let mut labels = name.split('.');
-
-    let all_labels_valid = labels.all(|label| {
-        if label.len() > 63 {
-            return false;
-        }
-
-        let first_char = match label.chars().next() {
-            Some(c) => c,
-            None => return false,
-        };
-        if !first_char.is_ascii_alphabetic() {
-            return false;
-        }
-
-        if label
-            .chars()
-            .any(|c| !c.is_ascii_alphanumeric() && c != '-')
-        {
-            return false;
-        }
-
-        let last_char = label
-            .chars()
-            .last()
-            .expect("label has at least one character");
-        if !last_char.is_ascii_alphanumeric() {
-            return false;
-        }
-
-        true
-    });
-    if !all_labels_valid {
-        return false;
-    }
-
-    true
-}
-
-#[cfg(test)]
-mod tests {
-    use super::is_rfc_1035_valid;
-
-    #[test]
-    fn test_is_rfc_1035_valid() {
-        let longest_valid_label = "a".repeat(63);
-        let longest_valid_name = format!(
-            "{label}.{label}.{label}.{label_rest}",
-            label = longest_valid_label,
-            label_rest = "a".repeat(255 - 63 * 3 - 3)
-        );
-        assert_eq!(longest_valid_name.len(), 255);
-
-        assert!(is_rfc_1035_valid("foobar"));
-        assert!(is_rfc_1035_valid("foobar.baz"));
-        assert!(is_rfc_1035_valid(&longest_valid_label));
-        assert!(is_rfc_1035_valid(&format!(
-            "{label}.{label}.{label}",
-            label = longest_valid_label
-        )));
-        assert!(is_rfc_1035_valid(&longest_valid_name));
-        assert!(is_rfc_1035_valid("xn--v9ju72g90p.com"));
-        assert!(is_rfc_1035_valid("xn--a-kz6a.xn--b-kn6b.xn--c-ibu"));
-
-        assert!(is_rfc_1035_valid("FOOBAR"));
-        assert!(is_rfc_1035_valid("FOOBAR.BAZ"));
-        assert!(is_rfc_1035_valid("FoObAr01.bAz"));
-
-        assert!(!is_rfc_1035_valid(&format!("{}a", longest_valid_label)));
-        assert!(!is_rfc_1035_valid(&format!("{}a", longest_valid_name)));
-        assert!(!is_rfc_1035_valid("01.org"));
-        assert!(!is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}"));
-        assert!(!is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}.com"));
-        assert!(!is_rfc_1035_valid("a\u{4eca}.b\u{65e5}.c\u{306f}"));
-        assert!(!is_rfc_1035_valid("FoObAr01.bAz-"));
     }
 }

@@ -5,10 +5,12 @@ mod connect;
 mod ping;
 
 mod publish;
-pub use publish::{PublishError, PublishHandle};
+pub use publish::{MockPublishHandle, PublishError, PublishHandle};
 
 mod subscriptions;
-pub use subscriptions::{UpdateSubscriptionError, UpdateSubscriptionHandle};
+pub use subscriptions::{
+    MockUpdateSubscriptionHandle, UpdateSubscriptionError, UpdateSubscriptionHandle,
+};
 
 /// An MQTT v3.1.1 client.
 ///
@@ -337,6 +339,12 @@ where
                                 }
 
                                 connect.reconnect();
+
+                                if err.is_connection_error() {
+                                    return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
+                                        err.into(),
+                                    ))));
+                                }
                             }
                         }
 
@@ -508,6 +516,8 @@ pub enum Event {
         reset_session: bool,
     },
 
+    Disconnected(ConnectionError),
+
     /// A publication received from the server
     Publication(ReceivedPublication),
 
@@ -520,6 +530,7 @@ pub enum Event {
 pub enum SubscriptionUpdateEvent {
     Subscribe(crate::proto::SubscribeTo),
     Unsubscribe(String),
+    RejectedByServer(String),
 }
 
 /// A message that was received from the server
@@ -797,17 +808,20 @@ impl Error {
 
     fn session_is_resumable(&self) -> bool {
         match self {
-            Error::DecodePacket(crate::proto::DecodeError::Io(err)) => match err.kind() {
-                std::io::ErrorKind::TimedOut => true,
-                _ => false,
-            },
-            Error::EncodePacket(crate::proto::EncodeError::Io(err)) => match err.kind() {
-                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WriteZero => true,
-                _ => false,
-            },
+            Error::DecodePacket(crate::proto::DecodeError::Io(err)) => {
+                matches!(err.kind(), std::io::ErrorKind::TimedOut)
+            }
+            Error::EncodePacket(crate::proto::EncodeError::Io(err)) => matches!(
+                err.kind(),
+                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WriteZero
+            ),
             Error::ServerClosedConnection => true,
             _ => false,
         }
+    }
+
+    fn is_connection_error(&self) -> bool {
+        matches!(self, Error::DecodePacket(crate::proto::DecodeError::Io(_)) | Error::EncodePacket(crate::proto::EncodeError::Io(_)) | Error::ServerClosedConnection)
     }
 }
 
@@ -886,6 +900,39 @@ impl std::fmt::Display for UnexpectedSubUnsubAckReason {
             UnexpectedSubUnsubAckReason::ExpectedUnsubAck(packet_identifier) => {
                 write!(f, "expected UNSUBACK {}", packet_identifier)
             }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ConnectionError {
+    Io(std::io::Error),
+    ServerClosedConnection,
+}
+
+impl std::fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectionError::Io(err) => write!(f, "connection closed because I/O error: {}", err),
+            ConnectionError::ServerClosedConnection => write!(f, "connection closed by server"),
+        }
+    }
+}
+
+impl PartialEq for ConnectionError {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_string() == other.to_string()
+    }
+}
+
+impl Eq for ConnectionError {}
+
+impl From<Error> for ConnectionError {
+    fn from(state: Error) -> Self {
+        match state {
+            Error::EncodePacket(crate::proto::EncodeError::Io(io))
+            | Error::DecodePacket(crate::proto::DecodeError::Io(io)) => ConnectionError::Io(io),
+            _ => ConnectionError::ServerClosedConnection,
         }
     }
 }

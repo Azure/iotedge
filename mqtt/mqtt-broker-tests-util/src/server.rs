@@ -14,7 +14,7 @@ use tokio::{
 
 use mqtt_broker::{
     auth::{AuthenticationContext, Authenticator, Authorizer},
-    AuthId, Broker, BrokerSnapshot, Error, Server,
+    AuthId, Broker, BrokerSnapshot, Error, MakePacketProcessor, Server,
 };
 
 /// Used to control server lifetime during tests. Implements
@@ -60,24 +60,36 @@ impl Drop for ServerHandle {
 pub fn start_server<N, E, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
 where
     N: Authenticator<Error = E> + Send + Sync + 'static,
-    Z: Authorizer + Send + Sync + 'static,
+    Z: Authorizer + Send + 'static,
     E: StdError + Send + Sync + 'static,
+{
+    run(|addr| {
+        let mut server = Server::from_broker(broker);
+        server.with_tcp(addr, authenticator, None).unwrap();
+        server
+    })
+}
+
+pub fn run<F, Z, P>(make_server: F) -> ServerHandle
+where
+    F: FnOnce(String) -> Server<Z, P>,
+    Z: Authorizer + Send + 'static,
+    P: MakePacketProcessor + Clone + Send + Sync + 'static,
 {
     lazy_static! {
         static ref PORT: AtomicU32 = AtomicU32::new(5555);
     }
 
     let port = PORT.fetch_add(1, Ordering::SeqCst);
-    let address = format!("localhost:{}", port);
+    let addr = format!("localhost:{}", port);
 
-    let mut server = Server::from_broker(broker);
-    server.with_tcp(&address, authenticator, None).unwrap();
+    let server = make_server(addr.clone());
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let task = tokio::spawn(server.serve(rx.map(drop)));
 
     ServerHandle {
-        address,
+        address: addr,
         shutdown: Some(shutdown),
         task: Some(task),
     }
@@ -88,6 +100,10 @@ pub struct DummyAuthenticator(AuthId);
 impl DummyAuthenticator {
     pub fn anonymous() -> Self {
         Self(AuthId::Anonymous)
+    }
+
+    pub fn with_id(id: impl Into<AuthId>) -> Self {
+        Self(id.into())
     }
 }
 

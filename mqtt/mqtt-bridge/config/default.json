@@ -1,8 +1,7 @@
 {
-    "upstream":
-    {
+    "upstream": {
         "keep_alive": "1m",
-        "clean_session": true,
+        "clean_session": false,
         "subscriptions": [],
         "forwards": []
     },

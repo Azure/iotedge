@@ -37,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.SetupDesiredPropertyUpdatesAsync(this.identity);
         public Task StartListening() => this.cloudProxyDispatcher.StartListening(this.identity);
 
-
         public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
         {
             return this.cloudProxyDispatcher.UpdateReportedPropertiesAsync(this.identity, reportedPropertiesMessage, this.twinNeedsSubscribe.GetAndSet(false));

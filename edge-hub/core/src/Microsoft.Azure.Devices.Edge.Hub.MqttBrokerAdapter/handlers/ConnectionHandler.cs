@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 var container = default(IDeviceListener);
                 if (!this.knownConnections.TryGetValue(identity, out container))
                 {
-                    return await CreateDeviceProxyAsync(identity);
+                    return await this.CreateDeviceProxyAsync(identity);
                 }
 
                 return container switch
@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             foreach (var identity in identitiesAdded)
             {
-                await AddConnectionAsync(identity, true, connectionProvider);
+                await this.AddConnectionAsync(identity, true, connectionProvider);
             }
         }
 
@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task<Option<IDeviceProxy>> CreateDeviceProxyAsync(IIdentity identity)
         {
-            var deviceListener = await CreateDeviceListenerAsync(identity);
+            var deviceListener = await this.CreateDeviceListenerAsync(identity);
             return deviceListener.FlatMap(
                         listener =>
                             listener switch

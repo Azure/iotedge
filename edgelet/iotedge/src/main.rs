@@ -80,12 +80,12 @@ fn run() -> Result<(), Error> {
     let default_mgmt_uri = option_env!("IOTEDGE_HOST").unwrap_or(&*default_mgmt_uri);
 
     let default_diagnostics_image_name = format!(
-        "mcr.microsoft.com/azureiotedge-diagnostics:{}",
+        "/azureiotedge-diagnostics:{}",
         edgelet_core::version().replace("~", "-")
     );
 
     let mut possible_check_id_values: Vec<_> = Check::possible_ids().collect();
-    possible_check_id_values.sort();
+    possible_check_id_values.sort_unstable();
 
     let matches = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
