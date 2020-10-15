@@ -48,14 +48,14 @@ impl Bridge {
 
         let mut pumps = PumpPair::new(&connection_settings, &system_address, &device_id)?;
 
-        let local_pump_span = info_span!("local pump");
+        let local_pump_span = info_span!("pump", name = "local");
         pumps
             .local_pump
             .subscribe()
             .instrument(local_pump_span)
             .await?;
 
-        let remote_pump_span = info_span!("remote pump");
+        let remote_pump_span = info_span!("pump", name = "remote");
         pumps
             .remote_pump
             .subscribe()
