@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 {
     using System.Collections.Generic;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -18,12 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var capture = new SendCapture();
             var connector = GetConnector(capture);
             var connectionRegistry = GetConnectionRegistry();
+            var identityProvider = new IdentityProvider("hub");
             var identity = new ModuleIdentity("hub", "device_id", "module_id");
             var message = new EdgeMessage
                                 .Builder(new byte[] { 0x01, 0x02, 0x03 })
+                                .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry);
+            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity);
@@ -37,14 +40,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var capture = new SendCapture();
             var connector = GetConnector(capture);
             var connectionRegistry = GetConnectionRegistry();
+            var identityProvider = new IdentityProvider("hub");
             var identity = new ModuleIdentity("hub", "device_id", "module_id");
             var message = new EdgeMessage
                                 .Builder(new byte[] { 0x01, 0x02, 0x03 })
                                 .SetProperties(new Dictionary<string, string>() { ["prop1"] = "value1", ["prop2"] = "value2" })
-                                .SetSystemProperties(new Dictionary<string, string>() { ["userId"] = "userid", ["cid"] = "corrid" })
+                                .SetSystemProperties(new Dictionary<string, string>() { ["userId"] = "userid", ["cid"] = "corrid", [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry);
+            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity);
@@ -62,12 +66,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var capture = new SendCapture();
             var connector = GetConnector(capture);
             var connectionRegistry = GetConnectionRegistry();
+            var identityProvider = new IdentityProvider("hub");
             var identity = new ModuleIdentity("hub", "device_id", "module_id");
             var message = new EdgeMessage
                                 .Builder(new byte[] { 0x01, 0x02, 0x03 })
+                                .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry);
+            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity);
@@ -88,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                             capturedStatus = status;
                                         });
 
+            var identityProvider = new IdentityProvider("hub");
             var connector = GetConnector();
 
             var identity = new ModuleIdentity("hub", "device_id", "module_id");
@@ -96,10 +103,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                 .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry);
+            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity);
+            await sut.HandleAsync(new MqttPublishInfo("$edgehub/delivered", Encoding.UTF8.GetBytes(@"""$edgehub/device_id/module_id/inputs/""")));
 
             Assert.Equal("12345", capturedLockId);
             Assert.Equal(FeedbackStatus.Complete, capturedStatus);
@@ -113,9 +121,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identity = new DeviceIdentity("hub", "device_id");
             var message = new EdgeMessage
                                 .Builder(new byte[] { 0x01, 0x02, 0x03 })
+                                .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry);
+            var identityProvider = new IdentityProvider("hub");
+
+            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity);
