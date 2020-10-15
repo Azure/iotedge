@@ -63,32 +63,6 @@ impl Display for ConnectivityState {
     }
 }
 
-/// Provides context used for logging in the bridge pumps and client implementations
-#[derive(Debug, Clone)]
-pub struct PumpContext {
-    pump_type: PumpType,
-    bridge_name: String,
-}
-
-impl PumpContext {
-    pub fn new(pump_type: PumpType, bridge_name: String) -> Self {
-        Self {
-            pump_type,
-            bridge_name,
-        }
-    }
-}
-
-impl Display for PumpContext {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "{:?} pump on {} bridge",
-            self.pump_type, self.bridge_name
-        )
-    }
-}
-
 /// Specifies if a pump is local or remote
 #[derive(Debug, Clone)]
 pub enum PumpType {
@@ -177,21 +151,19 @@ impl PumpPair {
             .into_iter()
             .map(|topic| topic.try_into())
             .collect::<Result<Vec<_>, _>>()?;
-        let pump_context = PumpContext::new(pump_type, connection_settings.name().to_string());
         let client = MqttClient::tls(
             address,
             connection_settings.keep_alive(),
             connection_settings.clean_session(),
             MessageHandler::new(ingress_store.clone(), topic_filters),
             credentials,
-            pump_context.clone(),
         );
         Ok(Pump::new(
             client,
             subscriptions,
             loader,
             egress_store.clone(),
-            pump_context,
+            pump_type,
         )?)
     }
 
@@ -217,7 +189,7 @@ pub struct Pump {
     subscriptions: Vec<String>,
     loader: MessageLoader<WakingMemoryStore>,
     persist: PublicationStore<WakingMemoryStore>,
-    pump_context: PumpContext,
+    pump_type: PumpType,
 }
 
 impl Pump {
@@ -226,7 +198,7 @@ impl Pump {
         subscriptions: Vec<String>,
         loader: MessageLoader<WakingMemoryStore>,
         persist: PublicationStore<WakingMemoryStore>,
-        pump_context: PumpContext,
+        pump_type: PumpType,
     ) -> Result<Self, BridgeError> {
         let publish_handle = client
             .publish_handle()
@@ -240,7 +212,7 @@ impl Pump {
             subscriptions,
             loader,
             persist,
-            pump_context,
+            pump_type,
         })
     }
 
@@ -255,59 +227,54 @@ impl Pump {
 
     #[allow(clippy::too_many_lines)]
     pub async fn run(&mut self, shutdown: Receiver<()>) {
-        debug!("starting {}", self.pump_context);
+        debug!("starting pump");
 
         let (loader_shutdown, loader_shutdown_rx) = oneshot::channel::<()>();
         let publish_handle = self.publish_handle.clone();
         let persist = self.persist.clone();
         let mut loader = self.loader.clone();
         let mut client_shutdown = self.client_shutdown.clone();
-        let pump_context = self.pump_context.clone();
 
         // egress loop
         let egress_loop = async {
             let mut receive_fut = loader_shutdown_rx.into_stream();
 
-            info!("{} starting egress publication processing", pump_context);
+            info!("starting egress publication processing");
 
             loop {
                 let mut publish_handle = publish_handle.clone();
                 match select(receive_fut.next(), loader.try_next()).await {
                     Either::Left((shutdown, _)) => {
-                        info!(
-                            "{} received shutdown signal for egress messages",
-                            pump_context
-                        );
+                        info!("received shutdown signal for egress messages",);
                         if shutdown.is_none() {
-                            error!("{} has unexpected behavior from shutdown signal while signaling bridge pump shutdown", pump_context);
+                            error!("has unexpected behavior from shutdown signal while signaling bridge pump shutdown");
                         }
 
                         break;
                     }
                     Either::Right((loaded_element, _)) => {
-                        debug!("{} extracted publication from store", pump_context);
+                        debug!("extracted publication from store");
 
                         if let Ok(Some((key, publication))) = loaded_element {
-                            debug!("{} publishing {:?}", pump_context, key);
+                            debug!("publishing {:?}", key);
                             if let Err(e) = publish_handle.publish(publication).await {
-                                error!(err = %e, "{} failed publish", pump_context);
+                                error!(err = %e, "failed publish");
                             }
 
                             if let Err(e) = persist.remove(key) {
-                                error!(err = %e, "{} failed removing publication from store", pump_context);
+                                error!(err = %e, "failed removing publication from store");
                             }
                         }
                     }
                 }
             }
 
-            info!("{} stopped sending egress messages", pump_context);
+            info!("stopped sending egress messages");
         };
 
         // ingress loop
-        let pump_context = self.pump_context.clone();
         let ingress_loop = async {
-            debug!("{} starting ingress publication processing", pump_context);
+            debug!("starting ingress publication processing");
             self.client.handle_events().await;
         };
 
@@ -322,22 +289,19 @@ impl Pump {
         match select(pump_processes, shutdown).await {
             // early-stop error
             Either::Left((pump_processes, _)) => {
-                error!("{} stopped early so will shut down", pump_context);
+                error!("stopped early so will shut down");
 
                 match pump_processes {
                     Either::Left((_, ingress_loop)) => {
                         if let Err(e) = client_shutdown.shutdown().await {
-                            error!(err = %e, "{} failed to shutdown ingress publication loop", pump_context);
+                            error!(err = %e, "failed to shutdown ingress publication loop");
                         }
 
                         ingress_loop.await;
                     }
                     Either::Right((_, egress_loop)) => {
                         if let Err(e) = loader_shutdown.send(()) {
-                            error!(
-                                "{} failed to shutdown egress publication loop {:?}",
-                                pump_context, e
-                            );
+                            error!("failed to shutdown egress publication loop {:?}", e);
                         }
 
                         egress_loop.await;
@@ -347,18 +311,15 @@ impl Pump {
             // shutdown was signaled
             Either::Right((shutdown, pump_processes)) => {
                 if let Err(e) = shutdown {
-                    error!(err = %e, "{} failed listening for shutdown", pump_context);
+                    error!(err = %e, "failed listening for shutdown");
                 }
 
                 if let Err(e) = client_shutdown.shutdown().await {
-                    error!(err = %e, "{} failed to shutdown ingress publication loop", pump_context);
+                    error!(err = %e, "failed to shutdown ingress publication loop");
                 }
 
                 if let Err(e) = loader_shutdown.send(()) {
-                    error!(
-                        "{} failed to shutdown egress publication loop {:?}",
-                        pump_context, e
-                    );
+                    error!("failed to shutdown egress publication loop {:?}", e);
                 }
 
                 match pump_processes.await {
