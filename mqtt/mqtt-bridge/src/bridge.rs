@@ -412,10 +412,15 @@ mod tests {
         let topics: Vec<TopicMapper> = connection_settings
             .subscriptions()
             .iter()
-            .filter(|sub| *sub.direction() == Direction::Out)
-            .map(move |sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+            .filter_map(|sub| {
+                if *sub.direction() == Direction::Out {
+                    Some(TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    })
+                } else {
+                    None
+                }
             })
             .collect();
 
@@ -454,10 +459,15 @@ mod tests {
         let topics: Vec<TopicMapper> = connection_settings
             .subscriptions()
             .iter()
-            .filter(|sub| *sub.direction() == Direction::Out)
-            .map(move |sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+            .filter_map(|sub| {
+                if *sub.direction() == Direction::Out {
+                    Some(TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    })
+                } else {
+                    None
+                }
             })
             .collect();
 
@@ -496,10 +506,15 @@ mod tests {
         let topics: Vec<TopicMapper> = connection_settings
             .subscriptions()
             .iter()
-            .filter(|sub| *sub.direction() == Direction::Out)
-            .map(move |sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+            .filter_map(|sub| {
+                if *sub.direction() == Direction::Out {
+                    Some(TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    })
+                } else {
+                    None
+                }
             })
             .collect();
 
@@ -538,10 +553,15 @@ mod tests {
         let topics: Vec<TopicMapper> = connection_settings
             .subscriptions()
             .iter()
-            .filter(|sub| *sub.direction() == Direction::Out)
-            .map(move |sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+            .filter_map(|sub| {
+                if *sub.direction() == Direction::Out {
+                    Some(TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    })
+                } else {
+                    None
+                }
             })
             .collect();
 
