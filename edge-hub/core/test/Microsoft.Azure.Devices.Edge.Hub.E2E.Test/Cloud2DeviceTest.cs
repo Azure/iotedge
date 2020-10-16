@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        [Fact]
+        [Fact(Skip = "disable for testing")]
         [TestPriority(104)]
         public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {

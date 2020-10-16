@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
         }
 
-        [Theory]
+        [Theory(Skip = "disabling for testing")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task OverwritePropertySuccess(ITransportSettings[] transportSettings)
         {

@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
     using Xunit;
 
-    [Integration]
+    // [Integration]
     public class AuthAgentHeadTest
     {
         const string HOST = "localhost";
@@ -342,7 +342,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             using (var client = new TcpClient())
             {
-                await client.ConnectAsync(HOST, PORT);
+                await client.ConnectAsync(HOST, PORT).TimeoutAfter(TimeSpan.FromSeconds(5));
                 
                 using (var stream = client.GetStream())
                 {
@@ -515,7 +515,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             using (var httpContent = CreateContent(content))
             {
                 request.Content = httpContent;
-                using (var response = await client.SendAsync(request))
+                using (var response = await client.SendAsync(request).TimeoutAfter(TimeSpan.FromSeconds(5)))
                 {
                     // Note, the AuthAgent protocol is such that it always should return 200 even in case of errors.
                     // A test never should throw here, even if it tests a failure case
