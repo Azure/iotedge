@@ -13,17 +13,16 @@ use futures_util::{
 use tokio::sync::{mpsc::Sender, oneshot, oneshot::Receiver};
 use tracing::{debug, error, info};
 
-use mqtt3::PublishHandle;
-
 use crate::{
     bridge::BridgeError,
-    client::{ClientShutdownHandle, MqttClient},
+    client::{ClientShutdownHandle, InFlightPublishHandle, MqttClient},
     messages::MessageHandler,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
     settings::{ConnectionSettings, Credentials, TopicRule},
 };
 
 const BATCH_SIZE: usize = 10;
+const MAX_IN_FLIGHT: usize = 16;
 
 #[derive(Debug, PartialEq)]
 pub enum PumpMessage {
@@ -159,6 +158,7 @@ impl PumpPair {
                 connection_settings.clean_session(),
                 MessageHandler::new(ingress_store.clone(), topic_filters),
                 credentials,
+                MAX_IN_FLIGHT,
             ),
             PumpType::Remote => MqttClient::tls(
                 address,
@@ -166,6 +166,7 @@ impl PumpPair {
                 connection_settings.clean_session(),
                 MessageHandler::new(ingress_store.clone(), topic_filters),
                 credentials,
+                MAX_IN_FLIGHT,
             ),
         };
 
@@ -196,7 +197,7 @@ impl PumpPair {
 pub struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
     client_shutdown: ClientShutdownHandle,
-    publish_handle: PublishHandle,
+    publish_handle: InFlightPublishHandle,
     subscriptions: Vec<String>,
     loader: MessageLoader<WakingMemoryStore>,
     persist: PublicationStore<WakingMemoryStore>,
@@ -253,7 +254,7 @@ impl Pump {
             info!("starting egress publication processing");
 
             loop {
-                let mut publish_handle = publish_handle.clone();
+                let publish_handle = publish_handle.clone();
                 match select(receive_fut.next(), loader.try_next()).await {
                     Either::Left((shutdown, _)) => {
                         info!("received shutdown signal for egress messages",);
@@ -267,10 +268,8 @@ impl Pump {
                         debug!("extracted publication from store");
 
                         if let Ok(Some((key, publication))) = loaded_element {
-                            debug!("publishing {:?}", key);
-                            if let Err(e) = publish_handle.publish(publication).await {
-                                error!(err = %e, "failed publish");
-                            }
+                            debug!("publishing publication {:?}", key);
+                            publish_handle.publish(publication).await;
 
                             if let Err(e) = persist.remove(key) {
                                 error!(err = %e, "failed removing publication from store");

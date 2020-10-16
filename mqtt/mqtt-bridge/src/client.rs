@@ -1,6 +1,7 @@
 #![allow(dead_code)] // TODO remove when ready
 use std::{
-    collections::HashSet, fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration,
+    collections::HashSet, fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, sync::Arc,
+    time::Duration,
 };
 
 use async_trait::async_trait;
@@ -185,26 +186,26 @@ impl BridgeIoSource {
     }
 }
 
-struct InFlightPublishHandle {
+#[derive(Debug, Clone)]
+pub struct InFlightPublishHandle {
     publish_handle: PublishHandle,
-    in_flight: Semaphore,
+    permits: Arc<Semaphore>,
 }
 
 impl InFlightPublishHandle {
-    fn new(publish_handle: PublishHandle, max_in_flight: usize) -> Self {
-        let in_flight = Semaphore::new(max_in_flight);
-
+    fn new(publish_handle: PublishHandle, permits: Arc<Semaphore>) -> Self {
         Self {
             publish_handle,
-            in_flight: in_flight,
+            permits,
         }
     }
 
-    pub async fn publish(&'static mut self, publication: Publication) {
-        let permit = self.in_flight.acquire().await;
-
+    pub async fn publish(&self, publication: Publication) {
         let mut publish_handle = self.publish_handle.clone();
+        let permits = self.permits.clone();
+
         let fut = async move {
+            let permit = permits.acquire().await;
             if let Err(e) = publish_handle.publish(publication).await {
                 error!(message = "failed to publish", err = %e);
             }
@@ -226,6 +227,7 @@ where
     keep_alive: Duration,
     client: Client<BridgeIoSource>,
     event_handler: H,
+    in_flight: Arc<Semaphore>,
 }
 
 impl<H: EventHandler> MqttClient<H> {
@@ -235,6 +237,7 @@ impl<H: EventHandler> MqttClient<H> {
         clean_session: bool,
         event_handler: H,
         connection_credentials: &Credentials,
+        max_in_flight: usize,
     ) -> Self {
         let token_source = Self::token_source(&connection_credentials);
         let tcp_connection = TcpConnection::new(address.to_owned(), token_source, None);
@@ -246,6 +249,7 @@ impl<H: EventHandler> MqttClient<H> {
             event_handler,
             connection_credentials,
             io_source,
+            max_in_flight,
         )
     }
 
@@ -255,6 +259,7 @@ impl<H: EventHandler> MqttClient<H> {
         clean_session: bool,
         event_handler: H,
         connection_credentials: &Credentials,
+        max_in_flight: usize,
     ) -> Self {
         let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
 
@@ -268,6 +273,7 @@ impl<H: EventHandler> MqttClient<H> {
             event_handler,
             connection_credentials,
             io_source,
+            max_in_flight,
         )
     }
 
@@ -277,6 +283,7 @@ impl<H: EventHandler> MqttClient<H> {
         event_handler: H,
         connection_credentials: &Credentials,
         io_source: BridgeIoSource,
+        max_in_flight: usize,
     ) -> Self {
         let (client_id, username) = match connection_credentials {
             Credentials::Provider(provider_settings) => (
@@ -312,6 +319,8 @@ impl<H: EventHandler> MqttClient<H> {
             keep_alive,
         );
 
+        let in_flight = Arc::new(Semaphore::new(max_in_flight));
+
         Self {
             client_id,
             username,
@@ -319,6 +328,7 @@ impl<H: EventHandler> MqttClient<H> {
             keep_alive,
             client,
             event_handler,
+            in_flight,
         }
     }
 
@@ -339,12 +349,12 @@ impl<H: EventHandler> MqttClient<H> {
             })
     }
 
-    pub fn publish_handle(&self) -> Result<PublishHandle, ClientError> {
+    pub fn publish_handle(&self) -> Result<InFlightPublishHandle, ClientError> {
         let publish_handle = self
             .client
             .publish_handle()
             .map_err(ClientError::PublishHandle)?;
-        let publish_handle = InFlightPublishHandle::new(publish_handle, MAX_IN_FLIGHT)
+        let publish_handle = InFlightPublishHandle::new(publish_handle, self.in_flight.clone());
 
         Ok(publish_handle)
     }
