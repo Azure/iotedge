@@ -49,10 +49,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 ClientInfo clientInfo = this.usernameParser.Parse(username);
                 clientInfo.ModelId.ForEach(async m => await this.metadataStore.SetModelId(clientInfo.DeviceId, m));
                 IClientCredentials deviceCredentials = null;
+                Option<IClientCredentials> actorCredentials = Option.None<IClientCredentials>();
 
                 if (!string.IsNullOrEmpty(password))
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(clientInfo.DeviceId, clientInfo.ModuleId, clientInfo.DeviceClientType, password, false, clientInfo.ModelId, Option.None<string>());
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(clientInfo.DeviceId, clientInfo.ModuleId, clientInfo.DeviceClientType, password, false, clientInfo.ModelId, clientInfo.AuthChain);
+
+                    // For OnBehalfOf connections, we'll get the token for the actor EdgeHub instead
+                    // of the actual leaf/module, so we need to construct the credentials accordingly
+                    Option<string> actorDeviceIdOption = AuthChainHelpers.GetActorDeviceId(clientInfo.AuthChain);
+                    actorCredentials = actorDeviceIdOption.Map(actorDeviceId =>
+                        this.clientCredentialsFactory.GetWithSasToken(
+                            actorDeviceId,
+                            Microsoft.Azure.Devices.Edge.Hub.Core.Constants.EdgeHubModuleId,
+                            clientInfo.DeviceClientType,
+                            password,
+                            false,
+                            clientInfo.ModelId,
+                            clientInfo.AuthChain));
                 }
                 else if (this.remoteCertificate.HasValue)
                 {
@@ -83,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 if (deviceCredentials == null
                     || !clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)
-                    || !await this.authenticator.AuthenticateAsync(deviceCredentials))
+                    || !await this.authenticator.AuthenticateAsync(actorCredentials.GetOrElse(deviceCredentials)))
                 {
                     Events.Error(clientId, username);
                     return UnauthenticatedDeviceIdentity.Instance;
