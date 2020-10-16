@@ -91,10 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 foreach (var subscription in subscriptionList)
                 {
                     var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
-                    if (match.Success)
+                    if (subscriptionMatch.Success)
                     {
-                        var id1 = match.Groups["id1"];
-                        var id2 = match.Groups["id2"];
+                        var id1 = subscriptionMatch.Groups["id1"];
+                        var id2 = subscriptionMatch.Groups["id2"];
 
                         var identity = id2.Success
                                             ? this.identityProvider.Create(id1.Value, id2.Value)
