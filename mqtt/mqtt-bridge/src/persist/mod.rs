@@ -1,4 +1,3 @@
-use bincode::ErrorKind;
 use serde::{Deserialize, Serialize};
 
 mod loader;
@@ -12,20 +11,11 @@ pub use waking_state::{memory::WakingMemoryStore, StreamWakeableState};
 /// Ordered by offset
 #[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Deserialize, Serialize, Copy)]
 pub struct Key {
-    offset: u32,
+    offset: u64,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum PersistError {
-    #[error("Failed to deserialize database entry")]
-    Deserialization(#[source] Box<ErrorKind>),
-
-    #[error("Failed to get rocksdb column family")]
-    GetColumnFamily,
-
     #[error("Attempted to remove entry which does not exist")]
     RemovalForMissing,
-
-    #[error("Failed to serialize on database insert")]
-    Serialization(#[source] Box<ErrorKind>),
 }
