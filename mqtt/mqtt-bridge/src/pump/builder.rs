@@ -9,7 +9,7 @@ use crate::{
     messages::{MessageHandler, TopicMapper},
     persist::{PublicationStore, WakingMemoryStore},
     settings::TopicRule,
-    upstream::{LocalRpcHandler, LocalUpstreamHandler},
+    upstream::{LocalRpcHandler, LocalUpstreamHandler, RemoteRpcHandler, RemoteUpstreamHandler},
 };
 
 use super::{Pump, PumpHandle};
@@ -17,7 +17,7 @@ use super::{Pump, PumpHandle};
 pub type PumpsResult = Result<
     (
         Pump<LocalUpstreamHandler<WakingMemoryStore>>,
-        Pump<MessageHandler<WakingMemoryStore>>,
+        Pump<RemoteUpstreamHandler<WakingMemoryStore>>,
     ),
     BridgeError,
 >;
@@ -92,7 +92,9 @@ impl Builder {
 
         let (subscriptions, topic_filters) = make_topics(&self.remote.rules)?;
 
-        let handler = MessageHandler::new(egress_store, topic_filters);
+        let rpc = RemoteRpcHandler;
+        let messages = MessageHandler::new(egress_store, topic_filters);
+        let handler = RemoteUpstreamHandler::new(messages, rpc);
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tls(config, handler);

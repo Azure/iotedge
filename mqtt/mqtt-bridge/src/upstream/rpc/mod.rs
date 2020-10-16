@@ -14,6 +14,7 @@ mod local;
 // mod remote; TODO uncomment when it is ready
 
 pub use local::LocalRpcHandler;
+pub use remote::RemoteRpcHandler;
 
 use std::sync::Arc;
 
@@ -83,4 +84,25 @@ pub enum RpcCommand {
         #[serde(with = "serde_bytes")]
         payload: Vec<u8>,
     },
+}
+
+mod remote {
+    use async_trait::async_trait;
+
+    use mqtt3::Event;
+
+    use crate::client::{EventHandler, Handled};
+
+    use super::RpcError;
+
+    pub struct RemoteRpcHandler;
+
+    #[async_trait]
+    impl EventHandler for RemoteRpcHandler {
+        type Error = RpcError;
+
+        async fn handle(&mut self, _: &Event) -> Result<Handled, Self::Error> {
+            Ok(Handled::Skipped)
+        }
+    }
 }

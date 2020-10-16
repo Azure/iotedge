@@ -14,8 +14,7 @@ use crate::{
     persist::{PersistError, PublicationStore, WakingMemoryStore},
     pump::{Builder, Pump, PumpMessage},
     settings::{ConnectionSettings, Credentials},
-    upstream::LocalUpstreamHandler,
-    upstream::RpcError,
+    upstream::{LocalUpstreamHandler, RemoteUpstreamHandler, RpcError},
 };
 
 #[derive(Debug)]
@@ -41,7 +40,7 @@ impl BridgeShutdownHandle {
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 pub struct Bridge {
     local_pump: Pump<LocalUpstreamHandler<WakingMemoryStore>>,
-    remote_pump: Pump<MessageHandler<WakingMemoryStore>>,
+    remote_pump: Pump<RemoteUpstreamHandler<WakingMemoryStore>>,
     connection_settings: ConnectionSettings,
 }
 
