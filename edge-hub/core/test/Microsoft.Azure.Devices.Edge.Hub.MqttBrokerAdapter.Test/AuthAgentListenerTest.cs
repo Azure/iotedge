@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
     using Xunit;
 
-    [Integration]
+    // [Integration]
     public class AuthAgentHeadTest
     {
         const string HOST = "localhost";
