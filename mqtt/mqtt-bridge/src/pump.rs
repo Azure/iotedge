@@ -26,8 +26,8 @@ use mqtt3::PublishHandle;
 use crate::{
     bridge::BridgeError,
     client::{ClientShutdownHandle, EventHandler, MqttClient},
-    messages::LocalUpstreamHandler,
-    messages::MessageHandler,
+    connectivity::ConnectivityState,
+    messages::{LocalUpstreamHandler, MessageHandler},
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
     rpc::{CommandId, LocalRpcHandler, RpcCommand},
     settings::{ConnectionSettings, Credentials, TopicRule},
@@ -65,28 +65,6 @@ pub fn channel() -> (PumpHandle, mpsc::Receiver<PumpMessage>) {
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub struct PumpError(SendError<PumpMessage>);
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ConnectivityState {
-    Connected,
-    Disconnected,
-}
-
-impl Display for ConnectivityState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            Self::Connected => write!(f, "Connected"),
-            Self::Disconnected => write!(f, "Disconnected"),
-        }
-    }
-}
-
-/// Specifies if a pump is local or remote
-#[derive(Debug, Clone)]
-pub enum PumpType {
-    Local,
-    Remote,
-}
 
 pub fn local_pump(
     connection_settings: &ConnectionSettings,

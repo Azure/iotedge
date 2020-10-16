@@ -1,5 +1,7 @@
 #![allow(dead_code)] // TODO remove when ready
 
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
 use async_trait::async_trait;
 use tracing::{debug, info};
 
@@ -7,8 +9,23 @@ use mqtt3::Event;
 
 use crate::{
     client::{EventHandler, Handled},
-    pump::{ConnectivityState, PumpError, PumpHandle, PumpMessage},
+    pump::{PumpError, PumpHandle, PumpMessage},
 };
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ConnectivityState {
+    Connected,
+    Disconnected,
+}
+
+impl Display for ConnectivityState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Self::Connected => write!(f, "Connected"),
+            Self::Disconnected => write!(f, "Disconnected"),
+        }
+    }
+}
 
 /// Handles connection and disconnection events and sends a notification when status changes
 pub struct ConnectivityHandler {
@@ -85,7 +102,7 @@ mod tests {
 
     use crate::{
         client::Handled,
-        pump::{self, ConnectivityState, PumpMessage},
+        pump::{self, PumpMessage},
     };
 
     use super::*;
@@ -113,7 +130,7 @@ mod tests {
     async fn sends_disconnected_state() {
         let (handle, mut connectivity_receiver) = pump::channel();
 
-        let ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityHandler::new(handle);
 
         let res_connected = ch
             .handle(&Event::NewConnection {
@@ -145,7 +162,7 @@ mod tests {
     async fn not_sends_connected_state_when_already_connected() {
         let (handle, mut connectivity_receiver) = pump::channel();
 
-        let ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityHandler::new(handle);
 
         let res_connected1 = ch
             .handle(&Event::NewConnection {
@@ -173,7 +190,7 @@ mod tests {
     async fn not_sends_disconnected_state_when_already_disconnected() {
         let (handle, mut connectivity_receiver) = pump::channel();
 
-        let ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityHandler::new(handle);
 
         let res_disconnected = ch
             .handle(&Event::Disconnected(
@@ -190,9 +207,9 @@ mod tests {
 
     #[tokio::test]
     async fn not_handles_other_events() {
-        let (handle, mut connectivity_receiver) = pump::channel();
+        let (handle, _) = pump::channel();
 
-        let ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityHandler::new(handle);
 
         let event =
             Event::SubscriptionUpdates(vec![SubscriptionUpdateEvent::Subscribe(SubscribeTo {
@@ -207,7 +224,7 @@ mod tests {
 
     #[tokio::test]
     async fn default_disconnected_state() {
-        let (handle, mut connectivity_receiver) = pump::channel();
+        let (handle, _) = pump::channel();
 
         let ch = ConnectivityHandler::new(handle);
 
