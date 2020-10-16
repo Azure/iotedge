@@ -263,7 +263,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return Option.None<IDeviceListener>();
             }
 
-            return Option.Some(this.AddConnectionAsync(identity, false, connectionProvider) as IDeviceListener);
+            var deviceListener = await this.AddConnectionAsync(identity, false, connectionProvider);
+            return Option.Some(deviceListener);
         }
 
         async Task<Option<IDeviceProxy>> CreateDeviceProxyAsync(IIdentity identity)
