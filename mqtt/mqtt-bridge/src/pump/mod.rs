@@ -23,8 +23,8 @@ use crate::{
     client::{ClientShutdownHandle, EventHandler, MqttClient},
     connectivity::ConnectivityState,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
-    rpc::{CommandId, RpcCommand},
     settings::ConnectionSettings,
+    upstream::{CommandId, RpcCommand},
 };
 
 #[derive(Debug, PartialEq)]

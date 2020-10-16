@@ -6,10 +6,10 @@ use tokio::sync::mpsc;
 use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig},
-    messages::{LocalUpstreamHandler, MessageHandler, TopicMapper},
+    messages::{MessageHandler, TopicMapper},
     persist::{PublicationStore, WakingMemoryStore},
-    rpc::LocalRpcHandler,
     settings::TopicRule,
+    upstream::{LocalRpcHandler, LocalUpstreamHandler},
 };
 
 use super::{Pump, PumpHandle};

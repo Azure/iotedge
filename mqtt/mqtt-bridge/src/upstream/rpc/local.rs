@@ -9,8 +9,10 @@ use serde::{Deserialize, Serialize};
 use crate::{
     client::{EventHandler, Handled},
     pump::{PumpHandle, PumpMessage},
-    rpc::{CommandId, RpcCommand, RpcError},
+    upstream::{CommandId, RpcCommand},
 };
+
+use super::RpcError;
 
 /// An RPC handlers that reposible to connect to part of the bridge which
 /// connects to local broker. It receives RPC commands on a special topic,

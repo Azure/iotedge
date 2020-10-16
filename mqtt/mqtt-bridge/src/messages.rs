@@ -9,7 +9,6 @@ use crate::{
     bridge::BridgeError,
     client::{EventHandler, Handled},
     persist::{PublicationStore, StreamWakeableState},
-    rpc::LocalRpcHandler,
     settings::TopicRule,
 };
 
@@ -102,35 +101,6 @@ where
         }
 
         Ok(Handled::Skipped)
-    }
-}
-
-pub struct LocalUpstreamHandler<S> {
-    messages: MessageHandler<S>,
-    rpc: LocalRpcHandler,
-}
-
-impl<S> LocalUpstreamHandler<S> {
-    pub fn new(messages: MessageHandler<S>, rpc: LocalRpcHandler) -> Self {
-        Self { messages, rpc }
-    }
-}
-
-#[async_trait]
-impl<S> EventHandler for LocalUpstreamHandler<S>
-where
-    S: StreamWakeableState + Send,
-{
-    type Error = BridgeError;
-
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        // try to handle as RPC command first
-        if self.rpc.handle(&event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
-        }
-
-        // handle as an event for regular message handler
-        self.messages.handle(&event).await
     }
 }
 

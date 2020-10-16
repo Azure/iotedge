@@ -10,11 +10,12 @@ use tracing_futures::Instrument;
 
 use crate::{
     client::{ClientError, MqttClientConfig},
-    messages::{LocalUpstreamHandler, MessageHandler},
+    messages::MessageHandler,
     persist::{PersistError, PublicationStore, WakingMemoryStore},
     pump::{Builder, Pump, PumpMessage},
-    rpc::RpcError,
     settings::{ConnectionSettings, Credentials},
+    upstream::LocalUpstreamHandler,
+    upstream::RpcError,
 };
 
 #[derive(Debug)]

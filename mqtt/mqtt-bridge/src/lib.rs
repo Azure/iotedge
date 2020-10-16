@@ -17,9 +17,9 @@ mod connectivity;
 pub mod controller;
 mod messages;
 mod persist;
-pub mod pump; // todo consider parent-child relationshi
-pub mod rpc;
+pub mod pump;
 pub mod settings;
 mod token_source;
+pub mod upstream;
 
 pub use crate::controller::BridgeController;
