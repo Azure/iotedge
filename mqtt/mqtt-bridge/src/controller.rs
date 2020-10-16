@@ -1,17 +1,14 @@
-use std::collections::HashMap;
-
 use futures_util::future::{self, join_all};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::mpsc::{self, UnboundedSender};
-use tracing::{error, info};
+use tracing::{error, info, info_span};
+use tracing_futures::Instrument;
 
-use crate::bridge::{Bridge, BridgeError};
-use crate::settings::Settings;
+use crate::{bridge::Bridge, settings::BridgeSettings};
 
 /// Controller that handles the settings and monitors changes, spawns new Bridges and monitors shutdown signal.
 pub struct BridgeController {
-    bridges: HashMap<String, Bridge>,
     handle: BridgeControllerHandle,
 }
 
@@ -20,48 +17,46 @@ impl BridgeController {
         let (sender, _updates) = mpsc::unbounded_channel();
         let handle = BridgeControllerHandle { sender };
 
-        Self {
-            bridges: HashMap::new(),
-            handle,
-        }
+        Self { handle }
     }
 
     pub fn handle(&self) -> BridgeControllerHandle {
         self.handle.clone()
     }
 
-    pub async fn init(
-        &mut self,
-        system_address: String,
-        device_id: &str,
-    ) -> Result<(), BridgeError> {
-        info!("initializing bridge controller...");
-        let settings = Settings::new().map_err(BridgeError::LoadingSettings)?;
-
-        if let Some(upstream) = settings.upstream() {
-            let bridge = Bridge::new(system_address, device_id.into(), upstream.clone());
-            self.bridges.insert(upstream.name().to_string(), bridge);
-        } else {
-            info!("No upstream settings detected. Not starting bridge controller.")
-        };
-        Ok(())
-    }
-
-    pub async fn run(self) {
+    pub async fn run(self, system_address: String, device_id: String, settings: BridgeSettings) {
         info!("starting bridge controller...");
 
         let mut bridge_handles = vec![];
-        for (_, bridge) in self.bridges {
-            let bridge_handle = tokio::spawn(async move { bridge.start().await });
-            bridge_handles.push(bridge_handle);
-        }
+        if let Some(upstream_settings) = settings.upstream() {
+            let upstream_settings = upstream_settings.clone();
 
-        let bridges_status = join_all(bridge_handles).await;
-        for status in bridges_status {
-            if let Err(e) = status {
-                error!(message = "error while running bridge", err = %e);
+            let upstream_bridge = async move {
+                let bridge =
+                    Bridge::new(system_address, device_id, upstream_settings.clone()).await;
+
+                match bridge {
+                    Ok(bridge) => {
+                        if let Err(e) = bridge.run().await {
+                            error!(err = %e, "failed running {} bridge", upstream_settings.name());
+                        }
+                    }
+                    Err(e) => {
+                        error!(err = %e, "failed to create {} bridge", upstream_settings.name());
+                    }
+                };
             }
-        }
+            .instrument(info_span!("bridge", name = "upstream"));
+
+            bridge_handles.push(upstream_bridge);
+        } else {
+            info!("No upstream settings detected. Not starting bridge controller.")
+        };
+
+        // join_all is fine because the bridge shouldn't fail and exit
+        // if a pump in the bridge fails, it should internally recreate it
+        // this means that if a bridge stops, then shutdown was triggered
+        join_all(bridge_handles).await;
 
         // TODO: bridge controller will eventually listen for updates via the twin
         //       until this is complete we need to wait here indefinitely

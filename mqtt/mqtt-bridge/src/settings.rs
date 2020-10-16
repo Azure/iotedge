@@ -9,7 +9,7 @@ pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Settings {
+pub struct BridgeSettings {
     upstream: Option<ConnectionSettings>,
 
     remotes: Vec<ConnectionSettings>,
@@ -17,7 +17,7 @@ pub struct Settings {
     messages: MessagesSettings,
 }
 
-impl Settings {
+impl BridgeSettings {
     pub fn new() -> Result<Self, ConfigError> {
         let mut config = Config::new();
 
@@ -53,7 +53,7 @@ impl Settings {
     }
 }
 
-impl<'de> serde::Deserialize<'de> for Settings {
+impl<'de> serde::Deserialize<'de> for BridgeSettings {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -97,7 +97,7 @@ impl<'de> serde::Deserialize<'de> for Settings {
                 keep_alive: upstream.keep_alive,
             });
 
-        Ok(Settings {
+        Ok(BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
             messages,
@@ -114,7 +114,7 @@ pub struct ConnectionSettings {
     #[serde(flatten)]
     credentials: Credentials,
 
-    subscriptions: Vec<Topic>,
+    subscriptions: Vec<TopicRule>,
 
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
@@ -135,7 +135,7 @@ impl ConnectionSettings {
         &self.credentials
     }
 
-    pub fn subscriptions(&self) -> &Vec<Topic> {
+    pub fn subscriptions(&self) -> &Vec<TopicRule> {
         &self.subscriptions
     }
 
@@ -234,7 +234,7 @@ impl CredentialProviderSettings {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct Topic {
+pub struct TopicRule {
     #[serde(flatten)]
     direction: Direction,
 
@@ -247,7 +247,7 @@ pub struct Topic {
     in_prefix: Option<String>,
 }
 
-impl Topic {
+impl TopicRule {
     pub fn direction(&self) -> &Direction {
         &self.direction
     }
@@ -284,7 +284,7 @@ struct UpstreamSettings {
 
     clean_session: bool,
 
-    subscriptions: Vec<Topic>,
+    subscriptions: Vec<TopicRule>,
 }
 
 #[cfg(test)]
@@ -292,20 +292,20 @@ mod tests {
     use config::ConfigError;
     use serial_test::serial;
 
+    use super::BridgeSettings;
     use super::Credentials;
-    use super::Settings;
     use mqtt_broker_tests_util::env;
 
     #[test]
     #[serial(env_settings)]
     fn new_overrides_settings_from_env() {
-        it_overrides_settings_from_env(Settings::new);
+        it_overrides_settings_from_env(BridgeSettings::new);
     }
 
     #[test]
     #[serial(env_settings)]
     fn new_no_upstream_settings() {
-        let settings = Settings::new().unwrap();
+        let settings = BridgeSettings::new().unwrap();
 
         assert_eq!(settings.remotes().len(), 0);
         assert_eq!(settings.upstream(), None);
@@ -314,7 +314,7 @@ mod tests {
     #[test]
     #[serial(env_settings)]
     fn from_file_reads_nested_bridge_settings() {
-        let settings = Settings::from_file("tests/config.json").unwrap();
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let upstream = settings.upstream().unwrap();
 
         assert_eq!(upstream.name(), "upstream");
@@ -335,7 +335,7 @@ mod tests {
     #[test]
     #[serial(env_settings)]
     fn from_file_reads_remotes_settings() {
-        let settings = Settings::from_file("tests/config.json").unwrap();
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let len = settings.remotes().len();
 
         assert_eq!(len, 1);
@@ -358,7 +358,7 @@ mod tests {
     #[test]
     #[serial(env_settings)]
     fn from_default_sets_keepalive_settings() {
-        let settings = Settings::from_file("tests/config.json").unwrap();
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
 
         assert_eq!(settings.upstream().unwrap().keep_alive().as_secs(), 60);
     }
@@ -366,7 +366,7 @@ mod tests {
     #[test]
     #[serial(env_settings)]
     fn from_file_overrides_settings_from_env() {
-        it_overrides_settings_from_env(|| Settings::from_file("tests/config.json"));
+        it_overrides_settings_from_env(|| BridgeSettings::from_file("tests/config.json"));
     }
 
     #[test]
@@ -379,14 +379,14 @@ mod tests {
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
 
-        let settings = Settings::new().unwrap();
+        let settings = BridgeSettings::new().unwrap();
 
         assert_eq!(settings.upstream(), None);
     }
 
     fn it_overrides_settings_from_env<F>(make_settings: F)
     where
-        F: FnOnce() -> Result<Settings, ConfigError>,
+        F: FnOnce() -> Result<BridgeSettings, ConfigError>,
     {
         let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "upstream");
         let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");

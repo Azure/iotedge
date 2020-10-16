@@ -15,9 +15,11 @@ mod bridge;
 pub mod client;
 mod connectivity;
 pub mod controller;
+mod messages;
 mod persist;
+mod pump;
 mod rpc;
-mod settings;
+pub mod settings;
 mod token_source;
 
 pub use crate::controller::{

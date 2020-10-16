@@ -1118,6 +1118,7 @@ dependencies = [
  "tokio-openssl",
  "tokio-tls",
  "tracing",
+ "tracing-futures",
  "url",
 ]
 
