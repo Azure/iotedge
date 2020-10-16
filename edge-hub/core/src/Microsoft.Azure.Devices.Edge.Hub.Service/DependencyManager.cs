@@ -37,6 +37,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly VersionInfo versionInfo;
         readonly SslProtocols sslProtocols;
 
+        struct StoreAndForward
+        {
+            public bool IsEnabled { get; }
+            public bool UsePersistentStorage { get; }
+            public StoreAndForwardConfiguration Config { get; }
+            public string StoragePath { get; }
+            public bool UseBackupAndRestore { get; }
+            public Option<string> StorageBackupPath { get; }
+            public Option<ulong> StorageMaxTotalWalSize { get; }
+            public Option<int> StorageMaxOpenFiles { get; }
+            public Option<StorageLogLevel> StorageLogLevel { get; }
+
+            public StoreAndForward(
+                bool isEnabled,
+                bool usePersistentStorage,
+                StoreAndForwardConfiguration config,
+                string storagePath,
+                bool useBackupAndRestore,
+                Option<string> storageBackupPath,
+                Option<ulong> storageMaxTotalWalSize,
+                Option<int> storageMaxOpenFiles,
+                Option<StorageLogLevel> storageLogLevel)
+            {
+                this.IsEnabled = isEnabled;
+                this.UsePersistentStorage = usePersistentStorage;
+                this.Config = Preconditions.CheckNotNull(config, nameof(config));
+                this.StoragePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+                this.UseBackupAndRestore = useBackupAndRestore;
+                this.StorageBackupPath = storageBackupPath;
+                this.StorageMaxTotalWalSize = storageMaxTotalWalSize;
+                this.StorageMaxOpenFiles = storageMaxOpenFiles;
+                this.StorageLogLevel = storageLogLevel;
+            }
+        }
+
         public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle, SslProtocols sslProtocols)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
@@ -82,24 +117,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
-            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward =
-                this.GetStoreAndForwardConfiguration();
+            StoreAndForward storeAndForward = this.GetStoreAndForwardConfiguration();
 
-            IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
-            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
+            IConfiguration experimentalFeaturesConfig = this.configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
 
             MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
-            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
+            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, experimentalFeatures);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
-            this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
+            this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance, experimentalFeatures);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule(this.iotHubHostname));
 
-            var authConfig = this.configuration.GetSection("authAgentSettings");
-            builder.RegisterModule(new AuthModule(authConfig));
-            var mqttBrokerConfig = this.configuration.GetSection("mqttBrokerSettings");
-            builder.RegisterModule(new MqttBrokerModule(mqttBrokerConfig));
+            if (experimentalFeatures.EnableMqttBroker)
+            {
+                var authConfig = this.configuration.GetSection("authAgentSettings");
+                builder.RegisterModule(new AuthModule(authConfig));
+
+                var mqttBrokerConfig = this.configuration.GetSection("mqttBrokerSettings");
+                builder.RegisterModule(new MqttBrokerModule(mqttBrokerConfig));
+            }
         }
 
         internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
@@ -114,7 +152,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled, this.sslProtocols));
         }
 
-        void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward, bool optimizeForPerformance)
+        void RegisterMqttModule(
+            ContainerBuilder builder,
+            StoreAndForward storeAndForward,
+            bool optimizeForPerformance,
+            ExperimentalFeatures experimentalFeatures)
         {
             var topics = new MessageAddressConversionConfiguration(
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
@@ -123,12 +165,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
 
             IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
+
+            // MQTT broker overrides the legacy MQTT protocol head
+            if (mqttSettingsConfiguration.GetValue("enabled", true) && !experimentalFeatures.EnableMqttBroker)
+            {
+                builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.IsEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
+            }
         }
 
         void RegisterRoutingModule(
             ContainerBuilder builder,
-            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward,
+            StoreAndForward storeAndForward,
             ExperimentalFeatures experimentalFeatures)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
@@ -162,7 +209,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, false);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -172,8 +218,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.edgeModuleId,
                     this.connectionString,
                     routes,
-                    storeAndForward.isEnabled,
-                    storeAndForward.config,
+                    storeAndForward.IsEnabled,
+                    storeAndForward.Config,
                     connectionPoolSize,
                     useTwinConfig,
                     this.versionInfo,
@@ -195,20 +241,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
-                    nestedEdgeEnabled));
+                    experimentalFeatures.EnableNestedEdge));
         }
 
         void RegisterCommonModule(
             ContainerBuilder builder,
             bool optimizeForPerformance,
-            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward,
-            MetricsConfig metricsConfig)
+            StoreAndForward storeAndForward,
+            MetricsConfig metricsConfig,
+            ExperimentalFeatures experimentalFeatures)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, false);
             bool hasParentEdge = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
@@ -249,8 +295,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     authenticationMode,
                     this.connectionString,
                     optimizeForPerformance,
-                    storeAndForward.usePersistentStorage,
-                    storeAndForward.storagePath,
+                    storeAndForward.UsePersistentStorage,
+                    storeAndForward.StoragePath,
                     workloadUri,
                     workloadApiVersion,
                     scopeCacheRefreshRate,
@@ -259,12 +305,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.trustBundle,
                     proxy,
                     metricsConfig,
-                    storeAndForward.useBackupAndRestore,
-                    storeAndForward.storageBackupPath,
-                    storeAndForward.storageMaxTotalWalSize,
-                    storeAndForward.storageMaxOpenFiles,
-                    storeAndForward.storageLogLevel,
-                    nestedEdgeEnabled));
+                    storeAndForward.UseBackupAndRestore,
+                    storeAndForward.StorageBackupPath,
+                    storeAndForward.StorageMaxTotalWalSize,
+                    storeAndForward.StorageMaxOpenFiles,
+                    storeAndForward.StorageLogLevel,
+                    experimentalFeatures.EnableNestedEdge));
         }
 
         static string GetProductInfo()
@@ -274,7 +320,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return productInfo;
         }
 
-        (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) GetStoreAndForwardConfiguration()
+        StoreAndForward GetStoreAndForwardConfiguration()
         {
             int defaultTtl = -1;
             bool usePersistentStorage = this.configuration.GetValue<bool>("usePersistentStorage");
@@ -301,7 +347,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath, storageMaxTotalWalSize, storageMaxOpenFiles, storageLogLevel);
+            return new StoreAndForward(storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath, storageMaxTotalWalSize, storageMaxOpenFiles, storageLogLevel);
         }
 
         // TODO: Move this function to a common location that can be shared between EdgeHub and EdgeAgent
