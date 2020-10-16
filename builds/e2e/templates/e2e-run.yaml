@@ -25,7 +25,8 @@ steps:
   
 - task: PublishTestResults@2
   displayName: Publish test results
-  enabled: not($(Agent.ProxyUrl))
+  ${{ if variables['Agent.ProxyUrl'] }}:
+    enabled: false
   inputs:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
