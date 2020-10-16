@@ -46,9 +46,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
                     await leaf.InvokeDirectMethodAsync(token);
                 },
-                async () =>
+                () =>
                 {
-                    await leaf.DeleteIdentityAsync(token);
+                    // await leaf.DeleteIdentityAsync(token);
                 });
         }
     }
