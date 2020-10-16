@@ -109,13 +109,13 @@ impl Bridge {
         }
     }
 
-    fn format_key_value(topic: &Topic) -> (String, Topic) {
-        let key = if let Some(local) = topic.in_prefix() {
-            format!("{}/{}", local, topic.topic().to_string())
+    fn format_key_value(subscription: &Topic) -> (String, Topic) {
+        let key = if let Some(local) = subscription.in_prefix() {
+            format!("{}/{}", local, subscription.topic().to_string())
         } else {
-            topic.topic().into()
+            subscription.topic().into()
         };
-        (key, topic.clone())
+        (key, subscription.clone())
     }
 
     pub async fn start(&self) -> Result<(), BridgeError> {
@@ -217,14 +217,14 @@ struct TopicMapper {
 impl TryFrom<Topic> for TopicMapper {
     type Error = BridgeError;
 
-    fn try_from(topic: Topic) -> Result<Self, BridgeError> {
-        let topic_filter = topic
+    fn try_from(subscription: Topic) -> Result<Self, BridgeError> {
+        let topic_filter = subscription
             .topic()
             .parse()
             .map_err(BridgeError::TopicFilterParse)?;
 
         Ok(Self {
-            topic_settings: topic,
+            topic_settings: subscription,
             topic_filter,
         })
     }
