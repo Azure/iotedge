@@ -12,7 +12,7 @@ use crate::{
     client::{ClientError, MqttClientConfig},
     messages::{LocalUpstreamHandler, MessageHandler},
     persist::{PersistError, PublicationStore, WakingMemoryStore},
-    pump::{self, Builder, Pump, PumpMessage},
+    pump::{Builder, Pump, PumpMessage},
     rpc::RpcError,
     settings::{ConnectionSettings, Credentials},
 };
@@ -80,6 +80,7 @@ impl Bridge {
             .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
             .build()?;
 
+        // TODO move susbscriptions into run method
         local_pump
             .subscribe()
             .instrument(info_span!("pump", name = "local"))
