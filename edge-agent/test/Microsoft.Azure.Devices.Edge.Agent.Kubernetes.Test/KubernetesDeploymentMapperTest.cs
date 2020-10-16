@@ -802,6 +802,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var env = new List<string>
             {
                 "a=b",
+                "ALL_EQUALS=====",
                 "HAS_SPACES=this variable has spaces",
                 "B=b=c",
                 "BASE64_TEXT=YmFzZTY0Cg==",
@@ -822,6 +823,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var container = deployment.Spec.Template.Spec.Containers.Single(c => c.Name == "module1");
             Assert.Equal("b", container.Env.Single(e => e.Name == "a").Value);
+            Assert.Equal("====", container.Env.Single(e => e.Name == "ALL_EQUALS").Value);
             Assert.Equal("this variable has spaces", container.Env.Single(e => e.Name == "HAS_SPACES").Value);
             Assert.Equal("b=c", container.Env.Single(e => e.Name == "B").Value);
             Assert.Equal("YmFzZTY0Cg==", container.Env.Single(e => e.Name == "BASE64_TEXT").Value);
