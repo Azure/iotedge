@@ -265,18 +265,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     await this.CloseCloudProxyAsync();
                     // try to recover, ignore if recovered
                     this.Debugging($"Recovering cloud proxy for {this.Identity}...");
-                    var cloudProxyTry = await this.TryRetrieveCloudProxyAsync();
-                    this.Debugging($"Recover cloud proxy for {this.Identity} result={cloudProxyTry.Success}.");
-
-                    if (!cloudProxyTry.Success)
+                    if (this.deviceProxy?.IsActive ?? false)
                     {
-                        // We're not sure if the credentials is valid anymore, so close DeviceProxy
-                        if (this.clientCredentials != null)
-                        {
-                            this.Debugging($"Closing device proxy for {this.Identity}...");
-                            await this.CloseDeviceProxyAsync();
-                        }
+                        // only try to recover while device is connected
+                        var cloudProxyTry = await this.TryRetrieveCloudProxyAsync();
+                        this.Debugging($"Recover cloud proxy for {this.Identity} result={cloudProxyTry.Success}.");
 
+                        if (!cloudProxyTry.Success)
+                        {
+                            // We're not sure if the credentials is valid anymore, so close DeviceProxy
+                            if (this.clientCredentials != null)
+                            {
+                                this.Debugging($"Closing device proxy for {this.Identity}...");
+                                await this.CloseDeviceProxyAsync();
+                            }
+
+                            this.onCloudConnectionStatusChanged(this, connectionStatus);
+                        }
+                    }
+                    else
+                    {
                         this.onCloudConnectionStatusChanged(this, connectionStatus);
                     }
 
