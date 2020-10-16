@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), edgeDeviceId, 10, 10);
                 var routeFactory = new EdgeRouteFactory(endpointFactory);
-                var configParser = new EdgeHubConfigParser(routeFactory);
+                var configParser = new EdgeHubConfigParser(routeFactory, new BrokerPropertiesValidator());
 
                 var dbStoreProvider = new InMemoryDbStoreProvider();
                 IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
