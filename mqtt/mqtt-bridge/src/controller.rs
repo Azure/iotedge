@@ -15,7 +15,6 @@ impl BridgeController {
         if let Some(upstream_settings) = settings.upstream() {
             let upstream_settings = upstream_settings.clone();
 
-            let span = info_span!("bridge", name = "upstream");
             let upstream_bridge = async move {
                 let bridge =
                     Bridge::new(system_address, device_id, upstream_settings.clone()).await;
@@ -31,7 +30,7 @@ impl BridgeController {
                     }
                 };
             }
-            .instrument(span);
+            .instrument(info_span!("bridge", name = "upstream"));
 
             bridge_handles.push(upstream_bridge);
         } else {

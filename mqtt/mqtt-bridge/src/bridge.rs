@@ -48,18 +48,16 @@ impl Bridge {
 
         let mut pumps = PumpPair::new(&connection_settings, &system_address, &device_id)?;
 
-        let local_pump_span = info_span!("pump", name = "local");
         pumps
             .local_pump
             .subscribe()
-            .instrument(local_pump_span)
+            .instrument(info_span!("pump", name = "local"))
             .await?;
 
-        let remote_pump_span = info_span!("pump", name = "remote");
         pumps
             .remote_pump
             .subscribe()
-            .instrument(remote_pump_span)
+            .instrument(info_span!("pump", name = "remote"))
             .await?;
 
         debug!("created bridge...{}", connection_settings.name());
@@ -79,19 +77,17 @@ impl Bridge {
             remote_shutdown,
         };
 
-        let local_pump_span = info_span!("local pump");
         let local_pump = self
             .pumps
             .local_pump
             .run(local_shutdown_listener)
-            .instrument(local_pump_span);
+            .instrument(info_span!("pump", name = "local"));
 
-        let remote_pump_span = info_span!("remote pump");
         let remote_pump = self
             .pumps
             .remote_pump
             .run(remote_shutdown_listener)
-            .instrument(remote_pump_span);
+            .instrument(info_span!("pump", name = "remote"));
         pin_mut!(local_pump, remote_pump);
 
         debug!(
