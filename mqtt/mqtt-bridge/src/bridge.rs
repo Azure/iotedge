@@ -12,6 +12,8 @@ use crate::{
     settings::ConnectionSettings,
 };
 
+const MAX_IN_FLIGHT: usize = 16;
+
 #[derive(Debug)]
 pub struct BridgeShutdownHandle {
     local_shutdown: Sender<()>,
@@ -46,7 +48,12 @@ impl Bridge {
     ) -> Result<Self, BridgeError> {
         debug!("creating bridge...{}", connection_settings.name());
 
-        let mut pumps = PumpPair::new(&connection_settings, &system_address, &device_id)?;
+        let mut pumps = PumpPair::new(
+            &connection_settings,
+            &system_address,
+            &device_id,
+            MAX_IN_FLIGHT,
+        )?;
 
         pumps
             .local_pump

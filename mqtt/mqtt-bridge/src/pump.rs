@@ -22,7 +22,6 @@ use crate::{
 };
 
 const BATCH_SIZE: usize = 10;
-const MAX_IN_FLIGHT: usize = 16;
 
 #[derive(Debug, PartialEq)]
 pub enum PumpMessage {
@@ -81,6 +80,7 @@ impl PumpPair {
         connection_settings: &ConnectionSettings,
         system_address: &str,
         device_id: &str,
+        max_in_flight: usize,
     ) -> Result<Self, BridgeError> {
         let local_client_id = format!(
             "{}/$edgeHub/$bridge/{}",
@@ -114,6 +114,7 @@ impl PumpPair {
             PumpType::Remote,
             subscriptions,
             connection_settings,
+            max_in_flight,
         )?;
 
         let local_pump = Self::prepare_pump(
@@ -125,6 +126,7 @@ impl PumpPair {
             PumpType::Local,
             forwards,
             connection_settings,
+            max_in_flight,
         )?;
 
         Ok(Self {
@@ -144,6 +146,7 @@ impl PumpPair {
         pump_type: PumpType,
         mut topic_mappings: HashMap<String, TopicRule>,
         connection_settings: &ConnectionSettings,
+        max_in_flight: usize,
     ) -> Result<Pump, BridgeError> {
         let (subscriptions, topic_rules): (Vec<_>, Vec<_>) = topic_mappings.drain().unzip();
         let topic_filters = topic_rules
@@ -158,7 +161,7 @@ impl PumpPair {
                 connection_settings.clean_session(),
                 MessageHandler::new(ingress_store.clone(), topic_filters),
                 credentials,
-                MAX_IN_FLIGHT,
+                max_in_flight,
             ),
             PumpType::Remote => MqttClient::tls(
                 address,
@@ -166,7 +169,7 @@ impl PumpPair {
                 connection_settings.clean_session(),
                 MessageHandler::new(ingress_store.clone(), topic_filters),
                 credentials,
-                MAX_IN_FLIGHT,
+                max_in_flight,
             ),
         };
 
