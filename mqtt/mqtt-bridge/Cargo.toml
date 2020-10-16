@@ -25,10 +25,11 @@ serde_bytes = "0.11"
 serde_derive = "1.0"
 serial_test = "0.4"
 thiserror = "1.0"
-tokio = { version = "0.2", features = ["sync"] }
+tokio = { version = "0.2", features = ["sync", "rt-util"] }
 tokio-tls = "0.3"
 tokio-openssl = "0.4"
 tracing = "0.1"
+tracing-futures = "0.2"
 url = "2.1"
 
 edgelet-client = { path = "../edgelet-client" }
