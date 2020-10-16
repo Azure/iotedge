@@ -11,7 +11,8 @@ use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt, sy
 use tracing::{debug, error, info, warn};
 
 use mqtt3::{
-    proto, Client, Event, IoSource, PublishHandle, ShutdownError, SubscriptionUpdateEvent,
+    proto::{self, Publication},
+    Client, Event, IoSource, PublishHandle, ShutdownError, SubscriptionUpdateEvent,
     UpdateSubscriptionError,
 };
 
@@ -184,59 +185,33 @@ impl BridgeIoSource {
     }
 }
 
-/*
-impl Bridge {
-    fn run() {
-        let store = PublicationStore::disk();
-        let loader = store.loader();
-        let inflight = tokio::sync::Semaphore::new(MAX_INFLIGHT);
-        loop {
-            let permit = inflight.acquire().await;
-
-            let fut = async {
-                let (k,p) = loader.next().await;
-                client.publish(p).await;
-                store.remove(k);
-                drop(permit)
-            }
-            tokio::spawn(fut);
-        }
-    }
-}
-impl Bridge {
-    fn run() {
-        let store = PublicationStore::disk();
-        let loader = store.loader();
-         let senders = FutureUnordered::new();
-        loop {
-            if senders.len() < MAX_INFLIGHT {
-                let fut = async {
-                    let (k,p) = loader.next().await;
-                    client.publish(p).await;
-                    store.remove(k);
-                };
-                senders.push(fut);
-            } else {
-                senders.next().await;
-            }
-        }
-    }
-}
-*/
-
 struct InFlightPublishHandle {
     publish_handle: PublishHandle,
-    semaphore: Semaphore,
+    in_flight: Semaphore,
 }
 
 impl InFlightPublishHandle {
     fn new(publish_handle: PublishHandle, max_in_flight: usize) -> Self {
-        let semaphore = Semaphore::new(max_in_flight);
+        let in_flight = Semaphore::new(max_in_flight);
 
         Self {
             publish_handle,
-            semaphore,
+            in_flight: in_flight,
         }
+    }
+
+    pub async fn publish(&'static mut self, publication: Publication) {
+        let permit = self.in_flight.acquire().await;
+
+        let mut publish_handle = self.publish_handle.clone();
+        let fut = async move {
+            if let Err(e) = publish_handle.publish(publication).await {
+                error!(message = "failed to publish", err = %e);
+            }
+            drop(permit)
+        };
+
+        tokio::spawn(fut);
     }
 }
 
@@ -369,6 +344,7 @@ impl<H: EventHandler> MqttClient<H> {
             .client
             .publish_handle()
             .map_err(ClientError::PublishHandle)?;
+        let publish_handle = InFlightPublishHandle::new(publish_handle, MAX_IN_FLIGHT)
 
         Ok(publish_handle)
     }
