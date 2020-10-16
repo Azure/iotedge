@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.False(moduleAsa.HasReceivedMessages(asaMessages));
         }
 
-        [Fact]
+        [Fact(Skip = "disabling for testing")]
         public async Task MultipleRoutesSameModuleTest()
         {
             var routes = new List<string>
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(moduleAsa.HasReceivedMessages(mlMessages2));
         }
 
-        [Fact]
+        [Fact(Skip = "disable for testing")]
         public async Task MultipleRoutesTest_WithNoModuleOutput()
         {
             var routes = new List<string>
@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.False(moduleAsa.HasReceivedMessages(asaMessages));
         }
 
-        [Fact]
+        [Fact(Skip = "disabling for testing")]
         public async Task MultipleRoutesTest_WithNoModuleOutput_WrongRoute()
         {
             var routes = new List<string>
@@ -248,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.False(moduleAsa.HasReceivedMessages(asaMessages));
         }
 
-        [Fact]
+        [Fact(Skip = "disabling for testing")]
         public async Task RoutesWithConditionsTest1()
         {
             var routes = new List<string>
@@ -291,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.False(moduleAsa.HasReceivedMessages(asaMessages));
         }
 
-        [Fact]
+        [Fact(Skip = "disabling for testing")]
         public async Task RoutesWithConditionsTest2()
         {
             var routes = new List<string>
