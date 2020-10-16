@@ -141,8 +141,11 @@ mod tests {
     use mqtt_broker::TopicFilter;
 
     use super::{MessageHandler, TopicMapper};
-    use crate::{client::EventHandler, settings::BridgeSettings};
-    use crate::{persist::PublicationStore, settings::Direction};
+    use crate::{
+        client::EventHandler,
+        persist::PublicationStore,
+        settings::{BridgeSettings, Direction},
+    };
 
     #[tokio::test]
     async fn message_handler_saves_message_with_local_and_forward_topic() {
