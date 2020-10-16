@@ -8,16 +8,16 @@ use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 use mqtt3::{
-    proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
+    proto, Client, Event, IoSource, PublishHandle, ShutdownError, SubscriptionUpdateEvent,
+    UpdateSubscriptionError,
 };
 
 use crate::{
     settings::Credentials,
-    token_source::TrustBundleSource,
-    token_source::{SasTokenSource, TokenSource},
+    token_source::{SasTokenSource, TokenSource, TrustBundleSource},
 };
 
 const DEFAULT_TOKEN_DURATION_MINS: i64 = 60;
@@ -26,15 +26,15 @@ const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(5);
 const DEFAULT_QOS: proto::QoS = proto::QoS::AtLeastOnce;
 const API_VERSION: &str = "2010-01-01";
 
-#[derive(Debug)]
-pub struct ShutdownHandle(mqtt3::ShutdownHandle);
+#[derive(Debug, Clone)]
+pub struct ClientShutdownHandle(mqtt3::ShutdownHandle);
 
-impl ShutdownHandle {
-    pub async fn shutdown(&mut self) -> Result<(), ClientConnectError> {
+impl ClientShutdownHandle {
+    pub async fn shutdown(&mut self) -> Result<(), ClientError> {
         self.0
             .shutdown()
             .await
-            .map_err(ClientConnectError::ShutdownClient)?;
+            .map_err(ClientError::ShutdownClient)?;
         Ok(())
     }
 }
@@ -300,31 +300,40 @@ impl<H: EventHandler> MqttClient<H> {
         }
     }
 
-    pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
+    pub fn shutdown_handle(&self) -> Result<ClientShutdownHandle, ShutdownError> {
         self.client
             .shutdown_handle()
             .map_or(Err(ShutdownError::ClientDoesNotExist), |shutdown_handle| {
-                Ok(ShutdownHandle(shutdown_handle))
+                Ok(ClientShutdownHandle(shutdown_handle))
             })
     }
 
-    pub async fn handle_events(mut self) -> Result<(), ClientConnectError> {
-        while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
-            error!(message = "failed to poll events", error=%e);
-            // TODO: handle the error by recreting the connection
-            None
-        }) {
-            debug!("handle event {:?}", event);
-            if let Err(e) = self.event_handler.handle(&event).await {
-                error!("error processing event {}", e);
-            }
-        }
+    pub fn publish_handle(&self) -> Result<PublishHandle, ClientError> {
+        let publish_handle = self
+            .client
+            .publish_handle()
+            .map_err(ClientError::PublishHandle)?;
 
-        Ok(())
+        Ok(publish_handle)
     }
 
-    pub async fn subscribe(&mut self, topics: Vec<String>) -> Result<(), ClientConnectError> {
-        debug!("subscribing to topics");
+    pub async fn handle_events(&mut self) {
+        debug!("polling bridge client");
+
+        while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
+            // TODO: handle the error by recreating the connection
+            error!(error=%e, "failed to poll events");
+            None
+        }) {
+            debug!("handling event {:?}", event);
+            if let Err(e) = self.event_handler.handle(&event).await {
+                error!(err = %e, "error processing event {:?}", event);
+            }
+        }
+    }
+
+    pub async fn subscribe(&mut self, topics: &[String]) -> Result<(), ClientError> {
+        info!("subscribing to topics");
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: DEFAULT_QOS,
@@ -334,46 +343,54 @@ impl<H: EventHandler> MqttClient<H> {
             debug!("subscribing to topic {}", subscription.topic_filter);
             self.client
                 .subscribe(subscription)
-                .map_err(ClientConnectError::SubscribeFailure)?;
+                .map_err(ClientError::Subscribe)?;
         }
 
         let mut subacks: HashSet<_> = topics.iter().collect();
         if subacks.is_empty() {
-            debug!("no topics to subscribe to");
+            info!("has no topics to subscribe to");
             return Ok(());
         }
 
+        // TODO: Don't wait for subscription updates before starting the bridge.
+        //       We should move this logic to the handle events.
+        //
+        //       This is fine for now when dealing with only the upstream edge device.
+        //       But when remote brokers are introduced this will be an issue.
         while let Some(event) = self
             .client
             .try_next()
             .await
-            .map_err(ClientConnectError::PollClientFailure)?
+            .map_err(ClientError::PollClient)?
         {
             if let Event::SubscriptionUpdates(subscriptions) = event {
                 for subscription in subscriptions {
                     match subscription {
                         SubscriptionUpdateEvent::Subscribe(sub) => {
                             subacks.remove(&sub.topic_filter);
+                            debug!("successfully subscribed to topic {}", &sub.topic_filter);
                         }
                         SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
                             subacks.remove(&topic_filter);
                             error!("subscription rejected by server {}", topic_filter);
                         }
-
                         SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
-                            warn!("Unsubscribed {}", topic_filter);
+                            warn!("unsubscribed to {}", topic_filter);
                         }
                     }
                 }
+
+                info!("stopped waiting for subscriptions");
+                break;
             }
         }
 
         if subacks.is_empty() {
-            debug!("successfully subscribed to topics");
+            info!("successfully subscribed to topics");
         } else {
             error!(
-                "failed to receive expected subacks for topics: {0:?}",
-                subacks.iter().map(ToString::to_string).collect::<String>()
+                "failed to receive expected subacks for topics: {:?}",
+                subacks.iter().map(ToString::to_string).collect::<String>(),
             );
         }
 
@@ -396,15 +413,18 @@ pub enum Handled {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ClientConnectError {
+pub enum ClientError {
     #[error("failed to subscribe topic")]
-    SubscribeFailure(#[from] UpdateSubscriptionError),
+    Subscribe(#[from] UpdateSubscriptionError),
 
     #[error("failed to poll client")]
-    PollClientFailure(#[from] mqtt3::Error),
+    PollClient(#[from] mqtt3::Error),
 
     #[error("failed to shutdown custom mqtt client: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
+
+    #[error("failed to shutdown custom mqtt client: {0}")]
+    PublishHandle(#[from] mqtt3::PublishError),
 
     #[error("failed to connect")]
     SslHandshake,
