@@ -1,4 +1,3 @@
-// #![allow(dead_code, unused_imports, unused_variables)]
 use std::convert::TryInto;
 
 use tokio::sync::mpsc;
@@ -9,15 +8,18 @@ use crate::{
     messages::{MessageHandler, TopicMapper},
     persist::{PublicationStore, WakingMemoryStore},
     settings::TopicRule,
-    upstream::{LocalRpcHandler, LocalUpstreamHandler, RemoteRpcHandler, RemoteUpstreamHandler},
+    upstream::{
+        LocalRpcHandler, LocalUpstreamHandler, LocalUpstreamPumpEventHandler, RemoteRpcHandler,
+        RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler,
+    },
 };
 
-use super::{Pump, PumpHandle};
+use super::{MessagesProcessor, Pump, PumpHandle};
 
 pub type PumpsResult = Result<
     (
-        Pump<LocalUpstreamHandler<WakingMemoryStore>>,
-        Pump<RemoteUpstreamHandler<WakingMemoryStore>>,
+        Pump<LocalUpstreamHandler<WakingMemoryStore>, LocalUpstreamPumpEventHandler>,
+        Pump<RemoteUpstreamHandler<WakingMemoryStore>, RemoteUpstreamPumpEventHandler>,
     ),
     BridgeError,
 >;
@@ -81,13 +83,18 @@ impl Builder {
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tls(config, handler);
+
+        let handler = LocalUpstreamPumpEventHandler;
+        let pump_handle = PumpHandle::new(local_messages_send.clone());
+        let messages = MessagesProcessor::new(handler, local_messages_recv, pump_handle);
+
         let local_pump = Pump::new(
             local_messages_send,
-            local_messages_recv,
             client,
             subscriptions,
             ingress_loader,
             egress_store.clone(),
+            messages,
         )?;
 
         let (subscriptions, topic_filters) = make_topics(&self.remote.rules)?;
@@ -98,13 +105,18 @@ impl Builder {
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tls(config, handler);
+
+        let handler = RemoteUpstreamPumpEventHandler;
+        let pump_handle = PumpHandle::new(remote_messages_send.clone());
+        let messages = MessagesProcessor::new(handler, remote_messages_recv, pump_handle);
+
         let remote_pump = Pump::new(
             remote_messages_send,
-            remote_messages_recv,
             client,
             subscriptions,
             egress_loader,
             ingress_store,
+            messages,
         )?;
 
         Ok((local_pump, remote_pump))

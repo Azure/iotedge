@@ -12,6 +12,8 @@ use crate::{
     pump::{PumpError, PumpHandle, PumpMessage},
 };
 
+use super::LocalUpstreamPumpEvent;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConnectivityState {
     Connected,
@@ -30,11 +32,11 @@ impl Display for ConnectivityState {
 /// Handles connection and disconnection events and sends a notification when status changes
 pub struct ConnectivityHandler {
     state: ConnectivityState,
-    sender: PumpHandle,
+    sender: PumpHandle<LocalUpstreamPumpEvent>,
 }
 
 impl ConnectivityHandler {
-    pub fn new(sender: PumpHandle) -> Self {
+    pub fn new(sender: PumpHandle<LocalUpstreamPumpEvent>) -> Self {
         ConnectivityHandler {
             state: ConnectivityState::Disconnected,
             sender,
@@ -54,7 +56,10 @@ impl EventHandler for ConnectivityHandler {
                     ConnectivityState::Connected => {
                         self.state = ConnectivityState::Disconnected;
 
-                        let msg = PumpMessage::ConnectivityUpdate(ConnectivityState::Disconnected);
+                        let event = LocalUpstreamPumpEvent::ConnectivityUpdate(
+                            ConnectivityState::Disconnected,
+                        );
+                        let msg = PumpMessage::Event(event);
                         self.sender.send(msg).await?;
 
                         info!("Sent disconnected state");
@@ -75,7 +80,10 @@ impl EventHandler for ConnectivityHandler {
                     ConnectivityState::Disconnected => {
                         self.state = ConnectivityState::Connected;
 
-                        let msg = PumpMessage::ConnectivityUpdate(ConnectivityState::Connected);
+                        let event = LocalUpstreamPumpEvent::ConnectivityUpdate(
+                            ConnectivityState::Connected,
+                        );
+                        let msg = PumpMessage::Event(event);
                         self.sender.send(msg).await?;
 
                         info!("Sent connected state")
@@ -120,7 +128,9 @@ mod tests {
         let msg = connectivity_receiver.try_recv().unwrap();
         assert_eq!(
             msg,
-            PumpMessage::ConnectivityUpdate(ConnectivityState::Connected)
+            PumpMessage::Event(LocalUpstreamPumpEvent::ConnectivityUpdate(
+                ConnectivityState::Connected
+            ))
         );
         assert_eq!(ch.state, ConnectivityState::Connected);
         assert_eq!(res, Handled::Fully);
@@ -151,7 +161,9 @@ mod tests {
 
         assert_eq!(
             msg,
-            PumpMessage::ConnectivityUpdate(ConnectivityState::Disconnected)
+            PumpMessage::Event(LocalUpstreamPumpEvent::ConnectivityUpdate(
+                ConnectivityState::Disconnected
+            ))
         );
         assert_eq!(ch.state, ConnectivityState::Disconnected);
         assert_eq!(res_connected, Handled::Fully);

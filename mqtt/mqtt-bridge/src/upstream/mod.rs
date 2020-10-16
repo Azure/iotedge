@@ -1,7 +1,14 @@
 //! Module contains code related to upstream bridge.
 
+mod connectivity;
+mod events;
 mod rpc;
 
+pub use connectivity::ConnectivityState;
+pub use events::{
+    LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamPumpEvent,
+    RemoteUpstreamPumpEventHandler,
+};
 pub use rpc::{CommandId, LocalRpcHandler, RemoteRpcHandler, RpcCommand, RpcError};
 
 use async_trait::async_trait;

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     client::{EventHandler, Handled},
     pump::{PumpHandle, PumpMessage},
-    upstream::{CommandId, RpcCommand},
+    upstream::{CommandId, RemoteUpstreamPumpEvent, RpcCommand},
 };
 
 use super::RpcError;
@@ -18,11 +18,11 @@ use super::RpcError;
 /// connects to local broker. It receives RPC commands on a special topic,
 /// converts it to a `RpcCommand` and sends to remote pump as a `PumpMessage`.
 pub struct LocalRpcHandler {
-    remote_pump: PumpHandle,
+    remote_pump: PumpHandle<RemoteUpstreamPumpEvent>,
 }
 
 impl LocalRpcHandler {
-    pub fn new(remote_pump: PumpHandle) -> Self {
+    pub fn new(remote_pump: PumpHandle<RemoteUpstreamPumpEvent>) -> Self {
         Self { remote_pump }
     }
 }
@@ -37,9 +37,11 @@ impl EventHandler for LocalRpcHandler {
                 let doc = Document::from_reader(&mut publication.payload.clone().reader())?;
                 match bson::from_document(doc)? {
                     VersionedRpcCommand::V1(command) => {
-                        let message = PumpMessage::RpcCommand(command_id.clone(), command);
+                        let event =
+                            RemoteUpstreamPumpEvent::RpcCommand(command_id.clone(), command);
+                        let msg = PumpMessage::Event(event);
                         self.remote_pump
-                            .send(message)
+                            .send(msg)
                             .await
                             .map_err(|e| RpcError::SendToRemotePump(command_id, e))?;
 
@@ -142,17 +144,17 @@ mod tests {
         let event = command("1", "sub", "/foo", None);
         let res = handler.handle(&event).await;
         assert_matches!(res, Ok(Handled::Fully));
-        assert_matches!(rx.recv().await, Some(PumpMessage::RpcCommand(id, RpcCommand::Subscribe{topic_filter})) if topic_filter == "/foo" && id == "1".into());
+        assert_matches!(rx.recv().await, Some(PumpMessage::Event(RemoteUpstreamPumpEvent::RpcCommand(id, RpcCommand::Subscribe{topic_filter}))) if topic_filter == "/foo" && id == "1".into());
 
         let event = command("2", "unsub", "/foo", None);
         let res = handler.handle(&event).await;
         assert_matches!(res, Ok(Handled::Fully));
-        assert_matches!(rx.recv().await, Some(PumpMessage::RpcCommand(id, RpcCommand::Unsubscribe{topic_filter})) if topic_filter == "/foo" && id == "2".into());
+        assert_matches!(rx.recv().await, Some(PumpMessage::Event(RemoteUpstreamPumpEvent::RpcCommand(id, RpcCommand::Unsubscribe{topic_filter}))) if topic_filter == "/foo" && id == "2".into());
 
         let event = command("3", "pub", "/foo", Some(b"hello".to_vec()));
         let res = handler.handle(&event).await;
         assert_matches!(res, Ok(Handled::Fully));
-        assert_matches!(rx.recv().await, Some(PumpMessage::RpcCommand(id, RpcCommand::Publish{topic, payload})) if topic == "/foo" && payload == b"hello" && id == "3".into());
+        assert_matches!(rx.recv().await, Some(PumpMessage::Event(RemoteUpstreamPumpEvent::RpcCommand(id, RpcCommand::Publish{topic, payload}))) if topic == "/foo" && payload == b"hello" && id == "3".into());
     }
 
     #[tokio::test]

@@ -13,7 +13,6 @@
 
 mod bridge;
 pub mod client;
-mod connectivity;
 pub mod controller;
 mod messages;
 mod persist;
