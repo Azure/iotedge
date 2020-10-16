@@ -24,6 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             {
                 this.WithEnvironment(new[] { ("OptimizeForPerformance", false.ToString()) });
             }
+
+            this.WithEnvironment(new[] { ("experimentalFeatures:enabled", "true") })
+                .WithEnvironment(new[] { ("experimentalFeatures:nestedEdgeEnabled", "true") })
+                .WithEnvironment(new[] { ("experimentalFeatures:mqttBrokerEnabled", "false") })
+                .WithEnvironment(new[] { ("RUST_LOG", "debug") });
         }
     }
 }
