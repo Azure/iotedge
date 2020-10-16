@@ -92,7 +92,6 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
                     nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
                 ),
                 subscriptions: upstream.subscriptions,
-                forwards: upstream.forwards,
                 credentials: Credentials::Provider(nested_bridge),
                 clean_session: upstream.clean_session,
                 keep_alive: upstream.keep_alive,
@@ -117,8 +116,6 @@ pub struct ConnectionSettings {
 
     subscriptions: Vec<TopicRule>,
 
-    forwards: Vec<TopicRule>,
-
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
 
@@ -140,10 +137,6 @@ impl ConnectionSettings {
 
     pub fn subscriptions(&self) -> &Vec<TopicRule> {
         &self.subscriptions
-    }
-
-    pub fn forwards(&self) -> &Vec<TopicRule> {
-        &self.forwards
     }
 
     pub fn keep_alive(&self) -> Duration {
@@ -240,27 +233,45 @@ impl CredentialProviderSettings {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct TopicRule {
-    pattern: String,
+    #[serde(flatten)]
+    direction: Direction,
 
-    local: Option<String>,
+    topic: String,
 
-    remote: Option<String>,
+    #[serde(rename = "outPrefix")]
+    out_prefix: Option<String>,
+
+    #[serde(rename = "inPrefix")]
+    in_prefix: Option<String>,
 }
 
 impl TopicRule {
-    pub fn pattern(&self) -> &str {
-        &self.pattern
+    pub fn direction(&self) -> &Direction {
+        &self.direction
     }
 
-    pub fn local(&self) -> Option<&str> {
-        self.local.as_ref().map(AsRef::as_ref)
+    pub fn topic(&self) -> &str {
+        &self.topic
     }
 
-    pub fn remote(&self) -> Option<&str> {
-        self.remote.as_ref().map(AsRef::as_ref)
+    pub fn out_prefix(&self) -> Option<&str> {
+        self.out_prefix.as_ref().map(AsRef::as_ref)
     }
+
+    pub fn in_prefix(&self) -> Option<&str> {
+        self.in_prefix.as_ref().map(AsRef::as_ref)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(tag = "direction")]
+pub enum Direction {
+    #[serde(rename = "in")]
+    In,
+    #[serde(rename = "out")]
+    Out,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -274,8 +285,6 @@ struct UpstreamSettings {
     clean_session: bool,
 
     subscriptions: Vec<TopicRule>,
-
-    forwards: Vec<TopicRule>,
 }
 
 #[cfg(test)]
