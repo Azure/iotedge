@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
-use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
+use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt, sync::Semaphore};
 use tracing::{debug, error, info, warn};
 
 use mqtt3::{
@@ -181,6 +181,62 @@ impl BridgeIoSource {
             })
             .map_err(|e| Error::new(ErrorKind::NotConnected, e))?
         })
+    }
+}
+
+/*
+impl Bridge {
+    fn run() {
+        let store = PublicationStore::disk();
+        let loader = store.loader();
+        let inflight = tokio::sync::Semaphore::new(MAX_INFLIGHT);
+        loop {
+            let permit = inflight.acquire().await;
+
+            let fut = async {
+                let (k,p) = loader.next().await;
+                client.publish(p).await;
+                store.remove(k);
+                drop(permit)
+            }
+            tokio::spawn(fut);
+        }
+    }
+}
+impl Bridge {
+    fn run() {
+        let store = PublicationStore::disk();
+        let loader = store.loader();
+         let senders = FutureUnordered::new();
+        loop {
+            if senders.len() < MAX_INFLIGHT {
+                let fut = async {
+                    let (k,p) = loader.next().await;
+                    client.publish(p).await;
+                    store.remove(k);
+                };
+                senders.push(fut);
+            } else {
+                senders.next().await;
+            }
+        }
+    }
+}
+*/
+
+struct InFlightPublishHandle {
+    publish_handle: PublishHandle,
+    semaphore: Semaphore,
+}
+
+impl InFlightPublishHandle {
+    fn new(publish_handle: PublishHandle, max_in_flight: usize) -> Self {
+        let semaphore = Semaphore::new(max_in_flight);
+
+        Self {
+            publish_handle,
+            semaphore,
+        }
     }
 }
 
