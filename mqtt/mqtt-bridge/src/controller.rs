@@ -93,6 +93,7 @@ impl BridgeControllerHandle {
 pub struct BridgeControllerUpdate {
     // TODO: add settings
 }
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("An error occurred sending a message to the controller.")]
