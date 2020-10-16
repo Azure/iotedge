@@ -13,7 +13,7 @@ use crate::{
     settings::TopicRule,
 };
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct TopicMapper {
     topic_settings: TopicRule,
     topic_filter: TopicFilter,

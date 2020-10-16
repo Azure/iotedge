@@ -184,6 +184,29 @@ impl BridgeIoSource {
     }
 }
 
+pub struct MqttClientConfig {
+    addr: String,
+    keep_alive: Duration,
+    clean_session: bool,
+    credentials: Credentials,
+}
+
+impl MqttClientConfig {
+    pub fn new(
+        addr: impl Into<String>,
+        keep_alive: Duration,
+        clean_session: bool,
+        credentials: Credentials,
+    ) -> Self {
+        Self {
+            addr: addr.into(),
+            keep_alive,
+            clean_session,
+            credentials,
+        }
+    }
+}
+
 /// This is a wrapper over mqtt3 client
 pub struct MqttClient<H> {
     client_id: Option<String>,
@@ -195,44 +218,32 @@ pub struct MqttClient<H> {
 }
 
 impl<H: EventHandler> MqttClient<H> {
-    pub fn tcp(
-        address: &str,
-        keep_alive: Duration,
-        clean_session: bool,
-        event_handler: H,
-        connection_credentials: &Credentials,
-    ) -> Self {
-        let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection = TcpConnection::new(address.to_owned(), token_source, None);
+    pub fn tcp(config: MqttClientConfig, event_handler: H) -> Self {
+        let token_source = Self::token_source(&config.credentials);
+        let tcp_connection = TcpConnection::new(config.addr, token_source, None);
         let io_source = BridgeIoSource::Tcp(tcp_connection);
 
         Self::new(
-            keep_alive,
-            clean_session,
+            config.keep_alive,
+            config.clean_session,
             event_handler,
-            connection_credentials,
+            &config.credentials,
             io_source,
         )
     }
 
-    pub fn tls(
-        address: impl Into<String>,
-        keep_alive: Duration,
-        clean_session: bool,
-        event_handler: H,
-        connection_credentials: &Credentials,
-    ) -> Self {
-        let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
+    pub fn tls(config: MqttClientConfig, event_handler: H) -> Self {
+        let trust_bundle = Some(TrustBundleSource::new(config.credentials.clone()));
 
-        let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection = TcpConnection::new(address, token_source, trust_bundle);
+        let token_source = Self::token_source(&config.credentials);
+        let tcp_connection = TcpConnection::new(config.addr, token_source, trust_bundle);
         let io_source = BridgeIoSource::Tls(tcp_connection);
 
         Self::new(
-            keep_alive,
-            clean_session,
+            config.keep_alive,
+            config.clean_session,
             event_handler,
-            connection_credentials,
+            &config.credentials,
             io_source,
         )
     }

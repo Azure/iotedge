@@ -25,9 +25,9 @@ use mqtt3::PublishHandle;
 
 use crate::{
     bridge::BridgeError,
-    client::{ClientShutdownHandle, EventHandler, MqttClient},
+    client::{ClientShutdownHandle, EventHandler, MqttClient, MqttClientConfig},
     connectivity::ConnectivityState,
-    messages::{LocalUpstreamHandler, MessageHandler},
+    messages::{LocalUpstreamHandler, MessageHandler, TopicMapper},
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
     rpc::{CommandId, LocalRpcHandler, RpcCommand},
     settings::{ConnectionSettings, Credentials, TopicRule},
@@ -56,6 +56,130 @@ impl PumpHandle {
     }
 }
 
+pub struct Builder {
+    local: PumpBuilder,
+    remote: PumpBuilder,
+    store: Box<dyn Fn() -> PublicationStore<WakingMemoryStore>>,
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        Self {
+            local: PumpBuilder::default(),
+            remote: PumpBuilder::default(),
+            store: Box::new(|| PublicationStore::new_memory(0)),
+        }
+    }
+}
+
+impl Builder {
+    pub fn with_local<F>(&mut self, mut apply: F) -> &mut Self
+    where
+        F: FnMut(&mut PumpBuilder),
+    {
+        apply(&mut self.local);
+        self
+    }
+
+    pub fn with_remote<F>(&mut self, mut apply: F) -> &mut Self
+    where
+        F: FnMut(&mut PumpBuilder),
+    {
+        apply(&mut self.remote);
+        self
+    }
+
+    pub fn with_store<F>(&mut self, store: F) -> &mut Self
+    where
+        F: Fn() -> PublicationStore<WakingMemoryStore> + 'static,
+    {
+        self.store = Box::new(store);
+        self
+    }
+
+    pub fn build(
+        &mut self,
+    ) -> Result<
+        (
+            Pump<LocalUpstreamHandler<WakingMemoryStore>>,
+            Pump<MessageHandler<WakingMemoryStore>>,
+        ),
+        BridgeError,
+    > {
+        let ingress_store = (self.store)();
+        let ingress_loader = ingress_store.loader();
+
+        let egress_store = (self.store)();
+        let egress_loader = egress_store.loader();
+
+        let (remote_messages_send, remote_messages_recv) = mpsc::channel(100);
+        let (local_messages_send, local_messages_recv) = mpsc::channel(100);
+
+        let (subscriptions, topic_filters) = make_topics(&self.local.rules)?;
+
+        let rpc = LocalRpcHandler::new(PumpHandle::new(remote_messages_send.clone()));
+        let messages = MessageHandler::new(ingress_store.clone(), topic_filters);
+        let handler = LocalUpstreamHandler::new(messages, rpc);
+
+        let config = self.local.client.take().expect("local client config");
+        let client = MqttClient::tls(config, handler);
+        let local_pump = Pump::new(
+            local_messages_send,
+            local_messages_recv,
+            client,
+            subscriptions,
+            ingress_loader,
+            egress_store.clone(),
+        )?;
+
+        let (subscriptions, topic_filters) = make_topics(&self.remote.rules)?;
+
+        let handler = MessageHandler::new(egress_store, topic_filters);
+
+        let config = self.local.client.take().expect("local client config");
+        let client = MqttClient::tls(config, handler);
+        let remote_pump = Pump::new(
+            remote_messages_send,
+            remote_messages_recv,
+            client,
+            subscriptions,
+            egress_loader,
+            ingress_store,
+        )?;
+
+        Ok((local_pump, remote_pump))
+    }
+}
+
+#[derive(Default)]
+pub struct PumpBuilder {
+    // builder: Option<Box<Builder>>,
+    client: Option<MqttClientConfig>,
+    rules: Vec<TopicRule>,
+}
+
+impl PumpBuilder {
+    pub fn with_rules(&mut self, rules: &[TopicRule]) -> &mut Self {
+        self.rules = rules.to_vec();
+        self
+    }
+
+    pub fn with_config(&mut self, config: MqttClientConfig) -> &mut Self {
+        self.client = Some(config);
+        self
+    }
+}
+
+fn make_topics(rules: &[TopicRule]) -> Result<(Vec<String>, Vec<TopicMapper>), BridgeError> {
+    let (subscriptions, topic_rules): (Vec<_>, Vec<_>) = rules.iter().map(format_key_value).unzip();
+    let topic_filters = topic_rules
+        .into_iter()
+        .map(|topic| topic.try_into())
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok((subscriptions, topic_filters))
+}
+
 #[cfg(test)]
 pub fn channel() -> (PumpHandle, mpsc::Receiver<PumpMessage>) {
     let (tx, rx) = tokio::sync::mpsc::channel(10);
@@ -73,41 +197,33 @@ pub fn local_pump(
     ingress_store: PublicationStore<WakingMemoryStore>,
     egress_store: PublicationStore<WakingMemoryStore>,
 ) -> Result<Pump<LocalUpstreamHandler<WakingMemoryStore>>, BridgeError> {
-    let client_id = format!(
-        "{}/$edgeHub/$bridge/{}",
-        device_id.as_ref(),
-        connection_settings.name()
-    );
+    todo!()
+    // let client_id = format!(
+    //     "{}/$edgeHub/$bridge/{}",
+    //     device_id.as_ref(),
+    //     connection_settings.name()
+    // );
 
-    let (subscriptions, topic_rules): (Vec<_>, Vec<_>) = connection_settings
-        .forwards()
-        .iter()
-        .map(format_key_value)
-        .unzip();
+    // let (subscriptions, topic_filters) = make_topics(connection_settings.forwards())?;
 
-    let topic_filters = topic_rules
-        .into_iter()
-        .map(|topic| topic.try_into())
-        .collect::<Result<Vec<_>, _>>()?;
+    // let loader = ingress_store.loader();
 
-    let loader = ingress_store.loader();
+    // let messages = MessageHandler::new(ingress_store, topic_filters);
 
-    let messages = MessageHandler::new(ingress_store, topic_filters);
+    // let (sender, _) = tokio::sync::mpsc::channel(100); // TODO this should be remote handle
+    // let rpc = LocalRpcHandler::new(PumpHandle::new(sender));
+    // let handler = LocalUpstreamHandler::new(messages, rpc);
 
-    let (sender, _) = tokio::sync::mpsc::channel(100);
-    let rpc = LocalRpcHandler::new(PumpHandle::new(sender));
-    let handler = LocalUpstreamHandler::new(messages, rpc);
+    // let credentials = Credentials::Anonymous(client_id);
 
-    let credentials = Credentials::Anonymous(client_id);
-
-    let client = MqttClient::tls(
-        system_address,
-        connection_settings.keep_alive(),
-        connection_settings.clean_session(),
-        handler,
-        &credentials,
-    );
-    Ok(Pump::new(client, subscriptions, loader, egress_store)?)
+    // let client = MqttClient::tls(
+    //     system_address,
+    //     connection_settings.keep_alive(),
+    //     connection_settings.clean_session(),
+    //     handler,
+    //     &credentials,
+    // );
+    // Ok(Pump::new(client, subscriptions, loader, egress_store)?)
 }
 
 pub fn remote_pump(
@@ -115,31 +231,23 @@ pub fn remote_pump(
     ingress_store: PublicationStore<WakingMemoryStore>,
     egress_store: PublicationStore<WakingMemoryStore>,
 ) -> Result<Pump<MessageHandler<WakingMemoryStore>>, BridgeError> {
-    let (subscriptions, topic_rules): (Vec<_>, Vec<_>) = connection_settings
-        .subscriptions()
-        .iter()
-        .map(format_key_value)
-        .unzip();
+    todo!()
+    // let (subscriptions, topic_filters) = make_topics(connection_settings.subscriptions())?;
 
-    let topic_filters = topic_rules
-        .into_iter()
-        .map(|topic| topic.try_into())
-        .collect::<Result<Vec<_>, _>>()?;
+    // let loader = egress_store.loader();
 
-    let loader = egress_store.loader();
+    // let handler = MessageHandler::new(egress_store, topic_filters);
 
-    let handler = MessageHandler::new(egress_store, topic_filters);
+    // let credentials = connection_settings.credentials();
 
-    let credentials = connection_settings.credentials();
-
-    let client = MqttClient::tls(
-        connection_settings.address(),
-        connection_settings.keep_alive(),
-        connection_settings.clean_session(),
-        handler,
-        &credentials,
-    );
-    Ok(Pump::new(client, subscriptions, loader, ingress_store)?)
+    // let client = MqttClient::tls(
+    //     connection_settings.address(),
+    //     connection_settings.keep_alive(),
+    //     connection_settings.clean_session(),
+    //     handler,
+    //     &credentials,
+    // );
+    // Ok(Pump::new(client, subscriptions, loader, ingress_store)?)
 }
 
 fn format_key_value(topic: &TopicRule) -> (String, TopicRule) {
@@ -166,6 +274,8 @@ pub struct Pump<H> {
 
 impl<H: EventHandler> Pump<H> {
     fn new(
+        messages_send: mpsc::Sender<PumpMessage>,
+        messages_recv: mpsc::Receiver<PumpMessage>,
         client: MqttClient<H>,
         subscriptions: Vec<String>,
         loader: MessageLoader<WakingMemoryStore>,
@@ -178,8 +288,6 @@ impl<H: EventHandler> Pump<H> {
 
         let egress = Egress::new(publish_handle, loader, store);
         let ingress = Ingress::new(client, client_shutdown);
-
-        let (messages_send, messages_recv) = mpsc::channel(100);
 
         let handle = PumpHandle::new(messages_send.clone());
         let messages = MessagesProcessor::new(messages_recv, handle);
@@ -232,7 +340,7 @@ impl<H: EventHandler> Pump<H> {
             }
         };
 
-        info!("pump stopped");
+        info!("stopped pump");
     }
 }
 
@@ -266,6 +374,7 @@ impl MessagesProcessor {
     }
 
     async fn run(mut self) {
+        info!("starting pump messages processor");
         while let Some(message) = self.messages.next().await {
             match message {
                 PumpMessage::ConnectivityUpdate(_) => {}
@@ -279,7 +388,7 @@ impl MessagesProcessor {
             }
         }
 
-        info!("message processor stopped");
+        info!("finished pump messages processor");
     }
 }
 
@@ -400,5 +509,7 @@ impl Egress {
                 }
             }
         }
+
+        info!("finished egress publication processing");
     }
 }

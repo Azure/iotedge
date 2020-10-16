@@ -20,10 +20,8 @@ pub struct LocalRpcHandler {
 }
 
 impl LocalRpcHandler {
-    pub fn new(pump_handle: PumpHandle) -> Self {
-        Self {
-            remote_pump: pump_handle,
-        }
+    pub fn new(remote_pump: PumpHandle) -> Self {
+        Self { remote_pump }
     }
 }
 

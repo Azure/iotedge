@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports, unused_variables)]
+
 use mqtt3::ShutdownError;
 use tokio::{
     select,
@@ -7,15 +9,12 @@ use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
 use crate::{
-    client::ClientError,
-    messages::LocalUpstreamHandler,
-    messages::MessageHandler,
-    persist::PersistError,
-    persist::PublicationStore,
-    persist::WakingMemoryStore,
-    pump::{self, Pump, PumpMessage},
+    client::{ClientError, MqttClientConfig},
+    messages::{LocalUpstreamHandler, MessageHandler},
+    persist::{PersistError, PublicationStore, WakingMemoryStore},
+    pump::{self, Builder, Pump, PumpMessage},
     rpc::RpcError,
-    settings::ConnectionSettings,
+    settings::{ConnectionSettings, Credentials},
 };
 
 #[derive(Debug)]
@@ -49,25 +48,37 @@ impl Bridge {
     pub async fn new(
         system_address: String,
         device_id: String,
-        connection_settings: ConnectionSettings,
+        settings: ConnectionSettings,
     ) -> Result<Self, BridgeError> {
         const BATCH_SIZE: usize = 10;
 
-        debug!("creating bridge...{}", connection_settings.name());
+        debug!("creating bridge...");
 
-        let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
-        let incoming_persist = PublicationStore::new_memory(BATCH_SIZE);
-
-        let mut local_pump = pump::local_pump(
-            &connection_settings,
-            system_address,
-            device_id,
-            incoming_persist.clone(),
-            outgoing_persist.clone(),
-        )?;
-
-        let mut remote_pump =
-            pump::remote_pump(&connection_settings, incoming_persist, outgoing_persist)?;
+        let (mut local_pump, mut remote_pump) = Builder::default()
+            .with_local(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    &system_address,
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    Credentials::Anonymous(format!(
+                        "{}/$edgeHub/$bridge/{}",
+                        device_id,
+                        settings.name()
+                    )),
+                ))
+                .with_rules(settings.forwards());
+            })
+            .with_remote(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    settings.address(),
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    settings.credentials().clone(),
+                ))
+                .with_rules(settings.subscriptions());
+            })
+            .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
+            .build()?;
 
         local_pump
             .subscribe()
@@ -79,11 +90,11 @@ impl Bridge {
             .instrument(info_span!("pump", name = "remote"))
             .await?;
 
-        debug!("created bridge...{}", connection_settings.name());
+        debug!("created bridge...");
         Ok(Bridge {
             local_pump,
             remote_pump,
-            connection_settings,
+            connection_settings: settings,
         })
     }
 
