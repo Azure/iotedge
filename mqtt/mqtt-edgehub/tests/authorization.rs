@@ -1,6 +1,6 @@
 use assert_matches::assert_matches;
 use futures_util::StreamExt;
-use mqtt_broker::auth::authorize_fn_ok;
+use mqtt_broker::{auth::authorize_fn_ok, BrokerReady};
 
 use mqtt3::{
     proto::ClientId, proto::ConnectReturnCode, proto::Packet, proto::PacketIdentifier, proto::QoS,
@@ -10,7 +10,7 @@ use mqtt_broker::{auth::Authorization, auth::Operation, BrokerBuilder};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,
-    server::{self, DummyAuthenticator},
+    server::{start_server, DummyAuthenticator},
 };
 use mqtt_edgehub::{
     auth::EdgeHubAuthorizer, auth::IdentityUpdate, command::AuthorizedIdentitiesCommand,
@@ -38,6 +38,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
                     Authorization::Forbidden("not allowed".to_string())
                 }
             }),
+            BrokerReady::new().handle(),
         )))
         .build();
     let broker_handle = broker.handle();
@@ -107,6 +108,7 @@ async fn auth_update_happy_case() {
                     Authorization::Forbidden("not allowed".to_string())
                 }
             }),
+            BrokerReady::new().handle(),
         )))
         .build();
     let broker_handle = broker.handle();
@@ -205,7 +207,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = server::start_server(broker, DummyAuthenticator::with_id("device-1"));
+    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
