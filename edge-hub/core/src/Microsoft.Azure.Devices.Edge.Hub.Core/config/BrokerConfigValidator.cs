@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         ///
         /// Validates authorization policies and returns a list of errors (if any).
         /// </summary>
-        public IList<string> ValidateAuthorizationConfig(AuthorizationProperties properties)
+        public virtual IList<string> ValidateAuthorizationConfig(AuthorizationProperties properties)
         {
             Preconditions.CheckNotNull(properties, nameof(properties));
 
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 if (statement.Identities.Count == 0)
                 {
-                    errors.Add($"Statement {order}: Identities list must not be empty.");
+                    errors.Add($"Statement {order}: Identities list must not be empty");
                 }
 
                 foreach (var identity in statement.Identities)
@@ -51,6 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 {
                     ValidateRule(rule, order, errors);
                 }
+
+                order++;
             }
 
             return errors;
@@ -60,12 +62,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             if (rule.Operations.Count == 0)
             {
-                errors.Add($"Statement {order}: Allow: Operations list must not be empty.");
+                errors.Add($"Statement {order}: Allow: Operations list must not be empty");
             }
 
             if (rule.Resources.Count == 0)
             {
-                errors.Add($"Statement {order}: Allow: Resources list must not be empty.");
+                errors.Add($"Statement {order}: Allow: Resources list must not be empty");
             }
 
             foreach (var operation in rule.Operations)

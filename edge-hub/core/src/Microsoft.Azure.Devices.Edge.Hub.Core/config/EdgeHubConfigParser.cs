@@ -82,9 +82,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         /// </summary>
         Option<AuthorizationConfig> ParseAuthorizationConfig(BrokerProperties properties)
         {
-            this.validator.ValidateAuthorizationConfig(properties.Authorizations);
+            IList<string> errors = this.validator.ValidateAuthorizationConfig(properties.Authorizations);
+            if (errors.Count > 0)
+            {
+                string message = string.Join("; ", errors);
+                throw new InvalidOperationException($"Error validating authorization policy: {message}");
+            }
 
-            var order = 1;
             var result = new List<Statement>(properties.Authorizations?.Count ?? 0);
             foreach (var statement in properties.Authorizations)
             {
@@ -107,8 +111,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         rule.Operations,
                         rule.Resources));
                 }
-
-                order++;
             }
 
             return Option.Some(new AuthorizationConfig(result));
