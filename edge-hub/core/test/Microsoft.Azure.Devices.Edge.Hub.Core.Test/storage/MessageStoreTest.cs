@@ -228,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         }
 
         [Theory]
-        [InlineData(false)] 
+        [InlineData(false)]
         // [InlineData(true)] TODO: Investigate why this is failing re-enable
         public async Task CleanupTestTimeoutMultipleTTLs(bool checkEntireQueueOnCleanup)
         {
