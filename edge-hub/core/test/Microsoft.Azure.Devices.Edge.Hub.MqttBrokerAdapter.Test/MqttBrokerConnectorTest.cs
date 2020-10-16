@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     public class MqttBrokerConnectorTest
     {
         const string HOST = "localhost";
+        const int PORT = 4567;
 
         [Fact]
         public void WhenStartedThenHooksUpToProducers()
@@ -32,11 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task WhenStartedThenConnectsToServer()
         {
-            int port = 4567;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
             using var sut = new ConnectorBuilder().Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
 
             Assert.Equal(1, broker.ConnectionCounter);
             broker.Dispose();
@@ -45,15 +45,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task WhenStartedTwiceThenSecondFails()
         {
-            int port = 4568;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
             using var sut = new ConnectorBuilder().Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
 
             Assert.Equal(1, broker.ConnectionCounter);
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ConnectAsync(HOST, port));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ConnectAsync(HOST, PORT));
 
             Assert.Equal(1, broker.ConnectionCounter);
             broker.Dispose();
@@ -62,8 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task WhenStartedThenSubscribesForConsumers()
         {
-            int port = 4569;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
 
             var consumers = new[] {
                                     new ConsumerStub() { Subscriptions = new[] { "foo", "boo" } },
@@ -74,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     .WithConsumers(consumers)
                                     .Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
 
             var expected = consumers.SelectMany(c => c.Subscriptions).OrderBy(s => s);
             Assert.Equal(expected, broker.Subscriptions.OrderBy(s => s));
@@ -84,8 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task WhenMessageReceivedThenForwardsToConsumers()
         {
-            int port = 4570;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
 
             var milestone = new SemaphoreSlim(0, 2);
             var consumers = new[] {
@@ -97,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     .WithConsumers(consumers)
                                     .Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
 
             await broker.PublishAsync("boo", Encoding.ASCII.GetBytes("hoo"));
 
@@ -113,8 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task WhenMessageHandledThenForwardingLoopBreaks()
         {
-            int port = 4571;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
 
             var milestone = new SemaphoreSlim(0, 2);
             var callCounter = 0;
@@ -127,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     .WithConsumers(consumers)
                                     .Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
 
             await broker.PublishAsync("boo", Encoding.ASCII.GetBytes("hoo"));
             Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(5)));
@@ -145,8 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task WhenConsumerThrowsThenProcessingLoopContinues()
         {
-            int port = 4572;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
 
             var milestone = new SemaphoreSlim(0, 1);
             var consumers = new[] {
@@ -158,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     .WithConsumers(consumers)
                                     .Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
 
             await broker.PublishAsync("boo", Encoding.ASCII.GetBytes("hoo"));
 
@@ -173,8 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task ProducersCanSendMessages()
         {
-            int port = 4573;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
 
             var milestone = new SemaphoreSlim(0, 1);
             broker.OnPublish = () => milestone.Release();
@@ -185,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     .WithProducer(producer)
                                     .Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
             await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo"));
 
             Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(5)));
@@ -199,8 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task ProducersWaitForAck()
         {
-            int port = 4574;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
 
             var milestone1 = new SemaphoreSlim(0, 1);
             var milestone2 = new SemaphoreSlim(0, 1);
@@ -217,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     .WithProducer(producer)
                                     .Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
             var senderTask = producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo"));
 
             Assert.True(await milestone1.WaitAsync(TimeSpan.FromSeconds(5)));
@@ -238,8 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task SendAsyncCancelsWhenDisconnecting()
         {
-            int port = 4575;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
             var sut = default(MqttBrokerConnector);
 
             broker.OnPublish =
@@ -255,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                         .WithProducer(producer)
                         .Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo")));
             broker.Dispose();
         }
@@ -263,11 +255,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task TriesReconnect()
         {
-            int port = 4576;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
             using var sut = new ConnectorBuilder().Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
 
             Assert.Equal(1, broker.ConnectionCounter);
 
@@ -283,8 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact(Skip = "Temporarily disabling while we investigate what is wrong. This test causes CI to run until timeout")]
         public async Task WhenReconnectsThenResubscribes()
         {
-            int port = 4577;
-            using var broker = new MiniMqttServer(port);
+            using var broker = new MiniMqttServer(PORT);
 
             var consumers = new[] {
                                     new ConsumerStub() { Subscriptions = new[] { "foo", "boo" } },
@@ -295,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                     .WithConsumers(consumers)
                                     .Build();
 
-            await sut.ConnectAsync(HOST, port);
+            await sut.ConnectAsync(HOST, PORT);
 
             Assert.Equal(1, broker.ConnectionCounter);
 
@@ -315,16 +305,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact(Skip = "Temporarily disabling while we investigate what is wrong. This test causes CI to run until timeout")]
         public async Task OfflineSendGetSentAfterReconnect()
         {
-            int port = 4578;
             var producer = new ProducerStub();
 
             using var sut = new ConnectorBuilder()
                                     .WithProducer(producer)
                                     .Build();
 
-            using (var broker = new MiniMqttServer(port))
+            using (var broker = new MiniMqttServer(PORT))
             {
-                await sut.ConnectAsync(HOST, port);
+                await sut.ConnectAsync(HOST, PORT);
 
                 Assert.Equal(1, broker.ConnectionCounter);
 
@@ -334,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sendTask = producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo"));
             await Task.Delay(TimeSpan.FromSeconds(3)); // let the connector work a bit on reconnect
 
-            using (var broker = new MiniMqttServer(port))
+            using (var broker = new MiniMqttServer(PORT))
             {
                 await sendTask;
 
