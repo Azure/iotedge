@@ -55,12 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 {
                     deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(clientInfo.DeviceId, clientInfo.ModuleId, clientInfo.DeviceClientType, password, false, clientInfo.ModelId, clientInfo.AuthChain);
 
+                    // For OnBehalfOf connections, we'll get the token for the actor EdgeHub instead
+                    // of the actual leaf/module, so we need to construct the credentials accordingly
                     Option<string> actorDeviceIdOption = AuthChainHelpers.GetActorDeviceId(clientInfo.AuthChain);
-                    actorDeviceIdOption.ForEach(actorDeviceId =>
-                    {
-                        // For OnBehalfOf connections, we'll get the token for the actor EdgeHub instead
-                        // of the actual leaf/module, so we need to construct the credentials accordingly
-                        actorCredentials = Option.Some(this.clientCredentialsFactory.GetWithSasToken(
+                    actorCredentials = actorDeviceIdOption.Map(actorDeviceId =>
+                        this.clientCredentialsFactory.GetWithSasToken(
                             actorDeviceId,
                             Microsoft.Azure.Devices.Edge.Hub.Core.Constants.EdgeHubModuleId,
                             clientInfo.DeviceClientType,
@@ -68,7 +67,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             false,
                             clientInfo.ModelId,
                             clientInfo.AuthChain));
-                    });
                 }
                 else if (this.remoteCertificate.HasValue)
                 {
