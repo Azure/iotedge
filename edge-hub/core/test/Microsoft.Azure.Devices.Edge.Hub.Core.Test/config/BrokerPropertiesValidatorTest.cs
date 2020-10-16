@@ -84,5 +84,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             Assert.Equal("Statement 0: Resource (topic filter) is invalid: topic/#/", errors[0]);
             Assert.Equal("Statement 1: Resource (topic filter) is invalid: topic+", errors[1]);
         }
+
+        [Fact]
+        public void ValidateAuthorizationConfig_InvalidVariableNames()
+        {
+            var validator = new BrokerPropertiesValidator();
+
+            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+
+            var authzProperties = properties.BrokerConfiguration.Authorizations;
+
+            // arrange some errors
+            authzProperties[0].Identities[0] = "{{anywhat}}";
+            authzProperties[1].Allow[0].Resources[0] = "topic/{{invalid}}/{{myothervar}}";
+
+            IList<string> errors = validator.ValidateAuthorizationConfig(properties.BrokerConfiguration.Authorizations);
+
+            Assert.Equal(3, errors.Count);
+            Assert.Equal("Statement 0: Invalid variable name: {{anywhat}}", errors[0]);
+            Assert.Equal("Statement 1: Invalid variable name: {{invalid}}", errors[1]);
+            Assert.Equal("Statement 1: Invalid variable name: {{myothervar}}", errors[2]);
+        }
     }
 }
