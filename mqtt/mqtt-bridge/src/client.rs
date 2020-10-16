@@ -67,12 +67,12 @@ where
     T: TokenSource + Clone + Send + Sync + 'static,
 {
     pub fn new(
-        address: String,
+        address: impl Into<String>,
         token_source: Option<T>,
         trust_bundle_source: Option<TrustBundleSource>,
     ) -> Self {
         Self {
-            address,
+            address: address.into(),
             token_source,
             trust_bundle_source,
         }
@@ -185,10 +185,7 @@ impl BridgeIoSource {
 }
 
 /// This is a wrapper over mqtt3 client
-pub struct MqttClient<H>
-where
-    H: EventHandler,
-{
+pub struct MqttClient<H> {
     client_id: Option<String>,
     username: Option<String>,
     io_source: BridgeIoSource,
@@ -219,7 +216,7 @@ impl<H: EventHandler> MqttClient<H> {
     }
 
     pub fn tls(
-        address: &str,
+        address: impl Into<String>,
         keep_alive: Duration,
         clean_session: bool,
         event_handler: H,
@@ -228,7 +225,7 @@ impl<H: EventHandler> MqttClient<H> {
         let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
 
         let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection = TcpConnection::new(address.to_owned(), token_source, trust_bundle);
+        let tcp_connection = TcpConnection::new(address, token_source, trust_bundle);
         let io_source = BridgeIoSource::Tls(tcp_connection);
 
         Self::new(

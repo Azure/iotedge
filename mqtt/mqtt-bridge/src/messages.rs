@@ -9,7 +9,7 @@ use crate::{
     bridge::BridgeError,
     client::{EventHandler, Handled},
     persist::{PublicationStore, StreamWakeableState},
-    rpc::RpcHandler,
+    rpc::LocalRpcHandler,
     settings::TopicRule,
 };
 
@@ -105,13 +105,19 @@ where
     }
 }
 
-pub struct UpstreamHandler<S> {
+pub struct LocalUpstreamHandler<S> {
     messages: MessageHandler<S>,
-    rpc: RpcHandler,
+    rpc: LocalRpcHandler,
+}
+
+impl<S> LocalUpstreamHandler<S> {
+    pub fn new(messages: MessageHandler<S>, rpc: LocalRpcHandler) -> Self {
+        Self { messages, rpc }
+    }
 }
 
 #[async_trait]
-impl<S> EventHandler for UpstreamHandler<S>
+impl<S> EventHandler for LocalUpstreamHandler<S>
 where
     S: StreamWakeableState + Send,
 {

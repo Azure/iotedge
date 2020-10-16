@@ -17,8 +17,8 @@ mod connectivity;
 pub mod controller;
 mod messages;
 mod persist;
-mod pump;
-mod rpc;
+pub mod pump; // todo consider parent-child relationshi
+pub mod rpc;
 pub mod settings;
 mod token_source;
 
