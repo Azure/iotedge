@@ -10,12 +10,15 @@ use crate::persist::{
     loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
 };
 
-/// Persistence implementation used for the bridge
-pub struct PublicationStore<S> {
+/// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
+/// This facilitates sharing between multiple futures in a single threaded environment
+struct PublicationStoreInner<S> {
     state: Arc<Mutex<S>>,
-    offset: u32,
-    loader: Arc<Mutex<MessageLoader<S>>>,
+    offset: u64,
+    loader: MessageLoader<S>,
 }
+/// Persistence implementation used for the bridge
+pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 
 impl PublicationStore<WakingMemoryStore> {
     pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
@@ -29,43 +32,58 @@ where
 {
     pub fn new(state: S, batch_size: usize) -> Self {
         let state = Arc::new(Mutex::new(state));
-        let loader = MessageLoader::new(Arc::clone(&state), batch_size);
-        let loader = Arc::new(Mutex::new(loader));
+        let loader = MessageLoader::new(state.clone(), batch_size);
 
         let offset = 0;
-        Self {
+        let inner = PublicationStoreInner {
             state,
             offset,
             loader,
-        }
+        };
+        let inner = Arc::new(Mutex::new(inner));
+
+        Self(inner)
     }
 
-    pub fn push(&mut self, message: Publication) -> Result<Key, PersistError> {
+    pub fn push(&self, message: Publication) -> Result<Key, PersistError> {
+        let mut inner_borrow = self.0.lock();
+
         debug!(
             "persisting publication on topic {} with offset {}",
-            message.topic_name, self.offset
+            message.topic_name, inner_borrow.offset
         );
 
         let key = Key {
-            offset: self.offset,
+            offset: inner_borrow.offset,
         };
 
-        let mut state_lock = self.state.lock();
+        let mut state_lock = inner_borrow.state.lock();
         state_lock.insert(key, message)?;
-        self.offset += 1;
+        drop(state_lock);
+
+        inner_borrow.offset += 1;
         Ok(key)
     }
 
-    pub fn remove(&mut self, key: Key) -> Result<(), PersistError> {
+    pub fn remove(&self, key: Key) -> Result<(), PersistError> {
+        let inner = self.0.lock();
+
         debug!("removing publication with key {:?}", key);
 
-        let mut state_lock = self.state.lock();
+        let mut state_lock = inner.state.lock();
         state_lock.remove(key)?;
         Ok(())
     }
 
-    pub fn loader(&mut self) -> Arc<Mutex<MessageLoader<S>>> {
-        Arc::clone(&self.loader)
+    pub fn loader(&self) -> MessageLoader<S> {
+        let inner = self.0.lock();
+        inner.loader.clone()
+    }
+}
+
+impl<S: StreamWakeableState> Clone for PublicationStore<S> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
     }
 }
 
@@ -83,7 +101,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 5;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -106,8 +124,7 @@ mod tests {
         persistence.push(pub2.clone()).unwrap();
 
         // get loader
-        let loader = persistence.loader();
-        let mut loader = loader.lock();
+        let mut loader = persistence.loader();
 
         // make sure same publications come out in correct order
         let extracted1 = loader.try_next().await.unwrap().unwrap();
@@ -123,10 +140,9 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key1 = Key { offset: 0 };
         let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -145,11 +161,10 @@ mod tests {
         persistence.push(pub1.clone()).unwrap();
 
         // get loader
-        let loader = persistence.loader();
-        let mut loader = loader.lock();
+        let mut loader = persistence.loader();
 
         // process first message, forcing loader to get new batch on the next read
-        loader.try_next().await.unwrap().unwrap();
+        let (key1, _) = loader.try_next().await.unwrap().unwrap();
         assert_matches!(persistence.remove(key1), Ok(_));
 
         // add a second message and verify this is returned by loader
@@ -163,7 +178,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -185,7 +200,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -200,7 +215,7 @@ mod tests {
         // setup state
         let state = WakingMemoryStore::new();
         let batch_size: usize = 1;
-        let mut persistence = PublicationStore::new(state, batch_size);
+        let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
         let key1 = Key { offset: 0 };
@@ -223,8 +238,7 @@ mod tests {
         persistence.push(pub2.clone()).unwrap();
 
         // get loader with batch size
-        let loader = persistence.loader();
-        let mut loader = loader.lock();
+        let mut loader = persistence.loader();
 
         // verify the loader returns both elements
         let extracted1 = loader.try_next().await.unwrap().unwrap();
