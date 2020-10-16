@@ -40,8 +40,13 @@
               "UpstreamProtocol": {
                 "value": "<UpstreamProtocol>"
               },
-              "NestedEdgeEnabled": {
-                "value": "false"
+              "experimentalFeatures": {
+                "enabled": "true",
+                "nestedEdgeEnabled": "false",
+                "mqttBrokerEnabled": "true"
+              },
+              "RUST_LOG": {
+                "value": "true"
               }
             },
             "status": "running",
