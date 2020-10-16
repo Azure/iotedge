@@ -23,7 +23,7 @@ impl TryFrom<TopicRule> for TopicMapper {
 
     fn try_from(topic: TopicRule) -> Result<Self, BridgeError> {
         let topic_filter = topic
-            .pattern()
+            .topic()
             .parse()
             .map_err(BridgeError::TopicFilterParse)?;
 
@@ -52,7 +52,7 @@ impl<S> MessageHandler<S> {
         self.topic_mappers.iter().find_map(|mapper| {
             mapper
                 .topic_settings
-                .local()
+                .in_prefix()
                 // maps if local does not have a value it uses the topic that was received,
                 // else it checks that the received topic starts with local prefix and removes the local prefix
                 .map_or(Some(topic_name), |local_prefix| {
@@ -62,7 +62,7 @@ impl<S> MessageHandler<S> {
                 // match topic without local prefix with the topic filter pattern
                 .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
                 .map(|stripped_topic| {
-                    if let Some(remote_prefix) = mapper.topic_settings.remote() {
+                    if let Some(remote_prefix) = mapper.topic_settings.out_prefix() {
                         format!("{}/{}", remote_prefix, stripped_topic)
                     } else {
                         stripped_topic.to_string()
@@ -91,12 +91,12 @@ where
                     });
 
             if let Some(publication) = forward_publication {
-                debug!("Save message to store");
+                debug!("saving message to store");
                 self.store.push(publication).map_err(BridgeError::Store)?;
 
                 return Ok(Handled::Fully);
             } else {
-                warn!("No topic matched");
+                warn!("no topic matched");
             }
         }
 
@@ -117,8 +117,7 @@ mod tests {
     use mqtt_broker::TopicFilter;
 
     use super::{MessageHandler, TopicMapper};
-    use crate::persist::PublicationStore;
-    use crate::{client::EventHandler, settings::BridgeSettings};
+    use crate::{client::EventHandler, persist::PublicationStore, settings::BridgeSettings};
 
     #[tokio::test]
     async fn message_handler_saves_message_with_local_and_forward_topic() {
@@ -126,12 +125,12 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
+        let topics = connection_settings
+            .subscriptions()
             .iter()
-            .map(move |sub| TopicMapper {
+            .map(|sub| TopicMapper {
                 topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -167,12 +166,12 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
+        let topics = connection_settings
+            .subscriptions()
             .iter()
-            .map(move |sub| TopicMapper {
+            .map(|sub| TopicMapper {
                 topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -208,12 +207,12 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
+        let topics = connection_settings
+            .subscriptions()
             .iter()
-            .map(move |sub| TopicMapper {
+            .map(|sub| TopicMapper {
                 topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -249,12 +248,12 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
+        let topics = connection_settings
+            .subscriptions()
             .iter()
-            .map(move |sub| TopicMapper {
+            .map(|sub| TopicMapper {
                 topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 

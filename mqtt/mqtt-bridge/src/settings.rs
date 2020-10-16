@@ -92,7 +92,6 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
                     nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
                 ),
                 subscriptions: upstream.subscriptions,
-                forwards: upstream.forwards,
                 credentials: Credentials::Provider(nested_bridge),
                 clean_session: upstream.clean_session,
                 keep_alive: upstream.keep_alive,
@@ -115,9 +114,7 @@ pub struct ConnectionSettings {
     #[serde(flatten)]
     credentials: Credentials,
 
-    subscriptions: Vec<TopicRule>,
-
-    forwards: Vec<TopicRule>,
+    subscriptions: Vec<Direction>,
 
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
@@ -138,12 +135,30 @@ impl ConnectionSettings {
         &self.credentials
     }
 
-    pub fn subscriptions(&self) -> &Vec<TopicRule> {
-        &self.subscriptions
+    pub fn subscriptions(&self) -> Vec<TopicRule> {
+        self.subscriptions
+            .iter()
+            .filter_map(|sub| {
+                if let Direction::Out(topic) = sub {
+                    Some(topic.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
-    pub fn forwards(&self) -> &Vec<TopicRule> {
-        &self.forwards
+    pub fn forwards(&self) -> Vec<TopicRule> {
+        self.subscriptions
+            .iter()
+            .filter_map(|sub| {
+                if let Direction::In(topic) = sub {
+                    Some(topic.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     pub fn keep_alive(&self) -> Duration {
@@ -240,27 +255,39 @@ impl CredentialProviderSettings {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 pub struct TopicRule {
-    pattern: String,
+    topic: String,
 
-    local: Option<String>,
+    #[serde(rename = "outPrefix")]
+    out_prefix: Option<String>,
 
-    remote: Option<String>,
+    #[serde(rename = "inPrefix")]
+    in_prefix: Option<String>,
 }
 
 impl TopicRule {
-    pub fn pattern(&self) -> &str {
-        &self.pattern
+    pub fn topic(&self) -> &str {
+        &self.topic
     }
 
-    pub fn local(&self) -> Option<&str> {
-        self.local.as_ref().map(AsRef::as_ref)
+    pub fn out_prefix(&self) -> Option<&str> {
+        self.out_prefix.as_deref()
     }
 
-    pub fn remote(&self) -> Option<&str> {
-        self.remote.as_ref().map(AsRef::as_ref)
+    pub fn in_prefix(&self) -> Option<&str> {
+        self.in_prefix.as_deref()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(tag = "direction")]
+pub enum Direction {
+    #[serde(rename = "in")]
+    In(TopicRule),
+
+    #[serde(rename = "out")]
+    Out(TopicRule),
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -273,9 +300,7 @@ struct UpstreamSettings {
 
     clean_session: bool,
 
-    subscriptions: Vec<TopicRule>,
-
-    forwards: Vec<TopicRule>,
+    subscriptions: Vec<Direction>,
 }
 
 #[cfg(test)]

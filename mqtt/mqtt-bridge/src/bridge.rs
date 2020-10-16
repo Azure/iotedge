@@ -95,6 +95,7 @@ impl Bridge {
             .await?;
 
         debug!("created bridge...");
+
         Ok(Bridge {
             local_pump,
             remote_pump,
@@ -116,7 +117,7 @@ impl Bridge {
             .instrument(info_span!("pump", name = "remote"));
 
         debug!(
-            "Starting pumps for {} bridge...",
+            "starting pumps for {} bridge...",
             self.connection_settings.name()
         );
 
@@ -132,7 +133,7 @@ impl Bridge {
             }
         }
 
-        debug!("Bridge {} stopped...", self.connection_settings.name());
+        debug!("bridge {} stopped...", self.connection_settings.name());
         Ok(())
     }
 }

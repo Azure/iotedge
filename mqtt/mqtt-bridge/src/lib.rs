@@ -21,4 +21,6 @@ pub mod settings;
 mod token_source;
 pub mod upstream;
 
-pub use crate::controller::BridgeController;
+pub use crate::controller::{
+    BridgeController, BridgeControllerHandle, BridgeControllerUpdate, Error,
+};

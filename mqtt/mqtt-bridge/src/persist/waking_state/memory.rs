@@ -30,6 +30,8 @@ impl Default for WakingMemoryStore {
 
 impl StreamWakeableState for WakingMemoryStore {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
+        debug!("inserting publication with key {:?}", key);
+
         self.queue.push_back((key, value));
 
         if let Some(waker) = self.waker.take() {
@@ -52,7 +54,7 @@ impl StreamWakeableState for WakingMemoryStore {
 
     fn remove(&mut self, key: Key) -> Result<(), PersistError> {
         debug!(
-            "Preparing to remove message with key {:?}. Current state of loaded messages: {:?}",
+            "Removing publication with key {:?}. Current state of loaded messages: {:?}",
             key, self.loaded
         );
 

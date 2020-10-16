@@ -130,8 +130,8 @@ pub struct PumpBuilder {
 }
 
 impl PumpBuilder {
-    pub fn with_rules(&mut self, rules: &[TopicRule]) -> &mut Self {
-        self.rules = rules.to_vec();
+    pub fn with_rules(&mut self, rules: Vec<TopicRule>) -> &mut Self {
+        self.rules = rules;
         self
     }
 
@@ -152,10 +152,10 @@ fn make_topics(rules: &[TopicRule]) -> Result<(Vec<String>, Vec<TopicMapper>), B
 }
 
 fn format_key_value(topic: &TopicRule) -> (String, TopicRule) {
-    let key = if let Some(local) = topic.local() {
-        format!("{}/{}", local, topic.pattern())
+    let key = if let Some(local) = topic.in_prefix() {
+        format!("{}/{}", local, topic.topic())
     } else {
-        topic.pattern().into()
+        topic.topic().into()
     };
     (key, topic.clone())
 }
