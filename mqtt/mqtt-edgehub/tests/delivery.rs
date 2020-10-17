@@ -56,7 +56,7 @@ async fn it_sends_delivery_confirmation_for_m2m_messages() {
     assert_eq!(
         module.publications().next().await,
         Some(ReceivedPublication {
-            topic_name: "devices/device-1/modules/module-1/telemetry/?rid=1".into(),
+            topic_name: "devices/device-1/modules/module-1/inputs/telemetry/?rid=1".into(),
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,

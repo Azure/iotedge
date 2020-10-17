@@ -30,6 +30,14 @@ fn main() -> Result<()> {
     init_logging();
     info!("Starting Watchdog");
 
+    let experimental_features_enabled = std::env::var("experimentalFeatures:enabled")
+        .unwrap_or_else(|_| "false".to_string())
+        == "true";
+
+    let mqtt_broker_enabled = std::env::var("experimentalFeatures:mqttBrokerEnabled")
+        .unwrap_or_else(|_| "false".to_string())
+        == "true";
+
     let should_shutdown = register_shutdown_listener()
         .context("Failed to register sigterm listener. Shutting down.")?;
 
@@ -40,19 +48,25 @@ fn main() -> Result<()> {
         Arc::clone(&should_shutdown),
     )?;
 
-    let broker_handle = match run(
-        "MQTT Broker",
-        "/usr/local/bin/mqttd",
-        vec!["-c".to_string(), "/app/mqttd/broker.json".to_string()],
-        Arc::clone(&should_shutdown),
-    ) {
-        Ok(handle) => Some(handle),
-        Err(e) => {
-            should_shutdown.store(true, Ordering::Relaxed);
-            error!("Could not start MQTT Broker process. {}", e);
-            None
-        }
-    };
+    let mut broker_handle = None;
+
+    if experimental_features_enabled && mqtt_broker_enabled {
+        broker_handle = match run(
+            "MQTT Broker",
+            "/usr/local/bin/mqttd",
+            vec!["-c".to_string(), "/app/mqttd/broker.json".to_string()],
+            Arc::clone(&should_shutdown),
+        ) {
+            Ok(handle) => Some(handle),
+            Err(e) => {
+                should_shutdown.store(true, Ordering::Relaxed);
+                error!("Could not start MQTT Broker process. {}", e);
+                None
+            }
+        };
+    } else {
+        info!("MQTT broker is disabled");
+    }
 
     if let Err(e) = edgehub_handle.join() {
         should_shutdown.store(true, Ordering::Relaxed);
