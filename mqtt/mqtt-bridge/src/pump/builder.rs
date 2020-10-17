@@ -101,7 +101,7 @@ impl Builder {
 
         let rpc = RemoteRpcHandler;
         let messages = MessageHandler::new(egress_store, topic_filters);
-        let connectivity = ConnectivityHandler::new(PumpHandle::new(local_messages_send.clone()));
+        let connectivity = ConnectivityHandler::new(PumpHandle::new(local_messages_send));
         let handler = RemoteUpstreamHandler::new(messages, rpc, connectivity);
 
         let config = self.remote.client.take().expect("remote client config");
