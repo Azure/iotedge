@@ -104,7 +104,7 @@ impl Builder {
         let connectivity = ConnectivityHandler::new(PumpHandle::new(local_messages_send.clone()));
         let handler = RemoteUpstreamHandler::new(messages, rpc, connectivity);
 
-        let config = self.local.client.take().expect("local client config");
+        let config = self.remote.client.take().expect("remote client config");
         let client = MqttClient::tls(config, handler);
 
         let handler = RemoteUpstreamPumpEventHandler;
