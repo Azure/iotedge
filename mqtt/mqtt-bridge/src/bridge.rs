@@ -15,8 +15,8 @@ use crate::{
     pump::{Builder, Pump, PumpMessage},
     settings::{ConnectionSettings, Credentials},
     upstream::{
-        LocalUpstreamHandler, LocalUpstreamPumpEventHandler, RemoteUpstreamHandler,
-        RemoteUpstreamPumpEventHandler, RpcError,
+        ConnectivityError, LocalUpstreamHandler, LocalUpstreamPumpEventHandler,
+        RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler, RpcError,
     },
 };
 
@@ -158,6 +158,9 @@ pub enum BridgeError {
 
     #[error("failed to execute RPC command")]
     Rpc(#[from] RpcError),
+
+    #[error("failed to execute connectivity event")]
+    Connectivity(#[from] ConnectivityError),
 
     #[error("failed to signal bridge shutdown.")]
     ShutdownBridge(()),

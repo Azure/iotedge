@@ -4,7 +4,7 @@ mod connectivity;
 mod events;
 mod rpc;
 
-pub use connectivity::ConnectivityState;
+pub use connectivity::{ConnectivityError, ConnectivityHandler, ConnectivityState};
 pub use events::{
     LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamPumpEvent,
     RemoteUpstreamPumpEventHandler,
@@ -61,11 +61,20 @@ where
 pub struct RemoteUpstreamHandler<S> {
     messages: MessageHandler<S>,
     rpc: RemoteRpcHandler,
+    connectivity: ConnectivityHandler,
 }
 
 impl<S> RemoteUpstreamHandler<S> {
-    pub fn new(messages: MessageHandler<S>, rpc: RemoteRpcHandler) -> Self {
-        Self { messages, rpc }
+    pub fn new(
+        messages: MessageHandler<S>,
+        rpc: RemoteRpcHandler,
+        connectivity: ConnectivityHandler,
+    ) -> Self {
+        Self {
+            messages,
+            rpc,
+            connectivity,
+        }
     }
 }
 
@@ -77,7 +86,10 @@ where
     type Error = BridgeError;
 
     async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        // TODO add connectivity signals here
+        // try to handle incoming connectivity event
+        if self.connectivity.handle(&event).await? == Handled::Fully {
+            return Ok(Handled::Fully);
+        }
 
         // try to handle incoming messages as RPC command
         if self.rpc.handle(&event).await? == Handled::Fully {

@@ -9,8 +9,8 @@ use crate::{
     persist::{PublicationStore, WakingMemoryStore},
     settings::TopicRule,
     upstream::{
-        LocalRpcHandler, LocalUpstreamHandler, LocalUpstreamPumpEventHandler, RemoteRpcHandler,
-        RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler,
+        ConnectivityHandler, LocalRpcHandler, LocalUpstreamHandler, LocalUpstreamPumpEventHandler,
+        RemoteRpcHandler, RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler,
     },
 };
 
@@ -89,7 +89,7 @@ impl Builder {
         let messages = MessagesProcessor::new(handler, local_messages_recv, pump_handle);
 
         let local_pump = Pump::new(
-            local_messages_send,
+            local_messages_send.clone(),
             client,
             subscriptions,
             ingress_loader,
@@ -101,7 +101,8 @@ impl Builder {
 
         let rpc = RemoteRpcHandler;
         let messages = MessageHandler::new(egress_store, topic_filters);
-        let handler = RemoteUpstreamHandler::new(messages, rpc);
+        let connectivity = ConnectivityHandler::new(PumpHandle::new(local_messages_send.clone()));
+        let handler = RemoteUpstreamHandler::new(messages, rpc, connectivity);
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tls(config, handler);

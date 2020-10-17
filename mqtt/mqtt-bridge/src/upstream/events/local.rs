@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use tracing::debug;
 
 use crate::{
     pump::PumpMessageHandler,
@@ -19,7 +20,10 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
 
     async fn handle(&self, message: Self::Message) {
         match message {
-            LocalUpstreamPumpEvent::ConnectivityUpdate(_) => {}
+            LocalUpstreamPumpEvent::ConnectivityUpdate(status) => {
+                debug!("changed connectivity status to {}", status);
+                // TODO: send message to local client
+            }
             LocalUpstreamPumpEvent::RpcAck(_) => {}
         }
     }
