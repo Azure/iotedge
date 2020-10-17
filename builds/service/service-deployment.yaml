@@ -11,8 +11,7 @@ schedules:
   always: true
 
 pool:
-  name: Azure-IoT-Edge-Core
-  demands: new-e2e-proxy
+  vmImage: ubuntu-16.04
 
 steps:
 - checkout: self
@@ -27,22 +26,8 @@ steps:
       IotHubConnStr2,
       EventHubConnStr2
 
-- script: |
-    echo "https_proxy=$AGENT_PROXYURL"
-    echo "https_proxy=$https_proxy"
-  displayName: Try to get proxy info
-  env:
-    https_proxy: $(Agent.ProxyUrl)
-
-- script: |
-    sudo find . -type f -group root -execdir rm {} +
-    sudo find . -type d -group root -print0 | sudo xargs -0 /bin/rm -rf
-  displayName: Clean up files (as sudo)
-
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    $env:HTTP_PROXY='http://e2eproxy-server:3128'
-    $env:HTTPS_PROXY='http://e2eproxy-server:3128'
     dotnet build $testDir
 
     $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
@@ -52,7 +37,6 @@ steps:
 - pwsh: |
     $context = @{
       logFile = Join-Path '$(binDir)' 'testoutput.log';
-      proxy = "http://10.1.0.4:3128";
     }
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
@@ -70,8 +54,6 @@ steps:
     }
 
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
-    $env:HTTP_PROXY='http://e2eproxy-server:3128'
-    $env:HTTPS_PROXY='http://e2eproxy-server:3128'
     sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:Name=TempSensor
   displayName: Run tests
   env:
@@ -82,7 +64,6 @@ steps:
 
 - task: PublishTestResults@2
   displayName: Publish test results
-  enabled: false
   inputs:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
