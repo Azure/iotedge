@@ -36,10 +36,14 @@
               "CollectMetrics": {
                 "value": "true"
               },
-              "experimentalFeatures": {
-                "enabled": "true",
-                "nestedEdgeEnabled": "true",
-                "mqttBrokerEnabled": "false"
+              "experimentalFeatures:enabled": {
+                "value": "true"
+              },
+              "experimentalFeatures:nestedEdgeEnabled": {
+                "value": "true"
+              },
+              "experimentalFeatures:mqttBrokerEnabled": {
+                "value": "false"
               }
             },
             "status": "running",

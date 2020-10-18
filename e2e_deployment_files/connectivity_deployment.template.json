@@ -46,10 +46,14 @@
               "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
-              "experimentalFeatures": {
-                "enabled": "true",
-                "nestedEdgeEnabled": "true",
-                "mqttBrokerEnabled": "false"
+              "experimentalFeatures:enabled": {
+                "value": "true"
+              },
+              "experimentalFeatures:nestedEdgeEnabled": {
+                "value": "true"
+              },
+              "experimentalFeatures:mqttBrokerEnabled": {
+                "value": "false"
               }
             },
             "status": "running",
