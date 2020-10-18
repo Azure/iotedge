@@ -49,10 +49,14 @@
               "CollectMetrics": {
                 "value": "true"
               },
-              "experimentalFeatures": {
-                "enabled": "true",
-                "nestedEdgeEnabled": "false",
-                "mqttBrokerEnabled": "true"
+              "experimentalFeatures:enabled": {
+                "value": "true"
+              },
+              "experimentalFeatures:nestedEdgeEnabled": {
+                "value": "false"
+              },
+              "experimentalFeatures:mqttBrokerEnabled": {
+                "value": "true"
               },
               "RUST_LOG": {
                 "value": "true"
