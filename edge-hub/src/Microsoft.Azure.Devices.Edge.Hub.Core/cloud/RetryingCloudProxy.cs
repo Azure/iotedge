@@ -16,18 +16,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
         readonly Func<Task<ITry<ICloudProxy>>> cloudProxyGetter;
         readonly string id;
 
-        ICloudProxy innerCloudProxy;
-
         public RetryingCloudProxy(string id, Func<Task<ITry<ICloudProxy>>> cloudProxyGetter, ICloudProxy cloudProxyImplementation)
         {
             this.id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
             this.cloudProxyGetter = Preconditions.CheckNotNull(cloudProxyGetter, nameof(cloudProxyGetter));
-            this.innerCloudProxy = Preconditions.CheckNotNull(cloudProxyImplementation, nameof(cloudProxyImplementation));
+            this.InnerCloudProxy = Preconditions.CheckNotNull(cloudProxyImplementation, nameof(cloudProxyImplementation));
         }
 
-        public bool IsActive => this.innerCloudProxy.IsActive;
+        public bool IsActive => this.InnerCloudProxy.IsActive;
 
-        internal ICloudProxy InnerCloudProxy => this.innerCloudProxy;
+        internal ICloudProxy InnerCloudProxy { get; private set; }
 
         public Task<bool> CloseAsync() => this.ExecuteOperation(c => c.CloseAsync(), "CloseAsync");
 
@@ -93,11 +91,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
         async Task<ICloudProxy> GetCloudProxy()
         {
-            if (!this.innerCloudProxy.IsActive)
+            if (!this.InnerCloudProxy.IsActive)
             {
                 using (await this.cloudProxyLock.LockAsync())
                 {
-                    if (!this.innerCloudProxy.IsActive)
+                    if (!this.InnerCloudProxy.IsActive)
                     {
                         Events.GettingNewCloudProxy(this.id);
                         ITry<ICloudProxy> cloudProxyTry = await this.cloudProxyGetter();
@@ -107,12 +105,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
                         }
 
                         Events.GotNewCloudProxy(this.id);
-                        this.innerCloudProxy = cloudProxyTry.Value;
+                        this.InnerCloudProxy = cloudProxyTry.Value;
                     }
                 }
             }
 
-            return this.innerCloudProxy;
+            return this.InnerCloudProxy;
         }
 
         static class Events
