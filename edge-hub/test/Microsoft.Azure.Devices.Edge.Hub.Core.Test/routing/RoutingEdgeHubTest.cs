@@ -534,6 +534,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.False(clientMessage3.SystemProperties.ContainsKey(SystemProperties.EdgeHubOriginInterface));
             Assert.True(clientMessage3.SystemProperties.ContainsKey(SystemProperties.EdgeMessageId));
         }
-
     }
 }
