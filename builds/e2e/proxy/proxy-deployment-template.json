@@ -45,10 +45,10 @@
 		}
 	},
 	"variables": {
-		"proxy_nic_name": "[concat(variables('proxy_vm_name')), '-nic']",
-		"runner_nic_name": "[concat(variables('runner_vm_name')), '-nic']",
-		"proxy_nsg_name": "[concat(variables('proxy_vm_name')), '-nsg']",
-		"runner_nsg_name": "[concat(variables('runner_vm_name')), '-nsg']"
+		"proxy_nic_name": "[concat(variables('proxy_vm_name'), '-nic')]",
+		"runner_nic_name": "[concat(variables('runner_vm_name'), '-nic')]",
+		"proxy_nsg_name": "[concat(variables('proxy_vm_name'), '-nsg')]",
+		"runner_nsg_name": "[concat(variables('runner_vm_name'), '-nsg')]"
 	},
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
