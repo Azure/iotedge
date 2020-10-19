@@ -1,18 +1,12 @@
-#![allow(dead_code, unused_imports, unused_variables)]
-
 use mqtt3::ShutdownError;
-use tokio::{
-    select,
-    sync::{mpsc::error::SendError, oneshot::Sender},
-};
+use tokio::{select, sync::oneshot::Sender};
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
 use crate::{
     client::{ClientError, MqttClientConfig},
-    messages::MessageHandler,
     persist::{PersistError, PublicationStore, WakingMemoryStore},
-    pump::{Builder, Pump, PumpMessage},
+    pump::{Builder, Pump},
     settings::{ConnectionSettings, Credentials},
     upstream::{
         LocalUpstreamHandler, LocalUpstreamPumpEventHandler, RemoteUpstreamHandler,

@@ -33,14 +33,13 @@ use mqtt3::{
 /// from the upstream. After ack is received it sends a special publish to
 /// downstream broker.
 pub struct RemoteRpcHandler {
-    subsription: UpdateSubscriptionHandle,
+    subscription: UpdateSubscriptionHandle,
     publication: PublishHandle,
     downstream_pubs: PublishHandle,
     subscriptions: HashMap<String, CommandId>,
 }
 
 impl RemoteRpcHandler {
-    #[allow(dead_code)] // TODO remove when used in the code
     pub fn new(
         upstream_subs: UpdateSubscriptionHandle,
         upstream_pubs: PublishHandle,
