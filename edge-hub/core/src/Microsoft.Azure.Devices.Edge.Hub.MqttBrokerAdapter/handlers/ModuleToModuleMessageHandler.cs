@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class ModuleToModuleMessageHandler : MessageConfirmingHandler, IModuleToModuleMessageHandler, IMessageProducer
     {
-        const string ModuleToModleSubscriptionPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/inputs/\#$";
+        const string ModuleToModleSubscriptionPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/inputs/\#$";
         const string ModuleToModleTopicTemplate = @"{0}/{1}/{2}/inputs/{3}/{4}";
 
         const string DirectTopicPrefix = "$edgehub";

@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class Cloud2DeviceMessageHandler : MessageConfirmingHandler, ICloud2DeviceMessageHandler, IMessageProducer
     {
-        const string SubscriptionForDeviceboundPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)/messages/c2d/post/\#$";
+        const string SubscriptionForDeviceboundPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)/messages/c2d/post/\#$";
         const string C2DTopicDeviceTemplate = "{0}/{1}/messages/c2d/post/{2}";
 
         const string DirectTopicPrefix = "$edgehub";

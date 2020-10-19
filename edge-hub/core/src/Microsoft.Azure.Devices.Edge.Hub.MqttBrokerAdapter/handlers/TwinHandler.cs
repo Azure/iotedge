@@ -26,8 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string TwinGetPublishPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/get/\?\$rid=(?<rid>.+)";
         const string TwinUpdatePublishPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/reported/\?\$rid=(?<rid>.+)";
 
-        const string TwinSubscriptionForResultsPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/\#$";
-        const string TwinSubscriptionForPatchPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\#$";
+        const string TwinSubscriptionForResultsPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/\#$";
+        const string TwinSubscriptionForPatchPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\#$";
 
         const string TwinResultDevice = "{0}/{1}/twin/res/{2}/?$rid={3}";
         const string TwinResultModule = "{0}/{1}/{2}/twin/res/{3}/?$rid={4}";

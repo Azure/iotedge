@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string SubscriptionChangeDevice = "$edgehub/+/subscriptions";
         const string SubscriptionChangeModule = "$edgehub/+/+/subscriptions";
 
+        const string DirectConnectionDialect = "$edgehub";
+
         static readonly string[] subscriptions = new[] { SubscriptionChangeDevice, SubscriptionChangeModule };
 
         readonly IConnectionRegistry connectionRegistry;
@@ -95,12 +97,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     {
                         var id1 = subscriptionMatch.Groups["id1"];
                         var id2 = subscriptionMatch.Groups["id2"];
+                        var isDirect = string.Equals(subscriptionMatch.Groups["dialect"].Value, DirectConnectionDialect);
 
                         var identity = id2.Success
                                             ? this.identityProvider.Create(id1.Value, id2.Value)
                                             : this.identityProvider.Create(id1.Value);
 
-                        var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+                        var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity, isDirect);
                         if (maybeListener.HasValue)
                         {
                             try

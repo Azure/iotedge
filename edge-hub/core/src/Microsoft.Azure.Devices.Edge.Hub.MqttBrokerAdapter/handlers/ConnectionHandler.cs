@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
-        public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity)
+        public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity, bool directOnCreation)
         {
             using (await this.guard.LockAsync())
             {
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 }
                 else
                 {
-                    return await this.CreateDeviceListenerAsync(identity);
+                    return await this.CreateDeviceListenerAsync(identity, directOnCreation);
                 }
             }
         }
@@ -254,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Option.Some(result);
         }
 
-        async Task<Option<IDeviceListener>> CreateDeviceListenerAsync(IIdentity identity)
+        async Task<Option<IDeviceListener>> CreateDeviceListenerAsync(IIdentity identity, bool directOnCreation)
         {
             var connectionProvider = await this.connectionProviderGetter;
             if (connectionProvider == null)
@@ -263,13 +263,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return Option.None<IDeviceListener>();
             }
 
-            var deviceListener = await this.AddConnectionAsync(identity, false, connectionProvider);
+            var deviceListener = await this.AddConnectionAsync(identity, directOnCreation, connectionProvider);
             return Option.Some(deviceListener);
         }
 
         async Task<Option<IDeviceProxy>> CreateDeviceProxyAsync(IIdentity identity)
         {
-            var deviceListener = await this.CreateDeviceListenerAsync(identity);
+            var deviceListener = await this.CreateDeviceListenerAsync(identity, false);
             return deviceListener.FlatMap(
                         listener =>
                             listener switch

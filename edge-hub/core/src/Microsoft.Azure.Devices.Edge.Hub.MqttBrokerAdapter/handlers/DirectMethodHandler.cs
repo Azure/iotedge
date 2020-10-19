@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string MethodPostIndirectModule = "$iothub/+/+/methods/res/#";
         const string MethodPostIndirectDevice = "$iothub/+/methods/res/#";
 
-        const string MethodSubscriptionForPostPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/post/\#$";
+        const string MethodSubscriptionForPostPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/post/\#$";
         const string MethodResponsePattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/res/(?<res>\d+)/\?\$rid=(?<rid>.+)";
 
         const string MethodCallToDeviceTopicTemplate = "{0}/{1}/methods/post/{2}/?$rid={3}";
