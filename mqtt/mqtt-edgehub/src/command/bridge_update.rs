@@ -43,9 +43,9 @@ impl Command for BridgeUpdateCommand {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("failed to parse bridge update from message payload")]
-    ParseBridgeUpdate(serde_json::Error),
+    #[error("failed to parse bridge update from message payload: {0}")]
+    ParseBridgeUpdate(#[source] serde_json::Error),
 
-    #[error("failed while sending bridge updates to bridge controller")]
-    SendBridgeUpdate(mqtt_bridge::Error),
+    #[error("failed while sending bridge updates to bridge controller: {0}")]
+    SendBridgeUpdate(#[source] mqtt_bridge::Error),
 }

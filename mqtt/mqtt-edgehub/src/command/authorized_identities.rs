@@ -48,9 +48,9 @@ impl Command for AuthorizedIdentitiesCommand {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("failed to parse authorized identities from message payload")]
-    ParseAuthorizedIdentities(serde_json::Error),
+    #[error("failed to parse authorized identities from message payload: {0}")]
+    ParseAuthorizedIdentities(#[source] serde_json::Error),
 
-    #[error("failed while sending authorized identities to broker")]
-    SendAuthorizedIdentitiesToBroker(mqtt_broker::Error),
+    #[error("failed while sending authorized identities to broker: {0}")]
+    SendAuthorizedIdentitiesToBroker(#[source] mqtt_broker::Error),
 }
