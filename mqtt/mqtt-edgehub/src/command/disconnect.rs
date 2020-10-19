@@ -48,9 +48,9 @@ impl Command for DisconnectCommand {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("failed to parse client id from message payload")]
-    ParseClientId(serde_json::Error),
+    #[error("failed to parse client id from message payload: {0}")]
+    ParseClientId(#[source] serde_json::Error),
 
-    #[error("failed while sending broker signal to disconnect client")]
-    DisconnectSignal(mqtt_broker::Error),
+    #[error("failed while sending broker signal to disconnect client: {0}")]
+    DisconnectSignal(#[source] mqtt_broker::Error),
 }

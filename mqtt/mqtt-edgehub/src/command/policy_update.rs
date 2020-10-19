@@ -44,9 +44,9 @@ impl Command for PolicyUpdateCommand {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("failed to parse policy update from message payload")]
-    ParsePolicyUpdate(serde_json::Error),
+    #[error("failed to parse policy update from message payload: {0}")]
+    ParsePolicyUpdate(#[source] serde_json::Error),
 
-    #[error("failed while sending policy updates to the broker")]
-    SendPolicyUpdate(mqtt_broker::Error),
+    #[error("failed while sending policy updates to the broker: {0}")]
+    SendPolicyUpdate(#[source] mqtt_broker::Error),
 }
