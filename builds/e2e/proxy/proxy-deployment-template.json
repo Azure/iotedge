@@ -31,12 +31,12 @@
 			"defaultValue": "Standard_D2s_v3",
 			"type": "string"
 		},
-		"proxy_config_script_uri": {
-			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_proxy.sh",
-			"type": "string"
-		},
 		"create_linux_vm_template_uri": {
 			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create-linux-vm-template.json",
+			"type": "string"
+		},
+		"proxy_config_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_proxy.sh",
 			"type": "string"
 		},
 		"runner_config_script_uri": {
