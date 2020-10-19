@@ -43,15 +43,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // if the workload URI is a Unix domain socket then volume mount it into the container
             HostConfig hostConfig = this.AddSocketBinds(module, Option.Maybe(dockerConfig.CreateOptions.HostConfig));
 
+            var otherProperties = Option.Maybe(dockerConfig.CreateOptions.OtherProperties)
+                                        .Map(op => new Dictionary<string, JToken>(op, StringComparer.OrdinalIgnoreCase));
+
             CreatePodParameters createOptions = new CreatePodParameters(
                 dockerConfig.CreateOptions.Env,
                 dockerConfig.CreateOptions.ExposedPorts,
                 hostConfig,
                 dockerConfig.CreateOptions.Image,
                 dockerConfig.CreateOptions.Labels,
-                GetPropertiesStringArray(CmdKey, dockerConfig.CreateOptions.OtherProperties),
-                GetPropertiesStringArray(EntrypointKey, dockerConfig.CreateOptions.OtherProperties),
-                GetPropertiesString(WorkingDirKey, dockerConfig.CreateOptions.OtherProperties));
+                GetPropertiesStringArray(CmdKey, otherProperties),
+                GetPropertiesStringArray(EntrypointKey, otherProperties),
+                GetPropertiesString(WorkingDirKey, otherProperties));
 
             if (this.enableKubernetesExtensions)
             {
@@ -103,10 +106,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 : uri.AbsolutePath;
         }
 
-        static IReadOnlyList<string> GetPropertiesStringArray(string key, IDictionary<string, JToken> other) =>
-            Option.Maybe(other).FlatMap(options => options.Get(key).FlatMap(option => Option.Maybe(option.ToObject<IReadOnlyList<string>>()))).OrDefault();
+        static IReadOnlyList<string> GetPropertiesStringArray(string key, Option<Dictionary<string, JToken>> other) =>
+            other.FlatMap(options => options.Get(key).FlatMap(option => Option.Maybe(option.ToObject<IReadOnlyList<string>>()))).OrDefault();
 
-        static string GetPropertiesString(string key, IDictionary<string, JToken> other) =>
-            Option.Maybe(other).FlatMap(options => options.Get(key).FlatMap(option => Option.Maybe(option.ToObject<string>()))).OrDefault();
+        static string GetPropertiesString(string key, Option<Dictionary<string, JToken>> other) =>
+            other.FlatMap(options => options.Get(key).FlatMap(option => Option.Maybe(option.ToObject<string>()))).OrDefault();
     }
 }
