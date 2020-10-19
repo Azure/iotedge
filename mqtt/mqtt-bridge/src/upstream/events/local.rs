@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use mqtt3::{proto::Publication, proto::QoS, PublishHandle};
+use serde_json::json;
 use tracing::{debug, error};
 
 use crate::{
@@ -33,13 +34,16 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
         match message {
             LocalUpstreamPumpEvent::ConnectivityUpdate(status) => {
                 debug!("changed connectivity status to {}", status);
-                let payload: bytes::Bytes = status.to_string().into();
+
+                let payload = json!({
+                    "status": status.to_string(),
+                });
 
                 let publication = Publication {
                     topic_name: CONNECTIVITY_TOPIC.to_owned(),
                     qos: QoS::AtLeastOnce,
                     retain: true,
-                    payload,
+                    payload: payload.to_string().into(),
                 };
 
                 if let Err(e) = self.publish_handle.publish(publication).await {
