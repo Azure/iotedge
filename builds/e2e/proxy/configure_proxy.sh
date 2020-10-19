@@ -5,7 +5,6 @@ set -euo pipefail
 user="$1"
 subnet_address_prefix="$2"
 
-# install/configure squid
 echo 'Installing squid'
 
 for i in `seq 3`

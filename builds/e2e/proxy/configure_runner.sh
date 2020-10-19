@@ -10,7 +10,8 @@ proxy="http://$1:3128"
 export http_proxy=$proxy
 export https_proxy=$proxy
 
-# install PowerShell Core and .NET Core 3.1
+echo 'Installing PowerShell Core and .NET Core 3.1'
+
 apt-get update
 apt-get install -y git wget apt-transport-https
 wget -q 'https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb'
@@ -19,9 +20,11 @@ apt-get update
 add-apt-repository universe
 apt-get install -y powershell dotnet-sdk-3.1
 
-# install Azure Pipelines agent
-curl -x $proxy -L -o $agent_file $agent_url
-mkdir myagent && cd myagent
+echo 'Installing Azure Pipelines agent'
+
+wget -q $agent_url
+mkdir myagent
+cd myagent
 tar zxvf $agent_file
 
 # TODO: script the agent config process?
@@ -30,7 +33,8 @@ tar zxvf $agent_file
 # ./svc.sh install
 # ./svc.sh start
 
-# install moby
+echo 'Installing Moby engine'
+
 curl -x $proxy 'https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list' > microsoft-prod.list
 mv microsoft-prod.list /etc/apt/sources.list.d/
 
@@ -54,6 +58,8 @@ systemctl restart docker
 # add iotedged's proxy settings (even though iotedged isn't installed--the tests do that later)
 mkdir -p /etc/systemd/system/iotedge.service.d
 cp ~/proxy-env.override.conf /etc/systemd/system/iotedge.service.d/
+
+echo 'Verifying VM behavior behind proxy server'
 
 # Verify runner can use the proxy
 curl -x $proxy -L 'http://www.microsoft.com'
