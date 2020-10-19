@@ -77,6 +77,7 @@ az deployment group create --resource-group "$resource_group_name" --name 'e2e-p
 
 Once deployment has completed, you can SSH into the proxy client VM and configure the Azure Pipelines agent the following commands. For more information about installing/configuring the agent, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
 
+
 ```sh
 proxy_fqdn="http://$proxy_vm_name`.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
 ./config.sh --proxyurl $proxy_fqdn
