@@ -2,8 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 {
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
+
+    [Unit]
     public class BrokerServiceIdentityTest
     {
         [Fact]
