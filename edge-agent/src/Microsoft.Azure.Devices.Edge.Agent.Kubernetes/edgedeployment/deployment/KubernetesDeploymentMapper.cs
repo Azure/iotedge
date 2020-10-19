@@ -284,7 +284,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         }
 
         static IEnumerable<V1EnvVar> ParseEnv(IReadOnlyList<string> env) =>
-            env.Select(hostEnv => hostEnv.Split('='))
+            env.Select(hostEnv =>
+                {
+                    int index = hostEnv.IndexOf('=');
+                    return (index <= 0) ?
+                            Array.Empty<string>() :
+                            new string[] { hostEnv.Substring(0, index), hostEnv.Substring(index + 1) };
+                })
                 .Where(keyValue => keyValue.Length == 2)
                 .Select(keyValue => new V1EnvVar(keyValue[0], keyValue[1]));
 

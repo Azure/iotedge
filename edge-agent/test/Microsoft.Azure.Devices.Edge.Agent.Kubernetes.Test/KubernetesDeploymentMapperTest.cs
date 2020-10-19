@@ -797,6 +797,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void EnvModuleSettingsParseCorrectly()
+        {
+            var env = new List<string>
+            {
+                "a=b",
+                "ALL_EQUALS=====",
+                "HAS_SPACES=this variable has spaces",
+                "B=b=c",
+                "BASE64_TEXT=YmFzZTY0Cg==",
+                "==not a valid env var",
+            };
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(env: env), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var features = new Dictionary<string, bool>
+            {
+                ["feature1"] = true,
+                ["feature2"] = false
+            };
+            var mapper = CreateMapper(runAsNonRoot: true, useMountSourceForVolumeName: true, storageClassName: "scname", proxyImagePullSecretName: "secret name", experimentalFeatures: features);
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            var container = deployment.Spec.Template.Spec.Containers.Single(c => c.Name == "module1");
+            Assert.Equal("b", container.Env.Single(e => e.Name == "a").Value);
+            Assert.Equal("====", container.Env.Single(e => e.Name == "ALL_EQUALS").Value);
+            Assert.Equal("this variable has spaces", container.Env.Single(e => e.Name == "HAS_SPACES").Value);
+            Assert.Equal("b=c", container.Env.Single(e => e.Name == "B").Value);
+            Assert.Equal("YmFzZTY0Cg==", container.Env.Single(e => e.Name == "BASE64_TEXT").Value);
+            Assert.Null(container.Env.SingleOrDefault(e => e.Value.EndsWith("valid env var")));
+        }
+
+        [Fact]
         public void EdgeAgentEnvSettingsHaveLotsOfStuff()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
