@@ -294,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
             catch
             {
-                await DeleteIdentityAsync(device, iotHub, token);
+                // await DeleteIdentityAsync(device, iotHub, token);
                 throw;
             }
         }
