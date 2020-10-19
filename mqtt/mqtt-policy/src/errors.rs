@@ -5,9 +5,6 @@ pub enum Error {
     #[error("One or several errors occurred validating MQTT broker policy definition: {0:?}.")]
     ValidationSummary(Vec<Error>),
 
-    #[error("Unsupported schema version: {0}")]
-    UnsupportedVersion(String),
-
     #[error("Identities list must not be empty")]
     EmptyIdentities,
 
