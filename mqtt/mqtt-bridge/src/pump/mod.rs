@@ -164,7 +164,7 @@ impl<M> MessagesProcessorShutdownHandle<M> {
 pub trait PumpMessageHandler {
     type Message;
 
-    async fn handle(&self, message: Self::Message);
+    async fn handle(&mut self, message: Self::Message);
 }
 
 struct MessagesProcessor<M>

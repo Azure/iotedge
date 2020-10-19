@@ -83,8 +83,11 @@ impl Builder {
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tls(config, handler);
+        let publish_handle = client
+            .publish_handle()
+            .map_err(BridgeError::PublishHandle)?;
 
-        let handler = LocalUpstreamPumpEventHandler;
+        let handler = LocalUpstreamPumpEventHandler::new(publish_handle);
         let pump_handle = PumpHandle::new(local_messages_send.clone());
         let messages = MessagesProcessor::new(handler, local_messages_recv, pump_handle);
 
