@@ -1,7 +1,7 @@
 use std::{any::Any, cell::RefCell, collections::HashMap, error::Error as StdError, fmt};
 
 use serde::{Deserialize, Serialize};
-use tracing::debug;
+use tracing::info;
 
 use mqtt_broker::{
     auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
@@ -263,14 +263,14 @@ where
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
         match update.downcast::<AuthorizerUpdate>() {
             Ok(update) => {
-                debug!("authorizer update received. Identities: {:?}", update);
-
                 // update identities cache
                 self.identities_cache = update
                     .0
                     .into_iter()
                     .map(|id| (id.identity().into(), id))
                     .collect();
+
+                info!("edgehub authorizer has been updated.");
 
                 // signal that authorizer has been initialized
                 if let Some(mut broker_ready) = self.broker_ready.take() {
