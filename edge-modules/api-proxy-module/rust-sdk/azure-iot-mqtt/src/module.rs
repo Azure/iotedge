@@ -235,7 +235,9 @@ impl futures_core::Stream for Client {
 								if *acked == this.num_default_subscriptions {
 									this.state = State::Idle;
 								}
-							},
+                            },
+
+                            std::task::Poll::Ready(Some(Ok(mqtt3::Event::Disconnected(_)))) => (),
 
 							std::task::Poll::Ready(Some(Err(err))) => return std::task::Poll::Ready(Some(Err(err))),
 
@@ -277,7 +279,9 @@ impl futures_core::Stream for Client {
 						},
 
 						// Don't expect any subscription updates at this point
-						std::task::Poll::Ready(Some(Ok(mqtt3::Event::SubscriptionUpdates(_)))) => unreachable!(),
+                        std::task::Poll::Ready(Some(Ok(mqtt3::Event::SubscriptionUpdates(_)))) => unreachable!(),
+
+                        std::task::Poll::Ready(Some(Ok(mqtt3::Event::Disconnected(_)))) => continue,
 
 						std::task::Poll::Ready(Some(Err(err))) => return std::task::Poll::Ready(Some(Err(err))),
 

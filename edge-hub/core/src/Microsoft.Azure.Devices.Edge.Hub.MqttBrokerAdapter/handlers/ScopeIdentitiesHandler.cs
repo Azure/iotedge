@@ -50,11 +50,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task ServiceIdentitiesUpdated(IList<string> serviceIdentities)
         {
-            var deviceScopeIdentitiesCache = await this.deviceScopeIdentitiesCacheGetter;
-            using (await this.cacheUpdate.LockAsync())
+            try
             {
-                IList<BrokerServiceIdentity> brokerServiceIdentities = await ConvertIdsToBrokerServiceIdentities(serviceIdentities, deviceScopeIdentitiesCache);
-                await this.PublishBrokerServiceIdentities(brokerServiceIdentities);
+                var deviceScopeIdentitiesCache = await this.deviceScopeIdentitiesCacheGetter;
+                using (await this.cacheUpdate.LockAsync())
+                {
+                    IList<BrokerServiceIdentity> brokerServiceIdentities = await ConvertIdsToBrokerServiceIdentities(serviceIdentities, deviceScopeIdentitiesCache);
+                    await this.PublishBrokerServiceIdentities(brokerServiceIdentities);
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorPublishingIdentities(ex);
             }
         }
 
