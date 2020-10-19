@@ -3,7 +3,7 @@ use std::{collections::HashSet, fmt::Display, hash::Hash};
 use tokio::sync::broadcast::{self, Receiver, RecvError, Sender};
 use tracing::{debug, error, warn};
 
-/// `BrokerReady` component acts as a intermidiate entity to determine whether
+/// `BrokerReady` component acts as a intermediate entity to determine whether
 /// `Broker` is ready to serve external clients. It awaits on several events
 /// from components Broker depends on.
 ///
@@ -45,7 +45,7 @@ where
     E: Clone + Display,
 {
     pub fn send(&mut self, event: E) {
-        debug!("sending broker ready event {}", event);
+        debug!("sending broker ready event: {}", event);
         if self.0.send(event).is_err() {
             error!("no active receiver found")
         }
@@ -95,7 +95,10 @@ pub trait AwaitingEvents {
 /// Broker readiness events.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BrokerReadyEvent {
+    /// Signals that `EdgeHubAuthorizer` is ready.
     AuthorizerReady,
+    /// Signals that `PolicyAuthorizer` is ready.
+    PolicyReady,
 }
 
 impl AwaitingEvents for BrokerReadyEvent {
@@ -104,6 +107,7 @@ impl AwaitingEvents for BrokerReadyEvent {
     fn awaiting() -> HashSet<Self::Event> {
         let mut awaiting = HashSet::new();
         awaiting.insert(Self::AuthorizerReady);
+        awaiting.insert(Self::PolicyReady);
 
         awaiting
     }
@@ -113,6 +117,7 @@ impl Display for BrokerReadyEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::AuthorizerReady => write!(f, "Authorizer Ready"),
+            Self::PolicyReady => write!(f, "Policy Ready"),
         }
     }
 }

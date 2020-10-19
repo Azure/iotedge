@@ -267,7 +267,7 @@ translate_c2d! {
         },
         to_external {
             format!("\\$edgehub/{}/{}/inputs/(?P<path>.+)", DEVICE_ID, MODULE_ID),
-            {|captures: regex::Captures<'_>| format!("devices/{}/modules/{}/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
+            {|captures: regex::Captures<'_>| format!("devices/{}/modules/{}/inputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
         }
     }
 }
@@ -524,7 +524,7 @@ mod tests {
                 "$edgehub/device_1/module_a/inputs/route_1/%24.cdid=device_1&%24.cmid=module_a"
             ),
             Some(
-                "devices/device_1/modules/module_a/route_1/%24.cdid=device_1&%24.cmid=module_a"
+                "devices/device_1/modules/module_a/inputs/route_1/%24.cdid=device_1&%24.cmid=module_a"
                     .to_owned()
             )
         );

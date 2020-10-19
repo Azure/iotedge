@@ -6,8 +6,9 @@ use tracing::{debug, info};
 use mqtt3::Event;
 
 use crate::{
-    bridge::{BridgeError, ConnectivityState, PumpHandle, PumpMessage},
+    bridge::BridgeError,
     client::{EventHandler, Handled},
+    pump::{ConnectivityState, PumpHandle, PumpMessage},
 };
 
 /// Handles connection and disconnection events and sends a notification when status changes
@@ -81,8 +82,8 @@ mod tests {
     use mqtt3::{proto::QoS, proto::SubscribeTo, ConnectionError, Event, SubscriptionUpdateEvent};
     use tokio::sync::{mpsc, mpsc::error::TryRecvError};
 
-    use crate::bridge::{ConnectivityState, PumpMessage};
     use crate::client::Handled;
+    use crate::pump::{ConnectivityState, PumpMessage};
 
     use super::*;
 
