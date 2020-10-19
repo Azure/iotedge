@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Security.Cryptography.X509Certificates;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Common.Security;
@@ -39,6 +41,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             IClientCredentials clientCredentials;
             X509Certificate2 clientCertificate = await context.Connection.GetClientCertificateAsync();
+
+            if (clientCertificate == null)
+            {
+                // If the connection came through the API proxy, the client cert
+                // would have been forwarded in a custom header
+                if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
+                {
+                    string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
+
+                    try
+                    {
+                        var clientCertificateBytes = Encoding.UTF8.GetBytes(clientCertString);
+                        clientCertificate = new X509Certificate2(clientCertificateBytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        return new HttpAuthResult(false, Events.AuthenticationFailed($"Invalid client certificate: {ex.Message}"));
+                    }
+                }
+            }
 
             if (clientCertificate != null)
             {

@@ -33,7 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
             public const string StorageMaxOpenFiles = "RocksDB_MaxOpenFiles";
             public const string StorageLogLevel = "Storage_LogLevel";
-            public const string NestedEdgeEnabled = "NestedEdgeEnabled";
+            public const string ExperimentalFeatures = "experimentalFeatures";
+            public const string NestedEdgeEnabled = "nestedEdgeEnabled";
+            public const string MqttBrokerEnabled = "mqttBrokerEnabled";
         }
     }
 }
