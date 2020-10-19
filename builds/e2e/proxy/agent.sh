@@ -3,26 +3,15 @@
 set -euo pipefail
 
 user="$1"
-encoded_key="$2"
-subnet_address_prefix="$3"
-
-# set up SSH private key
-echo "Creating SSH private key for user '$user'"
-
-home="$(eval echo ~$user)"
-mkdir -p "$home/.ssh"
-echo -e "$encoded_key" | base64 -d > "$home/.ssh/id_rsa"
-chown -R "$user:$user" "$home/.ssh"
-chmod 700 "$home/.ssh"
-chmod 600 "$home/.ssh/id_rsa"
+subnet_address_prefix="$2"
 
 # install/configure squid
-echo "Installing squid"
+echo 'Installing squid'
 
 apt-get update
 apt-get install -y jq squid
 
-echo "Configuring squid"
+echo 'Configuring squid'
 
 > ~/squid.conf cat <<-EOF
 acl localnet src $subnet_address_prefix

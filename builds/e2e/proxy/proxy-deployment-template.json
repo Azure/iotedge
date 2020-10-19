@@ -2,66 +2,70 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"vms_ssh_key_encoded": {
-			"type": "securestring"
-		},
 		"vms_ssh_public_key": {
 			"type": "string"
 		},
-		"vms_username": {
+		"username": {
 			"type": "string"
 		},
-		"vms_vnet_address_prefix": {
+		"vnet_address_prefix": {
 			"type": "string"
 		},
-		"vms_vnet_name": {
+		"vnet_name": {
 			"type": "string"
 		},
-		"vms_vnet_subnet_name": {
+		"subnet_name": {
 			"type": "string"
 		},
-		"vsts_agent_vm_name": {
+		"proxy_vm_name": {
 			"type": "string"
 		},
-		"vsts_runner1_vm_name": {
+		"runner_vm_name": {
 			"type": "string"
 		},
-		"vsts_agent_vm_size": {
+		"proxy_vm_size": {
 			"defaultValue": "Standard_DS1_v2",
 			"type": "string"
 		},
-		"vsts_runner1_vm_size": {
+		"runner_vm_size": {
 			"defaultValue": "Standard_D2s_v3",
+			"type": "string"
+		},
+		"proxy_config_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_proxy.sh",
+			"type": "string"
+		},
+		"create_linux_vm_template_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create-linux-vm-template.json",
+			"type": "string"
+		},
+		"runner_config_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_runner.sh",
 			"type": "string"
 		}
 	},
 	"variables": {
-		"vsts_agent_nic_name": "[concat(variables('vsts_agent_vm_name')), '-nic']",
-		"vsts_runner1_nic_name": "[concat(variables('vsts_runner1_vm_name')), '-nic']",
-		"vsts_agent_nsg_name": "[concat(variables('vsts_agent_vm_name')), '-nsg']",
-		"vsts_runner1_nsg_name": "[concat(variables('vsts_runner1_vm_name')), '-nsg']",
-		"agent_prep1_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/agent.sh",
-		"agent_prep2_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/agent_final.sh",
-		"create_linux_vm_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create-linux-vm-template.json",
-		"finalize_agent_template_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/finalize-agent-template.json",
-		"runner1_prep_script_uri": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/runner.sh",
+		"proxy_nic_name": "[concat(variables('proxy_vm_name')), '-nic']",
+		"runner_nic_name": "[concat(variables('runner_vm_name')), '-nic']",
+		"proxy_nsg_name": "[concat(variables('proxy_vm_name')), '-nsg']",
+		"runner_nsg_name": "[concat(variables('runner_vm_name')), '-nsg']"
 	},
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
-		"name": "[parameters('vms_vnet_name')]",
+		"name": "[parameters('vnet_name')]",
 		"apiVersion": "2018-10-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"addressSpace": {
 				"addressPrefixes": [
-					"[parameters('vms_vnet_address_prefix')]"
+					"[parameters('vnet_address_prefix')]"
 				]
 			},
 			"subnets": [
 				{
-					"name": "[parameters('vms_vnet_subnet_name')]",
+					"name": "[parameters('subnet_name')]",
 					"properties": {
-						"addressPrefix": "[parameters('vms_vnet_address_prefix')]"
+						"addressPrefix": "[parameters('vnet_address_prefix')]"
 					}
 				}
 			]
@@ -69,7 +73,7 @@
 		"dependsOn": []
 	}, {
 		"type": "Microsoft.Network/networkSecurityGroups",
-		"name": "[variables('vsts_agent_nsg_name')]",
+		"name": "[variables('proxy_nsg_name')]",
 		"apiVersion": "2018-02-01",
 		"location": "[resourceGroup().location]",
 		"scale": null,
@@ -157,7 +161,7 @@
 		"dependsOn": []
 	}, {
 		"type": "Microsoft.Network/networkSecurityGroups",
-		"name": "[variables('vsts_runner1_nsg_name')]",
+		"name": "[variables('runner_nsg_name')]",
 		"apiVersion": "2018-02-01",
 		"location": "[resourceGroup().location]",
 		"scale": null,
@@ -230,7 +234,7 @@
 		"dependsOn": []
 	}, {
 		"type": "Microsoft.Resources/deployments",
-		"name": "create_agent_vm",
+		"name": "create_proxy_vm",
 		"apiVersion": "2018-05-01",
 		"properties": {
 			"mode": "Incremental",
@@ -239,38 +243,38 @@
 			},
 			"parameters": {
 				"admin_user": {
-					"value": "[parameters('vms_username')]"
+					"value": "[parameters('username')]"
 				},
 				"extension_command": {
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_prep1_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vms_ssh_key_encoded'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name')), '2018-08-01').addressPrefix, '\"')]"
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('proxy_config_script_uri'), ' | sudo bash -s -- ', parameters('username'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name')), '2018-08-01').addressPrefix, '\"')]"
 				},
 				"nic_name": {
-					"value": "[variables('vsts_agent_nic_name')]"
+					"value": "[variables('proxy_nic_name')]"
 				},
 				"nsg_id": {
-					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('vsts_agent_nsg_name'))]"
+					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('proxy_nsg_name'))]"
 				},
 				"ssh_public_key": {
 					"value": "[parameters('vms_ssh_public_key')]"
 				},
 				"vm_name": {
-					"value": "[parameters('vsts_agent_vm_name')]"
+					"value": "[parameters('proxy_vm_name')]"
 				},
 				"vm_size": {
-					"value": "[parameters('vsts_agent_vm_size')]"
+					"value": "[parameters('proxy_vm_size')]"
 				},
 				"vnet_subnet_id": {
-					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name'))]"
 				}
 			}
 		},
 		"dependsOn": [
-			"[variables('vsts_agent_nsg_name')]",
-			"[parameters('vms_vnet_name')]"
+			"[variables('proxy_nsg_name')]",
+			"[parameters('vnet_name')]"
 		]
 	}, {
 		"type": "Microsoft.Resources/deployments",
-		"name": "create_runner1_vm",
+		"name": "create_runner_vm",
 		"apiVersion": "2018-05-01",
 		"properties": {
 			"mode": "Incremental",
@@ -279,57 +283,35 @@
 			},
 			"parameters": {
 				"admin_user": {
-					"value": "[parameters('vms_username')]"
+					"value": "[parameters('username')]"
 				},
 				"extension_command": {
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', parameters('vsts_agent_vm_name'), ':3128 ', variables('runner1_prep_script_uri'), ' | sudo bash -s -- ', parameters('vsts_agent_vm_name'), ' ', parameters('vms_username'), '\"')]"
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', parameters('proxy_vm_name'), ':3128 ', variables('runner_config_script_uri'), ' | sudo bash -s -- ', parameters('proxy_vm_name'), '\"')]"
 				},
 				"nic_name": {
-					"value": "[variables('vsts_runner1_nic_name')]"
+					"value": "[variables('runner_nic_name')]"
 				},
 				"nsg_id": {
-					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('vsts_runner1_nsg_name'))]"
+					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('runner_nsg_name'))]"
 				},
 				"ssh_public_key": {
 					"value": "[parameters('vms_ssh_public_key')]"
 				},
 				"vm_name": {
-					"value": "[parameters('vsts_runner1_vm_name')]"
+					"value": "[parameters('runner_vm_name')]"
 				},
 				"vm_size": {
-					"value": "[parameters('vsts_runner1_vm_size')]"
+					"value": "[parameters('runner_vm_size')]"
 				},
 				"vnet_subnet_id": {
-					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vms_vnet_name'), parameters('vms_vnet_subnet_name'))]"
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name'))]"
 				}
 			}
 		},
 		"dependsOn": [
-			"[variables('vsts_runner1_nsg_name')]",
-			"[parameters('vms_vnet_name')]",
-			"create_agent_vm"
-		]
-	}, {
-		"type": "Microsoft.Resources/deployments",
-		"name": "finalize_agent_deployment",
-		"apiVersion": "2018-05-01",
-		"properties": {
-			"mode": "Incremental",
-			"templateLink": {
-				"uri": "[variables('finalize_agent_template_uri')]"
-			},
-			"parameters": {
-				"extension_command": { 
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('agent_prep2_script_uri'), ' | sudo bash -s -- ', parameters('vms_username'), ' ', parameters('vsts_runner1_vm_name'), ' ''', trim(reference('create_runner1_vm').outputs.hostkey.value[0]), '''\"')]"
-						},
-				"vm_name": {
-					"value": "[parameters('vsts_agent_vm_name')]"
-					}
-			}
-		},
-		"dependsOn": [
-			"create_agent_vm",
-			"create_runner1_vm"
+			"[variables('runner_nsg_name')]",
+			"[parameters('vnet_name')]",
+			"create_proxy_vm"
 		]
 	}]
 }
