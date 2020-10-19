@@ -20,19 +20,6 @@ apt-get update
 add-apt-repository universe
 apt-get install -y powershell dotnet-sdk-3.1
 
-echo 'Installing Azure Pipelines agent'
-
-wget -q $agent_url
-mkdir myagent
-cd myagent
-tar zxvf ../$agent_file
-
-# TODO: script the agent config process?
-# proxy_fqdn="http://${1}.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
-# ./config.sh --proxyurl $proxy_fqdn
-# ./svc.sh install
-# ./svc.sh start
-
 echo 'Installing Moby engine'
 
 curl -x $proxy 'https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list' > microsoft-prod.list
