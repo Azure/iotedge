@@ -42,7 +42,6 @@ impl Command for AuthorizedIdentitiesCommand {
             .send(message)
             .map_err(Error::SendAuthorizedIdentitiesToBroker)?;
 
-        info!("succeeded sending authorized identity scopes to broker",);
         Ok(())
     }
 }
