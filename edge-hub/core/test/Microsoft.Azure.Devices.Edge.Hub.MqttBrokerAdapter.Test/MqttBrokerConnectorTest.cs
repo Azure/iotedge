@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             broker.Dispose();
         }
 
-        [Fact]
+        [Fact(Skip = "Temporarily disabling while we investigate what is wrong. This test is flaky")]
         public async Task WhenStartedThenSubscribesForConsumers()
         {
             using var broker = new MiniMqttServer(PORT);
