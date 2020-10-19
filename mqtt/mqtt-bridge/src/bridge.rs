@@ -46,7 +46,7 @@ impl Bridge {
         device_id: String,
         connection_settings: ConnectionSettings,
     ) -> Result<Self, BridgeError> {
-        debug!("creating bridge...{}", connection_settings.name());
+        debug!("creating bridge {}...", connection_settings.name());
 
         let mut pumps = PumpPair::new(
             &connection_settings,
@@ -67,7 +67,7 @@ impl Bridge {
             .instrument(info_span!("pump", name = "remote"))
             .await?;
 
-        debug!("created bridge...{}", connection_settings.name());
+        debug!("created {} bridge...", connection_settings.name());
         Ok(Bridge {
             pumps,
             connection_settings,
@@ -75,7 +75,7 @@ impl Bridge {
     }
 
     pub async fn run(mut self) -> Result<(), BridgeError> {
-        info!("Starting {} bridge...", self.connection_settings.name());
+        info!("starting {} bridge...", self.connection_settings.name());
 
         let (local_shutdown, local_shutdown_listener) = oneshot::channel::<()>();
         let (remote_shutdown, remote_shutdown_listener) = oneshot::channel::<()>();
@@ -98,7 +98,7 @@ impl Bridge {
         pin_mut!(local_pump, remote_pump);
 
         debug!(
-            "Starting pumps for {} bridge...",
+            "starting pumps for {} bridge...",
             self.connection_settings.name()
         );
         match select(local_pump, remote_pump).await {
@@ -110,7 +110,7 @@ impl Bridge {
             }
         }
 
-        debug!("Bridge {} stopped...", self.connection_settings.name());
+        debug!("bridge {} stopped...", self.connection_settings.name());
         Ok(())
     }
 }

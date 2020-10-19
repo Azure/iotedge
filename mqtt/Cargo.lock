@@ -1196,6 +1196,7 @@ dependencies = [
  "lazy_static",
  "matches",
  "mockito",
+ "mqtt-bridge",
  "mqtt-broker",
  "mqtt-broker-tests-util",
  "mqtt-policy",
