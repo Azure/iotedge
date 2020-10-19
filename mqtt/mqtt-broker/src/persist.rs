@@ -551,6 +551,7 @@ mod tests {
 
     proptest! {
         #[test]
+        #[cfg(target_pointer_width = "64")]
         fn consolidate_simple(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
 
@@ -569,6 +570,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(target_pointer_width = "64")]
         fn consolidate_roundtrip(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
             let format = VersionedFileFormat;
