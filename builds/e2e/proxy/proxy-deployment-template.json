@@ -31,7 +31,11 @@
 			"defaultValue": "Standard_D2s_v3",
 			"type": "string"
 		},
-		"create_linux_vm_template_uri": {
+		"create_runner_public_ip": {
+			"defaultValue": "false",
+			"type": "bool"
+		},
+		"linux_vm_creation_template_uri": {
 			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create-linux-vm-template.json",
 			"type": "string"
 		},
@@ -239,7 +243,7 @@
 		"properties": {
 			"mode": "Incremental",
 			"templateLink": {
-				"uri": "[parameters('create_linux_vm_template_uri')]"
+				"uri": "[parameters('linux_vm_creation_template_uri')]"
 			},
 			"parameters": {
 				"admin_user": {
@@ -279,7 +283,7 @@
 		"properties": {
 			"mode": "Incremental",
 			"templateLink": {
-				"uri": "[parameters('create_linux_vm_template_uri')]"
+				"uri": "[parameters('linux_vm_creation_template_uri')]"
 			},
 			"parameters": {
 				"admin_user": {
@@ -305,6 +309,9 @@
 				},
 				"vnet_subnet_id": {
 					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name'))]"
+				},
+				"ip_addr_name": {
+					"value": "[if(parameters('create_runner_public_ip'), concat(parameters('runner_vm_name'), '-ip'), '!')]"
 				}
 			}
 		},
