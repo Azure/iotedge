@@ -227,7 +227,7 @@ where
     keep_alive: Duration,
     client: Client<BridgeIoSource>,
     event_handler: H,
-    in_flight: Arc<Semaphore>,
+    in_flight: InFlightPublishHandle,
 }
 
 impl<H: EventHandler> MqttClient<H> {
@@ -238,7 +238,7 @@ impl<H: EventHandler> MqttClient<H> {
         event_handler: H,
         connection_credentials: &Credentials,
         max_in_flight: usize,
-    ) -> Self {
+    ) -> Result<Self, ClientError> {
         let token_source = Self::token_source(&connection_credentials);
         let tcp_connection = TcpConnection::new(address.to_owned(), token_source, None);
         let io_source = BridgeIoSource::Tcp(tcp_connection);
@@ -260,7 +260,7 @@ impl<H: EventHandler> MqttClient<H> {
         event_handler: H,
         connection_credentials: &Credentials,
         max_in_flight: usize,
-    ) -> Self {
+    ) -> Result<Self, ClientError> {
         let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
 
         let token_source = Self::token_source(&connection_credentials);
@@ -284,7 +284,7 @@ impl<H: EventHandler> MqttClient<H> {
         connection_credentials: &Credentials,
         io_source: BridgeIoSource,
         max_in_flight: usize,
-    ) -> Self {
+    ) -> Result<Self, ClientError> {
         let (client_id, username) = match connection_credentials {
             Credentials::Provider(provider_settings) => (
                 format!(
@@ -319,9 +319,10 @@ impl<H: EventHandler> MqttClient<H> {
             keep_alive,
         );
 
-        let in_flight = Arc::new(Semaphore::new(max_in_flight));
+        let in_flight_permits = Arc::new(Semaphore::new(max_in_flight));
+        let in_flight = InFlightPublishHandle::new(client.publish_handle()?, in_flight_permits);
 
-        Self {
+        Ok(Self {
             client_id,
             username,
             io_source,
@@ -329,7 +330,7 @@ impl<H: EventHandler> MqttClient<H> {
             client,
             event_handler,
             in_flight,
-        }
+        })
     }
 
     fn token_source(connection_credentials: &Credentials) -> Option<SasTokenSource> {
@@ -349,14 +350,8 @@ impl<H: EventHandler> MqttClient<H> {
             })
     }
 
-    pub fn publish_handle(&self) -> Result<InFlightPublishHandle, ClientError> {
-        let publish_handle = self
-            .client
-            .publish_handle()
-            .map_err(ClientError::PublishHandle)?;
-        let publish_handle = InFlightPublishHandle::new(publish_handle, self.in_flight.clone());
-
-        Ok(publish_handle)
+    pub fn publish_handle(&self) -> InFlightPublishHandle {
+        self.in_flight.clone()
     }
 
     pub async fn handle_events(&mut self) {

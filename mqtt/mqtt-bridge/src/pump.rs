@@ -171,7 +171,8 @@ impl PumpPair {
                 credentials,
                 max_in_flight,
             ),
-        };
+        }
+        .map_err(BridgeError::PublishHandle)?;
 
         Ok(Pump::new(
             client,
@@ -215,9 +216,7 @@ impl Pump {
         persist: PublicationStore<WakingMemoryStore>,
         pump_type: PumpType,
     ) -> Result<Self, BridgeError> {
-        let publish_handle = client
-            .publish_handle()
-            .map_err(BridgeError::PublishHandle)?;
+        let publish_handle = client.publish_handle();
         let client_shutdown = client.shutdown_handle()?;
 
         Ok(Self {
