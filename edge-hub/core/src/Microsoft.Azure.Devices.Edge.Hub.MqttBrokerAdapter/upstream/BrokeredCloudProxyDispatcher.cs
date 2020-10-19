@@ -307,11 +307,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task WaitCompleted(Task task, string id, long rid)
         {
-            var completedTask = await Task.WhenAny(task, Task.Delay(this.responseTimeout));
-            if (completedTask != task)
+            try
+            {
+                await task.TimeoutAfter(this.responseTimeout);
+            }
+            catch (TimeoutException)
             {
                 Events.UpstreamMessageTimeout(id, rid);
-                throw new TimeoutException("Sending upstream message has timed out");
+                throw;
             }
         }
 
