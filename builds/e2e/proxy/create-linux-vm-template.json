@@ -6,7 +6,7 @@
 			"type": "string"
 		},
 		"extension_command": {
-			"type": "securestring"
+			"type": "string"
 		},
 		"nic_name": {
 			"type": "string"
