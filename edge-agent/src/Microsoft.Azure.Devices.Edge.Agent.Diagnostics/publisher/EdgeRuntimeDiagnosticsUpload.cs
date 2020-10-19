@@ -36,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             try
             {
                 await Task.WhenAll(messagesToSend.Select(this.edgeAgentConnection.SendEventAsync));
-                //// await this.edgeAgentConnection.SendEventBatchAsync(messagesToSend);
             }
             catch (Exception ex) when (ex.HasTimeoutException())
             {
