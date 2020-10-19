@@ -32,39 +32,3 @@ tar zxvf ../$agent_file
 # ./config.sh --proxyurl $proxy_fqdn
 # ./svc.sh install
 # ./svc.sh start
-
-echo 'Installing Moby engine'
-
-curl -x $proxy 'https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list' > microsoft-prod.list
-mv microsoft-prod.list /etc/apt/sources.list.d/
-
-curl -x $proxy 'https://packages.microsoft.com/keys/microsoft.asc' | gpg --dearmor > microsoft.gpg
-mv microsoft.gpg /etc/apt/trusted.gpg.d/
-
-apt-get update
-apt-get install -y moby-engine
-
-> ~/proxy-env.override.conf cat <<-EOF
-[Service]
-Environment="http_proxy=$proxy"
-Environment="https_proxy=$proxy"
-EOF
-mkdir -p /etc/systemd/system/docker.service.d/
-cp ~/proxy-env.override.conf /etc/systemd/system/docker.service.d/
-
-systemctl daemon-reload
-systemctl restart docker
-
-# add iotedged's proxy settings (even though iotedged isn't installed--the tests do that later)
-mkdir -p /etc/systemd/system/iotedge.service.d
-cp ~/proxy-env.override.conf /etc/systemd/system/iotedge.service.d/
-
-echo 'Verifying VM behavior behind proxy server'
-
-# Verify runner can use the proxy
-curl -x $proxy -L 'http://www.microsoft.com'
-curl -x $proxy -L 'https://www.microsoft.com'
-
-# Verify runner can't skirt the proxy (should time out after 5s)
-curl --connect-timeout 5 -L 'http://www.microsoft.com' && exit 1 || :
-curl --connect-timeout 5 -L 'https://www.microsoft.com' && exit 1 || :
