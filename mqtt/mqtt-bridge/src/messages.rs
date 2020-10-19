@@ -92,12 +92,12 @@ where
                     });
 
             if let Some(publication) = forward_publication {
-                debug!("Save message to store");
+                debug!("saving message to store");
                 self.store.push(publication).map_err(BridgeError::Store)?;
 
                 return Ok(Handled::Fully);
             } else {
-                warn!("No topic matched");
+                warn!("no topic matched");
             }
         }
 
