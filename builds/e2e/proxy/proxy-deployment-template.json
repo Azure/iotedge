@@ -45,10 +45,10 @@
 		}
 	},
 	"variables": {
-		"proxy_nic_name": "[concat(variables('proxy_vm_name'), '-nic')]",
-		"runner_nic_name": "[concat(variables('runner_vm_name'), '-nic')]",
-		"proxy_nsg_name": "[concat(variables('proxy_vm_name'), '-nsg')]",
-		"runner_nsg_name": "[concat(variables('runner_vm_name'), '-nsg')]"
+		"proxy_nic_name": "[concat(parameters('proxy_vm_name'), '-nic')]",
+		"runner_nic_name": "[concat(parameters('runner_vm_name'), '-nic')]",
+		"proxy_nsg_name": "[concat(parameters('proxy_vm_name'), '-nsg')]",
+		"runner_nsg_name": "[concat(parameters('runner_vm_name'), '-nsg')]"
 	},
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
@@ -239,14 +239,14 @@
 		"properties": {
 			"mode": "Incremental",
 			"templateLink": {
-				"uri": "[variables('create_linux_vm_template_uri')]"
+				"uri": "[parameters('create_linux_vm_template_uri')]"
 			},
 			"parameters": {
 				"admin_user": {
 					"value": "[parameters('username')]"
 				},
 				"extension_command": {
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', variables('proxy_config_script_uri'), ' | sudo bash -s -- ', parameters('username'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name')), '2018-08-01').addressPrefix, '\"')]"
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', parameters('proxy_config_script_uri'), ' | sudo bash -s -- ', parameters('username'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name')), '2018-08-01').addressPrefix, '\"')]"
 				},
 				"nic_name": {
 					"value": "[variables('proxy_nic_name')]"
@@ -279,14 +279,14 @@
 		"properties": {
 			"mode": "Incremental",
 			"templateLink": {
-				"uri": "[variables('create_linux_vm_template_uri')]"
+				"uri": "[parameters('create_linux_vm_template_uri')]"
 			},
 			"parameters": {
 				"admin_user": {
 					"value": "[parameters('username')]"
 				},
 				"extension_command": {
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', parameters('proxy_vm_name'), ':3128 ', variables('runner_config_script_uri'), ' | sudo bash -s -- ', parameters('proxy_vm_name'), '\"')]"
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', parameters('proxy_vm_name'), ':3128 ', parameters('runner_config_script_uri'), ' | sudo bash -s -- ', parameters('proxy_vm_name'), '\"')]"
 				},
 				"nic_name": {
 					"value": "[variables('runner_nic_name')]"
