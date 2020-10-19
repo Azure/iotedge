@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         .Map(config => config.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode())))
                         .GetOrElse(0);
                 hash = this.Authorizations
-                        .Map(config => config.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode())))
+                        .Map(config => config.Statements.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode())))
                         .GetOrElse(0);
                 return hash;
             }

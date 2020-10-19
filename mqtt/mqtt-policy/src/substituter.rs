@@ -1,4 +1,4 @@
-use mqtt_broker::auth::{Activity, Operation};
+use mqtt_broker::auth::Activity;
 use policy::{Request, Result, Substituter};
 
 #[allow(clippy::doc_markdown)]
@@ -37,7 +37,6 @@ impl MqttSubstituter {
                     crate::DEVICE_ID_VAR => replace(value, variable, extract_device_id(&context)),
                     crate::MODULE_ID_VAR => replace(value, variable, extract_module_id(&context)),
                     crate::EDGEHUB_ID_VAR => replace(value, variable, self.device_id()),
-                    crate::TOPIC_VAR => replace_topic(value, variable, context),
                     _ => value.to_string(),
                 };
             }
@@ -65,14 +64,6 @@ pub(super) fn extract_variable(value: &str) -> Option<&str> {
         }
     }
     None
-}
-
-fn replace_topic(value: &str, variable: &str, context: &Activity) -> String {
-    match context.operation() {
-        Operation::Publish(publish) => replace(value, variable, publish.publication().topic_name()),
-        Operation::Subscribe(subscribe) => replace(value, variable, subscribe.topic_filter()),
-        _ => value.to_string(),
-    }
 }
 
 fn replace(value: &str, variable: &str, substitution: &str) -> String {
@@ -224,16 +215,6 @@ mod tests {
         "test_device_client_id", 
         "namespace-edge_device-suffix"; 
         "iot:this_device_id variable substring")]
-    #[test_case("{{mqtt:topic}}", 
-        "test_device_auth_id", 
-        "test_device_client_id", 
-        "/foo/bar"; 
-        "mqtt:topic variable")]
-    #[test_case("namespace-{{mqtt:topic}}-suffix", 
-        "test_device_auth_id", 
-        "test_device_client_id", 
-        "namespace-/foo/bar-suffix"; 
-        "mqtt:topic variable substring")]
     #[test_case("{{invalid}}", 
         "test_device_auth_id", 
         "test_device_client_id", 

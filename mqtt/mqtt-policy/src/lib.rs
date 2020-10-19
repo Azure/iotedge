@@ -25,7 +25,6 @@ pub(crate) const DEVICE_ID_VAR: &str = "{{iot:device_id}}";
 pub(crate) const MODULE_ID_VAR: &str = "{{iot:module_id}}";
 pub(crate) const CLIENT_ID_VAR: &str = "{{mqtt:client_id}}";
 pub(crate) const EDGEHUB_ID_VAR: &str = "{{iot:this_device_id}}";
-pub(crate) const TOPIC_VAR: &str = "{{mqtt:topic}}";
 
 #[cfg(test)]
 mod tests {
