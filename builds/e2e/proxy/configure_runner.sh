@@ -3,23 +3,26 @@
 set -euo pipefail
 
 agent_url='https://vstsagentpackage.azureedge.net/agent/2.175.2/vsts-agent-linux-x64-2.175.2.tar.gz'
-agent_file="${agent_url##*/}"
+agent_file="$HOME/${agent_url##*/}"
 
 proxy="http://$1:3128"
 
+export http_proxy=$proxy
+export https_proxy=$proxy
+
 # install PowerShell Core and .NET Core 3.1
-http_proxy=$proxy https_proxy=$proxy apt-get update
-http_proxy=$proxy https_proxy=$proxy apt-get install -y git wget apt-transport-https
-http_proxy=$proxy https_proxy=$proxy wget -q 'https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb'
+apt-get update
+apt-get install -y git wget apt-transport-https
+wget -q 'https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb'
 dpkg -i packages-microsoft-prod.deb
-http_proxy=$proxy https_proxy=$proxy apt-get update
-http_proxy=$proxy https_proxy=$proxy add-apt-repository universe
-http_proxy=$proxy https_proxy=$proxy apt-get install -y powershell dotnet-sdk-3.1
+apt-get update
+add-apt-repository universe
+apt-get install -y powershell dotnet-sdk-3.1
 
 # install Azure Pipelines agent
-curl -x $proxy -L -o ~/vsts-agent-linux-x64-2.175.2.tar.gz $agent_url
+curl -x $proxy -L -o $agent_file $agent_url
 mkdir myagent && cd myagent
-tar zxvf ~/$agent_file
+tar zxvf $agent_file
 
 # TODO: script the agent config process?
 # proxy_fqdn="http://$1.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
@@ -34,8 +37,8 @@ mv microsoft-prod.list /etc/apt/sources.list.d/
 curl -x $proxy 'https://packages.microsoft.com/keys/microsoft.asc' | gpg --dearmor > microsoft.gpg
 mv microsoft.gpg /etc/apt/trusted.gpg.d/
 
-http_proxy=$proxy https_proxy=$proxy apt-get update
-http_proxy=$proxy https_proxy=$proxy apt-get install -y moby-engine
+apt-get update
+apt-get install -y moby-engine
 
 > ~/proxy-env.override.conf cat <<-EOF
 [Service]
