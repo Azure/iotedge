@@ -3,7 +3,7 @@
 set -euo pipefail
 
 agent_url='https://vstsagentpackage.azureedge.net/agent/2.175.2/vsts-agent-linux-x64-2.175.2.tar.gz'
-agent_file="$HOME/${agent_url##*/}"
+agent_file="${agent_url##*/}"
 
 proxy="http://$1:3128"
 
@@ -25,7 +25,7 @@ echo 'Installing Azure Pipelines agent'
 wget -q $agent_url
 mkdir myagent
 cd myagent
-tar zxvf $agent_file
+tar zxvf ../$agent_file
 
 # TODO: script the agent config process?
 # proxy_fqdn="http://$1.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
