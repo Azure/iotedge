@@ -28,7 +28,7 @@ cd myagent
 tar zxvf ../$agent_file
 
 # TODO: script the agent config process?
-# proxy_fqdn="http://$1.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
+# proxy_fqdn="http://${1}.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
 # ./config.sh --proxyurl $proxy_fqdn
 # ./svc.sh install
 # ./svc.sh start
