@@ -87,20 +87,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(clientCredentials.Identity.Id);
                 string productInfo = connectionMetadata.EdgeProductInfo;
                 Option<string> modelId = clientCredentials.ModelId.HasValue ? clientCredentials.ModelId : connectionMetadata.ModelId;
-                string authChain = string.Empty;
-                if (this.nestedEdgeEnabled)
-                {
-                    Option<string> authChainMaybe = await this.deviceScopeIdentitiesCache.GetAuthChain(clientCredentials.Identity.Id);
-                    authChain = authChainMaybe.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {clientCredentials.Identity.Id}"));
-                }
 
-                // Get the transport settings
+                // HACKHACK: Not property fix, don't check-in
                 ITransportSettings[] transportSettings = GetTransportSettings(
                     this.upstreamProtocol,
                     this.connectionPoolSize,
                     this.proxy,
                     this.useServerHeartbeat,
-                    authChain);
+                    string.Empty);
 
                 if (this.edgeHubIdentity.Id.Equals(clientCredentials.Identity.Id))
                 {
