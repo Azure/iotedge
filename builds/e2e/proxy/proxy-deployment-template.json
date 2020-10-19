@@ -2,7 +2,7 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"vms_ssh_public_key": {
+		"ssh_public_key": {
 			"type": "string"
 		},
 		"username": {
@@ -255,7 +255,7 @@
 					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('proxy_nsg_name'))]"
 				},
 				"ssh_public_key": {
-					"value": "[parameters('vms_ssh_public_key')]"
+					"value": "[parameters('ssh_public_key')]"
 				},
 				"vm_name": {
 					"value": "[parameters('proxy_vm_name')]"
@@ -295,7 +295,7 @@
 					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('runner_nsg_name'))]"
 				},
 				"ssh_public_key": {
-					"value": "[parameters('vms_ssh_public_key')]"
+					"value": "[parameters('ssh_public_key')]"
 				},
 				"vm_name": {
 					"value": "[parameters('runner_vm_name')]"

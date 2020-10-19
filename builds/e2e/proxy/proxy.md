@@ -9,7 +9,7 @@ The environment includes two VMs, both running Ubuntu 18.04:
 Enter the commands below in your shell to deploy and configure the VMs. The commands use the Azure CLI (`az`). As part of the deployment, the proxy client will run a few commands to verify that it has no direct HTTP connectivity to the internet.
 
 ```sh
-cd ./builds/e2e/proxy/
+cd builds/e2e/proxy/
 
 # ----------
 # Parameters
