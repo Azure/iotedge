@@ -59,7 +59,7 @@ pub fn channel<M>() -> (PumpHandle<M>, mpsc::Receiver<PumpMessage<M>>) {
 #[error("unable to send command to pump")]
 pub struct PumpError;
 
-/// Pump used to connect to either local broker or remote brokers (including the upstream edge device)
+/// Pump is used to connect to either local broker or remote brokers (including the upstream edge device)
 /// It contains an mqtt client that connects to a local/remote broker
 /// After connection there are two simultaneous processes:
 /// 1) persist incoming messages into an ingress store to be used by another pump
