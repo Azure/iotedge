@@ -122,8 +122,9 @@ where
             ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == activity.client_id() => {
-                if self.is_iothub_topic_allowed(activity.client_id(), topic)
-                    && self.check_authorized_cache(activity.client_id(), topic)
+                let iothub_topic_allowed = self.is_iothub_topic_allowed(activity.client_id(), topic);
+                let exists_in_authorized_cache = self.is_iothub_topic_allowed(activity.client_id(), topic);
+                if iothub_topic_allowed && exists_in_authorized_cache
                 {
                     Authorization::Allowed
                 } else {
@@ -131,8 +132,20 @@ where
                     if Authorization::Allowed == self.inner.authorize(activity)? {
                         Authorization::Allowed
                     } else {
+                        let iothub_topic_reason = "IoT Hub topic is not allowed. Client must access its own IoT Hub topics only";
+                        let exists_in_cache_reason = "Identity" + identity.to_string() + " does not exist in authorized cache";
+                        let reason = "";
+                        if !iothub_topic_allowed {
+                            reason += iothub_topic_allowed;
+                        }
+                        if !exists_in_authorized_cache {
+                            if reason.len() != 0 {
+                                reason = reason + " and "
+                            }
+                            reason += exists_in_cache_reason;
+                        }
                         Authorization::Forbidden(
-                            "Client must access its own IoTHub topics only".to_string(),
+                            reason,
                         )
                     }
                 }
