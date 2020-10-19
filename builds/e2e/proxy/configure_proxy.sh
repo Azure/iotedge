@@ -8,8 +8,12 @@ subnet_address_prefix="$2"
 # install/configure squid
 echo 'Installing squid'
 
-apt-get update
-apt-get install -y jq squid
+for i in `seq 3`
+do
+    sleep 5
+    apt-get update || continue
+    apt-get install -y jq squid && break
+done
 
 echo 'Configuring squid'
 
