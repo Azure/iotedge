@@ -24,9 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string MethodCallToDeviceTopicTemplate = "{0}/{1}/methods/post/{2}/?$rid={3}";
         const string MethodCallToModuleTopicTemplate = "{0}/{1}/{2}/methods/post/{3}/?$rid={4}";
 
-        const string DirectTopicPrefix = "$edgehub";
-        const string IndirectTopicPrefix = "$iothub";
-
         static readonly string[] subscriptions = new[] { MethodPostDirectModule, MethodPostDirectDevice, MethodPostIndirectModule, MethodPostIndirectDevice };
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(MethodSubscriptionForPostPattern, DeviceSubscription.Methods) };
@@ -63,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             try
             {
-                var topicPrefix = isDirectClient ? DirectTopicPrefix : IndirectTopicPrefix;
+                var topicPrefix = isDirectClient ? MqttBrokerAdapterConstants.DirectTopicPrefix : MqttBrokerAdapterConstants.IndirectTopicPrefix;
                 var result = await this.connector.SendAsync(
                                             GetMethodCallTopic(identity, request.Name, request.CorrelationId, topicPrefix),
                                             request.Data);

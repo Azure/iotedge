@@ -41,7 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly TimeSpan responseTimeout = TimeSpan.FromSeconds(30); // TODO should come from configuration
         readonly byte[] emptyArray = new byte[0];
 
-        AtomicBoolean isActive = new AtomicBoolean(false);
         long lastRid = 1;
 
         IEdgeHub edgeHub;
@@ -55,23 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public void BindEdgeHub(IEdgeHub edgeHub)
         {
             this.edgeHub = edgeHub;
-            this.isActive.Set(true);
         }
-
-        public bool IsActive => this.isActive;
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connectorGetter.SetResult(connector);
-
-        public Task<bool> OpenAsync(IIdentity identity)
-        {
-            return Task.FromResult(true);
-        }
-
-        public Task<bool> CloseAsync(IIdentity identity)
-        {
-            this.isActive.Set(false);
-            return Task.FromResult(true);
-        }
 
         public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {

@@ -15,9 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string ModuleToModleSubscriptionPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/inputs/\#$";
         const string ModuleToModleTopicTemplate = @"{0}/{1}/{2}/inputs/{3}/{4}";
 
-        const string DirectTopicPrefix = "$edgehub";
-        const string IndirectTopicPrefix = "$iothub";
-
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(ModuleToModleSubscriptionPattern, DeviceSubscription.ModuleMessages) };
 
         IMqttBrokerConnector connector;
@@ -35,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             bool result;
             try
             {
-                var topicPrefix = isDirectClient ? DirectTopicPrefix : IndirectTopicPrefix;
+                var topicPrefix = isDirectClient ? MqttBrokerAdapterConstants.DirectTopicPrefix : MqttBrokerAdapterConstants.IndirectTopicPrefix;
                 var propertyBag = GetPropertyBag(message);
                 result = await this.connector.SendAsync(
                                                 GetMessageToMessageTopic(identity, input, propertyBag, topicPrefix),

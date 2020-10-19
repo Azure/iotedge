@@ -35,9 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string DesiredUpdateDevice = "{0}/{1}/twin/desired/?$version={2}";
         const string DesiredUpdateModule = "{0}/{1}/{2}/twin/desired/?$version={3}";
 
-        const string DirectTopicPrefix = "$edgehub";
-        const string IndirectTopicPrefix = "$iothub";
-
         static readonly string[] subscriptions = new[]
                                                  {
                                                     TwinGetDirectDevice, TwinGetDirectModule, TwinUpdateDirectDevice, TwinUpdateDirectModule,
@@ -85,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public async Task SendTwinUpdate(IMessage twin, IIdentity identity, bool isDirectClient)
         {
-            var topicPrefix = isDirectClient ? DirectTopicPrefix : IndirectTopicPrefix;
+            var topicPrefix = isDirectClient ? MqttBrokerAdapterConstants.DirectTopicPrefix : MqttBrokerAdapterConstants.IndirectTopicPrefix;
             var statusCode = string.Empty;
             var correlationId = string.Empty;
 
@@ -126,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public async Task SendDesiredPropertiesUpdate(IMessage desiredProperties, IIdentity identity, bool isDirectClient)
         {
-            var topicPrefix = isDirectClient ? DirectTopicPrefix : IndirectTopicPrefix;
+            var topicPrefix = isDirectClient ? MqttBrokerAdapterConstants.DirectTopicPrefix : MqttBrokerAdapterConstants.IndirectTopicPrefix;
 
             if (!desiredProperties.SystemProperties.TryGetValue(SystemProperties.Version, out var version))
             {

@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         BrokeredCloudProxyDispatcher cloudProxyDispatcher;
         IIdentity identity;
 
+        AtomicBoolean isActive = new AtomicBoolean(true);
         AtomicBoolean twinNeedsSubscribe = new AtomicBoolean(true);
 
         public BrokeredCloudProxy(IIdentity identity, BrokeredCloudProxyDispatcher cloudProxyDispatcher)
@@ -24,10 +25,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             this.cloudProxyDispatcher = Preconditions.CheckNotNull(cloudProxyDispatcher);
         }
 
-        public bool IsActive => this.cloudProxyDispatcher.IsActive;
+        public bool IsActive => this.isActive;
 
-        public Task<bool> CloseAsync() => this.cloudProxyDispatcher.CloseAsync(this.identity);
-        public Task<bool> OpenAsync() => this.cloudProxyDispatcher.OpenAsync(this.identity);
+        public Task<bool> CloseAsync()
+        {
+            this.isActive.Set(false);
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> OpenAsync() => Task.FromResult(true);
         public Task RemoveCallMethodAsync() => this.cloudProxyDispatcher.RemoveCallMethodAsync(this.identity);
         public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.RemoveDesiredPropertyUpdatesAsync(this.identity);
         public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => this.cloudProxyDispatcher.SendFeedbackMessageAsync(this.identity, messageId, feedbackStatus);
