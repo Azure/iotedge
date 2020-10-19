@@ -19,13 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
     [Unit]
     public class EdgeRuntimeDiagnosticsUploadTest
     {
-        List<Message> lastUploadResult;
+        List<Message> lastUploadResult = new List<Message>();
         IEdgeAgentConnection mockConnection;
 
         public EdgeRuntimeDiagnosticsUploadTest()
         {
             var connectionMock = new Mock<IEdgeAgentConnection>();
-            connectionMock.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Callback((Action<Message>)(message => this.lastUploadResult.Append(message))).Returns(Task.CompletedTask);
+            connectionMock.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Callback((Action<Message>)(message => this.lastUploadResult.Add(message))).Returns(Task.CompletedTask);
 
             this.mockConnection = connectionMock.Object;
         }
