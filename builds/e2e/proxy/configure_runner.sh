@@ -13,7 +13,7 @@ export https_proxy=$proxy
 echo 'Installing PowerShell Core and .NET Core 3.1'
 
 apt-get update
-apt-get install -y git wget apt-transport-https
+apt-get install -y curl git wget apt-transport-https
 wget -q 'https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb'
 dpkg -i packages-microsoft-prod.deb
 apt-get update
