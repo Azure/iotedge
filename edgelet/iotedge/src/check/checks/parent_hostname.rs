@@ -1,3 +1,5 @@
+use std::{net::IpAddr, str::FromStr};
+
 use failure::{self, Context};
 
 use edgelet_core::{self, RuntimeSettings};
@@ -42,6 +44,11 @@ impl ParentHostname {
             };
 
         self.config_parent_hostname = Some(config_parent_hostname.to_owned());
+
+        if IpAddr::from_str(&config_parent_hostname).is_ok() {
+            //We can only check that it is a valid IP
+            return Ok(CheckResult::Ok);
+        }
 
         // Some software like the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.

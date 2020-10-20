@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use std::{ffi::CStr, net::IpAddr, str::FromStr};
 
 #[cfg(unix)]
 use failure::Fail;
@@ -40,6 +40,12 @@ impl Hostname {
 
         let config_hostname = settings.hostname();
         self.config_hostname = Some(config_hostname.to_owned());
+
+        if IpAddr::from_str(&config_hostname).is_ok() {
+            self.machine_hostname = self.config_hostname.clone();
+            //We can only check that it is a valid IP
+            return Ok(CheckResult::Ok);
+        }
 
         let machine_hostname = unsafe {
             let mut result = vec![0_u8; 256];

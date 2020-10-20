@@ -11,7 +11,7 @@ use futures_util::{
 };
 use tracing::{error, info};
 
-use mqtt_broker::{FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat};
+use mqtt_broker::{BrokerReady, FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat};
 
 use crate::broker::snapshot::start_snapshotter;
 
@@ -31,7 +31,9 @@ where
     let state = persistor.load().await?;
     info!("state loaded.");
 
-    let broker = bootstrap::broker(settings.broker(), state).await?;
+    let broker_ready = BrokerReady::new();
+
+    let broker = bootstrap::broker(settings.broker(), state, &broker_ready).await?;
     let mut broker_handle = broker.handle();
 
     let snapshot_interval = persistence_config.time_interval();
@@ -41,13 +43,16 @@ where
     let shutdown_signal = shutdown::shutdown();
 
     // start broker
-    let server_join_handle =
-        tokio::spawn(bootstrap::start_server(settings, broker, shutdown_signal));
+    let server_join_handle = tokio::spawn(bootstrap::start_server(
+        settings,
+        broker,
+        shutdown_signal,
+        broker_ready,
+    ));
 
     // start sidecars if they should run
     // if not wait for server shutdown
-    let state;
-    if let Some(sidecar_manager) =
+    let state = if let Some(sidecar_manager) =
         bootstrap::start_sidecars(broker_handle.clone(), listener_settings).await?
     {
         // wait on future for sidecars or broker
@@ -55,7 +60,7 @@ where
         let sidecar_shutdown_handle = sidecar_manager.shutdown_handle();
         let sidecars_fut = sidecar_manager.wait_for_shutdown();
         pin_mut!(sidecars_fut);
-        state = match select(server_join_handle, sidecars_fut).await {
+        match select(server_join_handle, sidecars_fut).await {
             // server finished first
             Either::Left((server_output, sidecars_fut)) => {
                 // shutdown sidecars
@@ -67,7 +72,7 @@ where
                 }
 
                 // extract state from server
-                server_output??
+                server_output
             }
             // sidecars finished first
             Either::Right((_, server_join_handle)) => {
@@ -75,14 +80,12 @@ where
                 broker_handle.send(Message::System(SystemEvent::Shutdown))?;
 
                 // extract state from server
-                let server_output = server_join_handle.await;
-                server_output??
+                server_join_handle.await
             }
-        };
+        }
     } else {
-        let server_output = server_join_handle.await;
-        state = server_output??;
-    }
+        server_join_handle.await
+    }??;
 
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;

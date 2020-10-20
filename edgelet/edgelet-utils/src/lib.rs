@@ -18,7 +18,7 @@ pub mod macros;
 mod ser_de;
 mod yaml_file_source;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, net::IpAddr, str::FromStr};
 
 pub use crate::error::{Error, ErrorKind};
 pub use crate::logging::log_failure;
@@ -82,10 +82,12 @@ pub fn prepare_dns_san_entries<'a>(
 }
 
 pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
-    let mut dns_sans = names
+    let mut dns_ip_sans = names
         .iter()
         .filter_map(|name| {
-            if name.trim().is_empty() {
+            if IpAddr::from_str(name).is_ok() {
+                Some(format!("IP:{}", name))
+            } else if name.trim().is_empty() {
                 None
             } else {
                 Some(name.to_lowercase())
@@ -93,7 +95,7 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
         })
         .collect::<Vec<String>>()
         .join(", ");
-    dns_sans.push_str(", ");
-    dns_sans.push_str(sans);
-    dns_sans
+    dns_ip_sans.push_str(", ");
+    dns_ip_sans.push_str(sans);
+    dns_ip_sans
 }

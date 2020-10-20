@@ -27,9 +27,9 @@ pub const PROTOCOL_LEVEL: u8 = 0x04;
 
 mod client;
 pub use client::{
-    Client, Error, Event, IoSource, PublishError, PublishHandle, ReceivedPublication,
-    ShutdownError, ShutdownHandle, SubscriptionUpdateEvent, UpdateSubscriptionError,
-    UpdateSubscriptionHandle,
+    Client, ConnectionError, Error, Event, IoSource, MockPublishHandle,
+    MockUpdateSubscriptionHandle, PublishError, PublishHandle, ReceivedPublication, ShutdownError,
+    ShutdownHandle, SubscriptionUpdateEvent, UpdateSubscriptionError, UpdateSubscriptionHandle,
 };
 
 mod logging_framed;

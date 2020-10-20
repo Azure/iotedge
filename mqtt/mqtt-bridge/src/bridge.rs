@@ -1,17 +1,66 @@
-use std::{collections::HashMap, convert::TryFrom, convert::TryInto};
+#![allow(dead_code)] // TODO remove when ready
+
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    convert::TryInto,
+    fmt::{Display, Formatter, Result as FmtResult},
+};
 
 use async_trait::async_trait;
-use mqtt3::{proto::Publication, Event, ReceivedPublication};
-use mqtt_broker::TopicFilter;
+use tokio::sync::mpsc::{error::SendError, Sender};
 use tracing::{debug, info, warn};
 
+use mqtt3::{proto::Publication, Event};
+use mqtt_broker::TopicFilter;
+
 use crate::{
-    client::{ClientConnectError, EventHandler, MqttClient},
-    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    client::{ClientConnectError, EventHandler, Handled, MqttClient},
+    persist::{PersistError, PublicationStore, StreamWakeableState},
+    rpc::RpcError,
+    rpc::RpcHandler,
     settings::{ConnectionSettings, Credentials, Topic},
 };
 
 const BATCH_SIZE: usize = 10;
+
+#[derive(Debug, PartialEq)]
+pub enum PumpMessage {
+    ConnectivityUpdate(ConnectivityState),
+    ConfigurationUpdate(ConnectionSettings),
+}
+
+pub struct PumpHandle {
+    sender: Sender<PumpMessage>,
+}
+
+impl PumpHandle {
+    pub fn new(sender: Sender<PumpMessage>) -> Self {
+        Self { sender }
+    }
+
+    pub async fn send(&mut self, message: PumpMessage) -> Result<(), BridgeError> {
+        self.sender
+            .send(message)
+            .await
+            .map_err(BridgeError::SenderToPump)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ConnectivityState {
+    Connected,
+    Disconnected,
+}
+
+impl Display for ConnectivityState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Self::Connected => write!(f, "Connected"),
+            Self::Disconnected => write!(f, "Disconnected"),
+        }
+    }
+}
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 pub struct Bridge {
@@ -134,7 +183,7 @@ impl Bridge {
             )
         };
 
-        debug!("subscribe to remote {:?}", subscriptions);
+        debug!("subscribe to {:?} {:?}", address.to_owned(), subscriptions);
 
         client
             .subscribe(subscriptions)
@@ -171,22 +220,16 @@ impl TryFrom<Topic> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-struct MessageHandler<S>
-where
-    S: StreamWakeableState,
-{
+struct MessageHandler<S> {
     topic_mappers: Vec<TopicMapper>,
-    inner: PublicationStore<S>,
+    store: PublicationStore<S>,
 }
 
-impl<S> MessageHandler<S>
-where
-    S: StreamWakeableState,
-{
+impl<S> MessageHandler<S> {
     pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
-            inner: persistor,
+            store: persistor,
         }
     }
 
@@ -214,40 +257,62 @@ where
     }
 }
 
-// TODO: implement for generic
 #[async_trait]
-impl EventHandler for MessageHandler<WakingMemoryStore> {
+impl<S> EventHandler for MessageHandler<S>
+where
+    S: StreamWakeableState + Send,
+{
     type Error = BridgeError;
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), Self::Error> {
+    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
         if let Event::Publication(publication) = event {
-            let ReceivedPublication {
-                topic_name,
-                qos,
-                retain,
-                payload,
-                dup: _,
-            } = publication;
-            let forward_publication = self.transform(topic_name.as_ref()).map(|f| Publication {
-                topic_name: f,
-                qos,
-                retain,
-                payload,
-            });
+            let forward_publication =
+                self.transform(&publication.topic_name)
+                    .map(|topic_name| Publication {
+                        topic_name,
+                        qos: publication.qos,
+                        retain: publication.retain,
+                        payload: publication.payload.clone(),
+                    });
 
-            if let Some(f) = forward_publication {
+            if let Some(publication) = forward_publication {
                 debug!("Save message to store");
-                self.inner.push(f).map_err(BridgeError::Store)?;
+                self.store.push(publication).map_err(BridgeError::Store)?;
+
+                return Ok(Handled::Fully);
             } else {
                 warn!("No topic matched");
             }
         }
 
-        Ok(())
+        Ok(Handled::Skipped)
     }
 }
 
-/// Authentication error.
+pub struct UpstreamHandler<S> {
+    messages: MessageHandler<S>,
+    rpc: RpcHandler,
+}
+
+#[async_trait]
+impl<S> EventHandler for UpstreamHandler<S>
+where
+    S: StreamWakeableState + Send,
+{
+    type Error = BridgeError;
+
+    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
+        // try to handle as RPC command first
+        if self.rpc.handle(&event).await? == Handled::Fully {
+            return Ok(Handled::Fully);
+        }
+
+        // handle as an event for regular message handler
+        self.messages.handle(&event).await
+    }
+}
+
+/// Bridge error.
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
     #[error("failed to save to store.")]
@@ -261,6 +326,12 @@ pub enum BridgeError {
 
     #[error("failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
+
+    #[error("Failed to get send pump message.")]
+    SenderToPump(#[from] SendError<PumpMessage>),
+
+    #[error("failed to execute RPC command")]
+    Rpc(#[from] RpcError),
 }
 
 #[cfg(test)]
@@ -344,12 +415,9 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler
-            .handle_event(Event::Publication(pub1))
-            .await
-            .unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.store.loader();
 
         let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
@@ -388,12 +456,9 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler
-            .handle_event(Event::Publication(pub1))
-            .await
-            .unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.store.loader();
 
         let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
@@ -432,12 +497,9 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler
-            .handle_event(Event::Publication(pub1))
-            .await
-            .unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.store.loader();
 
         let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
@@ -469,12 +531,9 @@ mod tests {
             dup: false,
         };
 
-        handler
-            .handle_event(Event::Publication(pub1))
-            .await
-            .unwrap();
+        handler.handle(&Event::Publication(pub1)).await.unwrap();
 
-        let loader = handler.inner.loader();
+        let loader = handler.store.loader();
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
         futures_util::future::select(interval.next(), loader.lock().next()).await;

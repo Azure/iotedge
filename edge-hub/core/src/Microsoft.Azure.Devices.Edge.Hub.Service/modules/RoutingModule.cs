@@ -577,11 +577,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 this.versionInfo,
                                 deviceScopeIdentitiesCache);
 
-                            return new TwinConfigSource(edgeHubConnection, edgeHubCredentials.Identity.Id, this.versionInfo, twinManager, twinMessageConverter, twinCollectionMessageConverter, routeFactory);
+                            return new TwinConfigSource(
+                                edgeHubConnection,
+                                edgeHubCredentials.Identity.Id,
+                                this.versionInfo,
+                                twinManager,
+                                twinMessageConverter,
+                                twinCollectionMessageConverter,
+                                routeFactory);
                         }
                         else
                         {
-                            return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
+                            return new LocalConfigSource(
+                                routeFactory,
+                                this.routes,
+                                this.storeAndForwardConfiguration);
                         }
                     })
                 .As<Task<IConfigSource>>()

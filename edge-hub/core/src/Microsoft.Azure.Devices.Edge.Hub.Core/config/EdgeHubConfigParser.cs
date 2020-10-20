@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
 
+    /// <summary>
+    /// Creates EdgeHubConfig out of EdgeHubDesiredProperties.
+    /// </summary>
     public class EdgeHubConfigParser
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubConfigParser>();
@@ -16,6 +19,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
 
+            ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutes(desiredProperties, routeFactory);
+
+            Option<BrokerConfig> brokerConfig = ParseBrokerConfig(desiredProperties.BrokerConfiguration);
+
+            return new EdgeHubConfig(
+                desiredProperties.SchemaVersion,
+                routes,
+                desiredProperties.StoreAndForwardConfiguration,
+                brokerConfig);
+        }
+
+        static ReadOnlyDictionary<string, RouteConfig> ParseRoutes(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)
+        {
             var routes = new Dictionary<string, RouteConfig>();
             if (desiredProperties.Routes != null)
             {
@@ -33,7 +49,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
             }
 
-            return new EdgeHubConfig(desiredProperties.SchemaVersion, new ReadOnlyDictionary<string, RouteConfig>(routes), desiredProperties.StoreAndForwardConfiguration);
+            return new ReadOnlyDictionary<string, RouteConfig>(routes);
+        }
+
+        static Option<BrokerConfig> ParseBrokerConfig(BrokerProperties configuration)
+        {
+            if (configuration != null)
+            {
+                throw new NotImplementedException();
+            }
+
+            return Option.None<BrokerConfig>();
         }
     }
 }
