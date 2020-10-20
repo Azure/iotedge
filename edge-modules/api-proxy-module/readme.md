@@ -199,7 +199,7 @@ The configuration of the API Proxy module at **any lower layer** for this scenar
 
 These settings are set by default when deploying from the [Azure Marketplace](http://aka.ms/iot-edge-marketplace).
 
-Lastly, all the module image URIs in **any lower layer** should use the domain name `$upstream` followed by the API Proxy module port number such as `$upstream:8000/api-proxy-module:1.0` 
+Lastly, all the module image URIs in **any lower layer** should use the domain name `$upstream` followed by the API Proxy module port number such as `$upstream:8000/azureiotedge-api-proxy:1.0` 
 
 ### Upload blob
 
