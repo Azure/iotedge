@@ -60,96 +60,64 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var storeAndForwardConfig6 = new StoreAndForwardConfiguration(3600);
 
             var statement1 = new Statement(
+                effect: Effect.Allow,
                 identities: new List<string>
                 {
                     "device_1"
                 },
-                allow: new List<Rule>
+                operations: new List<string>
                 {
-                    new Rule(
-                        new List<string>
-                        {
-                            "read",
-                            "write"
-                        },
-                        new List<string>
-                        {
-                            "file1",
-                            "file2"
-                        })
+                    "read",
+                    "write"
                 },
-                deny: new List<Rule>
+                resources: new List<string>
                 {
-                    new Rule(
-                        new List<string>
-                        {
-                            "read"
-                        },
-                        new List<string>
-                        {
-                            "root1",
-                            "root2"
-                        })
-                });
-            var statement2 = new Statement(
-                identities: new List<string> { "device_2" },
-                allow: new List<Rule>
-                {
-                    new Rule(
-                        new List<string>
-                        {
-                            "read",
-                        },
-                        new List<string>
-                        {
-                            "file1",
-                        })
-                },
-                deny: new List<Rule>
-                {
-                    new Rule(
-                        new List<string>
-                        {
-                            "read"
-                        },
-                        new List<string>
-                        {
-                            "root1",
-                        })
-                });
-            var statement3 = new Statement(
-                identities: new List<string> { "device_1" },
-                allow: new List<Rule>
-                {
-                    new Rule(
-                        new List<string>
-                        {
-                            "read",
-                            "write"
-                        },
-                        new List<string>
-                        {
-                            "file1",
-                            "file2"
-                        })
-                },
-                deny: new List<Rule>
-                {
-                    new Rule(
-                        new List<string>
-                        {
-                            "read"
-                        },
-                        new List<string>
-                        {
-                            "root1",
-                            "root2"
-                        })
+                    "file1",
+                    "file2"
                 });
 
-            var brokerConfig1 = new BrokerConfig(Option.None<BridgeConfig>(), Option.Some(new AuthorizationConfig { statement1 }));
-            var brokerConfig2 = new BrokerConfig(Option.None<BridgeConfig>(), Option.Some(new AuthorizationConfig { statement2 }));
-            var brokerConfig3 = new BrokerConfig(Option.None<BridgeConfig>(), Option.Some(new AuthorizationConfig { statement3 }));
+            var statement2 = new Statement(
+                effect: Effect.Deny,
+                identities: new List<string>
+                {
+                    "device_1"
+                },
+                operations: new List<string>
+                {
+                    "read"
+                },
+                resources: new List<string>
+                {
+                    "root1",
+                    "root2"
+                });
+
+            var statement3 = new Statement(
+                effect: Effect.Allow,
+                identities: new List<string>
+                {
+                    "device_1"
+                },
+                operations: new List<string>
+                {
+                    "read",
+                    "write"
+                },
+                resources: new List<string>
+                {
+                    "file1",
+                    "file2"
+                });
+
+            var brokerConfig1 = new BrokerConfig(
+                Option.None<BridgeConfig>(),
+                Option.Some(new AuthorizationConfig(new List<Statement> { statement1 })));
+            var brokerConfig2 = new BrokerConfig(
+                Option.None<BridgeConfig>(),
+                Option.Some(new AuthorizationConfig(new List<Statement> { statement2 })));
+            var brokerConfig3 = new BrokerConfig(
+                Option.None<BridgeConfig>(),
+                Option.Some(new AuthorizationConfig(new List<Statement> { statement3 })));
 
             string version = "1.0";
 
