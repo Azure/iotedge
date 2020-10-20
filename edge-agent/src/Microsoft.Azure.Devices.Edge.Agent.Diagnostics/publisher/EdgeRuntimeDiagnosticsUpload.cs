@@ -31,10 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         {
             Preconditions.CheckNotNull(metrics, nameof(metrics));
 
+            // ToArray is used at the end to ensure the batching process is only run once.
             Message[] messagesToSend = this.BatchAndBuildMessages(metrics.ToArray()).ToArray();
             try
             {
-                await this.edgeAgentConnection.SendEventBatchAsync(messagesToSend);
+                await Task.WhenAll(messagesToSend.Select(this.edgeAgentConnection.SendEventAsync));
             }
             catch (Exception ex) when (ex.HasTimeoutException())
             {
