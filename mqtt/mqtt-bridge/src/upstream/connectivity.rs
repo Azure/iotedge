@@ -1,5 +1,3 @@
-#![allow(dead_code)] // TODO remove when ready
-
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use async_trait::async_trait;
