@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public void SetConnector(IMqttBrokerConnector connector)
         {
             this.connector = connector;
-            this.connector.OnConnected += async (sender, args) => await this.OnConnect();
+            this.connector.EnsureConnected.ContinueWith(_ => this.OnConnect());
         }
 
         async Task OnConnect()

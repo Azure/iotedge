@@ -15,5 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public const int ModuleToModuleMessageHandler = EventIdStart + 400;
         public const int SubscriptionChangeHandler = EventIdStart + 450;
         public const int MessageConfirmingHandler = EventIdStart + 500;
+        public const int BrokeredCloudProxyDispatcher = EventIdStart + 550;
     }
 }
