@@ -276,11 +276,7 @@ where
 }
 
 pub trait HyperExt {
-    fn bind_url<S>(
-        &self,
-        url: Url,
-        new_service: S,
-    ) -> Result<Server<S>, Error>
+    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
     where
         S: NewService<ReqBody = Body>;
 }
@@ -288,11 +284,7 @@ pub trait HyperExt {
 // This variable is used on Unix but not Windows
 impl HyperExt for Http {
     #[cfg_attr(not(unix), allow(unused_variables))]
-    fn bind_url<S>(
-        &self,
-        url: Url,
-        new_service: S,
-    ) -> Result<Server<S>, Error>
+    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
     where
         S: NewService<ReqBody = Body>,
     {
@@ -301,16 +293,10 @@ impl HyperExt for Http {
                 let addr = url
                     .socket_addrs(|| None)
                     .context(ErrorKind::InvalidUrl(url.to_string()))?;
-                let addr = addr
-                    .iter()
-                    .next();
-                let addr = addr
-                    .ok_or_else(|| {
-                        ErrorKind::InvalidUrlWithReason(
-                            url.to_string(),
-                            InvalidUrlReason::NoAddress,
-                        )
-                    })?;
+                let addr = addr.iter().next();
+                let addr = addr.ok_or_else(|| {
+                    ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoAddress)
+                })?;
 
                 let listener = TcpListener::bind(&addr)
                     .with_context(|_| ErrorKind::BindListener(BindListenerType::Address(*addr)))?;

@@ -6,11 +6,11 @@ mod encrypt;
 mod sign;
 mod trust_bundle;
 
+use aziot_key_client::Client as KeyClient;
 use aziot_key_common::KeyHandle;
 use cert_client::client::CertificateClient;
 use edgelet_core::{
-    Authenticator, Module,
-    ModuleRuntime, ModuleRuntimeErrorReason, Policy, WorkloadConfig,
+    Authenticator, Module, ModuleRuntime, ModuleRuntimeErrorReason, Policy, WorkloadConfig,
 };
 use edgelet_http::authentication::Authentication;
 use edgelet_http::authorization::Authorization;
@@ -18,10 +18,9 @@ use edgelet_http::route::{Builder, RegexRecognizer, Router, RouterService};
 use edgelet_http::{router, Version};
 use edgelet_http_mgmt::ListModules;
 use identity_client::client::IdentityClient;
-use aziot_key_client::Client as KeyClient;
 
 use failure::{Compat, Fail, ResultExt};
-use futures::{Future, IntoFuture, future};
+use futures::{future, Future, IntoFuture};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Request};
 use serde::Serialize;
@@ -97,31 +96,41 @@ impl NewService for WorkloadService {
     }
 }
 
-fn get_key_handle(identity_client: Arc<Mutex<IdentityClient>>, name: &str) -> impl Future<Item = KeyHandle, Error = Error> {
+fn get_key_handle(
+    identity_client: Arc<Mutex<IdentityClient>>,
+    name: &str,
+) -> impl Future<Item = KeyHandle, Error = Error> {
     let id_client = identity_client.lock().unwrap();
-    id_client.get_module(name)
-    .map_err(|_| Error::from(ErrorKind::GetIdentity))
-    .and_then(|identity| {
-        match identity {
-            aziot_identity_common::Identity::Aziot(spec) => {
-                spec.auth.map(|authinfo| {
-                    Ok(authinfo.key_handle)
-                }).expect("keyhandle missing")
-            }
-        }   
-    })
-}
-
-fn get_master_encryption_key(key_client: &Arc<KeyClient>) -> impl Future<Item = KeyHandle, Error = Error> {
-    key_client.create_key_if_not_exists("iotedge_master_encryption_id", aziot_key_common::CreateKeyValue::Generate { length: 32 })
-    .map_err(|_| Error::from(ErrorKind::LoadMasterEncKey))
-    .into_future()
-}
-
-fn get_derived_enc_key_handle(key_client: Arc<KeyClient>, name: String) -> impl Future<Item = KeyHandle, Error = Error> {
-    get_master_encryption_key(&key_client)
-    .and_then(move |key_handle| {
-        key_client.create_derived_key(&key_handle, name.as_bytes())
+    id_client
+        .get_module(name)
         .map_err(|_| Error::from(ErrorKind::GetIdentity))
+        .and_then(|identity| match identity {
+            aziot_identity_common::Identity::Aziot(spec) => spec
+                .auth
+                .map(|authinfo| Ok(authinfo.key_handle))
+                .expect("keyhandle missing"),
+        })
+}
+
+fn get_master_encryption_key(
+    key_client: &Arc<KeyClient>,
+) -> impl Future<Item = KeyHandle, Error = Error> {
+    key_client
+        .create_key_if_not_exists(
+            "iotedge_master_encryption_id",
+            aziot_key_common::CreateKeyValue::Generate { length: 32 },
+        )
+        .map_err(|_| Error::from(ErrorKind::LoadMasterEncKey))
+        .into_future()
+}
+
+fn get_derived_enc_key_handle(
+    key_client: Arc<KeyClient>,
+    name: String,
+) -> impl Future<Item = KeyHandle, Error = Error> {
+    get_master_encryption_key(&key_client).and_then(move |key_handle| {
+        key_client
+            .create_derived_key(&key_handle, name.as_bytes())
+            .map_err(|_| Error::from(ErrorKind::GetIdentity))
     })
 }

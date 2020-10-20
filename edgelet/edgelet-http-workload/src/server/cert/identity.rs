@@ -7,9 +7,7 @@ use futures::{Future, IntoFuture, Stream};
 use hyper::{Body, Request, Response};
 
 use cert_client::client::CertificateClient;
-use edgelet_core::{
-    CertificateProperties, CertificateType, WorkloadConfig,
-};
+use edgelet_core::{CertificateProperties, CertificateType, WorkloadConfig};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use edgelet_utils::{ensure_not_empty_with_context, prepare_cert_uri_module};
@@ -25,9 +23,16 @@ pub struct IdentityCertHandler<W: WorkloadConfig> {
 }
 
 impl<W: WorkloadConfig> IdentityCertHandler<W> {
-        
-    pub fn new(key_client: Arc<aziot_key_client::Client>, cert_client: Arc<Mutex<CertificateClient>>, config: W) -> Self {
-        IdentityCertHandler { key_client, cert_client, config }
+    pub fn new(
+        key_client: Arc<aziot_key_client::Client>,
+        cert_client: Arc<Mutex<CertificateClient>>,
+        config: W,
+    ) -> Self {
+        IdentityCertHandler {
+            key_client,
+            cert_client,
+            config,
+        }
     }
 }
 
@@ -92,14 +97,17 @@ where
                 .with_san_entries(sans);
                 Ok((alias, props))
             })
-            .and_then(move |(alias, props)| { 
+            .and_then(move |(alias, props)| {
                 let response = refresh_cert(
                     &key_client,
                     cert_client,
                     alias,
                     &props,
-                    ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
-                .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)));
+                    ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
+                )
+                .map_err(|_| {
+                    Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
+                });
                 Ok(response)
             })
             .flatten()
@@ -108,4 +116,3 @@ where
         Box::new(response)
     }
 }
-

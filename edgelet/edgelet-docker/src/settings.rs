@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{
-    Connect, Listen, MobyNetwork, ModuleSpec, RuntimeSettings,
-    Settings as BaseSettings, UrlExt, WatchdogSettings, Endpoints,
+    Connect, Endpoints, Listen, MobyNetwork, ModuleSpec, RuntimeSettings, Settings as BaseSettings,
+    UrlExt, WatchdogSettings,
 };
 use edgelet_utils::YamlFileSource;
 use failure::{Context, Fail, ResultExt};
@@ -293,10 +293,8 @@ mod tests {
     #[cfg(target_os = "linux")]
     use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
+    use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};
     use std::cmp::Ordering;
-    use edgelet_core::{
-        IpamConfig, DEFAULT_NETWORKID,
-    };
 
     #[cfg(unix)]
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";

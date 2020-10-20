@@ -68,9 +68,10 @@ pub fn sanitize_dns_label(name: &str) -> String {
         .collect::<String>()
 }
 
-pub fn prepare_dns_san_entries<'a>(names: impl Iterator<Item = &'a str> + 'a) -> impl Iterator<Item = String> + 'a {
-    names
-    .filter_map(|name| {
+pub fn prepare_dns_san_entries<'a>(
+    names: impl Iterator<Item = &'a str> + 'a,
+) -> impl Iterator<Item = String> + 'a {
+    names.filter_map(|name| {
         let dns = sanitize_dns_label(name);
         if dns.is_empty() {
             None

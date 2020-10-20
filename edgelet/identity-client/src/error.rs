@@ -16,10 +16,10 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "Connector Uri error")]
     ConnectorUri,
-    
+
     #[fail(display = "Invalid HTTP header value {:?}", _0)]
     HeaderValue(String),
-    
+
     #[fail(display = "Hyper HTTP error")]
     Hyper,
 
@@ -28,10 +28,10 @@ pub enum ErrorKind {
 
     #[fail(display = "HTTP request error")]
     Request,
-    
+
     #[fail(display = "HTTP response error: [{}] {}", _0, _1)]
     Response(StatusCode, String),
-    
+
     #[fail(display = "Serde error: {:?}", _0)]
     Serde(serde_json::Error),
 

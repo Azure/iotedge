@@ -19,41 +19,42 @@ use super::get_key_handle;
 use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
 
-pub struct SignHandler
-{
+pub struct SignHandler {
     key_client: Arc<aziot_key_client::Client>,
     identity_client: Arc<Mutex<IdentityClient>>,
 }
 
-impl SignHandler
-{
-    pub fn new(key_client: Arc<aziot_key_client::Client>, identity_client: Arc<Mutex<IdentityClient>>) -> Self {
-        
-        SignHandler { key_client, identity_client }
+impl SignHandler {
+    pub fn new(
+        key_client: Arc<aziot_key_client::Client>,
+        identity_client: Arc<Mutex<IdentityClient>>,
+    ) -> Self {
+        SignHandler {
+            key_client,
+            identity_client,
+        }
     }
 }
 
-impl Handler<Parameters> for SignHandler
-{
+impl Handler<Parameters> for SignHandler {
     fn handle(
         &self,
         req: Request<Body>,
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
-        
         let response = params
-        .name("name")
-        .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
-        .and_then(|name| {
-            let genid = params
-            .name("genid")
-            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
-            Ok((name, genid))
-        })
-        .map(|(name, _)| {
-            let id = name.to_string();
-            let key_store = self.key_client.clone();
-            let id_mgr = self.identity_client.clone();
+            .name("name")
+            .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
+            .and_then(|name| {
+                let genid = params
+                    .name("genid")
+                    .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
+                Ok((name, genid))
+            })
+            .map(|(name, _)| {
+                let id = name.to_string();
+                let key_store = self.key_client.clone();
+                let id_mgr = self.identity_client.clone();
 
                 req.into_body().concat2().then(|body| {
                     let body =
@@ -66,11 +67,10 @@ impl Handler<Parameters> for SignHandler
             .into_future()
             .flatten()
             .and_then(|(id, request, key_store, id_mgr)| -> Result<_, Error> {
-                let data: Vec<u8> = base64::decode(request.data()).context(ErrorKind::MalformedRequestBody)?;
+                let data: Vec<u8> =
+                    base64::decode(request.data()).context(ErrorKind::MalformedRequestBody)?;
                 let response = get_key_handle(id_mgr.clone(), &id)
-                    .and_then(|k| { 
-                        get_signature(key_store, k, data) 
-                    })
+                    .and_then(|k| get_signature(key_store, k, data))
                     .and_then(|signature| -> Result<_, Error> {
                         let encoded = base64::encode(signature.as_bytes());
                         let response = SignResponse::new(encoded);
@@ -93,12 +93,17 @@ impl Handler<Parameters> for SignHandler
     }
 }
 
-fn get_signature(key_client: Arc<aziot_key_client::Client>, key_handle: KeyHandle, data: Vec<u8>) -> impl Future<Item = Vec<u8>, Error = Error> {
+fn get_signature(
+    key_client: Arc<aziot_key_client::Client>,
+    key_handle: KeyHandle,
+    data: Vec<u8>,
+) -> impl Future<Item = Vec<u8>, Error = Error> {
     key_client
-    .sign(
-        &key_handle,
-         aziot_key_common::SignMechanism::HmacSha256,
-          data.as_bytes())
-    .map_err(|_| Error::from(ErrorKind::GetIdentity))
-    .into_future()
+        .sign(
+            &key_handle,
+            aziot_key_common::SignMechanism::HmacSha256,
+            data.as_bytes(),
+        )
+        .map_err(|_| Error::from(ErrorKind::GetIdentity))
+        .into_future()
 }

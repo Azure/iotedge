@@ -27,8 +27,7 @@ impl DecryptHandler {
     }
 }
 
-impl Handler<Parameters> for DecryptHandler
-{
+impl Handler<Parameters> for DecryptHandler {
     fn handle(
         &self,
         req: Request<Body>,
@@ -58,25 +57,34 @@ impl Handler<Parameters> for DecryptHandler
             .into_future()
             .flatten()
             .and_then(move |(id, request)| -> Result<_, Error> {
-                let plaintext =
-                    base64::decode(request.ciphertext()).context(ErrorKind::MalformedRequestBody)?;
+                let plaintext = base64::decode(request.ciphertext())
+                    .context(ErrorKind::MalformedRequestBody)?;
                 let initialization_vector = base64::decode(request.initialization_vector())
                     .context(ErrorKind::MalformedRequestBody)?;
                 let ciphertext = get_derived_enc_key_handle(key_store.clone(), id.clone())
-                    .and_then(|k| { 
-                        get_plaintext(key_store, k, initialization_vector, id.into_bytes(), plaintext)
+                    .and_then(|k| {
+                        get_plaintext(
+                            key_store,
+                            k,
+                            initialization_vector,
+                            id.into_bytes(),
+                            plaintext,
+                        )
                     })
                     .and_then(|plaintext| -> Result<_, Error> {
                         let encoded = base64::encode(&plaintext);
                         let response = DecryptResponse::new(encoded);
-                        let body = serde_json::to_string(&response)
-                            .context(ErrorKind::EncryptionOperation(EncryptionOperation::Decrypt))?;
+                        let body = serde_json::to_string(&response).context(
+                            ErrorKind::EncryptionOperation(EncryptionOperation::Decrypt),
+                        )?;
                         let response = Response::builder()
                             .status(StatusCode::OK)
                             .header(CONTENT_TYPE, "application/json")
                             .header(CONTENT_LENGTH, body.len().to_string().as_str())
                             .body(body.into())
-                            .context(ErrorKind::EncryptionOperation(EncryptionOperation::Decrypt))?;
+                            .context(ErrorKind::EncryptionOperation(
+                                EncryptionOperation::Decrypt,
+                            ))?;
                         Ok(response)
                     });
                 Ok(ciphertext)
@@ -89,15 +97,15 @@ impl Handler<Parameters> for DecryptHandler
 }
 
 #[allow(clippy::needless_pass_by_value)]
-fn get_plaintext(key_client: Arc<aziot_key_client::Client>, key_handle: KeyHandle, iv: Vec<u8>, aad: Vec<u8>, ciphertext: Vec<u8>) -> impl Future<Item = Vec<u8>, Error = Error> {
+fn get_plaintext(
+    key_client: Arc<aziot_key_client::Client>,
+    key_handle: KeyHandle,
+    iv: Vec<u8>,
+    aad: Vec<u8>,
+    ciphertext: Vec<u8>,
+) -> impl Future<Item = Vec<u8>, Error = Error> {
     key_client
-    .decrypt(
-        &key_handle,
-         EncryptMechanism::Aead {
-             iv,
-             aad
-         },
-         &ciphertext)
-    .map_err(|_| Error::from(ErrorKind::GetIdentity))
-    .into_future()
+        .decrypt(&key_handle, EncryptMechanism::Aead { iv, aad }, &ciphertext)
+        .map_err(|_| Error::from(ErrorKind::GetIdentity))
+        .into_future()
 }

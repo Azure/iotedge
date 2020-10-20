@@ -39,7 +39,6 @@ pub enum UrlConnector {
 impl UrlConnector {
     pub fn new(url: &Url) -> Result<Self, Error> {
         match url.scheme() {
-
             UNIX_SCHEME => {
                 let file_path = url
                     .to_uds_file_path()
@@ -156,7 +155,7 @@ mod tests {
             Ok(_) => panic!("Expected UrlConnector::new to fail"),
             Err(err) => err,
         };
-        
+
         assert!(err.to_string().contains("Socket file could not be found"));
     }
 

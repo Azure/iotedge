@@ -16,20 +16,17 @@ use workload::models::TrustBundleResponse;
 use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
 
-pub struct TrustBundleHandler 
-{
+pub struct TrustBundleHandler {
     cert_client: Arc<Mutex<CertificateClient>>,
 }
 
-impl TrustBundleHandler
-{
+impl TrustBundleHandler {
     pub fn new(cert_client: Arc<Mutex<CertificateClient>>) -> Self {
         TrustBundleHandler { cert_client }
     }
 }
 
-impl Handler<Parameters> for TrustBundleHandler
-{
+impl Handler<Parameters> for TrustBundleHandler {
     fn handle(
         &self,
         _req: Request<Body>,
@@ -66,4 +63,3 @@ impl Handler<Parameters> for TrustBundleHandler
         Box::new(response)
     }
 }
-

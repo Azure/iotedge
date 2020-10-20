@@ -33,8 +33,7 @@ pub use authentication::Authenticator;
 pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
-    Certificate, CreateCertificate, GetDeviceIdentityCertificate,
-    GetIssuerAlias, KeyBytes,
+    Certificate, CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, KeyBytes,
     PrivateKey, IOTEDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
@@ -43,15 +42,13 @@ pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
     DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
     ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
-    ModuleStatus, ModuleTop, ProvisioningInfo, RegistryOperation,
-    RuntimeOperation, SystemInfo, SystemResources,
+    ModuleStatus, ModuleTop, ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo,
+    SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;
 pub use settings::{
-    Connect, Listen, Protocol,
-    RetryLimit, RuntimeSettings, Settings,
-    WatchdogSettings, Endpoints,
+    Connect, Endpoints, Listen, Protocol, RetryLimit, RuntimeSettings, Settings, WatchdogSettings,
 };
 pub use virtualization::is_virtualized_env;
 pub use workload::WorkloadConfig;

@@ -3,26 +3,23 @@
 use std::cmp::Ordering;
 use std::time::{Duration, Instant};
 
-use failure::{Fail,ResultExt};
+use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use log::{info, warn, Level};
 use tokio::prelude::*;
 use tokio::timer::Interval;
 
+use edgelet_core::{ImagePullPolicy, ModuleRegistry};
 use edgelet_utils::log_failure;
-use edgelet_core::{
-    ImagePullPolicy, ModuleRegistry
-};
 
 use aziot_identity_common::Identity as AziotIdentity;
 use edgelet_core::module::{
-    Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
-    ModuleStatus,
+    Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
 };
 use edgelet_core::settings::RetryLimit;
 
-use crate::error::{Error,ErrorKind};
+use crate::error::{Error, ErrorKind};
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
 const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
@@ -129,7 +126,7 @@ where
         .map_err(|err| Error::from(err.context(ErrorKind::EdgeRuntimeStatusCheckerTimer)))
         .and_then(move |_| {
             info!("Checking edge runtime status");
-            
+
             check_runtime(
                 runtime.clone(),
                 spec.clone(),
@@ -230,39 +227,54 @@ where
     info!("Creating and starting edge runtime module {}", module_name);
     let runtime_copy = runtime.clone();
 
-    let id_mgr = identity_client::IdentityClient::new(aziot_identity_common_http::ApiVersion::V2020_09_01, &identityd_url);
+    let id_mgr = identity_client::IdentityClient::new(
+        aziot_identity_common_http::ApiVersion::V2020_09_01,
+        &identityd_url,
+    );
 
-    id_mgr.update_module(module_id.as_ref())
-    .then(move |identity| -> Result<_, Error> {
-        let identity = identity.with_context(|_| {
-            ErrorKind::ModuleRuntime
-        })?;
-        
-        let (module, genid, auth) = match identity {
-            AziotIdentity::Aziot(spec) => {
-                (spec.module_id.ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
-                spec.gen_id.ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
-                spec.auth.ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?)
-            }
-        };
-        Ok((module, genid, auth))
-    })
-    .into_future()
-    .and_then(move |(module_id, generation_id, auth)| {
-        let mut env = spec.env().clone();
-        env.insert(
-            MODULE_GENERATIONID.to_string(),
-            generation_id.0,
-        );
-        let spec = spec.with_env(env);
+    id_mgr
+        .update_module(module_id.as_ref())
+        .then(move |identity| -> Result<_, Error> {
+            let identity = identity.with_context(|_| ErrorKind::ModuleRuntime)?;
 
-        let pull_future = match spec.image_pull_policy() {
-            ImagePullPolicy::Never => Either::A(future::ok(())),
-            ImagePullPolicy::OnCreate => Either::B(runtime.registry().pull(spec.config()).map_err(|e| Error::from(ErrorKind::ModuleRuntime))),
-        };
+            let (module, genid, auth) = match identity {
+                AziotIdentity::Aziot(spec) => (
+                    spec.module_id
+                        .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
+                    spec.gen_id
+                        .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
+                    spec.auth
+                        .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
+                ),
+            };
+            Ok((module, genid, auth))
+        })
+        .into_future()
+        .and_then(move |(module_id, generation_id, auth)| {
+            let mut env = spec.env().clone();
+            env.insert(MODULE_GENERATIONID.to_string(), generation_id.0);
+            let spec = spec.with_env(env);
 
-        pull_future
-            .and_then(move |_| runtime.create(spec).map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime))))
-            .and_then(move |_| runtime_copy.start(&module_name).map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime))))
-    })
+            let pull_future = match spec.image_pull_policy() {
+                ImagePullPolicy::Never => Either::A(future::ok(())),
+                ImagePullPolicy::OnCreate => Either::B(
+                    runtime
+                        .registry()
+                        .pull(spec.config())
+                        .map_err(|e| Error::from(ErrorKind::ModuleRuntime)),
+                ),
+            };
+
+            pull_future
+                .and_then(move |_| {
+                    runtime
+                        .create(spec)
+                        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+                })
+                .and_then(move |_| {
+                    runtime_copy
+                        .start(&module_name)
+                        .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))
+                })
+        })
 }

@@ -16,7 +16,7 @@ pub struct Error {
 pub enum ErrorKind {
     #[fail(display = "Connector Uri error")]
     ConnectorUri,
-    
+
     #[fail(display = "Invalid URI to parse: {:?}", _0)]
     Uri(url::ParseError),
 
@@ -28,10 +28,10 @@ pub enum ErrorKind {
 
     #[fail(display = "Malformed HTTP response")]
     MalformedResponse,
-    
+
     #[fail(display = "HTTP request error")]
     Request,
-    
+
     #[fail(display = "HTTP response error: [{}] {}", _0, _1)]
     Response(StatusCode, String),
 

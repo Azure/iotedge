@@ -26,8 +26,8 @@ use docker::models::{
 };
 
 use edgelet_core::{
-    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module,
-    ModuleRegistry, ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
+    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
+    ModuleSpec, RegistryOperation, RuntimeOperation,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_docker::{Error, ErrorKind};
@@ -225,23 +225,22 @@ fn image_pull_with_invalid_image_name_fails() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| {
-            let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("bleh".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                INVALID_IMAGE_NAME.to_string(),
-                ContainerCreateBody::new(),
-                None,
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
+        let auth = AuthConfig::new()
+            .with_username("u1".to_string())
+            .with_password("bleh".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            INVALID_IMAGE_NAME.to_string(),
+            ContainerCreateBody::new(),
+            None,
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -327,23 +326,22 @@ fn image_pull_with_invalid_image_host_fails() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| {
-            let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("bleh".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                INVALID_IMAGE_HOST.to_string(),
-                ContainerCreateBody::new(),
-                None,
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
+        let auth = AuthConfig::new()
+            .with_username("u1".to_string())
+            .with_password("bleh".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            INVALID_IMAGE_HOST.to_string(),
+            ContainerCreateBody::new(),
+            None,
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -443,24 +441,23 @@ fn image_pull_with_invalid_creds_fails() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| {
-            // password is written to guarantee base64 encoding has '-' and/or '_'
-            let auth = AuthConfig::new()
-                .with_username("us1".to_string())
-                .with_password("ac?ac~aaac???".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                IMAGE_NAME.to_string(),
-                ContainerCreateBody::new(),
-                None,
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
+        // password is written to guarantee base64 encoding has '-' and/or '_'
+        let auth = AuthConfig::new()
+            .with_username("us1".to_string())
+            .with_password("ac?ac~aaac???".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            IMAGE_NAME.to_string(),
+            ContainerCreateBody::new(),
+            None,
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -543,23 +540,22 @@ fn image_pull_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| {
-            let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("bleh".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                IMAGE_NAME.to_string(),
-                ContainerCreateBody::new(),
-                None,
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
+        let auth = AuthConfig::new()
+            .with_username("u1".to_string())
+            .with_password("bleh".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            IMAGE_NAME.to_string(),
+            ContainerCreateBody::new(),
+            None,
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -630,23 +626,22 @@ fn image_pull_with_creds_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| {
-            let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("bleh".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                IMAGE_NAME.to_string(),
-                ContainerCreateBody::new(),
-                None,
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
+        let auth = AuthConfig::new()
+            .with_username("u1".to_string())
+            .with_password("bleh".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            IMAGE_NAME.to_string(),
+            ContainerCreateBody::new(),
+            None,
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -805,54 +800,53 @@ fn container_create_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| {
-            let mut env = BTreeMap::new();
-            env.insert("k1".to_string(), "v1".to_string());
-            env.insert("k2".to_string(), "v2".to_string());
-            env.insert("k3".to_string(), "v3".to_string());
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
+        let mut env = BTreeMap::new();
+        env.insert("k1".to_string(), "v1".to_string());
+        env.insert("k2".to_string(), "v2".to_string());
+        env.insert("k3".to_string(), "v3".to_string());
 
-            // add some create options
-            let mut port_bindings = BTreeMap::new();
-            port_bindings.insert(
-                "22/tcp".to_string(),
-                vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
-            );
-            port_bindings.insert(
-                "80/tcp".to_string(),
-                vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
-            );
-            let memory: i64 = 3_221_225_472;
-            let mut volumes = ::std::collections::BTreeMap::new();
-            volumes.insert("test1".to_string(), json!({}));
-            let create_options = ContainerCreateBody::new()
-                .with_host_config(
-                    HostConfig::new()
-                        .with_port_bindings(port_bindings)
-                        .with_memory(memory),
-                )
-                .with_cmd(vec![
-                    "/do/the/custom/command".to_string(),
-                    "with these args".to_string(),
-                ])
-                .with_entrypoint(vec![
-                    "/also/do/the/entrypoint".to_string(),
-                    "and this".to_string(),
-                ])
-                .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
-                .with_volumes(volumes);
-
-            let module_config = ModuleSpec::new(
-                "m1".to_string(),
-                "docker".to_string(),
-                DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
-                env,
-                ImagePullPolicy::default(),
+        // add some create options
+        let mut port_bindings = BTreeMap::new();
+        port_bindings.insert(
+            "22/tcp".to_string(),
+            vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
+        );
+        port_bindings.insert(
+            "80/tcp".to_string(),
+            vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
+        );
+        let memory: i64 = 3_221_225_472;
+        let mut volumes = ::std::collections::BTreeMap::new();
+        volumes.insert("test1".to_string(), json!({}));
+        let create_options = ContainerCreateBody::new()
+            .with_host_config(
+                HostConfig::new()
+                    .with_port_bindings(port_bindings)
+                    .with_memory(memory),
             )
-            .unwrap();
+            .with_cmd(vec![
+                "/do/the/custom/command".to_string(),
+                "with these args".to_string(),
+            ])
+            .with_entrypoint(vec![
+                "/also/do/the/entrypoint".to_string(),
+                "and this".to_string(),
+            ])
+            .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
+            .with_volumes(volumes);
 
-            runtime.create(module_config)
-        });
+        let module_config = ModuleSpec::new(
+            "m1".to_string(),
+            "docker".to_string(),
+            DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
+            env,
+            ImagePullPolicy::default(),
+        )
+        .unwrap();
+
+        runtime.create(module_config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -887,8 +881,7 @@ fn container_start_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| runtime.start("m1"));
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.start("m1"));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -923,8 +916,8 @@ fn container_stop_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| runtime.stop("m1", None));
+    let task =
+        DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.stop("m1", None));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1115,8 +1108,7 @@ fn container_list_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| runtime.list());
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.list());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1196,16 +1188,15 @@ fn container_logs_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| {
-            let options = LogOptions::new()
-                .with_follow(true)
-                .with_tail(LogTail::All)
-                .with_since(100_000)
-                .with_until(200_000);
+    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
+        let options = LogOptions::new()
+            .with_follow(true)
+            .with_tail(LogTail::All)
+            .with_since(100_000)
+            .with_until(200_000);
 
-            runtime.logs("mod1", &options)
-        });
+        runtime.logs("mod1", &options)
+    });
 
     let expected_body = [
         0x01_u8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f, 0x73, 0x65, 0x73, 0x20,
@@ -1857,8 +1848,8 @@ fn runtime_system_info_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| runtime.system_info());
+    let task =
+        DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.system_info());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1914,8 +1905,8 @@ fn runtime_system_info_none_returns_unkown() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
-        .and_then(|runtime| runtime.system_info());
+    let task =
+        DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.system_info());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);

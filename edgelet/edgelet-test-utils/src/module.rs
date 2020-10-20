@@ -3,10 +3,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use edgelet_core::{
-    AuthId, Authenticator, Connect, DiskInfo, Listen, LogOptions,
-    MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningInfo, RuntimeSettings, SystemInfo, SystemResources,
-    WatchdogSettings, Endpoints,
+    AuthId, Authenticator, Connect, DiskInfo, Endpoints, Listen, LogOptions, MakeModuleRuntime,
+    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
+    RuntimeSettings, SystemInfo, SystemResources, WatchdogSettings,
 };
 use failure::Fail;
 use futures::future::{self, FutureResult};
@@ -283,9 +282,7 @@ where
     type Error = E;
     type Future = FutureResult<Self, Self::Error>;
 
-    fn make_runtime(
-        settings: Self::Settings,
-    ) -> Self::Future {
+    fn make_runtime(settings: Self::Settings) -> Self::Future {
         future::ok(TestRuntime {
             module: None,
             registry: TestRegistry::new(None),

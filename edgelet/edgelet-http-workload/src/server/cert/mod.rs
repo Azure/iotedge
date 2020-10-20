@@ -10,14 +10,19 @@ use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
 
 use cert_client::client::CertificateClient;
-use edgelet_core::{Certificate as CoreCertificate, CertificateProperties, KeyBytes, PrivateKey as CorePrivateKey};
 use edgelet_core::crypto::IOTEDGED_CA_ALIAS;
+use edgelet_core::{
+    Certificate as CoreCertificate, CertificateProperties, KeyBytes, PrivateKey as CorePrivateKey,
+};
 use edgelet_http::Error as HttpError;
 use edgelet_utils::ensure_not_empty_with_context;
 use openssl::error::ErrorStack;
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse};
 
-use crate::{IntoResponse, error::{Error, ErrorKind, Result, CertOperation}};
+use crate::{
+    error::{CertOperation, Error, ErrorKind, Result},
+    IntoResponse,
+};
 
 mod identity;
 mod server;
@@ -25,7 +30,10 @@ mod server;
 pub use self::identity::IdentityCertHandler;
 pub use self::server::ServerCertHandler;
 
-fn cert_to_response<T: CoreCertificate>(cert: &T, context: ErrorKind) -> Result<CertificateResponse> {
+fn cert_to_response<T: CoreCertificate>(
+    cert: &T,
+    context: ErrorKind,
+) -> Result<CertificateResponse> {
     let cert_buffer = match cert.pem() {
         Ok(cert_buffer) => cert_buffer,
         Err(err) => return Err(Error::from(err.context(context))),
@@ -78,40 +86,54 @@ fn refresh_cert(
     let response = generate_key_and_csr(props)
         .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)))
         .and_then(|(privkey, csr)| {
-            let workload_ca_key_pair_handle = key_client.load_key_pair(IOTEDGED_CA_ALIAS)
-                .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)))?;
-                Ok((privkey, csr, workload_ca_key_pair_handle))
+            let workload_ca_key_pair_handle =
+                key_client.load_key_pair(IOTEDGED_CA_ALIAS).map_err(|_| {
+                    Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
+                })?;
+            Ok((privkey, csr, workload_ca_key_pair_handle))
         })
-    .into_future()
-    .and_then(move |(privkey, csr, workload_ca_key_pair_handle)| -> Result<_> {
-        let response = cert_client
-            .lock()
-            .expect("certificate client lock error")
-            .create_cert(&alias, &csr, Some((IOTEDGED_CA_ALIAS, &workload_ca_key_pair_handle)))
-            .map_err(|e| Error::from(e.context(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))))
-            .map(|cert| (privkey, cert))
-            .and_then( |(privkey, cert)| {
-                let pk = privkey.private_key_to_pem_pkcs8().context(context.clone())?;
-                let cert = Certificate::new(cert, pk);
-                let cert = cert_to_response(&cert, context.clone())?;
-                let body = match serde_json::to_string(&cert) {
-                    Ok(body) => body,
-                    Err(err) => return Err(Error::from(err.context(context))),
-                };
-                
-                let response = Response::builder()
-                .status(StatusCode::CREATED)
-                .header(CONTENT_TYPE, "application/json")
-                .header(CONTENT_LENGTH, body.len().to_string().as_str())
-                .body(body.into())
-                .context(context)?;
-                
+        .into_future()
+        .and_then(
+            move |(privkey, csr, workload_ca_key_pair_handle)| -> Result<_> {
+                let response = cert_client
+                    .lock()
+                    .expect("certificate client lock error")
+                    .create_cert(
+                        &alias,
+                        &csr,
+                        Some((IOTEDGED_CA_ALIAS, &workload_ca_key_pair_handle)),
+                    )
+                    .map_err(|e| {
+                        Error::from(
+                            e.context(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)),
+                        )
+                    })
+                    .map(|cert| (privkey, cert))
+                    .and_then(|(privkey, cert)| {
+                        let pk = privkey
+                            .private_key_to_pem_pkcs8()
+                            .context(context.clone())?;
+                        let cert = Certificate::new(cert, pk);
+                        let cert = cert_to_response(&cert, context.clone())?;
+                        let body = match serde_json::to_string(&cert) {
+                            Ok(body) => body,
+                            Err(err) => return Err(Error::from(err.context(context))),
+                        };
+
+                        let response = Response::builder()
+                            .status(StatusCode::CREATED)
+                            .header(CONTENT_TYPE, "application/json")
+                            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                            .body(body.into())
+                            .context(context)?;
+
+                        Ok(response)
+                    });
                 Ok(response)
-            });
-        Ok(response)
-    })
-    .flatten()
-    .or_else(|e| Ok(e.into_response()));
+            },
+        )
+        .flatten()
+        .or_else(|e| Ok(e.into_response()));
 
     Box::new(response)
 }
@@ -122,55 +144,49 @@ fn generate_key_and_csr(
     let rsa = openssl::rsa::Rsa::generate(2048)?;
     let privkey = openssl::pkey::PKey::from_rsa(rsa)?;
     let pubkey = privkey.public_key_to_pem()?;
-    let pubkey: openssl::pkey::PKey<openssl::pkey::Public> = openssl::pkey::PKey::public_key_from_pem(&pubkey)?;
-    
+    let pubkey: openssl::pkey::PKey<openssl::pkey::Public> =
+        openssl::pkey::PKey::public_key_from_pem(&pubkey)?;
+
     let mut csr = openssl::x509::X509Req::builder()?;
-    
+
     csr.set_version(2)?;
 
-    let mut subject_name = 
-        openssl::x509::X509Name::builder()?;
+    let mut subject_name = openssl::x509::X509Name::builder()?;
     subject_name.append_entry_by_text("CN", props.common_name())?;
     let subject_name = subject_name.build();
     csr.set_subject_name(&subject_name)?;
 
     csr.set_pubkey(&pubkey)?;
-    
+
     let mut extended_key_usage = openssl::x509::extension::ExtendedKeyUsage::new();
 
     if props.certificate_type() == &edgelet_core::CertificateType::Client {
         extended_key_usage.client_auth();
-    }
-    else if props.certificate_type() == &edgelet_core::CertificateType::Server {
+    } else if props.certificate_type() == &edgelet_core::CertificateType::Server {
         extended_key_usage.server_auth();
     }
 
     let extended_key_usage = extended_key_usage.build()?;
 
-    let mut extensions =
-        openssl::stack::Stack::new()?;
-    extensions
-        .push(extended_key_usage)?;
-    
+    let mut extensions = openssl::stack::Stack::new()?;
+    extensions.push(extended_key_usage)?;
+
     if props.san_entries().is_some() {
         let mut subject_alt_name = openssl::x509::extension::SubjectAlternativeName::new();
         props
             .san_entries()
             .expect("san entries unexpectedly empty")
             .iter()
-            .for_each(|s| { 
+            .for_each(|s| {
                 subject_alt_name.dns(s);
             });
-        let san = subject_alt_name
-            .build(&csr.x509v3_context(None))?;
+        let san = subject_alt_name.build(&csr.x509v3_context(None))?;
         extensions.push(san)?;
     }
 
-    csr
-        .add_extensions(&extensions)?;
+    csr.add_extensions(&extensions)?;
 
-    csr
-        .sign(&privkey, openssl::hash::MessageDigest::sha256())?;
+    csr.sign(&privkey, openssl::hash::MessageDigest::sha256())?;
 
     let csr = csr.build();
     let csr = csr.to_pem()?;
@@ -179,8 +195,7 @@ fn generate_key_and_csr(
 }
 
 #[derive(Debug)]
-pub struct Certificate
-{
+pub struct Certificate {
     pem: Vec<u8>,
     private_key: Vec<u8>,
 }
@@ -199,8 +214,12 @@ impl CoreCertificate for Certificate {
         Ok(self.pem.clone())
     }
 
-    fn get_private_key(&self) -> std::result::Result<Option<CorePrivateKey<Self::KeyBuffer>>, edgelet_core::Error> {
-        Ok(Some(CorePrivateKey::Key(KeyBytes::Pem(self.private_key.clone()))))
+    fn get_private_key(
+        &self,
+    ) -> std::result::Result<Option<CorePrivateKey<Self::KeyBuffer>>, edgelet_core::Error> {
+        Ok(Some(CorePrivateKey::Key(KeyBytes::Pem(
+            self.private_key.clone(),
+        ))))
     }
 
     fn get_valid_to(&self) -> std::result::Result<DateTime<Utc>, edgelet_core::Error> {
@@ -215,9 +234,11 @@ impl CoreCertificate for Certificate {
             let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
             Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
         }
-        
-        let cert = openssl::x509::X509::from_pem(&self.pem).map_err(|_| edgelet_core::Error::from(edgelet_core::ErrorKind::CertificateCreate))?;
-        let not_after = parse_openssl_time(cert.not_after()).map_err(|_| edgelet_core::Error::from(edgelet_core::ErrorKind::ParseSince))?;
+
+        let cert = openssl::x509::X509::from_pem(&self.pem)
+            .map_err(|_| edgelet_core::Error::from(edgelet_core::ErrorKind::CertificateCreate))?;
+        let not_after = parse_openssl_time(cert.not_after())
+            .map_err(|_| edgelet_core::Error::from(edgelet_core::ErrorKind::ParseSince))?;
         Ok(not_after)
     }
 

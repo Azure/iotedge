@@ -30,13 +30,13 @@ pub enum ErrorKind {
 
     #[fail(display = "Failed to get identity")]
     GetIdentity,
-    
+
     #[fail(display = "Failed to load master encryption key")]
     LoadMasterEncKey,
-    
+
     #[fail(display = "Invalid certificate type")]
     InvalidCertificateType,
-    
+
     #[fail(display = "Request body is malformed")]
     MalformedRequestBody,
 

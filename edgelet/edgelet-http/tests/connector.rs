@@ -7,9 +7,7 @@ use edgelet_http::UrlConnector;
 use edgelet_test_utils::run_tcp_server;
 use futures::future;
 use futures::prelude::*;
-use hyper::{
-    Body, Client, Error as HyperError, Method, Request, Response, StatusCode,
-};
+use hyper::{Body, Client, Error as HyperError, Method, Request, Response, StatusCode};
 #[cfg(unix)]
 use typed_headers::mime;
 use typed_headers::{ContentLength, ContentType, HeaderMapExt};
@@ -94,4 +92,3 @@ fn tcp_post() {
     runtime.spawn(server);
     runtime.block_on(task).unwrap();
 }
-

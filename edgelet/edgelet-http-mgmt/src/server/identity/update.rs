@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 
 use failure::ResultExt;
-use futures::{Future, IntoFuture, Stream}; 
+use futures::{Future, IntoFuture, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 
@@ -23,14 +23,11 @@ pub struct UpdateIdentity {
 
 impl UpdateIdentity {
     pub fn new(id_manager: Arc<Mutex<IdentityClient>>) -> Self {
-        UpdateIdentity {
-            id_manager
-        }
+        UpdateIdentity { id_manager }
     }
 }
 
-impl Handler<Parameters> for UpdateIdentity
-{
+impl Handler<Parameters> for UpdateIdentity {
     fn handle(
         &self,
         req: Request<Body>,
@@ -52,52 +49,48 @@ impl Handler<Parameters> for UpdateIdentity
                 let module_id = spec.module_id().to_string();
                 let managed_by = spec.managed_by().unwrap_or("iotedge").to_string();
 
-                rid.update_module(module_id.as_ref()).then(move |identity| -> Result<_, Error> {
-                    let identity = identity.with_context(|_| {
-                        ErrorKind::IotHub
-                    })?;
+                rid.update_module(module_id.as_ref())
+                    .then(move |identity| -> Result<_, Error> {
+                        let identity = identity.with_context(|_| ErrorKind::IotHub)?;
 
-                    let (module_id, generation_id, auth) = match identity {
-                        AziotIdentity::Aziot(spec) => {
-                            (spec.module_id.ok_or(ErrorKind::IotHub)
-                            .with_context(|_| {
-                                ErrorKind::IotHub
-                            })?,
-                            spec.gen_id.ok_or(ErrorKind::IotHub)
-                            .with_context(|_| {
-                                ErrorKind::IotHub
-                            })?,
-                            spec.auth.ok_or(ErrorKind::IotHub)
-                            .with_context(|_| {
-                                ErrorKind::IotHub
-                            })?)
-                        }
-                    };
+                        let (module_id, generation_id, auth) = match identity {
+                            AziotIdentity::Aziot(spec) => (
+                                spec.module_id
+                                    .ok_or(ErrorKind::IotHub)
+                                    .with_context(|_| ErrorKind::IotHub)?,
+                                spec.gen_id
+                                    .ok_or(ErrorKind::IotHub)
+                                    .with_context(|_| ErrorKind::IotHub)?,
+                                spec.auth
+                                    .ok_or(ErrorKind::IotHub)
+                                    .with_context(|_| ErrorKind::IotHub)?,
+                            ),
+                        };
 
-                    let identity = Identity::new(
-                        module_id.0.clone(),
-                        managed_by,
-                        generation_id.0,
-                        auth.auth_type.to_string(),
-                    );
-
-                    let b = serde_json::to_string(&identity).with_context(|_| {
-                        ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(
+                        let identity = Identity::new(
                             module_id.0.clone(),
-                        ))
-                    })?;
-                    let response = Response::builder()
-                        .status(StatusCode::OK)
-                        .header(CONTENT_TYPE, "application/json")
-                        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                        .body(b.into())
-                        .with_context(|_| {
+                            managed_by,
+                            generation_id.0,
+                            auth.auth_type.to_string(),
+                        );
+
+                        let b = serde_json::to_string(&identity).with_context(|_| {
                             ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(
-                                module_id.0,
+                                module_id.0.clone(),
                             ))
                         })?;
-                    Ok(response)
-                })
+                        let response = Response::builder()
+                            .status(StatusCode::OK)
+                            .header(CONTENT_TYPE, "application/json")
+                            .header(CONTENT_LENGTH, b.len().to_string().as_str())
+                            .body(b.into())
+                            .with_context(|_| {
+                                ErrorKind::IdentityOperation(IdentityOperation::UpdateIdentity(
+                                    module_id.0,
+                                ))
+                            })?;
+                        Ok(response)
+                    })
             })
             .or_else(|e| Ok(e.into_response()));
 
@@ -105,8 +98,10 @@ impl Handler<Parameters> for UpdateIdentity
     }
 }
 
-fn read_request(name: String, req: Request<Body>)
- -> impl Future<Item = IdentitySpec, Error = Error> {
+fn read_request(
+    name: String,
+    req: Request<Body>,
+) -> impl Future<Item = IdentitySpec, Error = Error> {
     req.into_body().concat2().then(move |b| {
         let b = b.context(ErrorKind::MalformedRequestBody)?;
         let update_req = serde_json::from_slice::<UpdateIdentitySpec>(&b)
@@ -119,4 +114,3 @@ fn read_request(name: String, req: Request<Body>)
         Ok(spec)
     })
 }
-

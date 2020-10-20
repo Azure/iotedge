@@ -477,9 +477,7 @@ pub trait MakeModuleRuntime {
     type Error: Fail;
     type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
 
-    fn make_runtime(
-        settings: Self::Settings,
-    ) -> Self::Future;
+    fn make_runtime(settings: Self::Settings) -> Self::Future;
 }
 
 pub trait ModuleRuntime: Sized {

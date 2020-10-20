@@ -29,12 +29,11 @@ fn create_app(default_config_file: &OsStr) -> App<'_, '_> {
                 .default_value_os(default_config_file),
         );
 
-        app
+    app
 }
 
 fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
-    let default_config_file = 
-        OsString::from("/etc/iotedge/config.yaml");
+    let default_config_file = OsString::from("/etc/iotedge/config.yaml");
 
     let matches = create_app(&default_config_file).get_matches();
 

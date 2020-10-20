@@ -23,22 +23,18 @@ pub struct ListIdentities {
 
 impl ListIdentities {
     pub fn new(id_manager: Arc<Mutex<IdentityClient>>) -> Self {
-        ListIdentities { 
-            id_manager,
-        }
+        ListIdentities { id_manager }
     }
 }
 
-impl Handler<Parameters> for ListIdentities
-{
+impl Handler<Parameters> for ListIdentities {
     fn handle(
         &self,
         _req: Request<Body>,
         _params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let id_mgr = self.id_manager.clone();
-        let response = 
-        id_mgr
+        let response = id_mgr
             .lock()
             .unwrap()
             .get_modules()
@@ -51,18 +47,16 @@ impl Handler<Parameters> for ListIdentities
                         .into_iter()
                         .map(|identity| {
                             let (module_id, generation_id) = match identity {
-                                AziotIdentity::Aziot(spec) => {
-                                    (spec.module_id.ok_or(ErrorKind::IotHub)
-                                    .with_context(|_| {
-                                        ErrorKind::IotHub
-                                    }),
-                                    spec.gen_id.ok_or(ErrorKind::IotHub)
-                                    .with_context(|_| {
-                                        ErrorKind::IotHub
-                                    }))
-                                }
+                                AziotIdentity::Aziot(spec) => (
+                                    spec.module_id
+                                        .ok_or(ErrorKind::IotHub)
+                                        .with_context(|_| ErrorKind::IotHub),
+                                    spec.gen_id
+                                        .ok_or(ErrorKind::IotHub)
+                                        .with_context(|_| ErrorKind::IotHub),
+                                ),
                             };
-                            
+
                             let module_id = module_id.expect("failed to get module_id");
                             let generation_id = generation_id.expect("failed to get generation_id");
 

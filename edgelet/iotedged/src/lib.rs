@@ -50,17 +50,12 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use edgelet_core::crypto::{
-    CreateCertificate, GetDeviceIdentityCertificate,
-    GetIssuerAlias,
-    Signature,
-    IOTEDGED_CA_ALIAS,
+    CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, Signature, IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::{
-    Authenticator, Certificate, CertificateIssuer, CertificateProperties,
-    CertificateType, MakeModuleRuntime, Module, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleSpec,
-    RuntimeSettings, 
-    WorkloadConfig, 
+    Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
+    MakeModuleRuntime, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
+    RuntimeSettings, WorkloadConfig,
 };
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
@@ -253,34 +248,39 @@ where
                 InitializeErrorReason::CreateCacheDirectory,
             ))?;
 
-        let runtime = init_runtime::<M>(
-            settings.clone(),
-            &mut tokio_runtime,
-        )?;
+        let runtime = init_runtime::<M>(settings.clone(), &mut tokio_runtime)?;
 
         // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
         // is received. If the TLS cert needs a restart, we will loop again.
         loop {
             info!("Obtaining edge device provisioning data...");
-        
+
             let url = settings.endpoints().aziot_identityd_url().clone();
-            let client = Arc::new(Mutex::new(identity_client::IdentityClient::new(aziot_identity_common_http::ApiVersion::V2020_09_01, &url)));
+            let client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
+                aziot_identity_common_http::ApiVersion::V2020_09_01,
+                &url,
+            )));
 
             let device_info = get_device_info(&client)
-            .map_err(|e| Error::from(e.context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))))
-            .map(|(hub_name, device_id)| {
-                debug!("{}:{}", hub_name, device_id);
-                (hub_name, device_id)
-            });
+                .map_err(|e| {
+                    Error::from(e.context(ErrorKind::Initialize(
+                        InitializeErrorReason::DpsProvisioningClient,
+                    )))
+                })
+                .map(|(hub_name, device_id)| {
+                    debug!("{}:{}", hub_name, device_id);
+                    (hub_name, device_id)
+                });
 
-            let (hub, device_id) = tokio_runtime
-                .block_on(device_info)
-                .context(ErrorKind::Initialize(
-                    InitializeErrorReason::DpsProvisioningClient,
-                ))?;
+            let (hub, device_id) =
+                tokio_runtime
+                    .block_on(device_info)
+                    .context(ErrorKind::Initialize(
+                        InitializeErrorReason::DpsProvisioningClient,
+                    ))?;
 
             info!("Finished provisioning edge device.");
-            
+
             // Normally iotedged will stop all modules when it shuts down. But if it crashed,
             // modules will continue to run. On Linux systems where iotedged is responsible for
             // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
@@ -292,7 +292,7 @@ where
             tokio_runtime
                 .block_on(runtime.stop_all(Some(STOP_TIME)))
                 .context(ErrorKind::Initialize(
-                    InitializeErrorReason::StopExistingModules
+                    InitializeErrorReason::StopExistingModules,
                 ))?;
             info!("Finished stopping modules.");
 
@@ -309,7 +309,7 @@ where
                 IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                 IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
             );
-            
+
             let (code, should_reprovision) = start_api::<_, _, M>(
                 &settings,
                 &runtime,
@@ -328,21 +328,21 @@ where
     }
 }
 
-fn get_device_info(identity_client: &Arc<Mutex<IdentityClient>>) -> impl Future<Item = (String, String), Error = Error> {
+fn get_device_info(
+    identity_client: &Arc<Mutex<IdentityClient>>,
+) -> impl Future<Item = (String, String), Error = Error> {
     let id_mgr = identity_client.lock().unwrap();
-    id_mgr.get_device()
-    .map_err(|_| Error::from(ErrorKind::Initialize(
-        InitializeErrorReason::DpsProvisioningClient,
-    )))
-    .and_then(|identity| {
-        match identity {
-            aziot_identity_common::Identity::Aziot(spec) => {
-                Ok((spec.hub_name, spec.device_id.0))
-            }
-        }   
-    })
+    id_mgr
+        .get_device()
+        .map_err(|_| {
+            Error::from(ErrorKind::Initialize(
+                InitializeErrorReason::DpsProvisioningClient,
+            ))
+        })
+        .and_then(|identity| match identity {
+            aziot_identity_common::Identity::Aziot(spec) => Ok((spec.hub_name, spec.device_id.0)),
+        })
 }
-
 
 #[allow(clippy::too_many_arguments)]
 fn start_api<F, W, M>(
@@ -383,19 +383,9 @@ where
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let mgmt = start_management::<M>(
-        settings,
-        runtime,
-        mgmt_rx,
-        mgmt_stop_and_reprovision_tx,
-    );
+    let mgmt = start_management::<M>(settings, runtime, mgmt_rx, mgmt_stop_and_reprovision_tx);
 
-    let workload = start_workload::<_, M>(
-        settings,
-        runtime,
-        work_rx,
-        workload_config,
-    );
+    let workload = start_workload::<_, M>(settings, runtime, work_rx, workload_config);
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime::<M>(
@@ -445,18 +435,19 @@ where
 
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
-    let edge_rt_with_cleanup = edge_rt_with_mgmt_signal
-        .then(move |res| {
-            mgmt_tx.send(()).unwrap_or(());
-            work_tx.send(()).unwrap_or(());
+    let edge_rt_with_cleanup = edge_rt_with_mgmt_signal.then(move |res| {
+        mgmt_tx.send(()).unwrap_or(());
+        work_tx.send(()).unwrap_or(());
 
-            // A -> EdgeRt + Mgmt Stop and Reprovision Signal Future
-            // B -> Restart Signal Future
-            match res {
-                Ok((start_api_return_status, should_reprovision)) => future::ok((start_api_return_status, should_reprovision)),
-                Err(err) => future::err(err)
+        // A -> EdgeRt + Mgmt Stop and Reprovision Signal Future
+        // B -> Restart Signal Future
+        match res {
+            Ok((start_api_return_status, should_reprovision)) => {
+                future::ok((start_api_return_status, should_reprovision))
             }
-        });
+            Err(err) => future::err(err),
+        }
+    });
 
     let shutdown = shutdown_signal.map(move |_| {
         debug!("shutdown signaled");
@@ -519,7 +510,11 @@ where
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
-    let watchdog = Watchdog::new(runtime, settings.watchdog().max_retries(), settings.endpoints().aziot_identityd_url());
+    let watchdog = Watchdog::new(
+        runtime,
+        settings.watchdog().max_retries(),
+        settings.endpoints().aziot_identityd_url(),
+    );
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
         .map_err(Error::from);
@@ -593,9 +588,12 @@ where
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
     let min_protocol_version = settings.listen().min_tls_version();
-    
+
     let identity_uri = settings.endpoints().aziot_identityd_url().clone();
-    let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(aziot_identity_common_http::ApiVersion::V2020_09_01, &identity_uri)));
+    let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
+        aziot_identity_common_http::ApiVersion::V2020_09_01,
+        &identity_uri,
+    )));
 
     ManagementService::new(runtime, identity_client, initiate_shutdown_and_reprovision)
         .then(move |service| -> Result<_, Error> {
@@ -647,10 +645,19 @@ where
     let identityd_url = settings.endpoints().aziot_identityd_url().clone();
 
     let key_connector = http_common::Connector::new(&keyd_url).expect("Connector");
-    let key_client = Arc::new(aziot_key_client::Client::new(aziot_key_common_http::ApiVersion::V2020_09_01, key_connector));
+    let key_client = Arc::new(aziot_key_client::Client::new(
+        aziot_key_common_http::ApiVersion::V2020_09_01,
+        key_connector,
+    ));
 
-    let cert_client = Arc::new(Mutex::new(cert_client::CertificateClient::new(aziot_cert_common_http::ApiVersion::V2020_09_01, &certd_url)));
-    let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(aziot_identity_common_http::ApiVersion::V2020_09_01, &identityd_url)));
+    let cert_client = Arc::new(Mutex::new(cert_client::CertificateClient::new(
+        aziot_cert_common_http::ApiVersion::V2020_09_01,
+        &certd_url,
+    )));
+    let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
+        aziot_identity_common_http::ApiVersion::V2020_09_01,
+        &identityd_url,
+    )));
 
     WorkloadService::new(runtime, identity_client, cert_client, key_client, config)
         .then(move |service| -> Result<_, Error> {
@@ -697,8 +704,7 @@ mod tests {
     use super::{
         env, signal, CertificateIssuer, CertificateProperties, CreateCertificate, Digest,
         ErrorKind, ExternalProvisioningErrorReason, Fail, File, Future, GetIssuerAlias,
-        InitializeErrorReason, Main, MakeModuleRuntime,
-        RuntimeSettings, Sha256, Uri, Write,
+        InitializeErrorReason, Main, MakeModuleRuntime, RuntimeSettings, Sha256, Uri, Write,
         EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
         IDENTITY_MASTER_KEY_LEN_BYTES, IOTEDGED_CRYPTO_IV_LEN_BYTES,
     };

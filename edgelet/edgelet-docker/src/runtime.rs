@@ -19,10 +19,10 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
-    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
-    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
+    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
+    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
+    SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -245,9 +245,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
-    fn make_runtime(
-        settings: Settings,
-    ) -> Self::Future {
+    fn make_runtime(settings: Settings) -> Self::Future {
         info!("Initializing module runtime...");
 
         let created = init_client(settings.moby_runtime().uri())
@@ -1245,9 +1243,9 @@ mod tests {
     use super::{
         authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
         BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-        Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions,
-        MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
-        Request, Settings, Stream, SystemResources,
+        Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
+        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Settings,
+        Stream, SystemResources,
     };
 
     use std::path::Path;
@@ -1259,8 +1257,7 @@ mod tests {
     use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
-        Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings,
-        WatchdogSettings,
+        Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings, WatchdogSettings,
     };
     #[cfg(target_os = "linux")]
     use std::fs;
@@ -1757,9 +1754,7 @@ mod tests {
         type Error = Error;
         type Future = FutureResult<Self, Self::Error>;
 
-        fn make_runtime(
-            _settings: Self::Settings,
-        ) -> Self::Future {
+        fn make_runtime(_settings: Self::Settings) -> Self::Future {
             unimplemented!()
         }
     }

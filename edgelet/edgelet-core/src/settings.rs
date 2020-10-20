@@ -217,13 +217,14 @@ pub struct Endpoints {
 }
 
 impl Default for Endpoints {
-	fn default() -> Self {
-		Endpoints {
-			aziot_certd_url: Url::parse("unix:///run/aziot/certd.sock").expect("Url parse failed"),
-			aziot_keyd_url: Url::parse("unix:///run/aziot/keyd.sock").expect("Url parse failed"),
-			aziot_identityd_url: Url::parse("unix:///run/aziot/identityd.sock").expect("Url parse failed"),
-		}
-	}
+    fn default() -> Self {
+        Endpoints {
+            aziot_certd_url: Url::parse("unix:///run/aziot/certd.sock").expect("Url parse failed"),
+            aziot_keyd_url: Url::parse("unix:///run/aziot/keyd.sock").expect("Url parse failed"),
+            aziot_identityd_url: Url::parse("unix:///run/aziot/identityd.sock")
+                .expect("Url parse failed"),
+        }
+    }
 }
 
 impl Endpoints {
