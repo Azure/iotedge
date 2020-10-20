@@ -71,7 +71,7 @@ case "$PACKAGE_OS" in
         DOCKER_IMAGE='ubuntu:18.04'
         ;;
 
-    'alpine1.19.3')
+    'alpine')
         DOCKER_IMAGE='ubuntu:18.04'
         ;;       
 esac
