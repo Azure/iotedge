@@ -27,9 +27,6 @@ resource_group_name='<>'
 proxy_vm_name='e2eproxy-server'
 runner_vm_name='e2eproxy-runner'
 
-# Name of the user for the VMs
-username='azureuser'
-
 # The address prefix (in CIDR notation) of the virtual network/subnet
 vnet_address_prefix='<>'
 
@@ -52,13 +49,11 @@ az deployment group create --resource-group "$resource_group_name" --name 'e2e-p
     jq -n \
         --arg proxy_vm_name "$proxy_vm_name" \
         --arg runner_vm_name "$runner_vm_name" \
-        --arg username "$username" \
         --arg ssh_public_key "$(cat $keyfile.pub)" \
         --arg vnet_address_prefix "$vnet_address_prefix" \
         '{
             "proxy_vm_name": { "value": $proxy_vm_name },
             "runner_vm_name": { "value": $runner_vm_name },
-            "username": { "value": $username },
             "ssh_public_key": { "value": $ssh_public_key },
             "vnet_address_prefix": { "value": $vnet_address_prefix }
         }'

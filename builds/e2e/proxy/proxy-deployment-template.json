@@ -8,14 +8,15 @@
 		"runner_vm_name": {
 			"type": "string"
 		},
-		"username": {
-			"type": "string"
-		},
 		"ssh_public_key": {
 			"type": "string"
 		},
 		"vnet_address_prefix": {
 			"type": "string"
+		},
+		"username": {
+			"type": "string",
+			"defaultValue": "azureuser"
 		},
 		"proxy_vm_size": {
 			"defaultValue": "Standard_DS1_v2",
