@@ -219,7 +219,6 @@ fn is_variable_rule(value: &str) -> bool {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyDefinition {
-    schema_version: String,
     statements: Vec<Statement>,
 }
 
@@ -229,10 +228,6 @@ impl PolicyDefinition {
             serde_json::from_str(json).map_err(Error::Deserializing)?;
 
         Ok(definition)
-    }
-
-    pub fn schema_version(&self) -> &str {
-        &self.schema_version
     }
 
     pub fn statements(&self) -> &Vec<Statement> {
