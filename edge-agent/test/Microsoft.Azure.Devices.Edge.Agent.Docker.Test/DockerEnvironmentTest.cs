@@ -35,12 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var moduleStateStore = Mock.Of<IEntityStore<string, ModuleState>>();
             string minDockerVersion = "20";
             string dockerLoggingOptions = "dummy logging options";
+            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
 
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
                 new DockerRuntimeInfo("docker", new DockerRuntimeConfig(minDockerVersion, dockerLoggingOptions)),
                 new SystemModules(Option.None<IEdgeAgentModule>(), Option.None<IEdgeHubModule>()),
-                new Dictionary<string, IModule>());
+                new Dictionary<string, IModule>(),
+                integrity);
 
             var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.OperatingSystemType, systemInfo.Architecture, systemInfo.Version);
 
@@ -172,11 +174,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var contentTrustModule = new DockerModule("contentTrustModule", "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("contentTrustModule:v1", string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo(), null);
             var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}", Option.None<string>()), ImagePullPolicy.OnCreate, Constants.HighestPriority, new ConfigurationInfo(), null);
             var edgeAgentModule = new EdgeAgentDockerModule("docker", new DockerConfig("edgeAgent:v1", string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
+            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
                 new DockerRuntimeInfo("docker", new DockerRuntimeConfig(minDockerVersion, dockerLoggingOptions)),
                 new SystemModules(edgeAgentModule, edgeHubModule),
-                new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2, [contentTrustModule.Name] = contentTrustModule });
+                new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2, [contentTrustModule.Name] = contentTrustModule },
+                integrity);
 
             var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager.Object, OperatingSystemType, Architecture, Version);
 

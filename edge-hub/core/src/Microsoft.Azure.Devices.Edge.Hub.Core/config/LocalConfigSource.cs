@@ -30,11 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 r => r.Key,
                 r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
 
+            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+
             this.edgeHubConfig = new EdgeHubConfig(
                 Constants.ConfigSchemaVersion.ToString(),
                 new ReadOnlyDictionary<string, RouteConfig>(parsedRoutes),
                 storeAndForwardConfiguration,
-                Option.None<BrokerConfig>());
+                Option.None<BrokerConfig>(),
+                integrity);
         }
 
 #pragma warning disable CS0067 // unused event but part of the interface.

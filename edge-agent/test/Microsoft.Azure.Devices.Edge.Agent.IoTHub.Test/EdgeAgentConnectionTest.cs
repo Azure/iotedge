@@ -532,7 +532,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtime.Object,
                 new SystemModules(edgeAgent.Object, edgeHub.Object),
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
@@ -772,7 +773,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "InvalidSchemaVersion",
                 runtime.Object,
                 new SystemModules(edgeAgent.Object, edgeHub.Object),
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
@@ -830,7 +832,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtime.Object,
                 new SystemModules(edgeAgent.Object, edgeHub.Object),
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
@@ -896,7 +899,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtime.Object,
                 new SystemModules(edgeAgent.Object, edgeHub.Object),
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
@@ -990,7 +994,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtime.Object,
                 new SystemModules(edgeAgent.Object, edgeHub.Object),
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
@@ -1291,7 +1296,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtimeInfo,
                 new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
-                new Dictionary<string, IModule>());
+                new Dictionary<string, IModule>(),
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
             string deploymentConfigJson = serde.Serialize(deploymentConfig);
             var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
 
@@ -1366,7 +1372,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtimeInfo,
                 new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
-                new Dictionary<string, IModule>());
+                new Dictionary<string, IModule>(),
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
             string deploymentConfigJson = serde.Serialize(deploymentConfig);
             var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
 
@@ -1460,7 +1467,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtimeInfo,
                 new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
-                new Dictionary<string, IModule>());
+                new Dictionary<string, IModule>(),
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
             string deploymentConfigJson = serde.Serialize(deploymentConfig);
             var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
 
@@ -1477,7 +1485,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtimeInfo,
                 new SystemModules(edgeAgentDockerModule, edgeHubDockerModule2),
-                new Dictionary<string, IModule>());
+                new Dictionary<string, IModule>(),
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
             string deploymentConfigJson2 = serde.Serialize(deploymentConfig2);
             var twin2 = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson2) });
 
@@ -1630,7 +1639,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "1.0",
                 runtime.Object,
                 new SystemModules(edgeAgent.Object, edgeHub.Object),
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(p => p.Create(It.IsAny<ConnectionStatusChangesHandler>()))
@@ -1729,15 +1739,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 0, null, null) },
                     { "mod2", new TestModule("mod2", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 10, null, null) }
                 };
-            var version_0_1 = new DeploymentConfig("0.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
-            var version_1 = new DeploymentConfig("1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
-            var version_1_0 = new DeploymentConfig("1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
-            var version_1_1 = new DeploymentConfig("1.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary());
-            var version_1_1_0 = new DeploymentConfig("1.1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary());
-            var version_1_2 = new DeploymentConfig("1.2", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
-            var version_2_0 = new DeploymentConfig("2.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
-            var version_2_0_1 = new DeploymentConfig("2.0.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary());
-            var version_schema_mismatch = new DeploymentConfig("1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary());
+            var twinIntegrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+            var version_0_1 = new DeploymentConfig("0.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary(), twinIntegrity);
+            var version_1 = new DeploymentConfig("1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary(), twinIntegrity);
+            var version_1_0 = new DeploymentConfig("1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary(), twinIntegrity);
+            var version_1_1 = new DeploymentConfig("1.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary(), twinIntegrity);
+            var version_1_1_0 = new DeploymentConfig("1.1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary(), twinIntegrity);
+            var version_1_2 = new DeploymentConfig("1.2", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary(), twinIntegrity);
+            var version_2_0 = new DeploymentConfig("2.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary(), twinIntegrity);
+            var version_2_0_1 = new DeploymentConfig("2.0.1", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithDefaultStartupOrder.ToImmutableDictionary(), twinIntegrity);
+            var version_schema_mismatch = new DeploymentConfig("1.0", UnknownRuntimeInfo.Instance, new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance), modulesWithCustomStartupOrder.ToImmutableDictionary(), twinIntegrity);
 
             yield return new object[] { version_0_1, typeof(InvalidSchemaVersionException) };
             yield return new object[] { version_1, typeof(InvalidSchemaVersionException) };

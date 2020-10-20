@@ -165,7 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             var m1 = Mock.Of<IModule>();
             var modules = new Dictionary<string, IModule> { [moduleName] = m1 };
             SystemModules systemMods = new SystemModules(Option.None<IEdgeAgentModule>(), Option.None<IEdgeHubModule>());
-            return new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtime, systemMods, modules));
+            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+            return new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtime, systemMods, modules, integrity));
         }
 
         public static DeploymentConfigInfo SetupExceptionDeployment()

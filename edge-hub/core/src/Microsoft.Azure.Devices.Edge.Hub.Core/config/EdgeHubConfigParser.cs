@@ -33,11 +33,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             Option<BrokerConfig> brokerConfig = this.ParseBrokerConfig(desiredProperties.BrokerConfiguration);
 
+            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+
             return new EdgeHubConfig(
                 desiredProperties.SchemaVersion,
                 routes,
                 desiredProperties.StoreAndForwardConfiguration,
-                brokerConfig);
+                brokerConfig,
+                integrity);
         }
 
         static ReadOnlyDictionary<string, RouteConfig> ParseRoutes(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)

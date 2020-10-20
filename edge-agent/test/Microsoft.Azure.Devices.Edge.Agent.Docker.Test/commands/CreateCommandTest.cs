@@ -67,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
+                    var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules, integrity));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -138,7 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     // Logging options will be derived from application level configuration
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", @"{""Type"":""json-file"",""Config"":{""max-size"":""100M""}}")), systemModules, modules));
+                    var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", @"{""Type"":""json-file"",""Config"":{""max-size"":""100M""}}")), systemModules, modules, integrity));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -221,7 +223,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         }).Build();
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
+                    var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules, integrity));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -304,7 +307,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         }).Build();
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "Not a valid JSON")), systemModules, modules));
+                    var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", "Not a valid JSON")), systemModules, modules, integrity));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -387,11 +391,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 }).Build();
 
             var configSource = new Mock<IConfigSource>();
+            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
                 runtimeInfo.Object,
                 systemModules,
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                integrity);
             var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
             configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -461,11 +467,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 }).Build();
 
             var configSource = new Mock<IConfigSource>();
+            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
                 runtimeInfo.Object,
                 systemModules,
-                ImmutableDictionary<string, IModule>.Empty);
+                ImmutableDictionary<string, IModule>.Empty,
+                integrity);
             var deploymentConfigInfo = new DeploymentConfigInfo(10, deploymentConfig);
             configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -697,7 +705,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
 
                     var modules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules));
+                    var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, modules, integrity));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);

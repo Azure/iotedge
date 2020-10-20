@@ -51,9 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IReadOnlyDictionary<string, RouteConfig> routes = new ReadOnlyDictionary<string, RouteConfig>(new Dictionary<string, RouteConfig>());
             var snfConfig = new StoreAndForwardConfiguration(1000);
             var brokerConfig = new BrokerConfig();
+            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
 
             // Act
-            var edgeHubConfig = new EdgeHubConfig("1.0", routes, snfConfig, Option.Some(brokerConfig));
+            var edgeHubConfig = new EdgeHubConfig("1.0", routes, snfConfig, Option.Some(brokerConfig), integrity);
 
             // Assert
             Assert.NotNull(edgeHubConfig);
@@ -68,7 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             BrokerConfig brokerConfig)
         {
             // Act & Assert
-            Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration, Option.Some(brokerConfig)));
+            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+            Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration, Option.Some(brokerConfig), integrity));
         }
     }
 }

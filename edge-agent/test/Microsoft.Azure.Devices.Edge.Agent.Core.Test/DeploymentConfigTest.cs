@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -202,7 +203,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config1_1 = new DeploymentConfig(
             "1.0",
@@ -212,7 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_1,
                 ["mod2"] = TestModule2_1
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config2 = new DeploymentConfig(
             "2.0",
@@ -222,7 +225,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config3 = new DeploymentConfig(
             "1.0",
@@ -232,7 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config4 = new DeploymentConfig(
             "1.0",
@@ -242,7 +247,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config5 = new DeploymentConfig(
             "1.0",
@@ -252,7 +258,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config6 = new DeploymentConfig(
             "1.0",
@@ -262,7 +269,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config7 = new DeploymentConfig(
             "1.0",
@@ -272,7 +280,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config8 = new DeploymentConfig(
             "1.0",
@@ -282,7 +291,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_2,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config9 = new DeploymentConfig(
             "1.0",
@@ -292,7 +302,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_3,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config10 = new DeploymentConfig(
             "1.0",
@@ -302,7 +313,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_4,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config11 = new DeploymentConfig(
             "1.0",
@@ -311,7 +323,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new Dictionary<string, IModule>
             {
                 ["mod1"] = TestModule1
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config12 = new DeploymentConfig(
             "1.0",
@@ -321,7 +334,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config13 = new DeploymentConfig(
             "1.0",
@@ -331,13 +345,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config14 = new DeploymentConfig(
             "1.0",
             new TestRuntimeInfo("docker"),
             new SystemModules(TestEdgeAgent1, TestEdgeHub1),
-            new Dictionary<string, IModule>());
+            new Dictionary<string, IModule>(),
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config15 = new DeploymentConfig(
             "1.1",
@@ -347,7 +363,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_4,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config16 = new DeploymentConfig(
             "1.0",
@@ -357,7 +374,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_5,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly DeploymentConfig Config17 = new DeploymentConfig(
             "1.0",
@@ -367,7 +385,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_6,
                 ["mod2"] = TestModule2
-            });
+            },
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         public static IEnumerable<object[]> EqualityTestData()
         {
@@ -405,8 +424,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 ["mod1"] = mod1,
                 ["mod2"] = mod2
             };
-
-            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules);
+            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules, integrity);
 
             Assert.Equal("mod1", deploymentConfig.Modules["mod1"].Name);
             Assert.Equal("mod2", deploymentConfig.Modules["mod2"].Name);
