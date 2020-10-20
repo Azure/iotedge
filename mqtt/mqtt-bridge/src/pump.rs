@@ -15,7 +15,7 @@ use tracing::{debug, error, info};
 
 use crate::{
     bridge::BridgeError,
-    client::{ClientShutdownHandle, InFlightPublishHandle, MqttClient},
+    client::{ClientPublishHandle, ClientShutdownHandle, InFlightPublishHandle, MqttClient},
     messages::MessageHandler,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
     settings::{ConnectionSettings, Credentials, Direction, TopicRule},
@@ -213,7 +213,7 @@ impl PumpPair {
 pub struct Pump {
     client: MqttClient<MessageHandler<WakingMemoryStore>>,
     client_shutdown: ClientShutdownHandle,
-    publish_handle: InFlightPublishHandle,
+    publish_handle: InFlightPublishHandle<ClientPublishHandle>,
     subscriptions: Vec<String>,
     loader: MessageLoader<WakingMemoryStore>,
     persist: PublicationStore<WakingMemoryStore>,
@@ -263,7 +263,7 @@ impl Pump {
         let mut in_flight_publishes = FuturesUnordered::new();
 
         // egress loop
-        let egress_loop = async {
+        let egress_loop = async move {
             let mut loader_shutdown_rx = loader_shutdown_rx.into_stream();
 
             info!("starting egress publication processing");
@@ -283,9 +283,11 @@ impl Pump {
                     loaded_element = loader.try_next().fuse() => {
                         if let Ok(Some((key, publication))) = loaded_element {
                             let persist = persist.clone();
+                            let publish_fut = publish_handle.publish_future(publication).await;
+
                             let publish_and_remove = async move {
                                 debug!("publishing publication {:?}", key);
-                                publish_handle.publish(publication).await;
+                                publish_fut.await;
 
                                 if let Err(e) = persist.remove(key) {
                                     error!(err = %e, "failed removing publication from store");

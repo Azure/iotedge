@@ -1,6 +1,13 @@
 #![allow(dead_code)] // TODO remove when ready
 use std::{
-    collections::HashSet, fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, sync::Arc,
+    collections::HashSet,
+    fmt::Display,
+    io::Error,
+    io::ErrorKind,
+    pin::Pin,
+    str,
+    sync::atomic::{AtomicU8, Ordering},
+    sync::Arc,
     time::Duration,
 };
 
@@ -8,12 +15,19 @@ use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
-use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt, sync::Semaphore};
+use tokio::{
+    io::AsyncRead,
+    io::AsyncWrite,
+    net::TcpStream,
+    stream::StreamExt,
+    sync::{mpsc::Receiver, Mutex, Semaphore},
+};
 use tracing::{debug, error, info, warn};
 
+use mqtt3::PublishHandle;
 use mqtt3::{
     proto::{self, Publication},
-    Client, Event, IoSource, PublishHandle, ShutdownError, SubscriptionUpdateEvent,
+    Client, Event, IoSource, PublishError, ShutdownError, SubscriptionUpdateEvent,
     UpdateSubscriptionError,
 };
 
@@ -186,29 +200,81 @@ impl BridgeIoSource {
     }
 }
 
+/// Trait used to facilitate mock publish handle types
+#[async_trait]
+pub trait InnerPublishHandle {
+    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+}
+
 #[derive(Debug, Clone)]
-pub struct InFlightPublishHandle {
-    publish_handle: PublishHandle,
+pub struct ClientPublishHandle(PublishHandle);
+
+#[async_trait]
+impl InnerPublishHandle for ClientPublishHandle {
+    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
+        self.0.publish(publication).await
+    }
+}
+
+/// Mock publish handle mimicking the mqtt3 publish handle.
+/// Used for tests only.
+/// This publish handle needs to implement clone which necessitates Arc and Mutex
+//  but will never be sent between threads.
+#[derive(Debug, Clone)]
+pub struct MockPublishHandle {
+    counter: Arc<AtomicU8>,
+    send_trigger: Arc<Mutex<Receiver<()>>>,
+}
+
+impl MockPublishHandle {
+    fn new(counter: Arc<AtomicU8>, send_trigger: Arc<Mutex<Receiver<()>>>) -> Self {
+        Self {
+            counter,
+            send_trigger,
+        }
+    }
+}
+
+#[async_trait]
+impl InnerPublishHandle for MockPublishHandle {
+    async fn publish(&mut self, _: Publication) -> Result<(), PublishError> {
+        self.counter.fetch_add(1, Ordering::Relaxed);
+        self.send_trigger.lock().await.next().await;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct InFlightPublishHandle<P> {
+    publish_handle: P,
     permits: Arc<Semaphore>,
 }
 
-impl InFlightPublishHandle {
-    fn new(publish_handle: PublishHandle, permits: Arc<Semaphore>) -> Self {
+impl<P> InFlightPublishHandle<P>
+where
+    P: InnerPublishHandle + Send + Clone + 'static,
+{
+    fn new(publish_handle: P, permits: Arc<Semaphore>) -> Self {
         Self {
             publish_handle,
             permits,
         }
     }
 
-    pub async fn publish(&self, publication: Publication) {
-        let permit = self.permits.acquire().await;
-
+    pub async fn publish_future(&self, publication: Publication) -> BoxFuture<'static, ()> {
+        let permits = self.permits.clone();
+        let permit = permits.acquire_owned().await;
         let mut publish_handle = self.publish_handle.clone();
-        if let Err(e) = publish_handle.publish(publication).await {
-            error!(message = "failed to publish", err = %e);
-        }
 
-        drop(permit);
+        let publication_send = async move {
+            if let Err(e) = publish_handle.publish(publication).await {
+                error!(message = "failed to publish", err = %e);
+            }
+
+            drop(permit);
+        };
+
+        Box::pin(publication_send)
     }
 }
 
@@ -223,7 +289,7 @@ where
     keep_alive: Duration,
     client: Client<BridgeIoSource>,
     event_handler: H,
-    in_flight: InFlightPublishHandle,
+    in_flight_handle: InFlightPublishHandle<ClientPublishHandle>,
 }
 
 impl<H: EventHandler> MqttClient<H> {
@@ -316,7 +382,8 @@ impl<H: EventHandler> MqttClient<H> {
         );
 
         let in_flight_permits = Arc::new(Semaphore::new(max_in_flight));
-        let in_flight = InFlightPublishHandle::new(client.publish_handle()?, in_flight_permits);
+        let inner_publish_handle = ClientPublishHandle(client.publish_handle()?);
+        let in_flight_handle = InFlightPublishHandle::new(inner_publish_handle, in_flight_permits);
 
         Ok(Self {
             client_id,
@@ -325,7 +392,7 @@ impl<H: EventHandler> MqttClient<H> {
             keep_alive,
             client,
             event_handler,
-            in_flight,
+            in_flight_handle,
         })
     }
 
@@ -346,8 +413,8 @@ impl<H: EventHandler> MqttClient<H> {
             })
     }
 
-    pub fn publish_handle(&self) -> InFlightPublishHandle {
-        self.in_flight.clone()
+    pub fn publish_handle(&self) -> InFlightPublishHandle<ClientPublishHandle> {
+        self.in_flight_handle.clone()
     }
 
     pub async fn handle_events(&mut self) {
@@ -461,4 +528,90 @@ pub enum ClientError {
 
     #[error("failed to connect")]
     SslHandshake,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicU8, Ordering};
+    use std::{sync::Arc, time::Duration};
+
+    use bytes::Bytes;
+    use futures_util::{future::join3, stream::FuturesUnordered};
+    use mqtt3::proto::{Publication, QoS};
+    use tokio::{
+        stream::StreamExt,
+        sync::{
+            mpsc::{self},
+            Mutex, Semaphore,
+        },
+        time,
+    };
+
+    use super::InFlightPublishHandle;
+    use super::MockPublishHandle;
+
+    // Create InFlightPublishHandle with mock publish handle and capacity 2 in-flight
+    // Mock publish handle has internal counter for pubs
+    // It also blocks on signal that signals messages can be sent
+    //
+    // Get two publish futures from handle (i.e. max in-flight)
+    // Start 3 tasks
+    // 1 - poll the in-flight publish futures
+    // 2 - get another publish futures and await it
+    // 3 - test verification logic that will wait to make sure all messages are trying to be sent, but blocked
+    //     asserts max messages in flight
+    //     signals that messages can send
+    //     asserts all three messages have been in flight
+    // Join all these three tasks to make sure all messages were sent
+    #[tokio::test]
+    async fn limits_in_flight_pubs() {
+        let counter = Arc::new(AtomicU8::new(0));
+        let (mut sender, receiver) = mpsc::channel::<()>(1);
+        let receiver = Arc::new(Mutex::new(receiver));
+        let publish_handle = MockPublishHandle::new(counter.clone(), receiver);
+
+        let permits = Arc::new(Semaphore::new(2));
+        let publish_handle = InFlightPublishHandle::new(publish_handle, permits);
+
+        let mut futures_unordered = FuturesUnordered::new();
+        let publication = Publication {
+            topic_name: "1".to_string(),
+            qos: QoS::ExactlyOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let pub_fut1 = publish_handle.publish_future(publication.clone()).await;
+        let pub_fut2 = publish_handle.publish_future(publication.clone()).await;
+        futures_unordered.push(pub_fut1);
+        futures_unordered.push(pub_fut2);
+
+        let verification = async move {
+            // make sure two messages in flight even though three are sending
+            time::delay_for(Duration::from_secs(2)).await;
+            assert_eq!(counter.load(Ordering::Relaxed), 2);
+
+            // signal that messages can all send
+            sender.send(()).await.unwrap();
+            time::delay_for(Duration::from_secs(2)).await;
+
+            // make sure last messages makes it in flight
+            assert_eq!(counter.load(Ordering::Relaxed), 3);
+            println!("all messages in flight");
+        };
+
+        let in_flight = async move {
+            for _ in 0..2 as u8 {
+                println!("polling publishes");
+                futures_unordered.next().await;
+            }
+        };
+
+        let next_publish = async move {
+            let pub_fut2 = publish_handle.publish_future(publication.clone()).await;
+            pub_fut2.await;
+        };
+
+        join3(verification, in_flight, next_publish).await;
+    }
 }
