@@ -151,11 +151,11 @@ build_project()
 {
     # build project with cross
     if [[ "$ARCH" == "amd64" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os alpine1.19.3 --arch "amd64" --build-path edge-modules/api-proxy-module
+        execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "amd64" --build-path edge-modules/api-proxy-module
     elif [[ "$ARCH" == "arm32v7" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os alpine1.19.3 --arch "arm32v7" --build-path edge-modules/api-proxy-module
+        execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "arm32v7" --build-path edge-modules/api-proxy-module
     elif [[ "$ARCH" == "arm64v8" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os alpine1.19.3 --arch "aarch64" --build-path edge-modules/api-proxy-module
+        execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "aarch64" --build-path edge-modules/api-proxy-module
     else
         echo "Cannot run script Unsupported architecture $ARCH"
         exit 1
