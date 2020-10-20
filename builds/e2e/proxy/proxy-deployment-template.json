@@ -2,25 +2,19 @@
 	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"ssh_public_key": {
+		"proxy_vm_name": {
+			"type": "string"
+		},
+		"runner_vm_name": {
 			"type": "string"
 		},
 		"username": {
 			"type": "string"
 		},
+		"ssh_public_key": {
+			"type": "string"
+		},
 		"vnet_address_prefix": {
-			"type": "string"
-		},
-		"vnet_name": {
-			"type": "string"
-		},
-		"subnet_name": {
-			"type": "string"
-		},
-		"proxy_vm_name": {
-			"type": "string"
-		},
-		"runner_vm_name": {
 			"type": "string"
 		},
 		"proxy_vm_size": {
@@ -52,11 +46,13 @@
 		"proxy_nic_name": "[concat(parameters('proxy_vm_name'), '-nic')]",
 		"runner_nic_name": "[concat(parameters('runner_vm_name'), '-nic')]",
 		"proxy_nsg_name": "[concat(parameters('proxy_vm_name'), '-nsg')]",
-		"runner_nsg_name": "[concat(parameters('runner_vm_name'), '-nsg')]"
+		"runner_nsg_name": "[concat(parameters('runner_vm_name'), '-nsg')]",
+		"vnet_name": "[concat('e2eproxy-', uniqueString(parameters('proxy_vm_name'), parameters('runner_vm_name')), '-vnet')]",
+		"subnet_name": "default"
 	},
 	"resources": [{
 		"type": "Microsoft.Network/virtualNetworks",
-		"name": "[parameters('vnet_name')]",
+		"name": "[variables('vnet_name')]",
 		"apiVersion": "2018-10-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
@@ -67,7 +63,7 @@
 			},
 			"subnets": [
 				{
-					"name": "[parameters('subnet_name')]",
+					"name": "[variables('subnet_name')]",
 					"properties": {
 						"addressPrefix": "[parameters('vnet_address_prefix')]"
 					}
@@ -250,7 +246,7 @@
 					"value": "[parameters('username')]"
 				},
 				"extension_command": {
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', parameters('proxy_config_script_uri'), ' | sudo bash -s -- ', parameters('username'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name')), '2018-08-01').addressPrefix, '\"')]"
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl ', parameters('proxy_config_script_uri'), ' | sudo bash -s -- ', parameters('username'), ' ', reference(resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), variables('subnet_name')), '2018-08-01').addressPrefix, '\"')]"
 				},
 				"nic_name": {
 					"value": "[variables('proxy_nic_name')]"
@@ -268,13 +264,13 @@
 					"value": "[parameters('proxy_vm_size')]"
 				},
 				"vnet_subnet_id": {
-					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name'))]"
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), variables('subnet_name'))]"
 				}
 			}
 		},
 		"dependsOn": [
 			"[variables('proxy_nsg_name')]",
-			"[parameters('vnet_name')]"
+			"[variables('vnet_name')]"
 		]
 	}, {
 		"type": "Microsoft.Resources/deployments",
@@ -308,7 +304,7 @@
 					"value": "[parameters('runner_vm_size')]"
 				},
 				"vnet_subnet_id": {
-					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnet_name'), parameters('subnet_name'))]"
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), variables('subnet_name'))]"
 				},
 				"ip_addr_name": {
 					"value": "[if(parameters('create_runner_public_ip'), concat(parameters('runner_vm_name'), '-ip'), '!')]"
@@ -317,7 +313,7 @@
 		},
 		"dependsOn": [
 			"[variables('runner_nsg_name')]",
-			"[parameters('vnet_name')]",
+			"[variables('vnet_name')]",
 			"create_proxy_vm"
 		]
 	}]
