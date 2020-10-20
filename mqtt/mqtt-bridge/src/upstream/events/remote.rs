@@ -22,7 +22,7 @@ pub struct RemoteUpstreamPumpEventHandler;
 impl PumpMessageHandler for RemoteUpstreamPumpEventHandler {
     type Message = RemoteUpstreamPumpEvent;
 
-    async fn handle(&self, message: Self::Message) {
+    async fn handle(&mut self, message: Self::Message) {
         match message {
             RemoteUpstreamPumpEvent::RpcCommand(_, _) => {}
         }

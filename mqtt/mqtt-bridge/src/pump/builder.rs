@@ -9,8 +9,8 @@ use crate::{
     persist::{PublicationStore, WakingMemoryStore},
     settings::TopicRule,
     upstream::{
-        LocalRpcHandler, LocalUpstreamHandler, LocalUpstreamPumpEventHandler, RemoteRpcHandler,
-        RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler,
+        ConnectivityHandler, LocalRpcHandler, LocalUpstreamHandler, LocalUpstreamPumpEventHandler,
+        RemoteRpcHandler, RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler,
     },
 };
 
@@ -90,13 +90,16 @@ impl Builder {
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tls(config, handler);
+        let publish_handle = client
+            .publish_handle()
+            .map_err(BridgeError::PublishHandle)?;
 
-        let handler = LocalUpstreamPumpEventHandler;
+        let handler = LocalUpstreamPumpEventHandler::new(publish_handle);
         let pump_handle = PumpHandle::new(local_messages_send.clone());
         let messages = MessagesProcessor::new(handler, local_messages_recv, pump_handle);
 
         let local_pump = Pump::new(
-            local_messages_send,
+            local_messages_send.clone(),
             client,
             subscriptions,
             local_store.clone(),
@@ -107,9 +110,10 @@ impl Builder {
 
         let rpc = RemoteRpcHandler;
         let messages = MessageHandler::new(local_store, topic_filters);
-        let handler = RemoteUpstreamHandler::new(messages, rpc);
+        let connectivity = ConnectivityHandler::new(PumpHandle::new(local_messages_send));
+        let handler = RemoteUpstreamHandler::new(messages, rpc, connectivity);
 
-        let config = self.local.client.take().expect("local client config");
+        let config = self.remote.client.take().expect("remote client config");
         let client = MqttClient::tls(config, handler);
 
         let handler = RemoteUpstreamPumpEventHandler;

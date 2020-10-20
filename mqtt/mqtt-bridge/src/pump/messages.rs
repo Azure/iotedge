@@ -12,7 +12,7 @@ pub trait PumpMessageHandler {
     type Message;
 
     /// Handles custom pump message event.
-    async fn handle(&self, message: Self::Message);
+    async fn handle(&mut self, message: Self::Message);
 }
 
 /// Handles incoming control messsages for a pump.
