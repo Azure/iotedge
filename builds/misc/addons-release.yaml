@@ -18,13 +18,13 @@ jobs:
       - template: templates/image-linux.yaml
         parameters:
           name: API Proxy
-          imageName: api-proxy-module
+          imageName: azureiotedge-api-proxy
           project: api-proxy-module
           version: $(version)
       # Check API proxy
       - task: ComponentGovernanceComponentDetection@0
         inputs:
-          dockerImagesToScan: '$(registry.address)/microsoft/api-proxy-module:$(version)-linux-amd64,$(registry.address)/microsoft/api-proxy-module:$(version)-linux-arm32v7,$(registry.address)/microsoft/api-proxy-module:$(version)-linux-arm64v8' 
+          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(version)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(version)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(version)-linux-arm64v8' 
 
 ################################################################################
   - job: manifest
@@ -36,4 +36,4 @@ jobs:
       - linux_API_proxy_module
     steps:
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish api-proxy-module Manifest'
+      displayName: 'Publish azureiotedge-api-proxy Manifest'

@@ -7,7 +7,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("An error occurred deserializing policy definition.")]
+    #[error("An error occurred deserializing policy definition: {0}.")]
     Deserializing(#[source] serde_json::Error),
 
     #[error("An error occurred validating policy definition: {0}")]

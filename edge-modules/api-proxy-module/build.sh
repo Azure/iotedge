@@ -93,13 +93,13 @@ set -e
 
 cp -r ./templates/ ./docker/linux/amd64
 cp -r ./target/x86_64-unknown-linux-musl/release/api-proxy-module ./docker/linux/amd64
-docker build . -t  api-proxy-module -f docker/linux/amd64/Dockerfile
+docker build . -t  azureiotedge-api-proxy -f docker/linux/amd64/Dockerfile
 elif [[ "$ARCH" == "arm32v7" ]]; then
 
 docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src messense/rust-musl-cross:armv7-musleabihf  /bin/bash -c " rm -frv ~/.rustup/toolchains/* &&curl -sSLf https://sh.rustup.rs | sh -s -- -y && rustup target add armv7-unknown-linux-musleabihf && cargo build --target=armv7-unknown-linux-musleabihf --release --manifest-path /home/rust/src/edge-modules/api-proxy-module/Cargo.toml"
 cp -r ./templates/ ./docker/linux/arm32v7
 cp -r ./target/armv7-unknown-linux-musleabihf/release/api-proxy-module ./docker/linux/arm32v7
-docker build . -t  api-proxy-module -f docker/linux/arm32v7/Dockerfile
+docker build . -t  azureiotedge-api-proxy -f docker/linux/arm32v7/Dockerfile
 elif [[ "$ARCH" == "aarch64" ]]; then
 set +e
 ../../scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch $ARCH --build-path edge-modules/api-proxy-module
@@ -107,5 +107,5 @@ set -e
 
 cp -r ./templates/ ./docker/linux/arm64v8
 cp -r ./target/aarch64-unknown-linux-gnu/release/api-proxy-module ./docker/linux/arm64v8
-docker build . -t  api-proxy-module -f docker/linux/arm64v8/Dockerfile
+docker build . -t  azureiotedge-api-proxy -f docker/linux/arm64v8/Dockerfile
 fi

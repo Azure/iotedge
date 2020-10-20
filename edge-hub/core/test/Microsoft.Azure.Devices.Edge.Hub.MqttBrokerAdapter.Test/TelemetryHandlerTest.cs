@@ -205,8 +205,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Returns((string device_id, string module_id) => new ModuleIdentity("host", device_id, module_id));
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>()))
-                .Returns((IIdentity i) => CreateListenerFromIdentity(i));
+                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
+                .Returns((IIdentity i, bool _) => CreateListenerFromIdentity(i));
 
             return (connectionRegistry, identityProvider);
 
@@ -252,7 +252,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                       "$edgehub/device_id/messages/events/prop1=val1&prop2=val2",
                                       "$edgehub/device_id/module_id/messages/events",
                                       "$edgehub/device_id/module_id/messages/events/",
-                                      "$edgehub/device_id/module_id/messages/events/prop1=val1&prop2=val2"
+                                      "$edgehub/device_id/module_id/messages/events/prop1=val1&prop2=val2",
+                                      "$iothub/device_id/messages/events",
+                                      "$iothub/device_id/messages/events/",
+                                      "$iothub/device_id/messages/events/prop1=val1&prop2=val2",
+                                      "$iothub/device_id/module_id/messages/events",
+                                      "$iothub/device_id/module_id/messages/events/",
+                                      "$iothub/device_id/module_id/messages/events/prop1=val1&prop2=val2"
             };
 
             return testStrings.Select(s => new string[] { s });
