@@ -15,7 +15,8 @@ use tracing::{error, info};
 use crate::{
     bridge::BridgeError,
     client::{EventHandler, MqttClient},
-    persist::{PublicationStore, WakingMemoryStore},
+    persist::PublicationStore,
+    persist::StreamWakeableState,
     settings::ConnectionSettings,
 };
 
@@ -43,28 +44,29 @@ pub struct PumpError;
 ///
 /// Messages processing is intended to control pump behavior: initiate pump
 /// shutdown, handle configuration update or another specific event.
-pub struct Pump<E, M>
+pub struct Pump<S, H, M>
 where
     M: PumpMessageHandler,
 {
     subscriptions: Vec<String>,
     messages_send: mpsc::Sender<PumpMessage<M::Message>>,
     messages: MessagesProcessor<M>,
-    egress: Egress,
-    ingress: Ingress<E>,
+    egress: Egress<S>,
+    ingress: Ingress<H>,
 }
 
-impl<H, M> Pump<H, M>
+impl<S, H, M> Pump<S, H, M>
 where
     H: EventHandler,
     M: PumpMessageHandler,
+    S: StreamWakeableState,
 {
     /// Creates a new instance of pump.
     fn new(
         messages_send: mpsc::Sender<PumpMessage<M::Message>>,
         client: MqttClient<H>,
         subscriptions: Vec<String>,
-        store: PublicationStore<WakingMemoryStore>,
+        store: PublicationStore<S>,
         messages: MessagesProcessor<M>,
     ) -> Result<Self, BridgeError> {
         let client_shutdown = client.shutdown_handle()?;

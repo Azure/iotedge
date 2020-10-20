@@ -6,7 +6,7 @@ use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig},
     messages::{MessageHandler, TopicMapper},
-    persist::{PublicationStore, WakingMemoryStore},
+    persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
     settings::TopicRule,
     upstream::{
         ConnectivityHandler, LocalRpcHandler, LocalUpstreamHandler, LocalUpstreamPumpEventHandler,
@@ -16,9 +16,9 @@ use crate::{
 
 use super::{MessagesProcessor, Pump, PumpHandle};
 
-pub type PumpPair = (
-    Pump<LocalUpstreamHandler<WakingMemoryStore>, LocalUpstreamPumpEventHandler>,
-    Pump<RemoteUpstreamHandler<WakingMemoryStore>, RemoteUpstreamPumpEventHandler>,
+pub type PumpPair<S> = (
+    Pump<S, LocalUpstreamHandler<S>, LocalUpstreamPumpEventHandler>,
+    Pump<S, RemoteUpstreamHandler<S>, RemoteUpstreamPumpEventHandler>,
 );
 
 /// Constructs a pair of bridge pumps: local and remote.
@@ -30,13 +30,13 @@ pub type PumpPair = (
 /// Remote pump connects to a remote broker, subscribes to topics to receive
 /// messages from remote broker and put it in the store of the local pump.
 /// Also reads messages from a remote store and publishes them to local broker.
-pub struct Builder {
+pub struct Builder<S> {
     local: PumpBuilder,
     remote: PumpBuilder,
-    store: Box<dyn Fn() -> PublicationStore<WakingMemoryStore>>,
+    store: Box<dyn Fn() -> PublicationStore<S>>,
 }
 
-impl Default for Builder {
+impl Default for Builder<WakingMemoryStore> {
     fn default() -> Self {
         Self {
             local: PumpBuilder::default(),
@@ -46,9 +46,12 @@ impl Default for Builder {
     }
 }
 
-impl Builder {
+impl<S> Builder<S>
+where
+    S: StreamWakeableState + Send,
+{
     /// Apples parameters to create local pump.
-    pub fn with_local<F>(&mut self, mut apply: F) -> &mut Self
+    pub fn with_local<F>(mut self, mut apply: F) -> Self
     where
         F: FnMut(&mut PumpBuilder),
     {
@@ -57,7 +60,7 @@ impl Builder {
     }
 
     /// Applies parameters to create remote pump.
-    pub fn with_remote<F>(&mut self, mut apply: F) -> &mut Self
+    pub fn with_remote<F>(mut self, mut apply: F) -> Self
     where
         F: FnMut(&mut PumpBuilder),
     {
@@ -66,16 +69,19 @@ impl Builder {
     }
 
     /// Setups a factory to create publication store.
-    pub fn with_store<F>(&mut self, store: F) -> &mut Self
+    pub fn with_store<F, S1>(self, store: F) -> Builder<S1>
     where
-        F: Fn() -> PublicationStore<WakingMemoryStore> + 'static,
+        F: Fn() -> PublicationStore<S1> + 'static,
     {
-        self.store = Box::new(store);
-        self
+        Builder {
+            local: self.local,
+            remote: self.remote,
+            store: Box::new(store),
+        }
     }
 
     /// Creates a pair of local and remote pump.
-    pub fn build(&mut self) -> Result<PumpPair, BridgeError> {
+    pub fn build(&mut self) -> Result<PumpPair<S>, BridgeError> {
         let remote_store = (self.store)();
         let local_store = (self.store)();
 

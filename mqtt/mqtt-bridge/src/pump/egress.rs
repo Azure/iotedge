@@ -7,26 +7,26 @@ use tracing::{debug, error, info};
 
 use mqtt3::PublishHandle;
 
-use crate::persist::{PublicationStore, WakingMemoryStore};
+use crate::persist::{PublicationStore, StreamWakeableState};
 
 /// Handles the egress of received publications.
 ///
 /// It loads messages from the local store and publishes them as MQTT messages
 /// to the broker. After acknowledgement is received from the broker it
 /// deletes publication from the store.
-pub(crate) struct Egress {
+pub(crate) struct Egress<S> {
     publish_handle: PublishHandle,
-    store: PublicationStore<WakingMemoryStore>,
+    store: PublicationStore<S>,
     shutdown_send: Option<oneshot::Sender<()>>,
     shutdown_recv: oneshot::Receiver<()>,
 }
 
-impl Egress {
+impl<S> Egress<S>
+where
+    S: StreamWakeableState,
+{
     /// Creates a new instance of egress.
-    pub(crate) fn new(
-        publish_handle: PublishHandle,
-        store: PublicationStore<WakingMemoryStore>,
-    ) -> Egress {
+    pub(crate) fn new(publish_handle: PublishHandle, store: PublicationStore<S>) -> Egress<S> {
         let (shutdown_send, shutdown_recv) = oneshot::channel();
 
         Self {

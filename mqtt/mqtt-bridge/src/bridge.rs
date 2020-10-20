@@ -5,7 +5,7 @@ use tracing_futures::Instrument;
 
 use crate::{
     client::{ClientError, MqttClientConfig},
-    persist::{PersistError, PublicationStore, WakingMemoryStore},
+    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
     pump::{Builder, Pump},
     settings::{ConnectionSettings, Credentials},
     upstream::{
@@ -35,14 +35,14 @@ impl BridgeShutdownHandle {
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
-pub struct Bridge {
-    local_pump: Pump<LocalUpstreamHandler<WakingMemoryStore>, LocalUpstreamPumpEventHandler>,
-    remote_pump: Pump<RemoteUpstreamHandler<WakingMemoryStore>, RemoteUpstreamPumpEventHandler>,
+pub struct Bridge<S> {
+    local_pump: Pump<S, LocalUpstreamHandler<S>, LocalUpstreamPumpEventHandler>,
+    remote_pump: Pump<S, RemoteUpstreamHandler<S>, RemoteUpstreamPumpEventHandler>,
     connection_settings: ConnectionSettings,
 }
 
-impl Bridge {
-    pub async fn new(
+impl Bridge<WakingMemoryStore> {
+    pub async fn new_upstream(
         system_address: String,
         device_id: String,
         settings: ConnectionSettings,
@@ -77,7 +77,7 @@ impl Bridge {
             .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
             .build()?;
 
-        // TODO move susbscriptions into run method
+        // TODO move subscriptions into run method
         local_pump
             .subscribe()
             .instrument(info_span!("pump", name = "local"))
@@ -96,7 +96,12 @@ impl Bridge {
             connection_settings: settings,
         })
     }
+}
 
+impl<S> Bridge<S>
+where
+    S: StreamWakeableState + Send,
+{
     pub async fn run(self) -> Result<(), BridgeError> {
         info!("Starting {} bridge...", self.connection_settings.name());
 
