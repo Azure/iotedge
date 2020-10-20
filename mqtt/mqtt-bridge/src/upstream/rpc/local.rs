@@ -14,14 +14,17 @@ use crate::{
 
 use super::RpcError;
 
-/// An RPC handlers that reposible to connect to part of the bridge which
-/// connects to local broker. It receives RPC commands on a special topic,
-/// converts it to a `RpcCommand` and sends to remote pump as a `PumpMessage`.
+/// An RPC handlers that responsible to connect to part of the bridge which
+/// connects to local broker.
+///
+/// It receives RPC commands on a special topic, converts it to a `RpcCommand`
+/// and sends to remote pump as a `PumpMessage`.
 pub struct LocalRpcHandler {
     remote_pump: PumpHandle<RemoteUpstreamPumpEvent>,
 }
 
 impl LocalRpcHandler {
+    /// Creates a new instance of local part of RPC handler.
     pub fn new(remote_pump: PumpHandle<RemoteUpstreamPumpEvent>) -> Self {
         Self { remote_pump }
     }

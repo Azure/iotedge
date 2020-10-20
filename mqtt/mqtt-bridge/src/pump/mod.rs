@@ -1,53 +1,23 @@
-#![allow(dead_code, unused_imports, unused_variables)]
-
 mod builder;
+mod egress;
+mod ingress;
+mod messages;
 
 pub use builder::Builder;
+use egress::Egress;
+use ingress::Ingress;
+use messages::MessagesProcessor;
+pub use messages::PumpMessageHandler;
 
-use async_trait::async_trait;
-use futures_util::{
-    stream::{StreamExt, TryStreamExt},
-    FutureExt,
-};
-use tokio::{
-    select,
-    sync::{
-        mpsc::{self, error::SendError},
-        oneshot,
-    },
-};
-use tracing::{debug, error, info};
-
-use mqtt3::PublishHandle;
+use tokio::{join, pin, select, sync::mpsc};
+use tracing::{error, info};
 
 use crate::{
     bridge::BridgeError,
-    client::{ClientShutdownHandle, EventHandler, MqttClient},
-    persist::{MessageLoader, PublicationStore, WakingMemoryStore},
+    client::{EventHandler, MqttClient},
+    persist::{PublicationStore, WakingMemoryStore},
     settings::ConnectionSettings,
-    upstream::{CommandId, LocalUpstreamPumpEvent, RemoteUpstreamPumpEvent, RpcCommand},
 };
-
-#[derive(Debug, PartialEq)]
-pub enum PumpMessage<M> {
-    Event(M),
-    ConfigurationUpdate(ConnectionSettings),
-    Shutdown,
-}
-
-pub struct PumpHandle<M> {
-    sender: mpsc::Sender<PumpMessage<M>>,
-}
-
-impl<M> PumpHandle<M> {
-    fn new(sender: mpsc::Sender<PumpMessage<M>>) -> Self {
-        Self { sender }
-    }
-
-    pub async fn send(&mut self, message: PumpMessage<M>) -> Result<(), PumpError> {
-        self.sender.send(message).await.map_err(|_| PumpError)
-    }
-}
 
 #[cfg(test)]
 pub fn channel<M>() -> (PumpHandle<M>, mpsc::Receiver<PumpMessage<M>>) {
@@ -59,11 +29,20 @@ pub fn channel<M>() -> (PumpHandle<M>, mpsc::Receiver<PumpMessage<M>>) {
 #[error("unable to send command to pump")]
 pub struct PumpError;
 
-/// Pump used to connect to either local broker or remote brokers (including the upstream edge device)
-/// It contains an mqtt client that connects to a local/remote broker
-/// After connection there are two simultaneous processes:
-/// 1) persist incoming messages into an ingress store to be used by another pump
-/// 2) publish outgoing messages from an egress store to the local/remote broker
+/// Pump is used to connect to either local broker or remote brokers
+/// (including the upstream edge device)
+///
+/// It contains several tasks running in parallel: ingress, egress and events processing.
+///
+/// During `ingress` pump handles incoming MQTT publications and puts them
+/// into the store. The opposite pump will read publications from a store
+/// and forwards them to the corresponding broker.
+///
+/// During `egress` pump reads pulications from its own store and sends them
+/// to the broker MQTT client connected to.
+///
+/// Messages processing is intended to control pump behavior: initiate pump
+/// shutdown, handle configuration update or another specific event.
 pub struct Pump<E, M>
 where
     M: PumpMessageHandler,
@@ -80,11 +59,11 @@ where
     H: EventHandler,
     M: PumpMessageHandler,
 {
+    /// Creates a new instance of pump.
     fn new(
         messages_send: mpsc::Sender<PumpMessage<M::Message>>,
         client: MqttClient<H>,
         subscriptions: Vec<String>,
-        loader: MessageLoader<WakingMemoryStore>,
         store: PublicationStore<WakingMemoryStore>,
         messages: MessagesProcessor<M>,
     ) -> Result<Self, BridgeError> {
@@ -93,7 +72,7 @@ where
             .publish_handle()
             .map_err(BridgeError::PublishHandle)?;
 
-        let egress = Egress::new(publish_handle, loader, store);
+        let egress = Egress::new(publish_handle, store);
         let ingress = Ingress::new(client, client_shutdown);
 
         Ok(Self {
@@ -105,42 +84,63 @@ where
         })
     }
 
+    /// Returns a handle to send control messages to a pump.
     pub fn handle(&self) -> PumpHandle<M::Message> {
         PumpHandle::new(self.messages_send.clone())
     }
 
     pub async fn subscribe(&mut self) -> Result<(), BridgeError> {
         self.ingress
-            .client
-            .subscribe(&self.subscriptions) //TODO react on PumpMessage instead
+            .client()
+            .subscribe(&self.subscriptions) //TODO react on PumpMessage::ConfigurationUpdate instead
             .await
             .map_err(BridgeError::Subscribe)?;
 
         Ok(())
     }
 
+    /// Orchestrates starting of egress, ingress and controll messages
+    /// processing and waits for all of them to finish.
+    ///
+    /// Attempts to start all routines in the same task in parallel and
+    /// waits for any of them to finish. It sends shutdown to other ones
+    /// and waits until all of them stopped.
     pub async fn run(mut self) {
-        info!("starting pump");
+        info!("starting pump...");
 
         let shutdown_egress = self.egress.handle();
+        let egress = self.egress.run();
+
         let shutdown_ingress = self.ingress.handle();
+        let ingress = self.ingress.run();
+
         let shutdown_messages = self.messages.handle();
+        let messages = self.messages.run();
+
+        pin!(egress, ingress, messages);
 
         select! {
-            _= self.egress.run().fuse() => {
+            _= &mut egress => {
                 error!("egress stopped unexpectedly");
                 shutdown_ingress.shutdown().await;
                 shutdown_messages.shutdown().await;
+
+                join!(ingress, messages);
+
             },
-            _= self.ingress.run().fuse() => {
+            _= &mut ingress => {
                 error!("ingress stopped unexpectedly");
                 shutdown_egress.shutdown().await;
                 shutdown_messages.shutdown().await;
+
+                join!(egress, messages);
             },
-            _= self.messages.run().fuse() => {
+            _= &mut messages => {
                 info!("stopping pump");
                 shutdown_ingress.shutdown().await;
                 shutdown_egress.shutdown().await;
+
+                join!(egress, ingress);
             }
         };
 
@@ -148,187 +148,27 @@ where
     }
 }
 
-struct MessagesProcessorShutdownHandle<M>(Option<PumpHandle<M>>);
-
-impl<M> MessagesProcessorShutdownHandle<M> {
-    async fn shutdown(mut self) {
-        if let Some(mut sender) = self.0.take() {
-            if let Err(e) = sender.send(PumpMessage::Shutdown).await {
-                error!("unable to request shutdown for message processor. {}", e);
-            }
-        }
-    }
+/// A message to control pump behavior.
+#[derive(Debug, PartialEq)]
+pub enum PumpMessage<E> {
+    Event(E),
+    ConfigurationUpdate(ConnectionSettings),
+    Shutdown,
 }
 
-#[async_trait]
-pub trait PumpMessageHandler {
-    type Message;
-
-    async fn handle(&mut self, message: Self::Message);
+/// A handle to send control messages to the pump.
+pub struct PumpHandle<M> {
+    sender: mpsc::Sender<PumpMessage<M>>,
 }
 
-struct MessagesProcessor<M>
-where
-    M: PumpMessageHandler,
-{
-    messages: mpsc::Receiver<PumpMessage<M::Message>>,
-    pump_handle: Option<PumpHandle<M::Message>>,
-    handler: M,
-}
-
-impl<M> MessagesProcessor<M>
-where
-    M: PumpMessageHandler,
-{
-    fn new(
-        handler: M,
-        messages: mpsc::Receiver<PumpMessage<M::Message>>,
-        pump_handle: PumpHandle<M::Message>,
-    ) -> Self {
-        Self {
-            messages,
-            pump_handle: Some(pump_handle),
-            handler,
-        }
+impl<M> PumpHandle<M> {
+    /// Creates a new instance of pump handle.
+    fn new(sender: mpsc::Sender<PumpMessage<M>>) -> Self {
+        Self { sender }
     }
 
-    fn handle(&mut self) -> MessagesProcessorShutdownHandle<M::Message> {
-        MessagesProcessorShutdownHandle(self.pump_handle.take())
-    }
-
-    async fn run(mut self) {
-        info!("starting pump messages processor");
-        while let Some(message) = self.messages.next().await {
-            match message {
-                PumpMessage::Event(event) => self.handler.handle(event).await,
-                PumpMessage::ConfigurationUpdate(_) => {}
-                PumpMessage::Shutdown => {
-                    info!("stop requested");
-                    break;
-                }
-            }
-        }
-
-        info!("finished pump messages processor");
-    }
-}
-
-struct IngressShutdownHandle(Option<ClientShutdownHandle>);
-
-impl IngressShutdownHandle {
-    async fn shutdown(mut self) {
-        if let Some(mut sender) = self.0.take() {
-            if let Err(e) = sender.shutdown().await {
-                error!("unable to request shutdown for ingress. {}", e);
-            }
-        }
-    }
-}
-
-struct Ingress<H> {
-    client: MqttClient<H>,
-    shutdown_client: Option<ClientShutdownHandle>,
-}
-
-impl<H> Ingress<H>
-where
-    H: EventHandler,
-{
-    fn new(client: MqttClient<H>, shutdown_client: ClientShutdownHandle) -> Self {
-        Self {
-            client,
-            shutdown_client: Some(shutdown_client),
-        }
-    }
-
-    fn handle(&mut self) -> IngressShutdownHandle {
-        IngressShutdownHandle(self.shutdown_client.take())
-    }
-
-    async fn run(mut self) {
-        debug!("starting ingress publication processing",);
-        self.client.handle_events().await;
-    }
-}
-
-struct EgressShutdownHandle(Option<oneshot::Sender<()>>);
-
-impl EgressShutdownHandle {
-    async fn shutdown(mut self) {
-        if let Some(sender) = self.0.take() {
-            if sender.send(()).is_err() {
-                error!("unable to request shutdown for egress.");
-            }
-        }
-    }
-}
-
-struct Egress {
-    publish_handle: PublishHandle,
-    loader: MessageLoader<WakingMemoryStore>,
-    store: PublicationStore<WakingMemoryStore>,
-    shutdown_send: Option<oneshot::Sender<()>>,
-    shutdown_recv: oneshot::Receiver<()>,
-}
-
-impl Egress {
-    fn new(
-        publish_handle: PublishHandle,
-        loader: MessageLoader<WakingMemoryStore>,
-        store: PublicationStore<WakingMemoryStore>,
-    ) -> Egress {
-        let (shutdown_send, shutdown_recv) = oneshot::channel();
-
-        Self {
-            publish_handle,
-            loader,
-            store,
-            shutdown_send: Some(shutdown_send),
-            shutdown_recv,
-        }
-    }
-
-    fn handle(&mut self) -> EgressShutdownHandle {
-        EgressShutdownHandle(self.shutdown_send.take())
-    }
-
-    async fn run(self) {
-        let Egress {
-            mut publish_handle,
-            loader,
-            store,
-            shutdown_recv,
-            ..
-        } = self;
-
-        info!("starting egress publication processing");
-
-        let mut shutdown = shutdown_recv.fuse();
-        let mut loader = loader.fuse();
-
-        loop {
-            select! {
-                _ = &mut shutdown => {
-                    info!(" received shutdown signal for egress messages");
-                    break;
-                }
-                maybe_publication = loader.try_next() => {
-                    debug!("extracted publication from store");
-
-                    if let Ok(Some((key, publication))) = maybe_publication {
-                        debug!("publishing {:?}", key);
-                        if let Err(e) = publish_handle.publish(publication).await {
-                            error!(err = %e, "failed publish");
-                        }
-
-                        if let Err(e) = store.remove(key) {
-                            error!(err = %e, "failed removing publication from store");
-                        }
-                    }
-                }
-            }
-        }
-
-        info!("finished egress publication processing");
+    /// Sends a control message to a pump.
+    pub async fn send(&mut self, message: PumpMessage<M>) -> Result<(), PumpError> {
+        self.sender.send(message).await.map_err(|_| PumpError)
     }
 }
