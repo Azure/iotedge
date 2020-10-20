@@ -10,21 +10,21 @@ use futures_util::{
     future::{self, Either},
     pin_mut, FutureExt,
 };
-use thiserror::Error;
-use tokio::{sync::broadcast, time};
+use tokio::time;
 use tracing::{error, info, warn};
 
 use super::SidecarManager;
-use mqtt_bridge::BridgeController;
+use mqtt_bridge::{settings::BridgeSettings, BridgeController};
 use mqtt_broker::{
     auth::{AllowAll, Authorizer},
-    Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerSnapshot, Server, ServerCertificate,
+    Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerReady, BrokerSnapshot, Server,
+    ServerCertificate,
 };
 use mqtt_edgehub::{
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     command::{
-        AuthorizedIdentitiesCommand, CommandHandler, CommandHandlerError, DisconnectCommand,
-        PolicyUpdateCommand, ShutdownHandle,
+        AuthorizedIdentitiesCommand, BridgeUpdateCommand, CommandHandler, CommandHandlerError,
+        DisconnectCommand, PolicyUpdateCommand, ShutdownHandle,
     },
     connection::MakeEdgeHubPacketProcessor,
     settings::{ListenerConfig, Settings},
@@ -50,9 +50,10 @@ where
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
+    broker_ready: &BrokerReady,
 ) -> Result<Broker<impl Authorizer>> {
     // TODO: Use AllowAll as bottom level authorizer until Policies are sent over from EdgeHub
-    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(AllowAll));
+    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(AllowAll, broker_ready.handle()));
 
     let broker = BrokerBuilder::default()
         .with_authorizer(authorizer)
@@ -67,11 +68,14 @@ pub async fn start_server<Z, F>(
     config: Settings,
     broker: Broker<Z>,
     shutdown_signal: F,
+    broker_ready: BrokerReady,
 ) -> Result<BrokerSnapshot>
 where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()>,
 {
+    info!("starting server...");
+
     let broker_handle = broker.handle();
 
     let make_processor = MakeEdgeHubPacketProcessor::new_default(broker_handle.clone());
@@ -83,10 +87,9 @@ where
 
     // Add regular MQTT over TCP transport
     let authenticator = EdgeHubAuthenticator::new(config.auth().url());
-    let (broker_ready, _) = broadcast::channel(1);
 
     if let Some(tcp) = config.listener().tcp() {
-        let broker_ready = Some(broker_ready.subscribe());
+        let broker_ready = Some(broker_ready.signal());
         server.with_tcp(tcp.addr(), authenticator.clone(), broker_ready)?;
     }
 
@@ -110,7 +113,7 @@ where
             };
             let renew_at = identity.not_after();
 
-            let broker_ready = Some(broker_ready.subscribe());
+            let broker_ready = Some(broker_ready.signal());
             server.with_tls(tls.addr(), identity, authenticator.clone(), broker_ready)?;
 
             let renewal_signal = server_certificate_renewal(renew_at);
@@ -124,19 +127,13 @@ where
     pin_mut!(renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
-    // TODO remove this call when broker readiness is implemented
-    tokio::spawn(async move {
-        tokio::time::delay_for(std::time::Duration::from_millis(500)).await;
-        broker_ready.send(()).expect("ready signal");
-    });
-
     // Start serving new connections
     let state = server.serve(shutdown).await?;
 
     Ok(state)
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum SidecarError {
     #[error("Failed to shutdown command handler")]
     CommandHandlerShutdown(#[from] CommandHandlerError),
@@ -170,20 +167,21 @@ pub async fn start_sidecars(
 
     let system_address = listener_settings.system().addr().to_string();
 
-    // command handler
+    let bridge_controller = BridgeController::new();
+
     let device_id = env::var(DEVICE_ID_ENV)?;
     let mut command_handler = CommandHandler::new(system_address.clone(), &device_id);
     command_handler.add_command(DisconnectCommand::new(&broker_handle));
     command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
     command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
+    command_handler.add_command(BridgeUpdateCommand::new(&bridge_controller.handle()));
     command_handler.init().await?;
     let command_handler_shutdown = command_handler.shutdown_handle()?;
     let command_handler_join_handle = tokio::spawn(command_handler.run());
 
-    // bridge
-    let mut bridge_controller = BridgeController::new();
-    bridge_controller.init(system_address, &device_id).await?;
-    let bridge_controller_join_handle = tokio::spawn(bridge_controller.run());
+    let settings = BridgeSettings::new()?;
+    let bridge_controller_join_handle =
+        tokio::spawn(bridge_controller.run(system_address, device_id, settings));
 
     let join_handles = vec![command_handler_join_handle, bridge_controller_join_handle];
     let shutdown_handle = SidecarShutdownHandle::new(command_handler_shutdown);

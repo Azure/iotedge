@@ -532,6 +532,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IEdgeHub>>()
                 .SingleInstance();
 
+            // BrokerPropertiesValidator
+            builder.Register(
+                    c =>
+                    {
+                        return new BrokerPropertiesValidator();
+                    })
+                .As<BrokerPropertiesValidator>()
+                .SingleInstance();
+
+            // Task<EdgeHubConfigParser>
+            builder.Register(
+                    async c =>
+                    {
+                        RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
+                        BrokerPropertiesValidator validator = c.Resolve<BrokerPropertiesValidator>();
+                        var configParser = new EdgeHubConfigParser(routeFactory, validator);
+                        return configParser;
+                    })
+                .As<Task<EdgeHubConfigParser>>()
+                .SingleInstance();
+
             // Task<ConfigUpdater>
             builder.Register(
                     async c =>
@@ -555,6 +576,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
+                        EdgeHubConfigParser configParser = await c.Resolve<Task<EdgeHubConfigParser>>();
                         if (this.useTwinConfig)
                         {
                             var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
@@ -577,11 +599,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 this.versionInfo,
                                 deviceScopeIdentitiesCache);
 
-                            return new TwinConfigSource(edgeHubConnection, edgeHubCredentials.Identity.Id, this.versionInfo, twinManager, twinMessageConverter, twinCollectionMessageConverter, routeFactory);
+                            return new TwinConfigSource(
+                                edgeHubConnection,
+                                edgeHubCredentials.Identity.Id,
+                                this.versionInfo,
+                                twinManager,
+                                twinMessageConverter,
+                                twinCollectionMessageConverter,
+                                configParser);
                         }
                         else
                         {
-                            return new LocalConfigSource(routeFactory, this.routes, this.storeAndForwardConfiguration);
+                            return new LocalConfigSource(
+                                routeFactory,
+                                this.routes,
+                                this.storeAndForwardConfiguration);
                         }
                     })
                 .As<Task<IConfigSource>>()

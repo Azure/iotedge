@@ -33,7 +33,7 @@ impl Command for AuthorizedIdentitiesCommand {
     }
 
     fn handle(&mut self, publication: &ReceivedPublication) -> Result<(), Self::Error> {
-        info!("received authorized identities from edgeHub.");
+        info!("received authorized identities from EdgeHub.");
         let update: AuthorizerUpdate = serde_json::from_slice(&publication.payload)
             .map_err(Error::ParseAuthorizedIdentities)?;
 
@@ -42,16 +42,15 @@ impl Command for AuthorizedIdentitiesCommand {
             .send(message)
             .map_err(Error::SendAuthorizedIdentitiesToBroker)?;
 
-        info!("succeeded sending authorized identity scopes to broker",);
         Ok(())
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("failed to parse authorized identities from message payload")]
-    ParseAuthorizedIdentities(serde_json::Error),
+    #[error("failed to parse authorized identities from message payload: {0}")]
+    ParseAuthorizedIdentities(#[source] serde_json::Error),
 
-    #[error("failed while sending authorized identities to broker")]
-    SendAuthorizedIdentitiesToBroker(mqtt_broker::Error),
+    #[error("failed while sending authorized identities to broker: {0}")]
+    SendAuthorizedIdentitiesToBroker(#[source] mqtt_broker::Error),
 }
