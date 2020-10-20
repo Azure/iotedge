@@ -45,10 +45,10 @@ cp ~/proxy-env.override.conf /etc/systemd/system/iotedge.service.d/
 
 echo 'Verifying VM behavior behind proxy server'
 
-# Verify runner can use the proxy
-curl -x $proxy -L 'http://www.microsoft.com'
-curl -x $proxy -L 'https://www.microsoft.com'
-
 # Verify runner can't skirt the proxy (should time out after 5s)
 timeout 5s curl -L 'http://www.microsoft.com' && exit 1 || :
 timeout 5s curl -L 'https://www.microsoft.com' && exit 1 || :
+
+final_status=$?
+echo "Exit with status $final_status"
+exit $final_status
