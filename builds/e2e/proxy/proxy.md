@@ -23,21 +23,15 @@ location='<>'
 # Name of the resource group
 resource_group_name='<>'
 
-# Name of the Azure virtual network to which the VMs will attach.
-vnet_name='<>'
-
-# The address prefix (in CIDR notation) of the virtual network/subnet
-vnet_address_prefix='<>'
-
-# Name of the subnet within the virtual network
-subnet_name='default'
+# Names of the proxy server and client (test runner) VMs. Used to resolve them via DNS for the tests.
+proxy_vm_name='e2eproxy-server'
+runner_vm_name='e2eproxy-runner'
 
 # Name of the user for the VMs
 username='azureuser'
 
-# Names of the proxy server and client (test runner) VMs. Used to resolve them via DNS for the tests.
-proxy_vm_name='e2eproxy-server'
-runner_vm_name='e2eproxy-runner'
+# The address prefix (in CIDR notation) of the virtual network/subnet
+vnet_address_prefix='<>'
 
 # -------
 # Execute
@@ -56,31 +50,19 @@ az group create -l "$location" -n "$resource_group_name"
 # Deploy the VMs
 az deployment group create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters "$(
     jq -n \
-        --arg ssh_public_key "$(cat $keyfile.pub)" \
-        --arg username "$username" \
-        --arg vnet_address_prefix "$vnet_address_prefix" \
-        --arg vnet_name "$vnet_name" \
-        --arg subnet_name "$subnet_name" \
         --arg proxy_vm_name "$proxy_vm_name" \
         --arg runner_vm_name "$runner_vm_name" \
+        --arg username "$username" \
+        --arg ssh_public_key "$(cat $keyfile.pub)" \
+        --arg vnet_address_prefix "$vnet_address_prefix" \
         '{
-            "ssh_public_key": { "value": $ssh_public_key },
-            "username": { "value": $username },
-            "vnet_address_prefix": { "value": $vnet_address_prefix },
-            "vnet_name": { "value": $vnet_name },
-            "subnet_name": { "value": $subnet_name },
             "proxy_vm_name": { "value": $proxy_vm_name },
-            "runner_vm_name": { "value": $runner_vm_name }
+            "runner_vm_name": { "value": $runner_vm_name },
+            "username": { "value": $username },
+            "ssh_public_key": { "value": $ssh_public_key },
+            "vnet_address_prefix": { "value": $vnet_address_prefix }
         }'
 )"
 ```
 
-Once deployment has completed, you can SSH into the proxy client VM and configure the Azure Pipelines agent the following commands. For more information about installing/configuring the agent, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
-
-
-```sh
-proxy_fqdn="http://$proxy_vm_name`.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
-./config.sh --proxyurl $proxy_fqdn
-./svc.sh install
-./svc.sh start
-```
+Once deployment has completed, you can SSH into the proxy client VM to install/configure the Azure Pipelines agent. For more information, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
