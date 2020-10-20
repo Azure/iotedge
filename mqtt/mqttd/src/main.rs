@@ -1,4 +1,4 @@
-#![type_length_limit = "1230974"]
+#![type_length_limit = "1992622"]
 use std::{env, path::PathBuf};
 
 use anyhow::Result;

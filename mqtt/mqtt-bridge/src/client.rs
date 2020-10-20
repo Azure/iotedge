@@ -201,18 +201,14 @@ impl InFlightPublishHandle {
     }
 
     pub async fn publish(&self, publication: Publication) {
+        let permit = self.permits.acquire().await;
+
         let mut publish_handle = self.publish_handle.clone();
-        let permits = self.permits.clone();
+        if let Err(e) = publish_handle.publish(publication).await {
+            error!(message = "failed to publish", err = %e);
+        }
 
-        let fut = async move {
-            let permit = permits.acquire().await;
-            if let Err(e) = publish_handle.publish(publication).await {
-                error!(message = "failed to publish", err = %e);
-            }
-            drop(permit)
-        };
-
-        tokio::spawn(fut);
+        drop(permit);
     }
 }
 

@@ -7,8 +7,8 @@ use std::{
 
 use futures_util::{
     future::{select, Either, FutureExt},
-    pin_mut,
-    stream::{StreamExt, TryStreamExt},
+    pin_mut, select,
+    stream::{FuturesUnordered, StreamExt, TryStreamExt},
 };
 use tokio::sync::{mpsc::Sender, oneshot, oneshot::Receiver};
 use tracing::{debug, error, info};
@@ -260,36 +260,43 @@ impl Pump {
         let persist = self.persist.clone();
         let mut loader = self.loader.clone();
         let mut client_shutdown = self.client_shutdown.clone();
+        let mut in_flight_publishes = FuturesUnordered::new();
 
         // egress loop
         let egress_loop = async {
-            let mut receive_fut = loader_shutdown_rx.into_stream();
+            let mut loader_shutdown_rx = loader_shutdown_rx.into_stream();
 
             info!("starting egress publication processing");
 
             loop {
                 let publish_handle = publish_handle.clone();
-                match select(receive_fut.next(), loader.try_next()).await {
-                    Either::Left((shutdown, _)) => {
+
+                select! {
+                    shutdown = loader_shutdown_rx.next() => {
                         info!("received shutdown signal for egress messages",);
                         if shutdown.is_none() {
                             error!("has unexpected behavior from shutdown signal while signaling bridge pump shutdown");
                         }
 
                         break;
-                    }
-                    Either::Right((loaded_element, _)) => {
-                        debug!("extracted publication from store");
-
+                    },
+                    loaded_element = loader.try_next().fuse() => {
                         if let Ok(Some((key, publication))) = loaded_element {
-                            debug!("publishing publication {:?}", key);
-                            publish_handle.publish(publication).await;
+                            let persist = persist.clone();
+                            let publish_and_remove = async move {
+                                debug!("publishing publication {:?}", key);
+                                publish_handle.publish(publication).await;
 
-                            if let Err(e) = persist.remove(key) {
-                                error!(err = %e, "failed removing publication from store");
-                            }
+                                if let Err(e) = persist.remove(key) {
+                                    error!(err = %e, "failed removing publication from store");
+                                }
+                            };
+
+                            in_flight_publishes.push(publish_and_remove);
                         }
-                    }
+
+                    },
+                    _ = in_flight_publishes.next() => {}
                 }
             }
 
