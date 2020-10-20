@@ -14,6 +14,9 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
+    #[fail(display = "Connector Uri error")]
+    ConnectorUri,
+    
     #[fail(display = "Invalid URI to parse: {:?}", _0)]
     Uri(url::ParseError),
 
@@ -23,14 +26,14 @@ pub enum ErrorKind {
     #[fail(display = "Hyper HTTP error")]
     Hyper,
 
+    #[fail(display = "Malformed HTTP response")]
+    MalformedResponse,
+    
     #[fail(display = "HTTP request error")]
     Request,
     
     #[fail(display = "HTTP response error: [{}] {}", _0, _1)]
     Response(StatusCode, String),
-
-    #[fail(display = "Json Parse error for request: {}", _0)]
-    JsonParse(RequestType),
 
     #[fail(display = "Serde error: {:?}", _0)]
     Serde(serde_json::Error),
@@ -85,19 +88,5 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum RequestType {
-    GetCertificate,
-    CreateCertificate,
-    DeleteCertificate,
-    ImportCertificate,
-}
-
-impl Display for RequestType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
     }
 }

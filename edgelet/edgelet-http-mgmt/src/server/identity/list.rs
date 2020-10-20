@@ -67,7 +67,7 @@ impl Handler<Parameters> for ListIdentities
                             let generation_id = generation_id.expect("failed to get generation_id");
 
                             Identity::new(
-                                module_id.0.clone(),
+                                module_id.0,
                                 "iotedge".to_string(),
                                 generation_id.0,
                                 "sas".to_string(),

@@ -490,9 +490,8 @@ mod tests {
     use tempfile::tempdir;
 
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
-    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::{
-        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+        TestConfig, TestModule, TestRuntime, TestSettings,
     };
 
     use super::{
@@ -629,11 +628,7 @@ mod tests {
         let config = TestConfig::new(format!("microsoft/{}", module_name));
         let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
 
-        TestRuntime::make_runtime(
-            TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-        )
+        TestRuntime::make_runtime(TestSettings::new())
         .wait()
         .unwrap()
         .with_module(Ok(module))

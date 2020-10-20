@@ -5,7 +5,7 @@ use std::time::Duration;
 use edgelet_core::{
     AuthId, Authenticator, Connect, DiskInfo, Listen, LogOptions,
     MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningResult, RuntimeSettings, SystemInfo, SystemResources,
+    ProvisioningInfo, RuntimeSettings, SystemInfo, SystemResources,
     WatchdogSettings, Endpoints,
 };
 use failure::Fail;
@@ -268,25 +268,6 @@ impl<E> From<TestBody<E>> for Body {
     fn from(old: TestBody<E>) -> Body {
         let temp: Vec<u8> = old.data.into_iter().flat_map(ToOwned::to_owned).collect();
         Body::from(temp)
-    }
-}
-
-#[derive(Default)]
-pub struct TestProvisioningResult;
-
-impl TestProvisioningResult {
-    pub fn new() -> Self {
-        TestProvisioningResult {}
-    }
-}
-
-impl ProvisioningResult for TestProvisioningResult {
-    fn device_id(&self) -> &str {
-        unimplemented!()
-    }
-
-    fn hub_name(&self) -> &str {
-        unimplemented!()
     }
 }
 

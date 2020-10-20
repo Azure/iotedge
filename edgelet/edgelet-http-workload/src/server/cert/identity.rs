@@ -20,13 +20,13 @@ use crate::IntoResponse;
 
 pub struct IdentityCertHandler<W: WorkloadConfig> {
     cert_client: Arc<Mutex<CertificateClient>>,
-    key_client: Arc<Mutex<aziot_key_client::Client>>,
+    key_client: Arc<aziot_key_client::Client>,
     config: W,
 }
 
 impl<W: WorkloadConfig> IdentityCertHandler<W> {
         
-    pub fn new(key_client: Arc<Mutex<aziot_key_client::Client>>, cert_client: Arc<Mutex<CertificateClient>>, config: W) -> Self {
+    pub fn new(key_client: Arc<aziot_key_client::Client>, cert_client: Arc<Mutex<CertificateClient>>, config: W) -> Self {
         IdentityCertHandler { key_client, cert_client, config }
     }
 }
@@ -41,7 +41,7 @@ where
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let cfg = self.config.clone();
-        let hsm = self.cert_client.clone();
+        let cert_client = self.cert_client.clone();
         let key_client = self.key_client.clone();
 
         let response = params
@@ -94,11 +94,11 @@ where
             })
             .and_then(move |(alias, props)| { 
                 let response = refresh_cert(
-                    key_client,
-                hsm,
-                alias,
-                &props,
-                ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
+                    &key_client,
+                    cert_client,
+                    alias,
+                    &props,
+                    ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
                 .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)));
                 Ok(response)
             })

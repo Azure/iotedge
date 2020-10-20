@@ -21,7 +21,7 @@ use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig
 use edgelet_core::{
     AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, RuntimeSettings,
+    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
     SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
@@ -700,6 +700,14 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
+        // Provisioning information is no longer available in iotedged. This information should
+        // be emitted from Identity Service
+        let provisioning = ProvisioningInfo {
+            r#type: "ProvisioningType".into(),
+            dynamic_reprovisioning: false,
+            always_reprovision_on_startup: false,
+        };
+
         Box::new(
             self.client
                 .system_api()
@@ -716,6 +724,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
                             version: edgelet_core::version_with_source_version(),
+                            provisioning,
                             cpus: system_info.NCPU().unwrap_or_default(),
                             virtualized: match edgelet_core::is_virtualized_env() {
                                 Ok(Some(true)) => "yes",
@@ -1250,9 +1259,14 @@ mod tests {
     use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
-        Connect, Listen, ModuleRegistry, ModuleTop, RuntimeSettings,
-        WatchdogSettings, Endpoints,
+        Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings,
+        WatchdogSettings,
     };
+    #[cfg(target_os = "linux")]
+    use std::fs;
+    #[cfg(target_os = "linux")]
+    use tempfile::NamedTempFile;
+    use tempfile::TempDir;
 
     fn make_settings(merge_json: Option<JsonValue>) -> (Settings, TempDir) {
         let tmp_dir = TempDir::new().unwrap();
@@ -1284,11 +1298,6 @@ mod tests {
             "moby_runtime": {
                  "uri": "unix:///var/run/docker.sock",
                 "network": "azure-iot-edge"
-            },
-            "endpoints": {
-                "aziot_certd_uri": "unix:///var/run/aziot/certd.sock",
-                "aziot_identityd_uri": "unix:///var/run/aziot/identityd.sock",
-                "aziot_keyd_uri": "unix:///var/run/aziot/keyd.sock",
             }
         });
 
@@ -1359,7 +1368,7 @@ mod tests {
             }
         })));
 
-        let runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto());
+        let runtime = DockerModuleRuntime::make_runtime(settings);
         let runtime = tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(runtime)

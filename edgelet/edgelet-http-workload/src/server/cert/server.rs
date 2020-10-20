@@ -22,12 +22,12 @@ use crate::IntoResponse;
 
 pub struct ServerCertHandler<W: WorkloadConfig> {
     cert_client: Arc<Mutex<CertificateClient>>,
-    key_client: Arc<Mutex<aziot_key_client::Client>>,
+    key_client: Arc<aziot_key_client::Client>,
     config: W,
 }
 
 impl<W: WorkloadConfig> ServerCertHandler<W> {
-    pub fn new(key_client: Arc<Mutex<aziot_key_client::Client>>, cert_client: Arc<Mutex<CertificateClient>>, config: W) -> Self {
+    pub fn new(key_client: Arc<aziot_key_client::Client>, cert_client: Arc<Mutex<CertificateClient>>, config: W) -> Self {
         ServerCertHandler { key_client, cert_client, config }
     }
 }
@@ -40,7 +40,7 @@ where
         req: Request<Body>,
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
-        let hsm = self.cert_client.clone();
+        let cert_client = self.cert_client.clone();
         let key_client = self.key_client.clone();
         let cfg = self.config.clone();
         let max_duration = cfg.get_cert_max_duration(CertificateType::Server);
@@ -103,10 +103,10 @@ where
                 .with_san_entries(sans);
                 Ok((alias, props))
             })
-            .and_then(|(alias, props)| { 
+            .and_then(move |(alias, props)| { 
                 let body = refresh_cert(
-                    key_client,
-                    hsm,
+                    &key_client,
+                    cert_client,
                     alias,
                     &props,
                     ErrorKind::CertOperation(CertOperation::GetServerCert),

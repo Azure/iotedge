@@ -202,8 +202,7 @@ const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
 // 90 days
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 90 * 24 * 3600;
 
-// HSM lib version that the iotedge runtime required
-const IOTEDGE_COMPAT_HSM_VERSION: &str = "1.0.3";
+const STOP_TIME: Duration = Duration::from_secs(30);
 
 #[derive(PartialEq)]
 enum StartApiReturnStatus {
@@ -264,10 +263,10 @@ where
         loop {
             info!("Obtaining edge device provisioning data...");
         
-            let url = settings.endpoints().aziot_identityd_uri().clone();
+            let url = settings.endpoints().aziot_identityd_url().clone();
             let client = Arc::new(Mutex::new(identity_client::IdentityClient::new(aziot_identity_common_http::ApiVersion::V2020_09_01, &url)));
 
-            let device_info = get_device_info(client)
+            let device_info = get_device_info(&client)
             .map_err(|e| Error::from(e.context(ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))))
             .map(|(hub_name, device_id)| {
                 debug!("{}:{}", hub_name, device_id);
@@ -289,7 +288,6 @@ where
             // descriptors for the workload and management APIs and calls on these APIs will
             // begin to fail. Resilient modules should be able to deal with this, but we'll
             // restart all modules to ensure a clean start.
-            const STOP_TIME: Duration = Duration::from_secs(30);
             info!("Stopping all modules...");
             tokio_runtime
                 .block_on(runtime.stop_all(Some(STOP_TIME)))
@@ -330,7 +328,7 @@ where
     }
 }
 
-fn get_device_info(identity_client: Arc<Mutex<IdentityClient>>) -> impl Future<Item = (String, String), Error = Error> {
+fn get_device_info(identity_client: &Arc<Mutex<IdentityClient>>) -> impl Future<Item = (String, String), Error = Error> {
     let id_mgr = identity_client.lock().unwrap();
     id_mgr.get_device()
     .map_err(|_| Error::from(ErrorKind::Initialize(
@@ -521,7 +519,7 @@ where
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
-    let watchdog = Watchdog::new(runtime, settings.watchdog().max_retries(), settings.endpoints().aziot_identityd_uri());
+    let watchdog = Watchdog::new(runtime, settings.watchdog().max_retries(), settings.endpoints().aziot_identityd_url());
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
         .map_err(Error::from);
@@ -596,7 +594,7 @@ where
     let url = settings.listen().management_uri().clone();
     let min_protocol_version = settings.listen().min_tls_version();
     
-    let identity_uri = settings.endpoints().aziot_identityd_uri().clone();
+    let identity_uri = settings.endpoints().aziot_identityd_url().clone();
     let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(aziot_identity_common_http::ApiVersion::V2020_09_01, &identity_uri)));
 
     ManagementService::new(runtime, identity_client, initiate_shutdown_and_reprovision)
@@ -644,12 +642,12 @@ where
     let url = settings.listen().workload_uri().clone();
     let min_protocol_version = settings.listen().min_tls_version();
 
-    let keyd_url = settings.endpoints().aziot_keyd_uri().clone();
-    let certd_url = settings.endpoints().aziot_certd_uri().clone();
-    let identityd_url = settings.endpoints().aziot_identityd_uri().clone();
+    let keyd_url = settings.endpoints().aziot_keyd_url().clone();
+    let certd_url = settings.endpoints().aziot_certd_url().clone();
+    let identityd_url = settings.endpoints().aziot_identityd_url().clone();
 
     let key_connector = http_common::Connector::new(&keyd_url).expect("Connector");
-    let key_client = Arc::new(Mutex::new(aziot_key_client::Client::new(aziot_key_common_http::ApiVersion::V2020_09_01, key_connector)));
+    let key_client = Arc::new(aziot_key_client::Client::new(aziot_key_common_http::ApiVersion::V2020_09_01, key_connector));
 
     let cert_client = Arc::new(Mutex::new(cert_client::CertificateClient::new(aziot_cert_common_http::ApiVersion::V2020_09_01, &certd_url)));
     let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(aziot_identity_common_http::ApiVersion::V2020_09_01, &identityd_url)));
@@ -694,7 +692,7 @@ mod tests {
     };
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
-    use edgelet_test_utils::module::{TestModule, TestProvisioningResult, TestRuntime};
+    use edgelet_test_utils::module::{TestModule, TestRuntime};
 
     use super::{
         env, signal, CertificateIssuer, CertificateProperties, CreateCertificate, Digest,

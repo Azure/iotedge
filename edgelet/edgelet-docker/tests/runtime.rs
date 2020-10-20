@@ -71,11 +71,6 @@ fn make_settings(merge_json: Option<JsonValue>) -> Settings {
         "moby_runtime": {
             "uri": "unix:///var/run/docker.sock",
             "network": "azure-iot-edge"
-        },
-        "endpoints": {
-            "aziot_certd_uri": "unix:///var/run/aziot/certd.sock",
-            "aziot_identityd_uri": "unix:///var/run/aziot/identityd.sock",
-            "aziot_keyd_uri": "unix:///var/run/aziot/keyd.sock",
         }
     });
 

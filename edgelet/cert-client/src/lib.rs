@@ -18,5 +18,5 @@ pub mod error;
 
 
 pub use self::client::{CertificateClient};
-pub use self::error::{Error, ErrorKind, RequestType};
+pub use self::error::{Error, ErrorKind};
 

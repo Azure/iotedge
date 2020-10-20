@@ -14,6 +14,7 @@ use edgelet_core::{Certificate as CoreCertificate, CertificateProperties, KeyByt
 use edgelet_core::crypto::IOTEDGED_CA_ALIAS;
 use edgelet_http::Error as HttpError;
 use edgelet_utils::ensure_not_empty_with_context;
+use openssl::error::ErrorStack;
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse};
 
 use crate::{IntoResponse, error::{Error, ErrorKind, Result, CertOperation}};
@@ -68,16 +69,16 @@ fn compute_validity(expiration: &str, max_duration_sec: i64, context: ErrorKind)
 }
 
 fn refresh_cert(
-    key_client: Arc<Mutex<aziot_key_client::Client>>,
+    key_client: &Arc<aziot_key_client::Client>,
     cert_client: Arc<Mutex<CertificateClient>>,
     alias: String,
     props: &CertificateProperties,
     context: ErrorKind,
 ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
-    let response = generate_key_and_csr(props, context.clone())
+    let response = generate_key_and_csr(props)
         .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)))
         .and_then(|(privkey, csr)| {
-            let workload_ca_key_pair_handle = key_client.lock().expect("key client lock error").create_key_pair_if_not_exists(IOTEDGED_CA_ALIAS, Some("ec-p256:rsa-4096:*"))
+            let workload_ca_key_pair_handle = key_client.load_key_pair(IOTEDGED_CA_ALIAS)
                 .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)))?;
                 Ok((privkey, csr, workload_ca_key_pair_handle))
         })
@@ -117,54 +118,41 @@ fn refresh_cert(
 
 fn generate_key_and_csr(
     props: &CertificateProperties,
-    context: ErrorKind,
-) -> Result<(openssl::pkey::PKey<openssl::pkey::Private>, Vec<u8>)> {
-    let rsa = openssl::rsa::Rsa::generate(2048)
-        .context(context.clone())?;
-    let privkey = openssl::pkey::PKey::from_rsa(rsa)
-        .context(context.clone())?;
-    let pubkey = privkey.public_key_to_pem()
-        .context(context.clone())?;
-    let pubkey: openssl::pkey::PKey<openssl::pkey::Public> = openssl::pkey::PKey::public_key_from_pem(&pubkey)
-        .context(context.clone())?;
+) -> std::result::Result<(openssl::pkey::PKey<openssl::pkey::Private>, Vec<u8>), ErrorStack> {
+    let rsa = openssl::rsa::Rsa::generate(2048)?;
+    let privkey = openssl::pkey::PKey::from_rsa(rsa)?;
+    let pubkey = privkey.public_key_to_pem()?;
+    let pubkey: openssl::pkey::PKey<openssl::pkey::Public> = openssl::pkey::PKey::public_key_from_pem(&pubkey)?;
     
-    let mut csr = openssl::x509::X509Req::builder()
-        .context(context.clone())?;
+    let mut csr = openssl::x509::X509Req::builder()?;
     
-    csr.set_version(2).context(context.clone())?;
+    csr.set_version(2)?;
 
     let mut subject_name = 
-        openssl::x509::X509Name::builder()
-        .context(context.clone())?;
-    subject_name.append_entry_by_text("CN", props.common_name())
-        .context(context.clone())?;
+        openssl::x509::X509Name::builder()?;
+    subject_name.append_entry_by_text("CN", props.common_name())?;
     let subject_name = subject_name.build();
-    csr.set_subject_name(&subject_name).context(context.clone())?;
+    csr.set_subject_name(&subject_name)?;
 
-    csr.set_pubkey(&pubkey).context(context.clone())?;
+    csr.set_pubkey(&pubkey)?;
+    
+    let mut extended_key_usage = openssl::x509::extension::ExtendedKeyUsage::new();
 
-    let client_extension = match props.certificate_type() {
-        edgelet_core::CertificateType::Client => {
-            let ext = openssl::x509::extension::ExtendedKeyUsage::new().client_auth().build()
-                .map_err(|_| Error::from(ErrorKind::InvalidCertificateType))?;
-            ext
-        }
-        edgelet_core::CertificateType::Server => {
-            let ext = openssl::x509::extension::ExtendedKeyUsage::new().server_auth().build()
-                .map_err(|_| Error::from(ErrorKind::InvalidCertificateType))?;
-            ext
-        }
-        _ => { return Err(Error::from(ErrorKind::InvalidCertificateType)) }
-    };
+    if props.certificate_type() == &edgelet_core::CertificateType::Client {
+        extended_key_usage.client_auth();
+    }
+    else if props.certificate_type() == &edgelet_core::CertificateType::Server {
+        extended_key_usage.server_auth();
+    }
+
+    let extended_key_usage = extended_key_usage.build()?;
 
     let mut extensions =
-        openssl::stack::Stack::new()
-        .context(context.clone())?;
+        openssl::stack::Stack::new()?;
     extensions
-        .push(client_extension)
-        .context(context.clone())?;
+        .push(extended_key_usage)?;
     
-    if !props.san_entries().is_none() {
+    if props.san_entries().is_some() {
         let mut subject_alt_name = openssl::x509::extension::SubjectAlternativeName::new();
         props
             .san_entries()
@@ -172,25 +160,20 @@ fn generate_key_and_csr(
             .iter()
             .for_each(|s| { 
                 subject_alt_name.dns(s);
-                ()
             });
         let san = subject_alt_name
-            .build(&csr.x509v3_context(None))
-            .context(context.clone())?;
-        extensions.push(san).context(context.clone())?;
+            .build(&csr.x509v3_context(None))?;
+        extensions.push(san)?;
     }
 
     csr
-        .add_extensions(&extensions)
-        .context(context.clone())?;
+        .add_extensions(&extensions)?;
 
     csr
-        .sign(&privkey, openssl::hash::MessageDigest::sha256())
-        .context(context.clone())?;
+        .sign(&privkey, openssl::hash::MessageDigest::sha256())?;
 
     let csr = csr.build();
-    let csr = csr.to_pem()
-        .context(context)?;
+    let csr = csr.to_pem()?;
 
     Ok((privkey, csr))
 }

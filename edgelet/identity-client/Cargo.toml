@@ -9,6 +9,7 @@ edition = "2018"
 failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
+hyperlocal = "0.6"
 log = "0.4"
 percent-encoding = "1.0"
 serde = "1.0"
@@ -19,4 +20,5 @@ url = "2"
 
 aziot-identity-common = { path = "../../aziot/identity/aziot-identity-common" }
 aziot-identity-common-http = { path = "../../aziot/identity/aziot-identity-common-http" }
+edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }

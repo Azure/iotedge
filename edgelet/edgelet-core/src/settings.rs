@@ -161,6 +161,8 @@ pub struct Settings<T> {
     homedir: PathBuf,
     #[serde(default)]
     watchdog: WatchdogSettings,
+    #[serde(default)]
+    #[cfg_attr(not(debug_assertions), serde(skip))]
     endpoints: Endpoints,
 }
 
@@ -209,22 +211,32 @@ where
 
 #[derive(Clone, Debug, PartialEq, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Endpoints {
-    aziot_certd_uri: Url,
-    aziot_keyd_uri: Url,
-    aziot_identityd_uri: Url,
+    aziot_certd_url: Url,
+    aziot_keyd_url: Url,
+    aziot_identityd_url: Url,
+}
+
+impl Default for Endpoints {
+	fn default() -> Self {
+		Endpoints {
+			aziot_certd_url: Url::parse("unix:///run/aziot/certd.sock").expect("Url parse failed"),
+			aziot_keyd_url: Url::parse("unix:///run/aziot/keyd.sock").expect("Url parse failed"),
+			aziot_identityd_url: Url::parse("unix:///run/aziot/identityd.sock").expect("Url parse failed"),
+		}
+	}
 }
 
 impl Endpoints {
-    pub fn aziot_certd_uri(&self) -> &Url {
-        &self.aziot_certd_uri
+    pub fn aziot_certd_url(&self) -> &Url {
+        &self.aziot_certd_url
     }
 
-    pub fn aziot_keyd_uri(&self) -> &Url {
-        &self.aziot_keyd_uri
+    pub fn aziot_keyd_url(&self) -> &Url {
+        &self.aziot_keyd_url
     }
 
-    pub fn aziot_identityd_uri(&self) -> &Url {
-        &self.aziot_identityd_uri
+    pub fn aziot_identityd_url(&self) -> &Url {
+        &self.aziot_identityd_url
     }
 }
 
@@ -265,63 +277,5 @@ mod tests {
             actual,
             Err(format!("Unsupported TLS protocol version: {}", value))
         )
-    }
-
-    #[test]
-    fn to_string_returns_the_provisioning_type_as_a_string() {
-        let ptype = ProvisioningType::Manual(Box::new(Manual::new(
-            ManualAuthMethod::DeviceConnectionString(ManualDeviceConnectionString::new(
-                "".to_string(),
-            )),
-        )));
-        assert_eq!(
-            "manual.device_connection_string",
-            ptype.to_string().as_str()
-        );
-
-        let ptype = ProvisioningType::Manual(Box::new(Manual::new(ManualAuthMethod::X509(
-            ManualX509Auth {
-                iothub_hostname: String::default(),
-                device_id: String::default(),
-                identity_cert: Url::parse("file:///irrelevant").unwrap(),
-                identity_pk: Url::parse("file:///irrelevant").unwrap(),
-            },
-        ))));
-        assert_eq!("manual.x509", ptype.to_string().as_str());
-
-        let ptype = ProvisioningType::Dps(Box::new(Dps {
-            global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
-            scope_id: "irrelevant".to_string(),
-            attestation: AttestationMethod::Tpm(TpmAttestationInfo::new("irrelevant".to_string())),
-            always_reprovision_on_startup: true,
-        }));
-        assert_eq!("dps.tpm", ptype.to_string().as_str());
-
-        let ptype = ProvisioningType::Dps(Box::new(Dps {
-            global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
-            scope_id: "irrelevant".to_string(),
-            attestation: AttestationMethod::SymmetricKey(SymmetricKeyAttestationInfo {
-                registration_id: "irrelevant".to_string(),
-                symmetric_key: "irrelevant".to_string(),
-            }),
-            always_reprovision_on_startup: true,
-        }));
-        assert_eq!("dps.symmetric_key", ptype.to_string().as_str());
-
-        let ptype = ProvisioningType::Dps(Box::new(Dps {
-            global_endpoint: Url::parse("http://irrelevant.net").unwrap(),
-            scope_id: "irrelevant".to_string(),
-            attestation: AttestationMethod::X509(X509AttestationInfo {
-                registration_id: Some("irrelevant".to_string()),
-                identity_cert: Url::parse("file:///irrelevant").unwrap(),
-                identity_pk: Url::parse("file:///irrelevant").unwrap(),
-            }),
-            always_reprovision_on_startup: true,
-        }));
-        assert_eq!("dps.x509", ptype.to_string().as_str());
-
-        let ptype =
-            ProvisioningType::External(External::new(Url::parse("http://irrelevant.net").unwrap()));
-        assert_eq!("external", ptype.to_string().as_str());
     }
 }

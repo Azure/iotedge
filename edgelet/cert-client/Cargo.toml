@@ -19,4 +19,5 @@ url = "2"
 
 aziot-cert-common-http = { path = "../../aziot/cert/aziot-cert-common-http" }
 aziot-key-common = { path = "../../aziot/key/aziot-key-common" }
+edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }

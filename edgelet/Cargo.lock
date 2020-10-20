@@ -271,6 +271,7 @@ version = "0.1.0"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-key-common",
+ "edgelet-core",
  "edgelet-http",
  "failure",
  "futures",
@@ -1133,10 +1134,12 @@ version = "0.1.0"
 dependencies = [
  "aziot-identity-common",
  "aziot-identity-common-http",
+ "edgelet-core",
  "edgelet-http",
  "failure",
  "futures",
  "hyper 0.12.35",
+ "hyperlocal",
  "log",
  "percent-encoding 1.0.1",
  "serde",

@@ -34,13 +34,10 @@ pub fn parse_query(query: &str) -> HashMap<&str, &str> {
                 None
             } else {
                 let mut tokens = seg.splitn(2, '=');
-                if let Some(key) = tokens.next() {
+                tokens.next().map(|key| {
                     let val = tokens.next().unwrap_or("");
-                    Some((key, val))
-                } else {
-                    // if there's no key then we ignore this token
-                    None
-                }
+                    (key, val)
+                })
             }
         })
         .collect()
@@ -78,7 +75,7 @@ pub fn prepare_dns_san_entries<'a>(names: impl Iterator<Item = &'a str> + 'a) ->
         if dns.is_empty() {
             None
         } else {
-            Some(format!("{}", dns))
+            Some(dns)
         }
     })
 }
@@ -90,7 +87,7 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
             if name.trim().is_empty() {
                 None
             } else {
-                Some(format!("{}", name.to_lowercase()))
+                Some(name.to_lowercase())
             }
         })
         .collect::<Vec<String>>()

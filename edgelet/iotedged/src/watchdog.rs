@@ -70,7 +70,7 @@ where
         let name = spec.name().to_string();
         let module_id = module_id.to_string();
         let max_retries = self.max_retries;
-        let identityd_url = self.identityd_url.clone();
+        let identityd_url = self.identityd_url;
 
         let watchdog = start_watchdog(runtime, spec, module_id, max_retries, identityd_url);
 
@@ -196,7 +196,7 @@ where
                 Either::A(res)
             }
 
-            None => Either::B(create_and_start(runtime, spec, module_id, identityd_url.clone())),
+            None => Either::B(create_and_start(runtime, spec, &module_id, &identityd_url)),
         })
         .map(|_| ())
 }
@@ -219,8 +219,8 @@ where
 fn create_and_start<M>(
     runtime: M,
     spec: ModuleSpec<<M::Module as Module>::Config>,
-    module_id: String,
-    identityd_url: url::Url,
+    module_id: &str,
+    identityd_url: &url::Url,
 ) -> impl Future<Item = (), Error = Error>
 where
     M: 'static + ModuleRuntime + Clone,
@@ -240,9 +240,9 @@ where
         
         let (module, genid, auth) = match identity {
             AziotIdentity::Aziot(spec) => {
-                (spec.module_id.ok_or(Error::from(ErrorKind::ModuleRuntime))?,
-                spec.gen_id.ok_or(Error::from(ErrorKind::ModuleRuntime))?,
-                spec.auth.ok_or(Error::from(ErrorKind::ModuleRuntime))?)
+                (spec.module_id.ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
+                spec.gen_id.ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
+                spec.auth.ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?)
             }
         };
         Ok((module, genid, auth))
@@ -252,7 +252,7 @@ where
         let mut env = spec.env().clone();
         env.insert(
             MODULE_GENERATIONID.to_string(),
-            generation_id.0.to_owned(),
+            generation_id.0,
         );
         let spec = spec.with_env(env);
 

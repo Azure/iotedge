@@ -18,9 +18,10 @@ use edgelet_http::route::{Builder, RegexRecognizer, Router, RouterService};
 use edgelet_http::{router, Version};
 use edgelet_http_mgmt::ListModules;
 use identity_client::client::IdentityClient;
+use aziot_key_client::Client as KeyClient;
 
 use failure::{Compat, Fail, ResultExt};
-use futures::{future, Future};
+use futures::{Future, IntoFuture, future};
 use hyper::service::{NewService, Service};
 use hyper::{Body, Request};
 use serde::Serialize;
@@ -43,7 +44,7 @@ impl WorkloadService {
         runtime: &M,
         identity_client: Arc<Mutex<IdentityClient>>,
         cert_client: Arc<Mutex<CertificateClient>>,
-        key_client: Arc<Mutex<aziot_key_client::Client>>,
+        key_client: Arc<aziot_key_client::Client>,
         config: W,
     ) -> impl Future<Item = Self, Error = Error>
     where
@@ -57,8 +58,8 @@ impl WorkloadService {
         let router = router!(
             get   Version2018_06_28 runtime Policy::Anonymous => "/modules" => ListModules::new(runtime.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign"     => SignHandler::new(key_client.clone(), identity_client.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt"  => DecryptHandler::new(key_client.clone(), identity_client.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt"  => EncryptHandler::new(key_client.clone(), identity_client.clone()),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt"  => DecryptHandler::new(key_client.clone()),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt"  => EncryptHandler::new(key_client.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/certificate/identity"            => IdentityCertHandler::new(key_client.clone(), cert_client.clone(), config.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(key_client.clone(), cert_client.clone(), config),
 
@@ -97,8 +98,8 @@ impl NewService for WorkloadService {
 }
 
 fn get_key_handle(identity_client: Arc<Mutex<IdentityClient>>, name: &str) -> impl Future<Item = KeyHandle, Error = Error> {
-    let id_mgr = identity_client.lock().unwrap();
-    id_mgr.get_module(name)
+    let id_client = identity_client.lock().unwrap();
+    id_client.get_module(name)
     .map_err(|_| Error::from(ErrorKind::GetIdentity))
     .and_then(|identity| {
         match identity {
@@ -108,5 +109,19 @@ fn get_key_handle(identity_client: Arc<Mutex<IdentityClient>>, name: &str) -> im
                 }).expect("keyhandle missing")
             }
         }   
+    })
+}
+
+fn get_master_encryption_key(key_client: &Arc<KeyClient>) -> impl Future<Item = KeyHandle, Error = Error> {
+    key_client.create_key_if_not_exists("iotedge_master_encryption_id", aziot_key_common::CreateKeyValue::Generate { length: 32 })
+    .map_err(|_| Error::from(ErrorKind::LoadMasterEncKey))
+    .into_future()
+}
+
+fn get_derived_enc_key_handle(key_client: Arc<KeyClient>, name: String) -> impl Future<Item = KeyHandle, Error = Error> {
+    get_master_encryption_key(&key_client)
+    .and_then(move |key_handle| {
+        key_client.create_derived_key(&key_handle, name.as_bytes())
+        .map_err(|_| Error::from(ErrorKind::GetIdentity))
     })
 }

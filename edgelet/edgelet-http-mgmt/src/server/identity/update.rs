@@ -76,7 +76,7 @@ impl Handler<Parameters> for UpdateIdentity
 
                     let identity = Identity::new(
                         module_id.0.clone(),
-                        managed_by.to_string(),
+                        managed_by,
                         generation_id.0,
                         auth.auth_type.to_string(),
                     );

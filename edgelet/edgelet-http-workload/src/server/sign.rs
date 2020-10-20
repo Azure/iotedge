@@ -21,13 +21,13 @@ use crate::IntoResponse;
 
 pub struct SignHandler
 {
-    key_client: Arc<Mutex<aziot_key_client::Client>>,
+    key_client: Arc<aziot_key_client::Client>,
     identity_client: Arc<Mutex<IdentityClient>>,
 }
 
 impl SignHandler
 {
-    pub fn new(key_client: Arc<Mutex<aziot_key_client::Client>>, identity_client: Arc<Mutex<IdentityClient>>) -> Self {
+    pub fn new(key_client: Arc<aziot_key_client::Client>, identity_client: Arc<Mutex<IdentityClient>>) -> Self {
         
         SignHandler { key_client, identity_client }
     }
@@ -93,10 +93,8 @@ impl Handler<Parameters> for SignHandler
     }
 }
 
-fn get_signature(key_client: Arc<Mutex<aziot_key_client::Client>>, key_handle: KeyHandle, data: Vec<u8>) -> impl Future<Item = Vec<u8>, Error = Error> {
+fn get_signature(key_client: Arc<aziot_key_client::Client>, key_handle: KeyHandle, data: Vec<u8>) -> impl Future<Item = Vec<u8>, Error = Error> {
     key_client
-    .lock()
-    .expect("lock error")
     .sign(
         &key_handle,
          aziot_key_common::SignMechanism::HmacSha256,
