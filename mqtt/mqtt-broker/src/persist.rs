@@ -536,7 +536,7 @@ pub enum PersistError {
     TaskJoin(#[source] Option<tokio::task::JoinError>),
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_arch = "x86_64"))]
 mod tests {
     use std::io::Cursor;
 
@@ -551,7 +551,6 @@ mod tests {
 
     proptest! {
         #[test]
-        #[cfg(target_arch = "x86_64")]
         fn consolidate_simple(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
 
@@ -570,7 +569,6 @@ mod tests {
         }
 
         #[test]
-        #[cfg(target_arch = "x86_64")]
         fn consolidate_roundtrip(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
             let format = VersionedFileFormat;
