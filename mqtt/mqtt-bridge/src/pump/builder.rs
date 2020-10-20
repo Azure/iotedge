@@ -88,6 +88,7 @@ where
         let (remote_messages_send, remote_messages_recv) = mpsc::channel(100);
         let (local_messages_send, local_messages_recv) = mpsc::channel(100);
 
+        // prepare local pump
         let (subscriptions, topic_filters) = make_topics(&self.local.rules)?;
 
         let rpc = LocalRpcHandler::new(PumpHandle::new(remote_messages_send.clone()));
@@ -95,7 +96,7 @@ where
         let handler = LocalUpstreamHandler::new(messages, rpc);
 
         let config = self.local.client.take().expect("local client config");
-        let client = MqttClient::tls(config, handler);
+        let client = MqttClient::tcp(config, handler);
         let publish_handle = client
             .publish_handle()
             .map_err(BridgeError::PublishHandle)?;
@@ -112,6 +113,7 @@ where
             messages,
         )?;
 
+        // prepare remote pump
         let (subscriptions, topic_filters) = make_topics(&self.remote.rules)?;
 
         let rpc = RemoteRpcHandler;
