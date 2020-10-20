@@ -20,7 +20,7 @@ use crate::{
     client::{ClientShutdownHandle, MqttClient},
     messages::MessageHandler,
     persist::{MessageLoader, PublicationStore, WakingMemoryStore},
-    settings::{ConnectionSettings, Credentials, TopicRule},
+    settings::{ConnectionSettings, Credentials, Direction, TopicRule},
 };
 
 const BATCH_SIZE: usize = 10;
@@ -90,15 +90,27 @@ impl PumpPair {
         );
 
         let forwards: HashMap<String, TopicRule> = connection_settings
-            .forwards()
+            .subscriptions()
             .iter()
-            .map(|sub| Self::format_key_value(sub))
+            .filter_map(|s| {
+                if *s.direction() == Direction::Out {
+                    Some(Self::format_key_value(s))
+                } else {
+                    None
+                }
+            })
             .collect();
 
         let subscriptions: HashMap<String, TopicRule> = connection_settings
             .subscriptions()
             .iter()
-            .map(|sub| Self::format_key_value(sub))
+            .filter_map(|s| {
+                if *s.direction() == Direction::In {
+                    Some(Self::format_key_value(s))
+                } else {
+                    None
+                }
+            })
             .collect();
 
         let outgoing_persist = PublicationStore::new_memory(BATCH_SIZE);
@@ -178,13 +190,13 @@ impl PumpPair {
         )?)
     }
 
-    fn format_key_value(topic: &TopicRule) -> (String, TopicRule) {
-        let key = if let Some(local) = topic.local() {
-            format!("{}/{}", local, topic.pattern().to_string())
+    fn format_key_value(subscription: &TopicRule) -> (String, TopicRule) {
+        let key = if let Some(local) = subscription.in_prefix() {
+            format!("{}/{}", local, subscription.topic().to_string())
         } else {
-            topic.pattern().into()
+            subscription.topic().into()
         };
-        (key, topic.clone())
+        (key, subscription.clone())
     }
 }
 
