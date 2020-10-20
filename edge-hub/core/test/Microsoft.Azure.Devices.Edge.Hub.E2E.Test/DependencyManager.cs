@@ -205,6 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
                     true,
+                    false,
                     false));
 
             builder.RegisterModule(new HttpModule("Edge1"));
