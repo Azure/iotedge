@@ -69,8 +69,8 @@ impl Handler<Parameters> for SignHandler {
             .and_then(|(id, request, key_store, id_mgr)| -> Result<_, Error> {
                 let data: Vec<u8> =
                     base64::decode(request.data()).context(ErrorKind::MalformedRequestBody)?;
-                let response = get_key_handle(id_mgr.clone(), &id)
-                    .and_then(|k| get_signature(key_store, k, data))
+                let response = get_key_handle(&id_mgr, &id)
+                    .and_then(move |k| get_signature(&key_store, &k, &data))
                     .and_then(|signature| -> Result<_, Error> {
                         let encoded = base64::encode(signature.as_bytes());
                         let response = SignResponse::new(encoded);
@@ -94,9 +94,9 @@ impl Handler<Parameters> for SignHandler {
 }
 
 fn get_signature(
-    key_client: Arc<aziot_key_client::Client>,
-    key_handle: KeyHandle,
-    data: Vec<u8>,
+    key_client: &Arc<aziot_key_client::Client>,
+    key_handle: &KeyHandle,
+    data: &[u8],
 ) -> impl Future<Item = Vec<u8>, Error = Error> {
     key_client
         .sign(

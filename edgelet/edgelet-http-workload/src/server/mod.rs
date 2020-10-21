@@ -56,13 +56,13 @@ impl WorkloadService {
     {
         let router = router!(
             get   Version2018_06_28 runtime Policy::Anonymous => "/modules" => ListModules::new(runtime.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign"     => SignHandler::new(key_client.clone(), identity_client.clone()),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign"     => SignHandler::new(key_client.clone(), identity_client),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt"  => DecryptHandler::new(key_client.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt"  => EncryptHandler::new(key_client.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/certificate/identity"            => IdentityCertHandler::new(key_client.clone(), cert_client.clone(), config.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(key_client.clone(), cert_client.clone(), config),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(key_client, cert_client.clone(), config),
 
-            get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client.clone()),
+            get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client),
         );
 
         router.new_service().then(|inner| {
@@ -97,7 +97,7 @@ impl NewService for WorkloadService {
 }
 
 fn get_key_handle(
-    identity_client: Arc<Mutex<IdentityClient>>,
+    identity_client: &Arc<Mutex<IdentityClient>>,
     name: &str,
 ) -> impl Future<Item = KeyHandle, Error = Error> {
     let id_client = identity_client.lock().unwrap();
