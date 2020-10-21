@@ -32,6 +32,10 @@
 		"runner_config_script_uri": {
 			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_runner.sh",
 			"type": "string"
+		},
+		"create_ssh_keys_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create_ssh_keys.sh",
+			"type": "string"
 		}
 	},
 	"variables": {
@@ -112,19 +116,7 @@
 			"azCliVersion": "2.9.1",
 			"cleanupPreference": "Always",
 			"arguments": "[add(parameters('runner_count'), 1)]",
-			"scriptContent": "
-				for i in `seq $1`
-				do
-					ssh-keygen -t rsa -b 4096 -N '' -f \"id_rsa$i\"
-				done
-				echo '{\"keyinfo\": [' > $AZ_SCRIPTS_OUTPUT_PATH
-				for i in `seq $1`
-				do
-					json=\"{\\\"privateKey\\\":\\\"$(cat id_rsa$i)\\\",\\\"publicKey\\\":\\\"$(cat 'id_rsa$i.pub')\\\"},\"
-					echo $json >> $AZ_SCRIPTS_OUTPUT_PATH
-				done
-				echo ']}' >> $AZ_SCRIPTS_OUTPUT_PATH
-			",
+			"primaryScriptUri": "[parameters('create_ssh_keys_script_uri')]",
 			"timeout": "PT30M"
 		},
 		"dependsOn": [
