@@ -43,7 +43,7 @@
 		"condition": "[not(equals(parameters('ip_addr_name'), '!'))]",
 		"type": "Microsoft.Network/publicIPAddresses",
 		"name": "[parameters('ip_addr_name')]",
-		"apiVersion": "2018-02-01",
+		"apiVersion": "2020-05-01",
 		"sku": {
 			"name": "Basic",
 			"tier": "Regional"
@@ -57,7 +57,7 @@
 	}, {
 		"type": "Microsoft.Network/networkInterfaces",
 		"name": "[parameters('nic_name')]",
-		"apiVersion": "2018-02-01",
+		"apiVersion": "2020-05-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"ipConfigurations": [{
@@ -81,7 +81,7 @@
 	}, {
 		"type": "Microsoft.Compute/virtualMachines",
 		"name": "[parameters('vm_name')]",
-		"apiVersion": "2017-12-01",
+		"apiVersion": "2020-06-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"osProfile": {
@@ -130,7 +130,7 @@
 	}, {
 		"type": "Microsoft.Compute/virtualMachines/extensions",
 		"name": "[concat(parameters('vm_name'), '/', 'setup')]",
-		"apiVersion": "2018-10-01",
+		"apiVersion": "2020-06-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"publisher": "Microsoft.Azure.Extensions",
