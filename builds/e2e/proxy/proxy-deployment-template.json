@@ -44,7 +44,7 @@
 		"contributor_id": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
 		"keygen_identity_name": "[concat(variables('base'), 'uaid')]",
 		"keygen_script_name": "create_ssh_keys",
-		"role_definition_name": "[guid(variables('identityName'), variables('contributor_id'))]",
+		"role_definition_name": "[guid(variables('keygen_identity_name'), variables('contributor_id'))]",
 		"proxy_vm_name": "[concat(variables('base'), 'proxy-vm')]",
 		"proxy_nsg_name": "[concat(variables('base'), 'proxy-nsg')]",
 		"runner_vm_name_base": "[concat(variables('base'), 'runner-vm')]",
@@ -124,7 +124,7 @@
 		]
 	}, {
 		"type": "Microsoft.Resources/deployments",
-		"name": "[concat('store_ssh_keys'), copyIndex())]",
+		"name": "[concat('store_ssh_keys', copyIndex())]",
 		"apiVersion": "2020-06-01",
 		"copy": {
 			"name": "store_ssh_keys_copy",
