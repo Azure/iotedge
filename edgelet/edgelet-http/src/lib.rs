@@ -293,7 +293,7 @@ impl HyperExt for Http {
                 let addr = url
                     .socket_addrs(|| None)
                     .context(ErrorKind::InvalidUrl(url.to_string()))?;
-                let addr = addr.iter().next();
+                let addr = addr.get(0);
                 let addr = addr.ok_or_else(|| {
                     ErrorKind::InvalidUrlWithReason(url.to_string(), InvalidUrlReason::NoAddress)
                 })?;

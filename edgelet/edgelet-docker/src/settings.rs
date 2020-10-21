@@ -305,8 +305,6 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.yaml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_TLS: &str = "test/linux/sample_settings.tls.yaml";
-    #[cfg(unix)]
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.yaml";
@@ -396,15 +394,6 @@ mod tests {
         let s = settings.unwrap();
         let watchdog_settings = s.watchdog();
         assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
-    }
-
-    #[test]
-    fn tls_settings_are_read() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_TLS)).unwrap();
-        assert_eq!(
-            settings.listen().min_tls_version(),
-            edgelet_core::Protocol::Tls12
-        );
     }
 
     #[test]
