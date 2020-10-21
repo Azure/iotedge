@@ -28,7 +28,7 @@ jobs:
   - job: linux_arm32v7
 ################################################################################
     displayName: Linux arm32v7
-
+    condition: false
     pool:
       name: $(pool.name)
       demands: rpi3-e2e-tests
@@ -52,7 +52,8 @@ jobs:
     displayName: Linux amd64
 
     pool:
-      vmImage: ubuntu-16.04
+      name: $(pool.name)
+      demands: bearwashere
 
     variables:
       os: linux
@@ -67,7 +68,7 @@ jobs:
   - job: centos7_amd64	
 ################################################################################		
     displayName: CentOs7 amd64	
-
+    condition: false
     pool:	
       name: $(pool.name)	
       demands:	
