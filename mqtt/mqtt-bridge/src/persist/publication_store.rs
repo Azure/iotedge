@@ -1,4 +1,3 @@
-#![allow(dead_code)] // TODO remove when ready
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -22,7 +21,7 @@ pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 
 impl PublicationStore<WakingMemoryStore> {
     pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
-        Self::new(WakingMemoryStore::new(), batch_size)
+        Self::new(WakingMemoryStore::default(), batch_size)
     }
 }
 
@@ -99,7 +98,7 @@ mod tests {
     #[tokio::test]
     async fn insert() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let batch_size: usize = 5;
         let persistence = PublicationStore::new(state, batch_size);
 
@@ -138,7 +137,7 @@ mod tests {
     #[tokio::test]
     async fn remove() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let batch_size: usize = 1;
         let persistence = PublicationStore::new(state, batch_size);
 
@@ -176,7 +175,7 @@ mod tests {
     #[tokio::test]
     async fn remove_key_inserted_but_not_retrieved() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let batch_size: usize = 1;
         let persistence = PublicationStore::new(state, batch_size);
 
@@ -198,7 +197,7 @@ mod tests {
     #[tokio::test]
     async fn remove_key_dne() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let batch_size: usize = 1;
         let persistence = PublicationStore::new(state, batch_size);
 
@@ -213,7 +212,7 @@ mod tests {
     #[tokio::test]
     async fn get_loader() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let batch_size: usize = 1;
         let persistence = PublicationStore::new(state, batch_size);
 
