@@ -33,7 +33,8 @@ impl BridgeController {
 
             let upstream_bridge = async move {
                 let bridge =
-                    Bridge::new(system_address, device_id, upstream_settings.clone()).await;
+                    Bridge::new_upstream(system_address, device_id, upstream_settings.clone())
+                        .await;
 
                 match bridge {
                     Ok(bridge) => {

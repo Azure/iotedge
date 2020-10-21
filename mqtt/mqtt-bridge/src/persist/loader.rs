@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn smaller_batch_size_respected() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn larger_batch_size_respected() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn ordering_maintained_across_inserts() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // add many elements
@@ -229,7 +229,7 @@ mod tests {
     #[tokio::test]
     async fn retrieve_elements() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -270,7 +270,7 @@ mod tests {
     #[tokio::test]
     async fn delete_and_retrieve_new_elements() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -330,7 +330,7 @@ mod tests {
     #[tokio::test]
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
