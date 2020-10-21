@@ -12,7 +12,6 @@ futures-channel = { version = "0.3", features = ["sink"] }
 futures-sink = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 log = "0.4"
-mockall = "0.8"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 tokio = { version = "0.2", features = ["time"] }
 tokio-util = { version = "0.2", features = ["codec"] }
@@ -24,4 +23,3 @@ tokio = { version = "0.2", features = ["rt-core", "signal", "stream", "tcp"] }
 
 [features]
 serde1 = ["serde"]
-
