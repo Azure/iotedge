@@ -79,8 +79,8 @@ where
 {
     type Error = BridgeError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        if let Event::Publication(publication) = event {
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
+        if let Event::Publication(publication) = &event {
             let forward_publication =
                 self.transform(&publication.topic_name)
                     .map(|topic_name| Publication {
@@ -100,7 +100,7 @@ where
             }
         }
 
-        Ok(Handled::Skipped)
+        Ok(Handled::Skipped(event))
     }
 }
 
@@ -152,7 +152,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -193,7 +193,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -234,7 +234,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -268,7 +268,7 @@ mod tests {
             dup: false,
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 

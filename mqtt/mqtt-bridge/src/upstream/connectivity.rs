@@ -47,8 +47,8 @@ impl ConnectivityHandler {
 impl EventHandler for ConnectivityHandler {
     type Error = ConnectivityError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        match event {
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
+        match &event {
             Event::Disconnected(reason) => {
                 debug!("Received disconnected state {}", reason);
                 match self.state {
@@ -94,7 +94,7 @@ impl EventHandler for ConnectivityHandler {
             _ => {}
         }
 
-        Ok(Handled::Skipped)
+        Ok(Handled::Skipped(event))
     }
 }
 
@@ -104,6 +104,7 @@ pub struct ConnectivityError(#[from] PumpError);
 
 #[cfg(test)]
 mod tests {
+    use matches::assert_matches;
     use mqtt3::{proto::QoS, proto::SubscribeTo, ConnectionError, Event, SubscriptionUpdateEvent};
     use tokio::sync::mpsc::error::TryRecvError;
 
@@ -122,7 +123,7 @@ mod tests {
         let event = Event::NewConnection {
             reset_session: true,
         };
-        let res = ch.handle(&event).await.unwrap();
+        let res = ch.handle(event).await.unwrap();
 
         let msg = connectivity_receiver.try_recv().unwrap();
         assert_eq!(
@@ -142,7 +143,7 @@ mod tests {
         let mut ch = ConnectivityHandler::new(handle);
 
         let res_connected = ch
-            .handle(&Event::NewConnection {
+            .handle(Event::NewConnection {
                 reset_session: true,
             })
             .await
@@ -150,9 +151,7 @@ mod tests {
         let _msg = connectivity_receiver.try_recv().unwrap();
 
         let res_disconnected = ch
-            .handle(&Event::Disconnected(
-                ConnectionError::ServerClosedConnection,
-            ))
+            .handle(Event::Disconnected(ConnectionError::ServerClosedConnection))
             .await
             .unwrap();
 
@@ -176,14 +175,14 @@ mod tests {
         let mut ch = ConnectivityHandler::new(handle);
 
         let res_connected1 = ch
-            .handle(&Event::NewConnection {
+            .handle(Event::NewConnection {
                 reset_session: true,
             })
             .await
             .unwrap();
 
         let res_connected2 = ch
-            .handle(&Event::NewConnection {
+            .handle(Event::NewConnection {
                 reset_session: true,
             })
             .await
@@ -204,9 +203,7 @@ mod tests {
         let mut ch = ConnectivityHandler::new(handle);
 
         let res_disconnected = ch
-            .handle(&Event::Disconnected(
-                ConnectionError::ServerClosedConnection,
-            ))
+            .handle(Event::Disconnected(ConnectionError::ServerClosedConnection))
             .await
             .unwrap();
 
@@ -228,9 +225,9 @@ mod tests {
                 qos: QoS::AtLeastOnce,
             })]);
 
-        let res = ch.handle(&event).await.unwrap();
+        let res = ch.handle(event).await.unwrap();
 
-        assert_eq!(res, Handled::Skipped)
+        assert_matches!(res, Handled::Skipped(_))
     }
 
     #[tokio::test]

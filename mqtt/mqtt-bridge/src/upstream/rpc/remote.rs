@@ -71,27 +71,29 @@ impl RemoteRpcHandler {
 impl EventHandler for RemoteRpcHandler {
     type Error = RpcError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        match event {
+    async fn handle(&mut self, mut event: Event) -> Result<Handled, Self::Error> {
+        match &mut event {
             Event::Publication(_) => {
                 // TODO implement incoming messages translation (C2D and M2M between EdgeHubs in nested edge scenario)
-                Ok(Handled::Skipped)
+                Ok(Handled::Skipped(event))
             }
             Event::SubscriptionUpdates(subscriptions) => {
-                let mut handled = 0;
-                for subscription in subscriptions {
-                    if self.handle_subscription_update(subscription).await? {
-                        handled += 1;
+                // handle subscription updates
+                let mut skipped = vec![];
+                for subscription in subscriptions.drain(..) {
+                    if !self.handle_subscription_update(&subscription).await? {
+                        skipped.push(subscription);
                     }
                 }
 
-                if handled == subscriptions.len() {
+                if skipped.is_empty() {
                     Ok(Handled::Fully)
                 } else {
-                    Ok(Handled::Partially)
+                    let event = Event::SubscriptionUpdates(skipped);
+                    Ok(Handled::Partially(event))
                 }
             }
-            _ => Ok(Handled::Skipped),
+            _ => Ok(Handled::Skipped(event)),
         }
     }
 }
@@ -158,7 +160,7 @@ mod tests {
             SubscriptionUpdateEvent::Unsubscribe("/foo/unsubscribed".into()),
         ]);
 
-        let res = handler.handle(&event).await;
+        let res = handler.handle(event).await;
         assert_matches!(res, Ok(Handled::Fully));
 
         assert_matches!(
@@ -194,8 +196,13 @@ mod tests {
             }),
         ]);
 
-        let res = handler.handle(&event).await;
-        assert_matches!(res, Ok(Handled::Partially));
+        let res = handler.handle(event).await;
+        let expected =
+            Event::SubscriptionUpdates(vec![SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                topic_filter: "/bar".into(),
+                qos: QoS::AtLeastOnce,
+            })]);
+        assert_matches!(res, Ok(Handled::Partially(event)) if event == expected);
 
         assert_matches!(
             rx.recv().await,

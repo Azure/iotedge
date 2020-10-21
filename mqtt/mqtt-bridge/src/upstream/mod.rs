@@ -46,14 +46,15 @@ where
 {
     type Error = BridgeError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         // try to handle as RPC command first
-        if self.rpc.handle(&event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
+        match self.rpc.handle(event).await? {
+            Handled::Fully => Ok(Handled::Fully),
+            Handled::Partially(event) | Handled::Skipped(event) => {
+                // handle as an event for regular message handler
+                self.messages.handle(event).await
+            }
         }
-
-        // handle as an event for regular message handler
-        self.messages.handle(&event).await
     }
 }
 
@@ -88,16 +89,18 @@ where
 {
     type Error = BridgeError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         // try to handle incoming connectivity event
-        if self.connectivity.handle(event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
-        }
+        let event = match self.connectivity.handle(event).await? {
+            Handled::Fully => return Ok(Handled::Fully),
+            Handled::Partially(event) | Handled::Skipped(event) => event,
+        };
 
         // try to handle incoming messages as RPC command
-        if self.rpc.handle(event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
-        }
+        let event = match self.rpc.handle(event).await? {
+            Handled::Fully => return Ok(Handled::Fully),
+            Handled::Partially(event) | Handled::Skipped(event) => event,
+        };
 
         // handle as an event for regular message handler
         self.messages.handle(event).await

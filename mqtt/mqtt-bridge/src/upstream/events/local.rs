@@ -34,7 +34,7 @@ pub enum LocalUpstreamPumpEvent {
 
 /// Handles control event received by a local upstream bridge pump.
 ///
-/// It handles follwing events:
+/// It handles following events:
 /// * connectivity update - emitted when the connection to remote broker changed
 ///   (connected/disconnected). It should publish corresponding MQTT message to the
 ///   local broker.

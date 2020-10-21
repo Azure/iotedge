@@ -34,8 +34,8 @@ impl LocalRpcHandler {
 impl EventHandler for LocalRpcHandler {
     type Error = RpcError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        if let Event::Publication(publication) = event {
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
+        if let Event::Publication(publication) = &event {
             if let Some(command_id) = capture_command_id(&publication.topic_name) {
                 let doc = Document::from_reader(&mut publication.payload.clone().reader())?;
                 match bson::from_document(doc)? {
@@ -54,7 +54,7 @@ impl EventHandler for LocalRpcHandler {
             }
         }
 
-        Ok(Handled::Skipped)
+        Ok(Handled::Skipped(event))
     }
 }
 
@@ -145,17 +145,17 @@ mod tests {
         let mut handler = LocalRpcHandler::new(pump_handle);
 
         let event = command("1", "sub", "/foo", None);
-        let res = handler.handle(&event).await;
+        let res = handler.handle(event).await;
         assert_matches!(res, Ok(Handled::Fully));
         assert_matches!(rx.recv().await, Some(PumpMessage::Event(RemoteUpstreamPumpEvent::RpcCommand(id, RpcCommand::Subscribe{topic_filter}))) if topic_filter == "/foo" && id == "1".into());
 
         let event = command("2", "unsub", "/foo", None);
-        let res = handler.handle(&event).await;
+        let res = handler.handle(event).await;
         assert_matches!(res, Ok(Handled::Fully));
         assert_matches!(rx.recv().await, Some(PumpMessage::Event(RemoteUpstreamPumpEvent::RpcCommand(id, RpcCommand::Unsubscribe{topic_filter}))) if topic_filter == "/foo" && id == "2".into());
 
         let event = command("3", "pub", "/foo", Some(b"hello".to_vec()));
-        let res = handler.handle(&event).await;
+        let res = handler.handle(event).await;
         assert_matches!(res, Ok(Handled::Fully));
         assert_matches!(rx.recv().await, Some(PumpMessage::Event(RemoteUpstreamPumpEvent::RpcCommand(id, RpcCommand::Publish{topic, payload}))) if topic == "/foo" && payload == b"hello" && id == "3".into());
     }
@@ -172,8 +172,8 @@ mod tests {
             retain: false,
             payload: Bytes::default(),
         });
-        let res = handler.handle(&event).await;
-        assert_matches!(res, Ok(Handled::Skipped));
+        let res = handler.handle(event).await;
+        assert_matches!(res, Ok(Handled::Skipped(_)));
     }
 
     fn command(id: &str, cmd: &str, topic: &str, payload: Option<Vec<u8>>) -> Event {
