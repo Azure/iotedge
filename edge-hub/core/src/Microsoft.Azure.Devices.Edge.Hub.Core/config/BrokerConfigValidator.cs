@@ -58,7 +58,55 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             return errors;
         }
 
-        private static void ValidateRule(AuthorizationProperties.Rule rule, int order, List<string> errors)
+        /// <summary>
+        /// Important!: Validation logic should be in sync with validation logic in the Broker.
+        ///
+        /// Validates bridge config and returns a list of errors (if any).
+        /// </summary>
+        public virtual IList<string> ValidateBridgeConfig(BridgeConfig properties)
+        {
+            Preconditions.CheckNotNull(properties, nameof(properties));
+
+            var order = 0;
+            var errors = new List<string>();
+            foreach (var bridge in properties)
+            {
+                ValidateBridge(bridge, order, errors);
+                order++;
+            }
+
+            return errors;
+        }
+
+        static void ValidateBridge(Bridge bridge, int order, List<string> errors)
+        {
+            if (string.IsNullOrEmpty(bridge.Endpoint))
+            {
+                errors.Add($"Bridge {order}: Endpoint must not be empty");
+            }
+
+            foreach (var setting in bridge.Settings)
+            {
+                if (!IsValidTopicFilter(setting.Topic))
+                {
+                    errors.Add($"Bridge {order}: Topic is invalid: {setting.Topic}");
+                }
+
+                if (setting.InPrefix.Contains("+")
+                    || setting.InPrefix.Contains("#"))
+                {
+                    errors.Add($"Bridge {order}: OutPrefix must not contain wildcards (+, #)");
+                }
+
+                if (setting.OutPrefix.Contains("+")
+                    || setting.OutPrefix.Contains("#"))
+                {
+                    errors.Add($"Bridge {order}: OutPrefix must not contain wildcards (+, #)");
+                }
+            }
+        }
+
+        static void ValidateRule(AuthorizationProperties.Rule rule, int order, List<string> errors)
         {
             if (rule.Operations.Count == 0)
             {
