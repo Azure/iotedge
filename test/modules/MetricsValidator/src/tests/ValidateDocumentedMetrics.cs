@@ -80,13 +80,14 @@ namespace MetricsValidator.Tests
             // We are going to make a list and remove them here to not consider them as a failure.
             IEnumerable<string> acceptableDegeneratedMetrics = new HashSet<string>
             {
+                "edgeagent_direct_method_invocations_count",
+                "edgeAgent_metadata",
+                "edgeAgent_unsuccessful_iothub_syncs_total",
+                "edgehub_client_connect_failed_total",
                 "edgehub_messages_dropped_total",
                 "edgehub_messages_unack_total",
                 "edgehub_offline_count_total",
-                "edgehub_operation_retry_total",
-                "edgeAgent_unsuccessful_iothub_syncs_total",
-                "edgeagent_direct_method_invocations_count",
-                "edgeAgent_metadata"
+                "edgehub_operation_retry_total"
             };
 
             foreach (string depopulatingMetric in acceptableDegeneratedMetrics)
