@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
             sut.SetConnector(connector);
 
-            await sut.SendC2DMessageAsync(message, identity);
+            await sut.SendC2DMessageAsync(message, identity, true);
 
             Assert.Equal("$edgehub/device_id/messages/c2d/post/", capture.Topic);
         }
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
             sut.SetConnector(connector);
 
-            await sut.SendC2DMessageAsync(message, identity);
+            await sut.SendC2DMessageAsync(message, identity, true);
 
             Assert.StartsWith("$edgehub/device_id/messages/c2d/post/", capture.Topic);
             Assert.Contains("prop1=value1", capture.Topic);
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
             sut.SetConnector(connector);
 
-            await sut.SendC2DMessageAsync(message, identity);
+            await sut.SendC2DMessageAsync(message, identity, true);
 
             Assert.Equal(new byte[] { 0x01, 0x02, 0x03 }, capture.Content);
         }
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
             sut.SetConnector(connector);
 
-            await sut.SendC2DMessageAsync(message, identity);
+            await sut.SendC2DMessageAsync(message, identity, true);
 
             Assert.Equal("12345", capturedLockId);
             Assert.Equal(FeedbackStatus.Complete, capturedStatus);
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
             sut.SetConnector(connector);
 
-            await sut.SendC2DMessageAsync(message, identity);
+            await sut.SendC2DMessageAsync(message, identity, true);
 
             Mock.Get(connector)
                 .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
