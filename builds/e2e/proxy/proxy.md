@@ -1,12 +1,11 @@
 This file documents how to set up a proxy environment in Azure for our E2E tests.
 
-The environment includes two VMs, both running Ubuntu 18.04:
+The environment includes:
+- A proxy server VM - full network connectivity, runs an HTTP proxy server (squid).
+- One or more proxy client VMs (aka "runners") - no internet-bound network connectivity except through the proxy server.
+- A Key Vault that contains the private keys used to SSH into the runner VMs.
 
-- The "proxy server" VM has full network connectivity and runs an HTTP proxy server (squid).
-
-- The "proxy client" VM has no internet-bound network connectivity except through the proxy server, and runs the latest version of moby engine.
-
-Enter the commands below in your shell to deploy and configure the VMs. The commands use the Azure CLI (`az`). As part of the deployment, the proxy client will run a few commands to verify that it has no direct HTTP connectivity to the internet.
+After installing the Azure CLI, enter the following commands to deploy and configure the VMs:
 
 ```sh
 cd builds/e2e/proxy/
@@ -23,19 +22,14 @@ location='<>'
 # Name of the resource group
 resource_group_name='<>'
 
-# Names of the proxy server and client (test runner) VMs. Used to resolve them via DNS for the tests.
-proxy_vm_name='e2eproxy-server'
-runner_vm_name='e2eproxy-runner'
+# The number of runner VMs to create
+runner_count=2
 
-# The address prefix (in CIDR notation) of the virtual network/subnet
-vnet_address_prefix='<>'
+# AAD Object ID for a user or group who will be given access to the secrets in the key vault
+key_vault_access_objectid='<>'
 
 # -------
 # Execute
-
-# Create SSH key for the VMs
-keyfile="$(realpath ./id_rsa)"
-ssh-keygen -t rsa -b 4096 -N '' -f "$keyfile"
 
 # Log in to Azure subscription
 az login
@@ -47,17 +41,14 @@ az group create -l "$location" -n "$resource_group_name"
 # Deploy the VMs
 az deployment group create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters "$(
     jq -n \
-        --arg proxy_vm_name "$proxy_vm_name" \
-        --arg runner_vm_name "$runner_vm_name" \
-        --arg ssh_public_key "$(cat $keyfile.pub)" \
-        --arg vnet_address_prefix "$vnet_address_prefix" \
+        --argjson runner_count $runner_count \
+        --arg key_vault_access_objectid "$key_vault_access_objectid" \
         '{
-            "proxy_vm_name": { "value": $proxy_vm_name },
-            "runner_vm_name": { "value": $runner_vm_name },
-            "ssh_public_key": { "value": $ssh_public_key },
-            "vnet_address_prefix": { "value": $vnet_address_prefix }
+            "runner_count": { "value": $runner_count },
+            "key_vault_access_objectid": { "value": $key_vault_access_objectid },
+            "create_runner_public_ip": { "value": true }
         }'
 )"
 ```
 
-Once deployment has completed, you can SSH into the proxy client VM to install/configure the Azure Pipelines agent. For more information, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
+Once the deployment has completed, you can SSH into the runner VMs to install/configure the Azure Pipelines agent. For more information, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
