@@ -52,9 +52,8 @@ jobs:
     displayName: Linux amd64
 
     pool:
-      name: Azure-IoT-Edge-Core
-      demands:
-        - agent-group -equals b3are2e
+      name: $(pool.name)
+      demands: bearwashere
 
     variables:
       os: linux
