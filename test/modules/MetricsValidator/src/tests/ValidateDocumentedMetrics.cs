@@ -78,7 +78,7 @@ namespace MetricsValidator.Tests
 
             // The following metric should not be populated in a happy E2E path.
             // We are going to make a list and remove them here to not consider them as a failure.
-            IEnumerable<string> acceptableDegeneratedMetrics = new HashSet<string>
+            IEnumerable<string> skippingMetrics = new HashSet<string>
             {
                 // "edgeagent_direct_method_invocations_count", // BEARWASHERE -- Actually make this pass
                 "edgeAgent_metadata",
@@ -90,11 +90,11 @@ namespace MetricsValidator.Tests
                 "edgehub_operation_retry_total"
             };
 
-            foreach (string depopulatingMetric in acceptableDegeneratedMetrics)
+            foreach (string skippingMetric in skippingMetrics)
             {
-                if (unreturnedMetrics.Remove(depopulatingMetric))
+                if (unreturnedMetrics.Remove(skippingMetric))
                 {
-                    log.LogInformation($"\"{depopulatingMetric}\" was depopulated");
+                    log.LogInformation($"\"{skippingMetric}\" was depopulated");
                 }
             }
 
@@ -135,8 +135,6 @@ namespace MetricsValidator.Tests
             const string methodName = "FakeDirectMethod";
             await this.moduleClient.SetMethodHandlerAsync(methodName, (_, __) => Task.FromResult(new MethodResponse(200)), null);
             await this.moduleClient.InvokeMethodAsync(deviceId, Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
-            // BEARWASHERE -- Lets see if you can ping a M2M dm to edgeAgent via edgeHub
-            await this.moduleClient.InvokeMethodAsync(deviceId, "$edgeAgent", new MethodRequest("ping"), cancellationToken);
 
             await this.moduleClient.UpdateReportedPropertiesAsync(new TwinCollection(), cancellationToken);
             await this.moduleClient.GetTwinAsync(cancellationToken);
