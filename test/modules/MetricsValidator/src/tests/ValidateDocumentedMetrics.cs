@@ -76,6 +76,27 @@ namespace MetricsValidator.Tests
                 }
             }
 
+            // The following metric should not be populated in a happy E2E path.
+            // We are going to make a list and remove them here to not consider them as a failure.
+            IEnumerable<string> acceptableDegeneratedMetrics = new HashSet<string>
+            {
+                "edgehub_messages_dropped_total",
+                "edgehub_messages_unack_total",
+                "edgehub_offline_count_total",
+                "edgehub_operation_retry_total",
+                "edgeAgent_unsuccessful_iothub_syncs_total",
+                "edgeagent_direct_method_invocations_count",
+                "edgeAgent_metadata"
+            };
+
+            foreach (string depopulatingMetric in acceptableDegeneratedMetrics)
+            {
+                if (unreturnedMetrics.Remove(depopulatingMetric))
+                {
+                    log.LogInformation($"\"{depopulatingMetric}\" was depopulated");
+                }
+            }
+
             foreach (string unreturnedMetric in unreturnedMetrics)
             {
                 this.testReporter.Assert(unreturnedMetric, false, $"Metric did not exist in scrape.");
