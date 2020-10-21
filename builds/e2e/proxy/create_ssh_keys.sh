@@ -18,5 +18,5 @@ do
 done
 # the last JSON object cannot have a trailing comma
 json="{\"privateKey\":\"$(cat id_rsa$num_keypairs)\",\"publicKey\":\"$(cat id_rsa$num_keypairs.pub)\"}"
-echo $json >> $AZ_SCRIPTS_OUTPUT_PATH
+echo "$json" >> $AZ_SCRIPTS_OUTPUT_PATH
 echo ']}' >> $AZ_SCRIPTS_OUTPUT_PATH
