@@ -80,7 +80,7 @@ namespace MetricsValidator.Tests
             // We are going to make a list and remove them here to not consider them as a failure.
             IEnumerable<string> acceptableDegeneratedMetrics = new HashSet<string>
             {
-                "edgeagent_direct_method_invocations_count",
+                // "edgeagent_direct_method_invocations_count", // BEARWASHERE -- Actually make this pass
                 "edgeAgent_metadata",
                 "edgeAgent_unsuccessful_iothub_syncs_total",
                 "edgehub_client_connect_failed_total",
@@ -128,11 +128,15 @@ namespace MetricsValidator.Tests
 
         async Task SeedMetrics(CancellationToken cancellationToken)
         {
+            string deviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
+
             await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")), cancellationToken);
 
             const string methodName = "FakeDirectMethod";
             await this.moduleClient.SetMethodHandlerAsync(methodName, (_, __) => Task.FromResult(new MethodResponse(200)), null);
-            await this.moduleClient.InvokeMethodAsync(Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID"), Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
+            await this.moduleClient.InvokeMethodAsync(deviceId, Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
+            // BEARWASHERE -- Lets see if you can ping a M2M dm to edgeAgent via edgeHub
+            await this.moduleClient.InvokeMethodAsync(deviceId, "$edgeAgent", new MethodRequest("ping"), cancellationToken);
 
             await this.moduleClient.UpdateReportedPropertiesAsync(new TwinCollection(), cancellationToken);
             await this.moduleClient.GetTwinAsync(cancellationToken);
