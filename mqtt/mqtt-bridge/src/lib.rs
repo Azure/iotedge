@@ -13,14 +13,13 @@
 
 mod bridge;
 pub mod client;
-mod connectivity;
 pub mod controller;
 mod messages;
 mod persist;
-mod pump;
-mod rpc;
+pub mod pump;
 pub mod settings;
 mod token_source;
+pub mod upstream;
 
 pub use crate::controller::{
     BridgeController, BridgeControllerHandle, BridgeControllerUpdate, Error,

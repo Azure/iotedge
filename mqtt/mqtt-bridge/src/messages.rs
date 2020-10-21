@@ -9,11 +9,10 @@ use crate::{
     bridge::BridgeError,
     client::{EventHandler, Handled},
     persist::{PublicationStore, StreamWakeableState},
-    rpc::RpcHandler,
     settings::TopicRule,
 };
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct TopicMapper {
     topic_settings: TopicRule,
     topic_filter: TopicFilter,
@@ -105,29 +104,6 @@ where
     }
 }
 
-pub struct UpstreamHandler<S> {
-    messages: MessageHandler<S>,
-    rpc: RpcHandler,
-}
-
-#[async_trait]
-impl<S> EventHandler for UpstreamHandler<S>
-where
-    S: StreamWakeableState + Send,
-{
-    type Error = BridgeError;
-
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        // try to handle as RPC command first
-        if self.rpc.handle(&event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
-        }
-
-        // handle as an event for regular message handler
-        self.messages.handle(&event).await
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use bytes::Bytes;
@@ -141,11 +117,7 @@ mod tests {
     use mqtt_broker::TopicFilter;
 
     use super::{MessageHandler, TopicMapper};
-    use crate::{
-        client::EventHandler,
-        persist::PublicationStore,
-        settings::{BridgeSettings, Direction},
-    };
+    use crate::{client::EventHandler, persist::PublicationStore, settings::BridgeSettings};
 
     #[tokio::test]
     async fn message_handler_saves_message_with_local_and_forward_topic() {
@@ -153,18 +125,12 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics: Vec<TopicMapper> = connection_settings
+        let topics = connection_settings
             .subscriptions()
             .iter()
-            .filter_map(|sub| {
-                if *sub.direction() == Direction::Out {
-                    Some(TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    })
-                } else {
-                    None
-                }
+            .map(|sub| TopicMapper {
+                topic_settings: sub.clone(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -200,18 +166,12 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics: Vec<TopicMapper> = connection_settings
+        let topics = connection_settings
             .subscriptions()
             .iter()
-            .filter_map(|sub| {
-                if *sub.direction() == Direction::Out {
-                    Some(TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    })
-                } else {
-                    None
-                }
+            .map(|sub| TopicMapper {
+                topic_settings: sub.clone(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -247,18 +207,12 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics: Vec<TopicMapper> = connection_settings
+        let topics = connection_settings
             .subscriptions()
             .iter()
-            .filter_map(|sub| {
-                if *sub.direction() == Direction::Out {
-                    Some(TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    })
-                } else {
-                    None
-                }
+            .map(|sub| TopicMapper {
+                topic_settings: sub.clone(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
@@ -294,18 +248,12 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics: Vec<TopicMapper> = connection_settings
+        let topics = connection_settings
             .subscriptions()
             .iter()
-            .filter_map(|sub| {
-                if *sub.direction() == Direction::Out {
-                    Some(TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    })
-                } else {
-                    None
-                }
+            .map(|sub| TopicMapper {
+                topic_settings: sub.clone(),
+                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
             })
             .collect();
 
