@@ -16,15 +16,15 @@ openssl = "0.10"
 serde = "1.0"
 serde_json = "1.0"
 
-aziot-key-client = { path = "../../aziot/key/aziot-key-client" }
-aziot-key-common = { path = "../../aziot/key/aziot-key-common" }
-aziot-identity-common = { path = "../../aziot/identity/aziot-identity-common"}
+aziot-key-client = { path = "../aziot/key/aziot-key-client" }
+aziot-key-common = { path = "../aziot/key/aziot-key-common" }
+aziot-identity-common = { path = "../aziot/identity/aziot-identity-common"}
 cert-client = { path = "../cert-client" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-utils = { path = "../edgelet-utils" }
-http-common = { path = "../../aziot/http-common" }
+http-common = { path = "../aziot/http-common" }
 identity-client = { path = "../identity-client" }
 workload = { path = "../workload" }
 

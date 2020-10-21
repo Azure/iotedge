@@ -33,18 +33,18 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-utils = { path = "../edgelet-utils" }
-aziot-cert-common-http = { path = "../../aziot/cert/aziot-cert-common-http" }
-aziot-identity-common = { path = "../../aziot/identity/aziot-identity-common" }
-aziot-identity-common-http = { path = "../../aziot/identity/aziot-identity-common-http" }
-aziot-key-client = { path = "../../aziot/key/aziot-key-client" }
-aziot-key-common = { path = "../../aziot/key/aziot-key-common" }
-aziot-key-common-http = { path = "../../aziot/key/aziot-key-common-http" }
-aziot-key-openssl-engine = { path = "../../aziot/key/aziot-key-openssl-engine" }
+aziot-cert-common-http = { path = "../aziot/cert/aziot-cert-common-http" }
+aziot-identity-common = { path = "../aziot/identity/aziot-identity-common" }
+aziot-identity-common-http = { path = "../aziot/identity/aziot-identity-common-http" }
+aziot-key-client = { path = "../aziot/key/aziot-key-client" }
+aziot-key-common = { path = "../aziot/key/aziot-key-common" }
+aziot-key-common-http = { path = "../aziot/key/aziot-key-common-http" }
+aziot-key-openssl-engine = { path = "../aziot/key/aziot-key-openssl-engine" }
 cert-client = { path = "../cert-client" }
 identity-client = { path = "../identity-client" }
-http-common = { path = "../../aziot/http-common" }
-openssl2 = { path = "../../aziot/openssl2" }
-openssl-sys2 = { path = "../../aziot/openssl-sys2" }
+http-common = { path = "../aziot/http-common" }
+openssl2 = { path = "../aziot/openssl2" }
+openssl-sys2 = { path = "../aziot/openssl-sys2" }
 
 [dev_dependencies]
 lazy_static = "1"

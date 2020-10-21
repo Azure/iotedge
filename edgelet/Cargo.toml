@@ -16,3 +16,5 @@ members = [
     "mini-sntp",
     "systemd",
 ]
+
+exclude = [ "aziot" ]
