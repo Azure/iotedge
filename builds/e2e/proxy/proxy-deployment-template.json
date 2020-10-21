@@ -117,7 +117,8 @@
 			"cleanupPreference": "Always",
 			"arguments": "[add(parameters('runner_count'), 1)]",
 			"primaryScriptUri": "[parameters('create_ssh_keys_script_uri')]",
-			"timeout": "PT30M"
+			"timeout": "PT30M",
+			"retentionInterval": "P1D"
 		},
 		"dependsOn": [
 			"[variables('role_definition_name')]"
