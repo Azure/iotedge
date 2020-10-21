@@ -39,7 +39,7 @@
 		}
 	},
 	"variables": {
-		"base": "[concat('e2e-', uniqueString(resourceGroup().id, parameters('runner_count')), '-')]",
+		"base": "[concat('e2e-', uniqueString(parameters('runner_count'), resourceGroup().id), '-')]",
 		"key_vault_name": "[concat(variables('base'), 'kv')]",
 		"contributor_id": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
 		"keygen_identity_name": "[concat(variables('base'), 'uaid')]",
