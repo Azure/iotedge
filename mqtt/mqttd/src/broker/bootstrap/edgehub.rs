@@ -123,8 +123,7 @@ where
     };
 
     // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
-    pin_mut!(shutdown_signal);
-    pin_mut!(renewal_signal);
+    pin_mut!(shutdown_signal, renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
     // Start serving new connections
