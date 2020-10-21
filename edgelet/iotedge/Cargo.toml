@@ -38,7 +38,6 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 management = { path = "../management" }
 mini-sntp = { path = "../mini-sntp" }
-provisioning = { path = "../provisioning" }
 support-bundle = { path = "../support-bundle" }
 
 [target.'cfg(unix)'.dependencies]

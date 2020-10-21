@@ -21,7 +21,7 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
-mod upstream_protocol_port;
+// mod upstream_protocol_port;
 
 mod hostname_checks_common;
 
@@ -29,14 +29,20 @@ mod checker;
 use checker::Checker;
 
 mod checks;
+// use checks::{
+//     get_host_connect_upstream_tests, get_host_container_upstream_tests, CertificatesQuickstart,
+//     ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
+//     ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
+//     ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted,
+//     HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry, IotedgedVersion,
+//     ParentHostname, PullAgentFromUpstream, WellFormedConfig, WellFormedConnectionString,
+//     WindowsHostVersion,
+// };
 use checks::{
-    get_host_connect_upstream_tests, get_host_container_upstream_tests, CertificatesQuickstart,
     ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
     ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
-    ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted,
-    HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry, IotedgedVersion,
-    ParentHostname, PullAgentFromUpstream, WellFormedConfig, WellFormedConnectionString,
-    WindowsHostVersion,
+    ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted, HostLocalTime,
+    Hostname, IotedgedVersion, ParentHostname, PullAgentFromUpstream, WellFormedConfig,
 };
 
 pub struct Check {
@@ -53,13 +59,13 @@ pub struct Check {
 
     additional_info: AdditionalInfo,
 
-    iothub_hostname: Option<String>,
+    // iothub_hostname: Option<String>,
 
     // These optional fields are populated by the checks
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
-    device_ca_cert_path: Option<PathBuf>,
+    // device_ca_cert_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -100,7 +106,7 @@ impl Check {
         dont_run: BTreeSet<String>,
         expected_iotedged_version: Option<String>,
         iotedged: PathBuf,
-        iothub_hostname: Option<String>,
+        // iothub_hostname: Option<String>,
         ntp_server: String,
         output_format: OutputFormat,
         verbose: bool,
@@ -217,22 +223,21 @@ impl Check {
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
-                iothub_hostname,
-                device_ca_cert_path: None,
+                // iothub_hostname,
+                // device_ca_cert_path: None,
             })
         }))
     }
 
-    fn checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
+    fn checks() -> [(&'static str, Vec<Box<dyn Checker>>); 1] {
         /* Note: keep ordering consistant. Later tests may depend on earlier tests. */
         [
             (
                 "Configuration checks",
                 vec![
                     Box::new(WellFormedConfig::default()),
-                    Box::new(WellFormedConnectionString::default()),
+                    // Box::new(WellFormedConnectionString::default()),
                     Box::new(ContainerEngineInstalled::default()),
-                    Box::new(WindowsHostVersion::default()),
                     Box::new(Hostname::default()),
                     Box::new(ParentHostname::default()),
                     Box::new(ContainerResolveParentHostname::default()),
@@ -242,8 +247,8 @@ impl Check {
                     Box::new(ContainerLocalTime::default()),
                     Box::new(ContainerEngineDns::default()),
                     Box::new(ContainerEngineIPv6::default()),
-                    Box::new(IdentityCertificateExpiry::default()),
-                    Box::new(CertificatesQuickstart::default()),
+                    // Box::new(IdentityCertificateExpiry::default()),
+                    // Box::new(CertificatesQuickstart::default()),
                     Box::new(ContainerEngineIsMoby::default()),
                     Box::new(ContainerEngineLogrotate::default()),
                     Box::new(EdgeAgentStorageMounted::default()),
@@ -251,13 +256,13 @@ impl Check {
                     Box::new(PullAgentFromUpstream::default()),
                 ],
             ),
-            ("Connectivity checks", {
-                let mut tests: Vec<Box<dyn Checker>> = Vec::new();
-                tests.push(Box::new(HostConnectDpsEndpoint::default()));
-                tests.extend(get_host_connect_upstream_tests());
-                tests.extend(get_host_container_upstream_tests());
-                tests
-            }),
+            // ("Connectivity checks", {
+            //     let mut tests: Vec<Box<dyn Checker>> = Vec::new();
+            //     tests.push(Box::new(HostConnectDpsEndpoint::default()));
+            //     tests.extend(get_host_connect_upstream_tests());
+            //     tests.extend(get_host_container_upstream_tests());
+            //     tests
+            // }),
         ]
     }
 
@@ -627,8 +632,13 @@ struct CheckOutputSerializable {
 #[cfg(test)]
 mod tests {
     use super::{
-        Check, CheckResult, Checker, ContainerEngineIsMoby, Hostname, WellFormedConfig,
-        WellFormedConnectionString,
+        Check,
+        CheckResult,
+        Checker,
+        ContainerEngineIsMoby,
+        Hostname,
+        WellFormedConfig,
+        // WellFormedConnectionString,
     };
 
     #[test]
@@ -649,9 +659,9 @@ mod tests {
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
-                    Some("1.0.0".to_owned()),      // unused for this test
-                    "iotedged".into(),             // unused for this test
-                    None,                          // unused for this test
+                    Some("1.0.0".to_owned()), // unused for this test
+                    "iotedged".into(),        // unused for this test
+                    // None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
                     false,
@@ -664,13 +674,13 @@ mod tests {
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
 
-            match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking connection string in {} returned {:?}",
-                    filename, check_result
-                ),
-            }
+            // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+            //     CheckResult::Ok => (),
+            //     check_result => panic!(
+            //         "checking connection string in {} returned {:?}",
+            //         filename, check_result
+            //     ),
+            // }
 
             match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
@@ -720,9 +730,9 @@ mod tests {
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
-                    Some("1.0.0".to_owned()),      // unused for this test
-                    "iotedged".into(),             // unused for this test
-                    None,                          // unused for this test
+                    Some("1.0.0".to_owned()), // unused for this test
+                    "iotedged".into(),        // unused for this test
+                    // None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
                     false,
@@ -735,13 +745,13 @@ mod tests {
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
 
-            match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking connection string in {} returned {:?}",
-                    filename, check_result
-                ),
-            }
+            // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+            //     CheckResult::Ok => (),
+            //     check_result => panic!(
+            //         "checking connection string in {} returned {:?}",
+            //         filename, check_result
+            //     ),
+            // }
 
             match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
@@ -791,9 +801,9 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
-                Some("1.0.0".to_owned()),      // unused for this test
-                "iotedged".into(),             // unused for this test
-                None,                          // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                "iotedged".into(),        // unused for this test
+                // None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
                 false,
@@ -840,9 +850,9 @@ mod tests {
                 Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
                 "iotedged".into(),        // unused for this test
-                Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
-                "pool.ntp.org:123".to_owned(),              // unused for this test
-                super::OutputFormat::Text,                  // unused for this test
+                // Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
                 false,
                 false,
             ))
@@ -853,10 +863,10 @@ mod tests {
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
-        match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
+        // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+        //     CheckResult::Ok => (),
+        //     check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        // }
     }
 
     // This test inexplicably fails in the ci pipeline due to file read errors.
@@ -967,7 +977,7 @@ mod tests {
                 Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
                 "iotedged".into(),        // unused for this test
-                None,
+                // None,
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
                 false,
@@ -980,15 +990,15 @@ mod tests {
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
-        match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            CheckResult::Failed(err) => assert!(err
-                .to_string()
-                .contains("Could not retrieve iothub_hostname from provisioning file.")),
-            check_result => panic!(
-                "checking connection string in {} returned {:?}",
-                filename, check_result
-            ),
-        }
+        // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+        //     CheckResult::Failed(err) => assert!(err
+        //         .to_string()
+        //         .contains("Could not retrieve iothub_hostname from provisioning file.")),
+        //     check_result => panic!(
+        //         "checking connection string in {} returned {:?}",
+        //         filename, check_result
+        //     ),
+        // }
     }
 
     #[test]
@@ -1063,9 +1073,9 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
-                Some("1.0.0".to_owned()),      // unused for this test
-                "iotedged".into(),             // unused for this test
-                None,                          // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                "iotedged".into(),        // unused for this test
+                // None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
                 false,

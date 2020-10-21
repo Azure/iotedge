@@ -227,6 +227,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "560c32574a12a89ecd91f5e742165893f86e3ab98d21f8ea548658eb9eef5f40"
 
 [[package]]
+name = "byte-unit"
+version = "3.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "415301c9de11005d4b92193c0eb7ac7adc37e5a49e0ac9bed0a42343512744b8"
+
+[[package]]
 name = "byteorder"
 version = "1.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -312,6 +318,15 @@ dependencies = [
  "num-traits",
  "serde",
  "time",
+]
+
+[[package]]
+name = "chrono-humanize"
+version = "0.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb2ff48a655fe8d2dae9a39e66af7fd8ff32a879e8c4e27422c25596a8b5e90d"
+dependencies = [
+ "chrono",
 ]
 
 [[package]]
@@ -711,7 +726,7 @@ dependencies = [
  "humantime",
  "log",
  "regex 1.3.9",
- "termcolor",
+ "termcolor 1.1.0",
 ]
 
 [[package]]
@@ -1191,6 +1206,48 @@ checksum = "55e2e4c765aa53a0424761bf9f41aa7a6ac1efa87238f59560640e27fca028f2"
 dependencies = [
  "autocfg",
  "hashbrown",
+]
+
+[[package]]
+name = "iotedge"
+version = "0.1.0"
+dependencies = [
+ "atty",
+ "byte-unit",
+ "bytes 0.4.12",
+ "chrono",
+ "chrono-humanize",
+ "clap",
+ "docker",
+ "edgelet-core",
+ "edgelet-docker",
+ "edgelet-http",
+ "edgelet-http-mgmt",
+ "edgelet-test-utils",
+ "failure",
+ "futures",
+ "hyper 0.12.35",
+ "hyper-proxy",
+ "hyper-tls",
+ "lazy_static",
+ "libc",
+ "management",
+ "mini-sntp",
+ "native-tls",
+ "openssl",
+ "regex 0.2.11",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "support-bundle",
+ "sysinfo",
+ "tabwriter",
+ "tempfile",
+ "termcolor 0.3.6",
+ "tokio 0.1.22",
+ "typed-headers",
+ "url 2.1.1",
+ "zip",
 ]
 
 [[package]]
@@ -2264,6 +2321,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabwriter"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36205cfc997faadcc4b0b87aaef3fbedafe20d38d4959a7ca6ff803564051111"
+dependencies = [
+ "unicode-width",
+]
+
+[[package]]
 name = "tempdir"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2285,6 +2351,15 @@ dependencies = [
  "redox_syscall",
  "remove_dir_all",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "termcolor"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adc4587ead41bf016f11af03e55a624c06568b5a19db4e90fde573d805074f83"
+dependencies = [
+ "wincolor",
 ]
 
 [[package]]
@@ -2886,6 +2961,15 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "wincolor"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eeb06499a3a4d44302791052df005d5232b927ed1a9658146d842165c4de7767"
+dependencies = [
+ "winapi 0.3.9",
+]
 
 [[package]]
 name = "workload"

@@ -10,7 +10,7 @@ members = [
     "edgelet-test-utils",
     "edgelet-utils",
     "identity-client",
-    # "iotedge",
+    "iotedge",
     "iotedged",
     "management",
     "mini-sntp",

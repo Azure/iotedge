@@ -51,7 +51,6 @@ pub(super) struct OsInfo {
 }
 
 impl OsInfo {
-
     #[cfg(unix)]
     pub(super) fn new() -> Self {
         use std::fs::File;

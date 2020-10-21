@@ -337,7 +337,7 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
-                args.value_of("iothub-hostname").map(ToOwned::to_owned),
+                // args.value_of("iothub-hostname").map(ToOwned::to_owned),
                 args.value_of("ntp-server")
                     .expect("arg has a default value")
                     .to_string(),
