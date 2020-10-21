@@ -39,7 +39,7 @@
 		}
 	},
 	"variables": {
-		"base": "[concat('e2epxy-', uniqueString(resourceGroup().id), '-')]",
+		"base": "[concat('e2e-', uniqueString(resourceGroup().id), '-')]",
 		"key_vault_name": "[concat(variables('base'), 'kv')]",
 		"contributor_id": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
 		"keygen_identity_name": "[concat(variables('base'), 'uaid')]",
@@ -114,7 +114,7 @@
 		"kind": "AzureCLI",
 		"properties": {
 			"azCliVersion": "2.9.1",
-			"cleanupPreference": "Always",
+			"cleanupPreference": "OnSuccess",
 			"arguments": "[add(parameters('runner_count'), 1)]",
 			"primaryScriptUri": "[parameters('create_ssh_keys_script_uri')]",
 			"timeout": "PT30M",
