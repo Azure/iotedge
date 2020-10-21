@@ -87,7 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             foreach (var setting in bridge.Settings)
             {
-                if (!IsValidTopicFilter(setting.Topic))
+                if (string.IsNullOrWhiteSpace(setting.Topic)
+                    || !IsValidTopicFilter(setting.Topic))
                 {
                     errors.Add($"Bridge {order}: Topic is invalid: {setting.Topic}");
                 }
@@ -113,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 errors.Add($"Statement {order}: Allow: Operations list must not be empty");
             }
 
-            if (rule.Resources.Count == 0)
+            if (rule.Resources.Count == 0 && IsConnectOperation(rule))
             {
                 errors.Add($"Statement {order}: Allow: Resources list must not be empty");
             }
@@ -138,6 +139,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
                 ValidateVariables(resource, order, errors);
             }
+        }
+
+        private static bool IsConnectOperation(AuthorizationProperties.Rule rule)
+        {
+            return rule.Operations.Count == 1 && rule.Operations[0] == "mqtt:connect";
         }
 
         static void ValidateVariables(string value, int order, List<string> errors)

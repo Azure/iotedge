@@ -52,10 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.Settings = settings;
         }
 
-        [JsonProperty("endpoint")]
+        [JsonProperty("endpoint", Required = Required.Always)]
         public string Endpoint { get; }
 
-        [JsonProperty("settings")]
+        [JsonProperty("settings", Required = Required.Always)]
         public IList<Settings> Settings { get; }
 
         public bool Equals(Bridge other)
@@ -99,14 +99,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             this.Direction = direction;
             this.Topic = topic;
-            this.InPrefix = inPrefix;
-            this.OutPrefix = outPrefix;
+            this.InPrefix = inPrefix ?? string.Empty;
+            this.OutPrefix = outPrefix ?? string.Empty;
         }
 
-        [JsonProperty("direction")]
+        [JsonProperty("direction", Required = Required.Always)]
         public Direction Direction { get; }
 
-        [JsonProperty("topic")]
+        [JsonProperty("topic", Required = Required.Always)]
         public string Topic { get; }
 
         [JsonProperty("inPrefix")]
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         }
 
         public override bool Equals(object obj)
-            => this.Equals(obj as Bridge);
+            => this.Equals(obj as Settings);
 
         public override int GetHashCode()
         {

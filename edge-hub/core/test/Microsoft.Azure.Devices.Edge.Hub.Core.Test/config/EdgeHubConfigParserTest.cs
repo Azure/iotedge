@@ -20,6 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             validator
                 .Setup(v => v.ValidateAuthorizationConfig(It.IsAny<AuthorizationProperties>()))
                 .Returns(new List<string>());
+            validator
+                .Setup(v => v.ValidateBridgeConfig(It.IsAny<BridgeConfig>()))
+                .Returns(new List<string>());
 
             var routeFactory = new EdgeRouteFactory(new Mock<IEndpointFactory>().Object);
             var configParser = new EdgeHubConfigParser(routeFactory, validator.Object);
@@ -77,12 +80,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         }
 
         [Fact]
-        public void GetEdgeHubConfig_ValidatorReturnsError_ExpectedException()
+        public void GetEdgeHubConfig_AuthorizationValidatorReturnsError_ExpectedException()
         {
             var validator = new Mock<BrokerPropertiesValidator>();
             validator
                 .Setup(v => v.ValidateAuthorizationConfig(It.IsAny<AuthorizationProperties>()))
                 .Returns(new List<string> { "Validation error has occurred" });
+            validator
+                .Setup(v => v.ValidateBridgeConfig(It.IsAny<BridgeConfig>()))
+                .Returns(new List<string>());
+
+            var routeFactory = new EdgeRouteFactory(new Mock<IEndpointFactory>().Object);
+            var configParser = new EdgeHubConfigParser(routeFactory, validator.Object);
+
+            var brokerProperties = new BrokerProperties(new BridgeConfig(), new AuthorizationProperties());
+            var properties = new EdgeHubDesiredProperties(
+                "1.2.0",
+                new Dictionary<string, RouteConfiguration>(),
+                new StoreAndForwardConfiguration(100),
+                brokerProperties);
+
+            // assert
+            Assert.Throws<InvalidOperationException>(() => configParser.GetEdgeHubConfig(properties));
+        }
+
+        [Fact]
+        public void GetEdgeHubConfig_BridgeValidatorReturnsError_ExpectedException()
+        {
+            var validator = new Mock<BrokerPropertiesValidator>();
+            validator
+                .Setup(v => v.ValidateAuthorizationConfig(It.IsAny<AuthorizationProperties>()))
+                .Returns(new List<string>());
+            validator
+                .Setup(v => v.ValidateBridgeConfig(It.IsAny<BridgeConfig>()))
+                .Returns(new List<string> { "Validation error has occurred" });
+
 
             var routeFactory = new EdgeRouteFactory(new Mock<IEndpointFactory>().Object);
             var configParser = new EdgeHubConfigParser(routeFactory, validator.Object);
