@@ -56,7 +56,7 @@
 	},
 	"resources": [{
 		"type": "Microsoft.KeyVault/vaults",
-		"name": "[(variables('key_vault_name')]",
+		"name": "[variables('key_vault_name')]",
 		"apiVersion": "2019-09-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
