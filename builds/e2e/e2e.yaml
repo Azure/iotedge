@@ -52,7 +52,9 @@ jobs:
     displayName: Linux amd64
 
     pool:
-      vmImage: ubuntu-16.04
+      name: Azure-IoT-Edge-Core
+      demands:
+        - agent-group -equals b3are2e
 
     variables:
       os: linux
