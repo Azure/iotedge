@@ -124,7 +124,7 @@
 		]
 	}, {
 		"type": "Microsoft.Resources/deployments",
-		"name": "[concat('store_ssh_keys'), copyIndex()]",
+		"name": "[concat('store_ssh_keys'), copyIndex())]",
 		"apiVersion": "2020-06-01",
 		"copy": {
 			"name": "store_ssh_keys_copy",
