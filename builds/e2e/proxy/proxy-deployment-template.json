@@ -149,6 +149,7 @@
 			}
 		},
 		"dependsOn": [
+			"[variables('key_vault_name')]",
 			"[variables('keygen_script_name')]"
 		]
 	}, {
