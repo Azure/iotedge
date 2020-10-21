@@ -13,16 +13,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class DirectMethodHandler : IDirectMethodHandler, IMessageConsumer, IMessageProducer
     {
-        const string MethodPostModule = "$edgehub/+/+/methods/res/#";
-        const string MethodPostDevice = "$edgehub/+/methods/res/#";
+        const string MethodPostDirectModule = "$edgehub/+/+/methods/res/#";
+        const string MethodPostDirectDevice = "$edgehub/+/methods/res/#";
+        const string MethodPostIndirectModule = "$iothub/+/+/methods/res/#";
+        const string MethodPostIndirectDevice = "$iothub/+/methods/res/#";
 
-        const string MethodSubscriptionForPostPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/post/\#$";
-        const string MethodResponsePattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/res/(?<res>\d+)/\?\$rid=(?<rid>.+)";
+        const string MethodSubscriptionForPostPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/post/\#$";
+        const string MethodResponsePattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/res/(?<res>\d+)/\?\$rid=(?<rid>.+)";
 
-        const string MethodCallToDeviceTopicTemplate = "$edgehub/{0}/methods/post/{1}/?$rid={2}";
-        const string MethodCallToModuleTopicTemplate = "$edgehub/{0}/{1}/methods/post/{2}/?$rid={3}";
+        const string MethodCallToDeviceTopicTemplate = "{0}/{1}/methods/post/{2}/?$rid={3}";
+        const string MethodCallToModuleTopicTemplate = "{0}/{1}/{2}/methods/post/{3}/?$rid={4}";
 
-        static readonly string[] subscriptions = new[] { MethodPostModule, MethodPostDevice };
+        static readonly string[] subscriptions = new[] { MethodPostDirectModule, MethodPostDirectDevice, MethodPostIndirectModule, MethodPostIndirectDevice };
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(MethodSubscriptionForPostPattern, DeviceSubscription.Methods) };
 
@@ -54,12 +56,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
-        public async Task<DirectMethodResponse> CallDirectMethodAsync(DirectMethodRequest request, IIdentity identity)
+        public async Task<DirectMethodResponse> CallDirectMethodAsync(DirectMethodRequest request, IIdentity identity, bool isDirectClient)
         {
             try
             {
+                var topicPrefix = isDirectClient ? MqttBrokerAdapterConstants.DirectTopicPrefix : MqttBrokerAdapterConstants.IndirectTopicPrefix;
                 var result = await this.connector.SendAsync(
-                                            GetMethodCallTopic(identity, request.Name, request.CorrelationId),
+                                            GetMethodCallTopic(identity, request.Name, request.CorrelationId, topicPrefix),
                                             request.Data);
                 if (!result)
                 {
@@ -108,15 +111,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return true;
         }
 
-        static string GetMethodCallTopic(IIdentity identity, string methodName, string correlationId)
+        static string GetMethodCallTopic(IIdentity identity, string methodName, string correlationId, string topicPrefix)
         {
             switch (identity)
             {
                 case IDeviceIdentity deviceIdentity:
-                    return string.Format(MethodCallToDeviceTopicTemplate, deviceIdentity.DeviceId, methodName, correlationId);
+                    return string.Format(MethodCallToDeviceTopicTemplate, topicPrefix, deviceIdentity.DeviceId, methodName, correlationId);
 
                 case IModuleIdentity moduleIdentity:
-                    return string.Format(MethodCallToModuleTopicTemplate, moduleIdentity.DeviceId, moduleIdentity.ModuleId, methodName, correlationId);
+                    return string.Format(MethodCallToModuleTopicTemplate, topicPrefix, moduleIdentity.DeviceId, moduleIdentity.ModuleId, methodName, correlationId);
 
                 default:
                     Events.BadIdentityFormat(identity.Id);

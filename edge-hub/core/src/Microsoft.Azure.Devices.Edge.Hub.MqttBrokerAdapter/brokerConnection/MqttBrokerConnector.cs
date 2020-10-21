@@ -24,13 +24,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         readonly object guard = new object();
 
+        readonly TaskCompletionSource<bool> onConnectedTcs = new TaskCompletionSource<bool>();
+
         Option<Channel<MqttPublishInfo>> publications;
         Option<Task> forwardingLoop;
         Option<MqttClient> mqttClient;
 
         AtomicBoolean isRetrying = new AtomicBoolean(false);
 
-        public event EventHandler OnConnected;
+        public Task EnsureConnected => this.onConnectedTcs.Task;
 
         public MqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
         {
@@ -104,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 this.TriggerReconnect(this, new EventArgs());
             }
 
-            this.OnConnected?.Invoke(this, EventArgs.Empty);
+            this.onConnectedTcs.SetResult(true);
             Events.Started();
         }
 
