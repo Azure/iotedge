@@ -44,12 +44,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
                 foreach (var rule in statement.Allow)
                 {
-                    ValidateRule(rule, order, errors);
+                    ValidateRule(rule, order, errors, "Allow");
                 }
 
                 foreach (var rule in statement.Deny)
                 {
-                    ValidateRule(rule, order, errors);
+                    ValidateRule(rule, order, errors, "Deny");
                 }
 
                 order++;
@@ -85,6 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 errors.Add($"Bridge {order}: Endpoint must not be empty");
             }
 
+            if (bridge.Settings.Count == 0)
+            {
+                errors.Add($"Bridge {order}: Settings must not be empty");
+            }
+
             foreach (var setting in bridge.Settings)
             {
                 if (string.IsNullOrWhiteSpace(setting.Topic)
@@ -96,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 if (setting.InPrefix.Contains("+")
                     || setting.InPrefix.Contains("#"))
                 {
-                    errors.Add($"Bridge {order}: OutPrefix must not contain wildcards (+, #)");
+                    errors.Add($"Bridge {order}: InPrefix must not contain wildcards (+, #)");
                 }
 
                 if (setting.OutPrefix.Contains("+")
@@ -107,23 +112,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        static void ValidateRule(AuthorizationProperties.Rule rule, int order, List<string> errors)
+        static void ValidateRule(AuthorizationProperties.Rule rule, int order, List<string> errors, string source)
         {
             if (rule.Operations.Count == 0)
             {
-                errors.Add($"Statement {order}: Allow: Operations list must not be empty");
+                errors.Add($"Statement {order}: {source}: Operations list must not be empty");
             }
 
-            if (rule.Resources.Count == 0 && IsConnectOperation(rule))
+            if (rule.Resources.Count == 0 && !IsConnectOperation(rule))
             {
-                errors.Add($"Statement {order}: Allow: Resources list must not be empty");
+                errors.Add($"Statement {order}: {source}: Resources list must not be empty");
             }
 
             foreach (var operation in rule.Operations)
             {
                 if (!validOperations.Contains(operation))
                 {
-                    errors.Add($"Statement {order}: Unknown mqtt operation: {operation}. List of supported operations: mqtt:publish, mqtt:subscribe, mqtt:connect");
+                    errors.Add($"Statement {order}: {source}: Unknown mqtt operation: {operation}. List of supported operations: mqtt:publish, mqtt:subscribe, mqtt:connect");
                 }
 
                 ValidateVariables(operation, order, errors);
@@ -134,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 if (string.IsNullOrEmpty(resource)
                     || !IsValidTopicFilter(resource))
                 {
-                    errors.Add($"Statement {order}: Resource (topic filter) is invalid: {resource}");
+                    errors.Add($"Statement {order}: {source}: Resource (topic filter) is invalid: {resource}");
                 }
 
                 ValidateVariables(resource, order, errors);

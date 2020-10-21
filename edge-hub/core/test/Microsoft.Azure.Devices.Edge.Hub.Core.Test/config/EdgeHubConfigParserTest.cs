@@ -115,7 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 .Setup(v => v.ValidateBridgeConfig(It.IsAny<BridgeConfig>()))
                 .Returns(new List<string> { "Validation error has occurred" });
 
-
             var routeFactory = new EdgeRouteFactory(new Mock<IEndpointFactory>().Object);
             var configParser = new EdgeHubConfigParser(routeFactory, validator.Object);
 
