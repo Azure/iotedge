@@ -103,8 +103,8 @@ where
             .publish_handle()
             .map_err(BridgeError::PublishHandle)?;
         let subscription_handle = client
-            .subscription_handle()
-            .map_err(BridgeError::PublishHandle)?; // TODO: map error
+            .update_subscription_handle()
+            .map_err(BridgeError::UpdateSubscriptionHandle)?;
 
         let handler = LocalUpstreamPumpEventHandler::new(local_pub_handle);
         let pump_handle = PumpHandle::new(local_messages_send.clone());
@@ -149,14 +149,15 @@ where
             rpc_subscriptions,
         );
         let pump_handle = PumpHandle::new(remote_messages_send.clone());
-        let subscription_handle = client
-            .subscription_handle()
-            .map_err(BridgeError::PublishHandle)?; // TODO: map error
+
+        let remote_sub_handle = client
+            .update_subscription_handle()
+            .map_err(BridgeError::UpdateSubscriptionHandle)?;
         let messages = MessagesProcessor::new(
             handler,
             remote_messages_recv,
             pump_handle,
-            subscription_handle,
+            remote_sub_handle,
             remote_topic_mappers_updates,
         );
 

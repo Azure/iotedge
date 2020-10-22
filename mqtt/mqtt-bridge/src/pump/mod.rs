@@ -22,7 +22,6 @@ use crate::{
     config_update::PumpDiff,
     messages::TopicMapper,
     persist::{PublicationStore, StreamWakeableState},
-    settings::ConnectionSettings,
 };
 
 #[cfg(test)]

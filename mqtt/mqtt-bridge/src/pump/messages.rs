@@ -2,9 +2,11 @@ use std::convert::TryInto;
 
 use async_trait::async_trait;
 use futures_util::stream::StreamExt;
-use mqtt3::{proto::QoS, proto::SubscribeTo, UpdateSubscriptionHandle};
+use mqtt3::{proto::QoS, proto::SubscribeTo};
 use tokio::sync::mpsc;
 use tracing::{error, info};
+
+use crate::client::UpdateSubscriptionHandle;
 
 use super::{PumpHandle, PumpMessage, TopicMapperUpdates};
 

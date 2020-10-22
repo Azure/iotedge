@@ -11,8 +11,7 @@ use tracing::{debug, error, info};
 
 use mqtt3::{
     proto::{self, Publication, SubscribeTo},
-    Client, Event, IoSource, PublishError, ShutdownError, SubscriptionUpdateEvent,
-    UpdateSubscriptionError,
+    Client, Event, IoSource, PublishError, ShutdownError, UpdateSubscriptionError,
 };
 
 use crate::{
