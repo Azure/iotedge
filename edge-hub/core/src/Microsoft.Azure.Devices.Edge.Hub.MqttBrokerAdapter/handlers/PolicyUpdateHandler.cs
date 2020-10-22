@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public void SetConnector(IMqttBrokerConnector connector)
         {
             this.connector = connector;
-            this.connector.OnConnected += async (sender, args) => await this.OnConnect();
+            this.connector.EnsureConnected.ContinueWith(_ => this.OnConnect());
         }
 
         async Task OnConnect()
@@ -78,7 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             return new PolicyUpdate(@"
             {
-                'schemaVersion': '2020-10-30',
                 'statements': [ ]
             }");
         }
@@ -120,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             /// <summary>
             /// A string that contains new policy definition in json format.
             /// </summary>
-            [JsonProperty]
+            [JsonProperty("definition")]
             public string Definition { get; }
         }
     }

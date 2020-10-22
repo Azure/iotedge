@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        public async Task DeviceClient()
+        public async Task PlugAndPlayDeviceClient()
         {
             CancellationToken token = this.TestToken;
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        public async Task ModuleClient()
+        public async Task PlugAndPlayModuleClient()
         {
             CancellationToken token = this.TestToken;
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));

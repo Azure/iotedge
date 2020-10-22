@@ -17,6 +17,7 @@ impl<Z> DummyAuthorizer<Z>
 where
     Z: Authorizer,
 {
+    #![allow(dead_code)]
     pub fn new(authorizer: Z) -> Self {
         Self(authorizer)
     }

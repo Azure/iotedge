@@ -11,6 +11,14 @@ use parking_lot::Mutex;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
+/// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
+/// This facilitates sharing between multiple futures in a single threaded environment
+pub struct MessageLoaderInner<S> {
+    state: Arc<Mutex<S>>,
+    batch: VecDeque<(Key, Publication)>,
+    batch_size: usize,
+}
+
 /// Message loader used to extract elements from bridge persistence
 ///
 /// This component is responsible for message extraction from the persistence
@@ -18,11 +26,7 @@ use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 /// Then, will return these elements in order
 ///
 /// When the batch is exhausted it will grab a new batch
-pub struct MessageLoader<S> {
-    state: Arc<Mutex<S>>,
-    batch: VecDeque<(Key, Publication)>,
-    batch_size: usize,
-}
+pub struct MessageLoader<S>(Arc<Mutex<MessageLoaderInner<S>>>);
 
 impl<S> MessageLoader<S>
 where
@@ -31,18 +35,28 @@ where
     pub fn new(state: Arc<Mutex<S>>, batch_size: usize) -> Self {
         let batch = VecDeque::new();
 
-        Self {
+        let inner = MessageLoaderInner {
             state,
             batch,
             batch_size,
-        }
+        };
+        let inner = Arc::new(Mutex::new(inner));
+
+        Self(inner)
     }
 
     fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-        let mut state_lock = self.state.lock();
-        let batch: VecDeque<_> = state_lock.batch(self.batch_size)?;
+        let inner = self.0.lock();
+        let mut state_lock = inner.state.lock();
+        let batch = state_lock.batch(inner.batch_size)?;
 
         Ok(batch)
+    }
+}
+
+impl<S: StreamWakeableState> Clone for MessageLoader<S> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
     }
 }
 
@@ -53,23 +67,31 @@ where
     type Item = Result<(Key, Publication), PersistError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        if let Some(item) = self.batch.pop_front() {
-            return Poll::Ready(Some(Ok((item.0, item.1))));
+        let mut inner = self.0.lock();
+
+        // return element if available
+        if let Some(item) = inner.batch.pop_front() {
+            Poll::Ready(Some(Ok(item)))
+        } else {
+            drop(inner);
+
+            // refresh next batch
+            // if error, either someone forged the database or we have a database schema change
+            let next_batch = self.next_batch()?;
+            let mut inner = self.0.lock();
+            inner.batch = next_batch;
+
+            // get next element and return it
+            let maybe_extracted = inner.batch.pop_front();
+            let mut state_lock = inner.state.lock();
+            maybe_extracted.map_or_else(
+                || {
+                    state_lock.set_waker(cx.waker());
+                    Poll::Pending
+                },
+                |extracted| Poll::Ready(Some(Ok(extracted))),
+            )
         }
-
-        let mut_self = self.get_mut();
-
-        // If error, either someone forged the database or we have a database schema change
-        mut_self.batch = mut_self.next_batch()?;
-
-        mut_self.batch.pop_front().map_or_else(
-            || {
-                let mut state_lock = mut_self.state.lock();
-                state_lock.set_waker(cx.waker());
-                Poll::Pending
-            },
-            |item| Poll::Ready(Some(Ok((item.0, item.1)))),
-        )
     }
 }
 
@@ -78,21 +100,21 @@ mod tests {
     use std::{sync::Arc, time::Duration};
 
     use bytes::Bytes;
-    use futures_util::stream::TryStreamExt;
+    use futures_util::{future::join, stream::TryStreamExt};
     use mqtt3::proto::{Publication, QoS};
-    use parking_lot::Mutex;
-    use tokio::{self, time};
+    use tokio::time;
 
     use crate::persist::{
         loader::{Key, MessageLoader},
         waking_state::StreamWakeableState,
         WakingMemoryStore,
     };
+    use parking_lot::Mutex;
 
     #[test]
     fn smaller_batch_size_respected() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -131,7 +153,7 @@ mod tests {
     #[test]
     fn larger_batch_size_respected() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -172,7 +194,7 @@ mod tests {
     #[test]
     fn ordering_maintained_across_inserts() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // add many elements
@@ -180,7 +202,7 @@ mod tests {
         let num_elements = 10 as usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
-            let key = Key { offset: i as u32 };
+            let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
                 qos: QoS::ExactlyOnce,
@@ -198,7 +220,7 @@ mod tests {
 
         for count in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
-            let num_elements = count as u32;
+            let num_elements = count as u64;
 
             assert_eq!(elements.pop_front().unwrap().0.offset, num_elements)
         }
@@ -207,7 +229,7 @@ mod tests {
     #[tokio::test]
     async fn retrieve_elements() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -234,7 +256,7 @@ mod tests {
 
         // get loader
         let batch_size = 5;
-        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), batch_size);
 
         // make sure same publications come out in correct order
         let extracted1 = loader.try_next().await.unwrap().unwrap();
@@ -248,7 +270,7 @@ mod tests {
     #[tokio::test]
     async fn delete_and_retrieve_new_elements() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -275,7 +297,7 @@ mod tests {
 
         // get loader
         let batch_size = 5;
-        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), batch_size);
 
         // process inserted messages
         loader.try_next().await.unwrap().unwrap();
@@ -308,7 +330,7 @@ mod tests {
     #[tokio::test]
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state
-        let state = WakingMemoryStore::new();
+        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -322,7 +344,7 @@ mod tests {
 
         // get loader
         let batch_size = 5;
-        let mut loader = MessageLoader::new(Arc::clone(&state), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), batch_size);
 
         // async function that waits for a message to enter the state
         let key_copy = key1;
@@ -332,14 +354,17 @@ mod tests {
             assert_eq!((key_copy, pub_copy), extracted);
         };
 
-        // start the function and make sure it starts polling the stream before next step
-        let poll_stream_handle = tokio::spawn(poll_stream);
-        time::delay_for(Duration::from_secs(2)).await;
-
         // add an element to the state
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1).unwrap();
-        drop(state_lock);
-        poll_stream_handle.await.unwrap();
+        let insert = async move {
+            // wait to make sure that stream is polled initially
+            time::delay_for(Duration::from_secs(2)).await;
+
+            // insert element once stream is polled
+            let mut state_lock = state.lock();
+            state_lock.insert(key1, pub1).unwrap();
+            drop(state_lock);
+        };
+
+        join(poll_stream, insert).await;
     }
 }
