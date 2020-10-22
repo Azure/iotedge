@@ -2,12 +2,13 @@
 use std::{
     collections::HashSet,
     fmt::Display,
-    io::Error,
-    io::ErrorKind,
+    io::{Error, ErrorKind},
     pin::Pin,
     str,
-    sync::atomic::{AtomicU8, Ordering},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicU8, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 
@@ -17,8 +18,7 @@ use futures_util::future::{self, BoxFuture};
 use mockall::{automock, mock};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{
-    io::AsyncRead,
-    io::AsyncWrite,
+    io::{AsyncRead, AsyncWrite},
     net::TcpStream,
     stream::StreamExt,
     sync::{mpsc::Receiver, Mutex, Semaphore},
@@ -484,6 +484,43 @@ impl MqttClientConfig {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct InFlightPublishHandle<P> {
+    publish_handle: P,
+    permits: Arc<Semaphore>,
+}
+
+impl<P> InFlightPublishHandle<P>
+where
+    P: InnerPublishHandle + Send + Clone + 'static,
+{
+    pub fn new(publish_handle: P, max_in_flight: usize) -> Self {
+        let permits = Arc::new(Semaphore::new(max_in_flight));
+
+        Self {
+            publish_handle,
+            permits,
+        }
+    }
+
+    pub async fn publish_future(
+        &self,
+        publication: Publication,
+    ) -> BoxFuture<'static, Result<(), PublishError>> {
+        let permits = self.permits.clone();
+        let permit = permits.acquire_owned().await;
+        let mut publish_handle = self.publish_handle.clone();
+
+        let publication_send = async move {
+            publish_handle.publish(publication).await?;
+            drop(permit);
+            Ok(())
+        };
+
+        Box::pin(publication_send)
+    }
+}
+
 /// Trait used to facilitate mock publish handle types
 #[async_trait]
 pub trait InnerPublishHandle {
@@ -558,43 +595,6 @@ impl InnerPublishHandle for CountingMockPublishHandle {
         self.counter.fetch_add(1, Ordering::Relaxed);
         self.send_trigger.lock().await.next().await;
         Ok(())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct InFlightPublishHandle<P> {
-    publish_handle: P,
-    permits: Arc<Semaphore>,
-}
-
-impl<P> InFlightPublishHandle<P>
-where
-    P: InnerPublishHandle + Send + Clone + 'static,
-{
-    pub fn new(publish_handle: P, max_in_flight: usize) -> Self {
-        let permits = Arc::new(Semaphore::new(max_in_flight));
-
-        Self {
-            publish_handle,
-            permits,
-        }
-    }
-
-    pub async fn publish_future(
-        &self,
-        publication: Publication,
-    ) -> BoxFuture<'static, Result<(), PublishError>> {
-        let permits = self.permits.clone();
-        let permit = permits.acquire_owned().await;
-        let mut publish_handle = self.publish_handle.clone();
-
-        let publication_send = async move {
-            publish_handle.publish(publication).await?;
-            drop(permit);
-            Ok(())
-        };
-
-        Box::pin(publication_send)
     }
 }
 

@@ -14,6 +14,7 @@ use crate::{
     },
 };
 
+const BATCH_SIZE: usize = 10;
 const MAX_IN_FLIGHT: usize = 16;
 
 #[derive(Debug)]
@@ -49,8 +50,6 @@ impl Bridge<WakingMemoryStore> {
         device_id: String,
         settings: ConnectionSettings,
     ) -> Result<Self, BridgeError> {
-        const BATCH_SIZE: usize = 10;
-
         debug!("creating bridge...");
 
         let (mut local_pump, mut remote_pump) = Builder::default()
