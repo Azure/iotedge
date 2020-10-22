@@ -156,14 +156,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             IList<string> errors = validator.ValidateBridgeConfig(bridgeConfig);
 
-            Assert.Equal(3, errors.Count);
+            Assert.Equal(2, errors.Count);
             Assert.Equal("Bridge 0: Endpoint must not be empty", errors[0]);
-            Assert.Equal("Bridge 0: Topic is invalid: ", errors[1]);
-            Assert.Equal("Bridge 1: Settings must not be empty", errors[2]);
+            Assert.Equal("Bridge 1: Settings must not be empty", errors[1]);
         }
 
         [Fact]
-        public void ValidateBridgeConfig_InvalidPrefix()
+        public void ValidateBridgeConfig_InvalidTopicOrPrefix()
         {
             var validator = new BrokerPropertiesValidator();
 
@@ -171,15 +170,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             {
                 new Bridge("$upstream", new List<Settings>
                 {
-                    new Settings(Direction.In, "topic/a", "local/#", "remote/+/")
+                    new Settings(Direction.In, "topic/#/a", "local/#", "remote/+/")
                 })
             };
 
             IList<string> errors = validator.ValidateBridgeConfig(bridgeConfig);
 
-            Assert.Equal(2, errors.Count);
-            Assert.Equal("Bridge 0: InPrefix must not contain wildcards (+, #)", errors[0]);
-            Assert.Equal("Bridge 0: OutPrefix must not contain wildcards (+, #)", errors[1]);
+            Assert.Equal(3, errors.Count);
+            Assert.Equal("Bridge 0: Topic is invalid: topic/#/a", errors[0]);
+            Assert.Equal("Bridge 0: InPrefix must not contain wildcards (+, #)", errors[1]);
+            Assert.Equal("Bridge 0: OutPrefix must not contain wildcards (+, #)", errors[2]);
         }
     }
 }
