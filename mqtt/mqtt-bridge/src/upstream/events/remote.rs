@@ -13,7 +13,8 @@ use crate::{
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
 use crate::client::{
-    MockPublishHandle as PublishHandle, MockUpdateSubscriptionHandle as UpdateSubscriptionHandle,
+    MockUpdateSubscriptionHandle as UpdateSubscriptionHandle,
+    MockallPublishHandleWrapper as PublishHandle,
 };
 #[cfg(not(test))]
 use crate::client::{PublishHandle, UpdateSubscriptionHandle};
@@ -172,7 +173,7 @@ mod tests {
     use matches::assert_matches;
 
     use crate::{
-        client::{MockPublishHandle, MockUpdateSubscriptionHandle},
+        client::{MockUpdateSubscriptionHandle, MockallPublishHandleWrapper},
         pump::{self, PumpMessage},
     };
 
@@ -180,7 +181,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_handles_sub_command() {
-        let remote_pub_handle = MockPublishHandle::new();
+        let remote_pub_handle = MockallPublishHandleWrapper::new();
         let in_flight_handle = InFlightPublishHandle::new(remote_pub_handle, 5);
 
         let mut remote_sub_handle = MockUpdateSubscriptionHandle::new();
@@ -215,7 +216,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_handles_unsub_command() {
-        let remote_pub_handle = MockPublishHandle::new();
+        let remote_pub_handle = MockallPublishHandleWrapper::new();
         let in_flight_handle = InFlightPublishHandle::new(remote_pub_handle, 5);
 
         let mut remote_sub_handle = MockUpdateSubscriptionHandle::new();
@@ -250,14 +251,18 @@ mod tests {
 
     #[tokio::test]
     async fn it_handles_pub_command() {
-        let mut remote_pub_handle = MockPublishHandle::new();
-        remote_pub_handle
+        let remote_pub_handle = MockallPublishHandleWrapper::new();
+        let inner_handle = remote_pub_handle.inner();
+        let mut inner_handle = inner_handle.lock().await;
+        inner_handle
             .expect_publish()
             .once()
             .withf(|publication| {
                 publication.topic_name == "/foo" && publication.payload == Bytes::from("hello")
             })
             .returning(|_| Ok(()));
+        drop(inner_handle);
+
         let in_flight_handle = InFlightPublishHandle::new(remote_pub_handle, 5);
 
         let remote_sub_handle = MockUpdateSubscriptionHandle::new();

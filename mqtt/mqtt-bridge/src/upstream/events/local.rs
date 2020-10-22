@@ -7,7 +7,7 @@ use tracing::{debug, error};
 
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
-pub use crate::client::MockPublishHandle as PublishHandle;
+pub use crate::client::MockallPublishHandleWrapper as PublishHandle;
 
 #[cfg(not(test))]
 use crate::client::PublishHandle;
@@ -108,13 +108,10 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
             }
         };
 
-        println!("---PUBLICATION FOUND?---");
         if let Some(publication) = maybe_publication {
-            println!("---PUBLICATION FOUND---");
             let topic = publication.topic_name.clone();
             let publish_fut = self.publish_handle.publish_future(publication).await;
             if let Err(e) = publish_fut.await {
-                println!("---ERROR FOUND---: {:?}", e);
                 error!(err = %e, "failed to publish on topic {}", topic);
             }
         }
@@ -123,7 +120,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
 
 #[cfg(test)]
 mod tests {
-    use crate::client::MockPublishHandle;
+    use crate::client::MockallPublishHandleWrapper;
 
     use super::*;
 
@@ -141,16 +138,17 @@ mod tests {
         let payload = json!({ "status": state });
         let payload = serde_json::to_vec(&payload).unwrap();
 
-        let mut pub_handle = MockPublishHandle::new();
-        pub_handle
+        let pub_handle = MockallPublishHandleWrapper::new();
+        let inner_handle = pub_handle.inner();
+        let mut inner_handle = inner_handle.lock().await;
+        inner_handle
             .expect_publish()
             .once()
             .withf(move |publication| {
                 publication.topic_name == "$internal/connectivity" && publication.payload == payload
             })
             .returning(|_| Ok(()));
-
-        pub_handle.expect_clone().once();
+        drop(inner_handle);
 
         let in_flight_handle = InFlightPublishHandle::new(pub_handle, 5);
         let mut handler = LocalUpstreamPumpEventHandler::new(in_flight_handle);
@@ -161,14 +159,17 @@ mod tests {
 
     #[tokio::test]
     async fn it_sends_rpc_ack() {
-        let mut pub_handle = MockPublishHandle::new();
-        pub_handle
+        let pub_handle = MockallPublishHandleWrapper::new();
+        let inner_handle = pub_handle.inner();
+        let mut inner_handle = inner_handle.lock().await;
+        inner_handle
             .expect_publish()
             .once()
             .withf(move |publication| {
                 publication.topic_name == "$edgehub/rpc/ack/1" && publication.payload.is_empty()
             })
             .returning(|_| Ok(()));
+        drop(inner_handle);
 
         let in_flight_handle = InFlightPublishHandle::new(pub_handle, 5);
         let mut handler = LocalUpstreamPumpEventHandler::new(in_flight_handle);
@@ -183,14 +184,17 @@ mod tests {
         let doc = doc! { "reason": "error" };
         doc.to_writer(&mut payload).unwrap();
 
-        let mut pub_handle = MockPublishHandle::new();
-        pub_handle
+        let pub_handle = MockallPublishHandleWrapper::new();
+        let inner_handle = pub_handle.inner();
+        let mut inner_handle = inner_handle.lock().await;
+        inner_handle
             .expect_publish()
             .once()
             .withf(move |publication| {
                 publication.topic_name == "$edgehub/rpc/nack/1" && publication.payload == payload
             })
             .returning(|_| Ok(()));
+        drop(inner_handle);
 
         let in_flight_handle = InFlightPublishHandle::new(pub_handle, 5);
         let mut handler = LocalUpstreamPumpEventHandler::new(in_flight_handle);

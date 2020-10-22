@@ -427,11 +427,10 @@ impl<H> MqttClientExt for MqttClient<H> {
 #[cfg(test)]
 /// Implements `MqttClientExt` for tests.
 impl<H> MqttClientExt for MqttClient<H> {
-    type PublishHandle = InFlightPublishHandle<MockPublishHandle>;
+    type PublishHandle = InFlightPublishHandle<MockallPublishHandleWrapper>;
 
     fn publish_handle(&self) -> Self::PublishHandle {
-        // TODO PRE: how do we avoid hardcoding? We can make the publish handle each time
-        InFlightPublishHandle::new(MockPublishHandle::new(), 2)
+        InFlightPublishHandle::new(MockallPublishHandleWrapper::new(), 5)
     }
 
     type UpdateSubscriptionHandle = MockUpdateSubscriptionHandle;
@@ -502,6 +501,30 @@ impl InnerPublishHandle for PublishHandle {
     }
 }
 
+/// A wrapper around mockall publish handle necessary for cloning
+#[derive(Clone)]
+pub struct MockallPublishHandleWrapper {
+    inner: Arc<Mutex<MockPublishHandle>>,
+}
+
+impl MockallPublishHandleWrapper {
+    pub fn new() -> Self {
+        let inner = Arc::new(Mutex::new(MockPublishHandle::new()));
+        Self { inner }
+    }
+
+    pub fn inner(&self) -> Arc<Mutex<MockPublishHandle>> {
+        self.inner.clone()
+    }
+}
+
+#[async_trait]
+impl InnerPublishHandle for MockallPublishHandleWrapper {
+    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
+        self.inner.lock().await.publish(publication).await
+    }
+}
+
 mock! {
     pub PublishHandle {}
 
@@ -509,19 +532,7 @@ mock! {
     pub trait InnerPublishHandle {
         async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
     }
-
-    pub trait Clone {
-        fn clone(&self) -> Self;
-    }
 }
-/*
-mock! {
-    pub A {}
-    impl Clone for A {
-        fn clone(&self) -> Self;
-    }
-}
-*/
 
 /// Mock publish handle mimicking the mqtt3 publish handle.
 /// Used for tests only.
