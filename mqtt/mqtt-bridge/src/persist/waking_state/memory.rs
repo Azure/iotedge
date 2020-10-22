@@ -18,9 +18,9 @@ pub struct WakingMemoryStore {
     waker: Option<Waker>,
 }
 
-impl WakingMemoryStore {
-    pub fn new() -> Self {
-        WakingMemoryStore {
+impl Default for WakingMemoryStore {
+    fn default() -> Self {
+        Self {
             queue: VecDeque::new(),
             loaded: HashSet::new(),
             waker: None,
