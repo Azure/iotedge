@@ -532,8 +532,13 @@ pub enum ClientError {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::{AtomicU8, Ordering};
-    use std::{sync::Arc, time::Duration};
+    use std::{
+        sync::{
+            atomic::{AtomicU8, Ordering},
+            Arc,
+        },
+        time::Duration,
+    };
 
     use bytes::Bytes;
     use futures_util::{future::join3, stream::FuturesUnordered};
