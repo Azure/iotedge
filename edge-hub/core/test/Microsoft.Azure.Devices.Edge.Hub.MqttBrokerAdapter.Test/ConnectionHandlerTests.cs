@@ -25,7 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                 It.IsAny<Option<string>>()))
                 .Returns(Task.FromResult(Mock.Of<IDeviceListener>()));
 
+            var authenticator = Mock.Of<IAuthenticator>();
+            Mock.Get(authenticator)
+                .Setup(p => p.AuthenticateAsync(It.IsAny<IClientCredentials>()))
+                .Returns(Task.FromResult(true));
+            
             var connectionProviderGetter = Task.FromResult(connectionProvider);
+            var authenticatorGetter = Task.FromResult(authenticator);
+
             var identityProvider = new IdentityProvider("hub");
             var systemComponentIdProvider = new SystemComponentIdProvider(
                                                     new TokenCredentials(
@@ -42,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             DeviceProxy.Factory deviceProxyFactory = GetProxy;
 
-            sut = new ConnectionHandler(connectionProviderGetter, identityProvider, systemComponentIdProvider, deviceProxyFactory);
+            sut = new ConnectionHandler(connectionProviderGetter, authenticatorGetter, identityProvider, systemComponentIdProvider, deviceProxyFactory);
             sut.SetConnector(brokerConnector);
             await sut.HandleAsync(new MqttPublishInfo("$edgehub/connected", Encoding.UTF8.GetBytes("[\"device_test\"]")));
 
