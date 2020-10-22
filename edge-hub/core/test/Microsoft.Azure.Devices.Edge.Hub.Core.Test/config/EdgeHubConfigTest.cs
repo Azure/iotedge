@@ -59,6 +59,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var storeAndForwardConfig5 = new StoreAndForwardConfiguration(3600, s2);
             var storeAndForwardConfig6 = new StoreAndForwardConfiguration(3600);
 
+            var bridge1 = new BridgeConfig
+            {
+                new Bridge("endpoint1", new List<Settings>
+                {
+                    new Settings(Direction.In, "topic/a", "local/", "remote/")
+                })
+            };
+
+            var bridge2 = new BridgeConfig
+            {
+                new Bridge("endpoint1", new List<Settings>
+                {
+                    new Settings(Direction.Out, "/topic/b", "local", "remote")
+                })
+            };
+
+            var bridge3 = new BridgeConfig
+            {
+                new Bridge("endpoint1", new List<Settings>
+                {
+                    new Settings(Direction.In, "topic/a", "local/", "remote/")
+                })
+            };
+
             var statement1 = new Statement(
                 effect: Effect.Allow,
                 identities: new List<string>
@@ -110,13 +134,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 });
 
             var brokerConfig1 = new BrokerConfig(
-                Option.None<BridgeConfig>(),
+                Option.Some(bridge1),
                 Option.Some(new AuthorizationConfig(new List<Statement> { statement1 })));
             var brokerConfig2 = new BrokerConfig(
-                Option.None<BridgeConfig>(),
+                Option.Some(bridge2),
                 Option.Some(new AuthorizationConfig(new List<Statement> { statement2 })));
             var brokerConfig3 = new BrokerConfig(
-                Option.None<BridgeConfig>(),
+                Option.Some(bridge3),
                 Option.Some(new AuthorizationConfig(new List<Statement> { statement3 })));
 
             string version = "1.0";
