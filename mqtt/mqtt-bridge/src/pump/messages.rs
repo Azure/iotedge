@@ -6,9 +6,14 @@ use mqtt3::{proto::QoS, proto::SubscribeTo};
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
-use crate::client::UpdateSubscriptionHandle;
-
 use super::{PumpHandle, PumpMessage, TopicMapperUpdates};
+
+// Import and use mocks when run tests, real implementation when otherwise
+#[cfg(test)]
+pub use crate::client::MockUpdateSubscriptionHandle as UpdateSubscriptionHandle;
+
+#[cfg(not(test))]
+use crate::client::UpdateSubscriptionHandle;
 
 /// A trait for all custom pump event handlers.
 #[async_trait]

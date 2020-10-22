@@ -74,11 +74,14 @@ impl BridgeController {
                     .instrument(info_span!("bridge", name = UPSTREAM));
 
                     // send initial subscription configuration
-                    if let Err(e) = self.handle.send(BridgeControllerUpdate::from_bridge(
-                        &bridge_name,
-                        &upstream_settings.subscriptions(),
-                        &upstream_settings.forwards(),
-                    )) {
+                    if let Err(e) =
+                        self.handle
+                            .send(BridgeControllerUpdate::from_bridge_topic_rules(
+                                &bridge_name,
+                                &upstream_settings.subscriptions(),
+                                &upstream_settings.forwards(),
+                            ))
+                    {
                         error!(
                             "failed to send initial subscriptions for {}. {}",
                             bridge_name, e
