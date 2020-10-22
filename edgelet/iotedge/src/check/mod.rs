@@ -649,7 +649,7 @@ mod tests {
             let config_file = format!(
                 "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                if cfg!(windows) { "windows" } else { "linux" },
+                "linux",
                 filename,
             );
 
@@ -720,7 +720,7 @@ mod tests {
             let config_file = format!(
                 "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                if cfg!(windows) { "windows" } else { "linux" },
+                "linux",
                 filename,
             );
 
@@ -791,7 +791,7 @@ mod tests {
         let config_file = format!(
             "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
+            "linux",
             filename,
         );
 
@@ -819,7 +819,7 @@ mod tests {
                     .expect("expected to find cause-of-cause-of-error");
                 assert!(
                     err.to_string()
-                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 10 column 5"),
+                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 7 column 5"),
                     "parsing {} produced unexpected error: {}",
                     filename,
                     err,
@@ -830,44 +830,44 @@ mod tests {
         }
     }
 
-    #[test]
-    fn settings_connection_string_dps_hostname() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+    // #[test]
+    // fn settings_connection_string_dps_hostname() {
+    //     let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "sample_settings.dps.sym.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
-            filename,
-        );
+    //     let filename = "sample_settings.dps.sym.yaml";
+    //     let config_file = format!(
+    //         "{}/../edgelet-docker/test/{}/{}",
+    //         env!("CARGO_MANIFEST_DIR"),
+    //         "linux",
+    //         filename,
+    //     );
 
-        let mut check = runtime
-            .block_on(Check::new(
-                config_file.into(),
-                "daemon.json".into(), // unused for this test
-                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                Default::default(),
-                Some("1.0.0".to_owned()), // unused for this test
-                "iotedged".into(),        // unused for this test
-                // Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
-                "pool.ntp.org:123".to_owned(), // unused for this test
-                super::OutputFormat::Text,     // unused for this test
-                false,
-                false,
-            ))
-            .unwrap();
+    //     let mut check = runtime
+    //         .block_on(Check::new(
+    //             config_file.into(),
+    //             "daemon.json".into(), // unused for this test
+    //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+    //             Default::default(),
+    //             Some("1.0.0".to_owned()), // unused for this test
+    //             "iotedged".into(),        // unused for this test
+    //             // Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
+    //             "pool.ntp.org:123".to_owned(), // unused for this test
+    //             super::OutputFormat::Text,     // unused for this test
+    //             false,
+    //             false,
+    //         ))
+    //         .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-            CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
+    //     match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+    //         CheckResult::Ok => (),
+    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
+    //     }
 
-        // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-        //     CheckResult::Ok => (),
-        //     check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        // }
-    }
+    //     match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+    //         CheckResult::Ok => (),
+    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
+    //     }
+    // }
 
     // This test inexplicably fails in the ci pipeline due to file read errors.
     // It has been tested on ubuntu 18.04, raspbian buster and windows.
@@ -885,7 +885,7 @@ mod tests {
     //     let config_file_source = format!(
     //         "{}/../edgelet-docker/test/{}/{}",
     //         env!("CARGO_MANIFEST_DIR"),
-    //         if cfg!(windows) { "windows" } else { "linux" },
+    //         "linux",
     //         filename,
     //     );
 
@@ -957,49 +957,49 @@ mod tests {
     //     }
     // }
 
-    #[test]
-    fn settings_connection_string_dps_err() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+    // #[test]
+    // fn settings_connection_string_dps_err() {
+    //     let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "sample_settings.dps.sym.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
-            filename,
-        );
+    //     let filename = "sample_settings.dps.sym.yaml";
+    //     let config_file = format!(
+    //         "{}/../edgelet-docker/test/{}/{}",
+    //         env!("CARGO_MANIFEST_DIR"),
+    //         "linux",
+    //         filename,
+    //     );
 
-        let mut check = runtime
-            .block_on(Check::new(
-                config_file.into(),
-                "daemon.json".into(), // unused for this test
-                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                Default::default(),
-                Some("1.0.0".to_owned()), // unused for this test
-                "iotedged".into(),        // unused for this test
-                // None,
-                "pool.ntp.org:123".to_owned(), // unused for this test
-                super::OutputFormat::Text,     // unused for this test
-                false,
-                false,
-            ))
-            .unwrap();
+    //     let mut check = runtime
+    //         .block_on(Check::new(
+    //             config_file.into(),
+    //             "daemon.json".into(), // unused for this test
+    //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+    //             Default::default(),
+    //             Some("1.0.0".to_owned()), // unused for this test
+    //             "iotedged".into(),        // unused for this test
+    //             // None,
+    //             "pool.ntp.org:123".to_owned(), // unused for this test
+    //             super::OutputFormat::Text,     // unused for this test
+    //             false,
+    //             false,
+    //         ))
+    //         .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-            CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
+    //     match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+    //         CheckResult::Ok => (),
+    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
+    //     }
 
-        // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-        //     CheckResult::Failed(err) => assert!(err
-        //         .to_string()
-        //         .contains("Could not retrieve iothub_hostname from provisioning file.")),
-        //     check_result => panic!(
-        //         "checking connection string in {} returned {:?}",
-        //         filename, check_result
-        //     ),
-        // }
-    }
+    //     match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+    //         CheckResult::Failed(err) => assert!(err
+    //             .to_string()
+    //             .contains("Could not retrieve iothub_hostname from provisioning file.")),
+    //         check_result => panic!(
+    //             "checking connection string in {} returned {:?}",
+    //             filename, check_result
+    //         ),
+    //     }
+    // }
 
     #[test]
     #[cfg(windows)]
@@ -1010,7 +1010,7 @@ mod tests {
         let config_file = format!(
             "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
+            "linux",
             filename,
         );
 
@@ -1063,7 +1063,7 @@ mod tests {
         let config_file = format!(
             "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
+            "linux",
             filename,
         );
 
