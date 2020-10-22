@@ -103,7 +103,7 @@ impl BridgeController {
         let updates = async move {
             while let Some(update) = self.updates_receiver.recv().await {
                 // for now only supports upstream bridge.
-                for bridge_update in update.bridge_updates().clone() {
+                for bridge_update in update.bridge_updates() {
                     debug!("received updated config: {:?}", bridge_update);
 
                     if bridge_update.endpoint() != UPSTREAM {

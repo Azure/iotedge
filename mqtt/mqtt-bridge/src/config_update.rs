@@ -32,10 +32,9 @@ impl ConfigUpdater {
     }
 
     fn diff(&self, bridge_update: &BridgeUpdate) -> BridgeDiff {
-        let local_diff =
-            Self::diff_topic_rules(bridge_update.clone().forwards(), &self.current_forwards);
+        let local_diff = diff_topic_rules(bridge_update.clone().forwards(), &self.current_forwards);
 
-        let remote_diff = Self::diff_topic_rules(
+        let remote_diff = diff_topic_rules(
             bridge_update.clone().subscriptions(),
             &self.current_subscriptions,
         );
@@ -46,54 +45,54 @@ impl ConfigUpdater {
     }
 
     fn update(&mut self, bridge_diff: &BridgeDiff) {
-        Self::update_pump(bridge_diff.local_updates(), &mut self.current_forwards);
+        update_pump(bridge_diff.local_updates(), &mut self.current_forwards);
 
-        Self::update_pump(
+        update_pump(
             bridge_diff.remote_updates(),
             &mut self.current_subscriptions,
         )
     }
+}
 
-    fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule>) -> PumpDiff {
-        let mut added = vec![];
-        let mut removed = vec![];
+fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule>) -> PumpDiff {
+    let mut added = vec![];
+    let mut removed = vec![];
 
-        let subs_map = updated
-            .iter()
-            .map(|sub| (sub.subscribe_to(), sub.clone()))
-            .collect::<HashMap<_, _>>();
+    let subs_map = updated
+        .iter()
+        .map(|sub| (sub.subscribe_to(), sub.clone()))
+        .collect::<HashMap<_, _>>();
 
-        for sub in updated {
-            if !current.contains_key(&sub.subscribe_to())
-                || current
-                    .get(&sub.subscribe_to())
-                    .filter(|curr| curr.to_owned().eq(&sub))
-                    == None
-            {
-                added.push(sub);
-            }
+    for sub in updated {
+        if !current.contains_key(&sub.subscribe_to())
+            || current
+                .get(&sub.subscribe_to())
+                .filter(|curr| curr.to_owned().eq(&sub))
+                == None
+        {
+            added.push(sub);
         }
-
-        for sub in current.keys() {
-            if !subs_map.contains_key(sub) {
-                if let Some(curr) = current.get(sub) {
-                    removed.push(curr.to_owned())
-                }
-            }
-        }
-
-        PumpDiff::default().with_added(added).with_removed(removed)
     }
 
-    fn update_pump(pump_diff: &PumpDiff, current: &mut HashMap<String, TopicRule>) {
-        pump_diff.added().into_iter().for_each(|added| {
-            current.insert(added.subscribe_to(), added.to_owned());
-        });
-
-        pump_diff.removed().iter().for_each(|updated| {
-            current.remove(&updated.subscribe_to());
-        });
+    for sub in current.keys() {
+        if !subs_map.contains_key(sub) {
+            if let Some(curr) = current.get(sub) {
+                removed.push(curr.to_owned())
+            }
+        }
     }
+
+    PumpDiff::default().with_added(added).with_removed(removed)
+}
+
+fn update_pump(pump_diff: &PumpDiff, current: &mut HashMap<String, TopicRule>) {
+    pump_diff.added().into_iter().for_each(|added| {
+        current.insert(added.subscribe_to(), added.to_owned());
+    });
+
+    pump_diff.removed().iter().for_each(|updated| {
+        current.remove(&updated.subscribe_to());
+    });
 }
 
 #[derive(Debug, Deserialize)]
