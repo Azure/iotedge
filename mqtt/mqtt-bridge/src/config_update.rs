@@ -71,7 +71,9 @@ impl ConfigUpdater {
 
         for sub in current.keys() {
             if !subs_map.contains_key(sub) {
-                removed.push(current.get(sub).expect("missing key").to_owned())
+                if let Some(curr) = current.get(sub) {
+                    removed.push(curr.to_owned())
+                }
             }
         }
 

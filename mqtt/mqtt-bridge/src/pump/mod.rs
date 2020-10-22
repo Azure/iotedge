@@ -52,7 +52,6 @@ pub struct Pump<S, H, M>
 where
     M: PumpMessageHandler,
 {
-    // subscriptions: Vec<String>,
     messages_send: mpsc::Sender<PumpMessage<M::Message>>,
     messages: MessagesProcessor<M>,
     egress: Egress<S>,
