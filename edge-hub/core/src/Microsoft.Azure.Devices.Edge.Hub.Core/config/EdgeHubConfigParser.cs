@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         /// </summary>
         Option<AuthorizationConfig> ParseAuthorizationConfig(BrokerProperties properties)
         {
-            if (properties.Authorizations?.Count == 0)
+            if (properties.Authorizations.Count == 0)
             {
                 return Option.None<AuthorizationConfig>();
             }
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         Option<BridgeConfig> ParseBridgeConfig(BrokerProperties properties)
         {
-            if (properties.Bridges?.Count == 0)
+            if (properties.Bridges.Count == 0)
             {
                 return Option.None<BridgeConfig>();
             }
