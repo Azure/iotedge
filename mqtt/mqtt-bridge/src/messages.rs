@@ -157,16 +157,78 @@ mod tests {
         stream::StreamExt,
         TryStreamExt,
     };
-    use std::str::FromStr;
+    use std::{collections::HashMap, str::FromStr};
 
     use mqtt3::{
+        proto::SubscribeTo,
         proto::{Publication, QoS},
-        Event, ReceivedPublication,
+        Event, ReceivedPublication, SubscriptionUpdateEvent,
     };
     use mqtt_broker::TopicFilter;
 
     use super::{MessageHandler, TopicMapper};
-    use crate::{client::EventHandler, persist::PublicationStore, settings::BridgeSettings};
+    use crate::{
+        client::EventHandler, persist::PublicationStore, pump::TopicMapperUpdates,
+        settings::BridgeSettings,
+    };
+
+    #[tokio::test]
+    async fn message_handler_updates_topic() {
+        let batch_size: usize = 5;
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let connection_settings = settings.upstream().unwrap();
+
+        let topics: HashMap<String, TopicMapper> = connection_settings
+            .subscriptions()
+            .iter()
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
+            })
+            .collect();
+
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+
+        handler
+            .handle(&Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "local/floor/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        let _topic_mapper = handler.topic_mappers.get("local/floor/#").unwrap();
+    }
+
+    #[tokio::test]
+    async fn message_handler_updates_topic_without_pending_update() {
+        let batch_size: usize = 5;
+
+        let topics = HashMap::new();
+
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+
+        handler
+            .handle(&Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "local/floor/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        assert_eq!(handler.topic_mappers.get("local/floor/#").is_none(), true);
+    }
 
     #[tokio::test]
     async fn message_handler_saves_message_with_local_and_forward_topic() {
@@ -177,15 +239,19 @@ mod tests {
         let topics = connection_settings
             .subscriptions()
             .iter()
-            .map(|sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                ack_status: true,
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
             })
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/floor/1".to_string(),
@@ -202,6 +268,15 @@ mod tests {
             payload: Bytes::new(),
         };
 
+        handler
+            .handle(&Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "local/floor/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
         handler.handle(&Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
@@ -219,15 +294,19 @@ mod tests {
         let topics = connection_settings
             .subscriptions()
             .iter()
-            .map(|sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                ack_status: true,
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
             })
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "temp/1".to_string(),
@@ -244,6 +323,15 @@ mod tests {
             payload: Bytes::new(),
         };
 
+        handler
+            .handle(&Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "temp/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
         handler.handle(&Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
@@ -261,15 +349,19 @@ mod tests {
         let topics = connection_settings
             .subscriptions()
             .iter()
-            .map(|sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                ack_status: true,
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
             })
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -285,6 +377,16 @@ mod tests {
             retain: true,
             payload: Bytes::new(),
         };
+
+        handler
+            .handle(&Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "pattern/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
 
         handler.handle(&Event::Publication(pub1)).await.unwrap();
 
@@ -303,15 +405,19 @@ mod tests {
         let topics = connection_settings
             .subscriptions()
             .iter()
-            .map(|sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                ack_status: true,
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
             })
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/temp/1".to_string(),
@@ -321,6 +427,15 @@ mod tests {
             dup: false,
         };
 
+        handler
+            .handle(&Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "local/temp/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
         handler.handle(&Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
@@ -340,18 +455,22 @@ mod tests {
         let topics = connection_settings
             .subscriptions()
             .iter()
-            .map(|sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                ack_status: false,
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
             })
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
-            topic_name: "local/floor/1".to_string(),
+            topic_name: "pattern/p1".to_string(),
             qos: QoS::AtLeastOnce,
             retain: true,
             payload: Bytes::new(),
