@@ -51,4 +51,16 @@ az deployment group create --resource-group "$resource_group_name" --name 'e2e-p
 )"
 ```
 
-Once the deployment has completed, you can SSH into the runner VMs to install/configure the Azure Pipelines agent. For more information, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
+Once the deployment has completed, you can SSH into the runner VMs to install/configure the Azure Pipelines agent (see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix)). To get the private key for each runner, find the name of the key vault from your deployment, then:
+
+```sh
+az keyvault secret list --vault-name '<>' -o tsv --query "[].id|[?contains(@, 'runner-vm')]"
+```
+
+This will list the secret URLs for the runner VMs. With a secret URL and an IP address, you can SSH into a runner VM like this:
+
+```sh
+az keyvault secret show --id '<>' -o tsv --query value > ~/.ssh/id_rsa.runner
+chmod 600 ~/.ssh/id_rsa.runner
+ssh -i ~/.ssh/id_rsa.runner azureuser@<ip addr>
+```
