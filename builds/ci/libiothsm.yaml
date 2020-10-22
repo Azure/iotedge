@@ -4,7 +4,6 @@ trigger:
     include:
       - master
       - release/*
-      - iiot
       - preview/iiot
 pr: none
 jobs:
@@ -37,25 +36,3 @@ jobs:
       - script: ctest -C debug -V
         displayName: Test
         workingDirectory: edgelet/hsm-sys/azure-iot-hsm-c/build
-
-################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    pool:
-      vmImage: 'vs2017-win2016'
-    steps:
-      - task: PowerShell@2
-        displayName: Install
-        inputs:
-          filePath: edgelet/build/windows/install.ps1
-      - task: CMake@1
-        displayName: Setup
-        inputs:
-          cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
-          cmakeArgs: -G "Visual Studio 15 2017 Win64" -DBUILD_SHARED=ON -DCMAKE_BUILD_TYPE=Release ..
-      - task: CMake@1
-        displayName: Build
-        inputs:
-          cwd: edgelet/hsm-sys/azure-iot-hsm-c/build
-          cmakeArgs: --build .

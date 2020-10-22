@@ -61,40 +61,6 @@ impl Hostname {
                 }
             }
 
-            #[cfg(windows)]
-            #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-            {
-                // libstd only calls WSAStartup when something under std::net gets used, like creating a TcpStream.
-                // Since we haven't done anything like that up to this point, it ends up not being called.
-                // So we call it manually.
-                //
-                // The process is going to exit anyway, so there's no reason to make the effort of
-                // calling the corresponding WSACleanup later.
-                let mut wsa_data: winapi::um::winsock2::WSADATA = std::mem::zeroed();
-                match winapi::um::winsock2::WSAStartup(0x202, &mut wsa_data) {
-                    0 => (),
-                    result => {
-                        return Err(Context::new(format!(
-                            "Could not get hostname: WSAStartup failed with {}",
-                            result,
-                        ))
-                        .into());
-                    }
-                }
-
-                if winapi::um::winsock2::gethostname(result.as_mut_ptr() as _, result.len() as _)
-                    != 0
-                {
-                    // Can't use std::io::Error::last_os_error() because that calls GetLastError, not WSAGetLastError
-                    let winsock_err = winapi::um::winsock2::WSAGetLastError();
-                    return Err(Context::new(format!(
-                        "Could not get hostname: gethostname failed with {}",
-                        winsock_err,
-                    ))
-                    .into());
-                }
-            }
-
             let nul_index = result.iter().position(|&b| b == b'\0').ok_or_else(|| {
                 Context::new(
                     "Could not get hostname: gethostname did not return NUL-terminated string",
@@ -116,7 +82,7 @@ impl Hostname {
         //
         // We could enumerate the network interfaces of the device and verify that the IP that the hostname resolves to
         // belongs to one of them, but this requires non-trivial OS-specific code
-        // (`getifaddrs` on Linux, `GetIpAddrTable` on Windows).
+        // (`getifaddrs` on Linux).
         //
         // Instead, we punt on this check and assume that everything's fine if config_hostname is identical to the device hostname,
         // or starts with it.
