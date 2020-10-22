@@ -138,12 +138,9 @@ impl ConnectionSettings {
     pub fn subscriptions(&self) -> Vec<TopicRule> {
         self.subscriptions
             .iter()
-            .filter_map(|sub| {
-                if let Direction::Out(topic) = sub {
-                    Some(topic.clone())
-                } else {
-                    None
-                }
+            .filter_map(|sub| match sub {
+                Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
+                _ => None,
             })
             .collect()
     }
@@ -151,12 +148,9 @@ impl ConnectionSettings {
     pub fn forwards(&self) -> Vec<TopicRule> {
         self.subscriptions
             .iter()
-            .filter_map(|sub| {
-                if let Direction::In(topic) = sub {
-                    Some(topic.clone())
-                } else {
-                    None
-                }
+            .filter_map(|sub| match sub {
+                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
+                _ => None,
             })
             .collect()
     }
@@ -278,6 +272,14 @@ impl TopicRule {
     pub fn in_prefix(&self) -> Option<&str> {
         self.in_prefix.as_deref()
     }
+
+    pub fn subscribe_to(&self) -> String {
+        if let Some(local) = self.in_prefix.clone() {
+            format!("{}/{}", local, self.topic.clone())
+        } else {
+            self.topic.clone()
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -288,6 +290,9 @@ pub enum Direction {
 
     #[serde(rename = "out")]
     Out(TopicRule),
+
+    #[serde(rename = "both")]
+    Both(TopicRule),
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
