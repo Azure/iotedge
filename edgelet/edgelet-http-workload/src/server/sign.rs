@@ -14,7 +14,7 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use identity_client::client::IdentityClient;
 
-use super::get_key_handle;
+use super::get_derived_identity_key_handle;
 
 use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
@@ -69,7 +69,7 @@ impl Handler<Parameters> for SignHandler {
             .and_then(|(id, request, key_store, id_mgr)| -> Result<_, Error> {
                 let data: Vec<u8> =
                     base64::decode(request.data()).context(ErrorKind::MalformedRequestBody)?;
-                let response = get_key_handle(&id_mgr, &id)
+                let response = get_derived_identity_key_handle(&id_mgr, &id)
                     .and_then(move |k| get_signature(&key_store, &k, &data))
                     .and_then(|signature| -> Result<_, Error> {
                         let encoded = base64::encode(signature.as_bytes());

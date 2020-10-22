@@ -96,7 +96,7 @@ impl NewService for WorkloadService {
     }
 }
 
-fn get_key_handle(
+fn get_derived_identity_key_handle(
     identity_client: &Arc<Mutex<IdentityClient>>,
     name: &str,
 ) -> impl Future<Item = KeyHandle, Error = Error> {

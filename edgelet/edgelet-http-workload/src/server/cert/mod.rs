@@ -20,7 +20,7 @@ use openssl::error::ErrorStack;
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse};
 
 use crate::{
-    error::{CertOperation, Error, ErrorKind, Result},
+    error::{Error, ErrorKind, Result},
     IntoResponse,
 };
 
@@ -84,32 +84,28 @@ fn refresh_cert(
     context: ErrorKind,
 ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let response = generate_key_and_csr(props)
-        .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)))
+        .map_err(|e| Error::from(e.context(context.clone())))
         .and_then(|(privkey, csr)| {
-            let workload_ca_key_pair_handle =
-                key_client.load_key_pair(IOTEDGED_CA_ALIAS).map_err(|_| {
-                    Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
-                })?;
-            Ok((privkey, csr, workload_ca_key_pair_handle))
+            let iotedged_ca_key_pair_handle = key_client
+                .load_key_pair(IOTEDGED_CA_ALIAS)
+                .map_err(|e| Error::from(e.context(context.clone())))?;
+            Ok((privkey, csr, iotedged_ca_key_pair_handle))
         })
         .into_future()
         .and_then(
-            move |(privkey, csr, workload_ca_key_pair_handle)| -> Result<_> {
+            move |(privkey, csr, iotedged_ca_key_pair_handle)| -> Result<_> {
+                let context_copy = context.clone();
                 let response = cert_client
                     .lock()
                     .expect("certificate client lock error")
                     .create_cert(
                         &alias,
                         &csr,
-                        Some((IOTEDGED_CA_ALIAS, &workload_ca_key_pair_handle)),
+                        Some((IOTEDGED_CA_ALIAS, &iotedged_ca_key_pair_handle)),
                     )
-                    .map_err(|e| {
-                        Error::from(
-                            e.context(ErrorKind::CertOperation(CertOperation::CreateIdentityCert)),
-                        )
-                    })
+                    .map_err(|e| Error::from(e.context(context_copy)))
                     .map(|cert| (privkey, cert))
-                    .and_then(|(privkey, cert)| {
+                    .and_then(move |(privkey, cert)| {
                         let pk = privkey
                             .private_key_to_pem_pkcs8()
                             .context(context.clone())?;
