@@ -204,12 +204,12 @@ jobs:
       - template: templates/image-linux.yaml
         parameters:
           name: API Proxy
-          imageName: api-proxy-module
+          imageName: azureiotedge-api-proxy
           project: api-proxy-module      
       # Check API proxy
       - task: ComponentGovernanceComponentDetection@0
         inputs:
-          dockerImagesToScan: '$(registry.address)/microsoft/api-proxy-module:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/api-proxy-module:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/api-proxy-module:$(Build.BuildNumber)-linux-arm64v8' 
+          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8' 
 
 ################################################################################
 # linux - Rust amd64
@@ -263,4 +263,4 @@ jobs:
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-proxy Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish api-proxy-module Manifest'
+      displayName: 'Publish azureiotedge-api-proxy Manifest'

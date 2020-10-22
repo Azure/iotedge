@@ -48,7 +48,7 @@ mod tests {
         loader::MessageLoader, waking_state::StreamWakeableState, Key, WakingMemoryStore,
     };
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     fn insert(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -65,7 +65,7 @@ mod tests {
         assert_eq!(pub1, extracted_message);
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     fn ordering_maintained_across_insert(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
         let num_elements = 10 as usize;
@@ -91,7 +91,7 @@ mod tests {
         }
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     async fn ordering_maintained_across_removal(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
         let num_elements = 10 as usize;
@@ -130,7 +130,7 @@ mod tests {
         }
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     fn larger_batch_size_respected(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -150,7 +150,7 @@ mod tests {
         assert_eq!(pub1, extracted_message);
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     fn smaller_batch_size_respected(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -179,7 +179,7 @@ mod tests {
         assert_eq!(pub1, extracted_message);
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     async fn remove_loaded(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -197,14 +197,14 @@ mod tests {
         assert_eq!(empty_batch.len(), 0);
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     fn remove_loaded_dne(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let bad_removal = state.remove(key1);
         assert_matches!(bad_removal, Err(_));
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     fn remove_loaded_inserted_but_not_yet_retrieved(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let pub1 = Publication {
@@ -219,7 +219,7 @@ mod tests {
         assert_matches!(bad_removal, Err(_));
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     async fn remove_loaded_out_of_order(mut state: impl StreamWakeableState) {
         // setup data
         let key1 = Key { offset: 0 };
@@ -246,7 +246,7 @@ mod tests {
         assert_matches!(state.remove(key2), Ok(_))
     }
 
-    #[test_case(WakingMemoryStore::new())]
+    #[test_case(WakingMemoryStore::default())]
     async fn insert_wakes_stream(state: impl StreamWakeableState + Send + 'static) {
         // setup data
         let state = Rc::new(RefCell::new(state));
