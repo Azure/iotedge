@@ -5,9 +5,14 @@ use futures_util::{
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
 
-use mqtt3::PublishHandle;
-
 use crate::persist::{PublicationStore, StreamWakeableState};
+
+// Import and use mocks when run tests, real implementation when otherwise
+#[cfg(test)]
+pub use crate::client::MockPublishHandle as PublishHandle;
+
+#[cfg(not(test))]
+use crate::client::PublishHandle;
 
 /// Handles the egress of received publications.
 ///
