@@ -116,8 +116,8 @@ fn from_yaml_value(uri: Option<&String>, value: Yaml) -> Result<Value, ConfigErr
 
             Ok(Value::new(uri, l))
         }
-
-        // 1. Yaml NULL
+        // 1. Yaml NULL - Option::None will transform into ValueKind::Nil
+        Yaml::Null => Ok(Value::new(uri, None::<String>)),
         // 2. BadValue – It shouldn't be possible to hit BadValue as this only happens when
         //               using the index trait badly or on a type error but we send back nil.
         // 3. Alias – No idea what to do with this and there is a note in the lib that its
