@@ -242,6 +242,7 @@ mod tests {
     const DAYS: u64 = 24 * 60 * 60;
 
     #[test]
+    #[serial(env_settings)]
     fn check_env_var_name_override() {
         let _max_inflight_messages = env::set_var("mqttBroker:max_inflight_messages", "17");
         let _max_queued_messages = env::set_var("mqttBroker:max_queued_messages", "1001");
