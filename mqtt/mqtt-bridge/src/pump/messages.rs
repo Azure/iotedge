@@ -136,7 +136,7 @@ where
 /// Messages processor shutdown handle.
 pub(crate) struct MessagesProcessorShutdownHandle<M>(Option<PumpHandle<M>>);
 
-impl<M> MessagesProcessorShutdownHandle<M> {
+impl<M: 'static> MessagesProcessorShutdownHandle<M> {
     /// Sends a signal to shutdown message processor.
     pub(crate) async fn shutdown(mut self) {
         if let Some(mut sender) = self.0.take() {

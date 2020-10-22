@@ -4,13 +4,15 @@ use std::{fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration}
 use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
+use mockall::automock;
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
 use tracing::{debug, error, info};
 
 use mqtt3::{
-    proto, Client, Event, IoSource, PublishHandle, ShutdownError, UpdateSubscriptionError,
-    UpdateSubscriptionHandle,
+    proto::{self, Publication, SubscribeTo},
+    Client, Event, IoSource, PublishError, ShutdownError, SubscriptionUpdateEvent,
+    UpdateSubscriptionError,
 };
 
 use crate::{
@@ -23,19 +25,6 @@ const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(5);
 // TODO: get QOS from topic settings
 const DEFAULT_QOS: proto::QoS = proto::QoS::AtLeastOnce;
 const API_VERSION: &str = "2010-01-01";
-
-#[derive(Debug, Clone)]
-pub struct ClientShutdownHandle(mqtt3::ShutdownHandle);
-
-impl ClientShutdownHandle {
-    pub async fn shutdown(&mut self) -> Result<(), ClientError> {
-        self.0
-            .shutdown()
-            .await
-            .map_err(ClientError::ShutdownClient)?;
-        Ok(())
-    }
-}
 
 #[derive(Clone)]
 enum BridgeIoSource {
@@ -306,32 +295,6 @@ impl<H: EventHandler> MqttClient<H> {
         }
     }
 
-    pub fn shutdown_handle(&self) -> Result<ClientShutdownHandle, ShutdownError> {
-        self.client
-            .shutdown_handle()
-            .map_or(Err(ShutdownError::ClientDoesNotExist), |shutdown_handle| {
-                Ok(ClientShutdownHandle(shutdown_handle))
-            })
-    }
-
-    pub fn publish_handle(&self) -> Result<PublishHandle, ClientError> {
-        let publish_handle = self
-            .client
-            .publish_handle()
-            .map_err(ClientError::PublishHandle)?;
-
-        Ok(publish_handle)
-    }
-
-    pub fn subscription_handle(&self) -> Result<UpdateSubscriptionHandle, ClientError> {
-        let subscription_handle = self
-            .client
-            .update_subscription_handle()
-            .map_err(ClientError::Subscribe)?; //TODO: map error
-
-        Ok(subscription_handle)
-    }
-
     pub async fn handle_events(&mut self) {
         debug!("polling bridge client");
 
@@ -365,17 +328,136 @@ impl<H: EventHandler> MqttClient<H> {
     }
 }
 
+/// A trait extending `MqttClient` with additional handles functionality.
+pub trait MqttClientExt {
+    /// Publish handle type.
+    type PublishHandle;
+
+    /// Returns an instance of publish handle.
+    fn publish_handle(&self) -> Result<Self::PublishHandle, ClientError>;
+
+    /// Update subscription handle type.
+    type UpdateSubscriptionHandle;
+
+    /// Returns an instance of update subscription handle.
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError>;
+
+    /// Client shutdown handle type.
+    type ShutdownHandle;
+
+    /// Returns an instance of shutdown handle.
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError>;
+}
+
+#[cfg(not(test))]
+/// Implements `MqttClientExt` for production code.
+impl<H> MqttClientExt for MqttClient<H> {
+    type PublishHandle = PublishHandle;
+
+    fn publish_handle(&self) -> Result<Self::PublishHandle, ClientError> {
+        let publish_handle = self.client.publish_handle()?;
+        Ok(PublishHandle(publish_handle))
+    }
+
+    type UpdateSubscriptionHandle = UpdateSubscriptionHandle;
+
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError> {
+        let update_subscription_handle = self.client.update_subscription_handle()?;
+        Ok(UpdateSubscriptionHandle(update_subscription_handle))
+    }
+
+    type ShutdownHandle = ShutdownHandle;
+
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError> {
+        let shutdown_handle = self.client.shutdown_handle()?;
+        Ok(ShutdownHandle(shutdown_handle))
+    }
+}
+
+#[cfg(test)]
+/// Implements `MqttClientExt` for tests.
+impl<H> MqttClientExt for MqttClient<H> {
+    type PublishHandle = MockPublishHandle;
+
+    fn publish_handle(&self) -> Result<Self::PublishHandle, ClientError> {
+        Ok(MockPublishHandle::new())
+    }
+
+    type UpdateSubscriptionHandle = MockUpdateSubscriptionHandle;
+
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError> {
+        Ok(MockUpdateSubscriptionHandle::new())
+    }
+
+    type ShutdownHandle = MockShutdownHandle;
+
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError> {
+        Ok(MockShutdownHandle::new())
+    }
+}
+
+/// A client shutdown handle.
+#[derive(Debug, Clone)]
+pub struct ShutdownHandle(mqtt3::ShutdownHandle);
+
+#[automock]
+impl ShutdownHandle {
+    pub async fn shutdown(&mut self) -> Result<(), ClientError> {
+        self.0.shutdown().await?;
+        Ok(())
+    }
+}
+
+/// A client publish handle.
+pub struct PublishHandle(mqtt3::PublishHandle);
+
+#[automock]
+impl PublishHandle {
+    pub async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
+        self.0.publish(publication).await
+    }
+}
+
+/// A client subscription update handle.
+pub struct UpdateSubscriptionHandle(mqtt3::UpdateSubscriptionHandle);
+
+#[automock]
+impl UpdateSubscriptionHandle {
+    pub async fn subscribe(
+        &mut self,
+        subscribe_to: SubscribeTo,
+    ) -> Result<(), UpdateSubscriptionError> {
+        self.0.subscribe(subscribe_to).await
+    }
+
+    pub async fn unsubscribe(
+        &mut self,
+        unsubscribe_from: String,
+    ) -> Result<(), UpdateSubscriptionError> {
+        self.0.unsubscribe(unsubscribe_from).await
+    }
+}
+
+/// A trait which every MQTT client event handler implements.
 #[async_trait]
 pub trait EventHandler {
     type Error: Display;
 
+    /// Handles MQTT client event and returns marker which determines whether
+    /// an event handler fully handled an event.
     async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error>;
 }
 
+/// An `EventHandler::handle` method result.
 #[derive(Debug, PartialEq)]
 pub enum Handled {
+    /// MQTT client event is fully handled.
     Fully,
+
+    /// MQTT client event is partially handled.
     Partially,
+
+    /// Unknown MQTT client event so event handler skipped the event.
     Skipped,
 }
 
@@ -390,8 +472,11 @@ pub enum ClientError {
     #[error("failed to shutdown custom mqtt client: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
 
-    #[error("failed to get publish custom mqtt client: {0}")]
+    #[error("failed to obtain publish handle: {0}")]
     PublishHandle(#[from] mqtt3::PublishError),
+
+    #[error("failed to obtain subscribe handle: {0}")]
+    UpdateSubscriptionHandle(#[source] mqtt3::UpdateSubscriptionError),
 
     #[error("failed to connect")]
     SslHandshake,

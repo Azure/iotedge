@@ -11,21 +11,22 @@ use ingress::Ingress;
 use messages::MessagesProcessor;
 pub use messages::PumpMessageHandler;
 
+use mockall::automock;
 use parking_lot::Mutex;
 use tokio::{join, pin, select, sync::mpsc};
 use tracing::{error, info};
 
 use crate::{
     bridge::BridgeError,
-    client::{EventHandler, MqttClient},
+    client::{EventHandler, MqttClient, MqttClientExt},
     config_update::PumpDiff,
     messages::TopicMapper,
-    persist::PublicationStore,
-    persist::StreamWakeableState,
+    persist::{PublicationStore, StreamWakeableState},
+    settings::ConnectionSettings,
 };
 
 #[cfg(test)]
-pub fn channel<M>() -> (PumpHandle<M>, mpsc::Receiver<PumpMessage<M>>) {
+pub fn channel<M: 'static>() -> (PumpHandle<M>, mpsc::Receiver<PumpMessage<M>>) {
     let (tx, rx) = tokio::sync::mpsc::channel(10);
     (PumpHandle::new(tx), rx)
 }
@@ -63,6 +64,7 @@ impl<S, H, M> Pump<S, H, M>
 where
     H: EventHandler,
     M: PumpMessageHandler,
+    M::Message: 'static,
     S: StreamWakeableState,
 {
     /// Creates a new instance of pump.
@@ -156,7 +158,8 @@ pub struct PumpHandle<M> {
     sender: mpsc::Sender<PumpMessage<M>>,
 }
 
-impl<M> PumpHandle<M> {
+#[automock]
+impl<M: 'static> PumpHandle<M> {
     /// Creates a new instance of pump handle.
     fn new(sender: mpsc::Sender<PumpMessage<M>>) -> Self {
         Self { sender }
