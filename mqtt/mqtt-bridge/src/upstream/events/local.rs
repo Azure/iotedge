@@ -95,7 +95,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
                 let doc = doc! { "reason": reason };
                 match doc.to_writer(&mut payload) {
                     Ok(_) => Some(Publication {
-                        topic_name: format!("$upstream/rpc/nack/{}", command_id),
+                        topic_name: format!("$downstream/rpc/nack/{}", command_id),
                         qos: QoS::AtLeastOnce,
                         retain: false,
                         payload: payload.into(),
@@ -106,7 +106,10 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
                     }
                 }
             }
-            LocalUpstreamPumpEvent::Publication(_) => todo!(),
+            LocalUpstreamPumpEvent::Publication(publication) => {
+                debug!("sending incoming message on {}", publication.topic_name);
+                Some(publication)
+            }
         };
 
         if let Some(publication) = maybe_publication {
@@ -181,13 +184,35 @@ mod tests {
             .expect_publish()
             .once()
             .withf(move |publication| {
-                publication.topic_name == "$upstream/rpc/nack/1" && publication.payload == payload
+                publication.topic_name == "$downstream/rpc/nack/1" && publication.payload == payload
             })
             .returning(|_| Ok(()));
 
         let mut handler = LocalUpstreamPumpEventHandler::new(pub_handle);
 
         let event = LocalUpstreamPumpEvent::RpcNack("1".into(), "error".into());
+        handler.handle(event).await;
+    }
+
+    #[tokio::test]
+    async fn it_sends_incoming_publication() {
+        let mut pub_handle = MockPublishHandle::new();
+        pub_handle
+            .expect_publish()
+            .once()
+            .withf(move |publication| {
+                publication.topic_name == "$downstream/device_1/module_a/twin/res/200"
+            })
+            .returning(|_| Ok(()));
+
+        let mut handler = LocalUpstreamPumpEventHandler::new(pub_handle);
+
+        let event = LocalUpstreamPumpEvent::Publication(Publication {
+            topic_name: "$downstream/device_1/module_a/twin/res/200".into(),
+            qos: QoS::AtLeastOnce,
+            retain: false,
+            payload: "hello".into(),
+        });
         handler.handle(event).await;
     }
 }
