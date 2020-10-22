@@ -18,11 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             public Statement(IList<string> identities, IList<Rule> allow, IList<Rule> deny)
             {
                 this.Identities = identities;
-                this.Allow = allow;
-                this.Deny = deny;
+                this.Allow = allow ?? new List<Rule>();
+                this.Deny = deny ?? new List<Rule>();
             }
 
-            [JsonProperty(PropertyName = "identities")]
+            [JsonProperty(PropertyName = "identities", Required = Required.Always)]
             public IList<string> Identities { get; }
 
             [JsonProperty(PropertyName = "allow")]
@@ -37,8 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             [JsonConstructor]
             public Rule(IList<string> operations, IList<string> resources)
             {
-                this.Operations = operations;
-                this.Resources = resources;
+                this.Operations = operations ?? new List<string>();
+                this.Resources = resources ?? new List<string>();
             }
 
             [JsonProperty(PropertyName = "operations")]
