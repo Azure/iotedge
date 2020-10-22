@@ -209,6 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
+            bool isLegacyUpstream = this.configuration.GetValue("mqttBrokerSettings:legacyUpstream", true);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -241,7 +242,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
-                    experimentalFeatures.EnableNestedEdge));
+                    experimentalFeatures.EnableNestedEdge,
+                    isLegacyUpstream));
         }
 
         void RegisterCommonModule(

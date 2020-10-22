@@ -14,6 +14,7 @@ use std::{
 use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
+use mockall::{automock, mock};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{
     io::AsyncRead,
@@ -24,9 +25,8 @@ use tokio::{
 };
 use tracing::{debug, error, info, warn};
 
-use mqtt3::PublishHandle;
 use mqtt3::{
-    proto::{self, Publication},
+    proto::{self, Publication, SubscribeTo},
     Client, Event, IoSource, PublishError, ShutdownError, SubscriptionUpdateEvent,
     UpdateSubscriptionError,
 };
@@ -41,19 +41,6 @@ const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(5);
 // TODO: get QOS from topic settings
 const DEFAULT_QOS: proto::QoS = proto::QoS::AtLeastOnce;
 const API_VERSION: &str = "2010-01-01";
-
-#[derive(Debug, Clone)]
-pub struct ClientShutdownHandle(mqtt3::ShutdownHandle);
-
-impl ClientShutdownHandle {
-    pub async fn shutdown(&mut self) -> Result<(), ClientError> {
-        self.0
-            .shutdown()
-            .await
-            .map_err(ClientError::ShutdownClient)?;
-        Ok(())
-    }
-}
 
 #[derive(Clone)]
 enum BridgeIoSource {
@@ -83,12 +70,12 @@ where
     T: TokenSource + Clone + Send + Sync + 'static,
 {
     pub fn new(
-        address: String,
+        address: impl Into<String>,
         token_source: Option<T>,
         trust_bundle_source: Option<TrustBundleSource>,
     ) -> Self {
         Self {
-            address,
+            address: address.into(),
             token_source,
             trust_bundle_source,
         }
@@ -200,140 +187,47 @@ impl BridgeIoSource {
     }
 }
 
-/// Trait used to facilitate mock publish handle types
-#[async_trait]
-pub trait InnerPublishHandle {
-    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
-}
-
-#[derive(Debug, Clone)]
-pub struct ClientPublishHandle(PublishHandle);
-
-#[async_trait]
-impl InnerPublishHandle for ClientPublishHandle {
-    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
-        self.0.publish(publication).await
-    }
-}
-
-/// Mock publish handle mimicking the mqtt3 publish handle.
-/// Used for tests only.
-/// This publish handle needs to implement clone which necessitates Arc and Mutex
-//  but will never be sent between threads.
-#[derive(Debug, Clone)]
-pub struct MockPublishHandle {
-    counter: Arc<AtomicU8>,
-    send_trigger: Arc<Mutex<Receiver<()>>>,
-}
-
-impl MockPublishHandle {
-    fn new(counter: Arc<AtomicU8>, send_trigger: Arc<Mutex<Receiver<()>>>) -> Self {
-        Self {
-            counter,
-            send_trigger,
-        }
-    }
-}
-
-#[async_trait]
-impl InnerPublishHandle for MockPublishHandle {
-    async fn publish(&mut self, _: Publication) -> Result<(), PublishError> {
-        self.counter.fetch_add(1, Ordering::Relaxed);
-        self.send_trigger.lock().await.next().await;
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct InFlightPublishHandle<P> {
-    publish_handle: P,
-    permits: Arc<Semaphore>,
-}
-
-impl<P> InFlightPublishHandle<P>
-where
-    P: InnerPublishHandle + Send + Clone + 'static,
-{
-    fn new(publish_handle: P, permits: Arc<Semaphore>) -> Self {
-        Self {
-            publish_handle,
-            permits,
-        }
-    }
-
-    pub async fn publish_future(&self, publication: Publication) -> BoxFuture<'static, ()> {
-        let permits = self.permits.clone();
-        let permit = permits.acquire_owned().await;
-        let mut publish_handle = self.publish_handle.clone();
-
-        let publication_send = async move {
-            if let Err(e) = publish_handle.publish(publication).await {
-                error!(message = "failed to publish", err = %e);
-            }
-
-            drop(permit);
-        };
-
-        Box::pin(publication_send)
-    }
-}
-
 /// This is a wrapper over mqtt3 client
-pub struct MqttClient<H>
-where
-    H: EventHandler,
-{
+pub struct MqttClient<H> {
     client_id: Option<String>,
     username: Option<String>,
     io_source: BridgeIoSource,
     keep_alive: Duration,
     client: Client<BridgeIoSource>,
     event_handler: H,
-    in_flight_handle: InFlightPublishHandle<ClientPublishHandle>,
+    in_flight_handle: InFlightPublishHandle<PublishHandle>,
 }
 
 impl<H: EventHandler> MqttClient<H> {
-    pub fn tcp(
-        address: &str,
-        keep_alive: Duration,
-        clean_session: bool,
-        event_handler: H,
-        connection_credentials: &Credentials,
-        max_in_flight: usize,
-    ) -> Result<Self, ClientError> {
-        let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection = TcpConnection::new(address.to_owned(), token_source, None);
+    pub fn tcp(config: MqttClientConfig, event_handler: H) -> Result<Self, ClientError> {
+        let token_source = Self::token_source(&config.credentials);
+        let tcp_connection = TcpConnection::new(config.addr, token_source, None);
         let io_source = BridgeIoSource::Tcp(tcp_connection);
+        let max_in_flight = config.max_in_flight;
 
         Self::new(
-            keep_alive,
-            clean_session,
+            config.keep_alive,
+            config.clean_session,
             event_handler,
-            connection_credentials,
+            &config.credentials,
             io_source,
             max_in_flight,
         )
     }
 
-    pub fn tls(
-        address: &str,
-        keep_alive: Duration,
-        clean_session: bool,
-        event_handler: H,
-        connection_credentials: &Credentials,
-        max_in_flight: usize,
-    ) -> Result<Self, ClientError> {
-        let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
+    pub fn tls(config: MqttClientConfig, event_handler: H) -> Result<Self, ClientError> {
+        let trust_bundle = Some(TrustBundleSource::new(config.credentials.clone()));
 
-        let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection = TcpConnection::new(address.to_owned(), token_source, trust_bundle);
+        let token_source = Self::token_source(&config.credentials);
+        let tcp_connection = TcpConnection::new(config.addr, token_source, trust_bundle);
         let io_source = BridgeIoSource::Tls(tcp_connection);
+        let max_in_flight = config.max_in_flight;
 
         Self::new(
-            keep_alive,
-            clean_session,
+            config.keep_alive,
+            config.clean_session,
             event_handler,
-            connection_credentials,
+            &config.credentials,
             io_source,
             max_in_flight,
         )
@@ -381,9 +275,8 @@ impl<H: EventHandler> MqttClient<H> {
             keep_alive,
         );
 
-        let in_flight_permits = Arc::new(Semaphore::new(max_in_flight));
-        let inner_publish_handle = ClientPublishHandle(client.publish_handle()?);
-        let in_flight_handle = InFlightPublishHandle::new(inner_publish_handle, in_flight_permits);
+        let inner_publish_handle = PublishHandle(client.publish_handle()?);
+        let in_flight_handle = InFlightPublishHandle::new(inner_publish_handle, max_in_flight);
 
         Ok(Self {
             client_id,
@@ -403,18 +296,6 @@ impl<H: EventHandler> MqttClient<H> {
             }
             Credentials::Anonymous(_) => None,
         }
-    }
-
-    pub fn shutdown_handle(&self) -> Result<ClientShutdownHandle, ShutdownError> {
-        self.client
-            .shutdown_handle()
-            .map_or(Err(ShutdownError::ClientDoesNotExist), |shutdown_handle| {
-                Ok(ClientShutdownHandle(shutdown_handle))
-            })
-    }
-
-    pub fn publish_handle(&self) -> InFlightPublishHandle<ClientPublishHandle> {
-        self.in_flight_handle.clone()
     }
 
     pub async fn handle_events(&mut self) {
@@ -498,17 +379,255 @@ impl<H: EventHandler> MqttClient<H> {
     }
 }
 
+/// A trait extending `MqttClient` with additional handles functionality.
+pub trait MqttClientExt {
+    /// Publish handle type.
+    type PublishHandle;
+
+    /// Returns an instance of publish handle.
+    fn publish_handle(&self) -> Self::PublishHandle;
+
+    /// Update subscription handle type.
+    type UpdateSubscriptionHandle;
+
+    /// Returns an instance of update subscription handle.
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError>;
+
+    /// Client shutdown handle type.
+    type ShutdownHandle;
+
+    /// Returns an instance of shutdown handle.
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError>;
+}
+
+#[cfg(not(test))]
+/// Implements `MqttClientExt` for production code.
+impl<H> MqttClientExt for MqttClient<H> {
+    type PublishHandle = InFlightPublishHandle<PublishHandle>;
+
+    fn publish_handle(&self) -> Self::PublishHandle {
+        self.in_flight_handle.clone()
+    }
+
+    type UpdateSubscriptionHandle = UpdateSubscriptionHandle;
+
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError> {
+        let update_subscription_handle = self.client.update_subscription_handle()?;
+        Ok(UpdateSubscriptionHandle(update_subscription_handle))
+    }
+
+    type ShutdownHandle = ShutdownHandle;
+
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError> {
+        let shutdown_handle = self.client.shutdown_handle()?;
+        Ok(ShutdownHandle(shutdown_handle))
+    }
+}
+
+#[cfg(test)]
+/// Implements `MqttClientExt` for tests.
+impl<H> MqttClientExt for MqttClient<H> {
+    type PublishHandle = InFlightPublishHandle<MockPublishHandle>;
+
+    fn publish_handle(&self) -> Self::PublishHandle {
+        // TODO PRE: how do we avoid hardcoding? We can make the publish handle each time
+        InFlightPublishHandle::new(MockPublishHandle::new(), 2)
+    }
+
+    type UpdateSubscriptionHandle = MockUpdateSubscriptionHandle;
+
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError> {
+        Ok(MockUpdateSubscriptionHandle::new())
+    }
+
+    type ShutdownHandle = MockShutdownHandle;
+
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError> {
+        Ok(MockShutdownHandle::new())
+    }
+}
+
+/// A client shutdown handle.
+#[derive(Debug, Clone)]
+pub struct ShutdownHandle(mqtt3::ShutdownHandle);
+
+#[automock]
+impl ShutdownHandle {
+    pub async fn shutdown(&mut self) -> Result<(), ClientError> {
+        self.0.shutdown().await?;
+        Ok(())
+    }
+}
+
+pub struct MqttClientConfig {
+    addr: String,
+    keep_alive: Duration,
+    clean_session: bool,
+    credentials: Credentials,
+    max_in_flight: usize,
+}
+
+impl MqttClientConfig {
+    pub fn new(
+        addr: impl Into<String>,
+        keep_alive: Duration,
+        clean_session: bool,
+        credentials: Credentials,
+        max_in_flight: usize,
+    ) -> Self {
+        Self {
+            addr: addr.into(),
+            keep_alive,
+            clean_session,
+            credentials,
+            max_in_flight,
+        }
+    }
+}
+
+/// Trait used to facilitate mock publish handle types
+#[async_trait]
+pub trait InnerPublishHandle {
+    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+}
+
+/// A client publish handle.
+#[derive(Debug, Clone)]
+pub struct PublishHandle(mqtt3::PublishHandle);
+
+#[async_trait]
+impl InnerPublishHandle for PublishHandle {
+    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
+        self.0.publish(publication).await
+    }
+}
+
+mock! {
+    pub PublishHandle {}
+
+    #[async_trait]
+    pub trait InnerPublishHandle {
+        async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+    }
+
+    pub trait Clone {
+        fn clone(&self) -> Self;
+    }
+}
+/*
+mock! {
+    pub A {}
+    impl Clone for A {
+        fn clone(&self) -> Self;
+    }
+}
+*/
+
+/// Mock publish handle mimicking the mqtt3 publish handle.
+/// Used for tests only.
+/// This publish handle needs to implement clone which necessitates Arc and Mutex
+//  but will never be sent between threads.
+#[derive(Debug, Clone)]
+pub struct CountingMockPublishHandle {
+    counter: Arc<AtomicU8>,
+    send_trigger: Arc<Mutex<Receiver<()>>>,
+}
+
+impl CountingMockPublishHandle {
+    fn new(counter: Arc<AtomicU8>, send_trigger: Arc<Mutex<Receiver<()>>>) -> Self {
+        Self {
+            counter,
+            send_trigger,
+        }
+    }
+}
+
+#[async_trait]
+impl InnerPublishHandle for CountingMockPublishHandle {
+    async fn publish(&mut self, _: Publication) -> Result<(), PublishError> {
+        self.counter.fetch_add(1, Ordering::Relaxed);
+        self.send_trigger.lock().await.next().await;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct InFlightPublishHandle<P> {
+    publish_handle: P,
+    permits: Arc<Semaphore>,
+}
+
+impl<P> InFlightPublishHandle<P>
+where
+    P: InnerPublishHandle + Send + Clone + 'static,
+{
+    pub fn new(publish_handle: P, max_in_flight: usize) -> Self {
+        let permits = Arc::new(Semaphore::new(max_in_flight));
+
+        Self {
+            publish_handle,
+            permits,
+        }
+    }
+
+    pub async fn publish_future(
+        &self,
+        publication: Publication,
+    ) -> BoxFuture<'static, Result<(), PublishError>> {
+        let permits = self.permits.clone();
+        let permit = permits.acquire_owned().await;
+        let mut publish_handle = self.publish_handle.clone();
+
+        let publication_send = async move {
+            publish_handle.publish(publication).await?;
+            drop(permit);
+            Ok(())
+        };
+
+        Box::pin(publication_send)
+    }
+}
+
+/// A client subscription update handle.
+pub struct UpdateSubscriptionHandle(mqtt3::UpdateSubscriptionHandle);
+
+#[automock]
+impl UpdateSubscriptionHandle {
+    pub async fn subscribe(
+        &mut self,
+        subscribe_to: SubscribeTo,
+    ) -> Result<(), UpdateSubscriptionError> {
+        self.0.subscribe(subscribe_to).await
+    }
+
+    pub async fn unsubscribe(
+        &mut self,
+        unsubscribe_from: String,
+    ) -> Result<(), UpdateSubscriptionError> {
+        self.0.unsubscribe(unsubscribe_from).await
+    }
+}
+
+/// A trait which every MQTT client event handler implements.
 #[async_trait]
 pub trait EventHandler {
     type Error: Display;
 
+    /// Handles MQTT client event and returns marker which determines whether
+    /// an event handler fully handled an event.
     async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error>;
 }
 
+/// An `EventHandler::handle` method result.
 #[derive(Debug, PartialEq)]
 pub enum Handled {
+    /// MQTT client event is fully handled.
     Fully,
+
+    /// MQTT client event is partially handled.
     Partially,
+
+    /// Unknown MQTT client event so event handler skipped the event.
     Skipped,
 }
 
@@ -523,8 +642,11 @@ pub enum ClientError {
     #[error("failed to shutdown custom mqtt client: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
 
-    #[error("failed to shutdown custom mqtt client: {0}")]
+    #[error("failed to obtain publish handle: {0}")]
     PublishHandle(#[from] mqtt3::PublishError),
+
+    #[error("failed to obtain subscribe handle: {0}")]
+    UpdateSubscriptionHandle(#[source] mqtt3::UpdateSubscriptionError),
 
     #[error("failed to connect")]
     SslHandshake,
@@ -547,13 +669,12 @@ mod tests {
         stream::StreamExt,
         sync::{
             mpsc::{self},
-            Mutex, Semaphore,
+            Mutex,
         },
         time,
     };
 
-    use super::InFlightPublishHandle;
-    use super::MockPublishHandle;
+    use super::{CountingMockPublishHandle, InFlightPublishHandle};
 
     // Create InFlightPublishHandle with mock publish handle and capacity 2 in-flight
     // Mock publish handle has internal counter for pubs
@@ -573,10 +694,9 @@ mod tests {
         let counter = Arc::new(AtomicU8::new(0));
         let (mut sender, receiver) = mpsc::channel::<()>(1);
         let receiver = Arc::new(Mutex::new(receiver));
-        let publish_handle = MockPublishHandle::new(counter.clone(), receiver);
+        let publish_handle = CountingMockPublishHandle::new(counter.clone(), receiver);
 
-        let permits = Arc::new(Semaphore::new(2));
-        let publish_handle = InFlightPublishHandle::new(publish_handle, permits);
+        let publish_handle = InFlightPublishHandle::new(publish_handle, 2);
 
         let mut futures_unordered = FuturesUnordered::new();
         let publication = Publication {
@@ -602,19 +722,17 @@ mod tests {
 
             // make sure last messages makes it in flight
             assert_eq!(counter.load(Ordering::Relaxed), 3);
-            println!("all messages in flight");
         };
 
         let in_flight = async move {
             for _ in 0..2 as u8 {
-                println!("polling publishes");
                 futures_unordered.next().await;
             }
         };
 
         let next_publish = async move {
             let pub_fut2 = publish_handle.publish_future(publication.clone()).await;
-            pub_fut2.await;
+            pub_fut2.await.unwrap();
         };
 
         join3(verification, in_flight, next_publish).await;

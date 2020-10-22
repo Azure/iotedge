@@ -18,11 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IModuleToModuleMessageHandler moduleToModuleMessageHandler;
         readonly ICloud2DeviceMessageHandler cloud2DeviceMessageHandler;
         readonly IDirectMethodHandler directMethodHandler;
+        readonly bool isDirectClient;
 
-        public delegate DeviceProxy Factory(IIdentity identity);
+        public delegate DeviceProxy Factory(IIdentity identity, bool isDirectClient);
 
         public DeviceProxy(
                     IIdentity identity,
+                    bool isDirectClient,
                     IConnectionRegistry connectionRegistry,
                     ITwinHandler twinHandler,
                     IModuleToModuleMessageHandler moduleToModuleMessageHandler,
@@ -36,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             this.cloud2DeviceMessageHandler = Preconditions.CheckNotNull(cloud2DeviceMessageHandler);
             this.directMethodHandler = Preconditions.CheckNotNull(directMethodHandler);
             this.isActive = new AtomicBoolean(true);
+            this.isDirectClient = isDirectClient;
 
             Events.Created(this.Identity);
         }
@@ -63,31 +66,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public Task<DirectMethodResponse> InvokeMethodAsync(DirectMethodRequest request)
         {
             Events.SendingDirectMethod(this.Identity);
-            return this.directMethodHandler.CallDirectMethodAsync(request, this.Identity);
+            return this.directMethodHandler.CallDirectMethodAsync(request, this.Identity, this.isDirectClient);
         }
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties)
         {
             Events.SendingDesiredPropertyUpdate(this.Identity);
-            return this.twinHandler.SendDesiredPropertiesUpdate(desiredProperties, this.Identity);
+            return this.twinHandler.SendDesiredPropertiesUpdate(desiredProperties, this.Identity, this.isDirectClient);
         }
 
         public Task SendC2DMessageAsync(IMessage message)
         {
             Events.SendingC2DMessage(this.Identity);
-            return this.cloud2DeviceMessageHandler.SendC2DMessageAsync(message, this.Identity);
+            return this.cloud2DeviceMessageHandler.SendC2DMessageAsync(message, this.Identity, this.isDirectClient);
         }
 
         public Task SendMessageAsync(IMessage message, string input)
         {
             Events.SendingModuleToModuleMessage(this.Identity);
-            return this.moduleToModuleMessageHandler.SendModuleToModuleMessageAsync(message, input, this.Identity);
+            return this.moduleToModuleMessageHandler.SendModuleToModuleMessageAsync(message, input, this.Identity, this.isDirectClient);
         }
 
         public Task SendTwinUpdate(IMessage twin)
         {
             Events.SendingTwinUpdate(this.Identity);
-            return this.twinHandler.SendTwinUpdate(twin, this.Identity);
+            return this.twinHandler.SendTwinUpdate(twin, this.Identity, this.isDirectClient);
         }
 
         public void SetInactive()

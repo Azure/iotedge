@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public interface ICloud2DeviceMessageHandler
     {
-        Task SendC2DMessageAsync(IMessage message, IIdentity identity);
+        Task SendC2DMessageAsync(IMessage message, IIdentity identity, bool isDirectClient);
         IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions { get; }
     }
 }
