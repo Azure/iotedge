@@ -32,7 +32,7 @@ steps:
     publishRunAttachments: false # workaround, see https://github.com/microsoft/azure-pipelines-tasks/issues/11831#issuecomment-569325485
     testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
     buildPlatform: $(arch)
-  condition: and(succeededOrFailed(), variables.agent.disablelogplugin)
+  condition: and(succeededOrFailed(), not(variables.Agent.ProxyUrl))
 
 - pwsh: |
     $logDir = '$(Build.ArtifactStagingDirectory)/logs'
