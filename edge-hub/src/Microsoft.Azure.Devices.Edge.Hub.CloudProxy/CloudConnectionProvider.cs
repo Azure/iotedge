@@ -177,21 +177,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 Events.CreatingCloudConnectionOnBehalfOf(identity);
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
-                ICloudConnection cloudConnection = await CloudConnection.Create(
-                    identity,
-                    connectionStatusChangedHandler,
-                    this.transportSettings,
-                    this.messageConverterProvider,
-                    this.clientProvider,
-                    cloudListener,
-                    this.edgeHubTokenProvider,
-                    this.idleTimeout,
-                    this.closeOnIdleTimeout,
-                    this.operationTimeout,
-                    productInfo,
-                    modelId);
-                Events.SuccessCreatingCloudConnection(identity);
-                return cloudConnection;
+                try
+                {
+                    ICloudConnection cloudConnection = await CloudConnection.Create(
+                        identity,
+                        connectionStatusChangedHandler,
+                        this.transportSettings,
+                        this.messageConverterProvider,
+                        this.clientProvider,
+                        cloudListener,
+                        this.edgeHubTokenProvider,
+                        this.idleTimeout,
+                        this.closeOnIdleTimeout,
+                        this.operationTimeout,
+                        productInfo,
+                        modelId);
+                    Events.SuccessCreatingCloudConnection(identity);
+                    return cloudConnection;
+                }
+                catch (Exception ex) when (ex is DeviceNotFoundException || ex is UnauthorizedException || ex is AuthenticationException)
+                {
+                    // if connection got rejected with not found or unauthorized, we need to trigger device scope identity refresh for this id
+                    await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(identity.Id);
+                    throw;
+                }
             }
             else
             {
