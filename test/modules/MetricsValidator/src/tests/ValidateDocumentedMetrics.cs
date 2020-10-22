@@ -80,7 +80,6 @@ namespace MetricsValidator.Tests
             // We are going to make a list and remove them here to not consider them as a failure.
             IEnumerable<string> skippingMetrics = new HashSet<string>
             {
-                // "edgeagent_direct_method_invocations_count", // BEARWASHERE -- Actually make this pass
                 "edgeAgent_metadata",
                 "edgeAgent_unsuccessful_iothub_syncs_total",
                 "edgehub_client_connect_failed_total",
