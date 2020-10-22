@@ -64,9 +64,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             IList<string> resources)
         {
             this.Effect = effect;
-            this.Identities = identities;
-            this.Operations = operations;
-            this.Resources = resources;
+            this.Identities = Preconditions.CheckNotNull(identities, nameof(identities));
+            this.Operations = Preconditions.CheckNotNull(operations, nameof(operations));
+            this.Resources = Preconditions.CheckNotNull(resources, nameof(resources));
         }
 
         public Effect Effect { get; }

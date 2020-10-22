@@ -9,7 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Extensions.Logging;
 
     /// <summary>
-    /// Creates EdgeHubConfig out of EdgeHubDesiredProperties.
+    /// Creates EdgeHubConfig out of EdgeHubDesiredProperties. Also validates the
+    /// desired properties. Throws an exception if validation failed.
     /// </summary>
     public class EdgeHubConfigParser
     {
@@ -82,6 +83,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         /// </summary>
         Option<AuthorizationConfig> ParseAuthorizationConfig(BrokerProperties properties)
         {
+            if (properties.Authorizations.Count == 0)
+            {
+                return Option.None<AuthorizationConfig>();
+            }
+
             IList<string> errors = this.validator.ValidateAuthorizationConfig(properties.Authorizations);
             if (errors.Count > 0)
             {
@@ -118,7 +124,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         Option<BridgeConfig> ParseBridgeConfig(BrokerProperties properties)
         {
-            return Option.None<BridgeConfig>();
+            if (properties.Bridges.Count == 0)
+            {
+                return Option.None<BridgeConfig>();
+            }
+
+            IList<string> errors = this.validator.ValidateBridgeConfig(properties.Bridges);
+            if (errors.Count > 0)
+            {
+                string message = string.Join("; ", errors);
+                throw new InvalidOperationException($"Error validating bridge configuration: {message}");
+            }
+
+            return Option.Some(properties.Bridges);
         }
     }
 }
