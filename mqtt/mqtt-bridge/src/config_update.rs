@@ -4,6 +4,8 @@ use serde::Deserialize;
 
 use crate::{bridge::BridgeHandle, controller::Error, settings::Direction, settings::TopicRule};
 
+// Keeps the current subscriptions and forwards and calculates the diff with an BridgeUpdate
+// It is used to send a diff to a BridgeHandle and update itself with latest configuration
 pub struct ConfigUpdater {
     bridge_handle: BridgeHandle,
     current_subscriptions: HashMap<String, TopicRule>,
@@ -19,7 +21,17 @@ impl ConfigUpdater {
         }
     }
 
-    pub fn diff(&self, bridge_update: &BridgeUpdate) -> BridgeDiff {
+    pub async fn send_update(&mut self, bridge_update: &BridgeUpdate) -> Result<(), Error> {
+        let diff = self.diff(&bridge_update);
+
+        self.bridge_handle.send(diff.clone()).await?;
+
+        self.update(&diff);
+
+        Ok(())
+    }
+
+    fn diff(&self, bridge_update: &BridgeUpdate) -> BridgeDiff {
         let local_diff =
             Self::diff_topic_rules(bridge_update.clone().forwards(), &self.current_forwards);
 
@@ -33,20 +45,13 @@ impl ConfigUpdater {
             .with_remote_diff(remote_diff)
     }
 
-    pub fn update(&mut self, bridge_diff: &BridgeDiff) {
+    fn update(&mut self, bridge_diff: &BridgeDiff) {
         Self::update_pump(bridge_diff.local_updates(), &mut self.current_forwards);
 
         Self::update_pump(
             bridge_diff.remote_updates(),
             &mut self.current_subscriptions,
         )
-    }
-
-    pub async fn send(&mut self, message: BridgeDiff) -> Result<(), Error> {
-        self.bridge_handle
-            .send(message)
-            .await
-            .map_err(Error::SendBridgeMessage)
     }
 
     fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule>) -> PumpDiff {
@@ -92,10 +97,7 @@ impl ConfigUpdater {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct BridgeControllerUpdate {
-    #[serde(rename = "bridges")]
-    bridge_updates: Vec<BridgeUpdate>,
-}
+pub struct BridgeControllerUpdate(Vec<BridgeUpdate>);
 
 impl BridgeControllerUpdate {
     pub fn from_bridge_topic_rules(name: &str, subs: &[TopicRule], forwards: &[TopicRule]) -> Self {
@@ -109,13 +111,11 @@ impl BridgeControllerUpdate {
             endpoint: name.to_owned(),
             subscriptions,
         };
-        Self {
-            bridge_updates: vec![bridge_update],
-        }
+        Self(vec![bridge_update])
     }
 
     pub fn bridge_updates(self) -> Vec<BridgeUpdate> {
-        self.bridge_updates
+        self.0
     }
 }
 
@@ -184,6 +184,10 @@ impl BridgeDiff {
     pub fn remote_updates(&self) -> &PumpDiff {
         &self.remote_pump_diff
     }
+
+    pub fn into_parts(self) -> (PumpDiff, PumpDiff) {
+        (self.local_pump_diff, self.remote_pump_diff)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -204,15 +208,19 @@ impl PumpDiff {
     }
 
     pub fn added(&self) -> Vec<&TopicRule> {
-        self.added.iter().collect::<Vec<_>>()
+        self.added.iter().collect()
     }
 
     pub fn removed(&self) -> Vec<&TopicRule> {
-        self.removed.iter().collect::<Vec<_>>()
+        self.removed.iter().collect()
     }
 
     pub fn has_updates(&self) -> bool {
         !(self.added.is_empty() && self.removed.is_empty())
+    }
+
+    pub fn into_parts(self) -> (Vec<TopicRule>, Vec<TopicRule>) {
+        (self.added, self.removed)
     }
 }
 
@@ -884,8 +892,7 @@ mod tests {
 
     #[test]
     fn deserialize_bridge_controller_update() {
-        let update = r#"{
-        "bridges": [{
+        let update = r#"[{
             "endpoint": "$upstream",
             "settings":  [
                 {
@@ -901,7 +908,7 @@ mod tests {
                     "outPrefix": "/remote"
                 }
             ]
-        }]}"#;
+        }]"#;
 
         let bridge_controller_update: BridgeControllerUpdate =
             serde_json::from_str(update).unwrap();

@@ -70,7 +70,9 @@ where
             match message {
                 PumpMessage::Event(event) => self.handler.handle(event).await,
                 PumpMessage::ConfigurationUpdate(update) => {
-                    for sub in update.clone().removed() {
+                    let (added, removed) = update.into_parts();
+
+                    for sub in removed {
                         let subscribe_to = sub.subscribe_to();
                         let unsubscribe_result = self
                             .subscription_handle
@@ -90,7 +92,7 @@ where
                         }
                     }
 
-                    for sub in update.added() {
+                    for sub in added {
                         let subscribe_to = sub.subscribe_to();
                         let subscribe_result = self
                             .subscription_handle

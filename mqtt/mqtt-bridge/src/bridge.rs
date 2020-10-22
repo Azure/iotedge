@@ -33,15 +33,17 @@ impl BridgeHandle {
     }
 
     pub async fn send(&mut self, message: BridgeDiff) -> Result<(), BridgeError> {
-        let local_updates = message.local_updates().clone();
-        let remote_updates = message.remote_updates().clone();
-        if message.has_local_updates() {
+        let has_local_updates = message.has_local_updates();
+        let has_remote_updates = message.has_remote_updates();
+        let (local_updates, remote_updates) = message.into_parts();
+
+        if has_local_updates {
             self.local_pump_handle
                 .send(PumpMessage::ConfigurationUpdate(local_updates))
                 .await?;
         }
 
-        if message.has_remote_updates() {
+        if has_remote_updates {
             self.remote_pump_handle
                 .send(PumpMessage::ConfigurationUpdate(remote_updates))
                 .await?;
@@ -185,7 +187,7 @@ pub enum BridgeError {
     #[error("Failed to get send pump message.")]
     SendToPump,
 
-    #[error("Failed to send message to pump.")]
+    #[error("Failed to send message to pump: {0}")]
     SendBridgeUpdate(#[from] PumpError),
 
     #[error("failed to execute RPC command")]
