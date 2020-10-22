@@ -142,28 +142,35 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 }, token);
             await Task.Delay(10000);
+            Console.WriteLine("Deployed");
 
             var request = new ModuleLogsUploadRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text, sasUrl);
 
             CloudToDeviceMethodResult result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
-            TaskStatusResponse response = null;
-            for (int i = 0; i < 10; i++)
+            var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
+            await this.WaitForTaskCompletion(response.CorrelationId, token);
+        }
+
+        async Task WaitForTaskCompletion(string correlationId, CancellationToken token)
+        {
+            while (true)
             {
+                var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(correlationId)), token);
+
                 Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
-                response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
+                var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
+
+                Console.WriteLine($"Response: ", result.GetPayloadAsJson());
 
                 if (response.Status != BackgroundTaskRunStatus.NotStarted && response.Status != BackgroundTaskRunStatus.Running)
                 {
-                    break;
+                    Assert.AreEqual(BackgroundTaskRunStatus.Completed, response.Status, response.Message);
+                    return;
                 }
 
                 await Task.Delay(5000);
-                var correlation = new TaskStatusRequest("1.0", response.CorrelationId);
-                result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(correlation)), token);
             }
-
-            Assert.AreEqual(BackgroundTaskRunStatus.Completed, response.Status, response.Message);
         }
 
         class LogResponse
