@@ -48,7 +48,7 @@ impl EventHandler for ConnectivityHandler {
     type Error = ConnectivityError;
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
-        match &event {
+        let event = match event {
             Event::Disconnected(reason) => {
                 debug!("Received disconnected state {}", reason);
                 match self.state {
@@ -91,8 +91,8 @@ impl EventHandler for ConnectivityHandler {
                 return Ok(Handled::Fully);
             }
 
-            _ => {}
-        }
+            event => event,
+        };
 
         Ok(Handled::Skipped(event))
     }

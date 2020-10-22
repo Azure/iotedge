@@ -60,7 +60,7 @@ impl EventHandler for LocalRpcHandler {
 
 fn capture_command_id(topic_name: &str) -> Option<CommandId> {
     lazy_static! {
-        static ref RPC_TOPIC_PATTERN: Regex = Regex::new("\\$edgehub/rpc/(?P<command_id>[^/ ]+)$")
+        static ref RPC_TOPIC_PATTERN: Regex = Regex::new("\\$upstream/rpc/(?P<command_id>[^/ ]+)$")
             .expect("failed to create new Regex from pattern");
     }
 
@@ -129,9 +129,9 @@ mod tests {
         }
     }
 
-    #[test_case(r"$edgehub/rpc/foo", Some("foo".into()); "when word")]
-    #[test_case(r"$edgehub/rpc/CA761232-ED42-11CE-BACD-00AA0057B223", Some("CA761232-ED42-11CE-BACD-00AA0057B223".into()); "when uuid")]
-    #[test_case(r"$edgehub/rpc/ack/CA761232-ED42-11CE-BACD-00AA0057B223", None; "when ack")]
+    #[test_case(r"$upstream/rpc/foo", Some("foo".into()); "when word")]
+    #[test_case(r"$upstream/rpc/CA761232-ED42-11CE-BACD-00AA0057B223", Some("CA761232-ED42-11CE-BACD-00AA0057B223".into()); "when uuid")]
+    #[test_case(r"$downstream/rpc/ack/CA761232-ED42-11CE-BACD-00AA0057B223", None; "when ack")]
     #[test_case(r"$iothub/rpc/ack/CA761232-ED42-11CE-BACD-00AA0057B223", None; "when wrong topic")]
     #[test_case(r"$iothub/rpc/ack/some id", None; "when spaces")]
     #[allow(clippy::needless_pass_by_value)]
@@ -196,7 +196,7 @@ mod tests {
         command.to_writer(&mut payload).unwrap();
 
         Event::Publication(ReceivedPublication {
-            topic_name: format!("$edgehub/rpc/{}", id),
+            topic_name: format!("$upstream/rpc/{}", id),
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,

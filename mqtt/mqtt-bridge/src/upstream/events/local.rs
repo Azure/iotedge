@@ -30,6 +30,9 @@ pub enum LocalUpstreamPumpEvent {
 
     /// RPC command negative acknowledgement event.
     RpcNack(CommandId, String),
+
+    /// Forward incoming upstream publication event.
+    Publication(Publication),
 }
 
 /// Handles control event received by a local upstream bridge pump.
@@ -79,7 +82,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
                 debug!("sending rpc command ack {}", command_id);
 
                 Some(Publication {
-                    topic_name: format!("$edgehub/rpc/ack/{}", command_id),
+                    topic_name: format!("$downstream/rpc/ack/{}", command_id),
                     qos: QoS::AtLeastOnce,
                     retain: false,
                     payload: Bytes::default(),
@@ -92,7 +95,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
                 let doc = doc! { "reason": reason };
                 match doc.to_writer(&mut payload) {
                     Ok(_) => Some(Publication {
-                        topic_name: format!("$edgehub/rpc/nack/{}", command_id),
+                        topic_name: format!("$upstream/rpc/nack/{}", command_id),
                         qos: QoS::AtLeastOnce,
                         retain: false,
                         payload: payload.into(),
@@ -103,6 +106,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
                     }
                 }
             }
+            LocalUpstreamPumpEvent::Publication(_) => todo!(),
         };
 
         if let Some(publication) = maybe_publication {
@@ -156,7 +160,7 @@ mod tests {
             .expect_publish()
             .once()
             .withf(move |publication| {
-                publication.topic_name == "$edgehub/rpc/ack/1" && publication.payload.is_empty()
+                publication.topic_name == "$downstream/rpc/ack/1" && publication.payload.is_empty()
             })
             .returning(|_| Ok(()));
 
@@ -177,7 +181,7 @@ mod tests {
             .expect_publish()
             .once()
             .withf(move |publication| {
-                publication.topic_name == "$edgehub/rpc/nack/1" && publication.payload == payload
+                publication.topic_name == "$upstream/rpc/nack/1" && publication.payload == payload
             })
             .returning(|_| Ok(()));
 

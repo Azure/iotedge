@@ -1,6 +1,9 @@
 use async_trait::async_trait;
+use lazy_static::lazy_static;
+use regex::RegexSet;
 
-use mqtt3::{Event, SubscriptionUpdateEvent};
+use mqtt3::{proto::Publication, Event, ReceivedPublication, SubscriptionUpdateEvent};
+use tracing::debug;
 
 use crate::{
     client::{EventHandler, Handled},
@@ -34,6 +37,44 @@ impl RemoteRpcHandler {
         Self {
             subscriptions,
             local_pump: RpcPumpHandle::new(local_pump),
+        }
+    }
+
+    async fn handle_publication(
+        &mut self,
+        publication: &ReceivedPublication,
+    ) -> Result<bool, RpcError> {
+        if let Some(topic_name) = translate(&publication.topic_name) {
+            debug!("forwarding incoming upstream publication to {}", topic_name);
+
+            let publication = Publication {
+                topic_name,
+                qos: publication.qos,
+                retain: publication.retain,
+                payload: publication.payload.clone(),
+            };
+            self.local_pump.send_pub(publication).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn handle_subscriptions(
+        &mut self,
+        subscriptions: impl IntoIterator<Item = SubscriptionUpdateEvent>,
+    ) -> Result<Option<Vec<SubscriptionUpdateEvent>>, RpcError> {
+        let mut skipped = vec![];
+        for subscription in subscriptions {
+            if !self.handle_subscription_update(&subscription).await? {
+                skipped.push(subscription);
+            }
+        }
+
+        if skipped.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(skipped))
         }
     }
 
@@ -71,30 +112,54 @@ impl RemoteRpcHandler {
 impl EventHandler for RemoteRpcHandler {
     type Error = RpcError;
 
-    async fn handle(&mut self, mut event: Event) -> Result<Handled, Self::Error> {
-        match &mut event {
-            Event::Publication(_) => {
-                // TODO implement incoming messages translation (C2D and M2M between EdgeHubs in nested edge scenario)
-                Ok(Handled::Skipped(event))
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
+        let event = match event {
+            Event::Publication(publication) if self.handle_publication(&publication).await? => {
+                return Ok(Handled::Fully);
             }
             Event::SubscriptionUpdates(subscriptions) => {
-                // handle subscription updates
-                let mut skipped = vec![];
-                for subscription in subscriptions.drain(..) {
-                    if !self.handle_subscription_update(&subscription).await? {
-                        skipped.push(subscription);
+                let len = subscriptions.len();
+                match self.handle_subscriptions(subscriptions).await? {
+                    Some(skipped) if skipped.len() == len => {
+                        let event = Event::SubscriptionUpdates(skipped);
+                        return Ok(Handled::Skipped(event));
                     }
-                }
-
-                if skipped.is_empty() {
-                    Ok(Handled::Fully)
-                } else {
-                    let event = Event::SubscriptionUpdates(skipped);
-                    Ok(Handled::Partially(event))
-                }
+                    Some(skipped) => {
+                        let event = Event::SubscriptionUpdates(skipped);
+                        return Ok(Handled::Partially(event));
+                    }
+                    None => return Ok(Handled::Fully),
+                };
             }
-            _ => Ok(Handled::Skipped(event)),
-        }
+            event => event,
+        };
+
+        Ok(Handled::Skipped(event))
+    }
+}
+
+fn translate(topic_name: &str) -> Option<String> {
+    const DEVICE_OR_MODULE_ID: &str = r"(?P<device_id>[^/]+)(/(?P<module_id>[^/]+))?";
+
+    lazy_static! {
+        static ref UPSTREAM_TOPIC_PATTERNS: RegexSet = RegexSet::new(&[
+            format!("\\$iothub/{}/twin/res/(?P<params>.*)", DEVICE_OR_MODULE_ID),
+            format!(
+                "\\$iothub/{}/twin/desired/(?P<params>.*)",
+                DEVICE_OR_MODULE_ID
+            ),
+            format!(
+                "\\$iothub/{}/methods/post/(?P<params>.*)",
+                DEVICE_OR_MODULE_ID
+            )
+        ])
+        .expect("upstream topic patterns");
+    };
+
+    if UPSTREAM_TOPIC_PATTERNS.is_match(topic_name) {
+        Some(topic_name.replace("$iothub", "$downstream"))
+    } else {
+        None
     }
 }
 
@@ -126,11 +191,21 @@ impl RpcPumpHandle {
             .await
             .map_err(|e| RpcError::SendNack(command_id, e))
     }
+
+    pub async fn send_pub(&mut self, publication: Publication) -> Result<(), RpcError> {
+        let topic_name = publication.topic_name.clone();
+        let event = LocalUpstreamPumpEvent::Publication(publication);
+        self.0
+            .send(PumpMessage::Event(event))
+            .await
+            .map_err(|e| RpcError::SendPublicationToLocalPump(topic_name, e))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use matches::assert_matches;
+    use test_case::test_case;
 
     use mqtt3::{
         proto::{QoS, SubscribeTo},
@@ -208,5 +283,85 @@ mod tests {
             rx.recv().await,
             Some(PumpMessage::Event(LocalUpstreamPumpEvent::RpcAck(id))) if id == "1".into()
         );
+    }
+
+    #[tokio::test]
+    async fn it_sends_publications_twin_response() {
+        it_sends_publication_when_known_topic(
+            "$iothub/device_1/module_a/twin/res/?rid=1",
+            "$downstream/device_1/module_a/twin/res/?rid=1",
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn it_sends_publications_twin_desired() {
+        it_sends_publication_when_known_topic(
+            "$iothub/device_1/module_a/twin/desired/?rid=1",
+            "$downstream/device_1/module_a/twin/desired/?rid=1",
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn it_sends_publications_direct_method() {
+        it_sends_publication_when_known_topic(
+            "$iothub/device_1/module_a/methods/post/?rid=1",
+            "$downstream/device_1/module_a/methods/post/?rid=1",
+        )
+        .await;
+    }
+
+    async fn it_sends_publication_when_known_topic(topic_name: &str, translated_topic: &str) {
+        let subscriptions = RpcSubscriptions::default();
+
+        let (local_pump, mut rx) = pump::channel();
+        let mut handler = RemoteRpcHandler::new(subscriptions, local_pump);
+
+        let event = Event::Publication(ReceivedPublication {
+            topic_name: topic_name.into(),
+            dup: false,
+            qos: QoS::AtLeastOnce,
+            retain: false,
+            payload: "hello".into(),
+        });
+
+        let res = handler.handle(event).await;
+        assert_matches!(res, Ok(Handled::Fully));
+
+        assert_matches!(
+            rx.recv().await,
+            Some(PumpMessage::Event(LocalUpstreamPumpEvent::Publication(publication))) if publication.topic_name == translated_topic
+        );
+    }
+
+    #[tokio::test]
+    async fn it_skips_publication_when_unknown_topic() {
+        let subscriptions = RpcSubscriptions::default();
+
+        let (local_pump, _rx) = pump::channel();
+        let mut handler = RemoteRpcHandler::new(subscriptions, local_pump);
+
+        let event = Event::Publication(ReceivedPublication {
+            topic_name: "/foo".into(),
+            dup: false,
+            qos: QoS::AtLeastOnce,
+            retain: false,
+            payload: "hello".into(),
+        });
+
+        let res = handler.handle(event).await;
+        assert_matches!(res, Ok(Handled::Skipped(_)));
+    }
+
+    #[test_case("$iothub/device_1/module_a/twin/res/?rid=1", Some("$downstream/device_1/module_a/twin/res/?rid=1"); "twin module")]
+    #[test_case("$iothub/device_1/twin/res/?rid=1", Some("$downstream/device_1/twin/res/?rid=1"); "twin device")]
+    #[test_case("$iothub/device_1/module_a/twin/desired/?rid=1", Some("$downstream/device_1/module_a/twin/desired/?rid=1"); "desired twin module")]
+    #[test_case("$iothub/device_1/twin/desired/?rid=1", Some("$downstream/device_1/twin/desired/?rid=1"); "desired twin device")]
+    #[test_case("$iothub/device_1/module_a/methods/post/?rid=1", Some("$downstream/device_1/module_a/methods/post/?rid=1"); "direct method module")]
+    #[test_case("$iothub/device_1/methods/post/?rid=1", Some("$downstream/device_1/methods/post/?rid=1"); "direct method device")]
+    #[test_case("$edgehub/device_1/module_a/twin/res/?rid=1", None; "wrong prefix")]
+    fn it_translates_upstream_topic(topic_name: &str, expected: Option<&str>) {
+        assert_eq!(translate(topic_name).as_deref(), expected);
     }
 }
