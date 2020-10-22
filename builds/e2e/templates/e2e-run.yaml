@@ -25,15 +25,13 @@ steps:
   
 - task: PublishTestResults@2
   displayName: Publish test results
-  ${{ if variables['Agent.ProxyUrl'] }}:
-    enabled: false
   inputs:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/TestResults
     testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
     buildPlatform: $(arch)
-  condition: succeededOrFailed()
+  condition: and(succeededOrFailed(), gt(length(variables.Agent.ProxyUrl), 0))
 
 - pwsh: |
     $logDir = '$(Build.ArtifactStagingDirectory)/logs'
