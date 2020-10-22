@@ -35,7 +35,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(clientCredentials);
 
             bool isAuthenticated;
-            if (clientCredentials.AuthenticationType == AuthenticationType.X509Cert)
+            if (clientCredentials.AuthenticationType == AuthenticationType.Implicit)
+            {
+                // Implicit authentication is executed when in a nested scenario a parent edge device captures a
+                // an IotHub message on an mqtt broker topic belonging to a device never seen before. In this case the
+                // child edge device has authenticated the connecting device, the authorization is continously monitoring
+                // if the device is publishing on allowed topics, so when a message arrives on a topic belonging to
+                // the device, it is sure that it has been authenticated/authorized before. Now just create an entry
+                // for it without further checks
+                isAuthenticated = true;
+            }
+            else if (clientCredentials.AuthenticationType == AuthenticationType.X509Cert)
             {
                 isAuthenticated = await (reAuthenticating
                     ? this.certificateAuthenticator.ReauthenticateAsync(clientCredentials)
