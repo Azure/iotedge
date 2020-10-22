@@ -1,5 +1,5 @@
 use futures_util::{
-    stream::{StreamExt, TryStreamExt},
+    stream::{FuturesUnordered, StreamExt, TryStreamExt},
     FutureExt,
 };
 use tokio::{select, sync::oneshot};
@@ -64,28 +64,37 @@ where
 
         let mut shutdown = shutdown_recv.fuse();
         let mut loader = store.loader().fuse();
+        let mut in_flight_publishes = FuturesUnordered::new();
 
         loop {
             select! {
                 _ = &mut shutdown => {
-                    info!(" received shutdown signal for egress messages");
+                    info!("received shutdown signal for egress messages");
                     break;
                 }
                 maybe_publication = loader.try_next() => {
                     debug!("extracted publication from store");
 
                     if let Ok(Some((key, publication))) = maybe_publication {
-                        debug!("publishing {:?}", key);
+                        let store = store.clone();
                         let publish_fut = publish_handle.publish_future(publication).await;
-                        if let Err(e) = publish_fut.await {
-                            error!(err = %e, "failed publish");
-                        }
 
-                        if let Err(e) = store.remove(key) {
-                            error!(err = %e, "failed removing publication from store");
-                        }
+                        debug!("scheduling publish for publication {:?}", key);
+                        let publish_and_remove = async move {
+                            debug!("publishing publication {:?}", key);
+                            if let Err(e) = publish_fut.await {
+                                error!(err = %e, "failed sending publication {:?}", key);
+                            }
+
+                            if let Err(e) = store.remove(key) {
+                                error!(err = %e, "failed removing publication from store {:?}", key);
+                            }
+                        };
+
+                        in_flight_publishes.push(publish_and_remove);
                     }
                 }
+                _ = in_flight_publishes.next() => {}
             }
         }
 
