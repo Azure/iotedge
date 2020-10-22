@@ -9,7 +9,7 @@ steps:
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --filter "TestUploadModuleLogs"
+      sudo --preserve-env dotnet test $testFile --logger:trx --filter "TestUploadModuleLogs"
     }
   displayName: Run tests
   env:
