@@ -1,11 +1,18 @@
 use tracing::{error, info};
 
-use crate::client::{ClientShutdownHandle, EventHandler, MqttClient};
+use crate::client::{EventHandler, MqttClient};
+
+// Import and use mocks when run tests, real implementation when otherwise
+#[cfg(test)]
+pub use crate::client::MockShutdownHandle as ShutdownHandle;
+
+#[cfg(not(test))]
+use crate::client::ShutdownHandle;
 
 /// Handles incoming MQTT publications and puts them into the store.
 pub(crate) struct Ingress<H> {
     client: MqttClient<H>,
-    shutdown_client: Option<ClientShutdownHandle>,
+    shutdown_client: Option<ShutdownHandle>,
 }
 
 impl<H> Ingress<H>
@@ -13,7 +20,7 @@ where
     H: EventHandler,
 {
     /// Creates a new instance of ingress.
-    pub(crate) fn new(client: MqttClient<H>, shutdown_client: ClientShutdownHandle) -> Self {
+    pub(crate) fn new(client: MqttClient<H>, shutdown_client: ShutdownHandle) -> Self {
         Self {
             client,
             shutdown_client: Some(shutdown_client),
@@ -39,7 +46,7 @@ where
 }
 
 /// Ingress shutdown handle.
-pub(crate) struct IngressShutdownHandle(Option<ClientShutdownHandle>);
+pub(crate) struct IngressShutdownHandle(Option<ShutdownHandle>);
 
 impl IngressShutdownHandle {
     /// Sends a signal to shutdown ingress.

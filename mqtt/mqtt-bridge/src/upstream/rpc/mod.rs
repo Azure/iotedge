@@ -9,18 +9,19 @@
 //! downstream broker.
 
 mod local;
-// mod remote; TODO uncomment when it is ready
+mod remote;
 
 pub use local::LocalRpcHandler;
-pub use remote::RemoteRpcHandler;
+use parking_lot::Mutex;
+pub use remote::{RemoteRpcHandler, RpcPumpHandle};
 
-use std::{fmt::Display, fmt::Formatter, fmt::Result as FmtResult, sync::Arc};
+use std::{
+    collections::HashMap, fmt::Display, fmt::Formatter, fmt::Result as FmtResult, sync::Arc,
+};
 
 use bson::doc;
 use serde::{Deserialize, Serialize};
 use tracing::error;
-
-use mqtt3::PublishError;
 
 use crate::pump::PumpError;
 
@@ -49,14 +50,11 @@ pub enum RpcError {
     #[error("failed to deserialize command from received publication")]
     DeserializeCommand(#[from] bson::de::Error),
 
-    #[error("failed to serialize ack")]
-    SerializeAck(#[from] bson::ser::Error),
-
     #[error("unable to send nack for {0}. {1}")]
-    SendNack(CommandId, #[source] PublishError),
+    SendNack(CommandId, #[source] PumpError),
 
     #[error("unable to send ack for {0}. {1}")]
-    SendAck(CommandId, #[source] PublishError),
+    SendAck(CommandId, #[source] PumpError),
 
     #[error("unable to command for {0} to remote pump. {1}")]
     SendToRemotePump(CommandId, #[source] PumpError),
@@ -90,23 +88,36 @@ pub enum RpcCommand {
     },
 }
 
-mod remote {
-    use async_trait::async_trait;
-
-    use mqtt3::Event;
-
-    use crate::client::{EventHandler, Handled};
-
-    use super::RpcError;
-
-    pub struct RemoteRpcHandler;
-
-    #[async_trait]
-    impl EventHandler for RemoteRpcHandler {
-        type Error = RpcError;
-
-        async fn handle(&mut self, _: &Event) -> Result<Handled, Self::Error> {
-            Ok(Handled::Skipped)
+impl Display for RpcCommand {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Self::Subscribe { topic_filter } => write!(f, "SUB {}", topic_filter),
+            Self::Unsubscribe { topic_filter } => write!(f, "UNSUB {}", topic_filter),
+            Self::Publish { topic, .. } => write!(f, "PUB {}", topic),
         }
+    }
+}
+
+/// Represents a mapping of RPC subscription topic filter to unique command
+/// identifier. It is shared between remote pump event handler and remote
+/// pump message processor of upstream bridge.
+///
+/// It is shared due to `mqtt3::Client` implementation details when
+/// subscription has been made with `UpdateSubscriptionHandle` but the server
+/// response comes back as `mqtt3::Event` type which handled with the event
+/// handler.
+#[derive(Debug, Clone, Default)]
+pub struct RpcSubscriptions(Arc<Mutex<HashMap<String, CommandId>>>);
+
+impl RpcSubscriptions {
+    /// Stores topic filter to command identifier mapping.
+    pub fn insert(&self, id: CommandId, topic_filter: &str) -> Option<CommandId> {
+        self.0.lock().insert(topic_filter.into(), id)
+    }
+
+    /// Removes topic filter to command identifier mapping and returns
+    /// `CommandId` if exists.
+    pub fn remove(&self, topic_filter: &str) -> Option<CommandId> {
+        self.0.lock().remove(topic_filter)
     }
 }

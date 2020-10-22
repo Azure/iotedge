@@ -88,7 +88,7 @@ echo ${PROJECT_ROOT}
 
 if [[ "$ARCH" == "amd64" ]]; then
 set +e
-../../scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch $ARCH --build-path edge-modules/api-proxy-module
+../../scripts/linux/cross-platform-rust-build.sh --os alpine --arch $ARCH --build-path edge-modules/api-proxy-module
 set -e
 
 cp -r ./templates/ ./docker/linux/amd64
@@ -102,7 +102,7 @@ cp -r ./target/armv7-unknown-linux-musleabihf/release/api-proxy-module ./docker/
 docker build . -t  azureiotedge-api-proxy -f docker/linux/arm32v7/Dockerfile
 elif [[ "$ARCH" == "aarch64" ]]; then
 set +e
-../../scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch $ARCH --build-path edge-modules/api-proxy-module
+../../scripts/linux/cross-platform-rust-build.sh --os alpine --arch $ARCH --build-path edge-modules/api-proxy-module
 set -e
 
 cp -r ./templates/ ./docker/linux/arm64v8

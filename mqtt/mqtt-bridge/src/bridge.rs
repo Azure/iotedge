@@ -167,6 +167,9 @@ pub enum BridgeError {
     #[error("failed to get publish handle from client.")]
     PublishHandle(#[source] ClientError),
 
+    #[error("failed to get subscribe handle from client.")]
+    UpdateSubscriptionHandle(#[source] ClientError),
+
     #[error("failed to get publish handle from client.")]
     ClientShutdown(#[from] ShutdownError),
 }
