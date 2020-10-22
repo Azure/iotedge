@@ -185,7 +185,7 @@ impl TopicMapperUpdates {
     }
 
     pub fn get(&self, topic_filter: &str) -> Option<TopicMapper> {
-        self.0.lock().get(topic_filter).map(|topic| topic.clone())
+        self.0.lock().get(topic_filter).cloned()
     }
 
     pub fn contains_key(&self, topic_filter: &str) -> bool {

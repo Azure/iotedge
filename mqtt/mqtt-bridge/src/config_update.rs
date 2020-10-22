@@ -171,7 +171,7 @@ pub struct BridgeControllerUpdate {
 }
 
 impl BridgeControllerUpdate {
-    pub fn from_bridge(name: &str, subs: Vec<TopicRule>, forwards: Vec<TopicRule>) -> Self {
+    pub fn from_bridge(name: &str, subs: &[TopicRule], forwards: &[TopicRule]) -> Self {
         let subscriptions = subs
             .iter()
             .map(|s| Direction::Out(s.to_owned()))

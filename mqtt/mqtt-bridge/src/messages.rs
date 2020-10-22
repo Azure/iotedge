@@ -82,7 +82,7 @@ impl<S> MessageHandler<S> {
 
     fn update_subscribed(&mut self, sub: &str) {
         if let Some(mapper) = self.topic_mappers_updates.get(sub) {
-            self.topic_mappers.insert(sub.to_owned(), mapper.clone());
+            self.topic_mappers.insert(sub.to_owned(), mapper);
         } else {
             debug!("subscription ack for {} not expected", sub);
         };
