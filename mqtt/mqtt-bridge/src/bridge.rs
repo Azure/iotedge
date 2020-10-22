@@ -1,15 +1,17 @@
-use futures_util::{future::select, future::Either, pin_mut};
 use mqtt3::ShutdownError;
-use tokio::sync::{mpsc::error::SendError, oneshot, oneshot::Sender};
+use tokio::{select, sync::oneshot::Sender};
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
 use crate::{
-    client::ClientError,
-    persist::PersistError,
-    pump::{PumpMessage, PumpPair},
-    rpc::RpcError,
-    settings::ConnectionSettings,
+    client::{ClientError, MqttClientConfig},
+    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    pump::{Builder, Pump},
+    settings::{ConnectionSettings, Credentials},
+    upstream::{
+        ConnectivityError, LocalUpstreamHandler, LocalUpstreamPumpEventHandler,
+        RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler, RpcError,
+    },
 };
 
 #[derive(Debug)]
@@ -33,73 +35,100 @@ impl BridgeShutdownHandle {
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
-pub struct Bridge {
-    pumps: PumpPair,
+pub struct Bridge<S> {
+    local_pump: Pump<S, LocalUpstreamHandler<S>, LocalUpstreamPumpEventHandler>,
+    remote_pump: Pump<S, RemoteUpstreamHandler<S>, RemoteUpstreamPumpEventHandler>,
     connection_settings: ConnectionSettings,
 }
 
-impl Bridge {
-    pub async fn new(
+impl Bridge<WakingMemoryStore> {
+    pub async fn new_upstream(
         system_address: String,
         device_id: String,
-        connection_settings: ConnectionSettings,
+        settings: ConnectionSettings,
     ) -> Result<Self, BridgeError> {
-        debug!("creating bridge {}...", connection_settings.name());
+        const BATCH_SIZE: usize = 10;
 
-        let mut pumps = PumpPair::new(&connection_settings, &system_address, &device_id)?;
+        debug!("creating bridge...");
 
-        pumps
-            .local_pump
+        let (mut local_pump, mut remote_pump) = Builder::default()
+            .with_local(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    &system_address,
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    Credentials::Anonymous(format!(
+                        "{}/$edgeHub/$bridge/{}",
+                        device_id,
+                        settings.name()
+                    )),
+                ))
+                .with_rules(settings.forwards());
+            })
+            .with_remote(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    settings.address(),
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    settings.credentials().clone(),
+                ))
+                .with_rules(settings.subscriptions());
+            })
+            .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
+            .build()?;
+
+        // TODO move subscriptions into run method
+        local_pump
             .subscribe()
             .instrument(info_span!("pump", name = "local"))
             .await?;
 
-        pumps
-            .remote_pump
+        remote_pump
             .subscribe()
             .instrument(info_span!("pump", name = "remote"))
             .await?;
 
-        debug!("created {} bridge...", connection_settings.name());
+        debug!("created bridge...");
+
         Ok(Bridge {
-            pumps,
-            connection_settings,
+            local_pump,
+            remote_pump,
+            connection_settings: settings,
         })
     }
+}
 
-    pub async fn run(mut self) -> Result<(), BridgeError> {
-        info!("starting {} bridge...", self.connection_settings.name());
-
-        let (local_shutdown, local_shutdown_listener) = oneshot::channel::<()>();
-        let (remote_shutdown, remote_shutdown_listener) = oneshot::channel::<()>();
-        let shutdown_handle = BridgeShutdownHandle {
-            local_shutdown,
-            remote_shutdown,
-        };
+impl<S> Bridge<S>
+where
+    S: StreamWakeableState + Send,
+{
+    pub async fn run(self) -> Result<(), BridgeError> {
+        info!("Starting {} bridge...", self.connection_settings.name());
 
         let local_pump = self
-            .pumps
             .local_pump
-            .run(local_shutdown_listener)
+            .run()
             .instrument(info_span!("pump", name = "local"));
 
         let remote_pump = self
-            .pumps
             .remote_pump
-            .run(remote_shutdown_listener)
+            .run()
             .instrument(info_span!("pump", name = "remote"));
-        pin_mut!(local_pump, remote_pump);
 
         debug!(
             "starting pumps for {} bridge...",
             self.connection_settings.name()
         );
-        match select(local_pump, remote_pump).await {
-            Either::Left(_) => {
-                shutdown_handle.shutdown().await?;
+
+        select! {
+            _ = local_pump => {
+                // TODO shutdown remote pump
+                // shutdown_handle.shutdown().await?;
             }
-            Either::Right(_) => {
-                shutdown_handle.shutdown().await?;
+
+            _ = remote_pump => {
+                // TODO shutdown local pump
+                // shutdown_handle.shutdown().await?;
             }
         }
 
@@ -123,17 +152,23 @@ pub enum BridgeError {
     #[error("failed to load settings.")]
     LoadingSettings(#[from] config::ConfigError),
 
-    #[error("failed to get send pump message.")]
-    SenderToPump(#[from] SendError<PumpMessage>),
+    #[error("Failed to get send pump message.")]
+    SendToPump,
 
     #[error("failed to execute RPC command")]
     Rpc(#[from] RpcError),
+
+    #[error("failed to execute connectivity event")]
+    Connectivity(#[from] ConnectivityError),
 
     #[error("failed to signal bridge shutdown.")]
     ShutdownBridge(()),
 
     #[error("failed to get publish handle from client.")]
     PublishHandle(#[source] ClientError),
+
+    #[error("failed to get subscribe handle from client.")]
+    UpdateSubscriptionHandle(#[source] ClientError),
 
     #[error("failed to get publish handle from client.")]
     ClientShutdown(#[from] ShutdownError),
