@@ -430,7 +430,7 @@ impl<H> MqttClientExt for MqttClient<H> {
     type PublishHandle = InFlightPublishHandle<MockallPublishHandleWrapper>;
 
     fn publish_handle(&self) -> Self::PublishHandle {
-        InFlightPublishHandle::new(MockallPublishHandleWrapper::new(), 5)
+        InFlightPublishHandle::new(MockallPublishHandleWrapper::new(), 100)
     }
 
     type UpdateSubscriptionHandle = MockUpdateSubscriptionHandle;
@@ -535,9 +535,8 @@ mock! {
 }
 
 /// Mock publish handle mimicking the mqtt3 publish handle.
-/// Used for tests only.
-/// This publish handle needs to implement clone which necessitates Arc and Mutex
-//  but will never be sent between threads.
+/// Used for unit tests only.
+/// This publish handle needs to implement clone which necessitates Arc and Mutex.
 #[derive(Debug, Clone)]
 pub struct CountingMockPublishHandle {
     counter: Arc<AtomicU8>,
