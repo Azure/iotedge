@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 use async_trait::async_trait;
+use serde::Serialize;
 use tracing::{debug, info};
 
 use mqtt3::Event;
@@ -12,7 +13,7 @@ use crate::{
 
 use super::LocalUpstreamPumpEvent;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub enum ConnectivityState {
     Connected,
     Disconnected,

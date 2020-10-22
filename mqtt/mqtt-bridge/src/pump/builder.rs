@@ -4,13 +4,13 @@ use tokio::sync::mpsc;
 
 use crate::{
     bridge::BridgeError,
-    client::{MqttClient, MqttClientConfig},
+    client::{MqttClient, MqttClientConfig, MqttClientExt},
     messages::{MessageHandler, TopicMapper},
     persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
     settings::TopicRule,
     upstream::{
         ConnectivityHandler, LocalRpcHandler, LocalUpstreamHandler, LocalUpstreamPumpEventHandler,
-        RemoteRpcHandler, RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler,
+        RemoteRpcHandler, RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler, RpcSubscriptions,
     },
 };
 
@@ -97,11 +97,11 @@ where
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tcp(config, handler);
-        let publish_handle = client
+        let local_pub_handle = client
             .publish_handle()
             .map_err(BridgeError::PublishHandle)?;
 
-        let handler = LocalUpstreamPumpEventHandler::new(publish_handle);
+        let handler = LocalUpstreamPumpEventHandler::new(local_pub_handle);
         let pump_handle = PumpHandle::new(local_messages_send.clone());
         let messages = MessagesProcessor::new(handler, local_messages_recv, pump_handle);
 
@@ -116,15 +116,27 @@ where
         // prepare remote pump
         let (subscriptions, topic_filters) = make_topics(&self.remote.rules)?;
 
-        let rpc = RemoteRpcHandler;
+        let rpc_subscriptions = RpcSubscriptions::default();
+        let rpc = RemoteRpcHandler::new(rpc_subscriptions.clone(), local_pump.handle());
         let messages = MessageHandler::new(local_store, topic_filters);
         let connectivity = ConnectivityHandler::new(PumpHandle::new(local_messages_send));
         let handler = RemoteUpstreamHandler::new(messages, rpc, connectivity);
 
         let config = self.remote.client.take().expect("remote client config");
         let client = MqttClient::tls(config, handler);
+        let remote_pub_handle = client
+            .publish_handle()
+            .map_err(BridgeError::PublishHandle)?;
+        let remote_sub_handle = client
+            .update_subscription_handle()
+            .map_err(BridgeError::UpdateSubscriptionHandle)?;
 
-        let handler = RemoteUpstreamPumpEventHandler;
+        let handler = RemoteUpstreamPumpEventHandler::new(
+            remote_sub_handle,
+            remote_pub_handle,
+            local_pump.handle(),
+            rpc_subscriptions,
+        );
         let pump_handle = PumpHandle::new(remote_messages_send.clone());
         let messages = MessagesProcessor::new(handler, remote_messages_recv, pump_handle);
 

@@ -9,7 +9,10 @@ pub use events::{
     LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamPumpEvent,
     RemoteUpstreamPumpEventHandler,
 };
-pub use rpc::{CommandId, LocalRpcHandler, RemoteRpcHandler, RpcCommand, RpcError};
+pub use rpc::{
+    CommandId, LocalRpcHandler, RemoteRpcHandler, RpcCommand, RpcError, RpcPumpHandle,
+    RpcSubscriptions,
+};
 
 use async_trait::async_trait;
 use mqtt3::Event;
@@ -87,16 +90,16 @@ where
 
     async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
         // try to handle incoming connectivity event
-        if self.connectivity.handle(&event).await? == Handled::Fully {
+        if self.connectivity.handle(event).await? == Handled::Fully {
             return Ok(Handled::Fully);
         }
 
         // try to handle incoming messages as RPC command
-        if self.rpc.handle(&event).await? == Handled::Fully {
+        if self.rpc.handle(event).await? == Handled::Fully {
             return Ok(Handled::Fully);
         }
 
         // handle as an event for regular message handler
-        self.messages.handle(&event).await
+        self.messages.handle(event).await
     }
 }
