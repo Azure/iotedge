@@ -13,7 +13,7 @@ use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
 use serde_json;
 
-use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
+use edgelet_utils::{deserialize_map_with_default_values, ensure_not_empty_with_context, serialize_ordered};
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::settings::RuntimeSettings;
@@ -146,6 +146,7 @@ pub struct ModuleSpec<T> {
     config: T,
     #[serde(default = "HashMap::new")]
     #[serde(serialize_with = "serialize_ordered")]
+    #[serde(deserialize_with = "deserialize_map_with_default_values")]
     env: HashMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
