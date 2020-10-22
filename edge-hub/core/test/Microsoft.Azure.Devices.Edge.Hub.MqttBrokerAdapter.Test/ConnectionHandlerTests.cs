@@ -54,10 +54,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                             It.Is<byte[]>(payload => Encoding.UTF8.GetString(payload).Equals($"\"device_test\""))),
                 Times.Once);
 
-            DeviceProxy GetProxy(IIdentity identity)
+            DeviceProxy GetProxy(IIdentity identity, bool isDirectClient = true)
             {
                 return new DeviceProxy(
                                 identity,
+                                isDirectClient,
                                 sut,
                                 Mock.Of<ITwinHandler>(),
                                 Mock.Of<IModuleToModuleMessageHandler>(),

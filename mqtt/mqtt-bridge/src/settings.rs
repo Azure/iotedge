@@ -114,7 +114,7 @@ pub struct ConnectionSettings {
     #[serde(flatten)]
     credentials: Credentials,
 
-    subscriptions: Vec<TopicRule>,
+    subscriptions: Vec<Direction>,
 
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
@@ -135,8 +135,30 @@ impl ConnectionSettings {
         &self.credentials
     }
 
-    pub fn subscriptions(&self) -> &Vec<TopicRule> {
-        &self.subscriptions
+    pub fn subscriptions(&self) -> Vec<TopicRule> {
+        self.subscriptions
+            .iter()
+            .filter_map(|sub| {
+                if let Direction::Out(topic) = sub {
+                    Some(topic.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    pub fn forwards(&self) -> Vec<TopicRule> {
+        self.subscriptions
+            .iter()
+            .filter_map(|sub| {
+                if let Direction::In(topic) = sub {
+                    Some(topic.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     pub fn keep_alive(&self) -> Duration {
@@ -233,11 +255,8 @@ impl CredentialProviderSettings {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 pub struct TopicRule {
-    #[serde(flatten)]
-    direction: Direction,
-
     topic: String,
 
     #[serde(rename = "outPrefix")]
@@ -248,20 +267,16 @@ pub struct TopicRule {
 }
 
 impl TopicRule {
-    pub fn direction(&self) -> &Direction {
-        &self.direction
-    }
-
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
     pub fn out_prefix(&self) -> Option<&str> {
-        self.out_prefix.as_ref().map(AsRef::as_ref)
+        self.out_prefix.as_deref()
     }
 
     pub fn in_prefix(&self) -> Option<&str> {
-        self.in_prefix.as_ref().map(AsRef::as_ref)
+        self.in_prefix.as_deref()
     }
 }
 
@@ -269,9 +284,10 @@ impl TopicRule {
 #[serde(tag = "direction")]
 pub enum Direction {
     #[serde(rename = "in")]
-    In,
+    In(TopicRule),
+
     #[serde(rename = "out")]
-    Out,
+    Out(TopicRule),
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -284,7 +300,7 @@ struct UpstreamSettings {
 
     clean_session: bool,
 
-    subscriptions: Vec<TopicRule>,
+    subscriptions: Vec<Direction>,
 }
 
 #[cfg(test)]
