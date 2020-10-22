@@ -179,7 +179,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics: HashMap<String, TopicMapper> = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(|sub| {
                 (
@@ -237,7 +237,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(|sub| {
                 (
@@ -292,7 +292,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(|sub| {
                 (
@@ -347,7 +347,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(|sub| {
                 (
@@ -403,7 +403,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(|sub| {
                 (
@@ -453,7 +453,7 @@ mod tests {
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
-            .subscriptions()
+            .forwards()
             .iter()
             .map(|sub| {
                 (

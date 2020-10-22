@@ -139,7 +139,7 @@ impl ConnectionSettings {
         self.subscriptions
             .iter()
             .filter_map(|sub| match sub {
-                Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
+                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
                 _ => None,
             })
             .collect()
@@ -149,7 +149,7 @@ impl ConnectionSettings {
         self.subscriptions
             .iter()
             .filter_map(|sub| match sub {
-                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
+                Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
                 _ => None,
             })
             .collect()

@@ -65,13 +65,15 @@ impl BridgeController {
                         .await
                         .insert(bridge_name.clone(), ConfigUpdater::new(bridge_handle));
 
-                    // TODO: start future before sending initial config
                     let upstream_bridge = async move {
                         if let Err(e) = bridge.run().await {
                             error!(err = %e, "failed running {} bridge", name);
                         }
                     }
                     .instrument(info_span!("bridge", name = UPSTREAM));
+
+                    // bridge running before sending initial settings
+                    let task = tokio::spawn(upstream_bridge);
 
                     // send initial subscription configuration
                     if let Err(e) =
@@ -88,7 +90,7 @@ impl BridgeController {
                         );
                     }
 
-                    bridge_tasks.push(upstream_bridge);
+                    bridge_tasks.push(task);
                 }
                 Err(e) => {
                     error!(err = %e, "failed to create {} bridge", upstream_settings.name());

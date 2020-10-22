@@ -29,44 +29,17 @@ impl ConfigUpdater {
         );
 
         BridgeDiff::default()
-            .with_local_diff(remote_diff)
-            .with_remote_diff(local_diff)
+            .with_local_diff(local_diff)
+            .with_remote_diff(remote_diff)
     }
 
     pub fn update(&mut self, bridge_diff: &BridgeDiff) {
-        bridge_diff
-            .local_updates()
-            .added()
-            .into_iter()
-            .for_each(|added| {
-                self.current_forwards
-                    .insert(added.subscribe_to(), added.to_owned());
-            });
+        Self::update_pump(bridge_diff.local_updates(), &mut self.current_forwards);
 
-        bridge_diff
-            .local_updates()
-            .removed()
-            .iter()
-            .for_each(|updated| {
-                self.current_forwards.remove(&updated.subscribe_to());
-            });
-
-        bridge_diff
-            .remote_updates()
-            .added()
-            .into_iter()
-            .for_each(|added| {
-                self.current_subscriptions
-                    .insert(added.subscribe_to(), added.to_owned());
-            });
-
-        bridge_diff
-            .remote_updates()
-            .removed()
-            .iter()
-            .for_each(|updated| {
-                self.current_subscriptions.remove(&updated.subscribe_to());
-            });
+        Self::update_pump(
+            bridge_diff.remote_updates(),
+            &mut self.current_subscriptions,
+        )
     }
 
     pub async fn send(&mut self, message: BridgeDiff) -> Result<(), Error> {
@@ -103,6 +76,16 @@ impl ConfigUpdater {
         }
 
         PumpDiff::default().with_added(added).with_removed(removed)
+    }
+
+    fn update_pump(pump_diff: &PumpDiff, current: &mut HashMap<String, TopicRule>) {
+        pump_diff.added().into_iter().for_each(|added| {
+            current.insert(added.subscribe_to(), added.to_owned());
+        });
+
+        pump_diff.removed().iter().for_each(|updated| {
+            current.remove(&updated.subscribe_to());
+        });
     }
 }
 
@@ -148,7 +131,7 @@ impl BridgeUpdate {
         self.subscriptions
             .iter()
             .filter_map(|sub| match sub {
-                Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
+                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
                 _ => None,
             })
             .collect()
@@ -158,7 +141,7 @@ impl BridgeUpdate {
         self.subscriptions
             .iter()
             .filter_map(|sub| match sub {
-                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
+                Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
                 _ => None,
             })
             .collect()
