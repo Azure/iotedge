@@ -1,18 +1,8 @@
-#![allow(dead_code, unused_imports, unused_variables)] // TODO: remove when ready
-
 use std::collections::HashMap;
 
-use futures_util::future::join_all;
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-use tracing::{debug, error, info, info_span};
-use tracing_futures::Instrument;
+use serde::Deserialize;
 
-use crate::{
-    bridge::Bridge, bridge::BridgeError, bridge::BridgeHandle, controller::Error,
-    settings::BridgeSettings, settings::Direction, settings::TopicRule,
-};
+use crate::{bridge::BridgeHandle, controller::Error, settings::Direction, settings::TopicRule};
 
 pub struct ConfigUpdater {
     bridge_handle: BridgeHandle,
@@ -30,77 +20,17 @@ impl ConfigUpdater {
     }
 
     pub fn diff(&self, bridge_update: &BridgeUpdate) -> BridgeDiff {
-        let mut added_subs = vec![];
-        let mut added_forwards = vec![];
-        let mut removed_subs = vec![];
-        let mut removed_forwards = vec![];
-        let mut updated_subs = vec![];
-        let mut updated_forwards = vec![];
+        let local_diff =
+            Self::diff_topic_rules(bridge_update.clone().forwards(), &self.current_forwards);
 
-        let subs_map = bridge_update
-            .clone()
-            .subscriptions()
-            .iter()
-            .map(|sub| (sub.subscribe_to(), sub.clone()))
-            .collect::<HashMap<_, _>>();
-
-        let forwards_map = bridge_update
-            .clone()
-            .forwards()
-            .iter()
-            .map(|sub| (sub.subscribe_to(), sub.clone()))
-            .collect::<HashMap<_, _>>();
-
-        for sub in bridge_update.clone().subscriptions() {
-            if !self.current_subscriptions.contains_key(&sub.subscribe_to()) {
-                added_subs.push(sub);
-            } else if !self
-                .current_subscriptions
-                .get(&sub.subscribe_to())
-                .expect("Key missing")
-                .eq(&sub)
-            {
-                updated_subs.push(sub);
-            }
-        }
-        for forward in bridge_update.clone().forwards() {
-            if !self.current_forwards.contains_key(&forward.subscribe_to()) {
-                added_forwards.push(forward);
-            } else if !self
-                .current_forwards
-                .get(&forward.subscribe_to())
-                .expect("Key missing")
-                .eq(&forward)
-            {
-                updated_forwards.push(forward);
-            }
-        }
-
-        for sub in self.current_subscriptions.keys() {
-            if !subs_map.contains_key(sub) {
-                removed_subs.push(self.current_subscriptions.get(sub).unwrap().to_owned())
-            }
-        }
-
-        for forward in self.current_forwards.keys() {
-            if !forwards_map.contains_key(forward) {
-                removed_forwards.push(self.current_forwards.get(forward).unwrap().to_owned())
-            }
-        }
+        let remote_diff = Self::diff_topic_rules(
+            bridge_update.clone().subscriptions(),
+            &self.current_subscriptions,
+        );
 
         BridgeDiff::default()
-            .with_local_diff(
-                PumpDiff::default()
-                    .with_added(added_forwards)
-                    .with_updated(updated_forwards)
-                    .with_removed(removed_forwards),
-            )
-            .with_remote_diff(
-                PumpDiff::default()
-                    .with_added(added_subs)
-                    .with_updated(updated_subs)
-                    .with_removed(removed_subs),
-            )
+            .with_local_diff(remote_diff)
+            .with_remote_diff(local_diff)
     }
 
     pub fn update(&mut self, bridge_diff: &BridgeDiff) {
@@ -111,15 +41,6 @@ impl ConfigUpdater {
             .for_each(|added| {
                 self.current_forwards
                     .insert(added.subscribe_to(), added.to_owned());
-            });
-
-        bridge_diff
-            .local_updates()
-            .updated()
-            .into_iter()
-            .for_each(|updated| {
-                self.current_forwards
-                    .insert(updated.subscribe_to(), updated.to_owned());
             });
 
         bridge_diff
@@ -141,15 +62,6 @@ impl ConfigUpdater {
 
         bridge_diff
             .remote_updates()
-            .updated()
-            .into_iter()
-            .for_each(|updated| {
-                self.current_subscriptions
-                    .insert(updated.subscribe_to(), updated.to_owned());
-            });
-
-        bridge_diff
-            .remote_updates()
             .removed()
             .iter()
             .for_each(|updated| {
@@ -162,6 +74,35 @@ impl ConfigUpdater {
             .send(message)
             .await
             .map_err(Error::SendBridgeMessage)
+    }
+
+    fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule>) -> PumpDiff {
+        let mut added = vec![];
+        let mut removed = vec![];
+
+        let subs_map = updated
+            .iter()
+            .map(|sub| (sub.subscribe_to(), sub.clone()))
+            .collect::<HashMap<_, _>>();
+
+        for sub in updated {
+            if !current.contains_key(&sub.subscribe_to())
+                || current
+                    .get(&sub.subscribe_to())
+                    .filter(|curr| curr.to_owned().eq(&sub))
+                    == None
+            {
+                added.push(sub);
+            }
+        }
+
+        for sub in current.keys() {
+            if !subs_map.contains_key(sub) {
+                removed.push(current.get(sub).expect("missing key").to_owned())
+            }
+        }
+
+        PumpDiff::default().with_added(added).with_removed(removed)
     }
 }
 
@@ -179,7 +120,7 @@ impl BridgeControllerUpdate {
             .collect();
 
         let bridge_update = BridgeUpdate {
-            name: name.to_owned(),
+            endpoint: name.to_owned(),
             subscriptions,
         };
         Self {
@@ -194,13 +135,13 @@ impl BridgeControllerUpdate {
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct BridgeUpdate {
-    name: String,
+    endpoint: String,
     subscriptions: Vec<Direction>,
 }
 
 impl BridgeUpdate {
-    pub fn name(&self) -> &str {
-        self.name.as_ref()
+    pub fn endpoint(&self) -> &str {
+        self.endpoint.as_ref()
     }
 
     pub fn subscriptions(self) -> Vec<TopicRule> {
@@ -261,18 +202,12 @@ impl BridgeDiff {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PumpDiff {
     added: Vec<TopicRule>,
-    updated: Vec<TopicRule>,
     removed: Vec<TopicRule>,
 }
 
 impl PumpDiff {
     pub fn with_added(mut self, added: Vec<TopicRule>) -> Self {
         self.added = added;
-        self
-    }
-
-    pub fn with_updated(mut self, updated: Vec<TopicRule>) -> Self {
-        self.updated = updated;
         self
     }
 
@@ -289,11 +224,7 @@ impl PumpDiff {
         self.removed.iter().collect::<Vec<_>>()
     }
 
-    pub fn updated(&self) -> Vec<&TopicRule> {
-        self.updated.iter().collect::<Vec<_>>()
-    }
-
     pub fn has_updates(&self) -> bool {
-        !(self.added.is_empty() && self.removed.is_empty() && self.updated.is_empty())
+        !(self.added.is_empty() && self.removed.is_empty())
     }
 }

@@ -1,22 +1,21 @@
-#![allow(dead_code, unused_imports, unused_variables)] // TODO: remove when ready
-
 use std::{collections::HashMap, sync::Arc};
 
 use futures_util::future::join_all;
-// use parking_lot::Mutex;
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-use tokio::sync::Mutex;
+use tokio::sync::{
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    Mutex,
+};
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
 use crate::{
-    bridge::{Bridge, BridgeError, BridgeHandle},
-    config_update::BridgeControllerUpdate,
-    config_update::ConfigUpdater,
-    settings::{BridgeSettings, Direction, TopicRule},
+    bridge::{Bridge, BridgeError},
+    config_update::{BridgeControllerUpdate, ConfigUpdater},
+    settings::BridgeSettings,
 };
+
+const UPSTREAM: &str = "$upstream";
 
 /// Controller that handles the settings and monitors changes, spawns new Bridges and monitors shutdown signal.
 pub struct BridgeController {
@@ -66,12 +65,13 @@ impl BridgeController {
                         .await
                         .insert(bridge_name.clone(), ConfigUpdater::new(bridge_handle));
 
+                    // TODO: start future before sending initial config
                     let upstream_bridge = async move {
                         if let Err(e) = bridge.run().await {
                             error!(err = %e, "failed running {} bridge", name);
                         }
                     }
-                    .instrument(info_span!("bridge", name = "upstream"));
+                    .instrument(info_span!("bridge", name = UPSTREAM));
 
                     // send initial subscription configuration
                     if let Err(e) = self.handle.send(BridgeControllerUpdate::from_bridge(
@@ -101,11 +101,11 @@ impl BridgeController {
                 for bridge_update in update.bridge_updates().clone() {
                     debug!("received updated config: {:?}", bridge_update);
 
-                    if bridge_update.name() != "$upstream" {
+                    if bridge_update.endpoint() != UPSTREAM {
                         continue;
                     }
 
-                    if let Some(config) = self.bridge_handles.lock().await.get_mut("$upstream") {
+                    if let Some(config) = self.bridge_handles.lock().await.get_mut(UPSTREAM) {
                         let diff = config.diff(&bridge_update);
 
                         if let Err(e) = config.send(diff.clone()).await {

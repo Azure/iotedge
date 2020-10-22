@@ -85,18 +85,6 @@ where
                         }
                     }
 
-                    for sub in update.clone().updated() {
-                        let subscribe_to = sub.subscribe_to();
-                        match sub.to_owned().try_into() {
-                            Ok(mapper) => {
-                                self.topic_mappers_updates.insert(&subscribe_to, mapper);
-                            }
-                            Err(e) => {
-                                error!("topic rule could not be parsed {}. {}", subscribe_to, e)
-                            }
-                        }
-                    }
-
                     for sub in update.added() {
                         let subscribe_to = sub.subscribe_to();
                         let subscribe_result = self

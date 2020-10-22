@@ -82,7 +82,6 @@ where
         let ingress = Ingress::new(client, client_shutdown);
 
         Ok(Self {
-            //subscriptions,
             messages_send,
             messages,
             egress,
