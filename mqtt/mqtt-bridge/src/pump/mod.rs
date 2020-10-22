@@ -71,9 +71,9 @@ where
         messages: MessagesProcessor<M>,
     ) -> Result<Self, BridgeError> {
         let client_shutdown = client.shutdown_handle()?;
-        let publish_handle = client.publish_handle();
+        let in_flight_handle = client.publish_handle();
 
-        let egress = Egress::new(publish_handle, store);
+        let egress = Egress::new(in_flight_handle, store);
         let ingress = Ingress::new(client, client_shutdown);
 
         Ok(Self {

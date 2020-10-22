@@ -44,14 +44,12 @@ pub enum LocalUpstreamPumpEvent {
 /// * RPC command negative acknowledgement - emitted when the RPC command failed
 ///   to execute.
 pub struct LocalUpstreamPumpEventHandler {
-    publish_handle: InFlightPublishHandle<PublishHandle>,
+    in_flight_handle: InFlightPublishHandle<PublishHandle>,
 }
 
 impl LocalUpstreamPumpEventHandler {
-    pub fn new(publish_handle: InFlightPublishHandle<PublishHandle>) -> Self {
-        Self {
-            publish_handle: publish_handle,
-        }
+    pub fn new(in_flight_handle: InFlightPublishHandle<PublishHandle>) -> Self {
+        Self { in_flight_handle }
     }
 }
 
@@ -110,7 +108,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
 
         if let Some(publication) = maybe_publication {
             let topic = publication.topic_name.clone();
-            let publish_fut = self.publish_handle.publish_future(publication).await;
+            let publish_fut = self.in_flight_handle.publish_future(publication).await;
             if let Err(e) = publish_fut.await {
                 error!(err = %e, "failed to publish on topic {}", topic);
             }

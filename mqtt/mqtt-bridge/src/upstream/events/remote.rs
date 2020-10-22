@@ -32,7 +32,7 @@ pub enum RemoteUpstreamPumpEvent {
 /// against remote broker.
 pub struct RemoteUpstreamPumpEventHandler {
     remote_sub_handle: UpdateSubscriptionHandle,
-    remote_pub_handle: InFlightPublishHandle<PublishHandle>,
+    remote_in_flight_handle: InFlightPublishHandle<PublishHandle>,
     local_pump: RpcPumpHandle,
     subscriptions: RpcSubscriptions,
 }
@@ -40,13 +40,13 @@ pub struct RemoteUpstreamPumpEventHandler {
 impl RemoteUpstreamPumpEventHandler {
     pub fn new(
         remote_sub_handle: UpdateSubscriptionHandle,
-        remote_pub_handle: InFlightPublishHandle<PublishHandle>,
+        remote_in_flight_handle: InFlightPublishHandle<PublishHandle>,
         local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
         subscriptions: RpcSubscriptions,
     ) -> Self {
         Self {
             remote_sub_handle,
-            remote_pub_handle,
+            remote_in_flight_handle,
             local_pump: RpcPumpHandle::new(local_pump_handle),
             subscriptions,
         }
@@ -135,7 +135,10 @@ impl RemoteUpstreamPumpEventHandler {
             payload: payload.into(),
         };
 
-        let publish_fut = self.remote_pub_handle.publish_future(publication).await;
+        let publish_fut = self
+            .remote_in_flight_handle
+            .publish_future(publication)
+            .await;
         match publish_fut.await {
             Ok(_) => self.local_pump.send_ack(command_id).await,
             Err(e) => {

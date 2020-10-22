@@ -21,7 +21,7 @@ use crate::client::PublishHandle;
 /// to the broker. After acknowledgement is received from the broker it
 /// deletes publication from the store.
 pub(crate) struct Egress<S> {
-    publish_handle: InFlightPublishHandle<PublishHandle>,
+    in_flight_handle: InFlightPublishHandle<PublishHandle>,
     store: PublicationStore<S>,
     shutdown_send: Option<oneshot::Sender<()>>,
     shutdown_recv: oneshot::Receiver<()>,
@@ -33,13 +33,13 @@ where
 {
     /// Creates a new instance of egress.
     pub(crate) fn new(
-        publish_handle: InFlightPublishHandle<PublishHandle>,
+        in_flight_handle: InFlightPublishHandle<PublishHandle>,
         store: PublicationStore<S>,
     ) -> Egress<S> {
         let (shutdown_send, shutdown_recv) = oneshot::channel();
 
         Self {
-            publish_handle,
+            in_flight_handle,
             store,
             shutdown_send: Some(shutdown_send),
             shutdown_recv,
@@ -54,7 +54,7 @@ where
     /// Runs egress processing.
     pub(crate) async fn run(self) {
         let Egress {
-            publish_handle,
+            in_flight_handle,
             store,
             shutdown_recv,
             ..
@@ -77,7 +77,7 @@ where
 
                     if let Ok(Some((key, publication))) = maybe_publication {
                         let store = store.clone();
-                        let publish_fut = publish_handle.publish_future(publication).await;
+                        let publish_fut = in_flight_handle.publish_future(publication).await;
 
                         debug!("scheduling publish for publication {:?}", key);
                         let publish_and_remove = async move {

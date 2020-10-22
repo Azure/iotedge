@@ -97,9 +97,9 @@ where
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tcp(config, handler).map_err(BridgeError::CreateClient)?;
-        let local_pub_handle = client.publish_handle();
+        let local_in_flight_handle = client.publish_handle();
 
-        let handler = LocalUpstreamPumpEventHandler::new(local_pub_handle);
+        let handler = LocalUpstreamPumpEventHandler::new(local_in_flight_handle);
         let pump_handle = PumpHandle::new(local_messages_send.clone());
         let messages = MessagesProcessor::new(handler, local_messages_recv, pump_handle);
 
@@ -122,14 +122,14 @@ where
 
         let config = self.remote.client.take().expect("remote client config");
         let client = MqttClient::tls(config, handler).map_err(BridgeError::CreateClient)?;
-        let remote_pub_handle = client.publish_handle();
+        let remote_in_flight_handle = client.publish_handle();
         let remote_sub_handle = client
             .update_subscription_handle()
             .map_err(BridgeError::UpdateSubscriptionHandle)?;
 
         let handler = RemoteUpstreamPumpEventHandler::new(
             remote_sub_handle,
-            remote_pub_handle,
+            remote_in_flight_handle,
             local_pump.handle(),
             rpc_subscriptions,
         );

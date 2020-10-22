@@ -555,6 +555,12 @@ impl MockallPublishHandleWrapper {
     }
 }
 
+impl Default for MockallPublishHandleWrapper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl InnerPublishHandle for MockallPublishHandleWrapper {
     async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
@@ -705,8 +711,7 @@ mod tests {
         let (mut sender, receiver) = mpsc::channel::<()>(1);
         let receiver = Arc::new(Mutex::new(receiver));
         let publish_handle = CountingMockPublishHandle::new(counter.clone(), receiver);
-
-        let publish_handle = InFlightPublishHandle::new(publish_handle, 2);
+        let in_flight_handle = InFlightPublishHandle::new(publish_handle, 2);
 
         let mut futures_unordered = FuturesUnordered::new();
         let publication = Publication {
@@ -716,8 +721,8 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let pub_fut1 = publish_handle.publish_future(publication.clone()).await;
-        let pub_fut2 = publish_handle.publish_future(publication.clone()).await;
+        let pub_fut1 = in_flight_handle.publish_future(publication.clone()).await;
+        let pub_fut2 = in_flight_handle.publish_future(publication.clone()).await;
         futures_unordered.push(pub_fut1);
         futures_unordered.push(pub_fut2);
 
@@ -741,7 +746,7 @@ mod tests {
         };
 
         let next_publish = async move {
-            let pub_fut2 = publish_handle.publish_future(publication.clone()).await;
+            let pub_fut2 = in_flight_handle.publish_future(publication.clone()).await;
             pub_fut2.await.unwrap();
         };
 
