@@ -26,12 +26,12 @@ steps:
 - task: PublishTestResults@2
   displayName: Publish test results
   inputs:
-    testResultsFormat: vstest
+    testRunner: VSTest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/TestResults
+    publishRunAttachments: false
     testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
     buildPlatform: $(arch)
-    publishRunAttachments: false # workaround, see https://github.com/microsoft/azure-pipelines-tasks/issues/11831#issuecomment-569325485
   condition: succeededOrFailed()
 
 - pwsh: |
