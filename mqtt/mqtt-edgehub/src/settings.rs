@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use lazy_static::lazy_static;
@@ -33,6 +36,8 @@ pub struct Settings {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
+        convert_to_old_env_variable();
+
         let mut config = Config::new();
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(Environment::new().separator("__"))?;
@@ -44,6 +49,8 @@ impl Settings {
     where
         P: AsRef<Path>,
     {
+        convert_to_old_env_variable();
+
         let mut config = Config::new();
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(File::from(path.as_ref()))?;
@@ -68,6 +75,24 @@ impl Settings {
 impl Default for Settings {
     fn default() -> Self {
         DEFAULT_CONFIG.clone()
+    }
+}
+
+fn convert_to_old_env_variable() {
+    if let Ok(val) = env::var("mqttBroker:max_queued_messages") {
+        env::set_var("BROKER__SESSION__max_queued_messages", val);
+    }
+
+    if let Ok(val) = env::var("mqttBroker:max_queued_bytes") {
+        env::set_var("BROKER__SESSION__max_queued_size", val);
+    }
+
+    if let Ok(val) = env::var("mqttBroker:max_inflight_messages") {
+        env::set_var("BROKER__SESSION__max_inflight_messages", val);
+    }
+
+    if let Ok(val) = env::var("mqttBroker:when_full") {
+        env::set_var("BROKER__SESSION__when_full", val);
     }
 }
 
@@ -215,6 +240,28 @@ mod tests {
     use config::ConfigError;
 
     const DAYS: u64 = 24 * 60 * 60;
+
+    #[test]
+    fn check_env_var_name_override() {
+        let _max_inflight_messages = env::set_var("mqttBroker:max_inflight_messages", "17");
+        let _max_queued_messages = env::set_var("mqttBroker:max_queued_messages", "1001");
+        let _max_queued_bytes = env::set_var("mqttBroker:max_queued_bytes", "1");
+        let _when_full = env::set_var("mqttBroker:when_full", "drop_old");
+
+        let settings = Settings::new().unwrap();
+
+        assert_eq!(
+            settings.broker().session(),
+            &SessionConfig::new(
+                Duration::from_secs(60 * DAYS),
+                Some(HumanSize::new_kilobytes(256).expect("256kb")),
+                17,
+                1001,
+                Some(HumanSize::new_bytes(1)),
+                QueueFullAction::DropOld,
+            )
+        );
+    }
 
     #[test]
     fn it_loads_defaults() {
