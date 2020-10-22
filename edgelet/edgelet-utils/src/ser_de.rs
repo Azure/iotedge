@@ -81,7 +81,9 @@ where
     sorted_map.serialize(serializer)
 }
 
-pub fn allow_null_map_values<'de, K, V, D>(deserializer: D) -> StdResult<HashMap<K, V>, D::Error>
+pub fn deserialize_map_with_default_values<'de, K, V, D>(
+    deserializer: D,
+) -> StdResult<HashMap<K, V>, D::Error>
 where
     K: Deserialize<'de> + Eq + std::hash::Hash,
     V: Deserialize<'de> + Default,
@@ -170,8 +172,8 @@ mod tests {
     #[derive(Debug, Deserialize, Serialize)]
     struct Setting {
         #[serde(serialize_with = "serialize_ordered")]
-        #[serde(deserialize_with = "allow_null_map_values")]
-        pub map: HashMap<String, String>,
+        #[serde(deserialize_with = "deserialize_map_with_default_values")]
+        map: HashMap<String, String>,
     }
 
     #[test]
