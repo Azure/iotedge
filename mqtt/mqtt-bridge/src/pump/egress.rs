@@ -76,25 +76,28 @@ where
                     debug!("extracted publication from store");
 
                     if let Ok(Some((key, publication))) = maybe_publication {
-                        let store = store.clone();
                         let publish_fut = in_flight_handle.publish_future(publication).await;
 
                         debug!("scheduling publish for publication {:?}", key);
-                        let publish_and_remove = async move {
+                        let publish_fut = async move {
                             debug!("publishing publication {:?}", key);
                             if let Err(e) = publish_fut.await {
                                 error!(err = %e, "failed sending publication {:?}", key);
                             }
 
-                            if let Err(e) = store.remove(key) {
-                                error!(err = %e, "failed removing publication from store {:?}", key);
-                            }
+                            key
                         };
 
-                        in_flight_publishes.push(publish_and_remove);
+                        in_flight_publishes.push(publish_fut);
                     }
                 }
-                _ = in_flight_publishes.next() => {}
+                maybe_sent_pub_key = in_flight_publishes.next() => {
+                    if let Some(sent_pub_key) = maybe_sent_pub_key {
+                        if let Err(e) = store.remove(sent_pub_key) {
+                            error!(err = %e, "failed removing publication from store {:?}", sent_pub_key);
+                        }
+                    }
+                }
             }
         }
 
