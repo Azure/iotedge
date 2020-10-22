@@ -1,4 +1,7 @@
-use std::{env, path::{Path, PathBuf}};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use lazy_static::lazy_static;
@@ -76,7 +79,6 @@ impl Default for Settings {
 }
 
 fn convert_to_old_env_variable() {
-
     if let Ok(val) = env::var("mqttBroker:max_queued_messages") {
         env::set_var("BROKER__SESSION__max_queued_messages", val);
     }
@@ -240,12 +242,12 @@ mod tests {
     const DAYS: u64 = 24 * 60 * 60;
 
     #[test]
-    fn overide_new_env_var() {
+    fn check_env_var_name_override() {
         let _max_inflight_messages = env::set_var("mqttBroker:max_inflight_messages", "17");
         let _max_queued_messages = env::set_var("mqttBroker:max_queued_messages", "1001");
         let _max_queued_bytes = env::set_var("mqttBroker:max_queued_bytes", "1");
         let _when_full = env::set_var("mqttBroker:when_full", "drop_old");
-        
+
         let settings = Settings::new().unwrap();
 
         assert_eq!(
