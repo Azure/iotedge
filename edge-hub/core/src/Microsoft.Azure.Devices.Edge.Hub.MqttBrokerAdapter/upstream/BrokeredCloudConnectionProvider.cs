@@ -2,8 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
-    using System.Collections.Generic;
-    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -31,8 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
-            // TODO: the connectionStatusChangeHandler is not wired
-            var cloudProxy = new BrokeredCloudProxy(identity, this.cloudProxyDispatcher);
+            var cloudProxy = new BrokeredCloudProxy(identity, this.cloudProxyDispatcher, connectionStatusChangedHandler);
             return Task.FromResult(new Try<ICloudConnection>(new BrokeredCloudConnection(cloudProxy)));
         }
     }
