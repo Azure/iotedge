@@ -121,6 +121,7 @@ impl BridgeControllerUpdate {
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct BridgeUpdate {
     endpoint: String,
+    #[serde(rename = "settings")]
     subscriptions: Vec<Direction>,
 }
 
