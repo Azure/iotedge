@@ -209,7 +209,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool isLegacyUpstream = this.configuration.GetValue("mqttBrokerSettings:legacyUpstream", true);
+
+            bool isLegacyUpstream = !experimentalFeatures.Enabled
+                                 || !experimentalFeatures.EnableMqttBroker
+                                 || !experimentalFeatures.EnableNestedEdge
+                                 || !this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
 
             builder.RegisterModule(
                 new RoutingModule(
