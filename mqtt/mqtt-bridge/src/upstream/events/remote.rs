@@ -25,7 +25,7 @@ pub enum RemoteUpstreamPumpEvent {
 
 /// Handles control event received by a remote upstream bridge pump.
 ///
-/// It handles follwing events:
+/// It handles following events:
 /// * RPC command - emitted when `EdgeHub` requested RPC command to be executed
 /// against remote broker.
 pub struct RemoteUpstreamPumpEventHandler {
