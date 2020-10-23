@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             Option<(string, string, string, bool)> GetAndValidateRootCaKeys()
             {
                 string trustCert = Get("trustedCaCerts");
-                bool keepIdentity = trustCert.Equals(default(string));
+                bool keepIdentity = !String.IsNullOrEmpty(trustCert);
 
                 if (keepIdentity)
                 {
