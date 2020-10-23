@@ -461,13 +461,32 @@ impl ShutdownHandle {
     }
 }
 
+#[async_trait]
+pub trait ClientPublishHandle {
+    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+}
+
 /// A client publish handle.
+#[derive(Debug, Clone)]
 pub struct PublishHandle(mqtt3::PublishHandle);
 
-#[automock]
-impl PublishHandle {
-    pub async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
+#[async_trait]
+impl ClientPublishHandle for PublishHandle {
+    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
         self.0.publish(publication).await
+    }
+}
+
+mockall::mock! {
+    pub PublishHandle {}
+
+    #[async_trait]
+    trait ClientPublishHandle {
+        async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+    }
+
+    pub trait Clone {
+        fn clone(&self) -> Self;
     }
 }
 

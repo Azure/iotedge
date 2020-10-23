@@ -3,6 +3,7 @@ use mqtt3::proto::{Publication, QoS, SubscribeTo};
 use tracing::{error, warn};
 
 use crate::{
+    client::ClientPublishHandle,
     pump::{PumpHandle, PumpMessageHandler},
     upstream::{
         CommandId, LocalUpstreamPumpEvent, RpcCommand, RpcError, RpcPumpHandle, RpcSubscriptions,

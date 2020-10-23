@@ -1,11 +1,11 @@
-use futures_util::{
-    stream::{StreamExt, TryStreamExt},
-    FutureExt,
-};
+use futures_util::{pin_mut, stream::StreamExt, FutureExt};
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
 
-use crate::persist::{PublicationStore, StreamWakeableState};
+use crate::{
+    client::ClientPublishHandle,
+    persist::{PublicationStore, StreamWakeableState},
+};
 
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
@@ -13,6 +13,8 @@ pub use crate::client::MockPublishHandle as PublishHandle;
 
 #[cfg(not(test))]
 use crate::client::PublishHandle;
+
+const MAX_IN_FLIGHT: usize = 16;
 
 /// Handles the egress of received publications.
 ///
@@ -50,7 +52,7 @@ where
     /// Runs egress processing.
     pub(crate) async fn run(self) {
         let Egress {
-            mut publish_handle,
+            publish_handle,
             store,
             shutdown_recv,
             ..
@@ -59,7 +61,33 @@ where
         info!("starting egress publication processing...");
 
         let mut shutdown = shutdown_recv.fuse();
-        let mut loader = store.loader().fuse();
+        let loader = store.loader();
+        let load_and_publish = loader
+            .filter_map(|loaded| async {
+                match loaded {
+                    Ok((key, publication)) => {
+                        let mut publish_handle = publish_handle.clone();
+                        let store = store.clone();
+
+                        Some(async move {
+                            debug!("publishing {:?}", key);
+                            if let Err(e) = publish_handle.publish(publication).await {
+                                error!(err = %e, "failed publish");
+                            }
+
+                            if let Err(e) = store.remove(key) {
+                                error!(err = %e, "failed removing publication from store");
+                            }
+                        })
+                    }
+                    Err(e) => {
+                        error!(err = %e, "failed loading publication from store");
+                        None
+                    }
+                }
+            })
+            .buffer_unordered(MAX_IN_FLIGHT);
+        pin_mut!(load_and_publish);
 
         loop {
             select! {
@@ -67,20 +95,7 @@ where
                     info!(" received shutdown signal for egress messages");
                     break;
                 }
-                maybe_publication = loader.try_next() => {
-                    debug!("extracted publication from store");
-
-                    if let Ok(Some((key, publication))) = maybe_publication {
-                        debug!("publishing {:?}", key);
-                        if let Err(e) = publish_handle.publish(publication).await {
-                            error!(err = %e, "failed publish");
-                        }
-
-                        if let Err(e) = store.remove(key) {
-                            error!(err = %e, "failed removing publication from store");
-                        }
-                    }
-                }
+                _ = load_and_publish.next() => {}
             }
         }
 

@@ -13,6 +13,7 @@ pub use crate::client::MockPublishHandle as PublishHandle;
 use crate::client::PublishHandle;
 
 use crate::{
+    client::ClientPublishHandle,
     pump::PumpMessageHandler,
     upstream::{CommandId, ConnectivityState},
 };
