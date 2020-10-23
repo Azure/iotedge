@@ -99,6 +99,7 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-ubuntu18.04-amd64
+      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
       'agent.disablelogplugin.testresultlogplugin': true
 
