@@ -5,20 +5,21 @@ use tokio::sync::mpsc;
 use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig, MqttClientExt},
-    messages::{MessageHandler, TopicMapper},
+    messages::{StoreMqttEventHandler, TopicMapper},
     persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
     settings::TopicRule,
     upstream::{
-        ConnectivityHandler, LocalRpcHandler, LocalUpstreamHandler, LocalUpstreamPumpEventHandler,
-        RemoteRpcHandler, RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler, RpcSubscriptions,
+        ConnectivityMqttEventHandler, LocalRpcMqttEventHandler, LocalUpstreamMqttEventHandler,
+        LocalUpstreamPumpEventHandler, RemoteRpcMqttEventHandler, RemoteUpstreamMqttEventHandler,
+        RemoteUpstreamPumpEventHandler, RpcSubscriptions,
     },
 };
 
 use super::{MessagesProcessor, Pump, PumpHandle};
 
 pub type PumpPair<S> = (
-    Pump<S, LocalUpstreamHandler<S>, LocalUpstreamPumpEventHandler>,
-    Pump<S, RemoteUpstreamHandler<S>, RemoteUpstreamPumpEventHandler>,
+    Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
+    Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
 );
 
 /// Constructs a pair of bridge pumps: local and remote.
@@ -91,9 +92,9 @@ where
         // prepare local pump
         let (subscriptions, topic_filters) = make_topics(&self.local.rules)?;
 
-        let rpc = LocalRpcHandler::new(PumpHandle::new(remote_messages_send.clone()));
-        let messages = MessageHandler::new(remote_store.clone(), topic_filters);
-        let handler = LocalUpstreamHandler::new(messages, rpc);
+        let rpc = LocalRpcMqttEventHandler::new(PumpHandle::new(remote_messages_send.clone()));
+        let messages = StoreMqttEventHandler::new(remote_store.clone(), topic_filters);
+        let handler = LocalUpstreamMqttEventHandler::new(messages, rpc);
 
         let config = self.local.client.take().expect("local client config");
         let client = MqttClient::tcp(config, handler);
@@ -117,10 +118,10 @@ where
         let (subscriptions, topic_filters) = make_topics(&self.remote.rules)?;
 
         let rpc_subscriptions = RpcSubscriptions::default();
-        let rpc = RemoteRpcHandler::new(rpc_subscriptions.clone(), local_pump.handle());
-        let messages = MessageHandler::new(local_store, topic_filters);
-        let connectivity = ConnectivityHandler::new(PumpHandle::new(local_messages_send));
-        let handler = RemoteUpstreamHandler::new(messages, rpc, connectivity);
+        let rpc = RemoteRpcMqttEventHandler::new(rpc_subscriptions.clone(), local_pump.handle());
+        let messages = StoreMqttEventHandler::new(local_store, topic_filters);
+        let connectivity = ConnectivityMqttEventHandler::new(PumpHandle::new(local_messages_send));
+        let handler = RemoteUpstreamMqttEventHandler::new(messages, rpc, connectivity);
 
         let config = self.remote.client.take().expect("remote client config");
         let client = MqttClient::tls(config, handler);

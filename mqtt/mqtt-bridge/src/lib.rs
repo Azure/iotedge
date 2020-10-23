@@ -8,8 +8,7 @@
     clippy::use_self,
     clippy::match_same_arms,
     clippy::must_use_candidate,
-    clippy::missing_errors_doc,
-    clippy::default_trait_access // TODO remove when mockall fix released for https://github.com/asomers/mockall/issues/221
+    clippy::missing_errors_doc
 )]
 
 mod bridge;
