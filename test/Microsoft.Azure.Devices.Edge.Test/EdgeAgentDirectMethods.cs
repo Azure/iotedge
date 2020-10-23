@@ -173,8 +173,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             while (true)
             {
+                var request = new
+                {
+                    schemaVersion = "1.0",
+                    correlationId
+                };
+
                 Console.WriteLine("Get Result");
-                var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(correlationId)), token);
+                var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
                 Console.WriteLine("Got Result");
 
                 Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
