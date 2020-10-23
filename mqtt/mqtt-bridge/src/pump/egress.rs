@@ -61,6 +61,9 @@ where
         info!("starting egress publication processing...");
 
         let mut shutdown = shutdown_recv.fuse();
+
+        // Take the stream of loaded messages and convert to a stream of futures which publish.
+        // Then convert to buffered stream so that we can have multiple in-flight and also limit number of publications.
         let loader = store.loader();
         let load_and_publish = loader
             .filter_map(|loaded| async {
