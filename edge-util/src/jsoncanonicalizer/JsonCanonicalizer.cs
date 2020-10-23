@@ -21,13 +21,14 @@ using System.Text;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 
 using Org.Webpki.Es6NumberSerialization;
 
 // JSON canonicalizer for .NET Core
-
 namespace Org.Webpki.JsonCanonicalizer
 {
+    [ExcludeFromCodeCoverage]
     public class JsonCanonicalizer
     {
         StringBuilder buffer;

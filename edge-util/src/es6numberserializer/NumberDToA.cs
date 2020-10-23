@@ -24,6 +24,7 @@
 using System;
 using System.Numerics;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 /// <summary>
@@ -32,6 +33,7 @@ using System.Text;
 
 namespace Org.Webpki.Es6NumberSerialization
 {
+    [ExcludeFromCodeCoverage]
     class NumberDToA {
 
         public const int

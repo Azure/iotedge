@@ -31,6 +31,7 @@
 // Ported to C# from the Mozilla "Rhino" project by Anders Rundgren.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// This is an internal part of a ES6 compatible JSON Number serializer.
@@ -40,6 +41,7 @@ namespace Org.Webpki.Es6NumberSerialization
 {
 
     // Helper functions for doubles.
+    [ExcludeFromCodeCoverage]
     class NumberDoubleHelper
     {
         const long kSignMask = -0x8000000000000000L;

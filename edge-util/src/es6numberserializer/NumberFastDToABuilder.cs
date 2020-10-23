@@ -7,13 +7,14 @@
 // Ported to C# from the Mozilla "Rhino" project by Anders Rundgren.
 
 using System;
-
+using System.Diagnostics.CodeAnalysis;
 /// <summary>
 /// This is an internal part of a ES6 compatible JSON Number serializer.
 /// </summary>
 
 namespace Org.Webpki.Es6NumberSerialization
 {
+    [ExcludeFromCodeCoverage]
     class NumberFastDToABuilder
     {
         // allocate buffer for generated digits + extra notation + padding zeroes

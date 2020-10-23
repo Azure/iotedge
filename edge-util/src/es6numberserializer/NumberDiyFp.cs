@@ -31,6 +31,7 @@
 // Ported to C# from the Mozilla "Rhino" project by Anders Rundgren.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// This is an internal part of a ES6 compatible JSON Number serializer.
@@ -43,6 +44,7 @@ namespace Org.Webpki.Es6NumberSerialization
     // have the most significant bit of the significand set.
     // Multiplication and Subtraction do not normalize their results.
     // DiyFp are not designed to contain special doubles (NaN and Infinity).
+    [ExcludeFromCodeCoverage]
     class NumberDiyFp
     {
 

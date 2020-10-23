@@ -32,6 +32,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// This is an internal part of a ES6 compatible JSON Number serializer.
@@ -39,6 +40,7 @@ using System.Diagnostics;
 
 namespace Org.Webpki.Es6NumberSerialization
 {
+    [ExcludeFromCodeCoverage]
     class NumberCachedPowers
     {
         const double kD_1_LOG2_10 = 0.30102999566398114;  //  1 / lg(10)

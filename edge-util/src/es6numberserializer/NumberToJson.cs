@@ -18,6 +18,7 @@
 // Ported to C# from the Mozilla "Rhino" project by Anders Rundgren.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 /// <summary>
@@ -26,6 +27,7 @@ using System.Text;
 
 namespace Org.Webpki.Es6NumberSerialization
 {
+    [ExcludeFromCodeCoverage]
     public static class NumberToJson
     {
         /*

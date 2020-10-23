@@ -30,6 +30,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 // Ported to C# from the Mozilla "Rhino" project by Anders Rundgren.
 
@@ -39,6 +40,7 @@ using System.Diagnostics;
 
 namespace Org.Webpki.Es6NumberSerialization
 {
+    [ExcludeFromCodeCoverage]
     class NumberFastDToA
     {
         // FastDtoa will produce at most kFastDtoaMaximalLength digits.
