@@ -168,14 +168,6 @@ impl BridgeDiff {
         self
     }
 
-    pub fn has_local_updates(&self) -> bool {
-        self.local_pump_diff.has_updates()
-    }
-
-    pub fn has_remote_updates(&self) -> bool {
-        self.remote_pump_diff.has_updates()
-    }
-
     pub fn local_updates(&self) -> &PumpDiff {
         &self.local_pump_diff
     }
@@ -770,7 +762,7 @@ mod tests {
             .insert("/local/existing/#".to_owned(), existing_rule.clone());
         config_updater
             .current_forwards
-            .insert("/local/existing/#".to_owned(), existing_rule.clone());
+            .insert("/local/existing/#".to_owned(), existing_rule);
 
         let topic_rule1 = r#"{
                 "topic": "existing/#",
@@ -822,7 +814,7 @@ mod tests {
             .insert("/local/existing/#".to_owned(), existing_rule.clone());
         config_updater
             .current_forwards
-            .insert("/local/existing/#".to_owned(), existing_rule.clone());
+            .insert("/local/existing/#".to_owned(), existing_rule);
 
         let topic_rule1 = r#"{
                 "topic": "existing/#",

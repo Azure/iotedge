@@ -33,17 +33,17 @@ impl BridgeHandle {
     }
 
     pub async fn send(&mut self, message: BridgeDiff) -> Result<(), BridgeError> {
-        let has_local_updates = message.has_local_updates();
-        let has_remote_updates = message.has_remote_updates();
         let (local_updates, remote_updates) = message.into_parts();
 
-        if has_local_updates {
+        if local_updates.has_updates() {
+            debug!("sending update to local pump {:?}", local_updates);
             self.local_pump_handle
                 .send(PumpMessage::ConfigurationUpdate(local_updates))
                 .await?;
         }
 
-        if has_remote_updates {
+        if remote_updates.has_updates() {
+            debug!("sending update to remote pump {:?}", remote_updates);
             self.remote_pump_handle
                 .send(PumpMessage::ConfigurationUpdate(remote_updates))
                 .await?;

@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use futures_util::stream::StreamExt;
 use mqtt3::{proto::QoS, proto::SubscribeTo};
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 use super::{PumpHandle, PumpMessage, TopicMapperUpdates};
 
@@ -71,6 +71,10 @@ where
                 PumpMessage::Event(event) => self.handler.handle(event).await,
                 PumpMessage::ConfigurationUpdate(update) => {
                     let (added, removed) = update.into_parts();
+                    debug!(
+                        "received updates added: {:?}, removed: {:?}",
+                        added, removed
+                    );
 
                     for sub in removed {
                         let subscribe_to = sub.subscribe_to();

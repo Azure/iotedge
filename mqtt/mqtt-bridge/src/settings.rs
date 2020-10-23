@@ -86,7 +86,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
                     == "true"
             })
             .map(|nested_bridge| ConnectionSettings {
-                name: "upstream".into(),
+                name: "$upstream".into(),
                 address: format!(
                     "{}:{}",
                     nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
