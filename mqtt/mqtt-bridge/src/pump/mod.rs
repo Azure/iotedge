@@ -3,6 +3,8 @@ mod egress;
 mod ingress;
 mod messages;
 
+use std::{collections::HashMap, sync::Arc};
+
 pub use builder::Builder;
 use egress::Egress;
 use ingress::Ingress;
@@ -10,14 +12,16 @@ use messages::MessagesProcessor;
 pub use messages::PumpMessageHandler;
 
 use mockall::automock;
+use parking_lot::Mutex;
 use tokio::{join, pin, select, sync::mpsc};
 use tracing::{error, info};
 
 use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientExt, MqttEventHandler},
+    config_update::PumpDiff,
+    messages::TopicMapper,
     persist::{PublicationStore, StreamWakeableState},
-    settings::ConnectionSettings,
 };
 
 #[cfg(test)]
@@ -48,7 +52,6 @@ pub struct Pump<S, H, M>
 where
     M: PumpMessageHandler,
 {
-    subscriptions: Vec<String>,
     messages_send: mpsc::Sender<PumpMessage<M::Message>>,
     messages: MessagesProcessor<M>,
     egress: Egress<S>,
@@ -66,7 +69,6 @@ where
     fn new(
         messages_send: mpsc::Sender<PumpMessage<M::Message>>,
         client: MqttClient<H>,
-        subscriptions: Vec<String>,
         store: PublicationStore<S>,
         messages: MessagesProcessor<M>,
     ) -> Result<Self, BridgeError> {
@@ -79,7 +81,6 @@ where
         let ingress = Ingress::new(client, client_shutdown);
 
         Ok(Self {
-            subscriptions,
             messages_send,
             messages,
             egress,
@@ -90,16 +91,6 @@ where
     /// Returns a handle to send control messages to a pump.
     pub fn handle(&self) -> PumpHandle<M::Message> {
         PumpHandle::new(self.messages_send.clone())
-    }
-
-    pub async fn subscribe(&mut self) -> Result<(), BridgeError> {
-        self.ingress
-            .client()
-            .subscribe(&self.subscriptions) //TODO react on PumpMessage::ConfigurationUpdate instead
-            .await
-            .map_err(BridgeError::Subscribe)?;
-
-        Ok(())
     }
 
     /// Orchestrates starting of egress, ingress and controll messages
@@ -155,7 +146,7 @@ where
 #[derive(Debug, PartialEq)]
 pub enum PumpMessage<E> {
     Event(E),
-    ConfigurationUpdate(ConnectionSettings),
+    ConfigurationUpdate(PumpDiff),
     Shutdown,
 }
 
@@ -174,5 +165,30 @@ impl<M: 'static> PumpHandle<M> {
     /// Sends a control message to a pump.
     pub async fn send(&mut self, message: PumpMessage<M>) -> Result<(), PumpError> {
         self.sender.send(message).await.map_err(|_| PumpError)
+    }
+}
+
+#[derive(Clone)]
+pub struct TopicMapperUpdates(Arc<Mutex<HashMap<String, TopicMapper>>>);
+
+impl TopicMapperUpdates {
+    pub fn new(mappings: HashMap<String, TopicMapper>) -> Self {
+        Self(Arc::new(Mutex::new(mappings)))
+    }
+
+    pub fn insert(&self, topic_filter: &str, mapper: TopicMapper) -> Option<TopicMapper> {
+        self.0.lock().insert(topic_filter.into(), mapper)
+    }
+
+    pub fn remove(&self, topic_filter: &str) -> Option<TopicMapper> {
+        self.0.lock().remove(topic_filter)
+    }
+
+    pub fn get(&self, topic_filter: &str) -> Option<TopicMapper> {
+        self.0.lock().get(topic_filter).cloned()
+    }
+
+    pub fn contains_key(&self, topic_filter: &str) -> bool {
+        self.0.lock().contains_key(topic_filter)
     }
 }

@@ -86,7 +86,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
                     == "true"
             })
             .map(|nested_bridge| ConnectionSettings {
-                name: "upstream".into(),
+                name: "$upstream".into(),
                 address: format!(
                     "{}:{}",
                     nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
@@ -138,12 +138,9 @@ impl ConnectionSettings {
     pub fn subscriptions(&self) -> Vec<TopicRule> {
         self.subscriptions
             .iter()
-            .filter_map(|sub| {
-                if let Direction::Out(topic) = sub {
-                    Some(topic.clone())
-                } else {
-                    None
-                }
+            .filter_map(|sub| match sub {
+                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
+                _ => None,
             })
             .collect()
     }
@@ -151,12 +148,9 @@ impl ConnectionSettings {
     pub fn forwards(&self) -> Vec<TopicRule> {
         self.subscriptions
             .iter()
-            .filter_map(|sub| {
-                if let Direction::In(topic) = sub {
-                    Some(topic.clone())
-                } else {
-                    None
-                }
+            .filter_map(|sub| match sub {
+                Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
+                _ => None,
             })
             .collect()
     }
@@ -278,6 +272,14 @@ impl TopicRule {
     pub fn in_prefix(&self) -> Option<&str> {
         self.in_prefix.as_deref()
     }
+
+    pub fn subscribe_to(&self) -> String {
+        if let Some(local) = &self.in_prefix {
+            format!("{}/{}", local, self.topic)
+        } else {
+            self.topic.clone()
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -288,6 +290,9 @@ pub enum Direction {
 
     #[serde(rename = "out")]
     Out(TopicRule),
+
+    #[serde(rename = "both")]
+    Both(TopicRule),
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -333,7 +338,7 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let upstream = settings.upstream().unwrap();
 
-        assert_eq!(upstream.name(), "upstream");
+        assert_eq!(upstream.name(), "$upstream");
         assert_eq!(upstream.address(), "edge1:8883");
 
         match upstream.credentials() {
@@ -415,7 +420,7 @@ mod tests {
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();
 
-        assert_eq!(upstream.name(), "upstream");
+        assert_eq!(upstream.name(), "$upstream");
         assert_eq!(upstream.address(), "upstream:8883");
 
         match upstream.credentials() {

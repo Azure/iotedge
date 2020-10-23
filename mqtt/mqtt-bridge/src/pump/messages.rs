@@ -1,9 +1,19 @@
+use std::convert::TryInto;
+
 use async_trait::async_trait;
 use futures_util::stream::StreamExt;
+use mqtt3::{proto::QoS, proto::SubscribeTo};
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
-use super::{PumpHandle, PumpMessage};
+use super::{PumpHandle, PumpMessage, TopicMapperUpdates};
+
+// Import and use mocks when run tests, real implementation when otherwise
+#[cfg(test)]
+pub use crate::client::MockUpdateSubscriptionHandle as UpdateSubscriptionHandle;
+
+#[cfg(not(test))]
+use crate::client::UpdateSubscriptionHandle;
 
 /// A trait for all custom pump event handlers.
 #[async_trait]
@@ -23,6 +33,8 @@ where
     messages: mpsc::Receiver<PumpMessage<M::Message>>,
     pump_handle: Option<PumpHandle<M::Message>>,
     handler: M,
+    subscription_handle: UpdateSubscriptionHandle,
+    topic_mappers_updates: TopicMapperUpdates,
 }
 
 impl<M> MessagesProcessor<M>
@@ -34,11 +46,15 @@ where
         handler: M,
         messages: mpsc::Receiver<PumpMessage<M::Message>>,
         pump_handle: PumpHandle<M::Message>,
+        subscription_handle: UpdateSubscriptionHandle,
+        topic_mappers_updates: TopicMapperUpdates,
     ) -> Self {
         Self {
             messages,
             pump_handle: Some(pump_handle),
             handler,
+            subscription_handle,
+            topic_mappers_updates,
         }
     }
 
@@ -53,7 +69,60 @@ where
         while let Some(message) = self.messages.next().await {
             match message {
                 PumpMessage::Event(event) => self.handler.handle(event).await,
-                PumpMessage::ConfigurationUpdate(_) => {}
+                PumpMessage::ConfigurationUpdate(update) => {
+                    let (added, removed) = update.into_parts();
+                    debug!(
+                        "received updates added: {:?}, removed: {:?}",
+                        added, removed
+                    );
+
+                    for sub in removed {
+                        let subscribe_to = sub.subscribe_to();
+                        let unsubscribe_result = self
+                            .subscription_handle
+                            .unsubscribe(subscribe_to.clone())
+                            .await;
+
+                        match unsubscribe_result {
+                            Ok(_) => {
+                                self.topic_mappers_updates.remove(&subscribe_to);
+                            }
+                            Err(e) => {
+                                error!(
+                                    "Failed to send unsubscribe update for {}. {}",
+                                    subscribe_to, e
+                                );
+                            }
+                        }
+                    }
+
+                    for sub in added {
+                        let subscribe_to = sub.subscribe_to();
+                        let subscribe_result = self
+                            .subscription_handle
+                            .subscribe(SubscribeTo {
+                                topic_filter: subscribe_to.clone(),
+                                qos: QoS::AtLeastOnce, // TODO: get from config
+                            })
+                            .await;
+
+                        match subscribe_result {
+                            Ok(_) => match sub.to_owned().try_into() {
+                                Ok(mapper) => {
+                                    self.topic_mappers_updates.insert(&subscribe_to, mapper);
+                                }
+                                Err(e) => {
+                                    error!("topic rule could not be parsed {}. {}", subscribe_to, e)
+                                }
+                            },
+                            Err(e) => error!(
+                                "Failed to send subscribe update for {}. {}",
+                                sub.subscribe_to(),
+                                e
+                            ),
+                        }
+                    }
+                }
                 PumpMessage::Shutdown => {
                     info!("stop requested");
                     break;
