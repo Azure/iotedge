@@ -4,12 +4,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Dynamic;
     using System.IO;
+    using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client.Common;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -26,17 +29,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string GetTwinTemplate = "$iothub/{0}/twin/get/?$rid={1}";
         const string UpdateReportedTemplate = "$iothub/{0}/twin/reported/?$rid={1}";
         const string DirectMethodResponseTemplate = "$iothub/{0}/methods/res/{1}/?$rid={2}";
-        const string RpcTopicTemplate = "$edgehub/rpc/{0}";
+        const string RpcTopicTemplate = "$upstream/rpc/{0}";
 
         const string RpcVersion = "v1";
         const string RpcCmdSub = "sub";
         const string RpcCmdUnsub = "unsub";
         const string RpcCmdPub = "pub";
 
-        const string RpcAckPattern = @"^\$downstream/rpc/ack/(?<cmd>[^/\+\#]+)/(?<guid>[^/\+\#]+)";
+        const string RpcAckPattern = @"^\$downstream/rpc/ack/(?<guid>[^/\+\#]+)";
         const string TwinGetResponsePattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/(?<res>.+)/\?\$rid=(?<rid>.+)";
         const string TwinSubscriptionForPatchPattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\?\$version=(?<version>.+)";
         const string MethodCallPattern = @"^\$downstream/(?<id1>[^/\+\#]+)/methods/post/(?<mname>[^/\+\#]+)/\?\$rid=(?<rid>.+)";
+
+        const string DownstreamTopic = "$downstream/#";
+        const string ConnectivityTopic = "$internal/connectivity";
 
         readonly TimeSpan responseTimeout = TimeSpan.FromSeconds(30); // TODO should come from configuration
         readonly byte[] emptyArray = new byte[0];
@@ -49,7 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         ConcurrentDictionary<Guid, TaskCompletionSource<bool>> pendingRpcs = new ConcurrentDictionary<Guid, TaskCompletionSource<bool>>();
         ConcurrentDictionary<long, TaskCompletionSource<IMessage>> pendingTwinRequests = new ConcurrentDictionary<long, TaskCompletionSource<IMessage>>();
 
-        public IReadOnlyCollection<string> Subscriptions => new string[] { "$downstream/#" };
+        public event Action<CloudConnectionStatus> ConnectionStatusChangedEvent;
+
+        public IReadOnlyCollection<string> Subscriptions => new string[] { DownstreamTopic, ConnectivityTopic };
 
         public void BindEdgeHub(IEdgeHub edgeHub)
         {
@@ -65,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 var match = Regex.Match(publishInfo.Topic, RpcAckPattern);
                 if (match.Success)
                 {
-                    this.HandleRpcAck(match.Groups["guid"].Value, match.Groups["cmd"].Value);
+                    this.HandleRpcAck(match.Groups["guid"].Value);
                     return Task.FromResult(true);
                 }
 
@@ -87,6 +95,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 if (match.Success)
                 {
                     this.HandleDirectMethodCall(this.GetIdFromMatch(match), match.Groups["mname"].Value, match.Groups["rid"].Value, publishInfo.Payload);
+                    return Task.FromResult(true);
+                }
+
+                if (ConnectivityTopic.Equals(publishInfo.Topic))
+                {
+                    this.HandleConnectivityEvent(publishInfo.Payload);
                     return Task.FromResult(true);
                 }
             }
@@ -210,35 +224,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return taskCompletion.Task.Result;
         }
 
-        void HandleRpcAck(string ackedGuid, string cmd)
+        void HandleRpcAck(string ackedGuid)
         {
-            switch (cmd)
+            if (!Guid.TryParse(ackedGuid, out var guid))
             {
-                case RpcCmdPub:
-                case RpcCmdSub:
-                case RpcCmdUnsub:
-                    {
-                        if (!Guid.TryParse(ackedGuid, out var guid))
-                        {
-                            Events.CannotParseGuid(ackedGuid);
-                            return;
-                        }
+                Events.CannotParseGuid(ackedGuid);
+                return;
+            }
 
-                        if (this.pendingRpcs.TryRemove(guid, out var tsc))
-                        {
-                            tsc.SetResult(true);
-                        }
-                        else
-                        {
-                            Events.CannotFindGuid(ackedGuid);
-                        }
-                    }
-
-                    break;
-
-                default:
-                    Events.UnknownAckType(cmd, ackedGuid);
-                    break;
+            if (this.pendingRpcs.TryRemove(guid, out var tsc))
+            {
+                tsc.SetResult(true);
+            }
+            else
+            {
+                Events.CannotFindGuid(ackedGuid);
             }
         }
 
@@ -403,6 +403,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return stream.ToArray();
         }
 
+        void HandleConnectivityEvent(byte[] payload)
+        {
+            try
+            {
+                var payloadAsString = Encoding.UTF8.GetString(payload);
+                var connectivityEvent = JsonConvert.DeserializeObject<ExpandoObject>(payloadAsString) as IDictionary<string, object>;
+
+                var status = default(object);
+                if (connectivityEvent.TryGetValue("status", out status))
+                {
+                    var statusAsString = status as string;
+                    if (statusAsString != null)
+                    {
+                        switch (statusAsString)
+                        {
+                            case "Connected":
+                                this.CallConnectivityHandlers(true);
+                                break;
+
+                            case "Disconnected":
+                                this.CallConnectivityHandlers(false);
+                                break;
+
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorParsingConnectivityEvent(ex);
+            }
+        }
+
+        void CallConnectivityHandlers(bool isConnected)
+        {
+            var currentHandlers = this.ConnectionStatusChangedEvent.GetInvocationList();
+
+            foreach (var handler in currentHandlers)
+            {
+                try
+                {
+                    handler.DynamicInvoke(isConnected ? CloudConnectionStatus.ConnectionEstablished : CloudConnectionStatus.Disconnected);
+                }
+                catch (Exception ex)
+                {
+                    // ignore and go on
+                    Events.ErrorDispatchingConnectivityEvent(ex);
+                }
+            }
+        }
+
         long GetRid() => Interlocked.Increment(ref this.lastRid);
 
         static string GetPropertyBag(IMessage message)
@@ -453,14 +506,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             ErrorHandlingDownstreamMessage,
             CannotParseGuid,
             CannotFindGuid,
-            UnknownAckType,
 
             SendingOpenNotificationForClient,
             SentOpenNotificationForClient,
             ErrorSendingOpenNotificationForClient,
             SendingCloseNotificationForClient,
             SentCloseNotificationForClient,
-            ErrorSendingCloseNotificationForClient
+            ErrorSendingCloseNotificationForClient,
+            ErrorParsingConnectivityEvent,
+            ErrorDispatchingConnectivityEvent
         }
 
         public static void GettingTwin(string id, long rid) => Log.LogDebug((int)EventIds.GettingTwin, $"Getting twin for client: {id} with request id: {rid}");
@@ -492,6 +546,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public static void ErrorHandlingDownstreamMessage(string topic, Exception e) => Log.LogError((int)EventIds.ErrorHandlingDownstreamMessage, e, $"Error handling downstream message on topic: {topic}");
         public static void CannotParseGuid(string guid) => Log.LogError((int)EventIds.CannotParseGuid, $"Cannot parse guid: {guid}");
         public static void CannotFindGuid(string guid) => Log.LogError((int)EventIds.CannotFindGuid, $"Cannot find guid to ACK: {guid}");
-        public static void UnknownAckType(string cmd, string guid) => Log.LogError((int)EventIds.UnknownAckType, $"Unknown ack type: {cmd} with guid: {guid}");
+        public static void ErrorParsingConnectivityEvent(Exception ex) => Log.LogError((int)EventIds.ErrorParsingConnectivityEvent, ex, "Error parsing connectivity event");
+        public static void ErrorDispatchingConnectivityEvent(Exception ex) => Log.LogError((int)EventIds.ErrorDispatchingConnectivityEvent, ex, "Error dispatching connectivity event");
     }
 }
