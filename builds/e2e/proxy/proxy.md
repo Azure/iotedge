@@ -71,7 +71,7 @@ To install and configure Azure Pipelines agent, see [Self-hosted Linux Agents](h
 > - The _fully-qualified_ name of the proxy VM, e.g. `http://e2e-piaj2z37enpb4-proxy-vm.e0gkjhpfr5quzatbjwfoss05vh.xx.internal.cloudapp.net:3128`, or
 > - The private IP address of the proxy VM, e.g. `http://10.0.0.4:3128`
 >
-> The end-to-end tests get the proxy URL from the agent (via the predefined variable `$(Agent.ProxyUrl)`). Therefore, when you configure the agent you must give it one of the two proxy URLs defined above (using either the fully-qualified name or the IP address). For example, To pass the fully-qualifed name during agent installation on a runner VM:
+> The end-to-end tests get the proxy URL from the agent (via the predefined variable `$(Agent.ProxyUrl)`). Therefore, when you configure the agent you must give it one of the two proxy URLs described above (using either the fully-qualified name or the IP address). For example, To pass the fully-qualifed name during agent installation on a runner VM:
 > ```
 > proxy_hostname='<>'
 > proxy_fqdn="http://$proxy_hostname.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
