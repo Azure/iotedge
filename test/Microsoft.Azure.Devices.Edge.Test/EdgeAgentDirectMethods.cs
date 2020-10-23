@@ -146,7 +146,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var request = new ModuleLogsUploadRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text, sasUrl);
 
-            CloudToDeviceMethodResult result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            var payload = JsonConvert.SerializeObject(request);
+            Console.WriteLine(payload);
+
+            CloudToDeviceMethodResult result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
             Console.WriteLine("Upload Request");
 
             var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
