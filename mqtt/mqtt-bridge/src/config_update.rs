@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
+use tracing::debug;
 
 use crate::{bridge::BridgeHandle, controller::Error, settings::Direction, settings::TopicRule};
 
-// Keeps the current subscriptions and forwards and calculates the diff with an BridgeUpdate
-// It is used to send a diff to a BridgeHandle and update itself with latest configuration
+/// Keeps the current subscriptions and forwards and calculates the diff with an BridgeUpdate
+/// It is used to send a diff to a BridgeHandle and update itself with latest configuration
 pub struct ConfigUpdater {
     bridge_handle: BridgeHandle,
     current_subscriptions: HashMap<String, TopicRule>,
@@ -21,8 +22,10 @@ impl ConfigUpdater {
         }
     }
 
-    pub async fn send_update(&mut self, bridge_update: &BridgeUpdate) -> Result<(), Error> {
-        let diff = self.diff(&bridge_update);
+    pub async fn send_update(&mut self, bridge_update: BridgeUpdate) -> Result<(), Error> {
+        let diff = self.diff(bridge_update);
+
+        debug!("sending diff {:?}", diff.clone());
 
         self.bridge_handle.send(diff.clone()).await?;
 
@@ -31,13 +34,12 @@ impl ConfigUpdater {
         Ok(())
     }
 
-    fn diff(&self, bridge_update: &BridgeUpdate) -> BridgeDiff {
-        let local_diff = diff_topic_rules(bridge_update.clone().forwards(), &self.current_forwards);
+    fn diff(&self, bridge_update: BridgeUpdate) -> BridgeDiff {
+        let (forwards, subscriptions) = bridge_update.into_parts();
 
-        let remote_diff = diff_topic_rules(
-            bridge_update.clone().subscriptions(),
-            &self.current_subscriptions,
-        );
+        let local_diff = diff_topic_rules(forwards, &self.current_forwards);
+
+        let remote_diff = diff_topic_rules(subscriptions, &self.current_subscriptions);
 
         BridgeDiff::default()
             .with_local_diff(local_diff)
@@ -130,24 +132,25 @@ impl BridgeUpdate {
         self.endpoint.as_ref()
     }
 
-    pub fn subscriptions(self) -> Vec<TopicRule> {
-        self.subscriptions
-            .iter()
-            .filter_map(|sub| match sub {
-                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
-                _ => None,
-            })
-            .collect()
-    }
-
-    pub fn forwards(self) -> Vec<TopicRule> {
-        self.subscriptions
+    pub fn into_parts(self) -> (Vec<TopicRule>, Vec<TopicRule>) {
+        let forwards = self
+            .subscriptions
             .iter()
             .filter_map(|sub| match sub {
                 Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
                 _ => None,
             })
-            .collect()
+            .collect();
+        let subscriptions = self
+            .subscriptions
+            .iter()
+            .filter_map(|sub| match sub {
+                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
+                _ => None,
+            })
+            .collect();
+
+        (forwards, subscriptions)
     }
 }
 
@@ -232,7 +235,7 @@ mod tests {
             endpoint: "$upstream".to_owned(),
             subscriptions: Vec::new(),
         };
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
         assert_eq!(diff.local_updates(), &PumpDiff::default());
         assert_eq!(diff.remote_updates(), &PumpDiff::default());
@@ -271,7 +274,7 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
         assert_eq!(diff.local_updates(), &PumpDiff::default());
         assert_eq!(diff.remote_updates(), &expected);
@@ -310,7 +313,7 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
         assert_eq!(diff.local_updates(), &expected);
         assert_eq!(diff.remote_updates(), &PumpDiff::default());
@@ -368,7 +371,7 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
         assert_eq!(diff.local_updates(), &expected);
         assert_eq!(diff.remote_updates(), &expected);
@@ -434,7 +437,7 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
         assert_eq!(diff.local_updates(), &expected);
         assert_eq!(diff.remote_updates(), &expected);
@@ -485,7 +488,7 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
         assert_eq!(diff.local_updates(), &PumpDiff::default());
         assert_eq!(diff.remote_updates(), &expected);
@@ -560,7 +563,7 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
         assert_eq!(diff.local_updates(), &expected);
         assert_eq!(diff.remote_updates(), &expected);
@@ -926,8 +929,9 @@ mod tests {
         .unwrap();
 
         assert_eq!(bridge_update.clone().endpoint(), "$upstream");
-        assert_eq!(bridge_update.clone().subscriptions(), vec![sub_rule]);
-        assert_eq!(bridge_update.clone().forwards(), vec![forward_rule]);
+        let (forwards, subscriptions) = bridge_update.to_owned().into_parts();
+        assert_eq!(subscriptions, vec![sub_rule]);
+        assert_eq!(forwards, vec![forward_rule]);
     }
 
     #[test]
@@ -960,7 +964,8 @@ mod tests {
         let bridge_update = updates.first().take().unwrap();
 
         assert_eq!(bridge_update.clone().endpoint(), "$upstream");
-        assert_eq!(bridge_update.clone().subscriptions(), vec![sub_rule]);
-        assert_eq!(bridge_update.clone().forwards(), vec![forward_rule]);
+        let (forwards, subscriptions) = bridge_update.to_owned().into_parts();
+        assert_eq!(subscriptions, vec![sub_rule]);
+        assert_eq!(forwards, vec![forward_rule]);
     }
 }
