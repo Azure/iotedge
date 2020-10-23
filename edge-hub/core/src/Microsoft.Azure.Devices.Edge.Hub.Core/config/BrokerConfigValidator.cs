@@ -92,8 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             foreach (var setting in bridge.Settings)
             {
-                if (string.IsNullOrWhiteSpace(setting.Topic)
-                    || !IsValidTopicFilter(setting.Topic))
+                if (setting.Topic != null
+                    && !IsValidTopicFilter(setting.Topic))
                 {
                     errors.Add($"Bridge {order}: Topic is invalid: {setting.Topic}");
                 }
