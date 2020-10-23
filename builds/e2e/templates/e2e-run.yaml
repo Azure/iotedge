@@ -25,9 +25,6 @@ steps:
   
 - task: PublishTestResults@2
   displayName: Publish test results
-  variables:
-    'agent.disablelogplugin.testfilepublisherplugin': true
-    'agent.disablelogplugin.testresultlogplugin': true
   inputs:
     testRunner: VSTest
     testResultsFiles: '**/*.trx'
