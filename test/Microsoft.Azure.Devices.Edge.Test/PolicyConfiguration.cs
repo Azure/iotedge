@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -25,23 +26,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("experimentalFeatures:enabled", "true"),
                             ("experimentalFeatures:mqttBrokerEnabled", "true"),
-                        });
-                },
-                token);
-
-            EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
-            await edgeHub.WaitForEventsReceivedAsync(deployment.StartTime, token);
-
-            await edgeHub.UpdateDesiredPropertiesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        desired = new
+                        })
+                        .WithDesiredProperties(new Dictionary<string, object>
                         {
-                            mqttBroker = new
+                            ["mqttBroker"] = new
                             {
-                                authorizations = new[]
+                                authorization = new[]
                                 {
                                     new
                                     {
@@ -57,10 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                     }
                                 }
                             }
-                        }
-                    }
+                        });
                 },
                 token);
+
+            EdgeModule edgeHub = deployment.Modules["edgeHub"];
+            await edgeHub.WaitForEventsReceivedAsync(deployment.StartTime, token);
 
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
                 new
