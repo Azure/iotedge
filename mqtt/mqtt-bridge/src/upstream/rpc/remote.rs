@@ -6,7 +6,7 @@ use mqtt3::{proto::Publication, Event, ReceivedPublication, SubscriptionUpdateEv
 use tracing::debug;
 
 use crate::{
-    client::{EventHandler, Handled},
+    client::{Handled, MqttEventHandler},
     pump::PumpHandle,
     pump::PumpMessage,
     upstream::LocalUpstreamPumpEvent,
@@ -24,12 +24,12 @@ use super::{CommandId, RpcError, RpcSubscriptions};
 /// 2. It receives a publication, identifies those which are for `IoTHub`
 /// topics, translates topic and sends a special `PumpMessage` event to
 /// local pump.
-pub struct RemoteRpcHandler {
+pub struct RemoteRpcMqttEventHandler {
     subscriptions: RpcSubscriptions,
     local_pump: RpcPumpHandle,
 }
 
-impl RemoteRpcHandler {
+impl RemoteRpcMqttEventHandler {
     pub fn new(
         subscriptions: RpcSubscriptions,
         local_pump: PumpHandle<LocalUpstreamPumpEvent>,
@@ -109,7 +109,7 @@ impl RemoteRpcHandler {
 }
 
 #[async_trait]
-impl EventHandler for RemoteRpcHandler {
+impl MqttEventHandler for RemoteRpcMqttEventHandler {
     type Error = RpcError;
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
@@ -224,7 +224,7 @@ mod tests {
         subscriptions.insert("3".into(), "/foo/unsubscribed");
 
         let (local_pump, mut rx) = pump::channel();
-        let mut handler = RemoteRpcHandler::new(subscriptions, local_pump);
+        let mut handler = RemoteRpcMqttEventHandler::new(subscriptions, local_pump);
 
         let event = Event::SubscriptionUpdates(vec![
             SubscriptionUpdateEvent::Subscribe(SubscribeTo {
@@ -258,7 +258,7 @@ mod tests {
         subscriptions.insert("1".into(), "/foo/rpc");
 
         let (local_pump, mut rx) = pump::channel();
-        let mut handler = RemoteRpcHandler::new(subscriptions, local_pump);
+        let mut handler = RemoteRpcMqttEventHandler::new(subscriptions, local_pump);
 
         let event = Event::SubscriptionUpdates(vec![
             SubscriptionUpdateEvent::Subscribe(SubscribeTo {
@@ -316,7 +316,7 @@ mod tests {
         let subscriptions = RpcSubscriptions::default();
 
         let (local_pump, mut rx) = pump::channel();
-        let mut handler = RemoteRpcHandler::new(subscriptions, local_pump);
+        let mut handler = RemoteRpcMqttEventHandler::new(subscriptions, local_pump);
 
         let event = Event::Publication(ReceivedPublication {
             topic_name: topic_name.into(),
@@ -340,7 +340,7 @@ mod tests {
         let subscriptions = RpcSubscriptions::default();
 
         let (local_pump, _rx) = pump::channel();
-        let mut handler = RemoteRpcHandler::new(subscriptions, local_pump);
+        let mut handler = RemoteRpcMqttEventHandler::new(subscriptions, local_pump);
 
         let event = Event::Publication(ReceivedPublication {
             topic_name: "/foo".into(),

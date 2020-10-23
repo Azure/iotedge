@@ -7,7 +7,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    client::{EventHandler, Handled},
+    client::{Handled, MqttEventHandler},
     pump::{PumpHandle, PumpMessage},
     upstream::{CommandId, RemoteUpstreamPumpEvent, RpcCommand},
 };
@@ -19,11 +19,11 @@ use super::RpcError;
 ///
 /// It receives RPC commands on a special topic, converts it to a `RpcCommand`
 /// and sends to remote pump as a `PumpMessage`.
-pub struct LocalRpcHandler {
+pub struct LocalRpcMqttEventHandler {
     remote_pump: PumpHandle<RemoteUpstreamPumpEvent>,
 }
 
-impl LocalRpcHandler {
+impl LocalRpcMqttEventHandler {
     /// Creates a new instance of local part of RPC handler.
     pub fn new(remote_pump: PumpHandle<RemoteUpstreamPumpEvent>) -> Self {
         Self { remote_pump }
@@ -31,7 +31,7 @@ impl LocalRpcHandler {
 }
 
 #[async_trait]
-impl EventHandler for LocalRpcHandler {
+impl MqttEventHandler for LocalRpcMqttEventHandler {
     type Error = RpcError;
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
@@ -142,7 +142,7 @@ mod tests {
     #[tokio::test]
     async fn it_handles_rpc_commands() {
         let (pump_handle, mut rx) = crate::pump::channel();
-        let mut handler = LocalRpcHandler::new(pump_handle);
+        let mut handler = LocalRpcMqttEventHandler::new(pump_handle);
 
         let event = command("1", "sub", "/foo", None);
         let res = handler.handle(event).await;
@@ -163,7 +163,7 @@ mod tests {
     #[tokio::test]
     async fn it_skips_when_not_rpc_command() {
         let (pump_handle, _) = crate::pump::channel();
-        let mut handler = LocalRpcHandler::new(pump_handle);
+        let mut handler = LocalRpcMqttEventHandler::new(pump_handle);
 
         let event = Event::Publication(ReceivedPublication {
             topic_name: "$edgehub/twin/$edgeHub".into(),

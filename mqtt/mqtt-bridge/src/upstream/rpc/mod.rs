@@ -11,9 +11,9 @@
 mod local;
 mod remote;
 
-pub use local::LocalRpcHandler;
+pub use local::LocalRpcMqttEventHandler;
 use parking_lot::Mutex;
-pub use remote::{RemoteRpcHandler, RpcPumpHandle};
+pub use remote::{RemoteRpcMqttEventHandler, RpcPumpHandle};
 
 use std::{
     collections::HashMap, fmt::Display, fmt::Formatter, fmt::Result as FmtResult, sync::Arc,

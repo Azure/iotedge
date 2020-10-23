@@ -206,7 +206,10 @@ pub struct MqttClient<H> {
     event_handler: H,
 }
 
-impl<H: EventHandler> MqttClient<H> {
+impl<H> MqttClient<H>
+where
+    H: MqttEventHandler,
+{
     pub fn tcp(config: MqttClientConfig, event_handler: H) -> Self {
         let token_source = Self::token_source(&config.credentials);
         let tcp_connection = TcpConnection::new(config.addr, token_source, None);
@@ -490,7 +493,7 @@ impl UpdateSubscriptionHandle {
 
 /// A trait which every MQTT client event handler implements.
 #[async_trait]
-pub trait EventHandler {
+pub trait MqttEventHandler {
     type Error: Display;
 
     /// Handles MQTT client event and returns marker which determines whether
@@ -498,7 +501,7 @@ pub trait EventHandler {
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error>;
 }
 
-/// An `EventHandler::handle` method result.
+/// An `MqttEventHandler::handle` method result.
 #[derive(Debug, PartialEq)]
 pub enum Handled {
     /// MQTT client event is fully handled.
