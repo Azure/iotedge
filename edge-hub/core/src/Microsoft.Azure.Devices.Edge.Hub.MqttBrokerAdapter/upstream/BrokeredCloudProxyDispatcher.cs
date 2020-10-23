@@ -422,7 +422,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 this.CallConnectivityHandlers(true);
                                 break;
 
-                            case "Disonnected":
+                            case "Disconnected":
                                 this.CallConnectivityHandlers(false);
                                 break;
 
