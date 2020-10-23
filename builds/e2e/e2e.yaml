@@ -99,7 +99,8 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-ubuntu18.04-amd64
-      'agent.disablelogplugin': false
+      'agent.disablelogplugin.testfilepublisherplugin': false
+      'agent.disablelogplugin.testresultlogplugin': false
 
     timeoutInMinutes: 120
 
