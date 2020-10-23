@@ -102,6 +102,8 @@ Included items must then not match any entries in the exclude list to remain inc
                 <Attribute>^System\.Runtime\.CompilerServices.CompilerGeneratedAttribute$</Attribute>
                 <Attribute>^System\.CodeDom\.Compiler.GeneratedCodeAttribute$</Attribute>
                 <Attribute>^System\.Diagnostics\.CodeAnalysis.ExcludeFromCodeCoverageAttribute$</Attribute>
+                <Attribute>^System\.jsoncanonicalizer\.CodeAnalysis.ExcludeFromCodeCoverageAttribute$</Attribute>
+                <Attribute>^System\.es6numberserializer\.CodeAnalysis.ExcludeFromCodeCoverageAttribute$</Attribute>
               </Exclude>
             </Attributes>
 
