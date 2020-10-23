@@ -122,10 +122,11 @@ where
             ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == activity.client_id() => {
-                let iothub_topic_allowed = self.is_iothub_topic_allowed(activity.client_id(), topic);
-                let exists_in_authorized_cache = self.is_iothub_topic_allowed(activity.client_id(), topic);
-                if iothub_topic_allowed && exists_in_authorized_cache
-                {
+                let iothub_topic_allowed =
+                    self.is_iothub_topic_allowed(activity.client_id(), topic);
+                let exists_in_authorized_cache =
+                    self.check_authorized_cache(activity.client_id(), topic);
+                if iothub_topic_allowed && exists_in_authorized_cache {
                     Authorization::Allowed
                 } else {
                     // check if iothub policy is overridden by a custom policy.
@@ -133,7 +134,10 @@ where
                         Authorization::Allowed
                     } else {
                         let iothub_topic_reason = "IoT Hub topic is not allowed. Client must access its own IoT Hub topics only";
-                        let exists_in_cache_reason = "Identity" + identity.to_string() + " does not exist in authorized cache";
+                        let exists_in_cache_reason = format!(
+                            "Identity {0} is not authorized to access topic {1}",
+                            identity, topic
+                        );
                         let reason = "";
                         if !iothub_topic_allowed {
                             reason += iothub_topic_allowed;
@@ -144,9 +148,7 @@ where
                             }
                             reason += exists_in_cache_reason;
                         }
-                        Authorization::Forbidden(
-                            reason,
-                        )
+                        Authorization::Forbidden(reason)
                     }
                 }
             }
