@@ -3,7 +3,7 @@ use futures_util::{
     FutureExt,
 };
 use tokio::{select, sync::oneshot};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 use crate::client::InFlightPublishHandle;
 use crate::persist::{PublicationStore, StreamWakeableState};
@@ -96,6 +96,9 @@ where
                         if let Err(e) = store.remove(sent_pub_key) {
                             error!(err = %e, "failed removing publication from store {:?}", sent_pub_key);
                         }
+                    }
+                    else {
+                        warn!("received empty publish-complete notification");
                     }
                 }
             }
