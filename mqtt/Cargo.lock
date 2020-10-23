@@ -1295,6 +1295,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "tracing-log",
  "tracing-subscriber",
 ]
 
