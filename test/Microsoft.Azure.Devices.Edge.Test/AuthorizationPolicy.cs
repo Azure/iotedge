@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System.Collections.Generic;
@@ -11,10 +11,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using NUnit.Framework;
 
     [EndToEnd]
-    public class PolicyConfiguration : SasManualProvisioningFixture
+    public class AuthorizationPolicy : SasManualProvisioningFixture
     {
         [Test]
-        public async Task PolicyConfigurationTwinUpdate()
+        public async Task AuthorizationPolicyConfigurationTwinUpdate()
         {
             CancellationToken token = this.TestToken;
 
@@ -31,17 +31,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ["mqttBroker"] = new
                             {
-                                authorization = new[]
+                                authorizations = new[]
                                 {
                                     new
                                     {
-                                        identities = new[] { "device1" },
+                                        identities = new[] { "{{iot:identity}}" },
                                         allow = new[]
                                         {
                                             new
                                             {
-                                                operations = new[] { "mqtt:publish" },
-                                                resources = new[] { "topic/a" }
+                                                operations = new[] { "mqtt:connect" }
                                             }
                                         }
                                     }
@@ -51,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-            EdgeModule edgeHub = deployment.Modules["edgeHub"];
+            EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
                 new
                 {
