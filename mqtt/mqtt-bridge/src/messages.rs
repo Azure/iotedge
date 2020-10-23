@@ -7,7 +7,7 @@ use tracing::{debug, warn};
 
 use crate::{
     bridge::BridgeError,
-    client::{EventHandler, Handled},
+    client::{Handled, MqttEventHandler},
     persist::{PublicationStore, StreamWakeableState},
     settings::TopicRule,
 };
@@ -34,13 +34,14 @@ impl TryFrom<TopicRule> for TopicMapper {
     }
 }
 
-/// Handle events from client and saves them with the forward topic
-pub struct MessageHandler<S> {
+/// Handles MQTT events received by MQTT client and puts them in the storage
+/// with the forward topic.
+pub struct StoreMqttEventHandler<S> {
     topic_mappers: Vec<TopicMapper>,
     store: PublicationStore<S>,
 }
 
-impl<S> MessageHandler<S> {
+impl<S> StoreMqttEventHandler<S> {
     pub fn new(store: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
         Self {
             topic_mappers,
@@ -73,14 +74,14 @@ impl<S> MessageHandler<S> {
 }
 
 #[async_trait]
-impl<S> EventHandler for MessageHandler<S>
+impl<S> MqttEventHandler for StoreMqttEventHandler<S>
 where
     S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        if let Event::Publication(publication) = event {
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
+        if let Event::Publication(publication) = &event {
             let forward_publication =
                 self.transform(&publication.topic_name)
                     .map(|topic_name| Publication {
@@ -100,7 +101,7 @@ where
             }
         }
 
-        Ok(Handled::Skipped)
+        Ok(Handled::Skipped(event))
     }
 }
 
@@ -116,8 +117,8 @@ mod tests {
     };
     use mqtt_broker::TopicFilter;
 
-    use super::{MessageHandler, TopicMapper};
-    use crate::{client::EventHandler, persist::PublicationStore, settings::BridgeSettings};
+    use super::{StoreMqttEventHandler, TopicMapper};
+    use crate::{client::MqttEventHandler, persist::PublicationStore, settings::BridgeSettings};
 
     #[tokio::test]
     async fn message_handler_saves_message_with_local_and_forward_topic() {
@@ -135,7 +136,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = StoreMqttEventHandler::new(store, topics);
 
         let pub1 = ReceivedPublication {
             topic_name: "local/floor/1".to_string(),
@@ -152,7 +153,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -176,7 +177,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = StoreMqttEventHandler::new(store, topics);
 
         let pub1 = ReceivedPublication {
             topic_name: "temp/1".to_string(),
@@ -193,7 +194,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -217,7 +218,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = StoreMqttEventHandler::new(store, topics);
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -234,7 +235,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -258,7 +259,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, topics);
+        let mut handler = StoreMqttEventHandler::new(store, topics);
 
         let pub1 = ReceivedPublication {
             topic_name: "local/temp/1".to_string(),
@@ -268,7 +269,7 @@ mod tests {
             dup: false,
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
