@@ -51,16 +51,29 @@ az deployment group create --resource-group "$resource_group_name" --name 'e2e-p
 )"
 ```
 
-Once the deployment has completed, you can SSH into the runner VMs to install/configure the Azure Pipelines agent (see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix)). To get the private key for each runner, find the name of the key vault from your deployment, then:
+Once the deployment has completed, SSH into each runner VM to install and configure the Azure Pipelines agent. To SSH into the runner VMs, you must first download their private keys from Key Vault. Find the name of the key vault from your deployment, then list the secret URLs for the private keys:
 
 ```sh
 az keyvault secret list --vault-name '<>' -o tsv --query "[].id|[?contains(@, 'runner-vm')]"
 ```
 
-This will list the secret URLs for the runner VMs. With a secret URL and an IP address, you can SSH into a runner VM like this:
+With a secret URL and an IP address, you can SSH into a runner VM like this:
 
 ```sh
 az keyvault secret show --id '<>' -o tsv --query value > ~/.ssh/id_rsa.runner
 chmod 600 ~/.ssh/id_rsa.runner
 ssh -i ~/.ssh/id_rsa.runner azureuser@<ip addr>
 ```
+
+To install and configure Azure Pipelines agent, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
+
+> Note that the proxy URL required for most operations on the runner VMs is simply the hostname of the proxy server VM, e.g. `http://e2e-piaj2z37enpb4-proxy-vm:3128`. However, operations inside Docker containers on the runner VMs need either:
+> - The _fully-qualified_ name of the proxy VM, e.g. `http://e2e-piaj2z37enpb4-proxy-vm.e0gkjhpfr5quzatbjwfoss05vh.xx.internal.cloudapp.net:3128`, or
+> - The private IP address of the proxy VM, e.g. `http://10.0.0.4:3128`
+>
+> The end-to-end tests get the proxy URL from the agent (via the predefined variable `$(Agent.ProxyUrl)`) and pass it to the tests. Therefore, when you configure the agent you must give it one of the two proxy URLs defined above (using either the fully-qualified name or the IP address). For example, To pass the fully-qualifed name during agent installation on a runner VM:
+> ```
+> proxy_hostname='<>'
+> proxy_fqdn="http://$proxy_hostname.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
+> ./config.sh --proxyurl $proxy_fqdn
+> ```
