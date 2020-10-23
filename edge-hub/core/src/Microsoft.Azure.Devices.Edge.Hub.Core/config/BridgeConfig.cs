@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.Serialization;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
     /// <summary>
     /// Domain object that represents Bridge configuration for MQTT Broker.
@@ -149,10 +151,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         }
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum Direction
     {
+        [EnumMember(Value = "in")]
         In,
+        [EnumMember(Value = "out")]
         Out,
+        [EnumMember(Value = "both")]
         Both
     }
 }
