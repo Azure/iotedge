@@ -2,8 +2,23 @@
     "upstream": {
         "keep_alive": "1m",
         "clean_session": false,
-        "subscriptions": [],
-        "forwards": []
+        "subscriptions": [
+            {
+                "direction": "both",
+                "topic": "temp/#",
+                "outPrefix": "floor/kitchen"
+            },
+            {
+                "direction": "out",
+                "topic": "floor/#",
+                "inPrefix": "local",
+                "outPrefix": "remote"
+            },
+            {
+                "direction": "out",
+                "topic": "pattern/#"
+            }
+        ]
     },
     "remotes": [],
     "messages": {}
