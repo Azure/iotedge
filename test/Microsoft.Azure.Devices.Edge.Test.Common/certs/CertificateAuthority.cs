@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             else
             {
                 // return new CaCertificates(rootCa.Item1, rootCa.Item2, rootCa.Item3);
-                return Task.FromResult<CaCertificates>(((Func<CaCertificates>) (() =>
+                return Task.FromResult<CaCertificates>(((Func<CaCertificates>)(() =>
                 {
                     return new CaCertificates(rootCa.Item1, rootCa.Item2, rootCa.Item3);
                 }))());

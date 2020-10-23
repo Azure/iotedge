@@ -77,13 +77,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 }
                 else
                 {
+                    // BEARWASHERE Fix this
                     // TODO: Figure out a clean way to do the cert pass down from the nested edge.
-                    // In case of the single node scenario, the env var above is used to config the config.yaml, 
+                    // In case of the single node scenario, the env var above is used to config the config.yaml,
                     // but in the current nested edge env setup, the parent node is in charge of providing the
-                    // cert & trusty. 
+                    // cert & trusty.
                     string certificate = Get("deviceCaCert");
                     string key = Get("deviceCaPrivateKey");
-                    trustCert = Get("trustedCaCerts");  // BEARWASHERE Fix this
 
                     if (!string.IsNullOrWhiteSpace(certificate) ||
                         !string.IsNullOrWhiteSpace(key) ||
@@ -97,7 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         return Option.Some((certificate, key, trustCert, keepIdentity));
                     }
                 }
-
 
                 return Option.None<(string, string, string, bool)>();
             }

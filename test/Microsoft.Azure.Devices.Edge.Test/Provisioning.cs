@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task DpsX509()
         {
-            (string, string, string) rootCa =
+            (string, string, string, bool) rootCa =
                         Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
             string caCertScriptPath =
                         Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
