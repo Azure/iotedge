@@ -26,15 +26,15 @@ steps:
 - task: PublishTestResults@2
   displayName: Publish test results
   inputs:
-    testRunner: vstest
+    testRunner: VSTest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/TestResults
     # workaround, disable 'publishRunAttachments' when behind a proxy
     # see https://github.com/microsoft/azure-pipelines-tasks/issues/11831#issuecomment-569325485
     ${{ if not(variables['Agent.ProxyUrl']) }}:
       publishRunAttachments: false
-    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
-    buildPlatform: $(arch)
+    # testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
+    # buildPlatform: $(arch)
   condition: succeededOrFailed()
 
 - pwsh: |
