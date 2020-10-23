@@ -18,7 +18,7 @@ use tracing::{error, info};
 
 use crate::{
     bridge::BridgeError,
-    client::{EventHandler, MqttClient, MqttClientExt},
+    client::{MqttClient, MqttClientExt, MqttEventHandler},
     config_update::PumpDiff,
     messages::TopicMapper,
     persist::{PublicationStore, StreamWakeableState},
@@ -60,7 +60,7 @@ where
 
 impl<S, H, M> Pump<S, H, M>
 where
-    H: EventHandler,
+    H: MqttEventHandler,
     M: PumpMessageHandler,
     M::Message: 'static,
     S: StreamWakeableState,

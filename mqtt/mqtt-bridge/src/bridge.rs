@@ -9,10 +9,11 @@ use crate::{
     persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
     settings::{ConnectionSettings, Credentials},
+    upstream::LocalUpstreamPumpEvent,
+    upstream::RemoteUpstreamPumpEvent,
     upstream::{
-        ConnectivityError, LocalUpstreamHandler, LocalUpstreamPumpEvent,
-        LocalUpstreamPumpEventHandler, RemoteUpstreamHandler, RemoteUpstreamPumpEvent,
-        RemoteUpstreamPumpEventHandler, RpcError,
+        ConnectivityError, LocalUpstreamMqttEventHandler, LocalUpstreamPumpEventHandler,
+        RemoteUpstreamMqttEventHandler, RemoteUpstreamPumpEventHandler, RpcError,
     },
 };
 
@@ -75,8 +76,8 @@ impl BridgeShutdownHandle {
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 pub struct Bridge<S> {
-    local_pump: Pump<S, LocalUpstreamHandler<S>, LocalUpstreamPumpEventHandler>,
-    remote_pump: Pump<S, RemoteUpstreamHandler<S>, RemoteUpstreamPumpEventHandler>,
+    local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
+    remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
     connection_settings: ConnectionSettings,
 }
 

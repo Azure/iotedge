@@ -7,7 +7,7 @@ use tracing::{debug, warn};
 
 use crate::{
     bridge::BridgeError,
-    client::{EventHandler, Handled},
+    client::{Handled, MqttEventHandler},
     persist::{PublicationStore, StreamWakeableState},
     pump::TopicMapperUpdates,
     settings::TopicRule,
@@ -42,13 +42,13 @@ impl TryFrom<TopicRule> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-pub struct MessageHandler<S> {
+pub struct StoreMqttEventHandler<S> {
     topic_mappers: HashMap<String, TopicMapper>,
     topic_mappers_updates: TopicMapperUpdates,
     store: PublicationStore<S>,
 }
 
-impl<S> MessageHandler<S> {
+impl<S> StoreMqttEventHandler<S> {
     pub fn new(store: PublicationStore<S>, topic_mappers_updates: TopicMapperUpdates) -> Self {
         Self {
             topic_mappers: HashMap::new(),
@@ -98,13 +98,13 @@ impl<S> MessageHandler<S> {
 }
 
 #[async_trait]
-impl<S> EventHandler for MessageHandler<S>
+impl<S> MqttEventHandler for StoreMqttEventHandler<S>
 where
     S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         match event {
             Event::Publication(publication) => {
                 let forward_publication =
@@ -132,20 +132,20 @@ where
                             self.update_subscribed(&subscribe_to.topic_filter);
                         }
                         SubscriptionUpdateEvent::Unsubscribe(unsubcribed_from) => {
-                            self.update_unsubscribed(unsubcribed_from);
+                            self.update_unsubscribed(&unsubcribed_from);
                         }
                         SubscriptionUpdateEvent::RejectedByServer(rejected) => {
-                            self.update_subscribed(rejected);
+                            self.update_subscribed(&rejected);
                         }
                     }
                 }
 
-                return Ok(Handled::Partially);
+                return Ok(Handled::Fully);
             }
             Event::NewConnection { reset_session: _ } | Event::Disconnected(_) => {}
         }
 
-        Ok(Handled::Skipped)
+        Ok(Handled::Skipped(event))
     }
 }
 
@@ -160,15 +160,15 @@ mod tests {
     use std::{collections::HashMap, str::FromStr};
 
     use mqtt3::{
-        proto::SubscribeTo,
-        proto::{Publication, QoS},
+        proto::{Publication, QoS, SubscribeTo},
         Event, ReceivedPublication, SubscriptionUpdateEvent,
     };
     use mqtt_broker::TopicFilter;
 
-    use super::{MessageHandler, TopicMapper};
+    use super::{StoreMqttEventHandler, TopicMapper};
+
     use crate::{
-        client::EventHandler, persist::PublicationStore, pump::TopicMapperUpdates,
+        client::MqttEventHandler, persist::PublicationStore, pump::TopicMapperUpdates,
         settings::BridgeSettings,
     };
 
@@ -193,10 +193,10 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         handler
-            .handle(&Event::SubscriptionUpdates(vec![
+            .handle(Event::SubscriptionUpdates(vec![
                 SubscriptionUpdateEvent::Subscribe(SubscribeTo {
                     topic_filter: "local/floor/#".to_string(),
                     qos: QoS::AtLeastOnce,
@@ -215,10 +215,10 @@ mod tests {
         let topics = HashMap::new();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         handler
-            .handle(&Event::SubscriptionUpdates(vec![
+            .handle(Event::SubscriptionUpdates(vec![
                 SubscriptionUpdateEvent::Subscribe(SubscribeTo {
                     topic_filter: "local/floor/#".to_string(),
                     qos: QoS::AtLeastOnce,
@@ -251,7 +251,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/floor/1".to_string(),
@@ -269,7 +269,7 @@ mod tests {
         };
 
         handler
-            .handle(&Event::SubscriptionUpdates(vec![
+            .handle(Event::SubscriptionUpdates(vec![
                 SubscriptionUpdateEvent::Subscribe(SubscribeTo {
                     topic_filter: "local/floor/#".to_string(),
                     qos: QoS::AtLeastOnce,
@@ -277,7 +277,7 @@ mod tests {
             ]))
             .await
             .unwrap();
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -306,7 +306,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "temp/1".to_string(),
@@ -324,7 +324,7 @@ mod tests {
         };
 
         handler
-            .handle(&Event::SubscriptionUpdates(vec![
+            .handle(Event::SubscriptionUpdates(vec![
                 SubscriptionUpdateEvent::Subscribe(SubscribeTo {
                     topic_filter: "temp/#".to_string(),
                     qos: QoS::AtLeastOnce,
@@ -332,7 +332,7 @@ mod tests {
             ]))
             .await
             .unwrap();
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -361,7 +361,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -379,7 +379,7 @@ mod tests {
         };
 
         handler
-            .handle(&Event::SubscriptionUpdates(vec![
+            .handle(Event::SubscriptionUpdates(vec![
                 SubscriptionUpdateEvent::Subscribe(SubscribeTo {
                     topic_filter: "pattern/#".to_string(),
                     qos: QoS::AtLeastOnce,
@@ -388,7 +388,7 @@ mod tests {
             .await
             .unwrap();
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -417,7 +417,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/temp/1".to_string(),
@@ -428,7 +428,7 @@ mod tests {
         };
 
         handler
-            .handle(&Event::SubscriptionUpdates(vec![
+            .handle(Event::SubscriptionUpdates(vec![
                 SubscriptionUpdateEvent::Subscribe(SubscribeTo {
                     topic_filter: "local/temp/#".to_string(),
                     qos: QoS::AtLeastOnce,
@@ -436,7 +436,7 @@ mod tests {
             ]))
             .await
             .unwrap();
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
@@ -467,7 +467,7 @@ mod tests {
             .collect();
 
         let store = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(store, TopicMapperUpdates::new(topics));
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -477,7 +477,7 @@ mod tests {
             dup: false,
         };
 
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();
 

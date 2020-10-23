@@ -203,7 +203,10 @@ pub struct MqttClient<H> {
     event_handler: H,
 }
 
-impl<H: EventHandler> MqttClient<H> {
+impl<H> MqttClient<H>
+where
+    H: MqttEventHandler,
+{
     pub fn tcp(config: MqttClientConfig, event_handler: H) -> Self {
         let token_source = Self::token_source(&config.credentials);
         let tcp_connection = TcpConnection::new(config.addr, token_source, None);
@@ -303,8 +306,8 @@ impl<H: EventHandler> MqttClient<H> {
             None
         }) {
             debug!("handling event {:?}", event);
-            if let Err(e) = self.event_handler.handle(&event).await {
-                error!(err = %e, "error processing event {:?}", event);
+            if let Err(e) = self.event_handler.handle(event).await {
+                error!(err = %e, "error processing event");
             }
         }
     }
@@ -439,25 +442,26 @@ impl UpdateSubscriptionHandle {
 
 /// A trait which every MQTT client event handler implements.
 #[async_trait]
-pub trait EventHandler {
+pub trait MqttEventHandler {
     type Error: Display;
 
     /// Handles MQTT client event and returns marker which determines whether
     /// an event handler fully handled an event.
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error>;
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error>;
 }
 
-/// An `EventHandler::handle` method result.
+/// An `MqttEventHandler::handle` method result.
 #[derive(Debug, PartialEq)]
 pub enum Handled {
     /// MQTT client event is fully handled.
     Fully,
 
-    /// MQTT client event is partially handled.
-    Partially,
+    /// MQTT client event is partially handled. It contains modified event.
+    Partially(Event),
 
     /// Unknown MQTT client event so event handler skipped the event.
-    Skipped,
+    /// It contains not modified event.
+    Skipped(Event),
 }
 
 #[derive(Debug, thiserror::Error)]

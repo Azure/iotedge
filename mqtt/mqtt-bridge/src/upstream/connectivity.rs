@@ -7,7 +7,7 @@ use tracing::{debug, info};
 use mqtt3::Event;
 
 use crate::{
-    client::{EventHandler, Handled},
+    client::{Handled, MqttEventHandler},
     pump::{PumpError, PumpHandle, PumpMessage},
 };
 
@@ -29,14 +29,14 @@ impl Display for ConnectivityState {
 }
 
 /// Handles connection and disconnection events and sends a notification when status changes
-pub struct ConnectivityHandler {
+pub struct ConnectivityMqttEventHandler {
     state: ConnectivityState,
     sender: PumpHandle<LocalUpstreamPumpEvent>,
 }
 
-impl ConnectivityHandler {
+impl ConnectivityMqttEventHandler {
     pub fn new(sender: PumpHandle<LocalUpstreamPumpEvent>) -> Self {
-        ConnectivityHandler {
+        ConnectivityMqttEventHandler {
             state: ConnectivityState::Disconnected,
             sender,
         }
@@ -44,11 +44,11 @@ impl ConnectivityHandler {
 }
 
 #[async_trait]
-impl EventHandler for ConnectivityHandler {
+impl MqttEventHandler for ConnectivityMqttEventHandler {
     type Error = ConnectivityError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        match event {
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
+        let event = match event {
             Event::Disconnected(reason) => {
                 debug!("Received disconnected state {}", reason);
                 match self.state {
@@ -91,10 +91,10 @@ impl EventHandler for ConnectivityHandler {
                 return Ok(Handled::Fully);
             }
 
-            _ => {}
-        }
+            event => event,
+        };
 
-        Ok(Handled::Skipped)
+        Ok(Handled::Skipped(event))
     }
 }
 
@@ -104,6 +104,7 @@ pub struct ConnectivityError(#[from] PumpError);
 
 #[cfg(test)]
 mod tests {
+    use matches::assert_matches;
     use mqtt3::{proto::QoS, proto::SubscribeTo, ConnectionError, Event, SubscriptionUpdateEvent};
     use tokio::sync::mpsc::error::TryRecvError;
 
@@ -118,11 +119,11 @@ mod tests {
     async fn sends_connected_state() {
         let (handle, mut connectivity_receiver) = pump::channel();
 
-        let mut ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityMqttEventHandler::new(handle);
         let event = Event::NewConnection {
             reset_session: true,
         };
-        let res = ch.handle(&event).await.unwrap();
+        let res = ch.handle(event).await.unwrap();
 
         let msg = connectivity_receiver.try_recv().unwrap();
         assert_eq!(
@@ -139,10 +140,10 @@ mod tests {
     async fn sends_disconnected_state() {
         let (handle, mut connectivity_receiver) = pump::channel();
 
-        let mut ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityMqttEventHandler::new(handle);
 
         let res_connected = ch
-            .handle(&Event::NewConnection {
+            .handle(Event::NewConnection {
                 reset_session: true,
             })
             .await
@@ -150,9 +151,7 @@ mod tests {
         let _msg = connectivity_receiver.try_recv().unwrap();
 
         let res_disconnected = ch
-            .handle(&Event::Disconnected(
-                ConnectionError::ServerClosedConnection,
-            ))
+            .handle(Event::Disconnected(ConnectionError::ServerClosedConnection))
             .await
             .unwrap();
 
@@ -173,17 +172,17 @@ mod tests {
     async fn not_sends_connected_state_when_already_connected() {
         let (handle, mut connectivity_receiver) = pump::channel();
 
-        let mut ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityMqttEventHandler::new(handle);
 
         let res_connected1 = ch
-            .handle(&Event::NewConnection {
+            .handle(Event::NewConnection {
                 reset_session: true,
             })
             .await
             .unwrap();
 
         let res_connected2 = ch
-            .handle(&Event::NewConnection {
+            .handle(Event::NewConnection {
                 reset_session: true,
             })
             .await
@@ -201,12 +200,10 @@ mod tests {
     async fn not_sends_disconnected_state_when_already_disconnected() {
         let (handle, mut connectivity_receiver) = pump::channel();
 
-        let mut ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityMqttEventHandler::new(handle);
 
         let res_disconnected = ch
-            .handle(&Event::Disconnected(
-                ConnectionError::ServerClosedConnection,
-            ))
+            .handle(Event::Disconnected(ConnectionError::ServerClosedConnection))
             .await
             .unwrap();
 
@@ -220,7 +217,7 @@ mod tests {
     async fn not_handles_other_events() {
         let (handle, _) = pump::channel();
 
-        let mut ch = ConnectivityHandler::new(handle);
+        let mut ch = ConnectivityMqttEventHandler::new(handle);
 
         let event =
             Event::SubscriptionUpdates(vec![SubscriptionUpdateEvent::Subscribe(SubscribeTo {
@@ -228,16 +225,16 @@ mod tests {
                 qos: QoS::AtLeastOnce,
             })]);
 
-        let res = ch.handle(&event).await.unwrap();
+        let res = ch.handle(event).await.unwrap();
 
-        assert_eq!(res, Handled::Skipped)
+        assert_matches!(res, Handled::Skipped(_))
     }
 
     #[tokio::test]
     async fn default_disconnected_state() {
         let (handle, _) = pump::channel();
 
-        let ch = ConnectivityHandler::new(handle);
+        let ch = ConnectivityMqttEventHandler::new(handle);
 
         assert_eq!(ch.state, ConnectivityState::Disconnected);
     }
