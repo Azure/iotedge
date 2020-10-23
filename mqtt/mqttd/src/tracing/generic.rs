@@ -1,7 +1,7 @@
-use std::io;
-
 use tracing::Level;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{fmt::Subscriber, EnvFilter};
+
+use super::Format;
 
 const BROKER_LOG_LEVEL_ENV: &str = "BROKER_LOG";
 
@@ -10,11 +10,10 @@ pub fn init() {
         .or_else(|_| EnvFilter::try_from_default_env())
         .unwrap_or_else(|_| EnvFilter::new("info"));
 
-    let subscriber = fmt::Subscriber::builder()
-        .with_ansi(atty::is(atty::Stream::Stderr))
+    let subscriber = Subscriber::builder()
         .with_max_level(Level::TRACE)
-        .with_writer(io::stderr)
         .with_env_filter(log_level)
+        .on_event(Format::default())
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 }
