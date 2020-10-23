@@ -3,7 +3,7 @@ This file documents how to set up a proxy environment in Azure for our E2E tests
 The environment includes:
 - A proxy server VM - full network connectivity, runs an HTTP proxy server (squid).
 - One or more proxy client VMs (aka "runners") - no internet-bound network connectivity except through the proxy server.
-- A Key Vault that contains the private keys used to SSH into the runner VMs.
+- A Key Vault that contains the private keys used to SSH into the VMs.
 
 After installing the Azure CLI, enter the following commands to deploy and configure the VMs:
 
