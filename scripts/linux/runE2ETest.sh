@@ -14,7 +14,6 @@ function clean_up() {
     systemctl stop iotedge || true
 
     echo 'Remove IoT Edge and config file'
-    apt-get purge libiothsm-std --yes || true
     rm -rf /var/lib/iotedge/
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
