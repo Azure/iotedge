@@ -1,7 +1,5 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::{
-    collections::HashSet, fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration,
-};
+use std::{fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -9,12 +7,11 @@ use futures_util::future::{self, BoxFuture};
 use mockall::automock;
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 use mqtt3::{
     proto::{self, Publication, SubscribeTo},
-    Client, Event, IoSource, PublishError, ShutdownError, SubscriptionUpdateEvent,
-    UpdateSubscriptionError,
+    Client, Event, IoSource, PublishError, ShutdownError, UpdateSubscriptionError,
 };
 
 use crate::{
@@ -327,54 +324,6 @@ where
             self.client
                 .subscribe(subscription)
                 .map_err(ClientError::Subscribe)?;
-        }
-
-        let mut subacks: HashSet<_> = topics.iter().collect();
-        if subacks.is_empty() {
-            info!("has no topics to subscribe to");
-            return Ok(());
-        }
-
-        // TODO: Don't wait for subscription updates before starting the bridge.
-        //       We should move this logic to the handle events.
-        //
-        //       This is fine for now when dealing with only the upstream edge device.
-        //       But when remote brokers are introduced this will be an issue.
-        while let Some(event) = self
-            .client
-            .try_next()
-            .await
-            .map_err(ClientError::PollClient)?
-        {
-            if let Event::SubscriptionUpdates(subscriptions) = event {
-                for subscription in subscriptions {
-                    match subscription {
-                        SubscriptionUpdateEvent::Subscribe(sub) => {
-                            subacks.remove(&sub.topic_filter);
-                            debug!("successfully subscribed to topic {}", &sub.topic_filter);
-                        }
-                        SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
-                            subacks.remove(&topic_filter);
-                            error!("subscription rejected by server {}", topic_filter);
-                        }
-                        SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
-                            warn!("unsubscribed to {}", topic_filter);
-                        }
-                    }
-                }
-
-                info!("stopped waiting for subscriptions");
-                break;
-            }
-        }
-
-        if subacks.is_empty() {
-            info!("successfully subscribed to topics");
-        } else {
-            error!(
-                "failed to receive expected subacks for topics: {:?}",
-                subacks.iter().map(ToString::to_string).collect::<String>(),
-            );
         }
 
         Ok(())

@@ -38,11 +38,6 @@ where
         self.client.handle_events().await;
         info!("finished ingress publication processing");
     }
-
-    // TODO remove when subscriptions procedure changed
-    pub(crate) fn client(&mut self) -> &mut MqttClient<H> {
-        &mut self.client
-    }
 }
 
 /// Ingress shutdown handle.

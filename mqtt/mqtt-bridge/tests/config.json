@@ -9,7 +9,7 @@
     "upstream": {
         "subscriptions": [
             {
-                "direction": "in",
+                "direction": "both",
                 "topic": "temp/#",
                 "outPrefix": "floor/kitchen"
             },
@@ -18,11 +18,6 @@
                 "topic": "floor/#",
                 "inPrefix": "local",
                 "outPrefix": "remote"
-            },
-            {
-                "direction": "out",
-                "topic": "temp/#",
-                "outPrefix": "floor/kitchen"
             },
             {
                 "direction": "out",
