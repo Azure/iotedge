@@ -3,23 +3,23 @@ use std::marker::PhantomData;
 use tracing::{Event, Level};
 use tracing_log::NormalizeEvent;
 use tracing_subscriber::fmt::{
-    time::ChronoUtc, time::FormatTime, Context, FormatEvent, NewVisitor,
+    time::ChronoLocal, time::FormatTime, Context, FormatEvent, NewVisitor,
 };
 
 /// Marker for `Format` that indicates that the syslog format should be used.
 pub(crate) struct Syslog;
 
 /// Custom event formatter.
-pub(crate) struct Format<F = Syslog, T = ChronoUtc> {
+pub(crate) struct Format<F = Syslog, T = ChronoLocal> {
     format: PhantomData<F>,
     timer: T,
 }
 
-impl Default for Format<Syslog, ChronoUtc> {
+impl Default for Format<Syslog, ChronoLocal> {
     fn default() -> Self {
         Format {
             format: PhantomData,
-            timer: ChronoUtc::with_format("%F %T.%3f %:z".into()),
+            timer: ChronoLocal::with_format("%F %T.%3f %:z".into()),
         }
     }
 }
