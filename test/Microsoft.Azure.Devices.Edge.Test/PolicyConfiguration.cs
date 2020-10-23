@@ -52,8 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             EdgeModule edgeHub = deployment.Modules["edgeHub"];
-            await edgeHub.WaitForEventsReceivedAsync(deployment.StartTime, token);
-
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
                 new
                 {
