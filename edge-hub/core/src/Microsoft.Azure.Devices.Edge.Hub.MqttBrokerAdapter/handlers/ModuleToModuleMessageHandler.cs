@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public ModuleToModuleMessageHandler(IConnectionRegistry connectionRegistry, IIdentityProvider identityProvider)
             : base(connectionRegistry)
         {
-            this.identityProvider = identityProvider;
+            this.identityProvider = Preconditions.CheckNotNull(identityProvider);
         }
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             if (!message.SystemProperties.TryGetValue(SystemProperties.LockToken, out var currentLockToken))
             {
                 Events.NoLockToken(identity.Id);
-                throw new Exception("Cannot send M2M message without lock token");
+                throw new ArgumentException("Cannot send M2M message without lock token");
             }
 
             bool result;
@@ -131,14 +131,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 case IDeviceIdentity deviceIdentity:
                     Events.CannotSendM2MToDevice(identity.Id);
-                    throw new Exception($"Cannot send Module To Module message to {identity.Id}, because it is not a module but a device");
+                    throw new ArgumentException($"Cannot send Module To Module message to {identity.Id}, because it is not a module but a device");
 
                 case IModuleIdentity moduleIdentity:
                     return string.Format(ModuleToModleTopicTemplate, topicPrefix, moduleIdentity.DeviceId, moduleIdentity.ModuleId, input, propertyBag);
 
                 default:
                     Events.BadIdentityFormat(identity.Id);
-                    throw new Exception($"cannot decode identity {identity.Id}");
+                    throw new ArgumentException($"cannot decode identity {identity.Id}");
             }
         }
 
