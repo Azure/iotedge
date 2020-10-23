@@ -144,7 +144,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await Task.Delay(10000);
             Console.WriteLine("Deployed");
 
-            var request = new ModuleLogsUploadRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text, sasUrl);
+            //// var request = new ModuleLogsUploadRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text, sasUrl);
+
+            var request = new
+            {
+                schemaVersion = "1.0",
+                items = new
+                {
+                    id = "NumberLogger",
+                    filter = new { },
+                },
+                encoding = 0,
+                contentYtpe = 1,
+                sasUrl,
+            };
 
             var payload = JsonConvert.SerializeObject(request);
             Console.WriteLine(payload);
