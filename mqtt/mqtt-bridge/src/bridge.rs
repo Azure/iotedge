@@ -9,11 +9,10 @@ use crate::{
     persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
     settings::{ConnectionSettings, Credentials},
-    upstream::LocalUpstreamPumpEvent,
-    upstream::RemoteUpstreamPumpEvent,
     upstream::{
-        ConnectivityError, LocalUpstreamMqttEventHandler, LocalUpstreamPumpEventHandler,
-        RemoteUpstreamMqttEventHandler, RemoteUpstreamPumpEventHandler, RpcError,
+        ConnectivityError, LocalUpstreamMqttEventHandler, LocalUpstreamPumpEvent,
+        LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler, RemoteUpstreamPumpEvent,
+        RemoteUpstreamPumpEventHandler, RpcError,
     },
 };
 

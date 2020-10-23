@@ -105,7 +105,7 @@ where
     type Error = BridgeError;
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
-        match event {
+        match &event {
             Event::Publication(publication) => {
                 let forward_publication =
                     self.transform(&publication.topic_name)
@@ -119,23 +119,26 @@ where
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
                     self.store.push(publication).map_err(BridgeError::Store)?;
+
+                    return Ok(Handled::Fully);
                 } else {
                     warn!("no topic matched");
                 }
-
-                return Ok(Handled::Fully);
             }
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {
                     match update {
                         SubscriptionUpdateEvent::Subscribe(subscribe_to) => {
+                            debug!("received subscribe: {:?}", subscribe_to);
                             self.update_subscribed(&subscribe_to.topic_filter);
                         }
                         SubscriptionUpdateEvent::Unsubscribe(unsubcribed_from) => {
+                            debug!("received unsubscribe: {}", unsubcribed_from);
                             self.update_unsubscribed(&unsubcribed_from);
                         }
                         SubscriptionUpdateEvent::RejectedByServer(rejected) => {
-                            self.update_subscribed(&rejected);
+                            debug!("received subscription rejected: {}", rejected);
+                            self.update_unsubscribed(&rejected);
                         }
                     }
                 }
