@@ -10,7 +10,7 @@ use crate::persist::{PublicationStore, StreamWakeableState};
 
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
-pub use crate::client::MockallPublishHandleWrapper as PublishHandle;
+pub use crate::client::MockPublishHandle as PublishHandle;
 
 #[cfg(not(test))]
 use crate::client::PublishHandle;

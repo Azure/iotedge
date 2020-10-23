@@ -13,8 +13,7 @@ use crate::{
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
 use crate::client::{
-    MockUpdateSubscriptionHandle as UpdateSubscriptionHandle,
-    MockallPublishHandleWrapper as PublishHandle,
+    MockPublishHandle as PublishHandle, MockUpdateSubscriptionHandle as UpdateSubscriptionHandle,
 };
 #[cfg(not(test))]
 use crate::client::{PublishHandle, UpdateSubscriptionHandle};
@@ -176,7 +175,7 @@ mod tests {
     use matches::assert_matches;
 
     use crate::{
-        client::{MockUpdateSubscriptionHandle, MockallPublishHandleWrapper},
+        client::{MockPublishHandle, MockUpdateSubscriptionHandle},
         pump::{self, PumpMessage},
     };
 
@@ -184,7 +183,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_handles_sub_command() {
-        let remote_pub_handle = MockallPublishHandleWrapper::new();
+        let remote_pub_handle = MockPublishHandle::new();
         let in_flight_handle = InFlightPublishHandle::new(remote_pub_handle, 5);
 
         let mut remote_sub_handle = MockUpdateSubscriptionHandle::new();
@@ -219,7 +218,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_handles_unsub_command() {
-        let remote_pub_handle = MockallPublishHandleWrapper::new();
+        let remote_pub_handle = MockPublishHandle::new();
         let in_flight_handle = InFlightPublishHandle::new(remote_pub_handle, 5);
 
         let mut remote_sub_handle = MockUpdateSubscriptionHandle::new();
@@ -254,17 +253,18 @@ mod tests {
 
     #[tokio::test]
     async fn it_handles_pub_command() {
-        let remote_pub_handle = MockallPublishHandleWrapper::new();
-        let inner_handle = remote_pub_handle.inner();
-        let mut inner_handle = inner_handle.lock().await;
-        inner_handle
-            .expect_publish()
-            .once()
-            .withf(|publication| {
-                publication.topic_name == "/foo" && publication.payload == Bytes::from("hello")
-            })
-            .returning(|_| Ok(()));
-        drop(inner_handle);
+        let mut remote_pub_handle = MockPublishHandle::new();
+        remote_pub_handle.expect_clone().return_once(|| {
+            let mut pub_handle = MockPublishHandle::default();
+            pub_handle
+                .expect_publish()
+                .once()
+                .withf(|publication| {
+                    publication.topic_name == "/foo" && publication.payload == Bytes::from("hello")
+                })
+                .returning(|_| Ok(()));
+            pub_handle
+        });
 
         let in_flight_handle = InFlightPublishHandle::new(remote_pub_handle, 5);
 

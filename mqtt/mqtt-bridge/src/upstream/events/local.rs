@@ -7,7 +7,7 @@ use tracing::{debug, error};
 
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
-pub use crate::client::MockallPublishHandleWrapper as PublishHandle;
+pub use crate::client::MockPublishHandle as PublishHandle;
 
 #[cfg(not(test))]
 use crate::client::PublishHandle;
@@ -118,7 +118,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
 
 #[cfg(test)]
 mod tests {
-    use crate::client::MockallPublishHandleWrapper;
+    use crate::client::MockPublishHandle;
 
     use super::*;
 
@@ -136,17 +136,19 @@ mod tests {
         let payload = json!({ "status": state });
         let payload = serde_json::to_vec(&payload).unwrap();
 
-        let pub_handle = MockallPublishHandleWrapper::new();
-        let inner_handle = pub_handle.inner();
-        let mut inner_handle = inner_handle.lock().await;
-        inner_handle
-            .expect_publish()
-            .once()
-            .withf(move |publication| {
-                publication.topic_name == "$internal/connectivity" && publication.payload == payload
-            })
-            .returning(|_| Ok(()));
-        drop(inner_handle);
+        let mut pub_handle = MockPublishHandle::new();
+        pub_handle.expect_clone().return_once(move || {
+            let mut pub_handle = MockPublishHandle::default();
+            pub_handle
+                .expect_publish()
+                .once()
+                .withf(move |publication| {
+                    publication.topic_name == "$internal/connectivity"
+                        && publication.payload == payload
+                })
+                .returning(|_| Ok(()));
+            pub_handle
+        });
 
         let in_flight_handle = InFlightPublishHandle::new(pub_handle, 5);
         let mut handler = LocalUpstreamPumpEventHandler::new(in_flight_handle);
@@ -157,17 +159,18 @@ mod tests {
 
     #[tokio::test]
     async fn it_sends_rpc_ack() {
-        let pub_handle = MockallPublishHandleWrapper::new();
-        let inner_handle = pub_handle.inner();
-        let mut inner_handle = inner_handle.lock().await;
-        inner_handle
-            .expect_publish()
-            .once()
-            .withf(move |publication| {
-                publication.topic_name == "$edgehub/rpc/ack/1" && publication.payload.is_empty()
-            })
-            .returning(|_| Ok(()));
-        drop(inner_handle);
+        let mut pub_handle = MockPublishHandle::new();
+        pub_handle.expect_clone().return_once(|| {
+            let mut pub_handle = MockPublishHandle::default();
+            pub_handle
+                .expect_publish()
+                .once()
+                .withf(|publication| {
+                    publication.topic_name == "$edgehub/rpc/ack/1" && publication.payload.is_empty()
+                })
+                .returning(|_| Ok(()));
+            pub_handle
+        });
 
         let in_flight_handle = InFlightPublishHandle::new(pub_handle, 5);
         let mut handler = LocalUpstreamPumpEventHandler::new(in_flight_handle);
@@ -182,17 +185,19 @@ mod tests {
         let doc = doc! { "reason": "error" };
         doc.to_writer(&mut payload).unwrap();
 
-        let pub_handle = MockallPublishHandleWrapper::new();
-        let inner_handle = pub_handle.inner();
-        let mut inner_handle = inner_handle.lock().await;
-        inner_handle
-            .expect_publish()
-            .once()
-            .withf(move |publication| {
-                publication.topic_name == "$edgehub/rpc/nack/1" && publication.payload == payload
-            })
-            .returning(|_| Ok(()));
-        drop(inner_handle);
+        let mut pub_handle = MockPublishHandle::new();
+        pub_handle.expect_clone().return_once(|| {
+            let mut pub_handle = MockPublishHandle::default();
+            pub_handle
+                .expect_publish()
+                .once()
+                .withf(move |publication| {
+                    publication.topic_name == "$edgehub/rpc/nack/1"
+                        && publication.payload == payload
+                })
+                .returning(|_| Ok(()));
+            pub_handle
+        });
 
         let in_flight_handle = InFlightPublishHandle::new(pub_handle, 5);
         let mut handler = LocalUpstreamPumpEventHandler::new(in_flight_handle);

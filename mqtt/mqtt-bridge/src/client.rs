@@ -15,7 +15,7 @@ use std::{
 use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
-use mockall::{automock, mock};
+use mockall::automock;
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
@@ -427,10 +427,10 @@ impl<H> MqttClientExt for MqttClient<H> {
 #[cfg(test)]
 /// Implements `MqttClientExt` for tests.
 impl<H> MqttClientExt for MqttClient<H> {
-    type PublishHandle = InFlightPublishHandle<MockallPublishHandleWrapper>;
+    type PublishHandle = InFlightPublishHandle<MockPublishHandle>;
 
     fn publish_handle(&self) -> Self::PublishHandle {
-        InFlightPublishHandle::new(MockallPublishHandleWrapper::new(), 100)
+        InFlightPublishHandle::new(MockPublishHandle::new(), 100)
     }
 
     type UpdateSubscriptionHandle = MockUpdateSubscriptionHandle;
@@ -538,42 +538,16 @@ impl InnerPublishHandle for PublishHandle {
     }
 }
 
-/// A wrapper around mockall publish handle necessary for cloning
-#[derive(Clone)]
-pub struct MockallPublishHandleWrapper {
-    inner: Arc<Mutex<MockPublishHandle>>,
-}
-
-impl MockallPublishHandleWrapper {
-    pub fn new() -> Self {
-        let inner = Arc::new(Mutex::new(MockPublishHandle::new()));
-        Self { inner }
-    }
-
-    pub fn inner(&self) -> Arc<Mutex<MockPublishHandle>> {
-        self.inner.clone()
-    }
-}
-
-impl Default for MockallPublishHandleWrapper {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[async_trait]
-impl InnerPublishHandle for MockallPublishHandleWrapper {
-    async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
-        self.inner.lock().await.publish(publication).await
-    }
-}
-
-mock! {
+mockall::mock! {
     pub PublishHandle {}
 
     #[async_trait]
     pub trait InnerPublishHandle {
         async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+    }
+
+    pub trait Clone {
+        fn clone(&self) -> Self;
     }
 }
 
