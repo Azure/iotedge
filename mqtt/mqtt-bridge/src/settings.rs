@@ -338,7 +338,7 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let upstream = settings.upstream().unwrap();
 
-        assert_eq!(upstream.name(), "upstream");
+        assert_eq!(upstream.name(), "$upstream");
         assert_eq!(upstream.address(), "edge1:8883");
 
         match upstream.credentials() {
@@ -420,7 +420,7 @@ mod tests {
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();
 
-        assert_eq!(upstream.name(), "upstream");
+        assert_eq!(upstream.name(), "$upstream");
         assert_eq!(upstream.address(), "upstream:8883");
 
         match upstream.credentials() {
