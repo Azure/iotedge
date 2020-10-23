@@ -1373,7 +1373,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 runtimeInfo,
                 new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
                 new Dictionary<string, IModule>(),
-                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
+                null);
             string deploymentConfigJson = serde.Serialize(deploymentConfig);
             var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
 
@@ -1468,7 +1468,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 runtimeInfo,
                 new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
                 new Dictionary<string, IModule>(),
-                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
+                null);
             string deploymentConfigJson = serde.Serialize(deploymentConfig);
             var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
 
@@ -1486,7 +1486,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 runtimeInfo,
                 new SystemModules(edgeAgentDockerModule, edgeHubDockerModule2),
                 new Dictionary<string, IModule>(),
-                new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
+                null);
             string deploymentConfigJson2 = serde.Serialize(deploymentConfig2);
             var twin2 = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson2) });
 

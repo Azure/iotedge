@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonProperty("modules")]
         public IImmutableDictionary<string, IModule> Modules { get; }
 
-        [JsonProperty("integrity")]
+        [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public TwinIntegrity Integrity { get; }
 
         public ModuleSet GetModuleSet()
