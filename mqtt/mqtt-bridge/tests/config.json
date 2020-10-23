@@ -9,22 +9,24 @@
     "upstream": {
         "subscriptions": [
             {
-                "pattern": "temp/#",
-                "remote": "floor/kitchen"
-            }
-        ],
-        "forwards": [
-            {
-                "local": "local",
-                "pattern": "floor/#",
-                "remote": "remote"
+                "direction": "in",
+                "topic": "temp/#",
+                "outPrefix": "floor/kitchen"
             },
             {
-                "pattern": "temp/#",
-                "remote": "floor/kitchen"
+                "direction": "out",
+                "topic": "floor/#",
+                "inPrefix": "local",
+                "outPrefix": "remote"
             },
             {
-                "pattern": "pattern/#"
+                "direction": "out",
+                "topic": "temp/#",
+                "outPrefix": "floor/kitchen"
+            },
+            {
+                "direction": "out",
+                "topic": "pattern/#"
             }
         ]
     },
@@ -39,14 +41,14 @@
             "clean_session": false,
             "subscriptions": [
                 {
-                    "pattern": "temp/#",
-                    "remote": "floor/kitchen"
-                }
-            ],
-            "forwards": [
+                    "direction": "in",
+                    "topic": "temp/#",
+                    "outPrefix": "floor/kitchen"
+                },
                 {
-                    "pattern": "some",
-                    "remote": "remote"
+                    "direction": "out",
+                    "topic": "some",
+                    "outPrefix": "remote"
                 }
             ]
         }

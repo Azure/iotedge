@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         const string ApiVersionKey = "api-version";
         const string DeviceClientTypeKey = "DeviceClientType";
         const string ModelIdKey = "model-id";
+        const string AuthChain = "auth-chain";
 
         public ClientInfo Parse(string username)
         {
@@ -115,7 +116,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 modelIdOption = Option.Some(modelId);
             }
 
-            return new ClientInfo(deviceId, moduleId, deviceClientType, modelIdOption);
+            Option<string> authChainOption = Option.None<string>();
+            if (queryParameters.TryGetValue(AuthChain, out string authChain) && !string.IsNullOrWhiteSpace(authChain))
+            {
+                authChainOption = Option.Some(authChain);
+            }
+
+            return new ClientInfo(deviceId, moduleId, deviceClientType, modelIdOption, authChainOption);
         }
 
         static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)
