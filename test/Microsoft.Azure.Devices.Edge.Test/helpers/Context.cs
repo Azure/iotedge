@@ -50,27 +50,56 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 return result;
             }
 
-            Option<(string, string, string)> GetAndValidateRootCaKeys()
+            Option<(string, string, string, bool)> GetAndValidateRootCaKeys()
             {
-                // If any root CA key materials (cert file, key file, password) are
-                // given, then they must *all* be given, otherwise throw an error.
-                string certificate = Get("rootCaCertificatePath");
-                string key = Get("rootCaPrivateKeyPath");
-                string password = Get("ROOT_CA_PASSWORD");
+                string trustCert = Get("trustedCaCerts");
+                bool keepIdentity = trustCert.Equals(default(string));
 
-                if (!string.IsNullOrWhiteSpace(certificate) ||
-                    !string.IsNullOrWhiteSpace(key) ||
-                    !string.IsNullOrWhiteSpace(password))
+                if (keepIdentity)
                 {
-                    Preconditions.CheckNonWhiteSpace(certificate, nameof(certificate));
-                    Preconditions.CheckNonWhiteSpace(key, nameof(key));
-                    Preconditions.CheckNonWhiteSpace(password, nameof(password));
-                    Preconditions.CheckArgument(File.Exists(certificate));
-                    Preconditions.CheckArgument(File.Exists(key));
-                    return Option.Some((certificate, key, password));
+                    // If any root CA key materials (cert file, key file, password) are
+                    // given, then they must *all* be given, otherwise throw an error.
+                    string certificate = Get("rootCaCertificatePath");
+                    string key = Get("rootCaPrivateKeyPath");
+                    string password = Get("ROOT_CA_PASSWORD");
+
+                    if (!string.IsNullOrWhiteSpace(certificate) ||
+                        !string.IsNullOrWhiteSpace(key) ||
+                        !string.IsNullOrWhiteSpace(password))
+                    {
+                        Preconditions.CheckNonWhiteSpace(certificate, nameof(certificate));
+                        Preconditions.CheckNonWhiteSpace(key, nameof(key));
+                        Preconditions.CheckNonWhiteSpace(password, nameof(password));
+                        Preconditions.CheckArgument(File.Exists(certificate));
+                        Preconditions.CheckArgument(File.Exists(key));
+                        return Option.Some((certificate, key, password, keepIdentity));
+                    }
+                }
+                else
+                {
+                    // TODO: Figure out a clean way to do the cert pass down from the nested edge.
+                    // In case of the single node scenario, the env var above is used to config the config.yaml, 
+                    // but in the current nested edge env setup, the parent node is in charge of providing the
+                    // cert & trusty. 
+                    string certificate = Get("deviceCaCert");
+                    string key = Get("deviceCaPrivateKey");
+                    trustCert = Get("trustedCaCerts");  // BEARWASHERE Fix this
+
+                    if (!string.IsNullOrWhiteSpace(certificate) ||
+                        !string.IsNullOrWhiteSpace(key) ||
+                        !string.IsNullOrWhiteSpace(trustCert))
+                    {
+                        Preconditions.CheckNonWhiteSpace(certificate, nameof(certificate));
+                        Preconditions.CheckNonWhiteSpace(key, nameof(key));
+                        Preconditions.CheckNonWhiteSpace(trustCert, nameof(trustCert));
+                        Preconditions.CheckArgument(File.Exists(certificate));
+                        Preconditions.CheckArgument(File.Exists(key));
+                        return Option.Some((certificate, key, trustCert, keepIdentity));
+                    }
                 }
 
-                return Option.None<(string, string, string)>();
+
+                return Option.None<(string, string, string, bool)>();
             }
 
             string defaultId =
@@ -155,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public IEnumerable<Registry> Registries { get; }
 
-        public Option<(string certificate, string key, string password)> RootCaKeys { get; }
+        public Option<(string certificate, string key, string secret, bool keepIdentity)> RootCaKeys { get; }
 
         public TimeSpan SetupTimeout { get; }
 

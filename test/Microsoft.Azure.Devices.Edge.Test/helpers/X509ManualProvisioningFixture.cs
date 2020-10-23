@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         async Task<(X509Thumbprint, IdCertificates)> CreateIdentityCertAsync(string deviceId, CancellationToken token)
         {
-            (string, string, string) rootCa =
+            (string, string, string, bool) rootCa =
             Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
             string caCertScriptPath = Context.Current.CaCertScriptPath.Expect(
                 () => new InvalidOperationException("Missing CA cert script path"));

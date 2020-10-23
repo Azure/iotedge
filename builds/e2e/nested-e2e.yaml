@@ -1,3 +1,4 @@
+name: Azure-IoT-Edge-Core Nested Edge E2E
 trigger: none
 pr: none
 
@@ -34,7 +35,7 @@ jobs:
       artifactName: iotedged-ubuntu16.04-amd64
 
     steps:	
-    - template: templates/e2e-clean-directory.yaml	
-    - template: templates/e2e-setup.yaml	
-    - template: templates/e2e-clear-docker-cached-images.yaml	
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml

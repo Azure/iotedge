@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             await Profiler.Run(
                 async () =>
                 {
-                    (string, string, string) rootCa =
+                    (string, string, string, bool) rootCa =
                         Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
                     string caCertScriptPath =
                         Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
@@ -49,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                 caCertScriptPath,
                                 token);
 
+                            // BEARWASHERE -- This shouldn't be generating a new cert if it is in nested edge case.
                             CaCertificates caCert = await this.ca.GenerateCaCertificatesAsync(deviceId, token);
                             this.ca.EdgeCertificates = caCert;
 
