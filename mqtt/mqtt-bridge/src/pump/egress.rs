@@ -1,4 +1,5 @@
 use futures_util::{
+    future::BoxFuture,
     pin_mut,
     stream::{self, StreamExt},
     FutureExt,
@@ -8,7 +9,7 @@ use tracing::{debug, error, info};
 
 use crate::{
     client::ClientPublishHandle,
-    persist::{PublicationStore, StreamWakeableState},
+    persist::{Key, PersistError, PublicationStore, StreamWakeableState},
 };
 
 // Import and use mocks when run tests, real implementation when otherwise
@@ -17,6 +18,8 @@ pub use crate::client::MockPublishHandle as PublishHandle;
 
 #[cfg(not(test))]
 use crate::client::PublishHandle;
+
+use mqtt3::proto::Publication;
 
 const MAX_IN_FLIGHT: usize = 16;
 
@@ -72,26 +75,7 @@ where
         let publish_handle_stream = stream::iter(std::iter::repeat(publish_handle.clone()));
         let load_and_publish = loader
             .zip(publish_handle_stream)
-            .filter_map(|(loaded, publish_handle)| async move {
-                match loaded {
-                    Ok((key, publication)) => {
-                        let mut publish_handle = publish_handle.clone();
-
-                        Some(async move {
-                            debug!("publishing {:?}", key);
-                            if let Err(e) = publish_handle.publish(publication).await {
-                                error!(err = %e, "failed publish");
-                            }
-
-                            key
-                        })
-                    }
-                    Err(e) => {
-                        error!(err = %e, "failed loading publication from store");
-                        None
-                    }
-                }
-            })
+            .filter_map(|(loaded, publish_handle)| loaded_to_publish_fut(loaded, publish_handle))
             .buffer_unordered(MAX_IN_FLIGHT);
         pin_mut!(load_and_publish);
 
@@ -110,6 +94,30 @@ where
         }
 
         info!("finished egress publication processing");
+    }
+}
+
+async fn loaded_to_publish_fut(
+    loaded: Result<(Key, Publication), PersistError>,
+    mut publish_handle: PublishHandle,
+) -> Option<BoxFuture<'static, Key>> {
+    match loaded {
+        Ok((key, publication)) => {
+            let publish_fut = async move {
+                debug!("publishing {:?}", key);
+                if let Err(e) = publish_handle.publish(publication).await {
+                    error!(err = %e, "failed publish");
+                }
+
+                key
+            };
+
+            Some(Box::pin(publish_fut))
+        }
+        Err(e) => {
+            error!(err = %e, "failed loading publication from store");
+            None
+        }
     }
 }
 

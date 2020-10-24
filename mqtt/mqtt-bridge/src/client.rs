@@ -1,3 +1,4 @@
+#![allow(clippy::default_trait_access)] // Needed because mock! macro violates
 #![allow(dead_code)] // TODO remove when ready
 use std::{fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration};
 
@@ -430,7 +431,7 @@ mockall::mock! {
     pub PublishHandle {}
 
     #[async_trait]
-    trait ClientPublishHandle {
+    pub trait ClientPublishHandle {
         async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
     }
 
