@@ -97,9 +97,8 @@ impl Bridge<WakingMemoryStore> {
                     settings.keep_alive(),
                     settings.clean_session(),
                     Credentials::Anonymous(format!(
-                        "{}/$edgeHub/$bridge/{}",
+                        "{}/$edgeHub/$bridge",
                         device_id,
-                        settings.name()
                     )),
                 ))
                 .with_rules(settings.forwards());
