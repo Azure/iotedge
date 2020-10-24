@@ -1,9 +1,11 @@
 mod authorized_identities;
+mod bridge_update;
 mod disconnect;
 mod handler;
 mod policy_update;
 
 pub use authorized_identities::AuthorizedIdentitiesCommand;
+pub use bridge_update::BridgeUpdateCommand;
 pub use disconnect::DisconnectCommand;
 pub use handler::{CommandHandler, CommandHandlerError, ShutdownHandle};
 pub use policy_update::PolicyUpdateCommand;

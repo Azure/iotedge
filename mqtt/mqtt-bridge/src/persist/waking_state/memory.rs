@@ -4,6 +4,8 @@ use std::{
     task::Waker,
 };
 
+use tracing::debug;
+
 use mqtt3::proto::Publication;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
@@ -16,9 +18,9 @@ pub struct WakingMemoryStore {
     waker: Option<Waker>,
 }
 
-impl WakingMemoryStore {
-    pub fn new() -> Self {
-        WakingMemoryStore {
+impl Default for WakingMemoryStore {
+    fn default() -> Self {
+        Self {
             queue: VecDeque::new(),
             loaded: HashSet::new(),
             waker: None,
@@ -28,6 +30,8 @@ impl WakingMemoryStore {
 
 impl StreamWakeableState for WakingMemoryStore {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
+        debug!("inserting publication with key {:?}", key);
+
         self.queue.push_back((key, value));
 
         if let Some(waker) = self.waker.take() {
@@ -49,6 +53,11 @@ impl StreamWakeableState for WakingMemoryStore {
     }
 
     fn remove(&mut self, key: Key) -> Result<(), PersistError> {
+        debug!(
+            "Removing publication with key {:?}. Current state of loaded messages: {:?}",
+            key, self.loaded
+        );
+
         if self.loaded.remove(&key) {
             Ok(())
         } else {

@@ -1,7 +1,5 @@
 use std::future::Future;
 
-use mockall::automock;
-
 #[derive(Debug)]
 pub(super) struct State {
     publish_request_send: futures_channel::mpsc::Sender<PublishRequest>,
@@ -366,7 +364,6 @@ impl Default for State {
 #[derive(Clone, Debug)]
 pub struct PublishHandle(futures_channel::mpsc::Sender<PublishRequest>);
 
-#[automock]
 impl PublishHandle {
     /// Publish the given message to the server
     pub async fn publish(

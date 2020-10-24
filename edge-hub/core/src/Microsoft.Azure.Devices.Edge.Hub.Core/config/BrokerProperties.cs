@@ -13,21 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     /// </summary>
     public class BrokerProperties
     {
-        public BrokerProperties()
-        {
-        }
-
         [JsonConstructor]
-        public BrokerProperties(BridgeConfig bridges, AuthorizationConfig authorizations)
+        public BrokerProperties(BridgeConfig bridges, AuthorizationProperties authorizations)
         {
-            this.Bridges = bridges;
-            this.Authorizations = authorizations;
+            this.Bridges = bridges ?? new BridgeConfig();
+            this.Authorizations = authorizations ?? new AuthorizationProperties();
         }
 
         [JsonProperty(PropertyName = "bridges")]
         public BridgeConfig Bridges { get; }
 
         [JsonProperty(PropertyName = "authorizations")]
-        public AuthorizationConfig Authorizations { get; }
+        public AuthorizationProperties Authorizations { get; }
     }
 }

@@ -19,13 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
     [Unit]
     public class EdgeRuntimeDiagnosticsUploadTest
     {
-        Message[] lastUploadResult;
+        List<Message> lastUploadResult = new List<Message>();
         IEdgeAgentConnection mockConnection;
 
         public EdgeRuntimeDiagnosticsUploadTest()
         {
             var connectionMock = new Mock<IEdgeAgentConnection>();
-            connectionMock.Setup(c => c.SendEventBatchAsync(It.IsAny<IEnumerable<Message>>())).Callback((Action<IEnumerable<Message>>)(data => this.lastUploadResult = data.ToArray())).Returns(Task.CompletedTask);
+            connectionMock.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Callback((Action<Message>)(message => this.lastUploadResult.Add(message))).Returns(Task.CompletedTask);
 
             this.mockConnection = connectionMock.Object;
         }
@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
             await uploader.PublishAsync(new Metric[] { expectedMetric }, CancellationToken.None);
 
             Message uploadResult = this.lastUploadResult.Single();
+            this.lastUploadResult = new List<Message>();
             Assert.Equal("application/x-azureiot-edgeruntimediagnostics", uploadResult.ContentType);
 
             Metric uploadedMetric = MetricsSerializer.BytesToMetrics(uploadResult.GetBytes()).Single();
@@ -72,13 +73,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
             // correctly batches even number of metrics
             Metric[] evenBatch = this.GetFakeMetrics(20000);
             await uploader.PublishAsync(evenBatch, CancellationToken.None);
-            Assert.True(this.lastUploadResult.Length > 1, $"Expected more than 1 uploaded message. Got {this.lastUploadResult.Length}");
+            Assert.True(this.lastUploadResult.Count > 1, $"Expected more than 1 uploaded message. Got {this.lastUploadResult.Count}");
             TestUtilities.OrderlessCompare(evenBatch, this.ParseLastUploadResult());
 
             // correctly batches odd number of metrics
             Metric[] oddBatch = this.GetFakeMetrics(20001);
             await uploader.PublishAsync(oddBatch, CancellationToken.None);
-            Assert.True(this.lastUploadResult.Length > 1, $"Expected more than 1 uploaded message. Got {this.lastUploadResult.Length}");
+            Assert.True(this.lastUploadResult.Count > 1, $"Expected more than 1 uploaded message. Got {this.lastUploadResult.Count}");
             TestUtilities.OrderlessCompare(oddBatch, this.ParseLastUploadResult());
         }
 
@@ -89,7 +90,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
 
         Metric[] ParseLastUploadResult()
         {
-            return this.lastUploadResult.SelectMany(message => MetricsSerializer.BytesToMetrics(message.GetBytes())).ToArray();
+            var result = this.lastUploadResult.SelectMany(message => MetricsSerializer.BytesToMetrics(message.GetBytes())).ToArray();
+            this.lastUploadResult = new List<Message>();
+
+            return result;
         }
     }
 }

@@ -58,6 +58,7 @@ where
                     }
                 }
                 Message::System(event) => {
+                    debug!("incoming system event: {:?}", event);
                     let span = info_span!("broker", event = "system");
                     let _enter = span.enter();
                     match event {
@@ -194,7 +195,7 @@ where
         client_id: ClientId,
         event: ClientEvent,
     ) -> Result<(), Error> {
-        debug!("incoming: {:?}", event);
+        debug!("incoming client event: {:?}", event);
         let result = match event {
             ClientEvent::ConnReq(connreq) => self.process_connect(client_id, connreq),
             ClientEvent::ConnAck(_) => {

@@ -1,314 +1,171 @@
-#![allow(dead_code)] // TODO remove when ready
-
-use std::{
-    collections::HashMap,
-    convert::TryFrom,
-    convert::TryInto,
-    fmt::{Display, Formatter, Result as FmtResult},
-};
-
-use async_trait::async_trait;
-use tokio::sync::mpsc::{error::SendError, Sender};
-use tracing::{debug, info, warn};
-
-use mqtt3::{proto::Publication, Event};
-use mqtt_broker::TopicFilter;
+use mqtt3::ShutdownError;
+use tokio::{select, sync::oneshot::Sender};
+use tracing::{debug, error, info, info_span};
+use tracing_futures::Instrument;
 
 use crate::{
-    client::{ClientConnectError, EventHandler, Handled, MqttClient},
-    persist::{PersistError, PublicationStore, StreamWakeableState},
-    rpc::RpcError,
-    rpc::RpcHandler,
-    settings::{ConnectionSettings, Credentials, Topic},
+    client::{ClientError, MqttClientConfig},
+    config_update::BridgeDiff,
+    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
+    settings::{ConnectionSettings, Credentials},
+    upstream::{
+        ConnectivityError, LocalUpstreamMqttEventHandler, LocalUpstreamPumpEvent,
+        LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler, RemoteUpstreamPumpEvent,
+        RemoteUpstreamPumpEventHandler, RpcError,
+    },
 };
 
-const BATCH_SIZE: usize = 10;
-
-#[derive(Debug, PartialEq)]
-pub enum PumpMessage {
-    ConnectivityUpdate(ConnectivityState),
-    ConfigurationUpdate(ConnectionSettings),
+pub struct BridgeHandle {
+    local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
+    remote_pump_handle: PumpHandle<RemoteUpstreamPumpEvent>,
 }
 
-pub struct PumpHandle {
-    sender: Sender<PumpMessage>,
-}
-
-impl PumpHandle {
-    pub fn new(sender: Sender<PumpMessage>) -> Self {
-        Self { sender }
-    }
-
-    pub async fn send(&mut self, message: PumpMessage) -> Result<(), BridgeError> {
-        self.sender
-            .send(message)
-            .await
-            .map_err(BridgeError::SenderToPump)
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ConnectivityState {
-    Connected,
-    Disconnected,
-}
-
-impl Display for ConnectivityState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            Self::Connected => write!(f, "Connected"),
-            Self::Disconnected => write!(f, "Disconnected"),
+impl BridgeHandle {
+    pub fn new(
+        local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
+        remote_pump_handle: PumpHandle<RemoteUpstreamPumpEvent>,
+    ) -> Self {
+        Self {
+            local_pump_handle,
+            remote_pump_handle,
         }
+    }
+
+    pub async fn send(&mut self, message: BridgeDiff) -> Result<(), BridgeError> {
+        let (local_updates, remote_updates) = message.into_parts();
+
+        if local_updates.has_updates() {
+            debug!("sending update to local pump {:?}", local_updates);
+            self.local_pump_handle
+                .send(PumpMessage::ConfigurationUpdate(local_updates))
+                .await?;
+        }
+
+        if remote_updates.has_updates() {
+            debug!("sending update to remote pump {:?}", remote_updates);
+            self.remote_pump_handle
+                .send(PumpMessage::ConfigurationUpdate(remote_updates))
+                .await?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct BridgeShutdownHandle {
+    local_shutdown: Sender<()>,
+    remote_shutdown: Sender<()>,
+}
+
+impl BridgeShutdownHandle {
+    // TODO: Remove when we implement bridge controller shutdown
+    #![allow(dead_code)]
+    pub async fn shutdown(self) -> Result<(), BridgeError> {
+        self.local_shutdown
+            .send(())
+            .map_err(BridgeError::ShutdownBridge)?;
+        self.remote_shutdown
+            .send(())
+            .map_err(BridgeError::ShutdownBridge)?;
+        Ok(())
     }
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
-pub struct Bridge {
-    system_address: String,
-    device_id: String,
+pub struct Bridge<S> {
+    local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
+    remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
     connection_settings: ConnectionSettings,
-    forwards: HashMap<String, Topic>,
-    subscriptions: HashMap<String, Topic>,
 }
 
-impl Bridge {
-    pub fn new(
+impl Bridge<WakingMemoryStore> {
+    pub async fn new_upstream(
         system_address: String,
         device_id: String,
-        connection_settings: ConnectionSettings,
-    ) -> Self {
-        let forwards = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| Self::format_key_value(sub))
-            .collect();
+        settings: ConnectionSettings,
+    ) -> Result<Self, BridgeError> {
+        const BATCH_SIZE: usize = 10;
 
-        let subscriptions = connection_settings
-            .subscriptions()
-            .iter()
-            .map(|sub| Self::format_key_value(sub))
-            .collect();
+        debug!("creating bridge...");
 
-        Bridge {
-            system_address,
-            device_id,
-            connection_settings,
-            forwards,
-            subscriptions,
-        }
-    }
+        let (local_pump, remote_pump) = Builder::default()
+            .with_local(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    &system_address,
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    Credentials::Anonymous(format!(
+                        "{}/$edgeHub/$bridge/{}",
+                        device_id,
+                        settings.name()
+                    )),
+                ))
+                .with_rules(settings.forwards());
+            })
+            .with_remote(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    settings.address(),
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    settings.credentials().clone(),
+                ))
+                .with_rules(settings.subscriptions());
+            })
+            .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
+            .build()?;
 
-    fn format_key_value(topic: &Topic) -> (String, Topic) {
-        let key = if let Some(local) = topic.local() {
-            format!("{}/{}", local, topic.pattern().to_string())
-        } else {
-            topic.pattern().into()
-        };
-        (key, topic.clone())
-    }
+        debug!("created bridge...");
 
-    pub async fn start(&self) -> Result<(), BridgeError> {
-        info!("Starting bridge...{}", self.connection_settings.name());
-
-        self.connect_to_local().await?;
-        self.connect_to_remote().await?;
-
-        Ok(())
-    }
-
-    async fn connect_to_remote(&self) -> Result<(), BridgeError> {
-        info!(
-            "connecting to remote broker {}",
-            self.connection_settings.address()
-        );
-
-        self.connect(
-            self.subscriptions.clone(),
-            self.connection_settings.address(),
-            self.connection_settings.credentials(),
-            true,
-        )
-        .await
-    }
-
-    async fn connect_to_local(&self) -> Result<(), BridgeError> {
-        let client_id = format!(
-            "{}/$edgeHub/$bridge/{}",
-            self.device_id,
-            self.connection_settings.name()
-        );
-        info!(
-            "connecting to local broker {}, clientid {}",
-            self.system_address, client_id
-        );
-
-        self.connect(
-            self.forwards.clone(),
-            self.system_address.as_str(),
-            &Credentials::Anonymous(client_id),
-            false,
-        )
-        .await
-    }
-
-    async fn connect(
-        &self,
-        mut topics: HashMap<String, Topic>,
-        address: &str,
-        credentials: &Credentials,
-        secure: bool,
-    ) -> Result<(), BridgeError> {
-        let (subscriptions, topics): (Vec<_>, Vec<_>) = topics.drain().unzip();
-        let topic_filters = topics
-            .into_iter()
-            .map(|topic| topic.try_into())
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let persistor = PublicationStore::new_memory(BATCH_SIZE);
-        let mut client = if secure {
-            MqttClient::tls(
-                address,
-                self.connection_settings.keep_alive(),
-                self.connection_settings.clean_session(),
-                MessageHandler::new(persistor, topic_filters),
-                credentials,
-            )
-        } else {
-            MqttClient::tcp(
-                address,
-                self.connection_settings.keep_alive(),
-                self.connection_settings.clean_session(),
-                MessageHandler::new(persistor, topic_filters),
-                credentials,
-            )
-        };
-
-        debug!("subscribe to {:?} {:?}", address.to_owned(), subscriptions);
-
-        client
-            .subscribe(subscriptions)
-            .await
-            .map_err(BridgeError::Subscribe)?;
-
-        //TODO: handle this with shutdown
-        let _events_task = tokio::spawn(client.handle_events());
-
-        Ok(())
-    }
-}
-
-#[derive(Clone)]
-struct TopicMapper {
-    topic_settings: Topic,
-    topic_filter: TopicFilter,
-}
-
-impl TryFrom<Topic> for TopicMapper {
-    type Error = BridgeError;
-
-    fn try_from(topic: Topic) -> Result<Self, BridgeError> {
-        let topic_filter = topic
-            .pattern()
-            .parse()
-            .map_err(BridgeError::TopicFilterParse)?;
-
-        Ok(Self {
-            topic_settings: topic,
-            topic_filter,
+        Ok(Bridge {
+            local_pump,
+            remote_pump,
+            connection_settings: settings,
         })
     }
 }
 
-/// Handle events from client and saves them with the forward topic
-struct MessageHandler<S> {
-    topic_mappers: Vec<TopicMapper>,
-    store: PublicationStore<S>,
-}
-
-impl<S> MessageHandler<S> {
-    pub fn new(persistor: PublicationStore<S>, topic_mappers: Vec<TopicMapper>) -> Self {
-        Self {
-            topic_mappers,
-            store: persistor,
-        }
-    }
-
-    fn transform(&self, topic_name: &str) -> Option<String> {
-        self.topic_mappers.iter().find_map(|mapper| {
-            mapper
-                .topic_settings
-                .local()
-                // maps if local does not have a value it uses the topic that was received,
-                // else it checks that the received topic starts with local prefix and removes the local prefix
-                .map_or(Some(topic_name), |local_prefix| {
-                    let prefix = format!("{}/", local_prefix);
-                    topic_name.strip_prefix(&prefix)
-                })
-                // match topic without local prefix with the topic filter pattern
-                .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
-                .map(|stripped_topic| {
-                    if let Some(remote_prefix) = mapper.topic_settings.remote() {
-                        format!("{}/{}", remote_prefix, stripped_topic)
-                    } else {
-                        stripped_topic.to_string()
-                    }
-                })
-        })
-    }
-}
-
-#[async_trait]
-impl<S> EventHandler for MessageHandler<S>
+impl<S> Bridge<S>
 where
     S: StreamWakeableState + Send,
 {
-    type Error = BridgeError;
+    pub async fn run(self) -> Result<(), BridgeError> {
+        info!("Starting {} bridge...", self.connection_settings.name());
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        if let Event::Publication(publication) = event {
-            let forward_publication =
-                self.transform(&publication.topic_name)
-                    .map(|topic_name| Publication {
-                        topic_name,
-                        qos: publication.qos,
-                        retain: publication.retain,
-                        payload: publication.payload.clone(),
-                    });
+        let local_pump = self
+            .local_pump
+            .run()
+            .instrument(info_span!("pump", name = "local"));
 
-            if let Some(publication) = forward_publication {
-                debug!("Save message to store");
-                self.store.push(publication).map_err(BridgeError::Store)?;
+        let remote_pump = self
+            .remote_pump
+            .run()
+            .instrument(info_span!("pump", name = "remote"));
 
-                return Ok(Handled::Fully);
-            } else {
-                warn!("No topic matched");
+        debug!(
+            "starting pumps for {} bridge...",
+            self.connection_settings.name()
+        );
+
+        select! {
+            _ = local_pump => {
+                // TODO shutdown remote pump
+                // shutdown_handle.shutdown().await?;
+            }
+
+            _ = remote_pump => {
+                // TODO shutdown local pump
+                // shutdown_handle.shutdown().await?;
             }
         }
 
-        Ok(Handled::Skipped)
+        debug!("bridge {} stopped...", self.connection_settings.name());
+        Ok(())
     }
-}
 
-pub struct UpstreamHandler<S> {
-    messages: MessageHandler<S>,
-    rpc: RpcHandler,
-}
-
-#[async_trait]
-impl<S> EventHandler for UpstreamHandler<S>
-where
-    S: StreamWakeableState + Send,
-{
-    type Error = BridgeError;
-
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        // try to handle as RPC command first
-        if self.rpc.handle(&event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
-        }
-
-        // handle as an event for regular message handler
-        self.messages.handle(&event).await
+    pub fn handle(&self) -> BridgeHandle {
+        BridgeHandle::new(self.local_pump.handle(), self.remote_pump.handle())
     }
 }
 
@@ -319,7 +176,7 @@ pub enum BridgeError {
     Store(#[from] PersistError),
 
     #[error("failed to subscribe to topic.")]
-    Subscribe(#[from] ClientConnectError),
+    Subscribe(#[source] ClientError),
 
     #[error("failed to parse topic pattern.")]
     TopicFilterParse(#[from] mqtt_broker::Error),
@@ -328,214 +185,26 @@ pub enum BridgeError {
     LoadingSettings(#[from] config::ConfigError),
 
     #[error("Failed to get send pump message.")]
-    SenderToPump(#[from] SendError<PumpMessage>),
+    SendToPump,
+
+    #[error("Failed to send message to pump: {0}")]
+    SendBridgeUpdate(#[from] PumpError),
 
     #[error("failed to execute RPC command")]
     Rpc(#[from] RpcError),
-}
 
-#[cfg(test)]
-mod tests {
-    use bytes::Bytes;
-    use futures_util::stream::StreamExt;
-    use futures_util::stream::TryStreamExt;
-    use std::str::FromStr;
+    #[error("failed to execute connectivity event")]
+    Connectivity(#[from] ConnectivityError),
 
-    use mqtt3::{
-        proto::{Publication, QoS},
-        Event, ReceivedPublication,
-    };
-    use mqtt_broker::TopicFilter;
+    #[error("failed to signal bridge shutdown.")]
+    ShutdownBridge(()),
 
-    use crate::bridge::{Bridge, MessageHandler, TopicMapper};
-    use crate::client::EventHandler;
-    use crate::persist::PublicationStore;
-    use crate::settings::Settings;
+    #[error("failed to get publish handle from client.")]
+    PublishHandle(#[source] ClientError),
 
-    #[tokio::test]
-    async fn bridge_new() {
-        let settings = Settings::from_file("tests/config.json").unwrap();
-        let connection_settings = settings.upstream().unwrap();
+    #[error("failed to get subscribe handle from client.")]
+    UpdateSubscriptionHandle(#[source] ClientError),
 
-        let bridge = Bridge::new(
-            "localhost:5555".into(),
-            "d1".into(),
-            connection_settings.clone(),
-        );
-
-        let (key, value) = bridge.forwards.get_key_value("temp/#").unwrap();
-        assert_eq!(key, "temp/#");
-        assert_eq!(value.remote().unwrap(), "floor/kitchen");
-        assert_eq!(value.local(), None);
-
-        let (key, value) = bridge.forwards.get_key_value("pattern/#").unwrap();
-        assert_eq!(key, "pattern/#");
-        assert_eq!(value.remote(), None);
-
-        let (key, value) = bridge.forwards.get_key_value("local/floor/#").unwrap();
-        assert_eq!(key, "local/floor/#");
-        assert_eq!(value.local().unwrap(), "local");
-        assert_eq!(value.remote().unwrap(), "remote");
-
-        let (key, value) = bridge.subscriptions.get_key_value("temp/#").unwrap();
-        assert_eq!(key, "temp/#");
-        assert_eq!(value.remote().unwrap(), "floor/kitchen");
-    }
-
-    #[tokio::test]
-    async fn message_handler_saves_message_with_local_and_forward_topic() {
-        let batch_size: usize = 5;
-        let settings = Settings::from_file("tests/config.json").unwrap();
-        let connection_settings = settings.upstream().unwrap();
-
-        let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
-            .iter()
-            .map(move |sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-            })
-            .collect();
-
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
-
-        let pub1 = ReceivedPublication {
-            topic_name: "local/floor/1".to_string(),
-            qos: QoS::AtLeastOnce,
-            retain: true,
-            payload: Bytes::new(),
-            dup: false,
-        };
-
-        let expected = Publication {
-            topic_name: "remote/floor/1".to_string(),
-            qos: QoS::AtLeastOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
-
-        let loader = handler.store.loader();
-
-        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
-        assert_eq!(extracted1.1, expected);
-    }
-
-    #[tokio::test]
-    async fn message_handler_saves_message_with_forward_topic() {
-        let batch_size: usize = 5;
-        let settings = Settings::from_file("tests/config.json").unwrap();
-        let connection_settings = settings.upstream().unwrap();
-
-        let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
-            .iter()
-            .map(move |sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-            })
-            .collect();
-
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
-
-        let pub1 = ReceivedPublication {
-            topic_name: "temp/1".to_string(),
-            qos: QoS::AtLeastOnce,
-            retain: true,
-            payload: Bytes::new(),
-            dup: false,
-        };
-
-        let expected = Publication {
-            topic_name: "floor/kitchen/temp/1".to_string(),
-            qos: QoS::AtLeastOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
-
-        let loader = handler.store.loader();
-
-        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
-        assert_eq!(extracted1.1, expected);
-    }
-
-    #[tokio::test]
-    async fn message_handler_saves_message_with_no_forward_mapping() {
-        let batch_size: usize = 5;
-        let settings = Settings::from_file("tests/config.json").unwrap();
-        let connection_settings = settings.upstream().unwrap();
-
-        let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
-            .iter()
-            .map(move |sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-            })
-            .collect();
-
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
-
-        let pub1 = ReceivedPublication {
-            topic_name: "pattern/p1".to_string(),
-            qos: QoS::AtLeastOnce,
-            retain: true,
-            payload: Bytes::new(),
-            dup: false,
-        };
-
-        let expected = Publication {
-            topic_name: "pattern/p1".to_string(),
-            qos: QoS::AtLeastOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
-
-        let loader = handler.store.loader();
-
-        let extracted1 = loader.lock().try_next().await.unwrap().unwrap();
-        assert_eq!(extracted1.1, expected);
-    }
-
-    #[tokio::test]
-    async fn message_handler_no_topic_match() {
-        let batch_size: usize = 5;
-        let settings = Settings::from_file("tests/config.json").unwrap();
-        let connection_settings = settings.upstream().unwrap();
-
-        let topics: Vec<TopicMapper> = connection_settings
-            .forwards()
-            .iter()
-            .map(move |sub| TopicMapper {
-                topic_settings: sub.clone(),
-                topic_filter: TopicFilter::from_str(sub.pattern()).unwrap(),
-            })
-            .collect();
-
-        let persistor = PublicationStore::new_memory(batch_size);
-        let mut handler = MessageHandler::new(persistor, topics);
-
-        let pub1 = ReceivedPublication {
-            topic_name: "local/temp/1".to_string(),
-            qos: QoS::AtLeastOnce,
-            retain: true,
-            payload: Bytes::new(),
-            dup: false,
-        };
-
-        handler.handle(&Event::Publication(pub1)).await.unwrap();
-
-        let loader = handler.store.loader();
-
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-        futures_util::future::select(interval.next(), loader.lock().next()).await;
-    }
+    #[error("failed to get publish handle from client.")]
+    ClientShutdown(#[from] ShutdownError),
 }
