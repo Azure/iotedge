@@ -1,4 +1,8 @@
-use futures_util::{pin_mut, stream::StreamExt, FutureExt};
+use futures_util::{
+    pin_mut,
+    stream::{self, StreamExt},
+    FutureExt,
+};
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
 
@@ -65,12 +69,13 @@ where
         // Take the stream of loaded messages and convert to a stream of futures which publish.
         // Then convert to buffered stream so that we can have multiple in-flight and also limit number of publications.
         let loader = store.loader();
+        let publish_handle_stream = stream::iter(std::iter::repeat(publish_handle.clone()));
         let load_and_publish = loader
-            .filter_map(|loaded| async {
+            .zip(publish_handle_stream)
+            .filter_map(|(loaded, publish_handle)| async move {
                 match loaded {
                     Ok((key, publication)) => {
                         let mut publish_handle = publish_handle.clone();
-                        let store = store.clone();
 
                         Some(async move {
                             debug!("publishing {:?}", key);
@@ -78,9 +83,7 @@ where
                                 error!(err = %e, "failed publish");
                             }
 
-                            if let Err(e) = store.remove(key) {
-                                error!(err = %e, "failed removing publication from store");
-                            }
+                            key
                         })
                     }
                     Err(e) => {
@@ -98,7 +101,11 @@ where
                     info!(" received shutdown signal for egress messages");
                     break;
                 }
-                _ = load_and_publish.next() => {}
+                key = load_and_publish.select_next_some() => {
+                    if let Err(e) = store.remove(key) {
+                        error!(err = %e, "failed removing publication from store");
+                    }
+                }
             }
         }
 
