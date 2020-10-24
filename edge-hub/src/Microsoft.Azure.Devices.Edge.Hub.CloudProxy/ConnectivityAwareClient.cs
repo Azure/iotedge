@@ -2,11 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Threading;
     using System.Threading.Tasks;
-    using App.Metrics.Concurrency;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -23,9 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     /// </summary>
     class ConnectivityAwareClient : IClient
     {
-        readonly Dictionary<string, int> counter = new Dictionary<string, int>();
-        readonly object counterLock = new object();
-
         readonly IClient underlyingClient;
         readonly IDeviceConnectivityManager deviceConnectivityManager;
         readonly AtomicBoolean isConnected = new AtomicBoolean(false);
@@ -43,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task CloseAsync()
         {
-            Events.Debugging(this.identity, "CloseAsync called.");
             await this.underlyingClient.CloseAsync();
             this.isConnected.Set(false);
             this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
@@ -65,7 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task OpenAsync()
         {
-            Events.Debugging(this.identity, "OpenAsync called.");
             await this.InvokeFunc(() => this.underlyingClient.OpenAsync(), nameof(this.OpenAsync));
             this.deviceConnectivityManager.DeviceConnected += this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
@@ -148,18 +140,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true)
         {
-            int cnt = 0;
-            lock (this.counterLock)
-            {
-                this.counter.TryGetValue(operation, out cnt);
-                cnt++;
-                this.counter[operation] = cnt;
-                if (cnt % 100 == 0)
-                {
-                    Events.Debugging(this.identity, $"{operation} {cnt} occurs.");
-                }
-            }
-
             try
             {
                 T result = await func();
@@ -174,7 +154,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
             catch (Exception ex)
             {
-                Events.Debugging(this.identity, $"{operation} {cnt} failed with error: {ex.Message}.");
                 Exception mappedException = ex.GetEdgeException(operation);
                 if (mappedException.HasTimeoutException())
                 {
@@ -220,11 +199,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 OperationTimedOut,
                 OperationFailed,
                 OperationSucceeded,
-                ChangingStatus,
-                Debugging
+                ChangingStatus
             }
-
-            public static void Debugging(IIdentity identity, string message) => Log.LogDebug((int)EventIds.Debugging, $"[ConnectivityAwareClient]-[{identity.Id}]: {message}");
 
             public static void ReceivedDeviceSdkCallback(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason)
             {

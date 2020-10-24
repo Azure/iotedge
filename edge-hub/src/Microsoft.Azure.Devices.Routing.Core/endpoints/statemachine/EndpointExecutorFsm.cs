@@ -302,8 +302,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                         result = await thisPtr.processor.ProcessAsync(messages, cts.Token);
                     }
 
-                    Events.Debugging($"Endpoint {thisPtr.Endpoint.Name} processed {messages.Count} message(s) result={result.IsSuccessful}.");
-
                     if (result.IsSuccessful)
                     {
                         if (thisPtr.lastFailedRevivalTime.HasValue)
@@ -591,11 +589,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 UpdateEndpoint,
                 UpdateEndpointSuccess,
                 UpdateEndpointFailure,
-                CheckRetryInnerException,
-                Debugging
+                CheckRetryInnerException
             }
-
-            public static void Debugging(string message) => Log.LogDebug($"[EndpointExecutorFsm]: {message}");
 
             public static void StateEnter(EndpointExecutorFsm fsm)
             {

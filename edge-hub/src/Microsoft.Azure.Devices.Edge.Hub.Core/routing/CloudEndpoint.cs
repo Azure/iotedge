@@ -281,8 +281,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 InvalidMessageNoIdentity,
                 CancelledProcessing,
                 Created,
-                DoneProcessing,
-                Debugging
+                DoneProcessing
             }
 
             public static void DeviceIdNotFound(IRoutingMessage routingMessage)

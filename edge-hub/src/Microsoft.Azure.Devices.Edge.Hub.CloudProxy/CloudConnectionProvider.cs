@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHub = Option.Some(Preconditions.CheckNotNull(edgeHubInstance, nameof(edgeHubInstance)));
         }
 
-        async Task<ICloudConnection> ConnectWithoutScopeAsync(
+        async Task<ICloudConnection> ConnectFromOutOfScopeAsync(
             IIdentity identity,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             string productInfo,
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 var serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id, true);
                 var cloudConnectionCreationTask = serviceIdentity.Map(si => this.ConnectOnBehalfOfAsync(si, identity, connectionStatusChangedHandler, productInfo, modelId))
-                    .GetOrElse(() => this.ConnectWithoutScopeAsync(identity, connectionStatusChangedHandler, productInfo, modelId, initialCredentials));
+                    .GetOrElse(() => this.ConnectFromOutOfScopeAsync(identity, connectionStatusChangedHandler, productInfo, modelId, initialCredentials));
 
                 var cloudConnection = await cloudConnectionCreationTask;
                 return Try.Success(cloudConnection);

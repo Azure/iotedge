@@ -4,18 +4,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Security.Authentication;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
 
+    // This class is a wrapper of device and cloud connection. It put them togather as a bundle and recover cloud connection once it's disconnected.
     internal class DeviceBridge
     {
         static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(2);
-        static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceBridge>();
         readonly object stateLock = new object();
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
@@ -41,7 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.onCloudConnectionStatusChanged = onCloudConnectionStatusChanged;
             this.cloudConnectionProvider = cloudConnectionProvider;
             this.clientCredentials = Option.None<IClientCredentials>();
-            this.Debugging($"Created new DeviceBridge instance for {this.Identity} without token credentials.");
         }
 
         internal DeviceBridge(IClientCredentials clientCredentials, bool closeCloudConnectionOnDeviceDisconnect, ICloudConnectionProvider cloudConnectionProvider, Action<DeviceBridge, CloudConnectionStatus> onCloudConnectionStatusChanged)
@@ -51,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.onCloudConnectionStatusChanged = onCloudConnectionStatusChanged;
             this.cloudConnectionProvider = cloudConnectionProvider;
             this.clientCredentials = Option.Some(clientCredentials);
-            this.Debugging($"Created new DeviceBridge instance for {this.Identity} with token credentials.");
         }
 
         internal IDeviceProxy GetDeviceProxy()
@@ -195,7 +194,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // double check if task is the same as existing createCloudProxyTask, return the result
                 if (task == this.createCloudProxyTask)
                 {
-                    this.Debugging($"Create cloud proxy for {this.Identity} result={result.Success}.");
                     this.createCloudProxyTask = null;
                     if (result.Success)
                     {
@@ -223,6 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Action<string, CloudConnectionStatus> cloudConnectionStatusChangedHandler;
             using (SyncLock.Lock(this.stateLock, OperationTimeout))
             {
+                // this id is used to make sure connection status change event is for existing clould connection to avoid race.
                 var id = Guid.NewGuid().ToString();
                 this.cloudConnectionStatusChangedHandlerId = id;
                 cloudConnectionStatusChangedHandler = async (deviceId, status) =>
@@ -243,12 +242,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             string deviceId,
             CloudConnectionStatus connectionStatus)
         {
-            this.Debugging($"Cloud proxy for {this.Identity} status changed to {connectionStatus}.");
             using (SyncLock.Lock(this.stateLock, OperationTimeout))
             {
                 if (this.cloudConnectionStatusChangedHandlerId != id)
                 {
-                    this.Debugging($"Cloud proxy for {this.Identity} status changed ignored since the handle id mismatch.");
+                    // Cloud proxy status changed ignored since the handle id mismatch.
                     return;
                 }
             }
@@ -264,19 +262,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case CloudConnectionStatus.Disconnected:
                     await this.CloseCloudProxyAsync();
                     // try to recover, ignore if recovered
-                    this.Debugging($"Recovering cloud proxy for {this.Identity}...");
                     if (this.deviceProxy?.IsActive ?? false)
                     {
                         // only try to recover while device is connected
                         var cloudProxyTry = await this.TryRetrieveCloudProxyAsync();
-                        this.Debugging($"Recover cloud proxy for {this.Identity} result={cloudProxyTry.Success}.");
-
                         if (!cloudProxyTry.Success)
                         {
-                            // We're not sure if the credentials is valid anymore, so close DeviceProxy
-                            if (this.clientCredentials != null)
+                            // If reconnect failed,
+                            // 1. For client credentials based device/module(not in scope), we are not able to check if the credentials is valid, drop device connection and let device retry
+                            // 2. For device/module in scope, only chance it failed is either device/module state changed(scope change or disable) or network outage.
+                            // 1.1 For former, drop device connection and let device retry.
+                            // 1.2 For latter, connection should be able to re-esstablish while DeviceConnectivityManager trigger recover.
+                            if (this.clientCredentials != null || IsCausedByInvalidDevice(cloudProxyTry.Exception))
                             {
-                                this.Debugging($"Closing device proxy for {this.Identity}...");
                                 await this.CloseDeviceProxyAsync();
                             }
 
@@ -295,7 +293,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        void Debugging(string message) => Log.LogDebug($"[DeviceBridge]: {message}");
+        static bool IsCausedByInvalidDevice(Exception ex)
+        {
+            return ex is DeviceNotFoundException || ex is UnauthorizedException || ex is AuthenticationException;
+        }
 
         public class SyncLock : IDisposable
         {
