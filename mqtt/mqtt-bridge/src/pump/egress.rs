@@ -20,6 +20,7 @@ pub use crate::client::MockPublishHandle as PublishHandle;
 use crate::client::PublishHandle;
 
 use mqtt3::proto::Publication;
+use std::iter;
 
 const MAX_IN_FLIGHT: usize = 16;
 
@@ -72,7 +73,7 @@ where
         // Take the stream of loaded messages and convert to a stream of futures which publish.
         // Then convert to buffered stream so that we can have multiple in-flight and also limit number of publications.
         let loader = store.loader();
-        let publish_handle_stream = stream::iter(std::iter::repeat(publish_handle.clone()));
+        let publish_handle_stream = stream::iter(iter::repeat(publish_handle.clone()));
         let load_and_publish = loader
             .zip(publish_handle_stream)
             .filter_map(|(loaded, publish_handle)| loaded_to_publish_fut(loaded, publish_handle))
