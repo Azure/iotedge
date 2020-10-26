@@ -12,8 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class Cloud2DeviceMessageHandler : MessageConfirmingHandler, ICloud2DeviceMessageHandler, IMessageProducer
     {
-        const string SubscriptionForDeviceboundPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)/messages/c2d/post/\#$";
-        const string C2DTopicDeviceTemplate = "$edgehub/{0}/messages/c2d/post/{1}";
+        const string SubscriptionForDeviceboundPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)/messages/c2d/post/\#$";
+        const string C2DTopicDeviceTemplate = "{0}/{1}/messages/c2d/post/{2}";
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(SubscriptionForDeviceboundPattern, DeviceSubscription.C2D) };
 
@@ -27,14 +27,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
-        public async Task SendC2DMessageAsync(IMessage message, IIdentity identity)
+        public async Task SendC2DMessageAsync(IMessage message, IIdentity identity, bool isDirectClient)
         {
+            if (!message.SystemProperties.TryGetValue(SystemProperties.LockToken, out var lockToken))
+            {
+                Events.NoLockToken(identity.Id);
+                throw new Exception("Cannot send C2D message without lock token");
+            }
+
             bool result;
             try
             {
+                var topicPrefix = isDirectClient ? MqttBrokerAdapterConstants.DirectTopicPrefix : MqttBrokerAdapterConstants.IndirectTopicPrefix;
                 var propertyBag = GetPropertyBag(message);
                 result = await this.connector.SendAsync(
-                                                GetCloudToDeviceTopic(identity, propertyBag),
+                                                GetCloudToDeviceTopic(identity, propertyBag, topicPrefix),
                                                 message.Body);
             }
             catch (Exception e)
@@ -50,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 // TODO: confirming back the message based on the fact that the MQTT broker ACK-ed it. It doesn't mean that the
                 // C2D message has been delivered. Going forward it is a broker responsibility to deliver the message, however if
                 // it crashes, the message will be lost
-                await this.ConfirmMessageAsync(message, identity);
+                await this.ConfirmMessageAsync(lockToken, identity);
             }
             else
             {
@@ -58,14 +65,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        static string GetCloudToDeviceTopic(IIdentity identity, string propertyBag)
+        static string GetCloudToDeviceTopic(IIdentity identity, string propertyBag, string topicPrefix)
         {
             switch (identity)
             {
                 case IDeviceIdentity deviceIdentity:
-                    return string.Format(C2DTopicDeviceTemplate, deviceIdentity.DeviceId, propertyBag);
+                    return string.Format(C2DTopicDeviceTemplate, topicPrefix, deviceIdentity.DeviceId, propertyBag);
 
-                case IModuleIdentity moduleIdentity:
+                case IModuleIdentity _:
                     Events.CannotSendC2DToModule(identity.Id);
                     throw new Exception($"Cannot send C2D message to {identity.Id}, because it is not a device but a module");
 
@@ -88,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 CouldToDeviceMessageFailed,
                 BadIdentityFormat,
                 CannotSendC2DToModule,
+                NoLockToken
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
@@ -96,6 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void CouldToDeviceMessageFailed(string id, int messageLen) => Log.LogError((int)EventIds.CouldToDeviceMessageFailed, $"Failed to send Cloud to Device message to client: {id}, msg len: {messageLen}");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void CannotSendC2DToModule(string id) => Log.LogError((int)EventIds.CannotSendC2DToModule, $"Cannot send C2D message to module {id}");
+            public static void NoLockToken(string identity) => Log.LogError((int)EventIds.NoLockToken, $"Cannot send C2D message for {identity} because it does not have lock token in its system properties");
         }
     }
 }

@@ -1,23 +1,22 @@
 #![allow(dead_code)] // TODO remove when ready
-use std::{
-    collections::HashSet, fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration,
-};
+use std::{fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Utc;
 use futures_util::future::{self, BoxFuture};
+use mockall::automock;
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info};
 
 use mqtt3::{
-    proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
+    proto::{self, Publication, SubscribeTo},
+    Client, Event, IoSource, PublishError, ShutdownError, UpdateSubscriptionError,
 };
 
 use crate::{
     settings::Credentials,
-    token_source::TrustBundleSource,
-    token_source::{SasTokenSource, TokenSource},
+    token_source::{SasTokenSource, TokenSource, TrustBundleSource},
 };
 
 const DEFAULT_TOKEN_DURATION_MINS: i64 = 60;
@@ -25,19 +24,6 @@ const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(5);
 // TODO: get QOS from topic settings
 const DEFAULT_QOS: proto::QoS = proto::QoS::AtLeastOnce;
 const API_VERSION: &str = "2010-01-01";
-
-#[derive(Debug)]
-pub struct ShutdownHandle(mqtt3::ShutdownHandle);
-
-impl ShutdownHandle {
-    pub async fn shutdown(&mut self) -> Result<(), ClientConnectError> {
-        self.0
-            .shutdown()
-            .await
-            .map_err(ClientConnectError::ShutdownClient)?;
-        Ok(())
-    }
-}
 
 #[derive(Clone)]
 enum BridgeIoSource {
@@ -67,12 +53,12 @@ where
     T: TokenSource + Clone + Send + Sync + 'static,
 {
     pub fn new(
-        address: String,
+        address: impl Into<String>,
         token_source: Option<T>,
         trust_bundle_source: Option<TrustBundleSource>,
     ) -> Self {
         Self {
-            address,
+            address: address.into(),
             token_source,
             trust_bundle_source,
         }
@@ -184,11 +170,31 @@ impl BridgeIoSource {
     }
 }
 
+pub struct MqttClientConfig {
+    addr: String,
+    keep_alive: Duration,
+    clean_session: bool,
+    credentials: Credentials,
+}
+
+impl MqttClientConfig {
+    pub fn new(
+        addr: impl Into<String>,
+        keep_alive: Duration,
+        clean_session: bool,
+        credentials: Credentials,
+    ) -> Self {
+        Self {
+            addr: addr.into(),
+            keep_alive,
+            clean_session,
+            credentials,
+        }
+    }
+}
+
 /// This is a wrapper over mqtt3 client
-pub struct MqttClient<H>
-where
-    H: EventHandler,
-{
+pub struct MqttClient<H> {
     client_id: Option<String>,
     username: Option<String>,
     io_source: BridgeIoSource,
@@ -197,45 +203,36 @@ where
     event_handler: H,
 }
 
-impl<H: EventHandler> MqttClient<H> {
-    pub fn tcp(
-        address: &str,
-        keep_alive: Duration,
-        clean_session: bool,
-        event_handler: H,
-        connection_credentials: &Credentials,
-    ) -> Self {
-        let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection = TcpConnection::new(address.to_owned(), token_source, None);
+impl<H> MqttClient<H>
+where
+    H: MqttEventHandler,
+{
+    pub fn tcp(config: MqttClientConfig, event_handler: H) -> Self {
+        let token_source = Self::token_source(&config.credentials);
+        let tcp_connection = TcpConnection::new(config.addr, token_source, None);
         let io_source = BridgeIoSource::Tcp(tcp_connection);
 
         Self::new(
-            keep_alive,
-            clean_session,
+            config.keep_alive,
+            config.clean_session,
             event_handler,
-            connection_credentials,
+            &config.credentials,
             io_source,
         )
     }
 
-    pub fn tls(
-        address: &str,
-        keep_alive: Duration,
-        clean_session: bool,
-        event_handler: H,
-        connection_credentials: &Credentials,
-    ) -> Self {
-        let trust_bundle = Some(TrustBundleSource::new(connection_credentials.clone()));
+    pub fn tls(config: MqttClientConfig, event_handler: H) -> Self {
+        let trust_bundle = Some(TrustBundleSource::new(config.credentials.clone()));
 
-        let token_source = Self::token_source(&connection_credentials);
-        let tcp_connection = TcpConnection::new(address.to_owned(), token_source, trust_bundle);
+        let token_source = Self::token_source(&config.credentials);
+        let tcp_connection = TcpConnection::new(config.addr, token_source, trust_bundle);
         let io_source = BridgeIoSource::Tls(tcp_connection);
 
         Self::new(
-            keep_alive,
-            clean_session,
+            config.keep_alive,
+            config.clean_session,
             event_handler,
-            connection_credentials,
+            &config.credentials,
             io_source,
         )
     }
@@ -300,31 +297,23 @@ impl<H: EventHandler> MqttClient<H> {
         }
     }
 
-    pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
-        self.client
-            .shutdown_handle()
-            .map_or(Err(ShutdownError::ClientDoesNotExist), |shutdown_handle| {
-                Ok(ShutdownHandle(shutdown_handle))
-            })
-    }
+    pub async fn handle_events(&mut self) {
+        debug!("polling bridge client");
 
-    pub async fn handle_events(mut self) -> Result<(), ClientConnectError> {
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
-            error!(message = "failed to poll events", error=%e);
-            // TODO: handle the error by recreting the connection
+            // TODO: handle the error by recreating the connection
+            error!(error=%e, "failed to poll events");
             None
         }) {
-            debug!("handle event {:?}", event);
-            if let Err(e) = self.event_handler.handle(&event).await {
-                error!("error processing event {}", e);
+            debug!("handling event {:?}", event);
+            if let Err(e) = self.event_handler.handle(event).await {
+                error!(err = %e, "error processing event");
             }
         }
-
-        Ok(())
     }
 
-    pub async fn subscribe(&mut self, topics: Vec<String>) -> Result<(), ClientConnectError> {
-        debug!("subscribing to topics");
+    pub async fn subscribe(&mut self, topics: &[String]) -> Result<(), ClientError> {
+        info!("subscribing to topics");
         let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic.to_string(),
             qos: DEFAULT_QOS,
@@ -334,77 +323,163 @@ impl<H: EventHandler> MqttClient<H> {
             debug!("subscribing to topic {}", subscription.topic_filter);
             self.client
                 .subscribe(subscription)
-                .map_err(ClientConnectError::SubscribeFailure)?;
-        }
-
-        let mut subacks: HashSet<_> = topics.iter().collect();
-        if subacks.is_empty() {
-            debug!("no topics to subscribe to");
-            return Ok(());
-        }
-
-        while let Some(event) = self
-            .client
-            .try_next()
-            .await
-            .map_err(ClientConnectError::PollClientFailure)?
-        {
-            if let Event::SubscriptionUpdates(subscriptions) = event {
-                for subscription in subscriptions {
-                    match subscription {
-                        SubscriptionUpdateEvent::Subscribe(sub) => {
-                            subacks.remove(&sub.topic_filter);
-                        }
-                        SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
-                            subacks.remove(&topic_filter);
-                            error!("subscription rejected by server {}", topic_filter);
-                        }
-
-                        SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
-                            warn!("Unsubscribed {}", topic_filter);
-                        }
-                    }
-                }
-            }
-        }
-
-        if subacks.is_empty() {
-            debug!("successfully subscribed to topics");
-        } else {
-            error!(
-                "failed to receive expected subacks for topics: {0:?}",
-                subacks.iter().map(ToString::to_string).collect::<String>()
-            );
+                .map_err(ClientError::Subscribe)?;
         }
 
         Ok(())
     }
 }
 
-#[async_trait]
-pub trait EventHandler {
-    type Error: Display;
+/// A trait extending `MqttClient` with additional handles functionality.
+pub trait MqttClientExt {
+    /// Publish handle type.
+    type PublishHandle;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error>;
+    /// Returns an instance of publish handle.
+    fn publish_handle(&self) -> Result<Self::PublishHandle, ClientError>;
+
+    /// Update subscription handle type.
+    type UpdateSubscriptionHandle;
+
+    /// Returns an instance of update subscription handle.
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError>;
+
+    /// Client shutdown handle type.
+    type ShutdownHandle;
+
+    /// Returns an instance of shutdown handle.
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError>;
 }
 
+#[cfg(not(test))]
+/// Implements `MqttClientExt` for production code.
+impl<H> MqttClientExt for MqttClient<H> {
+    type PublishHandle = PublishHandle;
+
+    fn publish_handle(&self) -> Result<Self::PublishHandle, ClientError> {
+        let publish_handle = self.client.publish_handle()?;
+        Ok(PublishHandle(publish_handle))
+    }
+
+    type UpdateSubscriptionHandle = UpdateSubscriptionHandle;
+
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError> {
+        let update_subscription_handle = self.client.update_subscription_handle()?;
+        Ok(UpdateSubscriptionHandle(update_subscription_handle))
+    }
+
+    type ShutdownHandle = ShutdownHandle;
+
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError> {
+        let shutdown_handle = self.client.shutdown_handle()?;
+        Ok(ShutdownHandle(shutdown_handle))
+    }
+}
+
+#[cfg(test)]
+/// Implements `MqttClientExt` for tests.
+impl<H> MqttClientExt for MqttClient<H> {
+    type PublishHandle = MockPublishHandle;
+
+    fn publish_handle(&self) -> Result<Self::PublishHandle, ClientError> {
+        Ok(MockPublishHandle::new())
+    }
+
+    type UpdateSubscriptionHandle = MockUpdateSubscriptionHandle;
+
+    fn update_subscription_handle(&self) -> Result<Self::UpdateSubscriptionHandle, ClientError> {
+        Ok(MockUpdateSubscriptionHandle::new())
+    }
+
+    type ShutdownHandle = MockShutdownHandle;
+
+    fn shutdown_handle(&self) -> Result<Self::ShutdownHandle, ShutdownError> {
+        Ok(MockShutdownHandle::new())
+    }
+}
+
+/// A client shutdown handle.
+#[derive(Debug, Clone)]
+pub struct ShutdownHandle(mqtt3::ShutdownHandle);
+
+#[automock]
+impl ShutdownHandle {
+    pub async fn shutdown(&mut self) -> Result<(), ClientError> {
+        self.0.shutdown().await?;
+        Ok(())
+    }
+}
+
+/// A client publish handle.
+pub struct PublishHandle(mqtt3::PublishHandle);
+
+#[automock]
+impl PublishHandle {
+    pub async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
+        self.0.publish(publication).await
+    }
+}
+
+/// A client subscription update handle.
+pub struct UpdateSubscriptionHandle(mqtt3::UpdateSubscriptionHandle);
+
+#[automock]
+impl UpdateSubscriptionHandle {
+    pub async fn subscribe(
+        &mut self,
+        subscribe_to: SubscribeTo,
+    ) -> Result<(), UpdateSubscriptionError> {
+        self.0.subscribe(subscribe_to).await
+    }
+
+    pub async fn unsubscribe(
+        &mut self,
+        unsubscribe_from: String,
+    ) -> Result<(), UpdateSubscriptionError> {
+        self.0.unsubscribe(unsubscribe_from).await
+    }
+}
+
+/// A trait which every MQTT client event handler implements.
+#[async_trait]
+pub trait MqttEventHandler {
+    type Error: Display;
+
+    /// Handles MQTT client event and returns marker which determines whether
+    /// an event handler fully handled an event.
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error>;
+}
+
+/// An `MqttEventHandler::handle` method result.
 #[derive(Debug, PartialEq)]
 pub enum Handled {
+    /// MQTT client event is fully handled.
     Fully,
-    Partially,
-    Skipped,
+
+    /// MQTT client event is partially handled. It contains modified event.
+    Partially(Event),
+
+    /// Unknown MQTT client event so event handler skipped the event.
+    /// It contains not modified event.
+    Skipped(Event),
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ClientConnectError {
+pub enum ClientError {
     #[error("failed to subscribe topic")]
-    SubscribeFailure(#[from] UpdateSubscriptionError),
+    Subscribe(#[from] UpdateSubscriptionError),
 
     #[error("failed to poll client")]
-    PollClientFailure(#[from] mqtt3::Error),
+    PollClient(#[from] mqtt3::Error),
 
     #[error("failed to shutdown custom mqtt client: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
+
+    #[error("failed to obtain publish handle: {0}")]
+    PublishHandle(#[from] mqtt3::PublishError),
+
+    #[error("failed to obtain subscribe handle: {0}")]
+    UpdateSubscriptionHandle(#[source] mqtt3::UpdateSubscriptionError),
 
     #[error("failed to connect")]
     SslHandshake,

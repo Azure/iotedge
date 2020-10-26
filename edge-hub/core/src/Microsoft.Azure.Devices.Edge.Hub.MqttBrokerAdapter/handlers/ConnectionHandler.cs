@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
 
         readonly Task<IConnectionProvider> connectionProviderGetter;
+        readonly Task<IAuthenticator> authenticatorGetter;
         readonly IIdentityProvider identityProvider;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly DeviceProxy.Factory deviceProxyFactory;
@@ -37,9 +38,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // this class is auto-registered so no way to implement an async activator.
         // hence this one needs to get a Task<T> which is suboptimal, but that is the way
         // IConnectionProvider is registered
-        public ConnectionHandler(Task<IConnectionProvider> connectionProviderGetter, IIdentityProvider identityProvider, ISystemComponentIdProvider systemComponentIdProvider, DeviceProxy.Factory deviceProxyFactory)
+        public ConnectionHandler(Task<IConnectionProvider> connectionProviderGetter, Task<IAuthenticator> authenticatorGetter, IIdentityProvider identityProvider, ISystemComponentIdProvider systemComponentIdProvider, DeviceProxy.Factory deviceProxyFactory)
         {
             this.connectionProviderGetter = Preconditions.CheckNotNull(connectionProviderGetter);
+            this.authenticatorGetter = Preconditions.CheckNotNull(authenticatorGetter);
             this.identityProvider = Preconditions.CheckNotNull(identityProvider);
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.deviceProxyFactory = Preconditions.CheckNotNull(deviceProxyFactory);
@@ -49,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
-        public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity)
+        public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity, bool directOnCreation)
         {
             using (await this.guard.LockAsync())
             {
@@ -59,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 }
                 else
                 {
-                    return Option.None<IDeviceListener>();
+                    return await this.CreateDeviceListenerAsync(identity, directOnCreation);
                 }
             }
         }
@@ -68,15 +70,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             using (await this.guard.LockAsync())
             {
-                if (this.knownConnections.TryGetValue(identity, out var container))
+                var container = default(IDeviceListener);
+                if (!this.knownConnections.TryGetValue(identity, out container))
                 {
-                    if (container is IDeviceProxy result)
-                    {
-                        return Option.Some(result);
-                    }
+                    return await this.CreateDeviceProxyAsync(identity);
                 }
 
-                return Option.None<IDeviceProxy>();
+                return container switch
+                                 {
+                                    IDeviceProxy proxy => Option.Some(proxy),
+                                    _ => Option.None<IDeviceProxy>()
+                                 };
             }
         }
 
@@ -160,7 +164,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         async Task AddConnectionsAsync(HashSet<IIdentity> identitiesAdded)
         {
             var connectionProvider = await this.connectionProviderGetter;
-
             if (connectionProvider == null)
             {
                 Events.FailedToObtainConnectionProvider();
@@ -169,28 +172,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             foreach (var identity in identitiesAdded)
             {
-                var deviceListener = await connectionProvider.GetDeviceListenerAsync(identity, Option.None<string>());
-                var deviceProxy = this.deviceProxyFactory(identity);
+                await this.AddConnectionAsync(identity, true, connectionProvider);
+            }
+        }
 
-                deviceListener.BindDeviceProxy(deviceProxy);
+        async Task<IDeviceListener> AddConnectionAsync(IIdentity identity, bool isDirectConnection, IConnectionProvider connectionProvider)
+        {
+            var deviceListener = await connectionProvider.GetDeviceListenerAsync(identity, Option.None<string>());
+            var deviceProxy = this.deviceProxyFactory(identity, isDirectConnection);
 
-                var previousListener = default(IDeviceListener);
+            deviceListener.BindDeviceProxy(deviceProxy);
 
-                this.knownConnections.AddOrUpdate(
-                    identity,
-                    deviceListener,
-                    (k, v) =>
-                    {
-                        previousListener = v;
-                        return deviceListener;
-                    });
+            var previousListener = default(IDeviceListener);
 
+            this.knownConnections.AddOrUpdate(
+                identity,
+                deviceListener,
+                (k, v) =>
+                {
+                    previousListener = v;
+                    return deviceListener;
+                });
+
+            try
+            {
                 if (previousListener != null)
                 {
                     Events.ExistingClientAdded(previousListener.Identity.Id);
                     await previousListener.CloseAsync();
                 }
             }
+            catch (Exception ex)
+            {
+                Events.CouldNotClosePreviousClient(identity.Id, ex);
+                // keep going
+            }
+
+            return deviceListener;
         }
 
         Option<List<IIdentity>> GetIdentitiesFromUpdateMessage(MqttPublishInfo mqttPublishInfo)
@@ -238,6 +256,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Option.Some(result);
         }
 
+        async Task<Option<IDeviceListener>> CreateDeviceListenerAsync(IIdentity identity, bool directOnCreation)
+        {
+            var connectionProvider = await this.connectionProviderGetter;
+            if (connectionProvider == null)
+            {
+                Events.FailedToObtainConnectionProvider();
+                return Option.None<IDeviceListener>();
+            }
+
+            if (!directOnCreation)
+            {
+                var clientCredentials = new ImplicitCredentials(identity, string.Empty, Option.None<string>()); // TODO obtain prod info/model id
+                var authenticator = await this.authenticatorGetter;
+                await authenticator.AuthenticateAsync(clientCredentials);
+            }
+
+            var deviceListener = await this.AddConnectionAsync(identity, directOnCreation, connectionProvider);
+            return Option.Some(deviceListener);
+        }
+
+        async Task<Option<IDeviceProxy>> CreateDeviceProxyAsync(IIdentity identity)
+        {
+            var deviceListener = await this.CreateDeviceListenerAsync(identity, false);
+            return deviceListener.FlatMap(
+                        listener =>
+                            listener switch
+                            {
+                                IDeviceProxy proxy => Option.Some(proxy),
+                                _ => Option.None<IDeviceProxy>()
+                            });
+        }
+
         static class Events
         {
             const int IdStart = MqttBridgeEventIds.ConnectionHandler;
@@ -252,7 +302,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 BlockingDependencyInjection,
                 ErrorProcessingNotification,
                 FailedToObtainConnectionProvider,
-                CouldNotFindClientToClose
+                CouldNotFindClientToClose,
+                CouldNotClosePreviousClient
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize connection update");
@@ -262,6 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing [Connect] notification");
             public static void FailedToObtainConnectionProvider() => Log.LogError((int)EventIds.FailedToObtainConnectionProvider, "Failed to obtain ConnectionProvider");
             public static void CouldNotFindClientToClose(string identity) => Log.LogInformation((int)EventIds.CouldNotFindClientToClose, $"Could not find to close: {identity}. No signal will be sent to the broker");
+            public static void CouldNotClosePreviousClient(string identity, Exception e) => Log.LogError((int)EventIds.CouldNotClosePreviousClient, e, $"Could not close previous device connection for: {identity}");
         }
     }
 }

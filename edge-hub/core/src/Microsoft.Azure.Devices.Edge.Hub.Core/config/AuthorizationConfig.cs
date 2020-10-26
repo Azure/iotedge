@@ -4,16 +4,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Newtonsoft.Json;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Domain object that represents Authorization configuration for Edge Hub Module (MQTT Broker).
     ///
     /// This object is being constructed from the EdgeHub twin's desired properties.
-    /// See <see cref="EdgeHubDesiredProperties"/> for DTO.
+    /// See <see cref="AuthorizationProperties"/> for DTO.
     /// </summary>
-    public class AuthorizationConfig : List<Statement>, IEquatable<AuthorizationConfig>
+    /// <remarks>
+    /// This model must be in sync with policy::core::builder::PolicyDefinition from MQTT Broker,
+    /// since it is being sent to the Broker as json policy definition on every twin update.
+    /// (<see cref="Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.PolicyUpdateHandler"/>).
+    /// </remarks>
+    public class AuthorizationConfig : IEquatable<AuthorizationConfig>
     {
+        public IList<Statement> Statements { get; }
+
+        public AuthorizationConfig(IList<Statement> statements)
+        {
+            this.Statements = Preconditions.CheckNotNull(statements, nameof(statements));
+        }
+
         public bool Equals(AuthorizationConfig other)
         {
             if (ReferenceEquals(null, other))
@@ -26,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 return true;
             }
 
-            return Enumerable.SequenceEqual(this, other);
+            return Enumerable.SequenceEqual(this.Statements, other.Statements);
         }
 
         public override bool Equals(object obj)
@@ -37,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             unchecked
             {
                 int hash = 17;
-                hash = this.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode()));
+                hash = this.Statements.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode()));
                 return hash;
             }
         }
@@ -45,22 +57,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
     public class Statement : IEquatable<Statement>
     {
-        [JsonConstructor]
-        public Statement(IList<string> identities, IList<Rule> allow, IList<Rule> deny)
+        public Statement(
+            Effect effect,
+            IList<string> identities,
+            IList<string> operations,
+            IList<string> resources)
         {
-            this.Identities = identities;
-            this.Allow = allow;
-            this.Deny = deny;
+            this.Effect = effect;
+            this.Identities = Preconditions.CheckNotNull(identities, nameof(identities));
+            this.Operations = Preconditions.CheckNotNull(operations, nameof(operations));
+            this.Resources = Preconditions.CheckNotNull(resources, nameof(resources));
         }
 
-        [JsonProperty(PropertyName = "identities")]
+        public Effect Effect { get; }
+
         public IList<string> Identities { get; }
 
-        [JsonProperty(PropertyName = "allow")]
-        public IList<Rule> Allow { get; }
+        public IList<string> Operations { get; }
 
-        [JsonProperty(PropertyName = "deny")]
-        public IList<Rule> Deny { get; }
+        public IList<string> Resources { get; }
 
         public bool Equals(Statement other)
         {
@@ -75,8 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
 
             return Enumerable.SequenceEqual(this.Identities, other.Identities)
-                && Enumerable.SequenceEqual(this.Allow, other.Allow)
-                && Enumerable.SequenceEqual(this.Deny, other.Deny);
+                && Enumerable.SequenceEqual(this.Operations, other.Operations)
+                && Enumerable.SequenceEqual(this.Resources, other.Resources);
         }
 
         public override bool Equals(object obj)
@@ -88,56 +103,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 int hash = 17;
                 hash = this.Identities.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode()));
-                hash = this.Allow.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode()));
-                hash = this.Deny.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode()));
-                return hash;
-            }
-        }
-    }
-
-    public class Rule : IEquatable<Rule>
-    {
-        [JsonConstructor]
-        public Rule(IList<string> operations, IList<string> resources)
-        {
-            this.Operations = operations;
-            this.Resources = resources;
-        }
-
-        [JsonProperty(PropertyName = "operations")]
-        public IList<string> Operations { get; }
-
-        [JsonProperty(PropertyName = "resources")]
-        public IList<string> Resources { get; }
-
-        public bool Equals(Rule other)
-        {
-            if (ReferenceEquals(null, other))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
-
-            return Enumerable.SequenceEqual(this.Operations, other.Operations)
-                && Enumerable.SequenceEqual(this.Resources, other.Resources);
-        }
-
-        public override bool Equals(object obj)
-            => this.Equals(obj as Rule);
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hash = 17;
                 hash = this.Operations.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode()));
                 hash = this.Resources.Aggregate(hash, (acc, item) => (acc * 31 + item.GetHashCode()));
                 return hash;
             }
         }
+    }
+
+    public enum Effect
+    {
+        Allow = 0,
+        Deny = 1,
     }
 }

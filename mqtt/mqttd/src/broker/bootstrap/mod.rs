@@ -1,7 +1,7 @@
 use futures_util::future::select_all;
 use tokio::task::JoinHandle;
 
-use tracing::error;
+use tracing::{error, info};
 
 #[cfg(feature = "edgehub")]
 mod edgehub;
@@ -39,6 +39,7 @@ impl SidecarManager {
     pub async fn wait_for_shutdown(self) -> Result<(), SidecarError> {
         let (sidecar_output, _, other_handles) = select_all(self.join_handles).await;
 
+        info!("A sidecar has stopped. Shutting down sidecars...");
         if let Err(e) = sidecar_output {
             error!(message = "failed waiting for sidecar shutdown", err = %e);
         }

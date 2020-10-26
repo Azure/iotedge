@@ -194,12 +194,12 @@ pub enum CommandHandlerError {
     #[error("subscription rejected by server: {0:?}")]
     SubscriptionRejectedByServer(String),
 
-    #[error("failed to subscribe command handler to command topic")]
+    #[error("failed to subscribe command handler to command topic: {0}")]
     SubscribeFailure(#[from] UpdateSubscriptionError),
 
-    #[error("failed to poll client when validating command handler subscriptions")]
+    #[error("failed to poll client when validating command handler subscriptions: {0}")]
     PollClientFailure(#[from] mqtt3::Error),
 
-    #[error("failed to signal shutdown for command handler")]
+    #[error("failed to signal shutdown for command handler: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
 }

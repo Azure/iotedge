@@ -536,7 +536,7 @@ pub enum PersistError {
     TaskJoin(#[source] Option<tokio::task::JoinError>),
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_arch = "x86_64"))]
 mod tests {
     use std::io::Cursor;
 
