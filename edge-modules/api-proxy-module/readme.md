@@ -116,7 +116,7 @@ Next, set each environment variable's value by listing them directly.
 | NGINX_DEFAULT_PORT  | Changes the port Nginx listens too. If you change this option, make sure that the port you select is exposed in the dockerfile. Default is 443  |
 | DOCKER_REQUEST_ROUTE_ADDRESS | Address to route docker requests. By default it points to the parent.  |
 | BLOB_UPLOAD_ROUTE_ADDRESS| Address to route blob registry requests. By default it points to the parent. |
-| IOTEDGE_PARENTHOSTNAME | Parent hostname |
+| IOTEDGE_PARENTHOSTNAME | Read only variable. Do not assign, its value is automatically assigned to Parent hostname when container starts |
 
 ### Update the proxy configuration dynamically
 
