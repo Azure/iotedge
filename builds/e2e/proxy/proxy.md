@@ -22,6 +22,9 @@ location='<>'
 # Name of the resource group
 resource_group_name='<>'
 
+# Prefix used when creating Azure resources. If not given, defaults to 'e2e-<13 char hash>-'.
+resource_prefix='<>'
+
 # The number of runner VMs to create
 runner_count=2
 
@@ -41,9 +44,11 @@ az group create -l "$location" -n "$resource_group_name"
 # Deploy the VMs
 az deployment group create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters "$(
     jq -n \
+        --arg resource_prefix $resource_prefix \
         --argjson runner_count $runner_count \
         --arg key_vault_access_objectid "$key_vault_access_objectid" \
         '{
+            "resource_prefix": { "value": $resource_prefix },
             "runner_count": { "value": $runner_count },
             "key_vault_access_objectid": { "value": $key_vault_access_objectid },
             "create_runner_public_ip": { "value": true }
