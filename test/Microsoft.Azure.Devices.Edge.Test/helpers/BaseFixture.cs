@@ -17,9 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         protected CancellationToken TestToken => this.cts.Token;
 
+        protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
+
         [SetUp]
-        protected void BeforeEachTest()
+        protected async void BeforeEachTestAsync()
         {
+            await this.BeforeTestTimerStarts();
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;
             this.profiler = Profiler.Start();
