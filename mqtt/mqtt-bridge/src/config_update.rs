@@ -5,8 +5,8 @@ use tracing::debug;
 
 use crate::{bridge::BridgeHandle, controller::Error, settings::Direction, settings::TopicRule};
 
-/// Keeps the current subscriptions and forwards and calculates the diff with an BridgeUpdate
-/// It is used to send a diff to a BridgeHandle and update itself with latest configuration
+/// Keeps the current subscriptions and forwards and calculates the diff with an `BridgeUpdate`
+/// It is used to send a diff to a `BridgeHandle` and update itself with latest configuration
 pub struct ConfigUpdater {
     bridge_handle: BridgeHandle,
     current_subscriptions: HashMap<String, TopicRule>,

@@ -114,7 +114,7 @@ impl BridgeController {
                     }
 
                     if let Some(config) = self.bridge_handles.lock().await.get_mut(UPSTREAM) {
-                        if let Err(e) = config.send_update(bridge_update.to_owned()).await {
+                        if let Err(e) = config.send_update(bridge_update).await {
                             error!("error sending bridge update {:?}", e);
                         }
                     }
