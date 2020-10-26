@@ -1,6 +1,6 @@
-use std::{env, error::Error as StdError};
+use std::{any::Any, env, error::Error as StdError};
 
-use mqtt_broker::auth::{Authorization, Authorizer};
+use mqtt_broker::auth::{Activity, Authorization, Authorizer};
 
 pub struct FeatureFlagAuthorizer<Z: Authorizer> {
     inner: Z,
@@ -32,10 +32,7 @@ where
 {
     type Error = E;
 
-    fn authorize(
-        &self,
-        activity: &mqtt_broker::auth::Activity,
-    ) -> Result<mqtt_broker::auth::Authorization, Self::Error> {
+    fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         if self.enabled {
             self.inner.authorize(activity)
         } else {
@@ -43,7 +40,7 @@ where
         }
     }
 
-    fn update(&mut self, update: Box<dyn std::any::Any>) -> Result<(), Self::Error> {
+    fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
         self.inner.update(update)
     }
 }

@@ -21,7 +21,10 @@ use mqtt_broker::{
 };
 use mqtt_edgehub::{
     auth::PolicyAuthorizer,
-    auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
+    auth::{
+        EdgeHubAuthenticator, EdgeHubAuthorizer, FeatureFlagAuthorizer, LocalAuthenticator,
+        LocalAuthorizer,
+    },
     command::{
         AuthorizedIdentitiesCommand, BridgeUpdateCommand, CommandHandler, CommandHandlerError,
         DisconnectCommand, PolicyUpdateCommand, ShutdownHandle,
