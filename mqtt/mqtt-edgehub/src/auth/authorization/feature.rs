@@ -1,4 +1,4 @@
-use std::{any::Any, env, error::Error as StdError};
+use std::{any::Any, env, error::Error as StdError, ffi::OsStr};
 
 use mqtt_broker::auth::{Activity, Authorization, Authorizer};
 
@@ -18,7 +18,7 @@ where
     Z: Authorizer<Error = E>,
     E: StdError,
 {
-    pub fn new(feature_flag: String, inner: Z) -> Self {
+    pub fn new(feature_flag: impl AsRef<OsStr>, inner: Z) -> Self {
         let enabled = env::var(feature_flag).unwrap_or_default().to_lowercase() == "true";
 
         Self { inner, enabled }
