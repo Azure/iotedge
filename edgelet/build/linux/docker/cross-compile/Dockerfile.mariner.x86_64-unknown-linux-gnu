@@ -14,6 +14,11 @@ RUN apt-get update && \
     dh-systemd \
     pkg-config
 
-COPY apt/cmake.sh /                                                       
-RUN apt-get purge --auto-remove -y cmake && \                         
+COPY toolkit-1.0.20201018.tar.gz /toolkit.tar.gz
+RUN tar xvzf /toolkit.tar.gz
+RUN pushd /toolkit && \
+    make clean && \
+    popd
+
+RUN apt-get purge --auto-remove -y cmake && \
     bash /cmake.sh 3.11.4
