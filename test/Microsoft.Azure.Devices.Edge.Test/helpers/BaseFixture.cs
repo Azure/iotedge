@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
 
         [SetUp]
-        protected async void BeforeEachTestAsync()
+        protected async Task BeforeEachTestAsync()
         {
             await this.BeforeTestTimerStarts();
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
