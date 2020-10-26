@@ -16,9 +16,8 @@ use tracing::{error, info, warn};
 use super::SidecarManager;
 use mqtt_bridge::{settings::BridgeSettings, BridgeController};
 use mqtt_broker::{
-    auth::{AllowAll, Authorizer},
-    Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerReady, BrokerSnapshot, Server,
-    ServerCertificate,
+    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerReady,
+    BrokerSnapshot, Server, ServerCertificate,
 };
 use mqtt_edgehub::{
     auth::PolicyAuthorizer,
