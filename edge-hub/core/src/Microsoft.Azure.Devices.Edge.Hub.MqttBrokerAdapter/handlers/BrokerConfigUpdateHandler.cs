@@ -94,10 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static PolicyUpdate GetEmptyPolicy()
         {
-            return new PolicyUpdate(@"
-            {
-                'statements': [ ]
-            }");
+            return new PolicyUpdate(@"{""statements"": [ ] }");
         }
 
         static BridgeConfig GetEmptyBridgeConfig()
