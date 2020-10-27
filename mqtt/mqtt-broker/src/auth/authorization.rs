@@ -1,4 +1,9 @@
-use std::{any::Any, convert::Infallible, error::Error as StdError, fmt::Display};
+use std::{
+    any::Any,
+    convert::Infallible,
+    error::Error as StdError,
+    fmt::{Display, Formatter, Result as FmtResult},
+};
 
 use mqtt3::proto;
 
@@ -104,7 +109,7 @@ impl Activity {
 }
 
 impl Display for Activity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
             "client: {} operation: {}",
@@ -140,11 +145,11 @@ impl Operation {
 }
 
 impl Display for Operation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            Operation::Connect => write!(f, "CONNECT"),
-            Operation::Publish(publish) => write!(f, "PUBLISH {}", publish.publication.topic_name),
-            Operation::Subscribe(subscribe) => write!(
+            Self::Connect => write!(f, "CONNECT"),
+            Self::Publish(publish) => write!(f, "PUBLISH {}", publish.publication.topic_name),
+            Self::Subscribe(subscribe) => write!(
                 f,
                 "SUBSCRIBE {}; qos: {}",
                 subscribe.topic_filter,
