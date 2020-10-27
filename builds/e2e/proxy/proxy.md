@@ -59,7 +59,7 @@ az deployment group create --resource-group "$resource_group_name" --name 'e2e-p
 Once the deployment has completed, SSH into each runner VM to install and configure the Azure Pipelines agent. To SSH into the runner VMs, you must first download their private keys from Key Vault. Find the name of the key vault from your deployment, then list the secret URLs for the private keys:
 
 ```sh
-az keyvault secret list --vault-name '<>' -o tsv --query "[].id|[?contains(@, 'runner-vm')]"
+az keyvault secret list --vault-name '<>' -o tsv --query "[].id|[?contains(@, 'runner')]"
 ```
 
 With a secret URL and an IP address, you can SSH into a runner VM like this:
