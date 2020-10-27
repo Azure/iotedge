@@ -28,8 +28,6 @@ pub(crate) const EDGEHUB_ID_VAR: &str = "{{iot:this_device_id}}";
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use bytes::Bytes;
     use mqtt3::proto;
     use mqtt_broker::{auth::Activity, auth::Operation, AuthId, ClientId, ClientInfo};
@@ -41,15 +39,7 @@ mod tests {
         let client_id = client_id.into();
         Activity::new(
             ClientInfo::new(client_id.clone(), "127.0.0.1:80".parse().unwrap(), auth_id),
-            Operation::new_connect(proto::Connect {
-                username: None,
-                password: None,
-                will: None,
-                client_id: proto::ClientId::IdWithExistingSession(client_id.to_string()),
-                keep_alive: Duration::default(),
-                protocol_name: mqtt3::PROTOCOL_NAME.into(),
-                protocol_level: mqtt3::PROTOCOL_LEVEL,
-            }),
+            Operation::new_connect(),
         )
     }
 
