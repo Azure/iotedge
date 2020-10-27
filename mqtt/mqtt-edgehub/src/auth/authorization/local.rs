@@ -44,8 +44,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use matches::assert_matches;
     use test_case::test_case;
 
@@ -81,18 +79,7 @@ mod tests {
     }
 
     fn connect_activity(peer_addr: &str) -> Activity {
-        let client_id = proto::ClientId::IdWithCleanSession("local-client".into());
-        let connect = proto::Connect {
-            username: None,
-            password: None,
-            will: None,
-            client_id,
-            keep_alive: Duration::from_secs(1),
-            protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
-            protocol_level: mqtt3::PROTOCOL_LEVEL,
-        };
-
-        let operation = Operation::new_connect(connect);
+        let operation = Operation::new_connect();
         activity("client_id".into(), operation, peer_addr)
     }
 
