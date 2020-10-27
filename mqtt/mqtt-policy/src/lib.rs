@@ -38,7 +38,7 @@ mod tests {
     ) -> Activity {
         let client_id = client_id.into();
         Activity::new(
-            ClientInfo::new(client_id.clone(), "127.0.0.1:80".parse().unwrap(), auth_id),
+            ClientInfo::new(client_id, "127.0.0.1:80".parse().unwrap(), auth_id),
             Operation::new_connect(),
         )
     }
