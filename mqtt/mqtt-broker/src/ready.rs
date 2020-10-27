@@ -107,6 +107,7 @@ impl AwaitingEvents for BrokerReadyEvent {
     fn awaiting() -> HashSet<Self::Event> {
         let mut awaiting = HashSet::new();
         awaiting.insert(Self::AuthorizerReady);
+        awaiting.insert(Self::PolicyReady);
 
         awaiting
     }
