@@ -81,9 +81,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"{prefix}apt-get update",
                     $"{prefix}apt-get install --yes iotedge"
                 },
-                // TODO: 10/14/2020 support yum behind a proxy
                 SupportedPackageExtension.Rpm => new[]
                 {
+                    // No proxy support here because our proxy test environment uses Ubuntu.
                     $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
                     $"yum updateinfo",
                     $"yum install --yes iotedge",
