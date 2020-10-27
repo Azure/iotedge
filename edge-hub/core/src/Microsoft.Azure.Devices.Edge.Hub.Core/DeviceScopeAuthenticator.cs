@@ -158,11 +158,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return (false, true);
             }
 
-            // Check credentials against the acting EdgeHub, since we would have
-            // already refreshed the target identity on failure, there's no need
-            // to have AuthenticateWithServiceIdentity do it again.
+            // Check credentials against the acting EdgeHub
             string actorEdgeHubId = actorDeviceId + $"/{Constants.EdgeHubModuleId}";
-            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, false);
+            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, true);
         }
 
         async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity)
