@@ -34,7 +34,7 @@ where
 
     /// Runs ingress processing.
     pub(crate) async fn run(mut self) -> Result<(), IngressError> {
-        info!("starting ingress publication processing...",);
+        info!("starting ingress publication processing...");
         self.client.handle_events().await;
         info!("finished ingress publication processing");
 

@@ -3,7 +3,6 @@ use futures_util::{
     pin_mut,
 };
 use mqtt3::ShutdownError;
-use tokio::sync::oneshot::Sender;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
@@ -53,26 +52,6 @@ impl BridgeHandle {
                 .await?;
         }
 
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct BridgeShutdownHandle {
-    local_shutdown: Sender<()>,
-    remote_shutdown: Sender<()>,
-}
-
-impl BridgeShutdownHandle {
-    // TODO: Remove when we implement bridge controller shutdown
-    #![allow(dead_code)]
-    pub async fn shutdown(self) -> Result<(), BridgeError> {
-        self.local_shutdown
-            .send(())
-            .map_err(BridgeError::ShutdownBridge)?;
-        self.remote_shutdown
-            .send(())
-            .map_err(BridgeError::ShutdownBridge)?;
         Ok(())
     }
 }
@@ -155,39 +134,39 @@ where
         match future::select(local_pump, remote_pump).await {
             Either::Left((local_pump, remote_pump)) => {
                 if let Err(e) = local_pump {
-                    debug!(error = %e, "local pump exited with error");
+                    error!(error = %e, "local pump exited with error");
                 } else {
-                    debug!("local pump exited");
+                    info!("local pump exited");
                 }
 
                 debug!("shutting down remote pump...");
                 shutdown_remote_pump.shutdown().await;
 
                 if let Err(e) = remote_pump.await {
-                    debug!(error = %e, "remote pump exited with error");
+                    error!(error = %e, "remote pump exited with error");
                 } else {
-                    debug!("remote pump exited");
+                    info!("remote pump exited");
                 }
             }
             Either::Right((remote_pump, local_pump)) => {
                 if let Err(e) = remote_pump {
-                    debug!(error = %e, "remote pump exited with error");
+                    error!(error = %e, "remote pump exited with error");
                 } else {
-                    debug!("remote pump exited");
+                    info!("remote pump exited");
                 }
 
                 debug!("shutting down local pump...");
                 shutdown_local_pump.shutdown().await;
 
                 if let Err(e) = local_pump.await {
-                    debug!(error = %e, "local pump exited with error");
+                    error!(error = %e, "local pump exited with error");
                 } else {
-                    debug!("local pump exited");
+                    info!("local pump exited");
                 }
             }
         }
 
-        debug!("bridge stopped...");
+        info!("bridge stopped...");
         Ok(())
     }
 

@@ -39,7 +39,7 @@ pub enum PumpError {
     #[error("unable to send command to pump")]
     Send,
 
-    #[error("error ocurred when running pump")]
+    #[error("error ocurred when running pump. {0}")]
     Run(Box<dyn StdError + Send + Sync>),
 }
 
@@ -124,10 +124,10 @@ where
 
         match future::select(messages, future::select(egress, ingress)).await {
             Either::Left((messages, publications)) => {
-                if let Err(e) = messages {
-                    debug!(error = %e, "pump messages processor exited with error");
+                if let Err(e) = &messages {
+                    error!(error = %e, "pump messages processor exited with error");
                 } else {
-                    debug!("pump messages processor exited");
+                    info!("pump messages processor exited");
                 }
 
                 debug!("shutting down both ingress and egress...");
@@ -138,9 +138,9 @@ where
                 match publications.await {
                     Either::Left((egress, ingress)) => {
                         if let Err(e) = egress {
-                            debug!(error = %e, "egress processing exited with error");
+                            error!(error = %e, "egress processing exited with error");
                         } else {
-                            debug!("egress processing exited");
+                            info!("egress processing exited");
                         }
 
                         if let Err(e) = ingress.await {
@@ -151,9 +151,9 @@ where
                     }
                     Either::Right((ingress, egress)) => {
                         if let Err(e) = ingress {
-                            debug!(error = %e, "ingress processing exited with error");
+                            error!(error = %e, "ingress processing exited with error");
                         } else {
-                            debug!("ingress processing exited");
+                            info!("ingress processing exited");
                         }
 
                         if let Err(e) = egress.await {
@@ -164,13 +164,13 @@ where
                     }
                 }
 
-                Ok(())
+                messages.map_err(|e| PumpError::Run(e.into()))
             }
             Either::Right((Either::Left((egress, ingress)), messages)) => {
                 if let Err(e) = &egress {
-                    debug!(error = %e, "egress processing exited with error");
+                    error!(error = %e, "egress processing exited with error");
                 } else {
-                    debug!("egress processing exited");
+                    info!("egress processing exited");
                 }
 
                 debug!("shutting down ingress...");
@@ -184,18 +184,18 @@ where
                 debug!("shutting down pump messages processor...");
                 shutdown_messages.shutdown().await;
                 if let Err(e) = messages.await {
-                    debug!(error = %e, "pump messages processor exited with error");
+                    error!(error = %e, "pump messages processor exited with error");
                 } else {
-                    debug!("pump messages processor exited");
+                    info!("pump messages processor exited");
                 }
 
                 egress.map_err(|e| PumpError::Run(e.into()))
             }
             Either::Right((Either::Right((ingress, egress)), messages)) => {
                 if let Err(e) = &ingress {
-                    debug!(error = %e, "ingress processing exited with error");
+                    error!(error = %e, "ingress processing exited with error");
                 } else {
-                    debug!("ingress processing exited");
+                    info!("ingress processing exited");
                 }
 
                 debug!("shutting down egress...");
@@ -209,16 +209,16 @@ where
                 debug!("shutting down pump messages processor...");
                 shutdown_messages.shutdown().await;
                 if let Err(e) = messages.await {
-                    debug!(error = %e, "pump messages processor exited with error");
+                    error!(error = %e, "pump messages processor exited with error");
                 } else {
-                    debug!("pump messages processor exited");
+                    info!("pump messages processor exited");
                 }
 
                 ingress.map_err(|e| PumpError::Run(e.into()))
             }
         }?;
 
-        info!("stopped pump");
+        info!("pump stopped");
         Ok(())
     }
 }
