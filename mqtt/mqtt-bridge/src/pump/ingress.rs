@@ -33,10 +33,12 @@ where
     }
 
     /// Runs ingress processing.
-    pub(crate) async fn run(mut self) {
-        info!("starting ingress publication processing...",);
+    pub(crate) async fn run(mut self) -> Result<(), IngressError> {
+        info!("starting ingress publication processing...");
         self.client.handle_events().await;
         info!("finished ingress publication processing");
+
+        Ok(())
     }
 }
 
@@ -53,3 +55,7 @@ impl IngressShutdownHandle {
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("ingress error")]
+pub(crate) struct IngressError;
