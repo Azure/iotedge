@@ -64,7 +64,7 @@ where
     }
 
     /// Runs control messages processing.
-    pub(crate) async fn run(mut self) {
+    pub(crate) async fn run(mut self) -> Result<(), MessageProcessorError> {
         info!("starting pump messages processor...");
         while let Some(message) = self.messages.next().await {
             match message {
@@ -131,6 +131,7 @@ where
         }
 
         info!("finished pump messages processor");
+        Ok(())
     }
 }
 
@@ -147,3 +148,7 @@ impl<M: 'static> MessagesProcessorShutdownHandle<M> {
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("pump messages processor error")]
+pub(crate) struct MessageProcessorError;
