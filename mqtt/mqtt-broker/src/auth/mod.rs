@@ -6,7 +6,7 @@ pub use authentication::{
     DynAuthenticator,
 };
 pub use authorization::{
-    authorize_fn_ok, Activity, AllowAll, Authorization, Authorizer, Connect, DenyAll, Operation,
+    authorize_fn_ok, Activity, AllowAll, Authorization, Authorizer, DenyAll, Operation,
     Publication, Publish, Subscribe,
 };
 
