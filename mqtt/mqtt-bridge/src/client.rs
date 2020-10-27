@@ -21,7 +21,7 @@ use crate::{
 };
 
 const DEFAULT_TOKEN_DURATION_MINS: i64 = 60;
-const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(120);
+const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(60);
 // TODO: get QOS from topic settings
 const DEFAULT_QOS: proto::QoS = proto::QoS::AtLeastOnce;
 // TODO: read from env var
