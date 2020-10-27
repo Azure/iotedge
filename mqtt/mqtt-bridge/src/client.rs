@@ -1,3 +1,4 @@
+#![allow(clippy::default_trait_access)] // Needed because mock! macro violates
 #![allow(dead_code)] // TODO remove when ready
 use std::{fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration};
 
@@ -411,12 +412,22 @@ impl ShutdownHandle {
 }
 
 /// A client publish handle.
+#[derive(Debug, Clone)]
 pub struct PublishHandle(mqtt3::PublishHandle);
 
-#[automock]
 impl PublishHandle {
     pub async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
         self.0.publish(publication).await
+    }
+}
+
+mockall::mock! {
+    pub PublishHandle {
+        async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+    }
+
+    pub trait Clone {
+        fn clone(&self) -> Self;
     }
 }
 
