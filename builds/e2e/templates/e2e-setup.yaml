@@ -18,7 +18,8 @@ steps:
       TestPreviewIotHubConnectionString,
       TestRootCaCertificate,
       TestRootCaKey,
-      TestRootCaPassword
+      TestRootCaPassword,
+      BlobStoreSas
 
 - pwsh: |
     $imageBuildId = $(resources.pipeline.images.runID)
