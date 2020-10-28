@@ -66,7 +66,6 @@ The tests also expect to find several _secret_ parameters. While these can techn
 | `[E2E_]ROOT_CA_PASSWORD` || The password associated with the root certificate specified in `rootCaCertificatePath`. |
 | `[E2E_]BLOB_STORE_SAS` || The sas token used to upload module logs and support bundle in the tests. |
 
-TestBlobStoreSas
 _Note: the definitive source for information about test parameters is `test/Microsoft.Azure.Devices.Edge.Test/helpers/Context.cs`._
 
 ### Running the tests
