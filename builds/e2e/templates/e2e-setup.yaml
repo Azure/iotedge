@@ -19,7 +19,7 @@ steps:
       TestRootCaCertificate,
       TestRootCaKey,
       TestRootCaPassword,
-      BlobStoreSas
+      TestBlobStoreSas
 
 - pwsh: |
     $imageBuildId = $(resources.pipeline.images.runID)
