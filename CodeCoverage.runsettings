@@ -113,6 +113,8 @@ Included items must then not match any entries in the exclude list to remain inc
                 <Source>.*\\public\\sdk\\.*</Source>
                 <Source>.*\\microsoft sdks\\.*</Source>
                 <Source>.*\\vc\\include\\.*</Source>
+                <Source>.*\\util\\src\\es6numberserializer\\.*</Source>
+                <Source>.*\\util\\src\\jsoncanonicalizer\\.*</Source>
               </Exclude>
             </Sources>
 
