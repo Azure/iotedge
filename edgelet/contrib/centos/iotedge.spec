@@ -16,7 +16,7 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       libiothsm-std = @version@-@release@
+Requires:       aziot-identity-service >= @version@-@release@
 Source0:        iotedge-%{version}.tar.gz
 
 %description
@@ -65,8 +65,20 @@ if ! /usr/bin/getent passwd iotedge >/dev/null; then
     %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
 fi
 
+# Add iotedge user to moby-engine group
 if /usr/bin/getent group docker >/dev/null; then
     %{_sbindir}/usermod -a -G docker %{iotedge_user}
+fi
+
+# Add iotedge user to aziot-identity-service groups
+if /usr/bin/getent group aziotcs >/dev/null; then
+    %{_sbindir}/usermod -aG aziotcs %{iotedge_user}
+fi
+if /usr/bin/getent group aziotks >/dev/null; then
+    %{_sbindir}/usermod -aG aziotks %{iotedge_user}
+fi
+if /usr/bin/getent group aziotid >/dev/null; then
+    %{_sbindir}/usermod -aG aziotid %{iotedge_user}
 fi
 exit 0
 
@@ -80,16 +92,15 @@ echo "  IMPORTANT: Please update the configuration file located at:"
 echo ""
 echo "    /etc/iotedge/config.yaml"
 echo ""
-echo "  with your device's provisioning information. You will need to restart the"
-echo "  'iotedge' service for these changes to take effect."
+echo "  with your container runtime configuration."
 echo ""
-echo "  To restart the 'iotedge' service, use:"
+echo "  To configure the Identity Service with provisioning information, use:"
 echo ""
-echo "    'systemctl restart iotedge'"
+echo "    'aziot init'"
 echo ""
-echo "    - OR -"
+echo "  To restart all services for provisioning changes to take effect, use:"
 echo ""
-echo "    /etc/init.d/iotedge restart"
+echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd iotedge'"
 echo ""
 echo "  These commands may need to be run with sudo depending on your environment."
 echo ""
