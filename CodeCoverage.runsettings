@@ -55,7 +55,6 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*xunit\..*</ModulePath>
                 <ModulePath>.*edgex509authdownstreamdevice.*\..*</ModulePath>
                 <ModulePath>.*edgedownstreamdevice.*\..*</ModulePath>
-                <ModulePath>.*manifestsignerclient.*\..*</ModulePath>
                 <!-- test binaries -->
                 <ModulePath>.*test\..*</ModulePath>
                 <!-- test/sample edge modules -->
@@ -67,6 +66,7 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*iotedgequickstart\..*</ModulePath>
                 <ModulePath>.*leafdevice\..*</ModulePath>
                 <ModulePath>.*load-gen\..*</ModulePath>
+                <ModulePath>.*manifestsignerclient.*\..*</ModulePath>
                 <ModulePath>.*metricscollector\..*</ModulePath>
                 <ModulePath>.*metricsvalidator\..*</ModulePath>
                 <ModulePath>.*numberlogger\..*</ModulePath>
