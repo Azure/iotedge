@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string moduleName = "NumberLogger";
             int count = 10;
-            string sasUrl = Environment.GetEnvironmentVariable("BLOB_STORE_SAS");
+            string sasUrl = Environment.GetEnvironmentVariable("E2E_BLOB_STORE_SAS");
 
             CancellationToken token = this.TestToken;
 
@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string moduleName = "NumberLogger";
             int count = 10;
-            string sasUrl = Environment.GetEnvironmentVariable("BLOB_STORE_SAS");
+            string sasUrl = Environment.GetEnvironmentVariable("E2E_BLOB_STORE_SAS");
 
             CancellationToken token = this.TestToken;
 
