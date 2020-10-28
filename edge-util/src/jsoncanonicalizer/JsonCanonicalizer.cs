@@ -25,6 +25,7 @@ using System.Text.RegularExpressions;
 using Org.Webpki.Es6NumberSerialization;
 
 // JSON canonicalizer for .NET Core
+
 namespace Org.Webpki.JsonCanonicalizer
 {
     public class JsonCanonicalizer

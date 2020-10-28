@@ -258,7 +258,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                             }
                             else
                             {
-                                // TODO: What about updating the deployment config?
                                 Events.VerifyTwinSignatureFailed();
                                 return;
                             }
@@ -347,7 +346,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     }
                     else
                     {
-                        // TODO: What about updating the deployment config?
                         Events.VerifyTwinSignatureFailed();
                         return;
                     }
