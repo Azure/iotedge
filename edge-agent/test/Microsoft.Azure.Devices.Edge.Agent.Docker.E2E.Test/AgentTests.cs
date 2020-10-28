@@ -144,8 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var runtimeConfig = new DockerRuntimeConfig("1.24.0", "{}");
                 var runtimeInfo = new DockerRuntimeInfo("docker", runtimeConfig);
-                var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
-                var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo, systemModules, modules, integrity));
+                var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo, systemModules, modules, null));
 
                 var configSource = new Mock<IConfigSource>();
                 configSource.Setup(cs => cs.Configuration).Returns(configRoot);

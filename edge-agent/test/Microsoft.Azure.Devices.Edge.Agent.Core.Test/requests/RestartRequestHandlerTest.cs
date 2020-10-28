@@ -23,7 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var edgeHub = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
             var mod1 = Mock.Of<IRuntimeModule>(m => m.Name == "mod1" && m.RuntimeStatus == ModuleStatus.Running);
             var mod2 = Mock.Of<IRuntimeModule>(m => m.Name == "mod2" && m.RuntimeStatus == ModuleStatus.Running);
-            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
             var deploymentConfigInfo = new DeploymentConfigInfo(
                 1,
                 new DeploymentConfig(
@@ -35,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
                     },
-                    integrity));
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
@@ -73,7 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var edgeHub = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
             var mod1 = Mock.Of<IRuntimeModule>(m => m.Name == "mod1" && m.RuntimeStatus == ModuleStatus.Running);
             var mod2 = Mock.Of<IRuntimeModule>(m => m.Name == "mod2" && m.RuntimeStatus == ModuleStatus.Running);
-            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
             var deploymentConfigInfo = new DeploymentConfigInfo(
                 1,
                 new DeploymentConfig(
@@ -85,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
                     },
-                    integrity));
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
@@ -122,7 +120,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var edgeHub = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
             var mod1 = Mock.Of<IRuntimeModule>(m => m.Name == "mod1" && m.RuntimeStatus == ModuleStatus.Running);
             var mod2 = Mock.Of<IRuntimeModule>(m => m.Name == "mod2" && m.RuntimeStatus == ModuleStatus.Running);
-            var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
             var deploymentConfigInfo = new DeploymentConfigInfo(
                 1,
                 new DeploymentConfig(
@@ -134,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
                     },
-                    integrity));
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
@@ -179,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
                     },
-                    new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty))));
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);
@@ -230,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                         ["mod1"] = mod1,
                         ["mod2"] = mod2
                     },
-                    new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty))));
+                    null));
             var configSource = Mock.Of<IConfigSource>(c => c.GetDeploymentConfigInfoAsync() == Task.FromResult(deploymentConfigInfo));
 
             var moduleSet = ModuleSet.Create(edgeAgent, edgeHub, mod1, mod2);

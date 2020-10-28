@@ -44,20 +44,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             };
         }
 
-        [Fact]
-        public void ConstructorHappyPath()
+        [Theory]
+        [MemberData(nameof(TwinIntegrityTestData))]
+        public void ConstructorHappyPath(string version, string cert1, string cert2, string signature, string algo)
         {
             // Arrange
             IReadOnlyDictionary<string, RouteConfig> routes = new ReadOnlyDictionary<string, RouteConfig>(new Dictionary<string, RouteConfig>());
             var snfConfig = new StoreAndForwardConfiguration(1000);
             var brokerConfig = new BrokerConfig();
-            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+            var integrity = new TwinIntegrity(new TwinHeader(version, cert1, cert2), new TwinSignature(signature, algo));
 
             // Act
             var edgeHubConfig = new EdgeHubConfig("1.0", routes, snfConfig, Option.Some(brokerConfig), integrity);
 
             // Assert
             Assert.NotNull(edgeHubConfig);
+        }
+
+        public static IEnumerable<object[]> TwinIntegrityTestData()
+        {
+            yield return new object[] { "version", "cert1", "cert2", "bytes", "algo" };
+            yield return new object[] { string.Empty, "cert1", "cert2", "bytes", "algo" };
+            yield return new object[] { "version", string.Empty, "cert2", "bytes", "algo" };
+            yield return new object[] { "version", "cert1", string.Empty, "bytes", "algo" };
+            yield return new object[] { "version", "cert1", "cert2", string.Empty, "algo" };
+            yield return new object[] { "version", "cert1", "cert2", "bytes", string.Empty };
         }
 
         [Theory]
@@ -69,8 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             BrokerConfig brokerConfig)
         {
             // Act & Assert
-            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
-            Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration, Option.Some(brokerConfig), integrity));
+            Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration, Option.Some(brokerConfig), null));
         }
     }
 }

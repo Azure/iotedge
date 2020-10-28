@@ -89,8 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     var deploymentConfigModules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, deploymentConfigModules, integrity));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, deploymentConfigModules, null));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);
@@ -156,8 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     var deploymentConfigModules = new Dictionary<string, IModule> { [Name] = module };
                     var systemModules = new SystemModules(null, null);
-                    var integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
-                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, deploymentConfigModules, integrity));
+                    var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.25", string.Empty)), systemModules, deploymentConfigModules, null));
                     var configSource = new Mock<IConfigSource>();
                     configSource.Setup(cs => cs.Configuration).Returns(configRoot);
                     configSource.Setup(cs => cs.GetDeploymentConfigInfoAsync()).ReturnsAsync(deploymentConfigInfo);

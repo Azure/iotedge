@@ -116,7 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     }
                     else
                     {
-                        // TODO: What about updating the Edgehub config?
                         Events.VerifyTwinSignatureFailed();
                         return Option.None<EdgeHubConfig>();
                     }
@@ -192,7 +191,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     }
                     else
                     {
-                        // TODO: What about updating the Edgehub config?
                         Events.VerifyTwinSignatureFailed();
                         lastDesiredStatus = new LastDesiredStatus(400, "Twin Signature Verification failed");
                         return Option.None<EdgeHubConfig>();

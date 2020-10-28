@@ -96,8 +96,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
-        TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
-
         static readonly DeploymentConfig Config1 = new DeploymentConfig(
             "1.0",
             new TestRuntimeInfo("docker"),
@@ -107,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
             },
-            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
+            null);
 
         static readonly DeploymentConfig Config1_1 = new DeploymentConfig(
             "1.0",
@@ -118,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 ["mod1"] = TestModule1_1,
                 ["mod2"] = TestModule2_1
             },
-            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
+            null);
 
         static readonly DeploymentConfig Config2 = new DeploymentConfig(
             "1.0",
@@ -128,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1
             },
-            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
+            null);
 
         static readonly DeploymentConfigInfo ConfigInfo1 = new DeploymentConfigInfo(1, Config1);
         static readonly DeploymentConfigInfo ConfigInfo1_1 = new DeploymentConfigInfo(1, Config1_1);
