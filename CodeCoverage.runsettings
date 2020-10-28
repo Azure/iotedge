@@ -55,6 +55,7 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*xunit\..*</ModulePath>
                 <ModulePath>.*edgex509authdownstreamdevice.*\..*</ModulePath>
                 <ModulePath>.*edgedownstreamdevice.*\..*</ModulePath>
+                <ModulePath>.*manifestsignerclient.*\..*</ModulePath>
                 <!-- test binaries -->
                 <ModulePath>.*test\..*</ModulePath>
                 <!-- test/sample edge modules -->
