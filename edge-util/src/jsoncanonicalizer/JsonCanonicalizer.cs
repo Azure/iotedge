@@ -28,7 +28,6 @@ using Org.Webpki.Es6NumberSerialization;
 // JSON canonicalizer for .NET Core
 namespace Org.Webpki.JsonCanonicalizer
 {
-    [ExcludeFromCodeCoverage]
     public class JsonCanonicalizer
     {
         StringBuilder buffer;

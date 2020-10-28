@@ -14,7 +14,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Org.Webpki.Es6NumberSerialization
 {
-    [ExcludeFromCodeCoverage]
     class NumberFastDToABuilder
     {
         // allocate buffer for generated digits + extra notation + padding zeroes

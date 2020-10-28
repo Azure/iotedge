@@ -40,7 +40,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Org.Webpki.Es6NumberSerialization
 {
-    [ExcludeFromCodeCoverage]
     class NumberCachedPowers
     {
         const double kD_1_LOG2_10 = 0.30102999566398114;  //  1 / lg(10)

@@ -40,7 +40,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Org.Webpki.Es6NumberSerialization
 {
-    [ExcludeFromCodeCoverage]
     class NumberFastDToA
     {
         // FastDtoa will produce at most kFastDtoaMaximalLength digits.

@@ -44,7 +44,6 @@ namespace Org.Webpki.Es6NumberSerialization
     // have the most significant bit of the significand set.
     // Multiplication and Subtraction do not normalize their results.
     // DiyFp are not designed to contain special doubles (NaN and Infinity).
-    [ExcludeFromCodeCoverage]
     class NumberDiyFp
     {
 

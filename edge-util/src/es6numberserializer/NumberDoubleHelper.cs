@@ -41,7 +41,6 @@ namespace Org.Webpki.Es6NumberSerialization
 {
 
     // Helper functions for doubles.
-    [ExcludeFromCodeCoverage]
     class NumberDoubleHelper
     {
         const long kSignMask = -0x8000000000000000L;

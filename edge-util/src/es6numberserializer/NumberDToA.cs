@@ -33,7 +33,6 @@ using System.Text;
 
 namespace Org.Webpki.Es6NumberSerialization
 {
-    [ExcludeFromCodeCoverage]
     class NumberDToA {
 
         public const int
