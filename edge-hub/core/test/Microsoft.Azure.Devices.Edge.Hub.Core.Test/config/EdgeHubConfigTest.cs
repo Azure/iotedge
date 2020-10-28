@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 Option.Some(new AuthorizationConfig(new List<Statement> { statement3 })));
 
             string version = "1.0";
-            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
+            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
 
             var edgeHubConfig1 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig1), integrity);
             var edgeHubConfig2 = new EdgeHubConfig(version, routes2, storeAndForwardConfig1, Option.Some(brokerConfig1), integrity);

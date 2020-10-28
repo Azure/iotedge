@@ -21,7 +21,6 @@ using System.Text;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using System.Diagnostics.CodeAnalysis;
 
 using Org.Webpki.Es6NumberSerialization;
 

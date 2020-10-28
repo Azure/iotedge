@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             UnknownRuntimeInfo.Instance,
             new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance),
             ImmutableDictionary<string, IModule>.Empty,
-            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
+            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
 
         static readonly ReadOnlyDictionaryComparer<string, IModule> ModuleDictionaryComparer = new ReadOnlyDictionaryComparer<string, IModule>();
 

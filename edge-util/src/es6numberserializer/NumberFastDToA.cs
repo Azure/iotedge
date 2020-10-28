@@ -30,7 +30,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 // Ported to C# from the Mozilla "Rhino" project by Anders Rundgren.
 

@@ -31,7 +31,6 @@
 // Ported to C# from the Mozilla "Rhino" project by Anders Rundgren.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// This is an internal part of a ES6 compatible JSON Number serializer.

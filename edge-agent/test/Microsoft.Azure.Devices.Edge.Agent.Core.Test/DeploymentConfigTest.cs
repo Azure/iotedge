@@ -411,7 +411,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Theory]
         [MemberData(nameof(TwinIntegrityTestData))]
-        public void BasicTest(string version, string cert1, string cert2, string signature, string algo)
+        public void BasicTest(string cert1, string cert2, string signature, string algo)
         {
             var edgeAgentModule = Mock.Of<IEdgeAgentModule>(m => m.Name == "edgeAgent");
             var edgeHubModule = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
@@ -426,7 +426,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 ["mod2"] = mod2
             };
             var deploymentConfig1 = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules, null);
-            var integrity = new TwinIntegrity(new TwinHeader(version, cert1, cert2), new TwinSignature(signature, algo));
+            var integrity = new TwinIntegrity(new TwinHeader(cert1, cert2), new TwinSignature(signature, algo));
             var deploymentConfigWithTwinIntegrity = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules, integrity);
 
             Assert.Equal("mod1", deploymentConfig1.Modules["mod1"].Name);
@@ -455,12 +455,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         public static IEnumerable<object[]> TwinIntegrityTestData()
         {
-            yield return new object[] { "version", "cert1", "cert2", "bytes", "algo" };
-            yield return new object[] { string.Empty, "cert1", "cert2", "bytes", "algo" };
-            yield return new object[] { "version", string.Empty, "cert2", "bytes", "algo" };
-            yield return new object[] { "version", "cert1", string.Empty, "bytes", "algo" };
-            yield return new object[] { "version", "cert1", "cert2", string.Empty, "algo" };
-            yield return new object[] { "version", "cert1", "cert2", "bytes", string.Empty };
+            yield return new object[] { "cert1", "cert2", "bytes", "algo" };
+            yield return new object[] { "cert1", "cert2", "bytes", "algo" };
+            yield return new object[] { string.Empty, "cert2", "bytes", "algo" };
+            yield return new object[] { "cert1", string.Empty, "bytes", "algo" };
+            yield return new object[] { "cert1", "cert2", string.Empty, "algo" };
+            yield return new object[] { "cert1", "cert2", "bytes", string.Empty };
         }
     }
 }

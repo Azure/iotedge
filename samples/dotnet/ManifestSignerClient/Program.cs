@@ -10,7 +10,6 @@ namespace ManifestSignerClient
     class Program
     {
         // Edit the launchSettings.json or directly add the values of the Environmental variables
-        static readonly string ManifestVersion = Environment.GetEnvironmentVariable("MANIFEST_VERSION");
         static readonly string DsaAlgorithm = Environment.GetEnvironmentVariable("DSA_ALGORITHM");
         static readonly string DeploymentManifestFilePath = Environment.GetEnvironmentVariable("DEPLOYMENT_MANIFEST_FILE_PATH");
         static readonly string SignedDeploymentManifestFilePath = Environment.GetEnvironmentVariable("SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH");
@@ -23,15 +22,6 @@ namespace ManifestSignerClient
         {
             Console.WriteLine("Display settings from launchSettings.json");
             Console.WriteLine("================================================================================================");
-
-            if (string.IsNullOrEmpty(ManifestVersion))
-            {
-                throw new Exception("Manifest Version number is empty. Please update it in launchSettings.json");
-            }
-            else
-            {
-                Console.WriteLine($"Manifest Version number is {ManifestVersion}");
-            }
 
             if (string.IsNullOrEmpty(DsaAlgorithm))
             {
@@ -106,7 +96,6 @@ namespace ManifestSignerClient
             var signerCert2 = signerCert.Substring(signerCert.Length / 2);
             object headerObject = new
             {
-                version = ManifestVersion,
                 cert1 = signerCert1,
                 cert2 = signerCert2
             };

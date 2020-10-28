@@ -8,15 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
     public class TwinHeader : IEquatable<TwinHeader>
     {
         [JsonConstructor]
-        public TwinHeader(string version, string cert1, string cert2)
+        public TwinHeader(string cert1, string cert2)
         {
-            this.Version = version;
             this.Cert1 = cert1;
             this.Cert2 = cert2;
         }
-
-        [JsonProperty("version")]
-        public string Version { get; }
 
         [JsonProperty("cert1")]
         public string Cert1 { get; }
@@ -32,14 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public bool Equals(TwinHeader other)
         {
             return other != null &&
-                   this.Version == other.Version &&
                    this.Cert1 == other.Cert1 &&
                    this.Cert2 == other.Cert2;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(this.Version, this.Cert1, this.Cert2);
+            return HashCode.Combine(this.Cert1, this.Cert2);
         }
 
         public static bool operator ==(TwinHeader left, TwinHeader right)
