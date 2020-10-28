@@ -34,6 +34,10 @@ impl LocalRpcMqttEventHandler {
 impl MqttEventHandler for LocalRpcMqttEventHandler {
     type Error = RpcError;
 
+    fn subscriptions(&self) -> Vec<String> {
+        vec!["$edgehub/rpc/+".into()]
+    }
+
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         if let Event::Publication(publication) = &event {
             if let Some(command_id) = capture_command_id(&publication.topic_name) {
