@@ -51,4 +51,3 @@ steps:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
     ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)-$(artifactName)
   condition: succeededOrFailed()
-  
