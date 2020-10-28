@@ -588,9 +588,7 @@ mod tests {
             BridgeIoSource::Tcp(TcpConnection::new(addr, None, None)),
         );
 
-        if let Err(e) = client {
-            panic!("should not reach here {}", e);
-        };
+        assert_eq!(client.is_ok(), true);
     }
 
     #[test]
@@ -610,9 +608,7 @@ mod tests {
             BridgeIoSource::Tcp(TcpConnection::new(addr, None, None)),
         );
 
-        if let Ok(_) = client {
-            panic!("expected to return error because of StringTooLong");
-        };
+        assert_eq!(client.is_err(), true);
     }
 
     #[test]
@@ -637,9 +633,7 @@ mod tests {
             BridgeIoSource::Tcp(TcpConnection::new(addr, None, None)),
         );
 
-        if let Ok(_) = client {
-            panic!("expected to return error because of StringTooLong");
-        };
+        assert_eq!(client.is_err(), true);
     }
 
     #[test]
@@ -664,8 +658,6 @@ mod tests {
             BridgeIoSource::Tcp(TcpConnection::new(addr, None, None)),
         );
 
-        if let Ok(_) = client {
-            panic!("expected to return error because of StringTooLong");
-        };
+        assert_eq!(client.is_err(), true);
     }
 }
