@@ -44,7 +44,7 @@ async fn tick_snapshot(
     mut broker_handle: BrokerHandle,
     snapshot_handle: StateSnapshotHandle,
 ) {
-    info!("Persisting state every {:?}", period);
+    info!("persisting state every {:?}", period);
     let start = Instant::now() + period;
     let mut interval = tokio::time::interval_at(start, period);
     loop {
@@ -52,7 +52,7 @@ async fn tick_snapshot(
         if let Err(e) = broker_handle.send(Message::System(SystemEvent::StateSnapshot(
             snapshot_handle.clone(),
         ))) {
-            warn!(message = "failed to tick the snapshotter", error=%e);
+            warn!(message = "failed to tick the snapshotter", error = %e);
         }
     }
 }
@@ -72,19 +72,19 @@ mod imp {
         let mut stream = match signal(SignalKind::user_defined1()) {
             Ok(stream) => stream,
             Err(e) => {
-                warn!(message = "an error occurred setting up the signal handler", error=%e);
+                warn!(message = "an error occurred setting up the signal handler", error = %e);
                 return;
             }
         };
 
-        info!("Setup to persist state on USR1 signal");
+        info!("setup to persist state on USR1 signal");
         loop {
             stream.recv().await;
-            info!("Received signal USR1");
+            info!("received signal USR1");
             if let Err(e) = broker_handle.send(Message::System(SystemEvent::StateSnapshot(
                 snapshot_handle.clone(),
             ))) {
-                warn!(message = "failed to signal the snapshotter", error=%e);
+                warn!(message = "failed to signal the snapshotter", error = %e);
             }
         }
     }
