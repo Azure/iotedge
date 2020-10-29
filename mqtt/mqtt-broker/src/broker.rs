@@ -86,7 +86,7 @@ where
                                 // TODO return an error instead?
                                 break;
                             } else {
-                                self.reevaluate_subscriptions();
+                                self.reauthorize();
                                 debug!("successfully updated authorization info");
                             }
                         }
@@ -106,53 +106,51 @@ where
         Ok(self.snapshot())
     }
 
-    fn prepare_activities(client_id: &ClientId, session: &Session) -> Vec<(ClientId, Activity)> {
-        session
+    fn prepare_activities(session: &Session) -> Vec<Activity> {
+        let client_info = session.client_info().clone();
+        let connect = std::iter::once(Activity::new(client_info, Operation::new_connect()));
+
+        let sessions = session
             .subscriptions()
             .into_iter()
             .flat_map(HashMap::values)
             .map(|sub| {
-                let operation = Operation::new_subscribe(proto::SubscribeTo {
+                let subscribe = Operation::new_subscribe(proto::SubscribeTo {
                     topic_filter: sub.filter().to_string(),
                     qos: *sub.max_qos(),
                 });
 
                 let client_info = session.client_info().clone();
-                let activity = Activity::new(client_info, operation);
+                Activity::new(client_info, subscribe)
+            });
 
-                (client_id.clone(), activity)
-            })
-            .collect()
+        connect.chain(sessions).collect()
     }
 
-    fn reevaluate_subscriptions(&mut self) {
-        let disconnecting: Vec<ClientId> = self
+    fn reauthorize(&mut self) {
+        let disconnecting = self
             .sessions
             .iter()
-            .flat_map(|(client_id, session)| Self::prepare_activities(client_id, session))
-            .filter_map(
-                |(client_id, activity)| match self.authorizer.authorize(&activity) {
-                    Ok(Authorization::Allowed) => None,
-                    Ok(Authorization::Forbidden(reason)) => {
-                        debug!(
-                            "client {} not allowed to subscribe to topic. {}",
-                            client_id, reason
-                        );
-                        Some(client_id)
-                    }
-                    Err(e) => {
-                        warn!(message="error authorizing client subscription: {}", error = %e);
-                        Some(client_id)
-                    }
-                },
-            )
-            .collect();
+            .flat_map(|(_, session)| Self::prepare_activities(session))
+            .filter(|activity| match self.authorizer.authorize(&activity) {
+                Ok(Authorization::Allowed) => false,
+                Ok(Authorization::Forbidden(reason)) => {
+                    warn!("not authorized: {}; reason: {}", &activity, reason);
+                    true
+                }
+                Err(e) => {
+                    warn!(message="error authorizing client: {}", error = %e);
+                    true
+                }
+            })
+            .collect::<Vec<_>>();
 
-        for client_id in disconnecting {
-            if let Err(x) = self.process_drop_connection(&client_id) {
+        for activity in disconnecting {
+            if let Err(reason) = self.process_drop_connection(activity.client_id()) {
                 warn!(
                     "error dropping connection for client {}. Reason {}",
-                    client_id, x
+                    activity.client_id(),
+                    reason
                 );
             }
         }
@@ -342,14 +340,14 @@ where
             connreq.peer_addr(),
             auth_id.clone(),
         );
-        let operation = Operation::new_connect(connreq.connect().clone());
+        let operation = Operation::new_connect();
         let activity = Activity::new(client_info, operation);
         match self.authorizer.authorize(&activity) {
             Ok(Authorization::Allowed) => {
-                debug!("client {} successfully authorized", client_id);
+                debug!("successfully authorized: {}", &activity);
             }
             Ok(Authorization::Forbidden(reason)) => {
-                warn!("client {} not allowed to connect. {}", client_id, reason);
+                warn!("not authorized: {}; reason: {}", &activity, reason);
                 refuse_connection!(proto::ConnectionRefusedReason::NotAuthorized);
                 return Ok(());
             }
@@ -566,7 +564,7 @@ where
             let activity = Activity::new(client_info, operation);
             match self.authorizer.authorize(&activity) {
                 Ok(Authorization::Allowed) => {
-                    debug!("client {} successfully authorized", client_id);
+                    debug!("successfully authorized: {}", &activity);
                     let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
 
                     if let Some(event) = maybe_event {
@@ -578,10 +576,7 @@ where
                     }
                 }
                 Ok(Authorization::Forbidden(reason)) => {
-                    warn!(
-                        "client {} not allowed to publish to topic {}. {}",
-                        client_id, publish.topic_name, reason
-                    );
+                    warn!("not authorized: {}; reason: {}", &activity, reason);
                     self.drop_connection(&client_id)?;
                 }
                 Err(e) => {
@@ -942,7 +937,6 @@ fn subscribe<Z>(
 where
     Z: Authorizer,
 {
-    let client_id = session.client_id().clone();
     let client_info = session.client_info().clone();
 
     let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
@@ -952,12 +946,12 @@ where
         let operation = Operation::new_subscribe(subscribe_to.clone());
         let activity = Activity::new(client_info.clone(), operation);
         let auth = authorizer.authorize(&activity);
-        auth.map(|auth| (auth, subscribe_to))
+        auth.map(|auth| (auth, subscribe_to, activity))
     });
 
     for auth in auth_results {
         let ack_qos = match auth {
-            Ok((Authorization::Allowed, subscribe_to)) => {
+            Ok((Authorization::Allowed, subscribe_to, _)) => {
                 match session.subscribe_to(subscribe_to) {
                     Ok((qos, subscription)) => {
                         if let Some(subscription) = subscription {
@@ -971,14 +965,8 @@ where
                     }
                 }
             }
-            Ok((Authorization::Forbidden(reason), subscribe_to)) => {
-                warn!(
-                    "client {} not allowed to subscribe to topic {} qos {}. {}",
-                    client_id,
-                    subscribe_to.topic_filter,
-                    u8::from(subscribe_to.qos),
-                    reason
-                );
+            Ok((Authorization::Forbidden(reason), _, activity)) => {
+                warn!("not authorized: {}; reason: {}", &activity, reason);
                 proto::SubAckQos::Failure
             }
             Err(e) => {
@@ -2075,7 +2063,7 @@ pub(crate) mod tests {
     async fn test_publish_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
             .with_authorizer(authorize_fn_ok(|activity| {
-                if matches!(activity.operation(), Operation::Connect(_)) {
+                if matches!(activity.operation(), Operation::Connect) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden("not allowed".to_string())
@@ -2112,7 +2100,7 @@ pub(crate) mod tests {
     async fn test_subscribe_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
             .with_authorizer(authorize_fn_ok(|activity| match activity.operation() {
-                Operation::Connect(_) => Authorization::Allowed,
+                Operation::Connect => Authorization::Allowed,
                 Operation::Subscribe(subscribe) => match subscribe.topic_filter() {
                     "/topic/denied" => Authorization::Forbidden("denied".to_string()),
                     _ => Authorization::Allowed,

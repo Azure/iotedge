@@ -256,6 +256,7 @@ impl<M: 'static> PumpHandle<M> {
     }
 }
 
+/// Topic settings received as updates from twin or from initial configuration in the default config file
 #[derive(Clone)]
 pub struct TopicMapperUpdates(Arc<Mutex<HashMap<String, TopicMapper>>>);
 

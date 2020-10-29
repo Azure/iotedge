@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
+use tracing::debug;
 
 use crate::{bridge::BridgeHandle, controller::Error, settings::Direction, settings::TopicRule};
 
-// Keeps the current subscriptions and forwards and calculates the diff with an BridgeUpdate
-// It is used to send a diff to a BridgeHandle and update itself with latest configuration
+/// Keeps the current subscriptions and forwards and calculates the diff with an `BridgeUpdate`
+/// It is used to send a diff to a `BridgeHandle` and update itself with latest configuration
 pub struct ConfigUpdater {
     bridge_handle: BridgeHandle,
     current_subscriptions: HashMap<String, TopicRule>,
@@ -21,36 +22,36 @@ impl ConfigUpdater {
         }
     }
 
-    pub async fn send_update(&mut self, bridge_update: &BridgeUpdate) -> Result<(), Error> {
-        let diff = self.diff(&bridge_update);
+    pub async fn send_update(&mut self, bridge_update: BridgeUpdate) -> Result<(), Error> {
+        let diff = self.diff(bridge_update);
+
+        debug!("sending diff {:?}", diff);
 
         self.bridge_handle.send(diff.clone()).await?;
 
-        self.update(&diff);
+        self.update(diff);
 
         Ok(())
     }
 
-    fn diff(&self, bridge_update: &BridgeUpdate) -> BridgeDiff {
-        let local_diff = diff_topic_rules(bridge_update.clone().forwards(), &self.current_forwards);
+    fn diff(&self, bridge_update: BridgeUpdate) -> BridgeDiff {
+        let (forwards, subscriptions) = bridge_update.into_parts();
 
-        let remote_diff = diff_topic_rules(
-            bridge_update.clone().subscriptions(),
-            &self.current_subscriptions,
-        );
+        let local_diff = diff_topic_rules(forwards, &self.current_forwards);
+
+        let remote_diff = diff_topic_rules(subscriptions, &self.current_subscriptions);
 
         BridgeDiff::default()
             .with_local_diff(local_diff)
             .with_remote_diff(remote_diff)
     }
 
-    fn update(&mut self, bridge_diff: &BridgeDiff) {
-        update_pump(bridge_diff.local_updates(), &mut self.current_forwards);
+    fn update(&mut self, bridge_diff: BridgeDiff) {
+        let (local_updates, remote_updates) = bridge_diff.into_parts();
 
-        update_pump(
-            bridge_diff.remote_updates(),
-            &mut self.current_subscriptions,
-        )
+        update_pump(local_updates, &mut self.current_forwards);
+
+        update_pump(remote_updates, &mut self.current_subscriptions)
     }
 }
 
@@ -85,12 +86,14 @@ fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule
     PumpDiff::default().with_added(added).with_removed(removed)
 }
 
-fn update_pump(pump_diff: &PumpDiff, current: &mut HashMap<String, TopicRule>) {
-    pump_diff.added().into_iter().for_each(|added| {
-        current.insert(added.subscribe_to(), added.to_owned());
+fn update_pump(pump_diff: PumpDiff, current: &mut HashMap<String, TopicRule>) {
+    let (added, removed) = pump_diff.into_parts();
+
+    added.into_iter().for_each(|added| {
+        current.insert(added.subscribe_to(), added);
     });
 
-    pump_diff.removed().iter().for_each(|updated| {
+    removed.iter().for_each(|updated| {
         current.remove(&updated.subscribe_to());
     });
 }
@@ -130,24 +133,25 @@ impl BridgeUpdate {
         self.endpoint.as_ref()
     }
 
-    pub fn subscriptions(self) -> Vec<TopicRule> {
-        self.subscriptions
-            .iter()
-            .filter_map(|sub| match sub {
-                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
-                _ => None,
-            })
-            .collect()
-    }
-
-    pub fn forwards(self) -> Vec<TopicRule> {
-        self.subscriptions
+    pub fn into_parts(self) -> (Vec<TopicRule>, Vec<TopicRule>) {
+        let forwards = self
+            .subscriptions
             .iter()
             .filter_map(|sub| match sub {
                 Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
                 _ => None,
             })
-            .collect()
+            .collect();
+        let subscriptions = self
+            .subscriptions
+            .iter()
+            .filter_map(|sub| match sub {
+                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
+                _ => None,
+            })
+            .collect();
+
+        (forwards, subscriptions)
     }
 }
 
@@ -166,14 +170,6 @@ impl BridgeDiff {
     pub fn with_remote_diff(mut self, diff: PumpDiff) -> Self {
         self.remote_pump_diff = diff;
         self
-    }
-
-    pub fn local_updates(&self) -> &PumpDiff {
-        &self.local_pump_diff
-    }
-
-    pub fn remote_updates(&self) -> &PumpDiff {
-        &self.remote_pump_diff
     }
 
     pub fn into_parts(self) -> (PumpDiff, PumpDiff) {
@@ -232,10 +228,11 @@ mod tests {
             endpoint: "$upstream".to_owned(),
             subscriptions: Vec::new(),
         };
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
-        assert_eq!(diff.local_updates(), &PumpDiff::default());
-        assert_eq!(diff.remote_updates(), &PumpDiff::default());
+        let (local_updates, remote_updates) = diff.into_parts();
+        assert_eq!(local_updates, PumpDiff::default());
+        assert_eq!(remote_updates, PumpDiff::default());
     }
 
     #[test]
@@ -271,10 +268,11 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
-        assert_eq!(diff.local_updates(), &PumpDiff::default());
-        assert_eq!(diff.remote_updates(), &expected);
+        let (local_updates, remote_updates) = diff.into_parts();
+        assert_eq!(local_updates, PumpDiff::default());
+        assert_eq!(remote_updates, expected);
     }
 
     #[test]
@@ -310,10 +308,11 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
-        assert_eq!(diff.local_updates(), &expected);
-        assert_eq!(diff.remote_updates(), &PumpDiff::default());
+        let (local_updates, remote_updates) = diff.into_parts();
+        assert_eq!(local_updates, expected);
+        assert_eq!(remote_updates, PumpDiff::default());
     }
 
     #[test]
@@ -368,10 +367,11 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
-        assert_eq!(diff.local_updates(), &expected);
-        assert_eq!(diff.remote_updates(), &expected);
+        let (local_updates, remote_updates) = diff.into_parts();
+        assert_eq!(local_updates, expected);
+        assert_eq!(remote_updates, expected);
     }
 
     #[test]
@@ -434,10 +434,11 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
-        assert_eq!(diff.local_updates(), &expected);
-        assert_eq!(diff.remote_updates(), &expected);
+        let (local_updates, remote_updates) = diff.into_parts();
+        assert_eq!(local_updates, expected);
+        assert_eq!(remote_updates, expected);
     }
 
     #[test]
@@ -485,10 +486,11 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
-        assert_eq!(diff.local_updates(), &PumpDiff::default());
-        assert_eq!(diff.remote_updates(), &expected);
+        let (local_updates, remote_updates) = diff.into_parts();
+        assert_eq!(local_updates, PumpDiff::default());
+        assert_eq!(remote_updates, expected);
     }
 
     #[test]
@@ -560,10 +562,11 @@ mod tests {
 
         let bridge_update: BridgeUpdate = serde_json::from_str(update).unwrap();
 
-        let diff = config_updater.diff(&bridge_update);
+        let diff = config_updater.diff(bridge_update);
 
-        assert_eq!(diff.local_updates(), &expected);
-        assert_eq!(diff.remote_updates(), &expected);
+        let (local_updates, remote_updates) = diff.into_parts();
+        assert_eq!(local_updates, expected);
+        assert_eq!(remote_updates, expected);
     }
 
     #[test]
@@ -609,7 +612,7 @@ mod tests {
             PumpDiff::default().with_added(vec![serde_json::from_str(topic_rule2).unwrap()]);
 
         config_updater.update(
-            &BridgeDiff::default()
+            BridgeDiff::default()
                 .with_local_diff(forwards_diff)
                 .with_remote_diff(subs_diff),
         );
@@ -703,7 +706,7 @@ mod tests {
             PumpDiff::default().with_added(vec![serde_json::from_str(topic_rule2).unwrap()]);
 
         config_updater.update(
-            &BridgeDiff::default()
+            BridgeDiff::default()
                 .with_local_diff(forwards_diff)
                 .with_remote_diff(subs_diff),
         );
@@ -773,7 +776,7 @@ mod tests {
         let forwards_diff =
             PumpDiff::default().with_removed(vec![serde_json::from_str(topic_rule1).unwrap()]);
 
-        config_updater.update(&BridgeDiff::default().with_local_diff(forwards_diff));
+        config_updater.update(BridgeDiff::default().with_local_diff(forwards_diff));
 
         assert_eq!(
             config_updater
@@ -825,7 +828,7 @@ mod tests {
         let forwards_diff =
             PumpDiff::default().with_removed(vec![serde_json::from_str(topic_rule1).unwrap()]);
 
-        config_updater.update(&BridgeDiff::default().with_remote_diff(forwards_diff));
+        config_updater.update(BridgeDiff::default().with_remote_diff(forwards_diff));
 
         assert_eq!(
             config_updater
@@ -862,7 +865,7 @@ mod tests {
         let forwards_diff =
             PumpDiff::default().with_removed(vec![serde_json::from_str(topic_rule1).unwrap()]);
 
-        config_updater.update(&BridgeDiff::default().with_remote_diff(forwards_diff));
+        config_updater.update(BridgeDiff::default().with_remote_diff(forwards_diff));
 
         assert_eq!(
             config_updater
@@ -926,8 +929,9 @@ mod tests {
         .unwrap();
 
         assert_eq!(bridge_update.clone().endpoint(), "$upstream");
-        assert_eq!(bridge_update.clone().subscriptions(), vec![sub_rule]);
-        assert_eq!(bridge_update.clone().forwards(), vec![forward_rule]);
+        let (forwards, subscriptions) = bridge_update.to_owned().into_parts();
+        assert_eq!(subscriptions, vec![sub_rule]);
+        assert_eq!(forwards, vec![forward_rule]);
     }
 
     #[test]
@@ -960,7 +964,8 @@ mod tests {
         let bridge_update = updates.first().take().unwrap();
 
         assert_eq!(bridge_update.clone().endpoint(), "$upstream");
-        assert_eq!(bridge_update.clone().subscriptions(), vec![sub_rule]);
-        assert_eq!(bridge_update.clone().forwards(), vec![forward_rule]);
+        let (forwards, subscriptions) = bridge_update.to_owned().into_parts();
+        assert_eq!(subscriptions, vec![sub_rule]);
+        assert_eq!(forwards, vec![forward_rule]);
     }
 }

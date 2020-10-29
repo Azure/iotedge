@@ -117,7 +117,7 @@ fn identity(activity: &Activity) -> &str {
 
 fn operation(activity: &Activity) -> &str {
     match activity.operation() {
-        Operation::Connect(_) => "mqtt:connect",
+        Operation::Connect => "mqtt:connect",
         Operation::Publish(_) => "mqtt:publish",
         Operation::Subscribe(_) => "mqtt:subscribe",
     }
@@ -126,7 +126,7 @@ fn operation(activity: &Activity) -> &str {
 fn resource(activity: &Activity) -> &str {
     match activity.operation() {
         // this is intentional. mqtt:connect should have empty resource.
-        Operation::Connect(_) => "",
+        Operation::Connect => "",
         Operation::Publish(publish) => publish.publication().topic_name(),
         Operation::Subscribe(subscribe) => subscribe.topic_filter(),
     }
