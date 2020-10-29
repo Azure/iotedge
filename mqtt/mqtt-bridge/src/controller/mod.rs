@@ -64,10 +64,8 @@ impl BridgeController {
         let messages = self.messages.fuse();
         pin_mut!(messages);
 
-        let mut no_bridges = bridges.is_terminated();
-
         loop {
-            let wait_bridge_or_pending = if no_bridges {
+            let wait_bridge_or_pending = if bridges.is_terminated() {
                 // if no active bridges available, wait only for a new messages arrival
                 Either::Left(future::pending())
             } else {
@@ -91,21 +89,27 @@ impl BridgeController {
                         Err(e) => warn!(error = %e, "bridge {} panicked ", name),
                     }
 
-                    info!("restarting bridge {}...", name);
-                    if let Some(upstream_settings) = settings.upstream() {
-                        match Bridge::new_upstream(&system_address, &device_id, upstream_settings) {
-                            Ok(bridge) => {
-                                bridges.start_bridge(bridge, upstream_settings).await;
-                            }
-                            Err(e) => {
-                                error!(err = %e, "failed to create {} bridge", name);
+                    // always restart upstream bridge
+                    if name == UPSTREAM {
+                        info!("restarting bridge {}...", name);
+                        if let Some(upstream_settings) = settings.upstream() {
+                            match Bridge::new_upstream(
+                                &system_address,
+                                &device_id,
+                                upstream_settings,
+                            ) {
+                                Ok(bridge) => {
+                                    bridges.start_bridge(bridge, upstream_settings).await;
+                                }
+                                Err(e) => {
+                                    error!(err = %e, "failed to create {} bridge", name);
+                                }
                             }
                         }
                     }
                 }
                 Either::Right((None, _)) => {
                     // first time we resolve bridge future it returns None
-                    no_bridges = true;
                 }
             }
         }
