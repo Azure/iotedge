@@ -130,6 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string moduleName = "NumberLogger";
             int count = 10;
+            string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Number Logger image"));
 
             CancellationToken token = this.TestToken;
 
@@ -152,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 encoding = 0,
                 contentYtpe = 1,
-                sasUrl = Context.Current.BlobSasUrl,
+                sasUrl,
             };
 
             var payload = JsonConvert.SerializeObject(request);
@@ -168,6 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string moduleName = "NumberLogger";
             int count = 10;
+            string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Number Logger image"));
 
             CancellationToken token = this.TestToken;
 
@@ -183,8 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var request = new
             {
                 schemaVersion = "1.0",
-                sasUrl = Context.Current.BlobSasUrl,
-            };
+                sasUrl,
+        };
 
             var payload = JsonConvert.SerializeObject(request);
 
