@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
             this.ParentHostname = Option.Maybe(Get("parentHostname"));
-            this.BlobSasUrl = Option.Maybe(Get("E2E_BLOB_STORE_SAS"));
+            this.BlobSasUrl = Option.Maybe(Get("BLOB_STORE_SAS"));
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
