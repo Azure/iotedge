@@ -130,7 +130,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string moduleName = "NumberLogger";
             int count = 10;
-            string sasUrl = Environment.GetEnvironmentVariable("E2E_BLOB_STORE_SAS");
 
             CancellationToken token = this.TestToken;
 
@@ -153,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 encoding = 0,
                 contentYtpe = 1,
-                sasUrl,
+                sasUrl = Context.Current.BlobSasUrl,
             };
 
             var payload = JsonConvert.SerializeObject(request);
@@ -169,7 +168,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string moduleName = "NumberLogger";
             int count = 10;
-            string sasUrl = Environment.GetEnvironmentVariable("E2E_BLOB_STORE_SAS");
 
             CancellationToken token = this.TestToken;
 
@@ -185,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var request = new
             {
                 schemaVersion = "1.0",
-                sasUrl,
+                sasUrl = Context.Current.BlobSasUrl,
             };
 
             var payload = JsonConvert.SerializeObject(request);
