@@ -8,7 +8,7 @@ use futures_util::future::{self, BoxFuture};
 use mockall::automock;
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use mqtt3::{
     proto::{self, Publication, SubscribeTo},
