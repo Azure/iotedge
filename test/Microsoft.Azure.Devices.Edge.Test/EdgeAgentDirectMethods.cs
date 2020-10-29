@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 schemaVersion = "1.0",
                 sasUrl,
-        };
+            };
 
             var payload = JsonConvert.SerializeObject(request);
 
