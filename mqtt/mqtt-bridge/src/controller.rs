@@ -1,7 +1,8 @@
+#![allow(unused_imports, unused_variables, dead_code)]
 use std::collections::HashMap;
 
 use futures_util::{
-    future::{self, Either},
+    future::{self, BoxFuture, Either, Map},
     pin_mut,
     stream::{FuturesUnordered, Stream},
     FusedStream, FutureExt, StreamExt,
@@ -9,7 +10,7 @@ use futures_util::{
 use thiserror::Error;
 use tokio::{
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
-    task::JoinHandle,
+    task::{JoinError, JoinHandle},
 };
 use tracing::{debug, error, info, info_span, warn};
 use tracing_futures::Instrument;
@@ -65,10 +66,20 @@ impl BridgeController {
         }
 
         let messages = self.messages.fuse();
-        pin_mut!(messages, bridges);
+        pin_mut!(messages);
+
+        let mut no_bridges = bridges.is_terminated();
 
         loop {
-            match future::select(messages.select_next_some(), bridges.select_next_some()).await {
+            let any_bridge = if no_bridges {
+                // if no active bridges available, wait only for a new messages arrival
+                Either::Left(future::pending())
+            } else {
+                // otherwise try to await both a new message arrival or any bridge exit
+                Either::Right(bridges.next())
+            };
+
+            match future::select(messages.select_next_some(), any_bridge).await {
                 Either::Left((BridgeControllerMessage::BridgeControllerUpdate(update), _)) => {
                     process_update(update, &mut bridges).await
                 }
@@ -77,22 +88,28 @@ impl BridgeController {
                     bridges.shutdown_all().await;
                     break;
                 }
-                Either::Right((bridge, _)) => {
-                    if let Err(e) = bridge {
-                        warn!(error = %e, "bridge exited with error");
+                Either::Right((Some((name, bridge)), _)) => {
+                    match bridge {
+                        Ok(Ok(_)) => debug!("bridge {} exited", name),
+                        Ok(Err(e)) => warn!(error = %e, "bridge {} exited with error", name),
+                        Err(e) => warn!(error = %e, "bridge {} paniced ", name),
                     }
 
-                    info!("restarting bridge...");
+                    info!("restarting bridge {}...", name);
                     if let Some(upstream_settings) = settings.upstream() {
                         match Bridge::new_upstream(&system_address, &device_id, upstream_settings) {
                             Ok(bridge) => {
                                 bridges.start_bridge(bridge, upstream_settings).await;
                             }
                             Err(e) => {
-                                error!(err = %e, "failed to create {} bridge", UPSTREAM);
+                                error!(err = %e, "failed to create {} bridge", name);
                             }
                         }
                     }
+                }
+                Either::Right((None, _)) => {
+                    // first time we resolve any_bridges future it returns None
+                    no_bridges = true;
                 }
             }
         }
@@ -118,11 +135,13 @@ async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
     }
 }
 
+type BridgeFuture = BoxFuture<'static, (String, Result<Result<(), BridgeError>, JoinError>)>;
+
 #[derive(Default)]
 pub struct Bridges {
     bridge_handles: HashMap<String, BridgeHandle>,
     config_updaters: HashMap<String, ConfigUpdater>,
-    bridges: FuturesUnordered<JoinHandle<Result<String, BridgeError>>>, //HashMap<String, JoinHandle<Result<(), BridgeError>>>,
+    bridges: FuturesUnordered<BridgeFuture>,
 }
 
 impl Bridges {
@@ -138,14 +157,13 @@ impl Bridges {
         let bridge_name = settings.name().to_owned();
         let upstream_bridge = bridge
             .run()
-            .map({
-                let name = name.clone();
-                move |res| res.map(|_| name)
-            })
             .instrument(info_span!("bridge", name = %bridge_name));
 
         // bridge running before sending initial settings
-        let task = tokio::spawn(upstream_bridge);
+        let task = tokio::spawn(upstream_bridge).map({
+            let name = name.clone();
+            move |res| (name, res)
+        });
 
         // send initial subscription configuration
         let update = BridgeUpdate::new(name.clone(), settings.subscriptions(), settings.forwards());
@@ -155,7 +173,7 @@ impl Bridges {
 
         self.bridge_handles.insert(name.clone(), bridge_handle);
         self.config_updaters.insert(name.clone(), config_updater);
-        self.bridges.push(task);
+        self.bridges.push(Box::pin(task));
     }
 
     async fn send_update(&mut self, update: BridgeUpdate) {
@@ -177,11 +195,11 @@ impl Bridges {
         future::join_all(shutdowns).await;
 
         // wait until all bridges finish
-        while let Some(bridge) = self.bridges.next().await {
-            if let Ok(Ok(name)) = bridge {
-                debug!("bridge {} exited", name)
-            } else {
-                error!("bridge exited with error")
+        while let Some((name, bridge)) = self.bridges.next().await {
+            match bridge {
+                Ok(Ok(_)) => debug!("bridge {} exited", name),
+                Ok(Err(e)) => warn!(error = %e, "bridge {} exited with error", name),
+                Err(e) => warn!(error = %e, "bridge {} panicked ", name),
             }
         }
         debug!("all bridges exited");
@@ -189,13 +207,24 @@ impl Bridges {
 }
 
 impl Stream for Bridges {
-    type Item = Result<Result<String, BridgeError>, tokio::task::JoinError>;
+    type Item = (
+        String,
+        Result<Result<(), BridgeError>, tokio::task::JoinError>,
+    );
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        self.bridges.poll_next_unpin(cx)
+        let poll = self.bridges.poll_next_unpin(cx);
+
+        // remove redundant handlers when bridge exits
+        if let std::task::Poll::Ready(Some((name, _))) = &poll {
+            self.bridge_handles.remove(name);
+            self.config_updaters.remove(name);
+        }
+
+        poll
     }
 }
 
