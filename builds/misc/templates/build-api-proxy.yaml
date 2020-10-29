@@ -11,3 +11,13 @@ steps:
     inputs:
       filePath: ${{ parameters.filePath }}
       arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "x86_64"
+  - task: Bash@3
+    displayName: Build API-Proxy - arm32
+    inputs:
+      filePath: ${{ parameters.filePath }}
+      arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "armv7l"
+  - task: Bash@3
+    displayName: Build API-Proxy - arm64
+    inputs:
+      filePath: ${{ parameters.filePath }}
+      arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "aarch64"
