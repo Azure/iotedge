@@ -68,7 +68,7 @@ where
 
                 // wait for sidecars to finish
                 if let Err(e) = sidecars_fut.await {
-                    error!(message = "failed running sidecars", err = %e)
+                    error!(message = "failed running sidecars", error = %e)
                 }
 
                 // extract state from server
