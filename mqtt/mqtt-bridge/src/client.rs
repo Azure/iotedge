@@ -456,8 +456,6 @@ pub struct PublishHandle(mqtt3::PublishHandle);
 
 impl PublishHandle {
     pub async fn publish(&mut self, publication: Publication) -> Result<(), ClientError> {
-        validate_length(&publication.topic_name)?;
-
         self.0
             .publish(publication)
             .await
@@ -481,8 +479,6 @@ pub struct UpdateSubscriptionHandle(mqtt3::UpdateSubscriptionHandle);
 #[automock]
 impl UpdateSubscriptionHandle {
     pub async fn subscribe(&mut self, subscribe_to: SubscribeTo) -> Result<(), ClientError> {
-        validate_length(&subscribe_to.topic_filter)?;
-
         self.0
             .subscribe(subscribe_to)
             .await
@@ -490,8 +486,6 @@ impl UpdateSubscriptionHandle {
     }
 
     pub async fn unsubscribe(&mut self, unsubscribe_from: String) -> Result<(), ClientError> {
-        validate_length(&unsubscribe_from)?;
-
         self.0
             .unsubscribe(unsubscribe_from)
             .await
