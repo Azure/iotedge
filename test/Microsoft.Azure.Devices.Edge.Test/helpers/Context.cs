@@ -109,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
             this.ParentHostname = Option.Maybe(Get("parentHostname"));
+            this.BlobSasUrl = Option.Maybe(Get("BLOB_STORE_SAS"));
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -182,5 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public bool Verbose { get; }
 
         public Option<string> ParentHostname { get; }
+
+        public Option<string> BlobSasUrl { get; }
     }
 }
