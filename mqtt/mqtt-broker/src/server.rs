@@ -277,7 +277,7 @@ impl Listener {
             let ready = async {
                 match ready {
                     Some(ready) => {
-                        info!("Waiting for broker to be ready to serve requests");
+                        info!("waiting for broker to be ready to serve requests");
                         ready.wait().await
                     }
                     None => Ok(()),
@@ -292,7 +292,7 @@ impl Listener {
                     let mut incoming = transport.incoming().await?;
 
                     let addr = incoming.local_addr()?;
-                    info!("Listening on address {}", addr);
+                    info!("listening on address {}", addr);
 
                     loop {
                         match future::select(&mut shutdown_signal, incoming.next()).await {
@@ -340,7 +340,10 @@ impl Listener {
                     error!("error occurred when waiting for broker readiness. {}", e);
                     Ok(())
                 }
-                Either::Right((_, _)) => Ok(()),
+                Either::Right((_, _)) => {
+                    info!("shutdown signalled while waiting for broker to be ready");
+                    Ok(())
+                },
             }
         }
         .instrument(span)
