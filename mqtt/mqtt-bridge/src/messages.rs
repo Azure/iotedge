@@ -89,7 +89,9 @@ impl<S> StoreMqttEventHandler<S> {
     }
 
     fn update_unsubscribed(&mut self, sub: &str) {
-        if self.topic_mappers_updates.remove(sub).is_none() {
+        if self.topic_mappers_updates.contains_key(sub) {
+            self.topic_mappers.remove(sub);
+        } else {
             warn!("unexpected subscription/rejected ack for {}", sub);
         };
     }

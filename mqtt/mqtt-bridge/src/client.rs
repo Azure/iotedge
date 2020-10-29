@@ -322,7 +322,7 @@ where
     }
 
     async fn subscribe(&mut self, topics: Vec<String>) -> Result<(), ClientError> {
-        debug!("subscribing to topics {:?}...", topics);
+        info!("subscribing to topics {:?}...", topics);
         let subscriptions = topics.into_iter().map(|topic| proto::SubscribeTo {
             topic_filter: topic,
             qos: DEFAULT_QOS,
