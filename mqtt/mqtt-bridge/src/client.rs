@@ -1,7 +1,6 @@
+#![allow(clippy::default_trait_access)] // Needed because mock! macro violates
 #![allow(dead_code)] // TODO remove when ready
-use std::{
-    collections::HashSet, fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration,
-};
+use std::{fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration};
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -9,12 +8,11 @@ use futures_util::future::{self, BoxFuture};
 use mockall::automock;
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream, stream::StreamExt};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 use mqtt3::{
     proto::{self, Publication, SubscribeTo},
-    Client, Event, IoSource, PublishError, ShutdownError, SubscriptionUpdateEvent,
-    UpdateSubscriptionError,
+    Client, Event, IoSource, PublishError, ShutdownError, UpdateSubscriptionError,
 };
 
 use crate::{
@@ -206,7 +204,10 @@ pub struct MqttClient<H> {
     event_handler: H,
 }
 
-impl<H: EventHandler> MqttClient<H> {
+impl<H> MqttClient<H>
+where
+    H: MqttEventHandler,
+{
     pub fn tcp(config: MqttClientConfig, event_handler: H) -> Self {
         let token_source = Self::token_source(&config.credentials);
         let tcp_connection = TcpConnection::new(config.addr, token_source, None);
@@ -302,12 +303,12 @@ impl<H: EventHandler> MqttClient<H> {
 
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             // TODO: handle the error by recreating the connection
-            error!(error=%e, "failed to poll events");
+            error!(error = %e, "failed to poll events");
             None
         }) {
             debug!("handling event {:?}", event);
-            if let Err(e) = self.event_handler.handle(&event).await {
-                error!(err = %e, "error processing event {:?}", event);
+            if let Err(e) = self.event_handler.handle(event).await {
+                error!(error = %e, "error processing event");
             }
         }
     }
@@ -324,54 +325,6 @@ impl<H: EventHandler> MqttClient<H> {
             self.client
                 .subscribe(subscription)
                 .map_err(ClientError::Subscribe)?;
-        }
-
-        let mut subacks: HashSet<_> = topics.iter().collect();
-        if subacks.is_empty() {
-            info!("has no topics to subscribe to");
-            return Ok(());
-        }
-
-        // TODO: Don't wait for subscription updates before starting the bridge.
-        //       We should move this logic to the handle events.
-        //
-        //       This is fine for now when dealing with only the upstream edge device.
-        //       But when remote brokers are introduced this will be an issue.
-        while let Some(event) = self
-            .client
-            .try_next()
-            .await
-            .map_err(ClientError::PollClient)?
-        {
-            if let Event::SubscriptionUpdates(subscriptions) = event {
-                for subscription in subscriptions {
-                    match subscription {
-                        SubscriptionUpdateEvent::Subscribe(sub) => {
-                            subacks.remove(&sub.topic_filter);
-                            debug!("successfully subscribed to topic {}", &sub.topic_filter);
-                        }
-                        SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
-                            subacks.remove(&topic_filter);
-                            error!("subscription rejected by server {}", topic_filter);
-                        }
-                        SubscriptionUpdateEvent::Unsubscribe(topic_filter) => {
-                            warn!("unsubscribed to {}", topic_filter);
-                        }
-                    }
-                }
-
-                info!("stopped waiting for subscriptions");
-                break;
-            }
-        }
-
-        if subacks.is_empty() {
-            info!("successfully subscribed to topics");
-        } else {
-            error!(
-                "failed to receive expected subacks for topics: {:?}",
-                subacks.iter().map(ToString::to_string).collect::<String>(),
-            );
         }
 
         Ok(())
@@ -459,12 +412,22 @@ impl ShutdownHandle {
 }
 
 /// A client publish handle.
+#[derive(Debug, Clone)]
 pub struct PublishHandle(mqtt3::PublishHandle);
 
-#[automock]
 impl PublishHandle {
     pub async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
         self.0.publish(publication).await
+    }
+}
+
+mockall::mock! {
+    pub PublishHandle {
+        async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+    }
+
+    pub trait Clone {
+        fn clone(&self) -> Self;
     }
 }
 
@@ -490,25 +453,26 @@ impl UpdateSubscriptionHandle {
 
 /// A trait which every MQTT client event handler implements.
 #[async_trait]
-pub trait EventHandler {
+pub trait MqttEventHandler {
     type Error: Display;
 
     /// Handles MQTT client event and returns marker which determines whether
     /// an event handler fully handled an event.
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error>;
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error>;
 }
 
-/// An `EventHandler::handle` method result.
+/// An `MqttEventHandler::handle` method result.
 #[derive(Debug, PartialEq)]
 pub enum Handled {
     /// MQTT client event is fully handled.
     Fully,
 
-    /// MQTT client event is partially handled.
-    Partially,
+    /// MQTT client event is partially handled. It contains modified event.
+    Partially(Event),
 
     /// Unknown MQTT client event so event handler skipped the event.
-    Skipped,
+    /// It contains not modified event.
+    Skipped(Event),
 }
 
 #[derive(Debug, thiserror::Error)]

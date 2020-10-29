@@ -1,6 +1,6 @@
 use tracing::{error, info};
 
-use crate::client::{EventHandler, MqttClient};
+use crate::client::{MqttClient, MqttEventHandler};
 
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
@@ -17,7 +17,7 @@ pub(crate) struct Ingress<H> {
 
 impl<H> Ingress<H>
 where
-    H: EventHandler,
+    H: MqttEventHandler,
 {
     /// Creates a new instance of ingress.
     pub(crate) fn new(client: MqttClient<H>, shutdown_client: ShutdownHandle) -> Self {
@@ -33,15 +33,12 @@ where
     }
 
     /// Runs ingress processing.
-    pub(crate) async fn run(mut self) {
-        info!("starting ingress publication processing...",);
+    pub(crate) async fn run(mut self) -> Result<(), IngressError> {
+        info!("starting ingress publication processing...");
         self.client.handle_events().await;
         info!("finished ingress publication processing");
-    }
 
-    // TODO remove when subscriptions procedure changed
-    pub(crate) fn client(&mut self) -> &mut MqttClient<H> {
-        &mut self.client
+        Ok(())
     }
 }
 
@@ -58,3 +55,7 @@ impl IngressShutdownHandle {
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("ingress error")]
+pub(crate) struct IngressError;

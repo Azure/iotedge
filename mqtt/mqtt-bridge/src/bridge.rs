@@ -1,43 +1,65 @@
+use futures_util::{
+    future::{self, Either},
+    pin_mut,
+};
 use mqtt3::ShutdownError;
-use tokio::{select, sync::oneshot::Sender};
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
 use crate::{
     client::{ClientError, MqttClientConfig},
+    config_update::BridgeDiff,
     persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
-    pump::{Builder, Pump},
+    pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
     settings::{ConnectionSettings, Credentials},
     upstream::{
-        ConnectivityError, LocalUpstreamHandler, LocalUpstreamPumpEventHandler,
-        RemoteUpstreamHandler, RemoteUpstreamPumpEventHandler, RpcError,
+        ConnectivityError, LocalUpstreamMqttEventHandler, LocalUpstreamPumpEvent,
+        LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler, RemoteUpstreamPumpEvent,
+        RemoteUpstreamPumpEventHandler, RpcError,
     },
 };
 
-#[derive(Debug)]
-pub struct BridgeShutdownHandle {
-    local_shutdown: Sender<()>,
-    remote_shutdown: Sender<()>,
+pub struct BridgeHandle {
+    local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
+    remote_pump_handle: PumpHandle<RemoteUpstreamPumpEvent>,
 }
 
-impl BridgeShutdownHandle {
-    // TODO: Remove when we implement bridge controller shutdown
-    #![allow(dead_code)]
-    pub async fn shutdown(self) -> Result<(), BridgeError> {
-        self.local_shutdown
-            .send(())
-            .map_err(BridgeError::ShutdownBridge)?;
-        self.remote_shutdown
-            .send(())
-            .map_err(BridgeError::ShutdownBridge)?;
+impl BridgeHandle {
+    pub fn new(
+        local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
+        remote_pump_handle: PumpHandle<RemoteUpstreamPumpEvent>,
+    ) -> Self {
+        Self {
+            local_pump_handle,
+            remote_pump_handle,
+        }
+    }
+
+    pub async fn send(&mut self, message: BridgeDiff) -> Result<(), BridgeError> {
+        let (local_updates, remote_updates) = message.into_parts();
+
+        if local_updates.has_updates() {
+            debug!("sending update to local pump {:?}", local_updates);
+            self.local_pump_handle
+                .send(PumpMessage::ConfigurationUpdate(local_updates))
+                .await?;
+        }
+
+        if remote_updates.has_updates() {
+            debug!("sending update to remote pump {:?}", remote_updates);
+            self.remote_pump_handle
+                .send(PumpMessage::ConfigurationUpdate(remote_updates))
+                .await?;
+        }
+
         Ok(())
     }
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 pub struct Bridge<S> {
-    local_pump: Pump<S, LocalUpstreamHandler<S>, LocalUpstreamPumpEventHandler>,
-    remote_pump: Pump<S, RemoteUpstreamHandler<S>, RemoteUpstreamPumpEventHandler>,
+    local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
+    remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
     connection_settings: ConnectionSettings,
 }
 
@@ -51,17 +73,13 @@ impl Bridge<WakingMemoryStore> {
 
         debug!("creating bridge...");
 
-        let (mut local_pump, mut remote_pump) = Builder::default()
+        let (local_pump, remote_pump) = Builder::default()
             .with_local(|pump| {
                 pump.with_config(MqttClientConfig::new(
                     &system_address,
                     settings.keep_alive(),
                     settings.clean_session(),
-                    Credentials::Anonymous(format!(
-                        "{}/$edgeHub/$bridge/{}",
-                        device_id,
-                        settings.name()
-                    )),
+                    Credentials::Anonymous(format!("{}/{}/$bridge", device_id, settings.name())),
                 ))
                 .with_rules(settings.forwards());
             })
@@ -76,17 +94,6 @@ impl Bridge<WakingMemoryStore> {
             })
             .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
             .build()?;
-
-        // TODO move subscriptions into run method
-        local_pump
-            .subscribe()
-            .instrument(info_span!("pump", name = "local"))
-            .await?;
-
-        remote_pump
-            .subscribe()
-            .instrument(info_span!("pump", name = "remote"))
-            .await?;
 
         debug!("created bridge...");
 
@@ -103,13 +110,15 @@ where
     S: StreamWakeableState + Send,
 {
     pub async fn run(self) -> Result<(), BridgeError> {
-        info!("Starting {} bridge...", self.connection_settings.name());
+        info!("starting bridge...");
 
+        let shutdown_local_pump = self.local_pump.handle();
         let local_pump = self
             .local_pump
             .run()
             .instrument(info_span!("pump", name = "local"));
 
+        let shutdown_remote_pump = self.remote_pump.handle();
         let remote_pump = self
             .remote_pump
             .run()
@@ -120,20 +129,49 @@ where
             self.connection_settings.name()
         );
 
-        select! {
-            _ = local_pump => {
-                // TODO shutdown remote pump
-                // shutdown_handle.shutdown().await?;
-            }
+        pin_mut!(local_pump, remote_pump);
 
-            _ = remote_pump => {
-                // TODO shutdown local pump
-                // shutdown_handle.shutdown().await?;
+        match future::select(local_pump, remote_pump).await {
+            Either::Left((local_pump, remote_pump)) => {
+                if let Err(e) = local_pump {
+                    error!(error = %e, "local pump exited with error");
+                } else {
+                    info!("local pump exited");
+                }
+
+                debug!("shutting down remote pump...");
+                shutdown_remote_pump.shutdown().await;
+
+                if let Err(e) = remote_pump.await {
+                    error!(error = %e, "remote pump exited with error");
+                } else {
+                    info!("remote pump exited");
+                }
+            }
+            Either::Right((remote_pump, local_pump)) => {
+                if let Err(e) = remote_pump {
+                    error!(error = %e, "remote pump exited with error");
+                } else {
+                    info!("remote pump exited");
+                }
+
+                debug!("shutting down local pump...");
+                shutdown_local_pump.shutdown().await;
+
+                if let Err(e) = local_pump.await {
+                    error!(error = %e, "local pump exited with error");
+                } else {
+                    info!("local pump exited");
+                }
             }
         }
 
-        debug!("bridge {} stopped...", self.connection_settings.name());
+        info!("bridge stopped...");
         Ok(())
+    }
+
+    pub fn handle(&self) -> BridgeHandle {
+        BridgeHandle::new(self.local_pump.handle(), self.remote_pump.handle())
     }
 }
 
@@ -154,6 +192,9 @@ pub enum BridgeError {
 
     #[error("Failed to get send pump message.")]
     SendToPump,
+
+    #[error("Failed to send message to pump: {0}")]
+    SendBridgeUpdate(#[from] PumpError),
 
     #[error("failed to execute RPC command")]
     Rpc(#[from] RpcError),

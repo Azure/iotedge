@@ -32,7 +32,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(EdgeHubAuthorizer::new(
             authorize_fn_ok(|activity| {
-                if matches!(activity.operation(), Operation::Connect(_)) {
+                if matches!(activity.operation(), Operation::Connect) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden("not allowed".to_string())
@@ -102,7 +102,7 @@ async fn auth_update_happy_case() {
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(EdgeHubAuthorizer::new(
             authorize_fn_ok(|activity| {
-                if matches!(activity.operation(), Operation::Connect(_)) {
+                if matches!(activity.operation(), Operation::Connect) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden("not allowed".to_string())
@@ -197,7 +197,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(
             EdgeHubAuthorizer::without_ready_handle(authorize_fn_ok(|activity| {
-                if matches!(activity.operation(), Operation::Connect(_)) {
+                if matches!(activity.operation(), Operation::Connect) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden("not allowed".to_string())

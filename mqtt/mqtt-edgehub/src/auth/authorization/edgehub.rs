@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use mqtt_broker::{
-    auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
+    auth::{Activity, Authorization, Authorizer, Operation, Publish, Subscribe},
     AuthId, BrokerReadyEvent, BrokerReadyHandle, ClientId,
 };
 
@@ -44,11 +44,7 @@ where
     }
 
     #[allow(clippy::unused_self)]
-    fn authorize_connect(
-        &self,
-        activity: &Activity,
-        _connect: &Connect,
-    ) -> Result<Authorization, E> {
+    fn authorize_connect(&self, activity: &Activity) -> Result<Authorization, E> {
         match activity.client_info().auth_id() {
             // forbid anonymous clients to connect to the broker
             AuthId::Anonymous => Ok(Authorization::Forbidden(
@@ -254,7 +250,7 @@ where
 
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         match activity.operation() {
-            Operation::Connect(connect) => self.authorize_connect(activity, &connect),
+            Operation::Connect => self.authorize_connect(activity),
             Operation::Publish(publish) => self.authorize_publish(activity, &publish),
             Operation::Subscribe(subscribe) => self.authorize_subscribe(activity, &subscribe),
         }

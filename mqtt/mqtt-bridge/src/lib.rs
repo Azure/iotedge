@@ -8,12 +8,12 @@
     clippy::use_self,
     clippy::match_same_arms,
     clippy::must_use_candidate,
-    clippy::missing_errors_doc,
-    clippy::default_trait_access // TODO remove when mockall fix released for https://github.com/asomers/mockall/issues/221
+    clippy::missing_errors_doc
 )]
 
 mod bridge;
 pub mod client;
+mod config_update;
 pub mod controller;
 mod messages;
 mod persist;
@@ -22,6 +22,6 @@ pub mod settings;
 mod token_source;
 pub mod upstream;
 
-pub use crate::controller::{
-    BridgeController, BridgeControllerHandle, BridgeControllerUpdate, Error,
-};
+pub use crate::controller::{BridgeController, BridgeControllerHandle, Error};
+
+pub use crate::config_update::BridgeControllerUpdate;

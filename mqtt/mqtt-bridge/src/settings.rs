@@ -77,25 +77,17 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             messages,
         } = serde::Deserialize::deserialize(deserializer)?;
 
-        let upstream_connection_settings = nested_bridge
-            .filter(|nested_bridge| {
-                nested_bridge
-                    .enable_upstream_bridge()
-                    .unwrap_or("false")
-                    .to_lowercase()
-                    == "true"
-            })
-            .map(|nested_bridge| ConnectionSettings {
-                name: "upstream".into(),
-                address: format!(
-                    "{}:{}",
-                    nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
-                ),
-                subscriptions: upstream.subscriptions,
-                credentials: Credentials::Provider(nested_bridge),
-                clean_session: upstream.clean_session,
-                keep_alive: upstream.keep_alive,
-            });
+        let upstream_connection_settings = nested_bridge.map(|nested_bridge| ConnectionSettings {
+            name: "$upstream".into(),
+            address: format!(
+                "{}:{}",
+                nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
+            ),
+            subscriptions: upstream.subscriptions,
+            credentials: Credentials::Provider(nested_bridge),
+            clean_session: upstream.clean_session,
+            keep_alive: upstream.keep_alive,
+        });
 
         Ok(BridgeSettings {
             upstream: upstream_connection_settings,
@@ -138,12 +130,9 @@ impl ConnectionSettings {
     pub fn subscriptions(&self) -> Vec<TopicRule> {
         self.subscriptions
             .iter()
-            .filter_map(|sub| {
-                if let Direction::Out(topic) = sub {
-                    Some(topic.clone())
-                } else {
-                    None
-                }
+            .filter_map(|sub| match sub {
+                Direction::In(topic) | Direction::Both(topic) => Some(topic.clone()),
+                _ => None,
             })
             .collect()
     }
@@ -151,12 +140,9 @@ impl ConnectionSettings {
     pub fn forwards(&self) -> Vec<TopicRule> {
         self.subscriptions
             .iter()
-            .filter_map(|sub| {
-                if let Direction::In(topic) = sub {
-                    Some(topic.clone())
-                } else {
-                    None
-                }
+            .filter_map(|sub| match sub {
+                Direction::Out(topic) | Direction::Both(topic) => Some(topic.clone()),
+                _ => None,
             })
             .collect()
     }
@@ -203,9 +189,6 @@ impl AuthenticationSettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
-    #[serde(rename = "enableupstreambridge")]
-    enable_upstream_bridge: Option<String>,
-
     #[serde(rename = "iotedge_iothubhostname")]
     iothub_hostname: String,
 
@@ -226,10 +209,6 @@ pub struct CredentialProviderSettings {
 }
 
 impl CredentialProviderSettings {
-    pub fn enable_upstream_bridge(&self) -> Option<&str> {
-        self.enable_upstream_bridge.as_deref()
-    }
-
     pub fn iothub_hostname(&self) -> &str {
         &self.iothub_hostname
     }
@@ -278,6 +257,14 @@ impl TopicRule {
     pub fn in_prefix(&self) -> Option<&str> {
         self.in_prefix.as_deref()
     }
+
+    pub fn subscribe_to(&self) -> String {
+        if let Some(local) = &self.in_prefix {
+            format!("{}/{}", local, self.topic)
+        } else {
+            self.topic.clone()
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -288,6 +275,9 @@ pub enum Direction {
 
     #[serde(rename = "out")]
     Out(TopicRule),
+
+    #[serde(rename = "both")]
+    Both(TopicRule),
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -333,7 +323,7 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let upstream = settings.upstream().unwrap();
 
-        assert_eq!(upstream.name(), "upstream");
+        assert_eq!(upstream.name(), "$upstream");
         assert_eq!(upstream.address(), "edge1:8883");
 
         match upstream.credentials() {
@@ -387,8 +377,7 @@ mod tests {
 
     #[test]
     #[serial(env_settings)]
-    fn from_env_no_upstream_protcol() {
-        let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "upstream");
+    fn from_env_no_gateway_hostname() {
         let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
         let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
@@ -410,12 +399,11 @@ mod tests {
         let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-        let _enable_bridge = env::set_var("enableupstreambridge", "true");
 
         let settings = make_settings().unwrap();
         let upstream = settings.upstream().unwrap();
 
-        assert_eq!(upstream.name(), "upstream");
+        assert_eq!(upstream.name(), "$upstream");
         assert_eq!(upstream.address(), "upstream:8883");
 
         match upstream.credentials() {
