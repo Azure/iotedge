@@ -333,12 +333,12 @@ where
 
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             // TODO: handle the error by recreating the connection
-            error!(error=%e, "failed to poll events");
+            error!(error = %e, "failed to poll events");
             None
         }) {
             debug!("handling event {:?}", event);
             if let Err(e) = self.event_handler.handle(event).await {
-                error!(err = %e, "error processing event");
+                error!(error = %e, "error processing event");
             }
         }
     }

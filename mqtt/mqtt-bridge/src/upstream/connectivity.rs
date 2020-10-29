@@ -50,7 +50,7 @@ impl MqttEventHandler for ConnectivityMqttEventHandler {
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         let event = match event {
             Event::Disconnected(reason) => {
-                debug!("Received disconnected state {}", reason);
+                debug!("received disconnected state {}", reason);
                 match self.state {
                     ConnectivityState::Connected => {
                         self.state = ConnectivityState::Disconnected;
@@ -61,10 +61,10 @@ impl MqttEventHandler for ConnectivityMqttEventHandler {
                         let msg = PumpMessage::Event(event);
                         self.sender.send(msg).await?;
 
-                        info!("Sent disconnected state");
+                        info!("sent disconnected state");
                     }
                     ConnectivityState::Disconnected => {
-                        debug!("Already disconnected");
+                        debug!("already disconnected");
                     }
                 }
 
@@ -74,7 +74,7 @@ impl MqttEventHandler for ConnectivityMqttEventHandler {
             Event::NewConnection { reset_session: _ } => {
                 match self.state {
                     ConnectivityState::Connected => {
-                        debug!("Already connected");
+                        debug!("already connected");
                     }
                     ConnectivityState::Disconnected => {
                         self.state = ConnectivityState::Connected;
@@ -85,7 +85,7 @@ impl MqttEventHandler for ConnectivityMqttEventHandler {
                         let msg = PumpMessage::Event(event);
                         self.sender.send(msg).await?;
 
-                        info!("Sent connected state")
+                        info!("sent connected state")
                     }
                 }
                 return Ok(Handled::Fully);
