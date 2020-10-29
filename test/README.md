@@ -63,6 +63,7 @@ The tests also expect to find several _secret_ parameters. While these can techn
 | `[E2E_]PREVIEW_EVENT_HUB_ENDPOINT` | * | Alternate Event Hub that is in a region that has preview bits deployed for preview testing - required only for PlugAndPlay tests. |
 | `[E2E_]REGISTRIES__{n}__PASSWORD` || Password associated with a container registry entry in the `registries` array of `context.json`. `{n}` is the number corresponding to the (zero-based) array entry. For example, if you specified a single container registry in the `registries` array, the corresponding parameter would be `[E2E_]REGISTRIES__0__PASSWORD`. |
 | `[E2E_]ROOT_CA_PASSWORD` || The password associated with the root certificate specified in `rootCaCertificatePath`. |
+| `[E2E_]BLOB_STORE_SAS` || The sas token used to upload module logs and support bundle in the tests. |
 
 _Note: the definitive source for information about test parameters is `test/Microsoft.Azure.Devices.Edge.Test/helpers/Context.cs`._
 
