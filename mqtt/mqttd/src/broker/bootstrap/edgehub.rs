@@ -227,7 +227,7 @@ pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 async fn download_server_certificate() -> Result<ServerCertificate> {
     let uri = env::var(WORKLOAD_URI).context(WORKLOAD_URI)?;
     let hostname = env::var(EDGE_DEVICE_HOST_NAME).context(EDGE_DEVICE_HOST_NAME)?;
-    let module_id = env::var(MODULE_ID).context(MODULE_GENERATION_ID)?;
+    let module_id = env::var(MODULE_ID).context(MODULE_ID)?;
     let generation_id = env::var(MODULE_GENERATION_ID).context(MODULE_GENERATION_ID)?;
     let expiration = Utc::now() + Duration::days(CERTIFICATE_VALIDITY_DAYS);
 
