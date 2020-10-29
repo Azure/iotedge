@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string moduleName = "NumberLogger";
             int count = 10;
-            string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Number Logger image"));
+            string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Blob SAS url"));
 
             CancellationToken token = this.TestToken;
 
@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string moduleName = "NumberLogger";
             int count = 10;
-            string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Number Logger image"));
+            string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Blob SAS url"));
 
             CancellationToken token = this.TestToken;
 
