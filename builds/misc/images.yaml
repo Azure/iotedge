@@ -209,7 +209,7 @@ jobs:
       # Check API proxy
       - task: ComponentGovernanceComponentDetection@0
         inputs:
-          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64' 
+          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8' 
 
 ################################################################################
 # linux - Rust amd64
