@@ -72,7 +72,7 @@ where
                             Some(try_publish(key, publication, publish_handle))
                         }
                         Err(e) => {
-                            error!(err = %e, "failed loading publication from store");
+                            error!(error = %e, "failed loading publication from store");
                             None
                         }
                     }
@@ -89,7 +89,7 @@ where
                 }
                 key = publications.select_next_some() => {
                     if let Err(e) = store.remove(key) {
-                        error!(err = %e, "failed removing publication from store");
+                        error!(error = %e, "failed removing publication from store");
                     }
                 }
             }
@@ -103,7 +103,7 @@ where
 async fn try_publish(key: Key, publication: Publication, mut publish_handle: PublishHandle) -> Key {
     debug!("publishing {:?}", key);
     if let Err(e) = publish_handle.publish(publication).await {
-        error!(err = %e, "failed publish");
+        error!(error = %e, "failed publish");
     }
 
     key
