@@ -5,26 +5,22 @@
     "iotedge_modulegenerationid": "321",
     "iotedge_workloaduri": "uri",
     "iotedge_iothubhostname": "iothub",
-    "enableupstreambridge": "true",
     "upstream": {
         "subscriptions": [
             {
-                "pattern": "temp/#",
-                "remote": "floor/kitchen"
-            }
-        ],
-        "forwards": [
-            {
-                "local": "local",
-                "pattern": "floor/#",
-                "remote": "remote"
+                "direction": "both",
+                "topic": "temp/#",
+                "outPrefix": "floor/kitchen"
             },
             {
-                "pattern": "temp/#",
-                "remote": "floor/kitchen"
+                "direction": "out",
+                "topic": "floor/#",
+                "inPrefix": "local",
+                "outPrefix": "remote"
             },
             {
-                "pattern": "pattern/#"
+                "direction": "out",
+                "topic": "pattern/#"
             }
         ]
     },
@@ -39,14 +35,14 @@
             "clean_session": false,
             "subscriptions": [
                 {
-                    "pattern": "temp/#",
-                    "remote": "floor/kitchen"
-                }
-            ],
-            "forwards": [
+                    "direction": "in",
+                    "topic": "temp/#",
+                    "outPrefix": "floor/kitchen"
+                },
                 {
-                    "pattern": "some",
-                    "remote": "remote"
+                    "direction": "out",
+                    "topic": "some",
+                    "outPrefix": "remote"
                 }
             ]
         }

@@ -69,13 +69,13 @@ pub(crate) enum Scheme {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ApiError {
-    #[error("could not construct request URL")]
+    #[error("could not construct URL")]
     ConstructRequestUrl(#[source] Box<dyn StdError + Send + Sync>),
 
     #[error("could not construct request")]
     ConstructRequest(#[source] http::Error),
 
-    #[error("could not construct request")]
+    #[error("could not make HTTP request")]
     ExecuteRequest(#[source] hyper::Error),
 
     #[error("response has status code {0} and body {1}")]

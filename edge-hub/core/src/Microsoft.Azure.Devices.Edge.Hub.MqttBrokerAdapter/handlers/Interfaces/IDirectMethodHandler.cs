@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public interface IDirectMethodHandler
     {
-        Task<DirectMethodResponse> CallDirectMethodAsync(DirectMethodRequest request, IIdentity identity);
+        Task<DirectMethodResponse> CallDirectMethodAsync(DirectMethodRequest request, IIdentity identity, bool isDirectClient);
         IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions { get; }
     }
 }

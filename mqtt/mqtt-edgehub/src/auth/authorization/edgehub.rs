@@ -1,10 +1,10 @@
 use std::{any::Any, cell::RefCell, collections::HashMap, error::Error as StdError, fmt};
 
 use serde::{Deserialize, Serialize};
-use tracing::debug;
+use tracing::info;
 
 use mqtt_broker::{
-    auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
+    auth::{Activity, Authorization, Authorizer, Operation, Publish, Subscribe},
     AuthId, BrokerReadyEvent, BrokerReadyHandle, ClientId,
 };
 
@@ -44,11 +44,7 @@ where
     }
 
     #[allow(clippy::unused_self)]
-    fn authorize_connect(
-        &self,
-        activity: &Activity,
-        _connect: &Connect,
-    ) -> Result<Authorization, E> {
+    fn authorize_connect(&self, activity: &Activity) -> Result<Authorization, E> {
         match activity.client_info().auth_id() {
             // forbid anonymous clients to connect to the broker
             AuthId::Anonymous => Ok(Authorization::Forbidden(
@@ -254,7 +250,7 @@ where
 
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         match activity.operation() {
-            Operation::Connect(connect) => self.authorize_connect(activity, &connect),
+            Operation::Connect => self.authorize_connect(activity),
             Operation::Publish(publish) => self.authorize_publish(activity, &publish),
             Operation::Subscribe(subscribe) => self.authorize_subscribe(activity, &subscribe),
         }
@@ -263,14 +259,14 @@ where
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
         match update.downcast::<AuthorizerUpdate>() {
             Ok(update) => {
-                debug!("authorizer update received. Identities: {:?}", update);
-
                 // update identities cache
                 self.identities_cache = update
                     .0
                     .into_iter()
                     .map(|id| (id.identity().into(), id))
                     .collect();
+
+                info!("edgehub authorizer has been updated.");
 
                 // signal that authorizer has been initialized
                 if let Some(mut broker_ready) = self.broker_ready.take() {

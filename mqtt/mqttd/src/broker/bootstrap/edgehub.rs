@@ -14,17 +14,17 @@ use tokio::time;
 use tracing::{error, info, warn};
 
 use super::SidecarManager;
-use mqtt_bridge::BridgeController;
+use mqtt_bridge::{settings::BridgeSettings, BridgeController};
 use mqtt_broker::{
-    auth::{AllowAll, Authorizer},
-    Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerReady, BrokerSnapshot, Server,
-    ServerCertificate,
+    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerReady,
+    BrokerSnapshot, Server, ServerCertificate,
 };
 use mqtt_edgehub::{
+    auth::PolicyAuthorizer,
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     command::{
-        AuthorizedIdentitiesCommand, CommandHandler, CommandHandlerError, DisconnectCommand,
-        PolicyUpdateCommand, ShutdownHandle,
+        AuthorizedIdentitiesCommand, BridgeUpdateCommand, CommandHandler, CommandHandlerError,
+        DisconnectCommand, PolicyUpdateCommand, ShutdownHandle,
     },
     connection::MakeEdgeHubPacketProcessor,
     settings::{ListenerConfig, Settings},
@@ -52,8 +52,12 @@ pub async fn broker(
     state: Option<BrokerSnapshot>,
     broker_ready: &BrokerReady,
 ) -> Result<Broker<impl Authorizer>> {
-    // TODO: Use AllowAll as bottom level authorizer until Policies are sent over from EdgeHub
-    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(AllowAll, broker_ready.handle()));
+    let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
+
+    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(
+        PolicyAuthorizer::new(device_id, broker_ready.handle()),
+        broker_ready.handle(),
+    ));
 
     let broker = BrokerBuilder::default()
         .with_authorizer(authorizer)
@@ -74,6 +78,8 @@ where
     Z: Authorizer + Send + 'static,
     F: Future<Output = ()>,
 {
+    info!("starting server...");
+
     let broker_handle = broker.handle();
 
     let make_processor = MakeEdgeHubPacketProcessor::new_default(broker_handle.clone());
@@ -121,8 +127,7 @@ where
     };
 
     // Prepare shutdown signal which is either SYSTEM shutdown signal or cert renewal timout
-    pin_mut!(shutdown_signal);
-    pin_mut!(renewal_signal);
+    pin_mut!(shutdown_signal, renewal_signal);
     let shutdown = future::select(shutdown_signal, renewal_signal).map(drop);
 
     // Start serving new connections
@@ -165,20 +170,21 @@ pub async fn start_sidecars(
 
     let system_address = listener_settings.system().addr().to_string();
 
-    // command handler
+    let bridge_controller = BridgeController::new();
+
     let device_id = env::var(DEVICE_ID_ENV)?;
     let mut command_handler = CommandHandler::new(system_address.clone(), &device_id);
     command_handler.add_command(DisconnectCommand::new(&broker_handle));
     command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
     command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
+    command_handler.add_command(BridgeUpdateCommand::new(&bridge_controller.handle()));
     command_handler.init().await?;
     let command_handler_shutdown = command_handler.shutdown_handle()?;
     let command_handler_join_handle = tokio::spawn(command_handler.run());
 
-    // bridge
-    let mut bridge_controller = BridgeController::new();
-    bridge_controller.init(system_address, &device_id).await?;
-    let bridge_controller_join_handle = tokio::spawn(bridge_controller.run());
+    let settings = BridgeSettings::new()?;
+    let bridge_controller_join_handle =
+        tokio::spawn(bridge_controller.run(system_address, device_id, settings));
 
     let join_handles = vec![command_handler_join_handle, bridge_controller_join_handle];
     let shutdown_handle = SidecarShutdownHandle::new(command_handler_shutdown);
@@ -221,7 +227,7 @@ pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 async fn download_server_certificate() -> Result<ServerCertificate> {
     let uri = env::var(WORKLOAD_URI).context(WORKLOAD_URI)?;
     let hostname = env::var(EDGE_DEVICE_HOST_NAME).context(EDGE_DEVICE_HOST_NAME)?;
-    let module_id = env::var(MODULE_ID).context(MODULE_GENERATION_ID)?;
+    let module_id = env::var(MODULE_ID).context(MODULE_ID)?;
     let generation_id = env::var(MODULE_GENERATION_ID).context(MODULE_GENERATION_ID)?;
     let expiration = Utc::now() + Duration::days(CERTIFICATE_VALIDITY_DAYS);
 
