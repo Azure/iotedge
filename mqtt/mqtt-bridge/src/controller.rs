@@ -2,9 +2,12 @@ use std::{collections::HashMap, sync::Arc};
 
 use futures_util::future::join_all;
 use thiserror::Error;
-use tokio::sync::{
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
-    Mutex,
+use tokio::{
+    stream::StreamExt,
+    sync::{
+        mpsc::{self, UnboundedReceiver, UnboundedSender},
+        Mutex,
+    },
 };
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
@@ -86,7 +89,7 @@ impl BridgeController {
         };
 
         let updates = async move {
-            while let Some(update) = self.updates_receiver.recv().await {
+            while let Some(update) = self.updates_receiver.next().await {
                 // for now only supports upstream bridge.
                 for bridge_update in update.bridge_updates() {
                     debug!("received updated config: {:?}", bridge_update);
@@ -96,7 +99,7 @@ impl BridgeController {
                     }
 
                     if let Some(config) = self.bridge_handles.lock().await.get_mut(UPSTREAM) {
-                        if let Err(e) = config.send_update(&bridge_update).await {
+                        if let Err(e) = config.send_update(bridge_update).await {
                             error!("error sending bridge update {:?}", e);
                         }
                     }
