@@ -70,7 +70,7 @@ impl BridgeController {
 
                     let upstream_bridge = async move {
                         if let Err(e) = bridge.run().await {
-                            error!(err = %e, "failed running {} bridge", name);
+                            error!(error = %e, "failed running {} bridge", name);
                         }
                     }
                     .instrument(info_span!("bridge", name = UPSTREAM));
@@ -81,11 +81,11 @@ impl BridgeController {
                     bridge_tasks.push(task);
                 }
                 Err(e) => {
-                    error!(err = %e, "failed to create {} bridge", upstream_settings.name());
+                    error!(error = %e, "failed to create {} bridge", upstream_settings.name());
                 }
             };
         } else {
-            info!("No upstream settings detected. Not starting bridge controller.")
+            info!("no upstream settings detected. not starting bridge controller.")
         };
 
         let updates = async move {
