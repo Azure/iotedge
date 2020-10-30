@@ -323,8 +323,8 @@ impl Listener {
                             }
                             Either::Right((Some(Err(e)), _)) => {
                                 warn!(
-                                    message = "accept loop exiting due to an error",
-                                    error =% DetailedErrorValue(&e)
+                                    error =% DetailedErrorValue(&e),
+                                    message = "accept loop exiting due to an error"
                                 );
                                 break;
                             }
@@ -337,7 +337,7 @@ impl Listener {
                     Ok(())
                 }
                 Either::Left((Err(e), _)) => {
-                    error!("error occurred when waiting for broker readiness. {}", e);
+                    error!(error = %DetailedErrorValue(&e), "error occurred when waiting for broker readiness.");
                     Ok(())
                 }
                 Either::Right((_, _)) => {

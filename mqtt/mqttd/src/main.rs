@@ -15,7 +15,13 @@ async fn main() -> Result<()> {
         .value_of("config")
         .map(PathBuf::from);
 
-    broker::run(config_path).await?;
+    let mut app = broker::App::new(broker::edgehub::EdgeHubBootstrap);
+    if let Some(config_path) = config_path {
+        app.setup(config_path)?;
+    }
+
+    app.run().await?;
+
     Ok(())
 }
 

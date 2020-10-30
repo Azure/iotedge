@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0"
+async-trait = "0.1"
 chrono = "0.4"
 clap = "2.33"
 futures-util = { version = "0.3", features = ["sink"] }
@@ -14,7 +15,7 @@ tokio = { version = "0.2", features = ["dns", "macros", "rt-threaded", "signal",
 thiserror = "1.0"
 tracing = "0.1"
 tracing-log = "0.1"
-tracing-subscriber = { version = "0.1", features = ["env-filter", "smallvec", "fmt", "chrono", "tracing-log", "parking_lot"], default-features = false }
+tracing-subscriber = { version = "0.1", features = ["env-filter", "ansi", "smallvec", "fmt", "chrono", "tracing-log", "parking_lot"], default-features = false }
 
 edgelet-client = { path = "../edgelet-client", optional = true }
 mqtt-bridge = { path = "../mqtt-bridge", optional = true }

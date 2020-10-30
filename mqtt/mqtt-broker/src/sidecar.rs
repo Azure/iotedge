@@ -15,12 +15,12 @@ pub trait Sidecar {
 }
 
 /// Shutdown handle to request a sidecar to stop.
-pub struct SidecarShutdownHandle(Pin<Box<dyn Future<Output = ()>>>);
+pub struct SidecarShutdownHandle(Pin<Box<dyn Future<Output = ()> + Send>>);
 
 impl SidecarShutdownHandle {
     pub fn new<F>(shutdown: F) -> Self
     where
-        F: Future<Output = ()> + 'static,
+        F: Future<Output = ()> + Send + 'static,
     {
         Self(Box::pin(shutdown))
     }
