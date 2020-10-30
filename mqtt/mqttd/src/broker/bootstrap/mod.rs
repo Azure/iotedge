@@ -1,4 +1,4 @@
-use futures_util::future::select_all;
+use futures_util::future;
 use tokio::task::JoinHandle;
 
 use tracing::{error, info};
@@ -37,7 +37,7 @@ impl SidecarManager {
     }
 
     pub async fn wait_for_shutdown(self) -> Result<(), SidecarError> {
-        let (sidecar_output, _, other_handles) = select_all(self.join_handles).await;
+        let (sidecar_output, _, other_handles) = future::select_all(self.join_handles).await;
 
         info!("a sidecar has stopped. Shutting down sidecars...");
         if let Err(e) = sidecar_output {
