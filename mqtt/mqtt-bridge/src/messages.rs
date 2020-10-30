@@ -84,7 +84,7 @@ impl<S> StoreMqttEventHandler<S> {
         if let Some(mapper) = self.topic_mappers_updates.get(sub) {
             self.topic_mappers.insert(sub.to_owned(), mapper);
         } else {
-            debug!("subscription ack for {} not expected", sub);
+            warn!("unexpected subscription ack for {}", sub);
         };
     }
 
@@ -92,7 +92,7 @@ impl<S> StoreMqttEventHandler<S> {
         if self.topic_mappers_updates.contains_key(sub) {
             self.topic_mappers.remove(sub);
         } else {
-            debug!("unsubscription ack for {} not expected", sub);
+            warn!("unexpected subscription/rejected ack for {}", sub);
         };
     }
 }
@@ -103,6 +103,10 @@ where
     S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
+
+    fn subscriptions(&self) -> Vec<String> {
+        self.topic_mappers_updates.subscriptions()
+    }
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         match &event {
