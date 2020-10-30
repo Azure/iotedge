@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             // Although it is a direct client, it uses the indirect topics
             if (identity is ModuleIdentity moduleIdentity)
             {
-                if (string.Equals(moduleIdentity.DeviceId, "$edgeHub"))
+                if (string.Equals(moduleIdentity.ModuleId, "$edgeHub"))
                 {
                     this.isDirectClient = false;
                 }
