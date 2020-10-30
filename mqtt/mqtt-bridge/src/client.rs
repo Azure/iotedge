@@ -328,8 +328,16 @@ where
         }
     }
 
-    pub async fn handle_events(&mut self) {
-        debug!("polling bridge client");
+    pub async fn run(&mut self) -> Result<(), ClientError> {
+        let default_topics = self.event_handler.subscriptions();
+        self.subscribe(default_topics).await?;
+
+        self.handle_events().await;
+        Ok(())
+    }
+
+    async fn handle_events(&mut self) {
+        debug!("polling bridge client...");
 
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             // TODO: handle the error by recreating the connection
@@ -343,15 +351,14 @@ where
         }
     }
 
-    pub async fn subscribe(&mut self, topics: &[String]) -> Result<(), ClientError> {
-        info!("subscribing to topics");
-        let subscriptions = topics.iter().map(|topic| proto::SubscribeTo {
-            topic_filter: topic.to_string(),
+    async fn subscribe(&mut self, topics: Vec<String>) -> Result<(), ClientError> {
+        info!("subscribing to topics {:?}...", topics);
+        let subscriptions = topics.into_iter().map(|topic| proto::SubscribeTo {
+            topic_filter: topic,
             qos: DEFAULT_QOS,
         });
 
         for subscription in subscriptions {
-            debug!("subscribing to topic {}", subscription.topic_filter);
             self.client
                 .subscribe(subscription)
                 .map_err(ClientError::Subscribe)?;
@@ -497,6 +504,12 @@ impl UpdateSubscriptionHandle {
 #[async_trait]
 pub trait MqttEventHandler {
     type Error: Display;
+
+    /// Returns a list of subscriptions for a MQTT client to subscribe to
+    /// when client starts.
+    fn subscriptions(&self) -> Vec<String> {
+        vec![]
+    }
 
     /// Handles MQTT client event and returns marker which determines whether
     /// an event handler fully handled an event.

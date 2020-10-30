@@ -84,7 +84,7 @@ impl<S> StoreMqttEventHandler<S> {
         if let Some(mapper) = self.topic_mappers_updates.get(sub) {
             self.topic_mappers.insert(sub.to_owned(), mapper);
         } else {
-            debug!("subscription ack for {} not expected", sub);
+            warn!("unexpected subscription ack for {}", sub);
         };
     }
 
@@ -92,7 +92,7 @@ impl<S> StoreMqttEventHandler<S> {
         if self.topic_mappers_updates.contains_key(sub) {
             self.topic_mappers.remove(sub);
         } else {
-            debug!("unsubscription ack for {} not expected", sub);
+            warn!("unexpected subscription/rejected ack for {}", sub);
         };
     }
 }
@@ -103,6 +103,10 @@ where
     S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
+
+    fn subscriptions(&self) -> Vec<String> {
+        self.topic_mappers_updates.subscriptions()
+    }
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         match &event {
@@ -450,7 +454,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn message_handler_saves_message_with_local_and_forward_not_ack_topic() {
+    async fn message_handler_with_local_and_forward_not_ack_topic() {
         let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
@@ -479,6 +483,65 @@ mod tests {
             payload: Bytes::new(),
             dup: false,
         };
+
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+
+        let mut loader = handler.store.loader();
+
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+
+        if let Either::Right(_) = future::select(interval.next(), loader.next()).await {
+            panic!("Should not reach here");
+        }
+    }
+
+    #[tokio::test]
+    async fn message_handler_with_local_and_forward_unsubscribed_topic() {
+        let batch_size: usize = 5;
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let connection_settings = settings.upstream().unwrap();
+
+        let topics = connection_settings
+            .forwards()
+            .iter()
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
+            })
+            .collect();
+
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "pattern/p1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "pattern/#".into(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Unsubscribe("pattern/#".into()),
+            ]))
+            .await
+            .unwrap();
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
