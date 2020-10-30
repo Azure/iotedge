@@ -24,7 +24,7 @@ jobs:
       # Check API proxy
       - task: ComponentGovernanceComponentDetection@0
         inputs:
-          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(version)-linux-amd64' 
+          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(version)-linux-arm32v7' 
 
 ################################################################################
   - job: manifest

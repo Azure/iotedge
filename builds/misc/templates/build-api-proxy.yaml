@@ -7,7 +7,7 @@ parameters:
 
 steps:
   - task: Bash@3
-    displayName: Build API-Proxy - amd64
+    displayName: Build API-Proxy - arm32
     inputs:
       filePath: ${{ parameters.filePath }}
-      arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "x86_64"
+      arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch "armv7l"
