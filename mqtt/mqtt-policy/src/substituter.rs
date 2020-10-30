@@ -89,8 +89,10 @@ impl<'a> Iterator for VariableIter<'a> {
         let value = &self.value[self.index..];
         if let Some(start) = value.find("{{") {
             if let Some(end) = value.find("}}") {
-                self.index = self.index + end + 2;
-                return Some(&value[start..end + 2]);
+                if start < end {
+                    self.index = self.index + end + 2;
+                    return Some(&value[start..end + 2]);
+                }
             }
         }
         None
@@ -113,6 +115,7 @@ fn extract_module_id(activity: &Activity) -> &str {
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
     use test_case::test_case;
 
     use crate::tests;
@@ -311,5 +314,12 @@ mod tests {
                 .visit_resource(input, &request)
                 .unwrap()
         );
+    }
+
+    proptest! {
+        #[test]
+        fn iterator_does_not_crash(value in "[a-z\\{\\}]+") {
+            drop(VariableIter::new(&value).collect::<Vec<_>>());
+        }
     }
 }
