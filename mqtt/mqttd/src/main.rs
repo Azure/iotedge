@@ -4,7 +4,7 @@ use std::{env, path::PathBuf};
 use anyhow::Result;
 use clap::{crate_description, crate_name, crate_version, App, Arg};
 
-use mqttd::{broker, tracing};
+use mqttd::{app, tracing};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
         .value_of("config")
         .map(PathBuf::from);
 
-    let mut app = broker::App::new(broker::edgehub::EdgeHubBootstrap);
+    let mut app = app::new();
     if let Some(config_path) = config_path {
         app.setup(config_path)?;
     }
