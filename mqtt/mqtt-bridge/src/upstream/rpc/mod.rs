@@ -114,7 +114,7 @@ pub struct RpcSubscriptions(Arc<Mutex<HashMap<String, CommandId>>>);
 
 impl RpcSubscriptions {
     /// Stores topic filter to command identifier mapping.
-    pub fn insert(&self, id: CommandId, topic_filter: &str) -> Option<CommandId> {
+    pub fn insert(&self, topic_filter: &str, id: CommandId) -> Option<CommandId> {
         self.0.lock().insert(topic_filter.into(), id)
     }
 
