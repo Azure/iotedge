@@ -1144,6 +1144,7 @@ name = "mqtt-broker"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "atty",
  "bincode",
  "bytes",
  "chrono",
@@ -1254,6 +1255,7 @@ dependencies = [
  "mqtt-broker",
  "mqtt3",
  "policy",
+ "proptest",
  "test-case",
  "thiserror",
  "tracing",
