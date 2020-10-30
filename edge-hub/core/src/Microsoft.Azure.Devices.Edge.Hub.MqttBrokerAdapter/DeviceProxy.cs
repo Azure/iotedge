@@ -40,6 +40,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             this.isActive = new AtomicBoolean(true);
             this.isDirectClient = isDirectClient;
 
+            // when a child edge device connects, it uses $edgeHub identity.
+            // Although it is a direct client, it uses the indirect topics
+            if (identity is ModuleIdentity moduleIdentity)
+            {
+                if (string.Equals(moduleIdentity.ModuleId, Constants.EdgeHubModuleId))
+                {
+                    this.isDirectClient = false;
+                }
+            }
+
             Events.Created(this.Identity);
         }
 
