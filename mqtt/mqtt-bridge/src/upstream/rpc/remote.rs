@@ -219,9 +219,9 @@ mod tests {
     #[tokio::test]
     async fn it_send_event_when_subscription_update_received() {
         let subscriptions = RpcSubscriptions::default();
-        subscriptions.insert("1".into(), "/foo/subscribed");
-        subscriptions.insert("2".into(), "/foo/rejected");
-        subscriptions.insert("3".into(), "/foo/unsubscribed");
+        subscriptions.insert("/foo/subscribed", "1".into());
+        subscriptions.insert("/foo/rejected", "2".into());
+        subscriptions.insert("/foo/unsubscribed", "3".into());
 
         let (local_pump, mut rx) = pump::channel();
         let mut handler = RemoteRpcMqttEventHandler::new(subscriptions, local_pump);
@@ -255,7 +255,7 @@ mod tests {
     #[tokio::test]
     async fn it_returns_partially_handled_when_has_non_rpc() {
         let subscriptions = RpcSubscriptions::default();
-        subscriptions.insert("1".into(), "/foo/rpc");
+        subscriptions.insert("/foo/rpc", "1".into());
 
         let (local_pump, mut rx) = pump::channel();
         let mut handler = RemoteRpcMqttEventHandler::new(subscriptions, local_pump);
