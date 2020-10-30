@@ -118,7 +118,7 @@ where
     S: StreamWakeableState + Send,
 {
     pub async fn run(self) -> Result<(), BridgeError> {
-        info!("Starting bridge...");
+        info!("starting bridge...");
 
         let shutdown_local_pump = self.local_pump.handle();
         let local_pump = self

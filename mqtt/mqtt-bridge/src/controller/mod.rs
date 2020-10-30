@@ -54,11 +54,11 @@ impl BridgeController {
                     bridges.start_bridge(bridge, upstream_settings).await;
                 }
                 Err(e) => {
-                    error!(err = %e, "failed to create {} bridge", UPSTREAM);
+                    error!(error = %e, "failed to create {} bridge", UPSTREAM);
                 }
             }
         } else {
-            info!("No upstream settings detected.")
+            info!("no upstream settings detected.")
         }
 
         let messages = self.messages.fuse();
@@ -102,7 +102,7 @@ impl BridgeController {
                                     bridges.start_bridge(bridge, upstream_settings).await;
                                 }
                                 Err(e) => {
-                                    error!(err = %e, "failed to create {} bridge", name);
+                                    error!(error = %e, "failed to create {} bridge", name);
                                 }
                             }
                         }

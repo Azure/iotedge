@@ -39,16 +39,16 @@ impl SidecarManager {
     pub async fn wait_for_shutdown(self) -> Result<(), SidecarError> {
         let (sidecar_output, _, other_handles) = future::select_all(self.join_handles).await;
 
-        info!("A sidecar has stopped. Shutting down sidecars...");
+        info!("a sidecar has stopped. Shutting down sidecars...");
         if let Err(e) = sidecar_output {
-            error!(message = "failed waiting for sidecar shutdown", err = %e);
+            error!(message = "failed waiting for sidecar shutdown", error = %e);
         }
 
         self.shutdown_handle.shutdown().await?;
 
         for handle in other_handles {
             if let Err(e) = handle.await {
-                error!(message = "failed waiting for sidecar shutdown", err = %e);
+                error!(message = "failed waiting for sidecar shutdown", error = %e);
             }
         }
 
