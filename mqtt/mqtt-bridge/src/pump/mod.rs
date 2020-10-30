@@ -3,18 +3,18 @@ mod egress;
 mod ingress;
 mod messages;
 
-use std::{collections::HashMap, error::Error as StdError, sync::Arc};
-
 pub use builder::Builder;
 use egress::Egress;
-use futures_util::{
-    future::{self, Either},
-    pin_mut,
-};
 use ingress::Ingress;
 use messages::MessagesProcessor;
 pub use messages::PumpMessageHandler;
 
+use std::{collections::HashMap, error::Error as StdError, sync::Arc};
+
+use futures_util::{
+    future::{self, Either},
+    pin_mut,
+};
 use mockall::automock;
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
@@ -278,5 +278,13 @@ impl TopicMapperUpdates {
 
     pub fn contains_key(&self, topic_filter: &str) -> bool {
         self.0.lock().contains_key(topic_filter)
+    }
+
+    pub fn subscriptions(&self) -> Vec<String> {
+        self.0
+            .lock()
+            .values()
+            .map(TopicMapper::subscribe_to)
+            .collect()
     }
 }
