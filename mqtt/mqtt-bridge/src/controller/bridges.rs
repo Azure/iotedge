@@ -43,28 +43,17 @@ impl Bridges {
     {
         let name = settings.name().to_owned();
 
+        // save bridge handle
         let bridge_handle = bridge.handle();
-        let mut config_updater = ConfigUpdater::new(bridge.handle());
-
-        let bridge_name = settings.name().to_owned();
-        let upstream_bridge = bridge
-            .run()
-            .instrument(info_span!("bridge", name = %bridge_name));
-
-        // bridge running before sending initial settings
-        let task = tokio::spawn(upstream_bridge).map({
-            let name = name.clone();
-            move |res| (name, res)
-        });
-
-        // send initial subscription configuration
-        let update = BridgeUpdate::new(name.clone(), settings.subscriptions(), settings.forwards());
-        if let Err(e) = config_updater.send_update(update).await {
-            error!("failed to send initial subscriptions for {}. {}", name, e);
-        }
-
         self.bridge_handles.insert(name.clone(), bridge_handle);
+
+        // save config updater
+        let config_updater = ConfigUpdater::new(bridge.handle());
         self.config_updaters.insert(name.clone(), config_updater);
+
+        // start bridge
+        let upstream_bridge = bridge.run().instrument(info_span!("bridge", name = %name));
+        let task = tokio::spawn(upstream_bridge).map(|res| (name, res));
         self.bridges.push(Box::pin(task));
     }
 

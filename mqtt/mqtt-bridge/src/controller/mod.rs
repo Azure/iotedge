@@ -4,7 +4,8 @@ use bridges::Bridges;
 
 use futures_util::{
     future::{self, Either},
-    pin_mut, FusedStream, StreamExt,
+    stream::Fuse,
+    FusedStream, StreamExt,
 };
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, warn};
@@ -25,7 +26,7 @@ const UPSTREAM: &str = "$upstream";
 /// prepares changes in forwarding rules and applies them to `Bridge` if require.
 pub struct BridgeController {
     handle: BridgeControllerHandle,
-    messages: UnboundedReceiver<BridgeControllerMessage>,
+    messages: Fuse<UnboundedReceiver<BridgeControllerMessage>>,
 }
 
 impl BridgeController {
@@ -35,7 +36,7 @@ impl BridgeController {
 
         Self {
             handle,
-            messages: updates_receiver,
+            messages: updates_receiver.fuse(),
         }
     }
 
@@ -43,7 +44,12 @@ impl BridgeController {
         self.handle.clone()
     }
 
-    pub async fn run(self, system_address: String, device_id: String, settings: BridgeSettings) {
+    pub async fn run(
+        mut self,
+        system_address: String,
+        device_id: String,
+        settings: BridgeSettings,
+    ) {
         info!("starting bridge controller...");
 
         let mut bridges = Bridges::default();
@@ -61,9 +67,6 @@ impl BridgeController {
             info!("no upstream settings detected.")
         }
 
-        let messages = self.messages.fuse();
-        pin_mut!(messages);
-
         loop {
             let wait_bridge_or_pending = if bridges.is_terminated() {
                 // if no active bridges available, wait only for a new messages arrival
@@ -73,7 +76,7 @@ impl BridgeController {
                 Either::Right(bridges.next())
             };
 
-            match future::select(messages.select_next_some(), wait_bridge_or_pending).await {
+            match future::select(self.messages.select_next_some(), wait_bridge_or_pending).await {
                 Either::Left((BridgeControllerMessage::BridgeControllerUpdate(update), _)) => {
                     process_update(update, &mut bridges).await
                 }
