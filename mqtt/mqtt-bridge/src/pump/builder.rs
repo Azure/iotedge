@@ -99,7 +99,7 @@ where
         let handler = LocalUpstreamMqttEventHandler::new(messages, rpc);
 
         let config = self.local.client.take().expect("local client config");
-        let client = MqttClient::tcp(config, handler);
+        let client = MqttClient::tcp(config, handler).map_err(BridgeError::ValidationError)?;
         let local_pub_handle = client
             .publish_handle()
             .map_err(BridgeError::PublishHandle)?;
@@ -136,7 +136,7 @@ where
         let handler = RemoteUpstreamMqttEventHandler::new(messages, rpc, connectivity);
 
         let config = self.remote.client.take().expect("remote client config");
-        let client = MqttClient::tls(config, handler);
+        let client = MqttClient::tls(config, handler).map_err(BridgeError::ValidationError)?;
         let remote_pub_handle = client
             .publish_handle()
             .map_err(BridgeError::PublishHandle)?;
