@@ -25,26 +25,33 @@ impl MqttSubstituter {
     }
 
     fn replace_variable(&self, value: &str, context: &Request<Activity>) -> String {
-        let mut result = value.to_owned();
-        if let Some(context) = context.context() {
-            for variable in VariableIter::new(value) {
-                result = match variable {
-                    crate::CLIENT_ID_VAR => replace(
-                        &result,
-                        variable,
-                        context.client_info().client_id().as_str(),
-                    ),
-                    crate::IDENTITY_VAR => {
-                        replace(&result, variable, context.client_info().auth_id().as_str())
-                    }
-                    crate::DEVICE_ID_VAR => replace(&result, variable, extract_device_id(&context)),
-                    crate::MODULE_ID_VAR => replace(&result, variable, extract_module_id(&context)),
-                    crate::EDGEHUB_ID_VAR => replace(&result, variable, self.device_id()),
-                    _ => result,
-                };
+        match context.context() {
+            Some(context) => {
+                let mut result = value.to_owned();
+                for variable in VariableIter::new(value) {
+                    result = match variable {
+                        crate::CLIENT_ID_VAR => replace(
+                            &result,
+                            variable,
+                            context.client_info().client_id().as_str(),
+                        ),
+                        crate::IDENTITY_VAR => {
+                            replace(&result, variable, context.client_info().auth_id().as_str())
+                        }
+                        crate::DEVICE_ID_VAR => {
+                            replace(&result, variable, extract_device_id(&context))
+                        }
+                        crate::MODULE_ID_VAR => {
+                            replace(&result, variable, extract_module_id(&context))
+                        }
+                        crate::EDGEHUB_ID_VAR => replace(&result, variable, self.device_id()),
+                        _ => result,
+                    };
+                }
+                result
             }
+            None => value.to_owned(),
         }
-        result
     }
 }
 
