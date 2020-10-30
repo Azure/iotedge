@@ -75,21 +75,6 @@ impl BridgeController {
                     // bridge running before sending initial settings
                     let task = tokio::spawn(upstream_bridge);
 
-                    // send initial subscription configuration
-                    if let Err(e) =
-                        self.handle
-                            .send(BridgeControllerUpdate::from_bridge_topic_rules(
-                                &bridge_name,
-                                &upstream_settings.subscriptions(),
-                                &upstream_settings.forwards(),
-                            ))
-                    {
-                        error!(
-                            "failed to send initial subscriptions for {}. {}",
-                            bridge_name, e
-                        );
-                    }
-
                     bridge_tasks.push(task);
                 }
                 Err(e) => {
