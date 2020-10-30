@@ -269,13 +269,10 @@ impl State {
 
             let mut pending_subscriptions: std::collections::VecDeque<_> = Default::default();
             for (topic_filter, &qos) in &target_subscriptions {
-                if current_subscriptions.get(topic_filter) != Some(&qos) {
-                    // Current subscription doesn't exist, or exists but has different QoS
-                    pending_subscriptions.push_back(crate::proto::SubscribeTo {
-                        topic_filter: topic_filter.clone().into_owned(),
-                        qos,
-                    });
-                }
+                pending_subscriptions.push_back(crate::proto::SubscribeTo {
+                    topic_filter: topic_filter.clone().into_owned(),
+                    qos,
+                });
             }
 
             let mut pending_unsubscriptions: std::collections::VecDeque<_> = Default::default();
