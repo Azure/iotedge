@@ -37,7 +37,10 @@ use super::{shutdown, Bootstrap};
 
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
-pub struct EdgeHubBootstrap;
+#[derive(Default)]
+pub struct EdgeHubBootstrap {
+    broker_ready: BrokerReady,
+}
 
 #[async_trait]
 impl Bootstrap for EdgeHubBootstrap {
@@ -53,7 +56,6 @@ impl Bootstrap for EdgeHubBootstrap {
     async fn make_broker(
         &self,
         settings: &Self::Settings,
-        broker_ready: &BrokerReady,
     ) -> Result<(Broker<Self::Authorizer>, FilePersistor<VersionedFileFormat>)> {
         info!("loading state...");
         let persistence_config = settings.broker().persistence();
@@ -67,8 +69,8 @@ impl Bootstrap for EdgeHubBootstrap {
         let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
 
         let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(
-            PolicyAuthorizer::new(device_id, broker_ready.handle()),
-            broker_ready.handle(),
+            PolicyAuthorizer::new(device_id, self.broker_ready.handle()),
+            self.broker_ready.handle(),
         ));
 
         let broker = BrokerBuilder::default()
@@ -88,7 +90,6 @@ impl Bootstrap for EdgeHubBootstrap {
         self,
         config: Self::Settings,
         broker: Broker<Self::Authorizer>,
-        broker_ready: BrokerReady,
     ) -> Result<BrokerSnapshot> {
         let mut broker_handle = broker.handle();
 
@@ -104,7 +105,7 @@ impl Bootstrap for EdgeHubBootstrap {
         pin_mut!(shutdown_signal);
 
         info!("starting server...");
-        let server = make_server(config, broker, broker_ready).await?;
+        let server = make_server(config, broker, self.broker_ready).await?;
         let server = server.serve(shutdown_signal);
         pin_mut!(server);
 

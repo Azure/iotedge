@@ -9,15 +9,15 @@ use futures_util::pin_mut;
 use tracing::{error, info};
 
 use mqtt_broker::{
-    auth::AllowAll,
-    auth::{authenticate_fn_ok, Authorizer},
-    AuthId, Broker, BrokerBuilder, BrokerReady, BrokerSnapshot, FilePersistor,
+    auth::{AllowAll, Authorizer, authenticate_fn_ok},
+    AuthId, Broker, BrokerBuilder, BrokerSnapshot, FilePersistor,
     MakeMqttPacketProcessor, Persist, Server, ServerCertificate, VersionedFileFormat,
 };
 use mqtt_generic::settings::{CertificateConfig, Settings};
 
 use super::{shutdown, Bootstrap};
 
+#[derive(Default)]
 pub struct GenericBootstrap;
 
 #[async_trait]
@@ -32,9 +32,8 @@ impl Bootstrap for GenericBootstrap {
     type Authorizer = AllowAll;
 
     async fn make_broker(
-        &self,
+        &self, 
         settings: &Self::Settings,
-        _broker_ready: &BrokerReady,
     ) -> Result<(Broker<Self::Authorizer>, FilePersistor<VersionedFileFormat>)> {
         info!("loading state...");
         let persistence_config = settings.broker().persistence();
@@ -62,13 +61,12 @@ impl Bootstrap for GenericBootstrap {
         self,
         config: Self::Settings,
         broker: Broker<Self::Authorizer>,
-        broker_ready: BrokerReady,
     ) -> Result<BrokerSnapshot> {
         let shutdown_signal = shutdown::shutdown();
         pin_mut!(shutdown_signal);
 
         info!("starting server...");
-        let server = make_server(config, broker, broker_ready).await?;
+        let server = make_server(config, broker).await?;
         let state = server.serve(shutdown_signal).await?;
 
         Ok(state)
@@ -78,7 +76,6 @@ impl Bootstrap for GenericBootstrap {
 async fn make_server<Z>(
     config: Settings,
     broker: Broker<Z>,
-    _: BrokerReady,
 ) -> Result<Server<Z, MakeMqttPacketProcessor>>
 where
     Z: Authorizer + Send + 'static,
