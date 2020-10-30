@@ -13,22 +13,25 @@ use futures_util::{
 use tokio::time;
 use tracing::{error, info, warn};
 
-use super::SidecarManager;
 use mqtt_bridge::{settings::BridgeSettings, BridgeController};
 use mqtt_broker::{
     auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerReady,
     BrokerSnapshot, Server, ServerCertificate,
 };
 use mqtt_edgehub::{
-    auth::PolicyAuthorizer,
-    auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
+    auth::{
+        EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer,
+        PolicyAuthorizer,
+    },
     command::{
-        AuthorizedIdentitiesCommand, BridgeUpdateCommand, CommandHandler, CommandHandlerError,
-        DisconnectCommand, PolicyUpdateCommand, ShutdownHandle,
+        AuthorizedIdentitiesCommand, BridgeUpdateCommand, CommandHandler, DisconnectCommand,
+        PolicyUpdateCommand,
     },
     connection::MakeEdgeHubPacketProcessor,
     settings::{ListenerConfig, Settings},
 };
+
+use super::Bootstrap;
 
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
 
@@ -136,62 +139,30 @@ where
     Ok(state)
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum SidecarError {
-    #[error("Failed to shutdown command handler")]
-    CommandHandlerShutdown(#[from] CommandHandlerError),
-}
-
-#[derive(Clone, Debug)]
-pub struct SidecarShutdownHandle {
-    command_handler_shutdown: ShutdownHandle,
-}
-
-impl SidecarShutdownHandle {
-    pub fn new(command_handler_shutdown: ShutdownHandle) -> Self {
-        Self {
-            command_handler_shutdown,
-        }
-    }
-
-    pub async fn shutdown(self) -> Result<(), SidecarError> {
-        self.command_handler_shutdown
-            .shutdown()
-            .await
-            .map_err(SidecarError::CommandHandlerShutdown)
-    }
-}
-
-pub async fn start_sidecars(
+pub fn add_sidecars(
+    bootstrap: &mut Bootstrap,
     broker_handle: BrokerHandle,
     listener_settings: ListenerConfig,
-) -> Result<Option<SidecarManager>> {
-    info!("starting sidecars...");
-
+) -> Result<()> {
     let system_address = listener_settings.system().addr().to_string();
-
-    let bridge_controller = BridgeController::new();
-    // TODO implement shutdown for bridge
-    let _bridge_controller_handle = bridge_controller.handle();
-
     let device_id = env::var(DEVICE_ID_ENV)?;
-    let mut command_handler = CommandHandler::new(system_address.clone(), &device_id);
+
+    let settings = BridgeSettings::new()?;
+    let bridge_controller =
+        BridgeController::new(system_address.clone(), device_id.to_owned(), settings);
+    let bridge_controller_handle = bridge_controller.handle();
+
+    bootstrap.add_sidecar(bridge_controller);
+
+    let mut command_handler = CommandHandler::new(system_address, &device_id);
     command_handler.add_command(DisconnectCommand::new(&broker_handle));
     command_handler.add_command(AuthorizedIdentitiesCommand::new(&broker_handle));
     command_handler.add_command(PolicyUpdateCommand::new(&broker_handle));
-    command_handler.add_command(BridgeUpdateCommand::new(&bridge_controller.handle()));
-    command_handler.init().await?;
-    let command_handler_shutdown = command_handler.shutdown_handle()?;
-    let command_handler_join_handle = tokio::spawn(command_handler.run());
+    command_handler.add_command(BridgeUpdateCommand::new(bridge_controller_handle));
 
-    let settings = BridgeSettings::new()?;
-    let bridge_controller_join_handle =
-        tokio::spawn(bridge_controller.run(system_address, device_id, settings));
+    bootstrap.add_sidecar(command_handler);
 
-    let join_handles = vec![command_handler_join_handle, bridge_controller_join_handle];
-    let shutdown_handle = SidecarShutdownHandle::new(command_handler_shutdown);
-
-    Ok(Some(SidecarManager::new(join_handles, shutdown_handle)))
+    Ok(())
 }
 
 async fn server_certificate_renewal(renew_at: DateTime<Utc>) {

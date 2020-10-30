@@ -343,7 +343,7 @@ impl Listener {
                 Either::Right((_, _)) => {
                     info!("shutdown signalled while waiting for broker to be ready");
                     Ok(())
-                },
+                }
             }
         }
         .instrument(span)

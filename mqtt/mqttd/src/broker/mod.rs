@@ -5,15 +5,13 @@ mod snapshot;
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result};
-use futures_util::{
-    future::{select, Either},
-    pin_mut,
-};
 use tracing::{error, info};
 
-use mqtt_broker::{BrokerReady, FilePersistor, Message, Persist, SystemEvent, VersionedFileFormat};
+use mqtt_broker::{BrokerReady, FilePersistor, Persist, VersionedFileFormat};
 
 use crate::broker::snapshot::start_snapshotter;
+
+use self::bootstrap::Bootstrap;
 
 pub async fn run<P>(config_path: Option<P>) -> Result<()>
 where
@@ -34,58 +32,18 @@ where
     let broker_ready = BrokerReady::new();
 
     let broker = bootstrap::broker(settings.broker(), state, &broker_ready).await?;
-    let mut broker_handle = broker.handle();
+    let broker_handle = broker.handle();
 
     let snapshot_interval = persistence_config.time_interval();
     let (mut snapshotter_shutdown_handle, snapshotter_join_handle) =
         start_snapshotter(broker.handle(), persistor, snapshot_interval).await;
 
     let shutdown_signal = shutdown::shutdown();
+    let server = bootstrap::start_server(settings, broker, shutdown_signal, broker_ready);
 
-    // start broker
-    let server_join_handle = tokio::spawn(bootstrap::start_server(
-        settings,
-        broker,
-        shutdown_signal,
-        broker_ready,
-    ));
-
-    // start sidecars if they should run
-    // if not wait for server shutdown
-    let state = if let Some(sidecar_manager) =
-        bootstrap::start_sidecars(broker_handle.clone(), listener_settings).await?
-    {
-        // wait on future for sidecars or broker
-        // if one of them exits then shut the other down
-        let sidecar_shutdown_handle = sidecar_manager.shutdown_handle();
-        let sidecars_fut = sidecar_manager.wait_for_shutdown();
-        pin_mut!(sidecars_fut);
-        match select(server_join_handle, sidecars_fut).await {
-            // server finished first
-            Either::Left((server_output, sidecars_fut)) => {
-                // shutdown sidecars
-                sidecar_shutdown_handle.shutdown().await?;
-
-                // wait for sidecars to finish
-                if let Err(e) = sidecars_fut.await {
-                    error!(message = "failed running sidecars", error = %e)
-                }
-
-                // extract state from server
-                server_output
-            }
-            // sidecars finished first
-            Either::Right((_, server_join_handle)) => {
-                // signal server and sidecars shutdown
-                broker_handle.send(Message::System(SystemEvent::Shutdown))?;
-
-                // extract state from server
-                server_join_handle.await
-            }
-        }
-    } else {
-        server_join_handle.await
-    }??;
+    let mut bootstrap = Bootstrap::new();
+    bootstrap::add_sidecars(&mut bootstrap, broker_handle.clone(), listener_settings)?;
+    let state = bootstrap.run(broker_handle, server).await?;
 
     snapshotter_shutdown_handle.shutdown().await?;
     let mut persistor = snapshotter_join_handle.await?;

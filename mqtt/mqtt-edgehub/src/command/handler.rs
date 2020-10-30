@@ -7,6 +7,7 @@ use tracing::{debug, error, info};
 use mqtt3::{
     proto, Client, Event, IoSource, ShutdownError, SubscriptionUpdateEvent, UpdateSubscriptionError,
 };
+use mqtt_broker::sidecar::{Sidecar, SidecarShutdownHandle, SidecarShutdownHandleError};
 
 use crate::command::{Command, DynCommand};
 
@@ -86,21 +87,46 @@ impl CommandHandler {
         }
     }
 
-    // TODO refactor and move it inside the [`run`] method
-    pub async fn init(&mut self) -> Result<(), CommandHandlerError> {
-        info!("initializing command handler...");
-        let topics: Vec<_> = self.commands.keys().map(String::as_str).collect();
-        subscribe(&mut self.client, &topics).await?;
-        Ok(())
-    }
-
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
         Ok(ShutdownHandle {
             client_shutdown: self.client.shutdown_handle()?,
         })
     }
 
-    pub async fn run(mut self) {
+    async fn handle_event(&mut self, event: Event) -> Result<(), Box<dyn StdError>> {
+        if let Event::Publication(publication) = event {
+            if let Some(command) = self.commands.get_mut(&publication.topic_name) {
+                command.handle(&publication)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl Sidecar for CommandHandler {
+    fn shutdown_handle(&self) -> Result<SidecarShutdownHandle, SidecarShutdownHandleError> {
+        let mut handle = self
+            .client
+            .shutdown_handle()
+            .map_err(|_| SidecarShutdownHandleError)?;
+
+        let shutdown = async move {
+            if let Err(e) = handle.shutdown().await {
+                error!(error = %e, "unable to request shutdown for command handler");
+            }
+        };
+
+        Ok(SidecarShutdownHandle::new(shutdown))
+    }
+
+    async fn run(mut self: Box<Self>) {
+        let topics = self.commands.keys().map(Clone::clone).collect();
+        // TODO percolate error instead
+        if let Err(e) = subscribe(&mut self.client, topics).await {
+            error!(error = %e, "unable to subscribe to all required topics");
+        }
+
         info!("starting command handler...");
 
         loop {
@@ -122,29 +148,19 @@ impl CommandHandler {
 
         debug!("command handler stopped");
     }
-
-    async fn handle_event(&mut self, event: Event) -> Result<(), Box<dyn StdError>> {
-        if let Event::Publication(publication) = event {
-            if let Some(command) = self.commands.get_mut(&publication.topic_name) {
-                command.handle(&publication)?;
-            }
-        }
-        Ok(())
-    }
 }
 
 async fn subscribe(
-    client: &mut mqtt3::Client<BrokerConnection>,
-    topics: &[&str],
+    client: &mut Client<BrokerConnection>,
+    topics: Vec<String>,
 ) -> Result<(), CommandHandlerError> {
-    debug!(
-        "command handler subscribing to topics: {}",
-        topics.join(", ")
-    );
+    debug!("command handler subscribing to topics: {:?}", topics);
+
+    let mut subacks: HashSet<_> = topics.iter().map(ToString::to_string).collect();
 
     for topic in topics {
         let subscription = proto::SubscribeTo {
-            topic_filter: (*topic).to_string(),
+            topic_filter: topic,
             qos: proto::QoS::AtLeastOnce,
         };
 
@@ -152,8 +168,6 @@ async fn subscribe(
             .subscribe(subscription)
             .map_err(CommandHandlerError::SubscribeFailure)?;
     }
-
-    let mut subacks: HashSet<_> = topics.iter().map(ToString::to_string).collect();
 
     while let Some(event) = client
         .try_next()
@@ -180,7 +194,10 @@ async fn subscribe(
         }
     }
 
-    error!("command handler failed to subscribe to disconnect topic");
+    error!(
+        "command handler failed to subscribe to following topics {:?}",
+        subacks
+    );
     Err(CommandHandlerError::MissingSubacks(
         subacks.into_iter().collect::<Vec<_>>(),
     ))

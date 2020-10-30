@@ -130,7 +130,7 @@ where
             }
         }
 
-        info!("finished pump messages processor");
+        info!("pump messages processor stopped");
         Ok(())
     }
 }

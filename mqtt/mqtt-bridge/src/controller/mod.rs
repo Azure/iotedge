@@ -2,6 +2,7 @@ mod bridges;
 
 use bridges::Bridges;
 
+use async_trait::async_trait;
 use futures_util::{
     future::{self, Either},
     stream::Fuse,
@@ -9,6 +10,8 @@ use futures_util::{
 };
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, warn};
+
+use mqtt_broker::sidecar::{Sidecar, SidecarShutdownHandle, SidecarShutdownHandleError};
 
 use crate::{
     bridge::{Bridge, BridgeError},
@@ -25,16 +28,22 @@ const UPSTREAM: &str = "$upstream";
 /// stops running `Bridge` if the number of bridges changes. In addition it
 /// prepares changes in forwarding rules and applies them to `Bridge` if require.
 pub struct BridgeController {
+    system_address: String,
+    device_id: String,
+    settings: BridgeSettings,
     handle: BridgeControllerHandle,
     messages: Fuse<UnboundedReceiver<BridgeControllerMessage>>,
 }
 
 impl BridgeController {
-    pub fn new() -> Self {
+    pub fn new(system_address: String, device_id: String, settings: BridgeSettings) -> Self {
         let (sender, updates_receiver) = mpsc::unbounded_channel();
         let handle = BridgeControllerHandle { sender };
 
         Self {
+            system_address,
+            device_id,
+            settings,
             handle,
             messages: updates_receiver.fuse(),
         }
@@ -43,24 +52,27 @@ impl BridgeController {
     pub fn handle(&self) -> BridgeControllerHandle {
         self.handle.clone()
     }
+}
 
-    pub async fn run(
-        mut self,
-        system_address: String,
-        device_id: String,
-        settings: BridgeSettings,
-    ) {
+#[async_trait]
+impl Sidecar for BridgeController {
+    fn shutdown_handle(&self) -> Result<SidecarShutdownHandle, SidecarShutdownHandleError> {
+        let handle = self.handle.clone();
+        Ok(SidecarShutdownHandle::new(async { handle.shutdown() }))
+    }
+
+    async fn run(mut self: Box<Self>) {
         info!("starting bridge controller...");
 
         let mut bridges = Bridges::default();
 
-        if let Some(upstream_settings) = settings.upstream() {
-            match Bridge::new_upstream(&system_address, &device_id, upstream_settings) {
+        if let Some(upstream_settings) = self.settings.upstream() {
+            match Bridge::new_upstream(&self.system_address, &self.device_id, upstream_settings) {
                 Ok(bridge) => {
                     bridges.start_bridge(bridge, upstream_settings).await;
                 }
                 Err(e) => {
-                    error!(error = %e, "failed to create {} bridge", UPSTREAM);
+                    error!(err = %e, "failed to create {} bridge", UPSTREAM);
                 }
             }
         } else {
@@ -94,18 +106,18 @@ impl BridgeController {
 
                     // always restart upstream bridge
                     if name == UPSTREAM {
-                        info!("restarting bridge {}...", name);
-                        if let Some(upstream_settings) = settings.upstream() {
+                        info!("restarting bridge...");
+                        if let Some(upstream_settings) = self.settings.upstream() {
                             match Bridge::new_upstream(
-                                &system_address,
-                                &device_id,
+                                &self.system_address,
+                                &self.device_id,
                                 upstream_settings,
                             ) {
                                 Ok(bridge) => {
                                     bridges.start_bridge(bridge, upstream_settings).await;
                                 }
                                 Err(e) => {
-                                    error!(error = %e, "failed to create {} bridge", name);
+                                    error!(err = %e, "failed to create {} bridge", name);
                                 }
                             }
                         }
@@ -117,7 +129,7 @@ impl BridgeController {
             }
         }
 
-        info!("finished bridge controller");
+        info!("bridge controller stopped");
     }
 }
 
@@ -138,13 +150,6 @@ async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
     }
 }
 
-impl Default for BridgeController {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Provides a convenient handle to send control messages to `BridgeController`.
 #[derive(Clone, Debug)]
 pub struct BridgeControllerHandle {
     sender: UnboundedSender<BridgeControllerMessage>,

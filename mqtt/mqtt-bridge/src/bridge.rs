@@ -80,7 +80,7 @@ impl Bridge<WakingMemoryStore> {
     ) -> Result<Self, BridgeError> {
         const BATCH_SIZE: usize = 10;
 
-        debug!("creating bridge...");
+        debug!("creating bridge {}...", settings.name());
 
         let (local_pump, remote_pump) = Builder::default()
             .with_local(|pump| {
@@ -104,7 +104,7 @@ impl Bridge<WakingMemoryStore> {
             .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
             .build()?;
 
-        debug!("created bridge...");
+        debug!("created bridge {}...", settings.name());
 
         Ok(Bridge {
             local_pump,
@@ -171,7 +171,7 @@ where
             }
         }
 
-        info!("bridge stopped...");
+        info!("bridge stopped");
         Ok(())
     }
 
