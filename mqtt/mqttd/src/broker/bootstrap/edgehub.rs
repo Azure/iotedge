@@ -16,11 +16,11 @@ use tracing::{error, info, warn};
 use super::SidecarManager;
 use mqtt_bridge::{settings::BridgeSettings, BridgeController};
 use mqtt_broker::{
-    auth::{AllowAll, Authorizer},
-    Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerReady, BrokerSnapshot, Server,
-    ServerCertificate,
+    auth::Authorizer, Broker, BrokerBuilder, BrokerConfig, BrokerHandle, BrokerReady,
+    BrokerSnapshot, Server, ServerCertificate,
 };
 use mqtt_edgehub::{
+    auth::PolicyAuthorizer,
     auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
     command::{
         AuthorizedIdentitiesCommand, BridgeUpdateCommand, CommandHandler, CommandHandlerError,
@@ -52,8 +52,12 @@ pub async fn broker(
     state: Option<BrokerSnapshot>,
     broker_ready: &BrokerReady,
 ) -> Result<Broker<impl Authorizer>> {
-    // TODO: Use AllowAll as bottom level authorizer until Policies are sent over from EdgeHub
-    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(AllowAll, broker_ready.handle()));
+    let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
+
+    let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(
+        PolicyAuthorizer::new(device_id, broker_ready.handle()),
+        broker_ready.handle(),
+    ));
 
     let broker = BrokerBuilder::default()
         .with_authorizer(authorizer)
@@ -223,7 +227,7 @@ pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 async fn download_server_certificate() -> Result<ServerCertificate> {
     let uri = env::var(WORKLOAD_URI).context(WORKLOAD_URI)?;
     let hostname = env::var(EDGE_DEVICE_HOST_NAME).context(EDGE_DEVICE_HOST_NAME)?;
-    let module_id = env::var(MODULE_ID).context(MODULE_GENERATION_ID)?;
+    let module_id = env::var(MODULE_ID).context(MODULE_ID)?;
     let generation_id = env::var(MODULE_GENERATION_ID).context(MODULE_GENERATION_ID)?;
     let expiration = Utc::now() + Duration::days(CERTIFICATE_VALIDITY_DAYS);
 

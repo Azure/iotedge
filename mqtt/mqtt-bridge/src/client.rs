@@ -1,3 +1,4 @@
+#![allow(clippy::default_trait_access)] // Needed because mock! macro violates
 #![allow(dead_code)] // TODO remove when ready
 use std::{fmt::Display, io::Error, io::ErrorKind, pin::Pin, str, time::Duration};
 
@@ -302,12 +303,12 @@ where
 
         while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
             // TODO: handle the error by recreating the connection
-            error!(error=%e, "failed to poll events");
+            error!(error = %e, "failed to poll events");
             None
         }) {
             debug!("handling event {:?}", event);
             if let Err(e) = self.event_handler.handle(event).await {
-                error!(err = %e, "error processing event");
+                error!(error = %e, "error processing event");
             }
         }
     }
@@ -411,12 +412,22 @@ impl ShutdownHandle {
 }
 
 /// A client publish handle.
+#[derive(Debug, Clone)]
 pub struct PublishHandle(mqtt3::PublishHandle);
 
-#[automock]
 impl PublishHandle {
     pub async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
         self.0.publish(publication).await
+    }
+}
+
+mockall::mock! {
+    pub PublishHandle {
+        async fn publish(&mut self, publication: Publication) -> Result<(), PublishError>;
+    }
+
+    pub trait Clone {
+        fn clone(&self) -> Self;
     }
 }
 

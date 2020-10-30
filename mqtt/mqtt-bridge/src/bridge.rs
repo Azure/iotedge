@@ -1,5 +1,8 @@
+use futures_util::{
+    future::{self, Either},
+    pin_mut,
+};
 use mqtt3::ShutdownError;
-use tokio::{select, sync::oneshot::Sender};
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
@@ -53,26 +56,6 @@ impl BridgeHandle {
     }
 }
 
-#[derive(Debug)]
-pub struct BridgeShutdownHandle {
-    local_shutdown: Sender<()>,
-    remote_shutdown: Sender<()>,
-}
-
-impl BridgeShutdownHandle {
-    // TODO: Remove when we implement bridge controller shutdown
-    #![allow(dead_code)]
-    pub async fn shutdown(self) -> Result<(), BridgeError> {
-        self.local_shutdown
-            .send(())
-            .map_err(BridgeError::ShutdownBridge)?;
-        self.remote_shutdown
-            .send(())
-            .map_err(BridgeError::ShutdownBridge)?;
-        Ok(())
-    }
-}
-
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 pub struct Bridge<S> {
     local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
@@ -96,11 +79,7 @@ impl Bridge<WakingMemoryStore> {
                     &system_address,
                     settings.keep_alive(),
                     settings.clean_session(),
-                    Credentials::Anonymous(format!(
-                        "{}/$edgeHub/$bridge/{}",
-                        device_id,
-                        settings.name()
-                    )),
+                    Credentials::Anonymous(format!("{}/{}/$bridge", device_id, settings.name())),
                 ))
                 .with_rules(settings.forwards());
             })
@@ -131,13 +110,15 @@ where
     S: StreamWakeableState + Send,
 {
     pub async fn run(self) -> Result<(), BridgeError> {
-        info!("Starting {} bridge...", self.connection_settings.name());
+        info!("starting bridge...");
 
+        let shutdown_local_pump = self.local_pump.handle();
         let local_pump = self
             .local_pump
             .run()
             .instrument(info_span!("pump", name = "local"));
 
+        let shutdown_remote_pump = self.remote_pump.handle();
         let remote_pump = self
             .remote_pump
             .run()
@@ -148,19 +129,44 @@ where
             self.connection_settings.name()
         );
 
-        select! {
-            _ = local_pump => {
-                // TODO shutdown remote pump
-                // shutdown_handle.shutdown().await?;
-            }
+        pin_mut!(local_pump, remote_pump);
 
-            _ = remote_pump => {
-                // TODO shutdown local pump
-                // shutdown_handle.shutdown().await?;
+        match future::select(local_pump, remote_pump).await {
+            Either::Left((local_pump, remote_pump)) => {
+                if let Err(e) = local_pump {
+                    error!(error = %e, "local pump exited with error");
+                } else {
+                    info!("local pump exited");
+                }
+
+                debug!("shutting down remote pump...");
+                shutdown_remote_pump.shutdown().await;
+
+                if let Err(e) = remote_pump.await {
+                    error!(error = %e, "remote pump exited with error");
+                } else {
+                    info!("remote pump exited");
+                }
+            }
+            Either::Right((remote_pump, local_pump)) => {
+                if let Err(e) = remote_pump {
+                    error!(error = %e, "remote pump exited with error");
+                } else {
+                    info!("remote pump exited");
+                }
+
+                debug!("shutting down local pump...");
+                shutdown_local_pump.shutdown().await;
+
+                if let Err(e) = local_pump.await {
+                    error!(error = %e, "local pump exited with error");
+                } else {
+                    info!("local pump exited");
+                }
             }
         }
 
-        debug!("bridge {} stopped...", self.connection_settings.name());
+        info!("bridge stopped...");
         Ok(())
     }
 

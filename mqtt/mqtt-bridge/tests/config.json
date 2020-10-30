@@ -5,7 +5,6 @@
     "iotedge_modulegenerationid": "321",
     "iotedge_workloaduri": "uri",
     "iotedge_iothubhostname": "iothub",
-    "enableupstreambridge": "true",
     "upstream": {
         "subscriptions": [
             {
