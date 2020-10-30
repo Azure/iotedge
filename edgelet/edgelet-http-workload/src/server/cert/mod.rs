@@ -167,15 +167,26 @@ fn generate_key_and_csr(
     let mut extensions = openssl::stack::Stack::new()?;
     extensions.push(extended_key_usage)?;
 
-    if props.san_entries().is_some() {
+    if props.dns_san_entries().is_some() || props.ip_entries().is_some() {
         let mut subject_alt_name = openssl::x509::extension::SubjectAlternativeName::new();
-        props
-            .san_entries()
-            .expect("san entries unexpectedly empty")
-            .iter()
-            .for_each(|s| {
-                subject_alt_name.dns(s);
-            });
+        if props.dns_san_entries().is_some() {
+            props
+                .dns_san_entries()
+                .expect("dns san entries unexpectedly empty")
+                .iter()
+                .for_each(|s| {
+                    subject_alt_name.dns(s);
+                });
+        }
+        if props.ip_entries().is_some() {
+            props
+                .ip_entries()
+                .expect("ip san entries unexpectedly empty")
+                .iter()
+                .for_each(|s| {
+                    subject_alt_name.ip(s);
+                });
+        }
         let san = subject_alt_name.build(&csr.x509v3_context(None))?;
         extensions.push(san)?;
     }

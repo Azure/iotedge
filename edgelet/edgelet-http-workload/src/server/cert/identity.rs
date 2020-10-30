@@ -94,7 +94,7 @@ where
                     CertificateType::Client,
                     alias.clone(),
                 )
-                .with_san_entries(sans);
+                .with_dns_san_entries(sans);
                 Ok((alias, props))
             })
             .and_then(move |(alias, props)| {
