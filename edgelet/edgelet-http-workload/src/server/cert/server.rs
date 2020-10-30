@@ -1,4 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
+use std::net::IpAddr;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use super::{compute_validity, refresh_cert};
@@ -94,8 +96,16 @@ where
                 // an alternative DNS name; we also need to add the common_name that we are using
                 // as a DNS name since the presence of a DNS name SAN will take precedence over
                 // the common name
-                let sans =
-                    prepare_dns_san_entries([&*module_id, &*common_name].iter().copied()).collect();
+                let mut dns: Vec<String> =
+                    prepare_dns_san_entries([&*module_id].iter().copied()).collect();
+
+                let mut ip: Vec<String> = Vec::new();
+
+                if IpAddr::from_str(common_name).is_ok() {
+                    ip.push(common_name.clone());
+                } else {
+                    dns.push(common_name.clone());
+                };
 
                 #[allow(clippy::cast_sign_loss)]
                 let props = CertificateProperties::new(
@@ -104,7 +114,9 @@ where
                     CertificateType::Server,
                     alias.clone(),
                 )
-                .with_san_entries(sans);
+                .with_dns_san_entries(dns)
+                .with_ip_entries(ip);
+
                 Ok((alias, props))
             })
             .and_then(move |(alias, props)| {
