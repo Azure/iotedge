@@ -1,5 +1,6 @@
 use std::{collections::HashMap, collections::HashSet, error::Error as StdError, time::Duration};
 
+use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 use tokio::{net::TcpStream, stream::StreamExt};
 use tracing::{debug, error, info};
@@ -103,7 +104,7 @@ impl CommandHandler {
     }
 }
 
-#[async_trait::async_trait]
+#[async_trait]
 impl Sidecar for CommandHandler {
     fn shutdown_handle(&self) -> Result<SidecarShutdownHandle, SidecarShutdownHandleError> {
         let mut handle = self
