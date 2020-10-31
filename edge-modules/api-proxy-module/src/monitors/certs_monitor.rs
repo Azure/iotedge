@@ -99,7 +99,7 @@ pub fn start(
             };
 
             //Same thing as above but for private key and identity cert
-            let new_identity_cert = match cert_monitor
+            let _new_identity_cert = match cert_monitor
                 .need_to_rotate_identity_cert(Utc::now())
                 .await
             {
@@ -121,7 +121,7 @@ pub fn start(
                 }
             };
 
-            if new_trust_bundle | new_identity_cert | new_server_cert {
+            if new_trust_bundle | new_server_cert {
                 notify_certs_rotated.notify();
             }
         }
