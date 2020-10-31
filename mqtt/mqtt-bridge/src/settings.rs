@@ -174,6 +174,14 @@ pub struct AuthenticationSettings {
 }
 
 impl AuthenticationSettings {
+    pub fn new(client_id: String, username: String, password: String) -> Self {
+        Self {
+            client_id,
+            username,
+            password,
+        }
+    }
+
     pub fn client_id(&self) -> &str {
         &self.client_id
     }
