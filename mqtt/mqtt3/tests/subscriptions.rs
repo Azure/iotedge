@@ -474,19 +474,24 @@ fn should_combine_pending_subscription_updates() {
                         topic_filter: "topic3".to_string(),
                         qos: mqtt3::proto::QoS::ExactlyOnce,
                     },
+                    mqtt3::proto::SubscribeTo {
+                        topic_filter: "topic4".to_string(),
+                        qos: mqtt3::proto::QoS::ExactlyOnce,
+                    },
                 ],
             },
         )),
         common::TestConnectionStep::Receives(mqtt3::proto::Packet::Unsubscribe(
             mqtt3::proto::Unsubscribe {
                 packet_identifier: mqtt3::proto::PacketIdentifier::new(2).unwrap(),
-                unsubscribe_from: vec!["topic4".to_string()],
+                unsubscribe_from: vec!["topic5".to_string()],
             },
         )),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::SubAck(mqtt3::proto::SubAck {
             packet_identifier: mqtt3::proto::PacketIdentifier::new(1).unwrap(),
             qos: vec![
                 mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::AtLeastOnce),
+                mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::ExactlyOnce),
                 mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::ExactlyOnce),
             ],
         })),
@@ -517,10 +522,17 @@ fn should_combine_pending_subscription_updates() {
             qos: mqtt3::proto::QoS::AtLeastOnce,
         })
         .unwrap();
-    client.unsubscribe("topic3".to_string()).unwrap();
+
     client
         .subscribe(mqtt3::proto::SubscribeTo {
             topic_filter: "topic3".to_string(),
+            qos: mqtt3::proto::QoS::ExactlyOnce,
+        })
+        .unwrap();
+    client.unsubscribe("topic4".to_string()).unwrap();
+    client
+        .subscribe(mqtt3::proto::SubscribeTo {
+            topic_filter: "topic4".to_string(),
             qos: mqtt3::proto::QoS::ExactlyOnce,
         })
         .unwrap();
@@ -531,7 +543,7 @@ fn should_combine_pending_subscription_updates() {
         })
         .unwrap();
     client.unsubscribe("topic2".to_string()).unwrap();
-    client.unsubscribe("topic4".to_string()).unwrap();
+    client.unsubscribe("topic5".to_string()).unwrap();
 
     common::verify_client_events(
         &mut runtime,
@@ -549,9 +561,13 @@ fn should_combine_pending_subscription_updates() {
                     topic_filter: "topic3".to_string(),
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
+                mqtt3::SubscriptionUpdateEvent::Subscribe(mqtt3::proto::SubscribeTo {
+                    topic_filter: "topic4".to_string(),
+                    qos: mqtt3::proto::QoS::ExactlyOnce,
+                }),
             ]),
             mqtt3::Event::SubscriptionUpdates(vec![mqtt3::SubscriptionUpdateEvent::Unsubscribe(
-                "topic4".to_string(),
+                "topic5".to_string(),
             )]),
             mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
