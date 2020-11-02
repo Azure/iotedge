@@ -477,12 +477,21 @@ fn should_combine_pending_subscription_updates() {
                 ],
             },
         )),
+        common::TestConnectionStep::Receives(mqtt3::proto::Packet::Unsubscribe(
+            mqtt3::proto::Unsubscribe {
+                packet_identifier: mqtt3::proto::PacketIdentifier::new(2).unwrap(),
+                unsubscribe_from: vec!["topic4".to_string()],
+            },
+        )),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::SubAck(mqtt3::proto::SubAck {
             packet_identifier: mqtt3::proto::PacketIdentifier::new(1).unwrap(),
             qos: vec![
                 mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::AtLeastOnce),
                 mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::ExactlyOnce),
             ],
+        })),
+        common::TestConnectionStep::Sends(mqtt3::proto::Packet::UnsubAck(mqtt3::proto::UnsubAck {
+            packet_identifier: mqtt3::proto::PacketIdentifier::new(2).unwrap(),
         })),
         common::TestConnectionStep::Receives(mqtt3::proto::Packet::PingReq(mqtt3::proto::PingReq)),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::PingResp(mqtt3::proto::PingResp)),
@@ -508,6 +517,7 @@ fn should_combine_pending_subscription_updates() {
             qos: mqtt3::proto::QoS::AtLeastOnce,
         })
         .unwrap();
+    client.unsubscribe("topic3".to_string()).unwrap();
     client
         .subscribe(mqtt3::proto::SubscribeTo {
             topic_filter: "topic3".to_string(),
@@ -521,6 +531,7 @@ fn should_combine_pending_subscription_updates() {
         })
         .unwrap();
     client.unsubscribe("topic2".to_string()).unwrap();
+    client.unsubscribe("topic4".to_string()).unwrap();
 
     common::verify_client_events(
         &mut runtime,
@@ -539,6 +550,10 @@ fn should_combine_pending_subscription_updates() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::SubscriptionUpdates(vec![mqtt3::SubscriptionUpdateEvent::Unsubscribe(
+                "topic4".to_string(),
+            )]),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
