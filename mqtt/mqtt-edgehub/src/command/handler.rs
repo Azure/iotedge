@@ -196,7 +196,7 @@ async fn subscribe(
     }
 
     error!(
-        "command handler failed to subscribe to following topics {:?}",
+        "command handler failed to subscribe to the following topics {:?}",
         subacks
     );
     Err(CommandHandlerError::MissingSubacks(
