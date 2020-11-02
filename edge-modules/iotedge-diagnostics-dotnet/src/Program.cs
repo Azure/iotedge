@@ -59,24 +59,22 @@ namespace Diagnostics
 
         static async Task EdgeAgent(string managementUri)
         {
-            string modules;
             if (managementUri.EndsWith(".sock"))
             {
-                modules = GetSocket.GetSocketResponse(managementUri, "/modules/?api-version=2018-06-28");
+                string response = GetSocket.GetSocketResponse(managementUri.TrimEnd('/'), "/modules/?api-version=2018-06-28");
+
+                if (!response.StartsWith("HTTP/1.1 200 OK"))
+                {
+                    throw new Exception($"Got bad response: {response}");
+                }
             }
             else
             {
                 using (var http = new HttpClient())
-                using (var response = await http.GetAsync(managementUri + "/modules/?api-version=2018-06-28"))
+                using (var response = await http.GetAsync(managementUri.TrimEnd('/') + "/modules/?api-version=2018-06-28"))
                 {
                     response.EnsureSuccessStatusCode();
-                    modules = await response.Content.ReadAsStringAsync();
                 }
-            }
-
-            if (!modules.StartsWith("HTTP/1.1 200 OK"))
-            {
-                throw new Exception($"Got bad response: {modules}");
             }
         }
 
