@@ -64,11 +64,11 @@ namespace Diagnostics
         {
             if (managementUri.EndsWith(".sock"))
             {
-                string modules = GetSocket.GetSocketResponse(managementUri.TrimEnd('/'), "/modules/?api-version=2018-06-28");
+                string response = GetSocket.GetSocketResponse(managementUri.TrimEnd('/'), "/modules/?api-version=2018-06-28");
 
-                if (!modules.StartsWith("HTTP/1.1 200 OK"))
+                if (!response.StartsWith("HTTP/1.1 200 OK"))
                 {
-                    throw new Exception($"Got bad response: {modules}");
+                    throw new Exception($"Got bad response: {response}");
                 }
             }
             else
