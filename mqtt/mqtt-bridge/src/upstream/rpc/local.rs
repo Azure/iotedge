@@ -35,7 +35,7 @@ impl MqttEventHandler for LocalRpcMqttEventHandler {
     type Error = RpcError;
 
     fn subscriptions(&self) -> Vec<String> {
-        vec!["$edgehub/rpc/+".into()]
+        vec!["$upstream/rpc/+".into()]
     }
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
