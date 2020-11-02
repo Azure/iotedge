@@ -1,12 +1,17 @@
 use std::{
     env, fs,
+    future::Future,
     path::{Path, PathBuf},
 };
 
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
-use chrono::{Duration, Utc};
-use futures_util::future::{self, Either};
+use chrono::{DateTime, Duration, Utc};
+use futures_util::{
+    future::{self, Either},
+    FutureExt,
+};
+use tokio::time;
 use tracing::{debug, error, info};
 
 use mqtt_bridge::{settings::BridgeSettings, BridgeController};
@@ -91,10 +96,10 @@ impl Bootstrap for EdgeHubBootstrap {
         let mut broker_handle = broker.handle();
         let sidecars = make_sidecars(&broker_handle, &config)?;
 
-        let shutdown_signal = shutdown::shutdown();
-
         info!("starting server...");
         let server = make_server(config, broker, self.broker_ready).await?;
+
+        let shutdown_signal = shutdown_signal(&server);
         let server = tokio::spawn(server.serve(shutdown_signal));
 
         info!("starting sidecars...");
@@ -259,22 +264,38 @@ async fn download_server_certificate() -> Result<ServerCertificate> {
     }
 }
 
-// async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
-//     let delay = renew_at - Utc::now();
-//     if delay > Duration::zero() {
-//         info!(
-//             "scheduled server certificate renewal timer for {}",
-//             renew_at
-//         );
-//         // let delay = delay.to_std().expect("duration must not be negative");
-//         let delay = Duration::days(1).to_std().unwrap();
-//         time::delay_for(delay).await;
+fn shutdown_signal<Z, P>(server: &Server<Z, P>) -> impl Future<Output = ()> {
+    server
+        .listeners()
+        .iter()
+        .find_map(|listener| listener.transport().identity())
+        .map_or_else(
+            || Either::Left(shutdown::shutdown()),
+            |identity| {
+                let system_or_cert_expired = future::select(
+                    Box::pin(server_certificate_renewal(identity.not_after())),
+                    Box::pin(shutdown::shutdown()),
+                );
+                Either::Right(system_or_cert_expired.map(drop))
+            },
+        )
+}
 
-//         info!("restarting the broker to perform certificate renewal");
-//     } else {
-//         warn!("server certificate expired at {}", renew_at);
-//     }
-// }
+async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
+    let delay = renew_at - Utc::now();
+    if delay > Duration::zero() {
+        info!(
+            "scheduled server certificate renewal timer for {}",
+            renew_at
+        );
+        let delay = delay.to_std().expect("duration must not be negative");
+        time::delay_for(delay).await;
+
+        info!("restarting the broker to perform certificate renewal");
+    } else {
+        error!("server certificate expired at {}", renew_at);
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerCertificateLoadError {

@@ -37,6 +37,12 @@ where
     }
 }
 
+impl<Z, P> Server<Z, P> {
+    pub fn listeners(&self) -> &Vec<Listener> {
+        &self.listeners
+    }
+}
+
 impl<Z, P> Server<Z, P>
 where
     Z: Authorizer + Send + 'static,
@@ -229,7 +235,7 @@ where
     }
 }
 
-struct Listener {
+pub struct Listener {
     transport: Transport,
     authenticator: Arc<(dyn Authenticator<Error = Box<dyn StdError + Send + Sync>> + Send + Sync)>,
     ready: Option<BrokerReadySignal>,
@@ -254,6 +260,10 @@ impl Listener {
             ready,
             broker_handle,
         }
+    }
+
+    pub fn transport(&self) -> &Transport {
+        &self.transport
     }
 
     async fn run<F, P>(self, shutdown_signal: F, make_processor: P) -> Result<(), Error>
