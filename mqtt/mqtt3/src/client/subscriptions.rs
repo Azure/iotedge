@@ -223,7 +223,8 @@ impl State {
             //
             // So we cannot just make a group of all Subscribes, send that packet, then make a group of all Unsubscribes, then send that packet.
             // Instead, we have to respect the ordering of Subscribes with Unsubscribes.
-            // So we make an intermediate set of all subscriptions and unsubscriptions
+            // So we make an intermediate set of all subscriptions and unsubscriptions and if for same topic an Unsubscribe is before a Subscribe, only Subscribe remains in the intermediate set
+            // and if a Unsubscribe is set after Subscribe they are both removed
             // then send a SUBSCRIBE packet for any net new subscriptions and an UNSUBSCRIBE packet for any net new unsubscriptions.
             let mut target_subscriptions = std::collections::BTreeMap::new();
             let mut target_unsubscriptions = std::collections::BTreeMap::new();
