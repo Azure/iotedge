@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public TimeSpan TestTimeout { get; }
 
         public bool Verbose { get; }
-        
+
         public Option<string> BlobSasUrl { get; }
     }
 }
