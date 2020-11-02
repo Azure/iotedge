@@ -36,6 +36,20 @@ impl PullAgentFromUpstream {
             return Ok(CheckResult::Skipped);
         };
 
+
+        if let (Some(username), Some(password), Some(serveraddress)) = 
+        (&settings.agent().config().auth().and_then(docker::models::AuthConfig::username), 
+        &settings.agent().config().auth().and_then(docker::models::AuthConfig::password),
+        &settings.agent().config().auth().and_then(docker::models::AuthConfig::serveraddress))
+        {
+            super::docker(
+                docker_host_arg,
+                vec!["login", serveraddress, "-p", password, "--username", username],
+            )
+            .map_err(|(_, err)| err)
+            .context("Failed to get edge Agent image")?;
+        }
+
         super::docker(
             docker_host_arg,
             vec!["pull", &settings.agent().config().image()],

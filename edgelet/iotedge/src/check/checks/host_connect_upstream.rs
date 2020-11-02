@@ -75,10 +75,14 @@ impl HostConnectUpstream {
 
         self.upstream_hostname = Some(upstream_hostname.clone());
 
-        self.proxy = check
+        self.proxy  = if self.port_number == 443 {
+            check
             .settings
             .as_ref()
-            .and_then(|settings| settings.agent().env().get("https_proxy").cloned());
+            .and_then(|settings| settings.agent().env().get("https_proxy").cloned())
+        }else{
+            None
+        };
 
         if let Some(proxy) = &self.proxy {
             runtime.block_on(

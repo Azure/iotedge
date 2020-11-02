@@ -101,7 +101,7 @@ impl ContainerConnectUpstream {
                 |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
             )
         } else {
-            return Ok(CheckResult::Skipped);
+            check.diagnostics_image_name.clone()
         };
 
         let parent_hostname: String;
@@ -139,16 +139,18 @@ impl ContainerConnectUpstream {
             &port,
         ]);
 
-        let proxy = settings
-            .agent()
-            .env()
-            .get("https_proxy")
-            .map(std::string::String::as_str);
-        self.proxy = proxy.map(ToOwned::to_owned);
-        if let Some(proxy) = proxy {
-            args.extend(&["--proxy", proxy]);
+        if port == 443.to_string() {
+            let proxy = settings
+                .agent()
+                .env()
+                .get("https_proxy")
+                .map(std::string::String::as_str);
+            self.proxy = proxy.map(ToOwned::to_owned);
+            if let Some(proxy) = proxy {
+                args.extend(&["--proxy", proxy]);
+            }
         }
-
+        
         if let Err((_, err)) = super::docker(docker_host_arg, args) {
             return Err(err
                 .context(format!(
