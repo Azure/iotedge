@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin};
+use std::{error::Error as StdError, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use futures_util::FutureExt;
@@ -32,8 +32,8 @@ impl SidecarShutdownHandle {
 
 /// This error returned when there is impossible to obtain a shutdown handle.
 #[derive(Debug, thiserror::Error)]
-#[error("unable to obtain shutdown handler for sidecar")]
-pub struct SidecarShutdownHandleError;
+#[error("unable to obtain shutdown handler for sidecar. {0}")]
+pub struct SidecarShutdownHandleError(#[source] pub Box<dyn StdError + Send + Sync>);
 
 /// Creates a new instance of `PendingSidecar`.
 pub fn pending() -> PendingSidecar {

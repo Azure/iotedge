@@ -76,7 +76,7 @@ impl Sidecar for BridgeController {
                 }
             }
         } else {
-            info!("no upstream settings detected.")
+            info!("no upstream settings detected")
         }
 
         loop {

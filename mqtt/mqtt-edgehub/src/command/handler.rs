@@ -110,7 +110,7 @@ impl Sidecar for CommandHandler {
         let mut handle = self
             .client
             .shutdown_handle()
-            .map_err(|_| SidecarShutdownHandleError)?;
+            .map_err(|e| SidecarShutdownHandleError(Box::new(e)))?;
 
         let shutdown = async move {
             if let Err(e) = handle.shutdown().await {

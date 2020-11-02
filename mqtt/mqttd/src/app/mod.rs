@@ -37,7 +37,10 @@ where
     settings: B::Settings,
 }
 
-impl<B: Bootstrap> App<B> {
+impl<B> App<B>
+where
+    B: Bootstrap,
+{
     /// Returns a new instance of the app.
     pub fn new(bootstrap: B) -> Self {
         Self {

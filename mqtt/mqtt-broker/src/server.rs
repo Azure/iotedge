@@ -97,7 +97,7 @@ where
 
     pub async fn serve<F>(self, shutdown_signal: F) -> Result<BrokerSnapshot, Error>
     where
-        F: Future<Output = ()> + Unpin,
+        F: Future<Output = ()>,
     {
         let Server {
             broker,
@@ -108,7 +108,7 @@ where
 
         // prepare dispatcher in a separate task
         let broker_task = tokio::spawn(broker.run());
-        pin_mut!(broker_task);
+        pin_mut!(broker_task, shutdown_signal);
 
         // prepare each transport listener
         let mut incoming_tasks = Vec::new();

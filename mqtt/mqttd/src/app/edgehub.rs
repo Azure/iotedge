@@ -6,10 +6,7 @@ use std::{
 use anyhow::{bail, Context, Result};
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
-use futures_util::{
-    future::{self, Either},
-    pin_mut,
-};
+use futures_util::future::{self, Either};
 use tracing::{debug, error, info};
 
 use mqtt_bridge::{settings::BridgeSettings, BridgeController};
@@ -92,24 +89,25 @@ impl Bootstrap for EdgeHubBootstrap {
         broker: Broker<Self::Authorizer>,
     ) -> Result<BrokerSnapshot> {
         let mut broker_handle = broker.handle();
-
-        let mut shutdowns = Vec::new();
-        let mut sidecars = Vec::new();
-
-        for sidecar in make_sidecars(&broker_handle, &config)? {
-            shutdowns.push(sidecar.shutdown_handle()?);
-            sidecars.push(tokio::spawn(sidecar.run()));
-        }
+        let sidecars = make_sidecars(&broker_handle, &config)?;
 
         let shutdown_signal = shutdown::shutdown();
-        pin_mut!(shutdown_signal);
 
         info!("starting server...");
         let server = make_server(config, broker, self.broker_ready).await?;
-        let server = server.serve(shutdown_signal);
-        pin_mut!(server);
+        let server = tokio::spawn(server.serve(shutdown_signal));
 
-        let state = match future::select(server, future::select_all(sidecars)).await {
+        info!("starting sidecars...");
+
+        let mut shutdowns = Vec::new();
+        let mut sidecar_joins = Vec::new();
+
+        for sidecar in sidecars {
+            shutdowns.push(sidecar.shutdown_handle()?);
+            sidecar_joins.push(tokio::spawn(sidecar.run()));
+        }
+
+        let state = match future::select(server, future::select_all(sidecar_joins)).await {
             // server exited first
             Either::Left((snapshot, sidecars)) => {
                 // send shutdown event to each sidecar
@@ -122,7 +120,7 @@ impl Bootstrap for EdgeHubBootstrap {
                 // wait for the rest to exit
                 future::join_all(sidecars).await;
 
-                snapshot?
+                snapshot??
             }
             // one of sidecars exited first
             Either::Right(((res, stopped, sidecars), server)) => {
@@ -143,7 +141,7 @@ impl Bootstrap for EdgeHubBootstrap {
                 // wait for the rest to exit
                 future::join_all(sidecars).await;
 
-                snapshot?
+                snapshot??
             }
         };
 
@@ -201,11 +199,14 @@ where
     Ok(server)
 }
 
-fn make_sidecars(broker_handle: &BrokerHandle, config: &Settings) -> Result<Vec<Box<dyn Sidecar>>> {
-    let mut sidecars: Vec<Box<dyn Sidecar>> = Vec::new();
+fn make_sidecars(
+    broker_handle: &BrokerHandle,
+    config: &Settings,
+) -> Result<Vec<Box<dyn Sidecar + Send>>> {
+    let mut sidecars: Vec<Box<dyn Sidecar + Send>> = Vec::new();
 
     let system_address = config.listener().system().addr().to_string();
-    let device_id = env::var(DEVICE_ID_ENV)?;
+    let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
 
     let settings = BridgeSettings::new()?;
     let bridge_controller =
