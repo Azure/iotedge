@@ -21,8 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
         }
 
-        [SetUp]
-        public virtual async Task SasProvisionEdgeAsync()
+        protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
+
+        protected virtual async Task SasProvisionEdgeAsync()
         {
             using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
             {
