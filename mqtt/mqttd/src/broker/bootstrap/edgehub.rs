@@ -55,7 +55,8 @@ pub async fn broker(
     let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
 
     let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(
-        PolicyAuthorizer::new(device_id, broker_ready.handle()),
+        PolicyAuthorizer::new(device_id.clone(), broker_ready.handle()),
+        device_id,
         broker_ready.handle(),
     ));
 
@@ -171,6 +172,8 @@ pub async fn start_sidecars(
     let system_address = listener_settings.system().addr().to_string();
 
     let bridge_controller = BridgeController::new();
+    // TODO implement shutdown for bridge
+    let _bridge_controller_handle = bridge_controller.handle();
 
     let device_id = env::var(DEVICE_ID_ENV)?;
     let mut command_handler = CommandHandler::new(system_address.clone(), &device_id);

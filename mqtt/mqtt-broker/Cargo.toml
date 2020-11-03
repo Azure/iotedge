@@ -35,6 +35,7 @@ uuid = { version = "0.8", features = ["v4"] }
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 
 [dev-dependencies]
+atty = "0.2"
 bytes = "0.5"
 fail = { version = "0.3", features = ["failpoints"] }
 itertools = "0.9"
