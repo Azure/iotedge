@@ -38,7 +38,12 @@ use mqtt_edgehub::{
 use super::{shutdown, Bootstrap};
 
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
+const WORKLOAD_URI: &str = "IOTEDGE_WORKLOADURI";
+const EDGE_DEVICE_HOST_NAME: &str = "EdgeDeviceHostName";
+const MODULE_ID: &str = "IOTEDGE_MODULEID";
+const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
 
+pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 #[derive(Default)]
 pub struct EdgeHubBootstrap {
     broker_ready: BrokerReady,
@@ -228,13 +233,6 @@ fn make_sidecars(
 
     Ok(sidecars)
 }
-
-pub const WORKLOAD_URI: &str = "IOTEDGE_WORKLOADURI";
-pub const EDGE_DEVICE_HOST_NAME: &str = "EdgeDeviceHostName";
-pub const MODULE_ID: &str = "IOTEDGE_MODULEID";
-pub const MODULE_GENERATION_ID: &str = "IOTEDGE_MODULEGENERATIONID";
-
-pub const CERTIFICATE_VALIDITY_DAYS: i64 = 90;
 
 async fn download_server_certificate() -> Result<ServerCertificate> {
     let uri = env::var(WORKLOAD_URI).context(WORKLOAD_URI)?;

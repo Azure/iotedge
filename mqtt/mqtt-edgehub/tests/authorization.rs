@@ -49,7 +49,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
     let (command_handler_shutdown_handle, join_handle) =
-        common::start_command_handler(server_handle.address(), command)
+        common::start_command_handler_and_wait_ready(server_handle.address(), command)
             .await
             .expect("could not start command handler");
 
@@ -120,7 +120,7 @@ async fn auth_update_happy_case() {
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
     let (command_handler_shutdown_handle, join_handle) =
-        common::start_command_handler(server_handle.address(), command)
+        common::start_command_handler_and_wait_ready(server_handle.address(), command)
             .await
             .expect("could not start command handler");
 
@@ -217,7 +217,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
     let (command_handler_shutdown_handle, join_handle) =
-        common::start_command_handler(server_handle.address(), command)
+        common::start_command_handler_and_wait_ready(server_handle.address(), command)
             .await
             .expect("could not start command handler");
 

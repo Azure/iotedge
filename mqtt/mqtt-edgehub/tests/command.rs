@@ -26,7 +26,7 @@ async fn disconnect_client() {
 
     let command = DisconnectCommand::new(&broker_handle);
     let (command_handler_shutdown_handle, join_handle) =
-        common::start_command_handler(server_handle.address(), command)
+        common::start_command_handler_and_wait_ready(server_handle.address(), command)
             .await
             .expect("could not start command handler");
 

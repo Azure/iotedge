@@ -59,17 +59,6 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub fn add_command<C, E>(&mut self, command: C)
-    where
-        C: Command<Error = E> + Send + 'static,
-        E: StdError + 'static,
-    {
-        let topic = command.topic().to_string();
-        let command = Box::new(DynCommand::from(command));
-
-        self.commands.insert(topic, command);
-    }
-
     pub fn new(address: String, device_id: &str) -> Self {
         let client_id = format!("{}/$edgeHub/$broker", device_id);
 
@@ -88,16 +77,39 @@ impl CommandHandler {
         }
     }
 
+    pub fn add_command<C, E>(&mut self, command: C)
+    where
+        C: Command<Error = E> + Send + 'static,
+        E: StdError + 'static,
+    {
+        let topic = command.topic().to_string();
+        let command = Box::new(DynCommand::from(command));
+
+        self.commands.insert(topic, command);
+    }
+
     pub fn shutdown_handle(&self) -> Result<ShutdownHandle, ShutdownError> {
         Ok(ShutdownHandle {
             client_shutdown: self.client.shutdown_handle()?,
         })
     }
 
-    async fn handle_event(&mut self, event: Event) -> Result<(), Box<dyn StdError>> {
+    async fn handle_events(&mut self) -> Result<(), CommandHandlerError> {
+        info!("starting command handler...");
+
+        while let Some(event) = self.client.try_next().await? {
+            self.handle_event(event).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn handle_event(&mut self, event: Event) -> Result<(), CommandHandlerError> {
         if let Event::Publication(publication) = event {
             if let Some(command) = self.commands.get_mut(&publication.topic_name) {
-                command.handle(&publication)?;
+                command
+                    .handle(&publication)
+                    .map_err(CommandHandlerError::Command)?;
             }
         }
         Ok(())
@@ -128,26 +140,11 @@ impl Sidecar for CommandHandler {
             error!(error = %e, "unable to subscribe to all required topics");
         }
 
-        info!("starting command handler...");
-
-        loop {
-            match self.client.try_next().await {
-                Ok(Some(event)) => {
-                    if let Err(e) = self.handle_event(event).await {
-                        error!(message = "error processing command handler event", error = %e);
-                    }
-                }
-                Ok(None) => {
-                    debug!("command handler mqtt client disconnected");
-                    break;
-                }
-                Err(e) => {
-                    error!("failure polling command handler client {}", error = e);
-                }
-            }
+        if let Err(e) = self.handle_events().await {
+            error!("failure polling command handler client {}", error = e);
         }
 
-        debug!("command handler stopped");
+        info!("command handler stopped");
     }
 }
 
@@ -220,4 +217,7 @@ pub enum CommandHandlerError {
 
     #[error("failed to signal shutdown for command handler: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
+
+    #[error("error processing command handler event. {0}")]
+    Command(#[source] Box<dyn StdError>),
 }
