@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Mock.Get(authenticator)
                 .Setup(p => p.AuthenticateAsync(It.IsAny<IClientCredentials>()))
                 .Returns(Task.FromResult(true));
-            
+
             var connectionProviderGetter = Task.FromResult(connectionProvider);
             var authenticatorGetter = Task.FromResult(authenticator);
 
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var brokerConnector = Mock.Of<IMqttBrokerConnector>();
             Mock.Get(brokerConnector)
-                .Setup(p => p.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()))
+                .Setup(p => p.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()))
                 .Returns(() => Task.FromResult(true));
 
             var sut = default(ConnectionHandler);
@@ -58,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Mock.Get(brokerConnector).Verify(
                 c => c.SendAsync(
                             It.Is<string>(topic => topic.Equals("$edgehub/disconnect")),
-                            It.Is<byte[]>(payload => Encoding.UTF8.GetString(payload).Equals($"\"device_test\""))),
+                            It.Is<byte[]>(payload => Encoding.UTF8.GetString(payload).Equals($"\"device_test\"")),
+                            false),
                 Times.Once);
 
             DeviceProxy GetProxy(IIdentity identity, bool isDirectClient = true)
