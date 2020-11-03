@@ -122,14 +122,16 @@ impl ContainerConnectIotHub {
             &port,
         ]);
 
-        let proxy = settings
-            .agent()
-            .env()
-            .get("https_proxy")
-            .map(std::string::String::as_str);
-        self.proxy = proxy.map(ToOwned::to_owned);
-        if let Some(proxy) = proxy {
-            args.extend(&["--proxy", proxy]);
+        if &port == "443" {
+            let proxy = settings
+                .agent()
+                .env()
+                .get("https_proxy")
+                .map(std::string::String::as_str);
+            self.proxy = proxy.map(ToOwned::to_owned);
+            if let Some(proxy) = proxy {
+                args.extend(&["--proxy", proxy]);
+            }
         }
 
         if let Err((_, err)) = super::docker(docker_host_arg, args) {
