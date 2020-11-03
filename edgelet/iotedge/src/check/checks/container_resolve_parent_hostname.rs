@@ -52,7 +52,7 @@ impl ContainerResolveParentHostname {
                 |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
             )
         } else {
-            return Ok(CheckResult::Skipped);
+            check.diagnostics_image_name.clone()
         };
 
         let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
