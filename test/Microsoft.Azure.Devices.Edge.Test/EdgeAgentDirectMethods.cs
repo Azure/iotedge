@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string moduleName = "NumberLogger";
             int count = 10;
-            string sasUrl = "ADD SAS URL HERE";
+            string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Blob SAS url"));
 
             CancellationToken token = this.TestToken;
 
@@ -145,27 +145,82 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }, token);
             await Task.Delay(10000);
 
-            var request = new ModuleLogsUploadRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text, sasUrl);
-
-            CloudToDeviceMethodResult result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
-
-            TaskStatusResponse response = null;
-            for (int i = 0; i < 10; i++)
+            var request = new
             {
+                schemaVersion = "1.0",
+                items = new
+                {
+                    id = "NumberLogger",
+                    filter = new { },
+                },
+                encoding = 0,
+                contentYtpe = 1,
+                sasUrl,
+            };
+
+            var payload = JsonConvert.SerializeObject(request);
+
+            CloudToDeviceMethodResult result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
+
+            var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
+            await this.WaitForTaskCompletion(response.CorrelationId, token);
+        }
+
+        [Test]
+        public async Task TestUploadSupportBundle()
+        {
+            string moduleName = "NumberLogger";
+            int count = 10;
+            string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Blob SAS url"));
+
+            CancellationToken token = this.TestToken;
+
+            string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
+            await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(moduleName, numberLoggerImage)
+                        .WithEnvironment(new[] { ("Count", count.ToString()) });
+                }, token);
+            await Task.Delay(10000);
+
+            var request = new
+            {
+                schemaVersion = "1.0",
+                sasUrl,
+            };
+
+            var payload = JsonConvert.SerializeObject(request);
+
+            CloudToDeviceMethodResult result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadSupportBundle", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
+
+            var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
+            await this.WaitForTaskCompletion(response.CorrelationId, token);
+        }
+
+        async Task WaitForTaskCompletion(string correlationId, CancellationToken token)
+        {
+            while (true)
+            {
+                var request = new
+                {
+                    schemaVersion = "1.0",
+                    correlationId
+                };
+
+                var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+
                 Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
-                response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
+                var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
 
                 if (response.Status != BackgroundTaskRunStatus.NotStarted && response.Status != BackgroundTaskRunStatus.Running)
                 {
-                    break;
+                    Assert.AreEqual(BackgroundTaskRunStatus.Completed, response.Status, response.Message);
+                    return;
                 }
 
                 await Task.Delay(5000);
-                var correlation = new TaskStatusRequest("1.0", response.CorrelationId);
-                result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(correlation)), token);
             }
-
-            Assert.AreEqual(BackgroundTaskRunStatus.Completed, response.Status, response.Message);
         }
 
         class LogResponse
