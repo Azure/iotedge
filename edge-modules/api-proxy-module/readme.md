@@ -107,7 +107,7 @@ First, list all the environment variables that you want to update in the `PROXY_
 
 | Environment variable  | comments |
 | ------------- |  ------------- |
-| PROXY_CONFIG_ENV_VAR_LIST | List all the variable to be replaced. By default it contains: NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME  |
+| PROXY_CONFIG_ENV_VAR_LIST | List all the variable to be replaced. By default it contains: NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME, IOTEDGE_PARENTAPIPROXYNAME  |
 
 Next, set each environment variable's value by listing them directly.
 
@@ -117,6 +117,7 @@ Next, set each environment variable's value by listing them directly.
 | DOCKER_REQUEST_ROUTE_ADDRESS | Address to route docker requests. By default it points to the parent.  |
 | BLOB_UPLOAD_ROUTE_ADDRESS| Address to route blob registry requests. By default it points to the parent. |
 | IOTEDGE_PARENTHOSTNAME | Read only variable. Do not assign, its value is automatically assigned to Parent hostname when container starts |
+| IOTEDGE_PARENTAPIPROXYNAME | Set the name of the parent api proxy module, as specified in azure portal. This is used for certificate authentication. When omitted, the name of the parent is defaulted to the child api proxy name. | 
 
 ### Update the proxy configuration dynamically
 

@@ -41,6 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public bool IsActive => this.isActive.Get();
 
+        public bool IsDirectClient => true;
+
         public Task CloseAsync(Exception ex)
         {
             if (this.isActive.GetAndSet(false))

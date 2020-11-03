@@ -124,7 +124,7 @@ where
             match event {
                 Event::State(state) => {
                     if let Err(e) = self.persistor.store(state).await {
-                        warn!(message = "an error occurred persisting state snapshot.", error=%e);
+                        warn!(message = "an error occurred persisting state snapshot.", error = %e);
                     }
                 }
                 Event::Shutdown => {

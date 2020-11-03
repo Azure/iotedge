@@ -92,6 +92,14 @@ impl Transport {
             Protocol::Tls(addr, _) => addr,
         }
     }
+
+    /// Returns a server certificate if any.
+    pub fn identity(&self) -> Option<&ServerCertificate> {
+        match &self.protocol {
+            Protocol::Tcp(_) => None,
+            Protocol::Tls(_, identity) => Some(identity),
+        }
+    }
 }
 
 enum Protocol {
@@ -179,12 +187,12 @@ impl Stream for IncomingTcp {
         match self.listener.poll_accept(cx) {
             Poll::Ready(Ok((tcp, _))) => match tcp.set_nodelay(true) {
                 Ok(()) => {
-                    debug!("TCP: Accepted connection from client");
+                    debug!("accepted connection from client");
                     Poll::Ready(Some(Ok(StreamSelector::Tcp(tcp))))
                 }
                 Err(err) => {
                     warn!(
-                        "TCP: Dropping client because failed to setup TCP properties: {}",
+                        "dropping client because failed to setup TCP properties: {}",
                         err
                     );
                     Poll::Ready(Some(Err(err)))
@@ -192,7 +200,7 @@ impl Stream for IncomingTcp {
             },
             Poll::Ready(Err(err)) => {
                 error!(
-                    "TCP: Dropping client that failed to completely establish a TCP connection: {}",
+                    "dropping client that failed to completely establish a TCP connection: {}",
                     err
                 );
                 Poll::Ready(Some(Err(err)))
@@ -231,12 +239,12 @@ impl Stream for IncomingTls {
                             .push(Box::pin(async move { accept(&acceptor, stream).await }));
                     }
                     Err(err) => warn!(
-                        "TCP: Dropping client because failed to setup TCP properties: {}",
+                        "dropping client because failed to setup TCP properties: {}",
                         err
                     ),
                 },
                 Poll::Ready(Err(err)) => warn!(
-                    "TCP: Dropping client that failed to completely establish a TCP connection: {}",
+                    "dropping client that failed to completely establish a TCP connection: {}",
                     err
                 ),
                 Poll::Pending => break,
@@ -250,17 +258,17 @@ impl Stream for IncomingTls {
 
             match Pin::new(&mut self.connections).poll_next(cx) {
                 Poll::Ready(Some(Ok(stream))) => {
-                    debug!("TLS: Accepted connection from client");
+                    debug!("accepted connection from client");
                     return Poll::Ready(Some(Ok(StreamSelector::Tls(stream))));
                 }
 
                 Poll::Ready(Some(Err(err))) => warn!(
-                    "TLS: Dropping client that failed to complete a TLS handshake: {}",
+                    "dropping client that failed to complete a TLS handshake: {}",
                     err
                 ),
 
                 Poll::Ready(None) => {
-                    debug!("TLS: Shutting down web server");
+                    debug!("shutting down web server");
                     return Poll::Ready(None);
                 }
 

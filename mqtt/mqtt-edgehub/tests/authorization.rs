@@ -32,12 +32,13 @@ async fn publish_not_allowed_identity_not_in_cache() {
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(EdgeHubAuthorizer::new(
             authorize_fn_ok(|activity| {
-                if matches!(activity.operation(), Operation::Connect(_)) {
+                if matches!(activity.operation(), Operation::Connect) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden("not allowed".to_string())
                 }
             }),
+            "this_edgehub_id".to_string(),
             BrokerReady::new().handle(),
         )))
         .build();
@@ -102,12 +103,13 @@ async fn auth_update_happy_case() {
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(EdgeHubAuthorizer::new(
             authorize_fn_ok(|activity| {
-                if matches!(activity.operation(), Operation::Connect(_)) {
+                if matches!(activity.operation(), Operation::Connect) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden("not allowed".to_string())
                 }
             }),
+            "this_edgehub_id".to_string(),
             BrokerReady::new().handle(),
         )))
         .build();
@@ -127,7 +129,7 @@ async fn auth_update_happy_case() {
         .build();
 
     let service_identity1 =
-        IdentityUpdate::new("device-1".into(), Some("device-1;$edgehub".into()));
+        IdentityUpdate::new("device-1".into(), Some("device-1;this_edgehub_id".into()));
     let identities = vec![service_identity1];
 
     // EdgeHub sends authorized identities + auth chains to broker
@@ -196,13 +198,16 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
     // but otherwise passes authorization along to EdgeHubAuthorizer
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(
-            EdgeHubAuthorizer::without_ready_handle(authorize_fn_ok(|activity| {
-                if matches!(activity.operation(), Operation::Connect(_)) {
-                    Authorization::Allowed
-                } else {
-                    Authorization::Forbidden("not allowed".to_string())
-                }
-            })),
+            EdgeHubAuthorizer::without_ready_handle(
+                authorize_fn_ok(|activity| {
+                    if matches!(activity.operation(), Operation::Connect) {
+                        Authorization::Allowed
+                    } else {
+                        Authorization::Forbidden("not allowed".to_string())
+                    }
+                }),
+                "this_edgehub_id".to_string(),
+            ),
         ))
         .build();
     let broker_handle = broker.handle();
@@ -221,7 +226,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
         .build();
 
     let service_identity1 =
-        IdentityUpdate::new("device-1".into(), Some("device-1;$edgehub".into()));
+        IdentityUpdate::new("device-1".into(), Some("device-1;this_edgehub_id".into()));
     let identities = vec![service_identity1];
 
     // EdgeHub sends authorized identities + auth chains to broker

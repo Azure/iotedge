@@ -64,7 +64,7 @@ where
     }
 
     /// Runs control messages processing.
-    pub(crate) async fn run(mut self) {
+    pub(crate) async fn run(mut self) -> Result<(), MessageProcessorError> {
         info!("starting pump messages processor...");
         while let Some(message) = self.messages.next().await {
             match message {
@@ -98,28 +98,25 @@ where
 
                     for sub in added {
                         let subscribe_to = sub.subscribe_to();
-                        let subscribe_result = self
-                            .subscription_handle
-                            .subscribe(SubscribeTo {
-                                topic_filter: subscribe_to.clone(),
-                                qos: QoS::AtLeastOnce, // TODO: get from config
-                            })
-                            .await;
 
-                        match subscribe_result {
-                            Ok(_) => match sub.to_owned().try_into() {
-                                Ok(mapper) => {
-                                    self.topic_mappers_updates.insert(&subscribe_to, mapper);
+                        match sub.to_owned().try_into() {
+                            Ok(mapper) => {
+                                self.topic_mappers_updates.insert(&subscribe_to, mapper);
+
+                                if let Err(e) = self
+                                    .subscription_handle
+                                    .subscribe(SubscribeTo {
+                                        topic_filter: subscribe_to,
+                                        qos: QoS::AtLeastOnce, // TODO: get from config
+                                    })
+                                    .await
+                                {
+                                    error!("failed to send subscribe {}", e);
                                 }
-                                Err(e) => {
-                                    error!("topic rule could not be parsed {}. {}", subscribe_to, e)
-                                }
-                            },
-                            Err(e) => error!(
-                                "Failed to send subscribe update for {}. {}",
-                                sub.subscribe_to(),
-                                e
-                            ),
+                            }
+                            Err(e) => {
+                                error!("topic rule could not be parsed {}. {}", subscribe_to, e)
+                            }
                         }
                     }
                 }
@@ -130,7 +127,8 @@ where
             }
         }
 
-        info!("finished pump messages processor");
+        info!("pump messages processor stopped");
+        Ok(())
     }
 }
 
@@ -147,3 +145,7 @@ impl<M: 'static> MessagesProcessorShutdownHandle<M> {
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("pump messages processor error")]
+pub(crate) struct MessageProcessorError;

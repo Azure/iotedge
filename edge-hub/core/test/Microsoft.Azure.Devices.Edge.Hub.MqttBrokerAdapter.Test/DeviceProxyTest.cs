@@ -167,5 +167,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             Assert.False(sut.IsActive);
         }
+
+        [Fact]
+        public async Task EdgeHubIsIndirect()
+        {
+            var connectionHandler = Mock.Of<IConnectionRegistry>();
+            var twinHandler = Mock.Of<ITwinHandler>();
+            var m2mHandler = Mock.Of<IModuleToModuleMessageHandler>();
+            var c2dHandler = Mock.Of<ICloud2DeviceMessageHandler>();
+            var directMethodHandler = Mock.Of<IDirectMethodHandler>();
+            var identity = new ModuleIdentity("hub", "device_id", "$edgeHub");
+
+            var twin = new EdgeMessage.Builder(new byte[0]).Build();
+
+            Mock.Get(twinHandler)
+                .Setup(h => h.SendTwinUpdate(It.IsAny<IMessage>(), It.Is<IIdentity>(i => i == identity), It.Is<bool>(d => d == false)))
+                .Returns(Task.CompletedTask);
+
+            var sut = new DeviceProxy(identity, true, connectionHandler, twinHandler, m2mHandler, c2dHandler, directMethodHandler);
+
+            await sut.SendTwinUpdate(twin);
+
+            Mock.Get(twinHandler).VerifyAll();
+        }
     }
 }
