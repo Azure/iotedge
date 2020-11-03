@@ -139,7 +139,7 @@ impl ContainerConnectUpstream {
             &port,
         ]);
 
-        if port == 443.to_string() {
+        if &port == "443" {
             let proxy = settings
                 .agent()
                 .env()
@@ -150,7 +150,7 @@ impl ContainerConnectUpstream {
                 args.extend(&["--proxy", proxy]);
             }
         }
-        
+
         if let Err((_, err)) = super::docker(docker_host_arg, args) {
             return Err(err
                 .context(format!(
