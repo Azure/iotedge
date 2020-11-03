@@ -55,7 +55,8 @@ pub async fn broker(
     let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
 
     let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(
-        PolicyAuthorizer::new(device_id, broker_ready.handle()),
+        PolicyAuthorizer::new(device_id.clone(), broker_ready.handle()),
+        device_id,
         broker_ready.handle(),
     ));
 
