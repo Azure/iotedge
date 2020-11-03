@@ -11,8 +11,8 @@ COPY ./docker/linux/arm64v8/api-proxy-module .
 COPY ./docker/linux/arm64v8/templates .
 RUN	apk update && \
     apk add nginx && \
-	mkdir /run/nginx && \
-	apt-get clean && rm -rf /var/lib/apt/lists/*
+	mkdir /run/nginx
+    
 #expose ports
 EXPOSE 443/tcp	
 EXPOSE 80/tcp

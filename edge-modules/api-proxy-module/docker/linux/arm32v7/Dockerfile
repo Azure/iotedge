@@ -12,8 +12,7 @@ COPY ./docker/linux/arm32v7/templates .
 
 RUN	apk update && \
     apk add nginx && \
-	mkdir /run/nginx && \
-	apt-get clean && rm -rf /var/lib/apt/lists/*
+	mkdir /run/nginx
 	
 #expose ports
 EXPOSE 443/tcp	
