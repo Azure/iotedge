@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             _ = await sut.HandleAsync(publishInfo);
             await milestone.WaitAsync();
 
-            Assert.Equal(new byte [] { 1, 2, 3 }, listenerCapture.Captured.CapturedMessage.Body);
+            Assert.Equal(new byte[] { 1, 2, 3 }, listenerCapture.Captured.CapturedMessage.Body);
         }
 
         [Fact]
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await sut.SendTwinUpdate(twin, identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
 
         [Fact]
@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await sut.SendTwinUpdate(twin, identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
 
         [Fact]
@@ -243,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await sut.SendDesiredPropertiesUpdate(twin, identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
 
         [Fact]
@@ -257,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var twin = new EdgeMessage.Builder(new byte[] { 1, 2, 3 })
                                       .SetSystemProperties(new Dictionary<string, string>()
                                       {
-                                          [SystemProperties.Version] = "123"                                          
+                                          [SystemProperties.Version] = "123"
                                       })
                                       .Build();
 
@@ -352,7 +352,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             var connector = Mock.Of<IMqttBrokerConnector>();
             Mock.Get(connector)
-                .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()))
+                .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()))
                 .Returns((string topic, byte[] content) =>
                 {
                     sendCapture?.Caputre(topic, content);
@@ -377,13 +377,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
 
             public IIdentity Identity { get; }
-            
+
             public Task AddDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
             public Task AddSubscription(DeviceSubscription subscription) => Task.CompletedTask;
             public Task CloseAsync() => Task.CompletedTask;
             public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message) => Task.CompletedTask;
             public Task RemoveDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
-            public Task RemoveSubscription(DeviceSubscription subscription) => Task.CompletedTask;                        
+            public Task RemoveSubscription(DeviceSubscription subscription) => Task.CompletedTask;
             public Task ProcessDeviceMessageAsync(IMessage message) => Task.CompletedTask;
             public Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus) => Task.CompletedTask;
             public Task ProcessMethodResponseAsync(IMessage message) => Task.CompletedTask;

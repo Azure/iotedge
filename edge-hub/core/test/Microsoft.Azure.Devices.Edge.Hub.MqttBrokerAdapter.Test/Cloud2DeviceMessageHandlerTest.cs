@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task EncodesDeviceNameInTopic()
         {
             var capture = new SendCapture();
-            var connector = GetConnector(capture);            
+            var connector = GetConnector(capture);
             var connectionRegistry = GetConnectionRegistry();
             var identity = new DeviceIdentity("hub", "device_id");
             var message = new EdgeMessage
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await sut.SendC2DMessageAsync(message, identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
     }
 }
