@@ -1,4 +1,4 @@
-use std::{any::Any, cell::RefCell, collections::HashMap, error::Error as StdError, fmt};
+use std::{any::Any, collections::HashMap, error::Error as StdError, fmt};
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use mqtt_broker::{
-    auth::{Activity, Authorization, Authorizer, Operation, Publish, Subscribe},
+    auth::{Activity, Authorization, Authorizer, Operation},
     AuthId, BrokerReadyEvent, BrokerReadyHandle, ClientId,
 };
 
@@ -17,7 +17,6 @@ use mqtt_broker::{
 ///
 /// For non-iothub-specific primitives it delegates the request to an inner authorizer (`PolicyAuthorizer`).
 pub struct EdgeHubAuthorizer<Z> {
-    iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
     identities_cache: HashMap<ClientId, IdentityUpdate>,
     inner: Z,
     broker_ready: Option<BrokerReadyHandle>,
@@ -39,7 +38,6 @@ where
 
     fn create(authorizer: Z, device_id: String, broker_ready: Option<BrokerReadyHandle>) -> Self {
         Self {
-            iothub_allowed_topics: RefCell::default(),
             identities_cache: HashMap::default(),
             inner: authorizer,
             broker_ready,
@@ -70,31 +68,9 @@ where
         }
     }
 
-    fn authorize_publish(
-        &self,
-        activity: &Activity,
-        publish: &Publish,
-    ) -> Result<Authorization, E> {
-        let topic = publish.publication().topic_name();
-
+    fn authorize_topic(&self, activity: &Activity, topic: &str) -> Result<Authorization, E> {
         if is_iothub_topic(topic) {
             // run authorization rules for publication to IoTHub topic
-            self.authorize_iothub_topic(activity, topic)
-        } else {
-            // delegate to inner authorizer for to any non-iothub topics.
-            self.inner.authorize(activity)
-        }
-    }
-
-    fn authorize_subscribe(
-        &self,
-        activity: &Activity,
-        subscribe: &Subscribe,
-    ) -> Result<Authorization, E> {
-        let topic = subscribe.topic_filter();
-
-        if is_iothub_topic(topic) {
-            // run authorization rules for subscription to IoTHub topic
             self.authorize_iothub_topic(activity, topic)
         } else {
             // delegate to inner authorizer for to any non-iothub topics.
@@ -110,23 +86,7 @@ where
             ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == activity.client_id() => {
-                // actor id is either client id of a leaf/edge device or on-behalf-of id (when
-                // child edge acting on behalf of it's own children).
-                let actor_id = get_actor_id(topic);
-
-                let edgehub_ok = match actor_id {
-                    Some(actor_id) => {
-                        self.is_iothub_topic_valid(&actor_id, topic)
-                            && self.is_iothub_operation_authorized(
-                                &actor_id,
-                                activity.client_id(),
-                                &self.device_id,
-                            )
-                    }
-                    None => false,
-                };
-
-                if edgehub_ok {
+                if self.is_iothub_operation_authorized(topic, activity.client_id()) {
                     Authorization::Allowed
                 } else {
                     // check if iothub policy is overridden by a custom policy.
@@ -147,74 +107,83 @@ where
         })
     }
 
-    fn is_iothub_topic_valid(&self, client_id: &ClientId, topic: &str) -> bool {
-        let mut iothub_allowed_topics = self.iothub_allowed_topics.borrow_mut();
-        let allowed_topics = iothub_allowed_topics
-            .entry(client_id.clone())
-            .or_insert_with(|| allowed_iothub_topic(&client_id));
-
-        allowed_topics
-            .iter()
-            .any(|allowed_topic| topic.starts_with(allowed_topic))
-    }
-
-    fn is_iothub_operation_authorized(
-        &self,
-        actor_id: &ClientId,
-        client_id: &ClientId,
-        edgehub_id: &str,
-    ) -> bool {
-        if actor_id == client_id {
-            // if actor = client, it means it is a regular leaf/edge device request.
-            // check that it is in the current edgehub auth chain.
-            //
-            // [edgehub] <- [actor = client (leaf or child edge)]
-            match self.identities_cache.get(actor_id) {
-                Some(identity) => identity
-                    .auth_chain()
-                    .map_or(false, |auth_chain| auth_chain.contains(edgehub_id)),
-                None => false,
+    fn is_iothub_operation_authorized(&self, topic: &str, client_id: &ClientId) -> bool {
+        // actor id is either id of a leaf/edge device or on-behalf-of id (when
+        // child edge acting on behalf of it's own children).
+        match get_actor_id(topic) {
+            Some(actor_id) if actor_id == *client_id => {
+                // if actor = client, it means it is a regular leaf/edge device request.
+                // check that it is in the current edgehub auth chain.
+                //
+                // [edgehub] <- [actor = client (leaf or child edge)]
+                match self.identities_cache.get(&actor_id) {
+                    Some(identity) => identity
+                        .auth_chain()
+                        .map_or(false, |auth_chain| auth_chain.contains(&self.device_id)),
+                    None => false,
+                }
             }
-        } else {
-            // if actor != client, it means it is an on-behalf-of request.
-            // check that:
-            // - actor_id is in the auth chain for client_id (that client
-            //   making a request can actually do it on behalf of the actor)
-            // - check that actor_id is in the auth chain for current edgehub.
-            // - check that client_id is in the auth chain for current edgehub.
-            //
-            // [edgehub] <- [client (child edgehub)] <- [actor (grandchild)]
+            Some(actor_id) => {
+                // if actor != client, it means it is an on-behalf-of request.
+                // check that:
+                // - actor_id is in the auth chain for client_id (that client
+                //   making a request can actually do it on behalf of the actor)
+                // - check that actor_id is in the auth chain for current edgehub.
+                // - check that client_id is in the auth chain for current edgehub.
+                //
+                // [edgehub] <- [client (child edgehub)] <- [actor (grandchild)]
 
-            let parent_ok = match self.identities_cache.get(actor_id) {
-                Some(identity) => identity.auth_chain().map_or(false, |auth_chain| {
-                    auth_chain.contains(&client_id.as_str().replace("/$edgeHub", ""))
-                }),
-                None => false,
-            };
+                let parent_ok = match self.identities_cache.get(&actor_id) {
+                    Some(identity) => identity.auth_chain().map_or(false, |auth_chain| {
+                        auth_chain.contains(&client_id.as_str().replace("/$edgeHub", ""))
+                    }),
+                    None => false,
+                };
 
-            let actor_ok = match self.identities_cache.get(actor_id) {
-                Some(identity) => identity
-                    .auth_chain()
-                    .map_or(false, |auth_chain| auth_chain.contains(edgehub_id)),
-                None => false,
-            };
+                let actor_ok = match self.identities_cache.get(&actor_id) {
+                    Some(identity) => identity
+                        .auth_chain()
+                        .map_or(false, |auth_chain| auth_chain.contains(&self.device_id)),
+                    None => false,
+                };
 
-            let client_ok = match self.identities_cache.get(client_id) {
-                Some(identity) => identity
-                    .auth_chain()
-                    .map_or(false, |auth_chain| auth_chain.contains(edgehub_id)),
-                None => false,
-            };
+                let client_ok = match self.identities_cache.get(client_id) {
+                    Some(identity) => identity
+                        .auth_chain()
+                        .map_or(false, |auth_chain| auth_chain.contains(&self.device_id)),
+                    None => false,
+                };
 
-            parent_ok && actor_ok && client_ok
+                parent_ok && actor_ok && client_ok
+            }
+            // If there is no actor_id, we are dealing with a legacy topic/unknown format.
+            // Delegated to inner authorizer.
+            None => false,
         }
     }
 }
 
 fn get_actor_id(topic: &str) -> Option<ClientId> {
     lazy_static! {
-        static ref TOPIC_PATTERN: Regex = Regex::new(r"^(\$edgehub|\$iothub)/(?P<device_id>[^/\+\#]+)(/(?P<module_id>[^/\+\#]+))?/(messages|twin|methods|inputs|outputs)")
-                .expect("failed to create new Regex from pattern");
+        static ref TOPIC_PATTERN: Regex = Regex::new(
+            // this regex tries to capture all possible iothub/edgehub specific topic format.
+            // we need this
+            // - to validate that this is correct iothub/edgehub topic.
+            // - to extract device_id and module_id.
+            //
+            // format! is for ease of reading only.
+            &format!(r"^(\$edgehub|\$iothub)/(?P<device_id>[^/\+\#]+)(/(?P<module_id>[^/\+\#]+))?/({}|{}|{}|{}|{}|{}|{}|{}|{}|{})",
+                "messages/events",
+                "messages/c2d/post",
+                "twin/desired",
+                "twin/reported",
+                "twin/get",
+                "twin/res",
+                "methods/post",
+                "methods/res",
+                "inputs",
+                "outputs")
+        ).expect("failed to create new Regex from pattern");
     }
 
     match TOPIC_PATTERN.captures(topic) {
@@ -237,29 +206,6 @@ fn is_iothub_topic(topic: &str) -> bool {
         .any(|prefix| topic.starts_with(prefix))
 }
 
-fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
-    vec![
-        format!("$edgehub/{}/messages/events", client_id),
-        format!("$edgehub/{}/messages/c2d/post", client_id),
-        format!("$edgehub/{}/twin/desired", client_id),
-        format!("$edgehub/{}/twin/reported", client_id),
-        format!("$edgehub/{}/twin/get", client_id),
-        format!("$edgehub/{}/twin/res", client_id),
-        format!("$edgehub/{}/methods/post", client_id),
-        format!("$edgehub/{}/methods/res", client_id),
-        format!("$edgehub/{}/inputs", client_id),
-        format!("$edgehub/{}/outputs", client_id),
-        format!("$iothub/{}/messages/events", client_id),
-        format!("$iothub/{}/messages/c2d/post", client_id),
-        format!("$iothub/{}/twin/desired", client_id),
-        format!("$iothub/{}/twin/reported", client_id),
-        format!("$iothub/{}/twin/get", client_id),
-        format!("$iothub/{}/twin/res", client_id),
-        format!("$iothub/{}/methods/post", client_id),
-        format!("$iothub/{}/methods/res", client_id),
-    ]
-}
-
 impl<Z, E> Authorizer for EdgeHubAuthorizer<Z>
 where
     Z: Authorizer<Error = E>,
@@ -270,8 +216,12 @@ where
     fn authorize(&self, activity: &Activity) -> Result<Authorization, Self::Error> {
         match activity.operation() {
             Operation::Connect => self.authorize_connect(activity),
-            Operation::Publish(publish) => self.authorize_publish(activity, &publish),
-            Operation::Subscribe(subscribe) => self.authorize_subscribe(activity, &subscribe),
+            Operation::Publish(publish) => {
+                self.authorize_topic(activity, &publish.publication().topic_name())
+            }
+            Operation::Subscribe(subscribe) => {
+                self.authorize_topic(activity, &subscribe.topic_filter())
+            }
         }
     }
 
