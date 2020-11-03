@@ -92,6 +92,14 @@ impl Transport {
             Protocol::Tls(addr, _) => addr,
         }
     }
+
+    /// Returns a server certificate if any.
+    pub fn identity(&self) -> Option<&ServerCertificate> {
+        match &self.protocol {
+            Protocol::Tcp(_) => None,
+            Protocol::Tls(_, identity) => Some(identity),
+        }
+    }
 }
 
 enum Protocol {
