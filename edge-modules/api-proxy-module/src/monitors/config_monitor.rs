@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{env, sync::Arc, time::Duration};
 
 use anyhow::{Context, Error, Result};
 use chrono::Utc;
@@ -18,9 +18,12 @@ const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
 const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
-const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME";
+const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME,IOTEDGE_PARENTAPIPROXYNAME";
 
-const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[
+    ("NGINX_DEFAULT_PORT", "443"),
+    ("IOTEDGE_PARENTAPIPROXYNAME", "IOTEDGE_MODULEID"),
+];
 
 const TWIN_STATE_POLL_INTERVAL: Duration = Duration::from_secs(5);
 const TWIN_CONFIG_MAX_BACK_OFF: Duration = Duration::from_secs(30);
@@ -53,6 +56,9 @@ pub fn start(
 
     //Allow on level of indirection, when one env var references another env var.
     dereference_env_variable();
+
+    //Special handling of some of the environment variables
+    specific_handling_env_var();
 
     //Parse default config and notify to reboot nginx if it has already started
     //If the config is incorrect, return error because otherwise nginx doesn't have any config.
@@ -143,6 +149,12 @@ fn dereference_env_variable() {
     }
 }
 
+fn specific_handling_env_var() {
+    if let Ok(moduleid) = env::var("IOTEDGE_PARENTAPIPROXYNAME") {
+        std::env::set_var("IOTEDGE_PARENTAPIPROXYNAME", sanitize_dns_label(&moduleid));
+    }
+}
+
 fn save_raw_config(twin: &TwinProperties) -> Result<()> {
     let json = twin.properties.get_key_value(PROXY_CONFIG_TAG);
 
@@ -188,6 +200,24 @@ fn get_var_list() -> String {
         //@TO CHECK It copies the string, is that ok?
         Err(_) => PROXY_CONFIG_DEFAULT_VARS_LIST.to_string(),
     }
+}
+
+const ALLOWED_CHAR_DNS: char = '-';
+const DNS_MAX_SIZE: usize = 63;
+
+// The name returned from here must conform to following rules (as per RFC 1035):
+//  - length must be <= 63 characters
+//  - must be all lower case alphanumeric characters or '-'
+//  - must start with an alphabet
+//  - must end with an alphanumeric character
+pub fn sanitize_dns_label(name: &str) -> String {
+    name.trim_start_matches(|c: char| !c.is_ascii_alphabetic())
+        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || c == &ALLOWED_CHAR_DNS)
+        .take(DNS_MAX_SIZE)
+        .collect::<String>()
 }
 
 //Check readme for details of how parsing is done.
@@ -284,7 +314,7 @@ mod tests {
     #[test]
     fn env_var_tests() {
         //unset all variables
-        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "NGINX_DEFAULT_PORT,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_HAS_BLOB_MODULE,GATEWAY_HOSTNAME,NGINX_NOT_ROOT");
+        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "NGINX_DEFAULT_PORT,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_HAS_BLOB_MODULE,GATEWAY_HOSTNAME,NGINX_NOT_ROOT,IOTEDGE_PARENTAPIPROXYNAME");
         let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
         for key in vars_list {
             std::env::remove_var(key);
@@ -355,5 +385,42 @@ mod tests {
         let config = get_parsed_config(dummy_config).unwrap();
 
         assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);
+
+        //*************************** Check IOTEDGE_PARENTAPIPROXYNAME defaults to module id if omitted *******************
+        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
+        for key in vars_list {
+            std::env::remove_var(key);
+        }
+        std::env::set_var("IOTEDGE_MODULEID", "apiproxy");
+
+        set_default_env_vars();
+        //Check variable has been assigned the module id env var
+        let var = std::env::var("IOTEDGE_PARENTAPIPROXYNAME").unwrap();
+        assert_eq!("IOTEDGE_MODULEID", var);
+
+        dereference_env_variable();
+
+        specific_handling_env_var();
+
+        let dummy_config = "${IOTEDGE_PARENTAPIPROXYNAME}";
+
+        let config = get_parsed_config(dummy_config).unwrap();
+
+        assert_eq!("apiproxy", config);
+
+        //*************************** Check IOTEDGE_PARENTAPIPROXYNAME get sanitized *******************
+        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
+        for key in vars_list {
+            std::env::remove_var(key);
+        }
+        std::env::set_var("IOTEDGE_PARENTAPIPROXYNAME", "iotedge_api_proxy");
+        set_default_env_vars();
+        dereference_env_variable();
+        specific_handling_env_var();
+        let dummy_config = "${IOTEDGE_PARENTAPIPROXYNAME}";
+
+        let config = get_parsed_config(dummy_config).unwrap();
+
+        assert_eq!("iotedgeapiproxy", config);
     }
 }
