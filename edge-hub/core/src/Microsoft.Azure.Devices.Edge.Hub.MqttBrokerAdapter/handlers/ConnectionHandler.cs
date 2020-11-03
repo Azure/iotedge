@@ -150,6 +150,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             foreach (var identity in identitiesRemoved)
             {
+                if (this.knownConnections.TryGetValue(identity, out IDeviceListener container))
+                {
+                    if (container is IDeviceProxy proxy)
+                    {
+                        // Clients connected indirectly (through a child edge device) will not be reported
+                        // by broker events and appear in the 'identitiesRemoved' list as missing identities.
+                        // Ignore those:
+                        if (!proxy.IsDirectClient)
+                        {
+                            continue;
+                        }
+                    }
+                }
+
                 if (this.knownConnections.TryRemove(identity, out var deviceListener))
                 {
                     await deviceListener.CloseAsync();
