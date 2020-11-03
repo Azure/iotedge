@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         [Fact]
         public async Task ConfirmsMessageAfterSent()
-        {            
+        {
             var capturedLockId = default(string);
             var capturedStatus = (FeedbackStatus)(-1);
 
@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
     }
 }
