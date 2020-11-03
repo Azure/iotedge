@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var connector = new Mock<IMqttBrokerConnector>();
             connector
                 .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()))
-                .Returns((string topic, byte[] content) =>
+                .Returns((string topic, byte[] content, bool retain) =>
                 {
                     sendCapture?.Capture(topic, content);
                     return Task.FromResult(true);
