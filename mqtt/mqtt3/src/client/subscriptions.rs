@@ -84,7 +84,7 @@ impl State {
                                 crate::proto::SubAckQos::Success(actual_qos) => {
                                     if actual_qos >= expected_qos {
                                         log::debug!(
-                                            "Subscribed to {} with {:?}",
+                                            "Subscribed to {} with qos {:?}",
                                             topic_filter,
                                             actual_qos
                                         );

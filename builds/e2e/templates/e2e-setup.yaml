@@ -18,7 +18,8 @@ steps:
       TestPreviewIotHubConnectionString,
       TestRootCaCertificate,
       TestRootCaKey,
-      TestRootCaPassword
+      TestRootCaPassword,
+      TestBlobStoreSas
 
 - pwsh: |
     $imageBuildId = $(resources.pipeline.images.runID)
@@ -121,7 +122,7 @@ steps:
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $context['optimizeForPerformance'] = 'false'
-      $context['setupTimeoutMinutes'] = 6
+      $context['setupTimeoutMinutes'] = 10
       $context['teardownTimeoutMinutes'] = 5
       $context['testTimeoutMinutes'] = 6
     }

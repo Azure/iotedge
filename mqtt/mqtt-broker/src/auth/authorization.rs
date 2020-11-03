@@ -1,4 +1,9 @@
-use std::{any::Any, convert::Infallible, error::Error as StdError};
+use std::{
+    any::Any,
+    convert::Infallible,
+    error::Error as StdError,
+    fmt::{Display, Formatter, Result as FmtResult},
+};
 
 use mqtt3::proto;
 
@@ -103,18 +108,29 @@ impl Activity {
     }
 }
 
+impl Display for Activity {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "client: {} operation: {}",
+            self.client_id(),
+            self.operation()
+        )
+    }
+}
+
 /// Describes a client operation to be authorized.
 #[derive(Clone, Debug)]
 pub enum Operation {
-    Connect(Connect),
+    Connect,
     Publish(Publish),
     Subscribe(Subscribe),
 }
 
 impl Operation {
     /// Creates a new operation context for CONNECT request.
-    pub fn new_connect(connect: proto::Connect) -> Self {
-        Self::Connect(connect.into())
+    pub fn new_connect() -> Self {
+        Self::Connect
     }
 
     /// Creates a new operation context for PUBLISH request.
@@ -128,22 +144,17 @@ impl Operation {
     }
 }
 
-/// Represents a client attempt to connect to the broker.
-#[derive(Clone, Debug)]
-pub struct Connect {
-    will: Option<Publication>,
-}
-
-impl Connect {
-    pub fn will(&self) -> Option<&Publication> {
-        self.will.as_ref()
-    }
-}
-
-impl From<proto::Connect> for Connect {
-    fn from(connect: proto::Connect) -> Self {
-        Self {
-            will: connect.will.map(Into::into),
+impl Display for Operation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Self::Connect => write!(f, "CONNECT"),
+            Self::Publish(publish) => write!(f, "PUBLISH {}", publish.publication.topic_name),
+            Self::Subscribe(subscribe) => write!(
+                f,
+                "SUBSCRIBE {}; qos: {}",
+                subscribe.topic_filter,
+                u8::from(subscribe.qos)
+            ),
         }
     }
 }
@@ -236,33 +247,19 @@ impl From<proto::SubscribeTo> for Subscribe {
 
 #[cfg(test)]
 mod tests {
-    use std::{net::SocketAddr, time::Duration};
+    use std::net::SocketAddr;
 
     use matches::assert_matches;
 
-    use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
-
     use super::{Activity, AllowAll, Authorization, Authorizer, DenyAll, Operation};
     use crate::ClientInfo;
-
-    fn connect() -> proto::Connect {
-        proto::Connect {
-            username: None,
-            password: None,
-            will: None,
-            client_id: proto::ClientId::ServerGenerated,
-            keep_alive: Duration::from_secs(1),
-            protocol_name: PROTOCOL_NAME.to_string(),
-            protocol_level: PROTOCOL_LEVEL,
-        }
-    }
 
     #[test]
     fn default_auth_always_deny_any_action() {
         let auth = DenyAll;
         let activity = Activity::new(
             ClientInfo::new("client-auth-id", peer_addr(), "client-id"),
-            Operation::new_connect(connect()),
+            Operation::new_connect(),
         );
 
         let res = auth.authorize(&activity);
@@ -275,7 +272,7 @@ mod tests {
         let auth = AllowAll;
         let activity = Activity::new(
             ClientInfo::new("client-auth-id", peer_addr(), "client-id"),
-            Operation::new_connect(connect()),
+            Operation::new_connect(),
         );
 
         let res = auth.authorize(&activity);
