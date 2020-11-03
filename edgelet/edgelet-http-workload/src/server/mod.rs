@@ -31,6 +31,7 @@ use self::decrypt::DecryptHandler;
 use self::encrypt::EncryptHandler;
 use self::sign::SignHandler;
 use self::trust_bundle::TrustBundleHandler;
+use self::manifest_trust_bundle::ManifestTrustBundleHandler;
 use crate::error::{Error, ErrorKind};
 
 #[derive(Clone)]
@@ -63,6 +64,7 @@ impl WorkloadService {
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(key_client, cert_client.clone(), config),
 
             get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client),
+            get   Version2018_06_28 runtime Policy::Anonymous => "/manifest-trust-bundle" => ManifestTrustBundleHandler::new(cert_client),
         );
 
         router.new_service().then(|inner| {
