@@ -13,7 +13,7 @@ use messages::{MessageProcessorError, MessagesProcessor, MessagesProcessorShutdo
 
 use futures_util::{
     future::{self, Either},
-    join, pin_mut, FutureExt,
+    join, pin_mut,
 };
 use mockall::automock;
 use parking_lot::Mutex;
@@ -112,13 +112,13 @@ where
         info!("starting pump...");
 
         let shutdown_egress = self.egress.handle();
-        let egress = self.egress.run().fuse();
+        let egress = self.egress.run();
 
         let shutdown_ingress = self.ingress.handle();
-        let ingress = self.ingress.run().fuse();
+        let ingress = self.ingress.run();
 
         let shutdown_messages = self.messages.handle();
-        let messages = self.messages.run().fuse();
+        let messages = self.messages.run();
 
         pin_mut!(egress, ingress, messages);
 

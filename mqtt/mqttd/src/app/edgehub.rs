@@ -129,10 +129,6 @@ impl Bootstrap for EdgeHubBootstrap {
             }
             // one of sidecars exited first
             Either::Right(((res, stopped, sidecars), server)) => {
-                // signal server
-                broker_handle.send(Message::System(SystemEvent::Shutdown))?;
-                let snapshot = server.await;
-
                 debug!("a sidecar has stopped. shutting down all sidecars...");
                 if let Err(e) = res {
                     error!(message = "failed waiting for sidecar shutdown", error = %e);
@@ -146,7 +142,9 @@ impl Bootstrap for EdgeHubBootstrap {
                 // wait for the rest to exit
                 future::join_all(sidecars).await;
 
-                snapshot??
+                // signal server
+                broker_handle.send(Message::System(SystemEvent::Shutdown))?;
+                server.await??
             }
         };
 
@@ -288,7 +286,7 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
             "scheduled server certificate renewal timer for {}",
             renew_at
         );
-        let delay = delay.to_std().expect("duration must not be negative");
+        let delay = std::time::Duration::from_secs(3600);
         time::delay_for(delay).await;
 
         info!("restarting the broker to perform certificate renewal");

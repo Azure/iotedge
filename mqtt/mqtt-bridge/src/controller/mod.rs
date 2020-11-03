@@ -26,7 +26,7 @@ const UPSTREAM: &str = "$upstream";
 ///
 /// Controller handles monitors settings updates and starts a new `Bridge` or
 /// stops running `Bridge` if the number of bridges changes. In addition it
-/// prepares changes in forwarding rules and applies them to `Bridge` if require.
+/// prepares changes in forwarding rules and applies them to `Bridge` if required.
 pub struct BridgeController {
     system_address: String,
     device_id: String,
