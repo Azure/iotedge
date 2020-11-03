@@ -59,7 +59,7 @@ namespace Diagnostics
 
         static async Task EdgeAgent(string managementUri)
         {
-            if (managementUri.EndsWith(".sock"))
+            if (managementUri.EndsWith("sock"))
             {
                 string response = GetSocket.GetSocketResponse(managementUri.TrimEnd('/'), "/modules/?api-version=2018-06-28");
 
