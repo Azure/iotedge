@@ -115,7 +115,7 @@ impl PumpMessageHandler for LocalUpstreamPumpEventHandler {
         if let Some(publication) = maybe_publication {
             let topic = publication.topic_name.clone();
             if let Err(e) = self.publish_handle.publish(publication).await {
-                error!(err = %e, "failed to publish on topic {}", topic);
+                error!(error = %e, "failed to publish on topic {}", topic);
             }
         }
     }

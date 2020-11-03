@@ -1,11 +1,8 @@
-use futures_util::{
-    stream::{StreamExt, TryStreamExt},
-    FutureExt,
-};
+use futures_util::{pin_mut, stream::StreamExt};
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
 
-use crate::persist::{PublicationStore, StreamWakeableState};
+use crate::persist::{Key, PublicationStore, StreamWakeableState};
 
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]
@@ -13,6 +10,10 @@ pub use crate::client::MockPublishHandle as PublishHandle;
 
 #[cfg(not(test))]
 use crate::client::PublishHandle;
+
+use mqtt3::proto::Publication;
+
+const MAX_IN_FLIGHT: usize = 16;
 
 /// Handles the egress of received publications.
 ///
@@ -48,44 +49,64 @@ where
     }
 
     /// Runs egress processing.
-    pub(crate) async fn run(self) {
+    pub(crate) async fn run(self) -> Result<(), EgressError> {
         let Egress {
-            mut publish_handle,
+            publish_handle,
             store,
-            shutdown_recv,
+            mut shutdown_recv,
             ..
         } = self;
 
         info!("starting egress publication processing...");
 
-        let mut shutdown = shutdown_recv.fuse();
-        let mut loader = store.loader().fuse();
+        // Take the stream of loaded messages and convert to a stream of futures
+        // which publish. Then convert to buffered stream so that we can have
+        // multiple in-flight and also limit number of publications.
+        let publications = store
+            .loader()
+            .filter_map(|loaded| {
+                let publish_handle = publish_handle.clone();
+                async {
+                    match loaded {
+                        Ok((key, publication)) => {
+                            Some(try_publish(key, publication, publish_handle))
+                        }
+                        Err(e) => {
+                            error!(error = %e, "failed loading publication from store");
+                            None
+                        }
+                    }
+                }
+            })
+            .buffer_unordered(MAX_IN_FLIGHT);
+        pin_mut!(publications);
 
         loop {
             select! {
-                _ = &mut shutdown => {
-                    info!(" received shutdown signal for egress messages");
+                _ = &mut shutdown_recv => {
+                    debug!("received shutdown signal for egress messages");
                     break;
                 }
-                maybe_publication = loader.try_next() => {
-                    debug!("extracted publication from store");
-
-                    if let Ok(Some((key, publication))) = maybe_publication {
-                        debug!("publishing {:?}", key);
-                        if let Err(e) = publish_handle.publish(publication).await {
-                            error!(err = %e, "failed publish");
-                        }
-
-                        if let Err(e) = store.remove(key) {
-                            error!(err = %e, "failed removing publication from store");
-                        }
+                key = publications.select_next_some() => {
+                    if let Err(e) = store.remove(key) {
+                        error!(error = %e, "failed removing publication from store");
                     }
                 }
             }
         }
 
-        info!("finished egress publication processing");
+        info!("egress publication processing stopped");
+        Ok(())
     }
+}
+
+async fn try_publish(key: Key, publication: Publication, mut publish_handle: PublishHandle) -> Key {
+    debug!("publishing {:?}", key);
+    if let Err(e) = publish_handle.publish(publication).await {
+        error!(error = %e, "failed publish");
+    }
+
+    key
 }
 
 /// Egress shutdown handle.
@@ -101,3 +122,7 @@ impl EgressShutdownHandle {
         }
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("ingress error")]
+pub(crate) struct EgressError;

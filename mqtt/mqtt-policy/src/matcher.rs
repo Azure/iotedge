@@ -31,7 +31,7 @@ impl ResourceMatcher for MqttTopicFilterMatcher {
             Some(context) => {
                 match context.operation() {
                     // special case for Connect operation, since it doesn't really have a "resource".
-                    Operation::Connect(_) => true,
+                    Operation::Connect => true,
                     // for pub or sub just match the topic filter.
                     _ => {
                         if let Ok(filter) = TopicFilter::from_str(policy) {

@@ -8,23 +8,11 @@ pub use local::LocalAuthorizer;
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use mqtt3::proto;
     use mqtt_broker::{auth::Activity, auth::Operation, AuthId, ClientInfo};
 
     pub(crate) fn connect_activity(client_id: &str, auth_id: impl Into<AuthId>) -> Activity {
-        let connect = proto::Connect {
-            username: None,
-            password: None,
-            will: None,
-            client_id: proto::ClientId::IdWithCleanSession(client_id.into()),
-            keep_alive: Duration::from_secs(1),
-            protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
-            protocol_level: mqtt3::PROTOCOL_LEVEL,
-        };
-
-        let operation = Operation::new_connect(connect);
+        let operation = Operation::new_connect();
         activity(operation, client_id, auth_id)
     }
 
