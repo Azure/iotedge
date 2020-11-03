@@ -84,7 +84,7 @@ where
         loop {
             select! {
                 _ = &mut shutdown_recv => {
-                    info!("received shutdown signal for egress messages");
+                    debug!("received shutdown signal for egress messages");
                     break;
                 }
                 key = publications.select_next_some() => {
@@ -95,7 +95,7 @@ where
             }
         }
 
-        info!("finished egress publication processing");
+        info!("egress publication processing stopped");
         Ok(())
     }
 }
