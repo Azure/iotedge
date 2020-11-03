@@ -35,7 +35,7 @@ impl BridgeHandle {
         }
     }
 
-    pub async fn send(&mut self, message: BridgeDiff) -> Result<(), BridgeError> {
+    pub async fn send_update(&mut self, message: BridgeDiff) -> Result<(), BridgeError> {
         let (local_updates, remote_updates) = message.into_parts();
 
         if local_updates.has_updates() {
@@ -54,20 +54,29 @@ impl BridgeHandle {
 
         Ok(())
     }
+
+    pub async fn shutdown(mut self) {
+        if let Err(e) = self.local_pump_handle.send(PumpMessage::Shutdown).await {
+            error!(error = %e, "unable to request shutdown for local pump");
+        }
+
+        if let Err(e) = self.remote_pump_handle.send(PumpMessage::Shutdown).await {
+            error!(error = %e, "unable to request shutdown for remote pump");
+        }
+    }
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
 pub struct Bridge<S> {
     local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
     remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
-    connection_settings: ConnectionSettings,
 }
 
 impl Bridge<WakingMemoryStore> {
-    pub async fn new_upstream(
-        system_address: String,
-        device_id: String,
-        settings: ConnectionSettings,
+    pub fn new_upstream(
+        system_address: &str,
+        device_id: &str,
+        settings: &ConnectionSettings,
     ) -> Result<Self, BridgeError> {
         const BATCH_SIZE: usize = 10;
 
@@ -76,7 +85,7 @@ impl Bridge<WakingMemoryStore> {
         let (local_pump, remote_pump) = Builder::default()
             .with_local(|pump| {
                 pump.with_config(MqttClientConfig::new(
-                    &system_address,
+                    system_address,
                     settings.keep_alive(),
                     settings.clean_session(),
                     Credentials::Anonymous(format!("{}/{}/$bridge", device_id, settings.name())),
@@ -100,7 +109,6 @@ impl Bridge<WakingMemoryStore> {
         Ok(Bridge {
             local_pump,
             remote_pump,
-            connection_settings: settings,
         })
     }
 }
@@ -124,10 +132,7 @@ where
             .run()
             .instrument(info_span!("pump", name = "remote"));
 
-        debug!(
-            "starting pumps for {} bridge...",
-            self.connection_settings.name()
-        );
+        debug!("starting pumps ...",);
 
         pin_mut!(local_pump, remote_pump);
 
@@ -207,6 +212,9 @@ pub enum BridgeError {
 
     #[error("failed to get publish handle from client.")]
     PublishHandle(#[source] ClientError),
+
+    #[error("failed to validate client settings: {0}")]
+    ValidationError(#[source] ClientError),
 
     #[error("failed to get subscribe handle from client.")]
     UpdateSubscriptionHandle(#[source] ClientError),
