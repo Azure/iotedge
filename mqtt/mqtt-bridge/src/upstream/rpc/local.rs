@@ -1,8 +1,10 @@
+use std::collections::HashSet;
+
 use async_trait::async_trait;
 use bson::{doc, Document};
 use bytes::buf::BufExt;
 use lazy_static::lazy_static;
-use mqtt3::Event;
+use mqtt3::{Event, ReceivedPublication, SubscriptionUpdateEvent};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -21,12 +23,63 @@ use super::RpcError;
 /// and sends to remote pump as a `PumpMessage`.
 pub struct LocalRpcMqttEventHandler {
     remote_pump: PumpHandle<RemoteUpstreamPumpEvent>,
+    subscriptions: HashSet<String>,
 }
 
 impl LocalRpcMqttEventHandler {
     /// Creates a new instance of local part of RPC handler.
     pub fn new(remote_pump: PumpHandle<RemoteUpstreamPumpEvent>) -> Self {
-        Self { remote_pump }
+        let mut subscriptions = HashSet::new();
+        subscriptions.insert("$upstream/rpc/+".into());
+
+        Self {
+            remote_pump,
+            subscriptions,
+        }
+    }
+
+    async fn handle_publication(
+        &mut self,
+        command_id: CommandId,
+        publication: &ReceivedPublication,
+    ) -> Result<bool, RpcError> {
+        let doc = Document::from_reader(&mut publication.payload.clone().reader())?;
+        match bson::from_document(doc)? {
+            VersionedRpcCommand::V1(command) => {
+                let event = RemoteUpstreamPumpEvent::RpcCommand(command_id.clone(), command);
+                let msg = PumpMessage::Event(event);
+                self.remote_pump
+                    .send(msg)
+                    .await
+                    .map_err(|e| RpcError::SendToRemotePump(command_id, e))?;
+
+                Ok(true)
+            }
+        }
+    }
+
+    fn handle_subscriptions(
+        &mut self,
+        subscriptions: impl IntoIterator<Item = SubscriptionUpdateEvent>,
+    ) -> Vec<SubscriptionUpdateEvent> {
+        let mut skipped = vec![];
+        for subscription in subscriptions {
+            if !self.handle_subscription_update(&subscription) {
+                skipped.push(subscription);
+            }
+        }
+
+        skipped
+    }
+
+    fn handle_subscription_update(&mut self, subscription: &SubscriptionUpdateEvent) -> bool {
+        let topic_filter = match subscription {
+            SubscriptionUpdateEvent::Subscribe(sub) => &sub.topic_filter,
+            SubscriptionUpdateEvent::RejectedByServer(topic_filter) => topic_filter,
+            SubscriptionUpdateEvent::Unsubscribe(topic_filter) => topic_filter,
+        };
+
+        self.subscriptions.contains(topic_filter)
     }
 }
 
@@ -35,30 +88,36 @@ impl MqttEventHandler for LocalRpcMqttEventHandler {
     type Error = RpcError;
 
     fn subscriptions(&self) -> Vec<String> {
-        vec!["$upstream/rpc/+".into()]
+        self.subscriptions.iter().cloned().collect()
     }
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
-        if let Event::Publication(publication) = &event {
-            if let Some(command_id) = capture_command_id(&publication.topic_name) {
-                let doc = Document::from_reader(&mut publication.payload.clone().reader())?;
-                match bson::from_document(doc)? {
-                    VersionedRpcCommand::V1(command) => {
-                        let event =
-                            RemoteUpstreamPumpEvent::RpcCommand(command_id.clone(), command);
-                        let msg = PumpMessage::Event(event);
-                        self.remote_pump
-                            .send(msg)
-                            .await
-                            .map_err(|e| RpcError::SendToRemotePump(command_id, e))?;
-
+        match event {
+            Event::Publication(publication) => {
+                if let Some(command_id) = capture_command_id(&publication.topic_name) {
+                    if self.handle_publication(command_id, &publication).await? {
                         return Ok(Handled::Fully);
                     }
                 }
-            }
-        }
 
-        Ok(Handled::Skipped(event))
+                Ok(Handled::Skipped(Event::Publication(publication)))
+            }
+            Event::SubscriptionUpdates(subscriptions) => {
+                let subscriptions_len = subscriptions.len();
+
+                let skipped = self.handle_subscriptions(subscriptions);
+                if skipped.is_empty() {
+                    Ok(Handled::Fully)
+                } else if skipped.len() == subscriptions_len {
+                    let event = Event::SubscriptionUpdates(skipped);
+                    Ok(Handled::Skipped(event))
+                } else {
+                    let event = Event::SubscriptionUpdates(skipped);
+                    Ok(Handled::Partially(event))
+                }
+            }
+            _ => Ok(Handled::Skipped(event)),
+        }
     }
 }
 
@@ -85,7 +144,10 @@ mod tests {
     use bson::{bson, spec::BinarySubtype};
     use bytes::Bytes;
     use matches::assert_matches;
-    use mqtt3::{proto::QoS, ReceivedPublication};
+    use mqtt3::{
+        proto::{QoS, SubscribeTo},
+        ReceivedPublication,
+    };
     use test_case::test_case;
 
     use super::*;
@@ -165,7 +227,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn it_skips_when_not_rpc_command() {
+    async fn it_skips_when_not_rpc_command_pub() {
         let (pump_handle, _) = crate::pump::channel();
         let mut handler = LocalRpcMqttEventHandler::new(pump_handle);
 
@@ -178,6 +240,81 @@ mod tests {
         });
         let res = handler.handle(event).await;
         assert_matches!(res, Ok(Handled::Skipped(_)));
+    }
+
+    #[tokio::test]
+    async fn it_skips_when_not_rpc_topic_sub() {
+        let update_events = vec![
+            SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                qos: QoS::AtLeastOnce,
+                topic_filter: "/foo".into(),
+            }),
+            SubscriptionUpdateEvent::RejectedByServer("/foo".into()),
+            SubscriptionUpdateEvent::Unsubscribe("/foo".into()),
+        ];
+
+        let (pump_handle, _) = crate::pump::channel();
+        let mut handler = LocalRpcMqttEventHandler::new(pump_handle);
+
+        for update_event in update_events {
+            let event = Event::SubscriptionUpdates(vec![update_event]);
+            let res = handler.handle(event).await;
+            assert_matches!(res, Ok(Handled::Skipped(_)));
+        }
+    }
+
+    #[tokio::test]
+    async fn it_handles_fully_when_rpc_topic_sub() {
+        let update_events = vec![
+            SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                qos: QoS::AtLeastOnce,
+                topic_filter: "$upstream/rpc/+".into(),
+            }),
+            SubscriptionUpdateEvent::RejectedByServer("$upstream/rpc/+".into()),
+            SubscriptionUpdateEvent::Unsubscribe("$upstream/rpc/+".into()),
+        ];
+
+        let (pump_handle, _) = crate::pump::channel();
+        let mut handler = LocalRpcMqttEventHandler::new(pump_handle);
+
+        for update_event in update_events {
+            let event = Event::SubscriptionUpdates(vec![update_event]);
+            let res = handler.handle(event).await;
+            assert_matches!(res, Ok(Handled::Fully));
+        }
+    }
+
+    #[tokio::test]
+    async fn it_handles_partially_when_mixed_topics_sub() {
+        let expected_events = vec![
+            SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                qos: QoS::AtLeastOnce,
+                topic_filter: "/foo/bar".into(),
+            }),
+            SubscriptionUpdateEvent::RejectedByServer("/foo".into()),
+            SubscriptionUpdateEvent::Unsubscribe("/bar".into()),
+        ];
+
+        let rpc_events = vec![
+            SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                qos: QoS::AtLeastOnce,
+                topic_filter: "$upstream/rpc/+".into(),
+            }),
+            SubscriptionUpdateEvent::RejectedByServer("$upstream/rpc/+".into()),
+            SubscriptionUpdateEvent::Unsubscribe("$upstream/rpc/+".into()),
+        ];
+
+        let (pump_handle, _) = crate::pump::channel();
+        let mut handler = LocalRpcMqttEventHandler::new(pump_handle);
+
+        for rpc_event in rpc_events {
+            let mut update_events = expected_events.clone();
+            update_events.push(rpc_event);
+
+            let event = Event::SubscriptionUpdates(update_events);
+            let res = handler.handle(event).await;
+            assert_matches!(res, Ok(Handled::Partially(events)) if events == Event::SubscriptionUpdates(expected_events.clone()));
+        }
     }
 
     fn command(id: &str, cmd: &str, topic: &str, payload: Option<Vec<u8>>) -> Event {
