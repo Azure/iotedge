@@ -5,14 +5,10 @@
 
 ARG DIR=.
 
-FROM arm64v8/alpine:3.12.0
+FROM arm64v8/nginx:1.19.2
 WORKDIR /app
 COPY ./docker/linux/arm64v8/api-proxy-module .
 COPY ./docker/linux/arm64v8/templates .
-RUN	apk update && \
-    apk add nginx && \
-	mkdir /run/nginx
-    
 #expose ports
 EXPOSE 443/tcp	
 EXPOSE 80/tcp
