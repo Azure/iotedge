@@ -267,7 +267,7 @@ impl TopicRule {
     }
 
     pub fn subscribe_to(&self) -> String {
-        let subscribe_to = match &self.in_prefix {
+        match &self.in_prefix {
             Some(local) => {
                 if local.is_empty() {
                     self.topic.clone()
@@ -276,11 +276,7 @@ impl TopicRule {
                 }
             }
             None => self.topic.clone(),
-        };
-
-        dbg!(subscribe_to.clone());
-
-        subscribe_to
+        }
     }
 }
 
