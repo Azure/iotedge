@@ -46,6 +46,12 @@ where
 {
     type Error = BridgeError;
 
+    fn subscriptions(&self) -> Vec<String> {
+        let mut subscriptions = self.rpc.subscriptions();
+        subscriptions.extend(self.messages.subscriptions());
+        subscriptions
+    }
+
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         // try to handle as RPC command first
         match self.rpc.handle(event).await? {
@@ -88,6 +94,13 @@ where
     S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
+
+    fn subscriptions(&self) -> Vec<String> {
+        let mut subscriptions = self.messages.subscriptions();
+        subscriptions.extend(self.rpc.subscriptions());
+        subscriptions.extend(self.connectivity.subscriptions());
+        subscriptions
+    }
 
     async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         // try to handle incoming connectivity event

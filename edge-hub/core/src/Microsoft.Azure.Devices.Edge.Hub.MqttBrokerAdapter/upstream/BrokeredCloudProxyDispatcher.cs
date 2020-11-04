@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string RpcAckPattern = @"^\$downstream/rpc/ack/(?<guid>[^/\+\#]+)";
         const string TwinGetResponsePattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/(?<res>.+)/\?\$rid=(?<rid>.+)";
         const string TwinSubscriptionForPatchPattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\?\$version=(?<version>.+)";
-        const string MethodCallPattern = @"^\$downstream/(?<id1>[^/\+\#]+)/methods/post/(?<mname>[^/\+\#]+)/\?\$rid=(?<rid>.+)";
+        const string MethodCallPattern = @"^\$downstream/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/methods/post/(?<mname>[^/\+\#]+)/\?\$rid=(?<rid>.+)";
 
         const string DownstreamTopic = "$downstream/#";
         const string ConnectivityTopic = "$internal/connectivity";

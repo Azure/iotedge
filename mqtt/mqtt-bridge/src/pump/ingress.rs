@@ -35,8 +35,8 @@ where
     /// Runs ingress processing.
     pub(crate) async fn run(mut self) -> Result<(), IngressError> {
         info!("starting ingress publication processing...");
-        self.client.handle_events().await;
-        info!("finished ingress publication processing");
+        self.client.run().await?;
+        info!("ingress publication processing stopped");
 
         Ok(())
     }
@@ -57,5 +57,7 @@ impl IngressShutdownHandle {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("ingress error")]
-pub(crate) struct IngressError;
+pub(crate) enum IngressError {
+    #[error("mqtt client error. {0}")]
+    MqttClient(#[from] crate::client::ClientError),
+}
