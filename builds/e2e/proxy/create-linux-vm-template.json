@@ -1,15 +1,12 @@
 {
-	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"admin_password": {
-			"type": "securestring"
-		},
 		"admin_user": {
 			"type": "string"
 		},
 		"extension_command": {
-			"type": "securestring"
+			"type": "string"
 		},
 		"nic_name": {
 			"type": "string"
@@ -46,7 +43,7 @@
 		"condition": "[not(equals(parameters('ip_addr_name'), '!'))]",
 		"type": "Microsoft.Network/publicIPAddresses",
 		"name": "[parameters('ip_addr_name')]",
-		"apiVersion": "2018-02-01",
+		"apiVersion": "2020-05-01",
 		"sku": {
 			"name": "Basic",
 			"tier": "Regional"
@@ -60,7 +57,7 @@
 	}, {
 		"type": "Microsoft.Network/networkInterfaces",
 		"name": "[parameters('nic_name')]",
-		"apiVersion": "2018-02-01",
+		"apiVersion": "2020-05-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"ipConfigurations": [{
@@ -70,13 +67,13 @@
 						"id": "[parameters('vnet_subnet_id')]"
 					},
 					"privateIPAllocationMethod": "Dynamic",
-                    "publicIPAddress": "[if(equals(parameters('ip_addr_name'), '!'), json('null'), variables('ip_addr_id'))]"
+					"publicIPAddress": "[if(equals(parameters('ip_addr_name'), '!'), json('null'), variables('ip_addr_id'))]"
 				}
 			}],
 			"networkSecurityGroup": {
 				"id": "[parameters('nsg_id')]"
 			},
-			"primary": true
+			"primary": false
 		},
 		"dependsOn": [
 			"[parameters('ip_addr_name')]"
@@ -84,15 +81,20 @@
 	}, {
 		"type": "Microsoft.Compute/virtualMachines",
 		"name": "[parameters('vm_name')]",
-		"apiVersion": "2017-12-01",
+		"apiVersion": "2020-06-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"osProfile": {
 				"computerName": "[parameters('vm_name')]",
 				"adminUsername": "[parameters('admin_user')]",
-				"adminPassword": "[parameters('admin_password')]",
-				"windowsConfiguration": {
-					"enableAutomaticUpdates": true
+				"linuxConfiguration": {
+					"disablePasswordAuthentication": true,
+					"ssh": {
+						"publicKeys": [{
+							"path": "[concat('/home/', parameters('admin_user'), '/.ssh/authorized_keys')]",
+							"keyData": "[parameters('ssh_public_key')]"
+						}]
+					}
 				}
 			},
 			"hardwareProfile": {
@@ -100,13 +102,12 @@
 			},
 			"storageProfile": {
 				"imageReference": {
-					"publisher": "MicrosoftWindowsServer",
-					"offer": "WindowsServer",
-					"sku": "2019-Datacenter-Core",
+					"publisher": "Canonical",
+					"offer": "UbuntuServer",
+					"sku": "18.04-LTS",
 					"version": "latest"
 				},
 				"osDisk": {
-					"osType": "Windows",
 					"createOption": "FromImage",
 					"managedDisk": {
 						"storageAccountType": "Standard_LRS"
@@ -129,12 +130,12 @@
 	}, {
 		"type": "Microsoft.Compute/virtualMachines/extensions",
 		"name": "[concat(parameters('vm_name'), '/', 'setup')]",
-		"apiVersion": "2018-06-01",
+		"apiVersion": "2020-06-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
-			"publisher": "Microsoft.Compute",
-			"type": "CustomScriptExtension",
-			"typeHandlerVersion": "1.9",
+			"publisher": "Microsoft.Azure.Extensions",
+			"type": "CustomScript",
+			"typeHandlerVersion": "2.0",
 			"autoUpgradeMinorVersion": true,
 			"settings": {},
 			"protectedSettings": {
@@ -144,11 +145,5 @@
 		"dependsOn": [
 			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vm_name'))]"
 		]
-	}],
-	"outputs": {
-		"hostkey": {
-			"type": "array",
-			"value": "[take(skip(split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vm_name'), 'setup')).instanceView.substatuses[0].message), '#DATA#'), 1), 1)]"
-		}
-	}
+	}]
 }
