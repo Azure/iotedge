@@ -12,4 +12,5 @@
 )]
 
 pub mod app;
+pub mod time;
 pub mod tracing;

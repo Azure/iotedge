@@ -11,7 +11,6 @@ use futures_util::{
     future::{self, Either},
     FutureExt,
 };
-use tokio::time;
 use tracing::{debug, error, info};
 
 use mqtt_bridge::{settings::BridgeSettings, BridgeController};
@@ -287,8 +286,8 @@ async fn server_certificate_renewal(renew_at: DateTime<Utc>) {
             "scheduled server certificate renewal timer for {}",
             renew_at
         );
-        let delay = std::time::Duration::from_secs(3600);
-        time::delay_for(delay).await;
+        let delay = delay.to_std().expect("duration must not be negative");
+        crate::time::sleep(delay).await;
 
         info!("restarting the broker to perform certificate renewal");
     } else {
