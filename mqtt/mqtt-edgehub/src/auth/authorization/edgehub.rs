@@ -50,7 +50,7 @@ where
         match activity.client_info().auth_id() {
             // forbid anonymous clients to connect to the broker
             AuthId::Anonymous => Ok(Authorization::Forbidden(
-                "Anonymous clients cannot connect to broker".to_string(),
+                "Anonymous clients cannot connect to the broker".to_string(),
             )),
             // allow only those clients whose auth_id and client_id identical
             AuthId::Identity(identity) => {
@@ -312,7 +312,7 @@ mod tests {
     #[test_case(&tests::connect_activity("leaf-1", AuthId::Anonymous); "anonymous clients")]
     #[test_case(&tests::connect_activity("leaf-1", "leaf-2"); "different auth_id and client_id")]
     fn it_forbids_to_connect(activity: &Activity) {
-        let authorizer = authorizer(AllowAll);
+        let authorizer = authorizer(AllowAll, vec![]);
 
         let auth = authorizer.authorize(&activity);
 
@@ -336,7 +336,39 @@ mod tests {
     #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$iothub/leaf-1/methods/post"); "iothub device DM request")]
     #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$iothub/leaf-1/methods/res"); "iothub device DM response")]
     fn it_allows_to_subscribe_for_leaf(activity: &Activity) {
-        let authorizer = authorizer(DenyAll);
+        let identities = vec![IdentityUpdate {
+            identity: "leaf-1".to_string(),
+            auth_chain: Some("leaf-1;this_edge".to_string()),
+        }];
+        let authorizer = authorizer(DenyAll, identities);
+
+        let auth = authorizer.authorize(&activity);
+
+        assert_matches!(auth, Ok(Authorization::Allowed));
+    }
+
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/messages/events"); "device events")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/messages/c2d/post"); "device C2D messages")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/twin/desired"); "device update desired properties")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/twin/reported"); "device update reported properties")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/twin/get"); "device twin request")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/twin/res"); "device twin response")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/methods/post"); "device DM request")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/methods/res"); "device DM response")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/messages/events"); "iothub telemetry")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/messages/c2d/post"); "iothub c2d messages")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/twin/desired"); "iothub update desired properties")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/twin/reported"); "iothub update reported properties")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/twin/get"); "iothub device twin request")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/twin/res"); "iothub device twin response")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/methods/post"); "iothub device DM request")]
+    #[test_case(&tests::subscribe_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/methods/res"); "iothub device DM response")]
+    fn it_allows_to_subscribe_for_module(activity: &Activity) {
+        let identities = vec![IdentityUpdate {
+            identity: "this_edge/module-a".to_string(),
+            auth_chain: Some("this_edge/module-a;this_edge".to_string()),
+        }];
+        let authorizer = authorizer(DenyAll, identities);
 
         let auth = authorizer.authorize(&activity);
 
@@ -361,7 +393,19 @@ mod tests {
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/methods/post"); "iothub module DM request")]
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/methods/res"); "iothub module DM response")]
     fn it_allows_to_subscribe_for_on_behalf_of_module(activity: &Activity) {
-        let authorizer = authorizer(DenyAll);
+        let identities = vec![
+            // child edgehub
+            IdentityUpdate {
+                identity: "edge-1/$edgeHub".to_string(),
+                auth_chain: Some("edge-1/$edgeHub;this_edge".to_string()),
+            },
+            // grandchild module
+            IdentityUpdate {
+                identity: "edge-1/module-a".to_string(),
+                auth_chain: Some("edge-1/module-a;edge-1;this_edge".to_string()),
+            },
+        ];
+        let authorizer = authorizer(DenyAll, identities);
 
         let auth = authorizer.authorize(&activity);
 
@@ -384,16 +428,31 @@ mod tests {
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/leaf-2/methods/post"); "iothub module DM request")]
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/leaf-2/methods/res"); "iothub module DM response")]
     fn it_allows_to_subscribe_for_on_behalf_of_leaf(activity: &Activity) {
-        let authorizer = authorizer(DenyAll);
+        let identities = vec![
+            // child edgehub
+            IdentityUpdate {
+                identity: "edge-1/$edgeHub".to_string(),
+                auth_chain: Some("edge-1/$edgeHub;this_edge".to_string()),
+            },
+            // grandchild leaf
+            IdentityUpdate {
+                identity: "leaf-2".to_string(),
+                auth_chain: Some("leaf-2;edge-1;this_edge".to_string()),
+            },
+        ];
+        let authorizer = authorizer(DenyAll, identities);
 
         let auth = authorizer.authorize(&activity);
 
         assert_matches!(auth, Ok(Authorization::Allowed));
     }
 
-    #[test_case(&tests::connect_activity("edge-1/$edgeHub", "edge-1/$edgeHub"); "identical auth_id and client_id")]
-    #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "topic"); "generic MQTT topic publish")]
-    #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "topic"); "generic MQTT topic subscribe")]
+    #[test_case(&tests::connect_activity("edge-1/$edgeHub", "edge-1/$edgeHub"); "module identical auth_id and client_id")]
+    #[test_case(&tests::connect_activity("edge-1", "edge-1"); "leaf identical auth_id and client_id")]
+    #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "topic"); "module generic MQTT topic publish")]
+    #[test_case(&tests::publish_activity("edge-1", "edge-1", "topic"); "leaf generic MQTT topic publish")]
+    #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "topic"); "module generic MQTT topic subscribe")]
+    #[test_case(&tests::subscribe_activity("edge-1", "edge-1", "topic"); "leaf generic MQTT topic subscribe")]
     fn it_delegates_to_inner(activity: &Activity) {
         let inner = authorize_fn_ok(|_| Authorization::Forbidden("not allowed inner".to_string()));
         let authorizer = EdgeHubAuthorizer::without_ready_handle(inner, "edgehub_id".into());
@@ -411,9 +470,12 @@ mod tests {
     #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$edgehub/leaf-2/twin/get"); "twin request for another device")]
     #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$edgehub/+/twin/get"); "twin request for arbitrary device")]
     #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$edgehub/edge-1/twin/+"); "both twin operations")]
+    #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$iothub/leaf-2/twin/get"); "iothub twin request for another device")]
+    #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$iothub/+/twin/get"); "iothub twin request for arbitrary device")]
+    #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$iothub/edge-1/twin/+"); "iothub both twin operations")]
     fn iothub_primitives_overridden_by_inner(activity: &Activity) {
         // these primitives must be denied, but overridden by AllowAll
-        let authorizer = authorizer(AllowAll);
+        let authorizer = authorizer(AllowAll, vec![]);
 
         let auth = authorizer.authorize(&activity);
 
@@ -437,7 +499,39 @@ mod tests {
     #[test_case(&tests::publish_activity("leaf-1", "leaf-1", "$iothub/leaf-1/methods/post"); "iothub device DM request")]
     #[test_case(&tests::publish_activity("leaf-1", "leaf-1", "$iothub/leaf-1/methods/res"); "iothub device DM response")]
     fn it_allows_to_publish_for_leaf(activity: &Activity) {
-        let authorizer = authorizer(DenyAll);
+        let identities = vec![IdentityUpdate {
+            identity: "leaf-1".to_string(),
+            auth_chain: Some("leaf-1;this_edge".to_string()),
+        }];
+        let authorizer = authorizer(DenyAll, identities);
+
+        let auth = authorizer.authorize(&activity);
+
+        assert_matches!(auth, Ok(Authorization::Allowed));
+    }
+
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/messages/events"); "device events")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/messages/c2d/post"); "device C2D messages")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/twin/desired"); "device update desired properties")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/twin/reported"); "device update reported properties")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/twin/get"); "device twin request")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/twin/res"); "device twin response")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/methods/post"); "device DM request")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$edgehub/this_edge/module-a/methods/res"); "device DM response")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/messages/events"); "iothub telemetry")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/messages/c2d/post"); "iothub c2d messages")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/twin/desired"); "iothub update desired properties")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/twin/reported"); "iothub update reported properties")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/twin/get"); "iothub device twin request")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/twin/res"); "iothub device twin response")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/methods/post"); "iothub device DM request")]
+    #[test_case(&tests::publish_activity("this_edge/module-a", "this_edge/module-a", "$iothub/this_edge/module-a/methods/res"); "iothub device DM response")]
+    fn it_allows_to_publish_for_module(activity: &Activity) {
+        let identities = vec![IdentityUpdate {
+            identity: "this_edge/module-a".to_string(),
+            auth_chain: Some("this_edge/module-a;this_edge".to_string()),
+        }];
+        let authorizer = authorizer(DenyAll, identities);
 
         let auth = authorizer.authorize(&activity);
 
@@ -461,7 +555,19 @@ mod tests {
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/leaf-2/methods/post"); "iothub module DM request")]
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/leaf-2/methods/res"); "iothub module DM response")]
     fn it_allows_to_publish_for_on_behalf_of_leaf(activity: &Activity) {
-        let authorizer = authorizer(DenyAll);
+        let identities = vec![
+            // child edgehub
+            IdentityUpdate {
+                identity: "edge-1/$edgeHub".to_string(),
+                auth_chain: Some("edge-1/$edgeHub;this_edge".to_string()),
+            },
+            // grandchild leaf
+            IdentityUpdate {
+                identity: "leaf-2".to_string(),
+                auth_chain: Some("leaf-2;edge-1;this_edge".to_string()),
+            },
+        ];
+        let authorizer = authorizer(DenyAll, identities);
 
         let auth = authorizer.authorize(&activity);
 
@@ -487,25 +593,7 @@ mod tests {
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/methods/post"); "iothub module DM request")]
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/methods/res"); "iothub module DM response")]
     fn it_allows_to_publish_for_on_behalf_of_module(activity: &Activity) {
-        let authorizer = authorizer(DenyAll);
-
-        let auth = authorizer.authorize(&activity);
-
-        assert_matches!(auth, Ok(Authorization::Allowed));
-    }
-
-    fn authorizer<Z>(inner: Z) -> EdgeHubAuthorizer<Z>
-    where
-        Z: Authorizer,
-    {
-        let mut authorizer = EdgeHubAuthorizer::without_ready_handle(inner, "this_edge".into());
-
-        let updates = vec![
-            // leaf
-            IdentityUpdate {
-                identity: "leaf-1".to_string(),
-                auth_chain: Some("leaf-1;this_edge".to_string()),
-            },
+        let identities = vec![
             // child edgehub
             IdentityUpdate {
                 identity: "edge-1/$edgeHub".to_string(),
@@ -516,14 +604,45 @@ mod tests {
                 identity: "edge-1/module-a".to_string(),
                 auth_chain: Some("edge-1/module-a;edge-1;this_edge".to_string()),
             },
-            // grandchild leaf
+        ];
+        let authorizer = authorizer(DenyAll, identities);
+
+        let auth = authorizer.authorize(&activity);
+
+        assert_matches!(auth, Ok(Authorization::Allowed));
+    }
+
+    #[test_case(&tests::subscribe_activity("edge-1/module-a", "edge-1/module-a", "$edgehub/edge-1/module-a/messages/events"); "module events sub")]
+    #[test_case(&tests::publish_activity("edge-1/module-a", "edge-1/module-a", "$edgehub/edge-1/module-a/messages/events"); "module events pub")]
+    #[test_case(&tests::subscribe_activity("leaf-1", "leaf-1", "$edgehub/leaf-1/messages/events"); "leaf events sub")]
+    #[test_case(&tests::publish_activity("leaf-1", "leaf-1", "$edgehub/leaf-1/messages/events"); "leaf events pub")]
+    fn it_forbids_operations_for_not_in_scope_identities(activity: &Activity) {
+        let identities = vec![
+            // leaf
             IdentityUpdate {
-                identity: "leaf-2".to_string(),
-                auth_chain: Some("leaf-2;edge-1;this_edge".to_string()),
+                identity: "another-leaf".to_string(),
+                auth_chain: Some("another-leaf;this_edge".to_string()),
+            },
+            // module
+            IdentityUpdate {
+                identity: "this_edge/another-module".to_string(),
+                auth_chain: Some("edge-1/another-module;this_edge".to_string()),
             },
         ];
+        let authorizer = authorizer(DenyAll, identities);
 
-        let _ = authorizer.update(Box::new(AuthorizerUpdate(updates)));
+        let auth = authorizer.authorize(&activity);
+
+        assert_matches!(auth, Ok(Authorization::Forbidden(_)));
+    }
+
+    fn authorizer<Z>(inner: Z, identities: Vec<IdentityUpdate>) -> EdgeHubAuthorizer<Z>
+    where
+        Z: Authorizer,
+    {
+        let mut authorizer = EdgeHubAuthorizer::without_ready_handle(inner, "this_edge".into());
+
+        let _ = authorizer.update(Box::new(AuthorizerUpdate(identities)));
         authorizer
     }
 }
