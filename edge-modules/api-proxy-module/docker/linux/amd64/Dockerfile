@@ -5,10 +5,13 @@
 
 ARG DIR=.
 
-FROM amd64/nginx:1.19.3-alpine
+FROM alpine:3.12.0
 WORKDIR /app
 COPY ./docker/linux/amd64/api-proxy-module .
 COPY ./docker/linux/amd64/templates .
+RUN	apk update && \
+    apk add nginx && \
+	mkdir /run/nginx
 
 #expose ports
 EXPOSE 443/tcp	
