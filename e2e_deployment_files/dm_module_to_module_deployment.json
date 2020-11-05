@@ -40,8 +40,17 @@
               "UpstreamProtocol": {
                 "value": "<UpstreamProtocol>"
               },
-              "NestedEdgeEnabled": {
-                "value": "false"
+              "experimentalFeatures__enabled": {
+                "value": "true"
+              },
+              "experimentalFeatures__nestedEdgeEnabled": {
+                "value": "true"
+              },
+              "experimentalFeatures__mqttBrokerEnabled": {
+                "value": "true"
+              },
+              "RUST_LOG": {
+                "value": "debug"
               }
             },
             "status": "running",
@@ -93,6 +102,22 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200
+        },
+        "mqttBroker": {
+          "authorizations": [
+            {
+              "identities": [
+                  "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                      "mqtt:connect"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       }
     }

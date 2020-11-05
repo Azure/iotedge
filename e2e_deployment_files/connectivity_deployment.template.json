@@ -768,6 +768,22 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
+        },
+        "mqttBroker": {
+          "authorizations": [
+            {
+              "identities": [
+                  "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                      "mqtt:connect"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       }
     },

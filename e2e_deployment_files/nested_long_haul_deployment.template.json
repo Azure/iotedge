@@ -36,11 +36,17 @@
               "CollectMetrics": {
                 "value": "true"
               },
-              "NestedEdgeEnabled": {
+              "experimentalFeatures__enabled": {
                 "value": "true"
               },
-              "mqttBrokerSettings:enabled": {
+              "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "true"
+              },
+              "experimentalFeatures__mqttBrokerEnabled": {
+                "value": "true"
+              },
+              "RUST_LOG": {
+                "value": "debug"
               }
             },
             "status": "running",
@@ -443,6 +449,22 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
+        },
+        "mqttBroker": {
+          "authorizations": [
+            {
+              "identities": [
+                  "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                      "mqtt:connect"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       }
     },
