@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
                 if (!await this.AuthenticateAsync(deviceId, Option.None<string>(), Option.None<string>()))
                 {
-                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    await this.SendResponseAsync(HttpStatusCode.BadRequest);
                     return;
                 }
 
