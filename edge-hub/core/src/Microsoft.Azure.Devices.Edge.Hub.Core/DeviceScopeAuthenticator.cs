@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (!isAuthenticated && (!serviceIdentityFound || syncServiceIdentity))
             {
-                Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId);
+                Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId, serviceIdentityFound);
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
                 serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
 
@@ -247,9 +247,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogInformation((int)EventIds.InputCredentialsNotValid, $"Credentials for client {identity.Id} are not valid.");
             }
 
-            public static void ResyncingServiceIdentity(IIdentity identity, string serviceIdentityId)
+            public static void ResyncingServiceIdentity(IIdentity identity, string serviceIdentityId, bool identityFound)
             {
-                Log.LogInformation((int)EventIds.ResyncingServiceIdentity, $"Unable to authenticate client {identity.Id} with cached service identity {serviceIdentityId}. Resyncing service identity...");
+                Log.LogInformation((int)EventIds.ResyncingServiceIdentity, $"Unable to authenticate client {identity.Id} with cached service identity {serviceIdentityId} (Found: {identityFound}). Resyncing service identity...");
             }
 
             public static void NoAuthChainResyncing(string authTarget, string actorDevice)
