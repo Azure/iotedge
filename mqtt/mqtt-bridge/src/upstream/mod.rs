@@ -4,14 +4,14 @@ mod connectivity;
 mod events;
 mod rpc;
 
-pub use connectivity::{ConnectivityError, ConnectivityHandler, ConnectivityState};
+pub use connectivity::{ConnectivityError, ConnectivityMqttEventHandler, ConnectivityState};
 pub use events::{
     LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamPumpEvent,
     RemoteUpstreamPumpEventHandler,
 };
 pub use rpc::{
-    CommandId, LocalRpcHandler, RemoteRpcHandler, RpcCommand, RpcError, RpcPumpHandle,
-    RpcSubscriptions,
+    CommandId, LocalRpcMqttEventHandler, RemoteRpcMqttEventHandler, RpcCommand, RpcError,
+    RpcPumpHandle, RpcSubscriptions,
 };
 
 use async_trait::async_trait;
@@ -19,8 +19,8 @@ use mqtt3::Event;
 
 use crate::{
     bridge::BridgeError,
-    client::{EventHandler, Handled},
-    messages::MessageHandler,
+    client::{Handled, MqttEventHandler},
+    messages::StoreMqttEventHandler,
     persist::StreamWakeableState,
 };
 
@@ -28,32 +28,39 @@ use crate::{
 ///
 /// Contains several event handlers to process RPC and regular MQTT events
 /// in a chain.
-pub struct LocalUpstreamHandler<S> {
-    messages: MessageHandler<S>,
-    rpc: LocalRpcHandler,
+pub struct LocalUpstreamMqttEventHandler<S> {
+    messages: StoreMqttEventHandler<S>,
+    rpc: LocalRpcMqttEventHandler,
 }
 
-impl<S> LocalUpstreamHandler<S> {
-    pub fn new(messages: MessageHandler<S>, rpc: LocalRpcHandler) -> Self {
+impl<S> LocalUpstreamMqttEventHandler<S> {
+    pub fn new(messages: StoreMqttEventHandler<S>, rpc: LocalRpcMqttEventHandler) -> Self {
         Self { messages, rpc }
     }
 }
 
 #[async_trait]
-impl<S> EventHandler for LocalUpstreamHandler<S>
+impl<S> MqttEventHandler for LocalUpstreamMqttEventHandler<S>
 where
     S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
-        // try to handle as RPC command first
-        if self.rpc.handle(&event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
-        }
+    fn subscriptions(&self) -> Vec<String> {
+        let mut subscriptions = self.rpc.subscriptions();
+        subscriptions.extend(self.messages.subscriptions());
+        subscriptions
+    }
 
-        // handle as an event for regular message handler
-        self.messages.handle(&event).await
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
+        // try to handle as RPC command first
+        match self.rpc.handle(event).await? {
+            Handled::Fully => Ok(Handled::Fully),
+            Handled::Partially(event) | Handled::Skipped(event) => {
+                // handle as an event for regular message handler
+                self.messages.handle(event).await
+            }
+        }
     }
 }
 
@@ -61,17 +68,17 @@ where
 ///
 /// Contains several event handlers to process Connectivity, RPC and regular
 /// MQTT events in a chain.
-pub struct RemoteUpstreamHandler<S> {
-    messages: MessageHandler<S>,
-    rpc: RemoteRpcHandler,
-    connectivity: ConnectivityHandler,
+pub struct RemoteUpstreamMqttEventHandler<S> {
+    messages: StoreMqttEventHandler<S>,
+    rpc: RemoteRpcMqttEventHandler,
+    connectivity: ConnectivityMqttEventHandler,
 }
 
-impl<S> RemoteUpstreamHandler<S> {
+impl<S> RemoteUpstreamMqttEventHandler<S> {
     pub fn new(
-        messages: MessageHandler<S>,
-        rpc: RemoteRpcHandler,
-        connectivity: ConnectivityHandler,
+        messages: StoreMqttEventHandler<S>,
+        rpc: RemoteRpcMqttEventHandler,
+        connectivity: ConnectivityMqttEventHandler,
     ) -> Self {
         Self {
             messages,
@@ -82,22 +89,31 @@ impl<S> RemoteUpstreamHandler<S> {
 }
 
 #[async_trait]
-impl<S> EventHandler for RemoteUpstreamHandler<S>
+impl<S> MqttEventHandler for RemoteUpstreamMqttEventHandler<S>
 where
     S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
-    async fn handle(&mut self, event: &Event) -> Result<Handled, Self::Error> {
+    fn subscriptions(&self) -> Vec<String> {
+        let mut subscriptions = self.messages.subscriptions();
+        subscriptions.extend(self.rpc.subscriptions());
+        subscriptions.extend(self.connectivity.subscriptions());
+        subscriptions
+    }
+
+    async fn handle(&mut self, event: Event) -> Result<Handled, Self::Error> {
         // try to handle incoming connectivity event
-        if self.connectivity.handle(event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
-        }
+        let event = match self.connectivity.handle(event).await? {
+            Handled::Fully => return Ok(Handled::Fully),
+            Handled::Partially(event) | Handled::Skipped(event) => event,
+        };
 
         // try to handle incoming messages as RPC command
-        if self.rpc.handle(event).await? == Handled::Fully {
-            return Ok(Handled::Fully);
-        }
+        let event = match self.rpc.handle(event).await? {
+            Handled::Fully => return Ok(Handled::Fully),
+            Handled::Partially(event) | Handled::Skipped(event) => event,
+        };
 
         // handle as an event for regular message handler
         self.messages.handle(event).await

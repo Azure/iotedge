@@ -11,9 +11,9 @@
 mod local;
 mod remote;
 
-pub use local::LocalRpcHandler;
+pub use local::LocalRpcMqttEventHandler;
 use parking_lot::Mutex;
-pub use remote::{RemoteRpcHandler, RpcPumpHandle};
+pub use remote::{RemoteRpcMqttEventHandler, RpcPumpHandle};
 
 use std::{
     collections::HashMap, fmt::Display, fmt::Formatter, fmt::Result as FmtResult, sync::Arc,
@@ -56,8 +56,11 @@ pub enum RpcError {
     #[error("unable to send ack for {0}. {1}")]
     SendAck(CommandId, #[source] PumpError),
 
-    #[error("unable to command for {0} to remote pump. {1}")]
+    #[error("unable to send command for {0} to remote pump. {1}")]
     SendToRemotePump(CommandId, #[source] PumpError),
+
+    #[error("unable to send publication on {0} to remote pump. {1}")]
+    SendPublicationToLocalPump(String, #[source] PumpError),
 }
 
 /// RPC command to be executed against upstream broker.
@@ -111,7 +114,7 @@ pub struct RpcSubscriptions(Arc<Mutex<HashMap<String, CommandId>>>);
 
 impl RpcSubscriptions {
     /// Stores topic filter to command identifier mapping.
-    pub fn insert(&self, id: CommandId, topic_filter: &str) -> Option<CommandId> {
+    pub fn insert(&self, topic_filter: &str, id: CommandId) -> Option<CommandId> {
         self.0.lock().insert(topic_filter.into(), id)
     }
 

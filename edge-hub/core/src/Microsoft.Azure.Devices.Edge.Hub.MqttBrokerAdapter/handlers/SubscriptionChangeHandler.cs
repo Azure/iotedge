@@ -120,8 +120,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         {
                             Events.CouldNotObtainListener(subscriptionPattern.Subscrition.ToString(), identity.Id);
                         }
-
-                        break;
                     }
                 }
             }

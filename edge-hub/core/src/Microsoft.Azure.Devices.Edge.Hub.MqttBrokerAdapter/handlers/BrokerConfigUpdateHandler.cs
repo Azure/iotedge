@@ -61,10 +61,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Events.PublishPolicyUpdate(policyUpdate);
 
                 var policyPayload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(policyUpdate));
-                await this.connector.SendAsync(PolicyUpdateTopic, policyPayload);
+                await this.connector.SendAsync(PolicyUpdateTopic, policyPayload, retain: true);
 
                 var bridgePayload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(bridgeUpdate));
-                await this.connector.SendAsync(BridgeUpdateTopic, bridgePayload);
+                await this.connector.SendAsync(BridgeUpdateTopic, bridgePayload, retain: true);
             }
             catch (Exception ex)
             {
@@ -94,10 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static PolicyUpdate GetEmptyPolicy()
         {
-            return new PolicyUpdate(@"
-            {
-                'statements': [ ]
-            }");
+            return new PolicyUpdate(@"{""statements"": [ ] }");
         }
 
         static BridgeConfig GetEmptyBridgeConfig()
