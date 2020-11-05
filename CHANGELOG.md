@@ -3,11 +3,11 @@
 ### Bug Fixes
 * Eliminate redundant calls to get a module's twin [286f15b](https://github.com/Azure/iotedge/commit/286f15bec93f745e2f8325908c696417d0891c5b)
 * Fix a problem with batch metrics upload [ab8de09](https://github.com/Azure/iotedge/commit/ab8de098cec64f28eba1f53fe5fbcf387add9795)
-* Fix vulnerability issues in docker images [b8bc9f0](https://github.com/Azure/iotedge/commit/b8bc9f08a2bcc8b4ddc8bf2bf69ba6a2c8b4e87d)
+* Fix vulnerability issues in ARM-based docker images [b8bc9f0](https://github.com/Azure/iotedge/commit/b8bc9f08a2bcc8b4ddc8bf2bf69ba6a2c8b4e87d)
 
 ## Edge Hub
 ### Bug Fixes
-* Fix vulnerability issues in docker images [b8bc9f0](https://github.com/Azure/iotedge/commit/b8bc9f08a2bcc8b4ddc8bf2bf69ba6a2c8b4e87d)
+* Fix vulnerability issues in ARM-based docker images [b8bc9f0](https://github.com/Azure/iotedge/commit/b8bc9f08a2bcc8b4ddc8bf2bf69ba6a2c8b4e87d)
 
 ## iotedged
 ### Bug Fixes
