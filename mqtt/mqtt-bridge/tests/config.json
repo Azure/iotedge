@@ -21,6 +21,12 @@
             {
                 "direction": "out",
                 "topic": "pattern/#"
+            },
+            {
+                "direction": "out",
+                "topic": "floor2/#",
+                "inPrefix": "",
+                "outPrefix": ""
             }
         ]
     },
