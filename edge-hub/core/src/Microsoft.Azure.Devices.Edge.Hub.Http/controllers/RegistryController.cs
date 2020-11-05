@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
@@ -148,6 +149,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             {
                 Events.ReceivedRequest(nameof(this.ListModulesAsync), deviceId);
 
+                if (!this.HttpContext.Request.Query.ContainsKey("api-version"))
+                {
+                    Dictionary<string, string> headers = new Dictionary<string, string>();
+                    headers.Add("iothub-errorcode", "InvalidProtocolVersion");
+                    await this.SendResponseAsync(HttpStatusCode.BadRequest, string.Empty, headers);
+                    return;
+                }
+
                 try
                 {
                     deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
@@ -161,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
                 if (!await this.AuthenticateAsync(deviceId, Option.None<string>(), Option.None<string>()))
                 {
-                    await this.SendResponseAsync(HttpStatusCode.BadRequest);
+                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
                     return;
                 }
 
@@ -513,9 +522,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return false;
         }
 
-        async Task SendResponseAsync(HttpStatusCode status, string jsonContent = "")
+        async Task SendResponseAsync(HttpStatusCode status, string jsonContent = "", Dictionary<string, string> headers = null)
         {
             this.Response.StatusCode = (int)status;
+
+            if (headers != null)
+            {
+                foreach (var header in headers)
+                {
+                    this.Response.Headers.Add(header.Key, header.Value);
+                }
+            }
 
             if (!string.IsNullOrEmpty(jsonContent))
             {
