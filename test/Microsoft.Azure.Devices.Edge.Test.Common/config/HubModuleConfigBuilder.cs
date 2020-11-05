@@ -17,13 +17,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 {
                     ["schemaVersion"] = "1.1",
                     ["routes"] = new { route1 = "from /* INTO $upstream" },
-                    ["storeAndForwardConfiguration"] = new { timeToLiveSecs = 7200 }
+                    ["storeAndForwardConfiguration"] = new { timeToLiveSecs = 7200 },
+                    ["mqttBroker"] = new Dictionary<string, object>
+                    {
+                        ["authorizations"] = new
+                        {
+                            identities = "{{iot:identity}}",
+                            allow = new { operations = "mqtt:connect" }
+                        }
+                    }
                 });
 
             if (!optimizeForPerformance)
             {
                 this.WithEnvironment(new[] { ("OptimizeForPerformance", false.ToString()) });
             }
+
+            this.WithEnvironment(new[] { ("experimentalFeatures__enabled", "true") })
+                .WithEnvironment(new[] { ("experimentalFeatures__nestedEdgeEnabled", "true") })
+                .WithEnvironment(new[] { ("experimentalFeatures__mqttBrokerEnabled", "true") })
+                .WithEnvironment(new[] { ("RUST_LOG", "debug") });
         }
     }
 }
