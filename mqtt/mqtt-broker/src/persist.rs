@@ -536,7 +536,7 @@ pub enum PersistError {
     TaskJoin(#[source] Option<tokio::task::JoinError>),
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_arch = "x86_64"))]
 mod tests {
     use std::io::Cursor;
 
@@ -544,32 +544,14 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::{
-        persist::{ConsolidatedState, FileFormat, FilePersistor, Persist, VersionedFileFormat},
+        persist::{FileFormat, FilePersistor, Persist, VersionedFileFormat},
         proptest::arb_broker_snapshot,
         BrokerSnapshot,
     };
 
     proptest! {
         #[test]
-        fn consolidate_simple(state in arb_broker_snapshot()) {
-            let (expected_retained, expected_sessions) = state.clone().into_parts();
-
-            let consolidated: ConsolidatedState = state.into();
-            prop_assert_eq!(expected_retained.len(), consolidated.retained.len());
-            prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
-
-            let state: BrokerSnapshot = consolidated.into();
-            let (result_retained, result_sessions) = state.into_parts();
-
-            prop_assert_eq!(expected_retained, result_retained);
-            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
-            for i in 0..expected_sessions.len(){
-                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
-            }
-        }
-
-        #[test]
-        fn consolidate_roundtrip(state in arb_broker_snapshot()) {
+        fn broker_state_versioned_file_format_persistance_test(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
             let format = VersionedFileFormat;
             let mut buffer = vec![0_u8; 10 * 1024 * 1024];
@@ -581,10 +563,7 @@ mod tests {
             let (result_retained, result_sessions) = state.into_parts();
 
             prop_assert_eq!(expected_retained, result_retained);
-            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
-            for i in 0..expected_sessions.len(){
-                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
-            }
+            prop_assert_eq!(expected_sessions, result_sessions);
         }
     }
 

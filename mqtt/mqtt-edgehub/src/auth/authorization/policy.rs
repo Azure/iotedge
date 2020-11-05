@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::debug;
+use tracing::{debug, info};
 
-use mqtt_broker::auth::{Activity, Authorization, Authorizer, Operation};
+use mqtt_broker::{
+    auth::{Activity, Authorization, Authorizer, Operation},
+    BrokerReadyEvent, BrokerReadyHandle,
+};
 use mqtt_policy::{MqttSubstituter, MqttTopicFilterMatcher, MqttValidator};
 use policy::{Decision, Policy, PolicyBuilder, Request};
 
@@ -16,13 +19,23 @@ use policy::{Decision, Policy, PolicyBuilder, Request};
 pub struct PolicyAuthorizer {
     policy: Option<Policy<MqttTopicFilterMatcher, MqttSubstituter>>,
     device_id: String,
+    broker_ready: Option<BrokerReadyHandle>,
 }
 
 impl PolicyAuthorizer {
-    pub fn new(device_id: impl Into<String>) -> Self {
+    pub fn new(device_id: impl Into<String>, broker_ready: BrokerReadyHandle) -> Self {
         Self {
             policy: None,
             device_id: device_id.into(),
+            broker_ready: Some(broker_ready),
+        }
+    }
+
+    pub fn without_ready_handle(device_id: impl Into<String>) -> Self {
+        Self {
+            policy: None,
+            device_id: device_id.into(),
+            broker_ready: None,
         }
     }
 }
@@ -55,7 +68,12 @@ impl Authorizer for PolicyAuthorizer {
     fn update(&mut self, update: Box<dyn std::any::Any>) -> Result<(), Self::Error> {
         if let Some(policy_update) = update.downcast_ref::<PolicyUpdate>() {
             self.policy = Some(build_policy(&policy_update.definition, &self.device_id)?);
-            debug!("policy engine has been updated.");
+            info!("policy engine has been updated.");
+
+            // signal that policy has been initialized
+            if let Some(mut broker_ready) = self.broker_ready.take() {
+                broker_ready.send(BrokerReadyEvent::PolicyReady);
+            }
         }
         Ok(())
     }
@@ -99,7 +117,7 @@ fn identity(activity: &Activity) -> &str {
 
 fn operation(activity: &Activity) -> &str {
     match activity.operation() {
-        Operation::Connect(_) => "mqtt:connect",
+        Operation::Connect => "mqtt:connect",
         Operation::Publish(_) => "mqtt:publish",
         Operation::Subscribe(_) => "mqtt:subscribe",
     }
@@ -108,7 +126,7 @@ fn operation(activity: &Activity) -> &str {
 fn resource(activity: &Activity) -> &str {
     match activity.operation() {
         // this is intentional. mqtt:connect should have empty resource.
-        Operation::Connect(_) => "",
+        Operation::Connect => "",
         Operation::Publish(publish) => publish.publication().topic_name(),
         Operation::Subscribe(subscribe) => subscribe.topic_filter(),
     }
@@ -127,7 +145,7 @@ mod tests {
 
     #[test]
     fn error_on_uninitialized_policy() {
-        let authorizer = PolicyAuthorizer::new("test");
+        let authorizer = PolicyAuthorizer::without_ready_handle("test");
 
         let activity = tests::publish_activity("device-1", "device-1", "topic");
 
@@ -163,7 +181,7 @@ mod tests {
     }
 
     fn authorizer() -> PolicyAuthorizer {
-        let mut authorizer = PolicyAuthorizer::new("test_device_id");
+        let mut authorizer = PolicyAuthorizer::without_ready_handle("test_device_id");
 
         let definition = r###"{
             "schemaVersion": "2020-10-30",

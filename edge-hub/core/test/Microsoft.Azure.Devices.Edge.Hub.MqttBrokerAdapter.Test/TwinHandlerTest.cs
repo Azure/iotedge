@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             _ = await sut.HandleAsync(publishInfo);
             await milestone.WaitAsync();
 
-            Assert.Equal(new byte [] { 1, 2, 3 }, listenerCapture.Captured.CapturedMessage.Body);
+            Assert.Equal(new byte[] { 1, 2, 3 }, listenerCapture.Captured.CapturedMessage.Body);
         }
 
         [Fact]
@@ -154,10 +154,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new TwinHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.SendTwinUpdate(twin, identity);
+            await sut.SendTwinUpdate(twin, identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
 
         [Fact]
@@ -174,10 +174,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new TwinHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.SendTwinUpdate(twin, identity);
+            await sut.SendTwinUpdate(twin, identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
 
         [Fact]
@@ -199,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new TwinHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.SendTwinUpdate(twin, identity);
+            await sut.SendTwinUpdate(twin, identity, true);
 
             Assert.Equal("$edgehub/device_id/twin/res/200/?$rid=123", sendCapture.Topic);
         }
@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new TwinHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.SendTwinUpdate(twin, identity);
+            await sut.SendTwinUpdate(twin, identity, true);
 
             Assert.Equal(new byte[] { 1, 2, 3 }, sendCapture.Content);
         }
@@ -240,10 +240,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new TwinHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.SendDesiredPropertiesUpdate(twin, identity);
+            await sut.SendDesiredPropertiesUpdate(twin, identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
 
         [Fact]
@@ -257,14 +257,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var twin = new EdgeMessage.Builder(new byte[] { 1, 2, 3 })
                                       .SetSystemProperties(new Dictionary<string, string>()
                                       {
-                                          [SystemProperties.Version] = "123"                                          
+                                          [SystemProperties.Version] = "123"
                                       })
                                       .Build();
 
             var sut = new TwinHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.SendDesiredPropertiesUpdate(twin, identity);
+            await sut.SendDesiredPropertiesUpdate(twin, identity, true);
 
             Assert.Equal("$edgehub/device_id/twin/desired/?$version=123", sendCapture.Topic);
         }
@@ -274,7 +274,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var testStrings = new[] { "$edgehub/device_id/module_id/twin/get/?$rid=123",
                                       "$edgehub/device_id/twin/get/?$rid=123",
                                       "$edgehub/device_id/module_id/twin/reported/?$rid=123",
-                                      "$edgehub/device_id/twin/reported/?$rid=123"
+                                      "$edgehub/device_id/twin/reported/?$rid=123",
+                                      "$iothub/device_id/module_id/twin/get/?$rid=123",
+                                      "$iothub/device_id/twin/get/?$rid=123",
+                                      "$iothub/device_id/module_id/twin/reported/?$rid=123",
+                                      "$iothub/device_id/twin/reported/?$rid=123"
             };
 
             return testStrings.Select(s => new string[] { s });
@@ -308,8 +312,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Returns((string device_id, string module_id) => new ModuleIdentity("host", device_id, module_id));
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>()))
-                .Returns((IIdentity i) => CreateListenerFromIdentity(i));
+                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
+                .Returns((IIdentity i, bool _) => CreateListenerFromIdentity(i));
 
             return (connectionRegistry, identityProvider);
 
@@ -348,8 +352,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             var connector = Mock.Of<IMqttBrokerConnector>();
             Mock.Get(connector)
-                .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()))
-                .Returns((string topic, byte[] content) =>
+                .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()))
+                .Returns((string topic, byte[] content, bool retain) =>
                 {
                     sendCapture?.Caputre(topic, content);
                     return Task.FromResult(true);
@@ -373,13 +377,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
 
             public IIdentity Identity { get; }
-            
+
             public Task AddDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
             public Task AddSubscription(DeviceSubscription subscription) => Task.CompletedTask;
             public Task CloseAsync() => Task.CompletedTask;
             public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message) => Task.CompletedTask;
             public Task RemoveDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
-            public Task RemoveSubscription(DeviceSubscription subscription) => Task.CompletedTask;                        
+            public Task RemoveSubscription(DeviceSubscription subscription) => Task.CompletedTask;
             public Task ProcessDeviceMessageAsync(IMessage message) => Task.CompletedTask;
             public Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus) => Task.CompletedTask;
             public Task ProcessMethodResponseAsync(IMessage message) => Task.CompletedTask;

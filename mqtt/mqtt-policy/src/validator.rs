@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use mqtt_broker::TopicFilter;
 use policy::{PolicyDefinition, PolicyValidator, Statement};
 
-use crate::{errors::Error, substituter};
+use crate::{errors::Error, substituter::VariableIter};
 
 /// MQTT-specific implementation of `PolicyValidator`. It checks the following rules:
 /// * Valid schema version.
@@ -21,10 +21,7 @@ impl PolicyValidator for MqttValidator {
     type Error = Error;
 
     fn validate(&self, definition: &PolicyDefinition) -> Result<(), Error> {
-        match definition.schema_version().as_ref() {
-            "2020-10-30" => visit_definition(definition),
-            version => Err(Error::UnsupportedVersion(version.into())),
-        }
+        visit_definition(definition)
     }
 }
 
@@ -81,8 +78,8 @@ fn visit_identity(value: &str) -> Result<(), Error> {
     if value.is_empty() {
         return Err(Error::InvalidIdentity(value.into()));
     }
-    if let Some(variable) = substituter::extract_variable(value) {
-        if VALID_IDENTITY_VARIABLES.get(variable).is_none() {
+    for variable in VariableIter::new(value) {
+        if VALID_VARIABLES.get(variable).is_none() {
             return Err(Error::InvalidIdentityVariable(variable.into()));
         }
     }
@@ -100,8 +97,8 @@ fn visit_resource(value: &str) -> Result<(), Error> {
     if value.is_empty() {
         return Err(Error::InvalidResource(value.into()));
     }
-    if let Some(variable) = substituter::extract_variable(value) {
-        if VALID_RESOURCE_VARIABLES.get(variable).is_none() {
+    for variable in VariableIter::new(value) {
+        if VALID_VARIABLES.get(variable).is_none() {
             return Err(Error::InvalidResourceVariable(variable.into()));
         }
     }
@@ -117,20 +114,12 @@ fn is_connect_op(statement: &Statement) -> bool {
 }
 
 lazy_static! {
-    static ref VALID_IDENTITY_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
+    static ref VALID_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
         crate::IDENTITY_VAR.into(),
         crate::DEVICE_ID_VAR.into(),
         crate::MODULE_ID_VAR.into(),
         crate::CLIENT_ID_VAR.into(),
         crate::EDGEHUB_ID_VAR.into(),
-    ]);
-    static ref VALID_RESOURCE_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
-        crate::IDENTITY_VAR.into(),
-        crate::DEVICE_ID_VAR.into(),
-        crate::MODULE_ID_VAR.into(),
-        crate::CLIENT_ID_VAR.into(),
-        crate::EDGEHUB_ID_VAR.into(),
-        crate::TOPIC_VAR.into(),
     ]);
 }
 
@@ -179,32 +168,6 @@ mod tests {
         }"#;
 
         assert_matches!(MqttValidator.validate(&build_definition(json)), Ok(()));
-    }
-
-    #[test]
-    fn unsupported_schema_version() {
-        let json = r#"{
-            "schemaVersion": "invalid!!!",
-            "statements": [
-                {
-                    "effect": "allow",
-                    "identities": [
-                        "contoso.azure-devices.net/monitor_a"
-                    ],
-                    "operations": [
-                        "mqtt:publish"
-                    ],
-                    "resources": [
-                        "topic/a"
-                    ]
-                }
-            ]
-        }"#;
-
-        assert_eq!(
-            MqttValidator.validate(&build_definition(json)),
-            Err(Error::UnsupportedVersion("invalid!!!".into()))
-        );
     }
 
     #[test]

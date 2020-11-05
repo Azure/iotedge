@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
@@ -25,6 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
             await this.DeployAsync(token);
+
+            var agent = new EdgeAgent(this.runtime.DeviceId, this.iotHub);
+            await agent.PingAsync(token);
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);

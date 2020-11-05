@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var mqttSettingsConfiguration = new Mock<IConfiguration>();
             mqttSettingsConfiguration.Setup(c => c.GetSection(It.IsAny<string>())).Returns(Mock.Of<IConfigurationSection>(s => s.Value == null));
 
-            var experimentalFeatures = new ExperimentalFeatures(true, false, false);
+            var experimentalFeatures = new ExperimentalFeatures(true, false, false, false, false);
 
             builder.RegisterBuildCallback(
                 c =>
@@ -205,7 +205,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
                     true,
-                    false));
+                    false,
+                    true));
 
             builder.RegisterModule(new HttpModule("Edge1"));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));

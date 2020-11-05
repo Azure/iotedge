@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new DirectMethodHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.CallDirectMethodAsync(method, identity);
+            await sut.CallDirectMethodAsync(method, identity, true);
 
             Assert.Equal("$edgehub/device_id/module_id/methods/post/method/?$rid=" + method.CorrelationId, capture.Topic);
         }
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new DirectMethodHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.CallDirectMethodAsync(method, identity);
+            await sut.CallDirectMethodAsync(method, identity, true);
 
             Assert.Equal("$edgehub/device_id/methods/post/method/?$rid=" + method.CorrelationId, capture.Topic);
         }
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var sut = new DirectMethodHandler(connectionRegistry, identityProvider);
             sut.SetConnector(connector);
 
-            await sut.CallDirectMethodAsync(method, identity);
+            await sut.CallDirectMethodAsync(method, identity, true);
 
             Assert.Equal(new byte[] { 1, 2, 3 }, capture.Content);
         }
@@ -159,7 +159,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public static IEnumerable<object[]> DirectMethodTopics()
         {
             var testStrings = new[] { "$edgehub/device_id/methods/res/200/?$rid=abcde",
-                                      "$edgehub/device_id/module_id/methods/res/200/?$rid=abcde"
+                                      "$edgehub/device_id/module_id/methods/res/200/?$rid=abcde",
+                                      "$iothub/device_id/methods/res/200/?$rid=abcde",
+                                      "$iothub/device_id/module_id/methods/res/200/?$rid=abcde"
             };
 
             return testStrings.Select(s => new string[] { s });
@@ -179,8 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Returns((string device_id, string module_id) => new ModuleIdentity("host", device_id, module_id));
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>()))
-                .Returns((IIdentity i) => CreateListenerFromIdentity(i));
+                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
+                .Returns((IIdentity i, bool _) => CreateListenerFromIdentity(i));
 
             return (connectionRegistry, identityProvider);
 
@@ -200,8 +202,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             var connector = Mock.Of<IMqttBrokerConnector>();
             Mock.Get(connector)
-                .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()))
-                .Returns((string topic, byte[] content) =>
+                .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()))
+                .Returns((string topic, byte[] content, bool retain) =>
                 {
                     sendCapture?.Caputre(topic, content);
                     return Task.FromResult(true);
@@ -241,14 +243,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             public Task AddDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
             public Task AddSubscription(DeviceSubscription subscription) => Task.CompletedTask;
             public Task CloseAsync() => Task.CompletedTask;
-            public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message) => Task.CompletedTask;            
+            public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message) => Task.CompletedTask;
             public Task RemoveDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
             public Task RemoveSubscription(DeviceSubscription subscription) => Task.CompletedTask;
             public Task SendGetTwinRequest(string correlationId) => Task.CompletedTask;
             public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId) => Task.CompletedTask;
             public Task ProcessDeviceMessageAsync(IMessage message) => Task.CompletedTask;
             public Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus) => Task.CompletedTask;
-           
+
             public Task ProcessMethodResponseAsync(IMessage message)
             {
                 this.CapturedMessage = message;

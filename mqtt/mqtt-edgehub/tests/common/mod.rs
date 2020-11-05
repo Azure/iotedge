@@ -3,7 +3,10 @@ use std::{any::Any, error::Error as StdError};
 use tokio::task::JoinHandle;
 
 use mqtt3::ShutdownError;
-use mqtt_broker::auth::{Activity, Authorization, Authorizer};
+use mqtt_broker::{
+    auth::{Activity, Authorization, Authorizer},
+    sidecar::Sidecar,
+};
 use mqtt_edgehub::command::{Command, CommandHandler, ShutdownHandle};
 
 pub const LOCAL_BROKER_SUFFIX: &str = "$edgeHub/$broker";
@@ -17,6 +20,7 @@ impl<Z> DummyAuthorizer<Z>
 where
     Z: Authorizer,
 {
+    #![allow(dead_code)]
     pub fn new(authorizer: Z) -> Self {
         Self(authorizer)
     }
@@ -55,10 +59,8 @@ where
     C: Command<Error = E> + Send + 'static,
     E: StdError + 'static,
 {
-    let mut command_handler = CommandHandler::new(system_address, "test-device");
+    let mut command_handler = Box::new(CommandHandler::new(system_address, "test-device"));
     command_handler.add_command(command);
-
-    command_handler.init().await.unwrap();
 
     let shutdown_handle: ShutdownHandle = command_handler.shutdown_handle().unwrap();
 

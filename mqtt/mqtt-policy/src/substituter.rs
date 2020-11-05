@@ -1,4 +1,4 @@
-use mqtt_broker::auth::{Activity, Operation};
+use mqtt_broker::auth::Activity;
 use policy::{Request, Result, Substituter};
 
 #[allow(clippy::doc_markdown)]
@@ -25,24 +25,33 @@ impl MqttSubstituter {
     }
 
     fn replace_variable(&self, value: &str, context: &Request<Activity>) -> String {
-        if let Some(context) = context.context() {
-            if let Some(variable) = extract_variable(value) {
-                return match variable {
-                    crate::CLIENT_ID_VAR => {
-                        replace(value, variable, context.client_info().client_id().as_str())
-                    }
-                    crate::IDENTITY_VAR => {
-                        replace(value, variable, context.client_info().auth_id().as_str())
-                    }
-                    crate::DEVICE_ID_VAR => replace(value, variable, extract_device_id(&context)),
-                    crate::MODULE_ID_VAR => replace(value, variable, extract_module_id(&context)),
-                    crate::EDGEHUB_ID_VAR => replace(value, variable, self.device_id()),
-                    crate::TOPIC_VAR => replace_topic(value, variable, context),
-                    _ => value.to_string(),
-                };
+        match context.context() {
+            Some(context) => {
+                let mut result = value.to_owned();
+                for variable in VariableIter::new(value) {
+                    result = match variable {
+                        crate::CLIENT_ID_VAR => replace(
+                            &result,
+                            variable,
+                            context.client_info().client_id().as_str(),
+                        ),
+                        crate::IDENTITY_VAR => {
+                            replace(&result, variable, context.client_info().auth_id().as_str())
+                        }
+                        crate::DEVICE_ID_VAR => {
+                            replace(&result, variable, extract_device_id(&context))
+                        }
+                        crate::MODULE_ID_VAR => {
+                            replace(&result, variable, extract_module_id(&context))
+                        }
+                        crate::EDGEHUB_ID_VAR => replace(&result, variable, self.device_id()),
+                        _ => result,
+                    };
+                }
+                result
             }
+            None => value.to_owned(),
         }
-        value.to_string()
     }
 }
 
@@ -58,20 +67,35 @@ impl Substituter for MqttSubstituter {
     }
 }
 
-pub(super) fn extract_variable(value: &str) -> Option<&str> {
-    if let Some(start) = value.find("{{") {
-        if let Some(end) = value.find("}}") {
-            return Some(&value[start..end + 2]);
-        }
-    }
-    None
+/// A simple iterator that returns all occurrences
+/// of variable substrings like `{{var_name}}` in the
+/// provided string value.
+#[derive(Debug)]
+pub(super) struct VariableIter<'a> {
+    value: &'a str,
+    index: usize,
 }
 
-fn replace_topic(value: &str, variable: &str, context: &Activity) -> String {
-    match context.operation() {
-        Operation::Publish(publish) => replace(value, variable, publish.publication().topic_name()),
-        Operation::Subscribe(subscribe) => replace(value, variable, subscribe.topic_filter()),
-        _ => value.to_string(),
+impl<'a> VariableIter<'a> {
+    pub fn new(value: &'a str) -> Self {
+        Self { value, index: 0 }
+    }
+}
+
+impl<'a> Iterator for VariableIter<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let value = &self.value[self.index..];
+        if let Some(start) = value.find("{{") {
+            if let Some(end) = value.find("}}") {
+                if start < end {
+                    self.index = self.index + end + 2;
+                    return Some(&value[start..end + 2]);
+                }
+            }
+        }
+        None
     }
 }
 
@@ -91,6 +115,7 @@ fn extract_module_id(activity: &Activity) -> &str {
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
     use test_case::test_case;
 
     use crate::tests;
@@ -157,6 +182,26 @@ mod tests {
         "test_device_client_id", 
         "{{{}bad}}}"; 
         "bad variable")]
+    #[test_case("{{{}bad}", 
+        "test_device_auth_id", 
+        "test_device_client_id", 
+        "{{{}bad}"; 
+        "bad variable 2")]
+    #[test_case("{}bad}}", 
+        "test_device_auth_id", 
+        "test_device_client_id", 
+        "{}bad}}"; 
+        "bad variable 3")]
+    #[test_case("{{iot:this_device_id}}{{iot:module_id}}", 
+        "test_device_auth_id/test_module", 
+        "test_device_client_id", 
+        "edge_devicetest_module"; 
+        "multiple variable")]
+    #[test_case("namespace-{{iot:this_device_id}}/{{iot:module_id}}-suffix", 
+        "test_device_auth_id/test_module", 
+        "test_device_client_id", 
+        "namespace-edge_device/test_module-suffix"; 
+        "multiple variable substring")]
     fn visit_identity_test(input: &str, auth_id: &str, client_id: &str, expected: &str) {
         let request = Request::with_context(
             "some_identity",
@@ -224,16 +269,6 @@ mod tests {
         "test_device_client_id", 
         "namespace-edge_device-suffix"; 
         "iot:this_device_id variable substring")]
-    #[test_case("{{mqtt:topic}}", 
-        "test_device_auth_id", 
-        "test_device_client_id", 
-        "/foo/bar"; 
-        "mqtt:topic variable")]
-    #[test_case("namespace-{{mqtt:topic}}-suffix", 
-        "test_device_auth_id", 
-        "test_device_client_id", 
-        "namespace-/foo/bar-suffix"; 
-        "mqtt:topic variable substring")]
     #[test_case("{{invalid}}", 
         "test_device_auth_id", 
         "test_device_client_id", 
@@ -244,6 +279,26 @@ mod tests {
         "test_device_client_id", 
         "{{{}bad}}}"; 
         "bad variable")]
+    #[test_case("{{{}bad}", 
+        "test_device_auth_id", 
+        "test_device_client_id", 
+        "{{{}bad}"; 
+        "bad variable 2")]
+    #[test_case("{}bad}}", 
+        "test_device_auth_id", 
+        "test_device_client_id", 
+        "{}bad}}"; 
+        "bad variable 3")]
+    #[test_case("{{iot:this_device_id}}{{iot:module_id}}", 
+        "test_device_auth_id/test_module", 
+        "test_device_client_id", 
+        "edge_devicetest_module"; 
+        "multiple variable")]
+    #[test_case("namespace-{{iot:this_device_id}}/{{iot:module_id}}-suffix", 
+        "test_device_auth_id/test_module", 
+        "test_device_client_id", 
+        "namespace-edge_device/test_module-suffix"; 
+        "multiple variable substring")]
     fn visit_resource_test(input: &str, auth_id: &str, client_id: &str, expected: &str) {
         let request = Request::with_context(
             "some_identity",
@@ -259,5 +314,12 @@ mod tests {
                 .visit_resource(input, &request)
                 .unwrap()
         );
+    }
+
+    proptest! {
+        #[test]
+        fn iterator_does_not_crash(value in "[a-z\\{\\}]+") {
+            drop(VariableIter::new(&value).collect::<Vec<_>>());
+        }
     }
 }

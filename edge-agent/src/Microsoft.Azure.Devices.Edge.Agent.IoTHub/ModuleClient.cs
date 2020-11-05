@@ -110,12 +110,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task SendEventBatchAsync(IEnumerable<Message> messages)
+        //// public async Task SendEventBatchAsync(IEnumerable<Message> messages)
+        //// {
+        ////    try
+        ////    {
+        ////        this.inactivityTimer.Reset();
+        ////        await this.inner.SendEventBatchAsync(messages);
+        ////    }
+        ////    catch (Exception e)
+        ////    {
+        ////        await this.HandleException(e);
+        ////        throw;
+        ////    }
+        //// }
+
+        public async Task SendEventAsync(Message message)
         {
             try
             {
                 this.inactivityTimer.Reset();
-                await this.inner.SendEventBatchAsync(messages);
+                await this.inner.SendEventAsync(message);
             }
             catch (Exception e)
             {

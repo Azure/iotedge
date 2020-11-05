@@ -97,7 +97,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             logger.LogInformation("Initializing configuration");
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
-            await configUpdater.Init(configSource);
+            var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
+            _ = configUpdater.Init(configSource).ContinueWith(
+                                                        _ => configUpdaterStartupFailed.SetResult(false),
+                                                        TaskContinuationOptions.OnlyOnFaulted);
 
             if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)
@@ -115,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 try
                 {
                     await protocolHead.StartAsync();
-                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
+                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled(), configUpdaterStartupFailed.Task);
                 }
                 catch (Exception ex)
                 {
@@ -146,8 +149,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
         {
+            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
+
             var protocolHeads = new List<IProtocolHead>();
-            if (configuration.GetValue("mqttSettings:enabled", true))
+
+            // MQTT broker overrides the legacy MQTT protocol head
+            if (configuration.GetValue("mqttSettings:enabled", true) && !experimentalFeatures.EnableMqttBroker)
             {
                 protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
             }
@@ -163,13 +171,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             var orderedProtocolHeads = new List<IProtocolHead>();
-            if (configuration.GetValue("mqttBrokerSettings:enabled", true))
+            if (experimentalFeatures.EnableMqttBroker)
             {
                 orderedProtocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
-            }
-
-            if (configuration.GetValue("authAgentSettings:enabled", true))
-            {
                 orderedProtocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
             }
 
