@@ -79,19 +79,19 @@ impl Default for Settings {
 }
 
 fn convert_to_old_env_variable() {
-    if let Ok(val) = env::var("mqttBroker:max_queued_messages") {
+    if let Ok(val) = env::var("mqttBroker__max_queued_messages") {
         env::set_var("BROKER__SESSION__max_queued_messages", val);
     }
 
-    if let Ok(val) = env::var("mqttBroker:max_queued_bytes") {
+    if let Ok(val) = env::var("mqttBroker__max_queued_bytes") {
         env::set_var("BROKER__SESSION__max_queued_size", val);
     }
 
-    if let Ok(val) = env::var("mqttBroker:max_inflight_messages") {
+    if let Ok(val) = env::var("mqttBroker__max_inflight_messages") {
         env::set_var("BROKER__SESSION__max_inflight_messages", val);
     }
 
-    if let Ok(val) = env::var("mqttBroker:when_full") {
+    if let Ok(val) = env::var("mqttBroker__when_full") {
         env::set_var("BROKER__SESSION__when_full", val);
     }
 }
@@ -244,10 +244,10 @@ mod tests {
     #[test]
     #[serial(env_settings)]
     fn check_env_var_name_override() {
-        let _max_inflight_messages = env::set_var("mqttBroker:max_inflight_messages", "17");
-        let _max_queued_messages = env::set_var("mqttBroker:max_queued_messages", "1001");
-        let _max_queued_bytes = env::set_var("mqttBroker:max_queued_bytes", "1");
-        let _when_full = env::set_var("mqttBroker:when_full", "drop_old");
+        let _max_inflight_messages = env::set_var("mqttBroker__max_inflight_messages", "17");
+        let _max_queued_messages = env::set_var("mqttBroker__max_queued_messages", "1001");
+        let _max_queued_bytes = env::set_var("mqttBroker__max_queued_bytes", "1");
+        let _when_full = env::set_var("mqttBroker__when_full", "drop_old");
 
         let settings = Settings::new().unwrap();
 
