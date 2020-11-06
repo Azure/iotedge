@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             string[] commands = packagesPath.Match(
                 p => this.packageManagement.GetInstallCommandsFromLocal(p),
-                () => this.packageManagement.GetInstallCommandsFromMicrosoftProd());
+                () => this.packageManagement.GetInstallCommandsFromMicrosoftProd(proxy));
 
             await Profiler.Run(
                 async () =>

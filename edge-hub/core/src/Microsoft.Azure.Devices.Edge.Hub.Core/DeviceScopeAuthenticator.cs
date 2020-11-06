@@ -134,8 +134,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(authTarget);
             if (!authChain.HasValue)
             {
-                Events.NoAuthChain(authTarget);
-                return (false, false);
+                // The auth-target might be a new device that was recently added, and our
+                // cache might not have it yet. Try refreshing the target identity to see
+                // if we can get it from upstream.
+                Events.NoAuthChainResyncing(authTarget, actorDeviceId);
+                await this.deviceScopeIdentitiesCache.RefreshServiceIdentityOnBehalfOf(authTarget, actorDeviceId);
+                authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(authTarget);
+
+                if (!authChain.HasValue)
+                {
+                    // Still don't have a valid auth-chain for the target, it must be
+                    // out of scope, so we're done here
+                    Events.NoAuthChain(authTarget);
+                    return (false, false);
+                }
             }
 
             // Check that the actor is authorized to connect OnBehalfOf of the target
@@ -148,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             // Check credentials against the acting EdgeHub
             string actorEdgeHubId = actorDeviceId + $"/{Constants.EdgeHubModuleId}";
-            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, syncServiceIdentity);
+            return await this.AuthenticateWithServiceIdentity(credentials, actorEdgeHubId, true);
         }
 
         async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity)
@@ -158,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (!isAuthenticated && (!serviceIdentityFound || syncServiceIdentity))
             {
-                Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId);
+                Events.ResyncingServiceIdentity(credentials.Identity, serviceIdentityId, serviceIdentityFound);
                 await this.deviceScopeIdentitiesCache.RefreshServiceIdentity(serviceIdentityId);
                 serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
 
@@ -193,6 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 AuthenticatedInScope,
                 InputCredentialsNotValid,
                 ResyncingServiceIdentity,
+                NoAuthChainResyncing,
                 AuthenticatingWithDeviceIdentity
             }
 
@@ -234,9 +247,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogInformation((int)EventIds.InputCredentialsNotValid, $"Credentials for client {identity.Id} are not valid.");
             }
 
-            public static void ResyncingServiceIdentity(IIdentity identity, string serviceIdentityId)
+            public static void ResyncingServiceIdentity(IIdentity identity, string serviceIdentityId, bool identityFound)
             {
-                Log.LogInformation((int)EventIds.ResyncingServiceIdentity, $"Unable to authenticate client {identity.Id} with cached service identity {serviceIdentityId}. Resyncing service identity...");
+                Log.LogInformation((int)EventIds.ResyncingServiceIdentity, $"Unable to authenticate client {identity.Id} with cached service identity {serviceIdentityId} (Found: {identityFound}). Resyncing service identity...");
+            }
+
+            public static void NoAuthChainResyncing(string authTarget, string actorDevice)
+            {
+                Log.LogInformation((int)EventIds.NoAuthChainResyncing, $"No cached auth-chain when authenticating {actorDevice} OnBehalfOf {authTarget}. Resyncing service identity...");
             }
 
             public static void AuthenticatingWithDeviceIdentity(IModuleIdentity moduleIdentity)

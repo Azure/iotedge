@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public interface ITwinHandler
     {
-        Task SendTwinUpdate(IMessage twin, IIdentity identity);
-        Task SendDesiredPropertiesUpdate(IMessage desiredProperties, IIdentity identity);
+        Task SendTwinUpdate(IMessage twin, IIdentity identity, bool isDirectClient);
+        Task SendDesiredPropertiesUpdate(IMessage desiredProperties, IIdentity identity, bool isDirectClient);
         IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions { get; }
     }
 }

@@ -210,6 +210,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
 
+            bool isLegacyUpstream = !experimentalFeatures.Enabled
+                                 || !experimentalFeatures.EnableMqttBroker
+                                 || !experimentalFeatures.EnableNestedEdge
+                                 || !this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
+
             builder.RegisterModule(
                 new RoutingModule(
                     this.iotHubHostname,
@@ -241,7 +246,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
-                    experimentalFeatures.EnableNestedEdge));
+                    experimentalFeatures.EnableNestedEdge,
+                    isLegacyUpstream));
         }
 
         void RegisterCommonModule(
