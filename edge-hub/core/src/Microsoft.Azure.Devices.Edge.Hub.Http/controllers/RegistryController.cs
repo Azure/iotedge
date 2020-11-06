@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 {
                     Dictionary<string, string> headers = new Dictionary<string, string>();
                     headers.Add("iothub-errorcode", "InvalidProtocolVersion");
-                    await this.SendResponseAsync(HttpStatusCode.BadRequest, string.Empty, headers);
+                    await this.SendResponseAsync(HttpStatusCode.BadRequest, headers, string.Empty);
                     return;
                 }
 
@@ -522,7 +522,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return false;
         }
 
-        async Task SendResponseAsync(HttpStatusCode status, string jsonContent = "", Dictionary<string, string> headers = null)
+        async Task SendResponseAsync(HttpStatusCode status, string jsonContent = "")
+        {
+            await this.SendResponseAsync(status, new Dictionary<string, string>(), jsonContent);
+        }
+
+        async Task SendResponseAsync(HttpStatusCode status, Dictionary<string, string> headers, string jsonContent = "")
         {
             this.Response.StatusCode = (int)status;
 
