@@ -2,24 +2,12 @@
 namespace Diagnostics
 {
     using System;
-    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Net.Http;
-    using System.Net.Sockets;
-    using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using ProxyLib.Proxy;
-    using ProxyLib.Proxy.Exceptions;
 
     class Program
     {
