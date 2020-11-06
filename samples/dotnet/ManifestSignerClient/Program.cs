@@ -3,10 +3,13 @@
 namespace ManifestSignerClient
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using Newtonsoft.Json.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
+
     class Program
     {
         // Edit the launchSettings.json or directly add the values of the Environmental variables
@@ -198,8 +201,7 @@ namespace ManifestSignerClient
                 if (deploymentManifestContentJson["modulesContent"] != null)
                 {
                     // Get the DSA and SHA algorithm
-                    var dsaAlgorithmScheme = GetAlgorithmScheme(DsaAlgorithm);
-                    var shaAlgorithm = GetHashAlgorithm(DsaAlgorithm);
+                    KeyValuePair<string, HashAlgorithmName> algoResult = VerifyTwinSignature.CheckIfAlgorithmIsSupported(DsaAlgorithm.ToString());
 
                     // Read the signer certificate and manifest version number and create integrity header object
                     var header = GetIntegrityHeader(SignerCertPath);
@@ -232,7 +234,7 @@ namespace ManifestSignerClient
                                 Console.WriteLine($"Signing Module: {property.Name}");
                                 object signature = new
                                 {
-                                    bytes = CertificateUtil.GetJsonSignature(dsaAlgorithmScheme, shaAlgorithm, modulesDesired.ToString(), header, SignerPrivateKeyPath),
+                                    bytes = CertificateUtil.GetJsonSignature(algoResult.Key, algoResult.Value, modulesDesired.ToString(), header, SignerPrivateKeyPath),
                                     algorithm = DsaAlgorithm
                                 };
                                 deploymentManifestContentJson["modulesContent"][property.Name]["properties.desired"]["integrity"] = JObject.FromObject(new { header, signature });

@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
+    using System.Collections.Generic;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
@@ -253,11 +254,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 // Extract Signature and algorithm
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
-                string algorithmScheme = VerifyTwinSignature.GetAlgorithmScheme(algo.ToString());
-                HashAlgorithmName hashAlgorithm = VerifyTwinSignature.GetHashAlgorithm(algo.ToString());
+                KeyValuePair<string, HashAlgorithmName> algoResult = VerifyTwinSignature.CheckIfAlgorithmIsSupported(algo.ToString());
                 Events.ExtractHubTwinSucceeded();
 
-                return VerifyTwinSignature.VerifyModuleTwinSignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algorithmScheme, hashAlgorithm);
+                return VerifyTwinSignature.VerifyModuleTwinSignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
             }
             catch (Exception ex)
             {

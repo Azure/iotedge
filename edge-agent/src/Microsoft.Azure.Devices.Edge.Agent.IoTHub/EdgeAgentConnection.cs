@@ -430,11 +430,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // Extract Signature and algorithm
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
-                string algorithmScheme = VerifyTwinSignature.GetAlgorithmScheme(algo.ToString());
-                HashAlgorithmName hashAlgorithm = VerifyTwinSignature.GetHashAlgorithm(algo.ToString());
+                KeyValuePair<string, HashAlgorithmName> algoResult = VerifyTwinSignature.CheckIfAlgorithmIsSupported(algo.ToString());
                 Events.ExtractAgentTwinSucceeded();
 
-                return VerifyTwinSignature.VerifyModuleTwinSignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algorithmScheme, hashAlgorithm);
+                return VerifyTwinSignature.VerifyModuleTwinSignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
             }
             catch (Exception ex)
             {

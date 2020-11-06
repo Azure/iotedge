@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
+    using System.Collections.Generic;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
 
@@ -23,12 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 Array.Copy(canonicalizedHeader, 0, canonicalizedCombinedDesiredProperties, 0, canonicalizedHeader.Length);
                 Array.Copy(canonicalizedDesiredProperties, 0, canonicalizedCombinedDesiredProperties, canonicalizedHeader.Length, canonicalizedDesiredProperties.Length);
 
-                if (algorithmScheme == "ES" || algorithmScheme == "es")
+                if (algorithmScheme == "ES")
                 {
                     ECDsa eCDsa = signerCert.GetECDsaPublicKey();
                     return eCDsa.VerifyData(canonicalizedCombinedDesiredProperties, signatureBytes, hashAlgorithm);
                 }
-                else if (algorithmScheme == "RS" || algorithmScheme == "rs")
+                else if (algorithmScheme == "RS")
                 {
                     RSA rsa = signerCert.GetRSAPublicKey();
                     RSASignaturePadding rsaSignaturePadding = RSASignaturePadding.Pkcs1;
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
                 else
                 {
-                    throw new TwinSignatureAlgorithmSchemeException("DSA Algorithm Type not supported");
+                    throw new TwinSignatureAlgorithmException("DSA Algorithm Type not supported");
                 }
             }
             catch (Exception ex)
@@ -45,59 +46,39 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public static string GetAlgorithmScheme(string algo)
+        public static KeyValuePair<string, HashAlgorithmName> CheckIfAlgorithmIsSupported(string dsaAlgorithm)
         {
-            try
+            SupportedTwinSigningAlgorithm result;
+            if (Enum.TryParse(dsaAlgorithm, true, out result))
             {
-                if (algo.Length < 5)
-                {
-                    throw new TwinSignatureAlgorithmSchemeException("DSA algorithm is not specific correctly.");
-                }
-
-                if (algo[0..2] == "ES" || algo[0..2] == "RS")
-                {
-                    return algo[0..2];
-                }
-                else
-                {
-                    throw new TwinSignatureAlgorithmSchemeException("DSA Algorithm Type not supported");
-                }
+                GetAlgoType.TryGetValue(result, out KeyValuePair<string, HashAlgorithmName> val);
+                return val;
             }
-            catch (Exception ex)
+            else
             {
-                throw ex;
+                throw new TwinSignatureAlgorithmException("DSA Algorithm Type not supported");
             }
         }
 
-        public static HashAlgorithmName GetHashAlgorithm(string algo)
+        public enum SupportedTwinSigningAlgorithm
         {
-            try
-            {
-                if (algo.Length > 5)
-                {
-                    throw new TwinSignatureSHAException("SHA algorithm is not specific correctly");
-                }
-                else if (algo[2..5] == "256")
-                {
-                    return HashAlgorithmName.SHA256;
-                }
-                else if (algo[2..5] == "384")
-                {
-                    return HashAlgorithmName.SHA384;
-                }
-                else if (algo[2..5] == "512")
-                {
-                    return HashAlgorithmName.SHA512;
-                }
-                else
-                {
-                    throw new TwinSignatureSHAException("SHA Algorithm Type not supported");
-                }
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            Es256,
+            Es384,
+            Es512,
+            Rs256,
+            Rs384,
+            Rs512,
         }
+
+        static readonly Dictionary<SupportedTwinSigningAlgorithm, KeyValuePair<string, HashAlgorithmName>> GetAlgoType
+           = new Dictionary<SupportedTwinSigningAlgorithm, KeyValuePair<string, HashAlgorithmName>>
+           {
+               { SupportedTwinSigningAlgorithm.Es256, new KeyValuePair<string, HashAlgorithmName>("ES", HashAlgorithmName.SHA256) },
+               { SupportedTwinSigningAlgorithm.Es384, new KeyValuePair<string, HashAlgorithmName>("ES", HashAlgorithmName.SHA384) },
+               { SupportedTwinSigningAlgorithm.Es512, new KeyValuePair<string, HashAlgorithmName>("ES", HashAlgorithmName.SHA512) },
+               { SupportedTwinSigningAlgorithm.Rs256, new KeyValuePair<string, HashAlgorithmName>("RS", HashAlgorithmName.SHA256) },
+               { SupportedTwinSigningAlgorithm.Rs384, new KeyValuePair<string, HashAlgorithmName>("RS", HashAlgorithmName.SHA384) },
+               { SupportedTwinSigningAlgorithm.Rs512, new KeyValuePair<string, HashAlgorithmName>("RS", HashAlgorithmName.SHA512) },
+           };
     }
 }

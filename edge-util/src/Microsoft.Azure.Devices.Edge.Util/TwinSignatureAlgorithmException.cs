@@ -4,14 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System;
 
     [Serializable]
-    public class TwinSignatureSHAException : Exception
+    public class TwinSignatureAlgorithmException : Exception
     {
-        public TwinSignatureSHAException(string message)
+        public TwinSignatureAlgorithmException(string message)
             : base(message)
         {
         }
 
-        public TwinSignatureSHAException(string message, Exception inner)
+        public TwinSignatureAlgorithmException(string message, Exception inner)
             : base(message, inner)
         {
         }
