@@ -11,9 +11,9 @@
 
 ## iotedged
 ### Bug Fixes
-* Fix DPS-X509 provisioning behind a proxy to use the client certificate for the proxied connection (0153812)[https://github.com/Azure/iotedge/commit/0153812ae1a5e4a2c0622f3a2f38d67d8102bf2b]
-* Don't fail `iotedge support-bundle` if iotedged is not running (93d1234)[https://github.com/Azure/iotedge/commit/93d1234f01e26ecd14ebb3b9fb674e458a834d7b]
-* Fix problems in the diagnostics module used by `iotedge check` (4257b87)[https://github.com/Azure/iotedge/commit/4257b87de0f4ca59eb894a5924fce743d03e24d6]
+* Fix DPS-X509 provisioning behind a proxy to use the client certificate for the proxied connection [0153812](https://github.com/Azure/iotedge/commit/0153812ae1a5e4a2c0622f3a2f38d67d8102bf2b)
+* Don't fail `iotedge support-bundle` if iotedged is not running [93d1234](https://github.com/Azure/iotedge/commit/93d1234f01e26ecd14ebb3b9fb674e458a834d7b)
+* Fix problems in the diagnostics module used by `iotedge check` [4257b87](https://github.com/Azure/iotedge/commit/4257b87de0f4ca59eb894a5924fce743d03e24d6)
 
 # 1.0.10 (2020-10-12)
 ## Edge Agent
