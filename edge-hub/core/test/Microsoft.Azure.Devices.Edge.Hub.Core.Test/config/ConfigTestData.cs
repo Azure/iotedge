@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 {
     using System;
@@ -78,7 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 "1.2.0",
                 new Dictionary<string, RouteConfiguration>(),
                 new StoreAndForwardConfiguration(100),
-                brokerProperties);
+                brokerProperties,
+                null);
 
             return properties;
         }

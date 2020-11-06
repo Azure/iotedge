@@ -18,14 +18,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             string schemaVersion,
             IDictionary<string, RouteConfiguration> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
-            BrokerProperties brokerConfiguration)
+            BrokerProperties brokerConfiguration,
+            TwinIntegrity integrity)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
             this.StoreAndForwardConfiguration = Preconditions.CheckNotNull(storeAndForwardConfiguration, nameof(storeAndForwardConfiguration));
             // can be null for old versions.
             this.BrokerConfiguration = brokerConfiguration;
-
+            this.Integrity = Option.Maybe(integrity);
             this.ValidateSchemaVersion();
         }
 
@@ -39,6 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         [JsonProperty(PropertyName = "mqttBroker")]
         public BrokerProperties BrokerConfiguration { get; }
+
+        [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<TwinIntegrity>))]
+        public Option<TwinIntegrity> Integrity { get; }
 
         void ValidateSchemaVersion()
         {

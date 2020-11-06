@@ -25,8 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public bool Equals(TwinIntegrity other)
         {
             return other != null &&
-                   EqualityComparer<TwinHeader>.Default.Equals(this.Header, other.Header) &&
-                   EqualityComparer<TwinSignature>.Default.Equals(this.Signature, other.Signature);
+                   Equals(this.Header, other.Header) &&
+                   Equals(this.Signature, other.Signature);
         }
 
         public override int GetHashCode()

@@ -23,12 +23,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 Array.Copy(canonicalizedHeader, 0, canonicalizedCombinedDesiredProperties, 0, canonicalizedHeader.Length);
                 Array.Copy(canonicalizedDesiredProperties, 0, canonicalizedCombinedDesiredProperties, canonicalizedHeader.Length, canonicalizedDesiredProperties.Length);
 
-                if (algorithmScheme == "ES")
+                if (algorithmScheme == "ES" || algorithmScheme == "es")
                 {
                     ECDsa eCDsa = signerCert.GetECDsaPublicKey();
                     return eCDsa.VerifyData(canonicalizedCombinedDesiredProperties, signatureBytes, hashAlgorithm);
                 }
-                else if (algorithmScheme == "RS")
+                else if (algorithmScheme == "RS" || algorithmScheme == "rs")
                 {
                     RSA rsa = signerCert.GetRSAPublicKey();
                     RSASignaturePadding rsaSignaturePadding = RSASignaturePadding.Pkcs1;
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
                 else
                 {
-                    throw new Exception("DSA Algorithm Type not supported");
+                    throw new TwinSignatureAlgorithmSchemeException("DSA Algorithm Type not supported");
                 }
             }
             catch (Exception ex)
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 if (algo.Length < 5)
                 {
-                    throw new Exception("DSA algorithm is not specific correctly.");
+                    throw new TwinSignatureAlgorithmSchemeException("DSA algorithm is not specific correctly.");
                 }
 
                 if (algo[0..2] == "ES" || algo[0..2] == "RS")
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
                 else
                 {
-                    throw new Exception("DSA Algorithm Type not supported");
+                    throw new TwinSignatureAlgorithmSchemeException("DSA Algorithm Type not supported");
                 }
             }
             catch (Exception ex)
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 if (algo.Length > 5)
                 {
-                    throw new Exception("SHA algorithm is not specific correctly");
+                    throw new TwinSignatureSHAException("SHA algorithm is not specific correctly");
                 }
                 else if (algo[2..5] == "256")
                 {
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
                 else
                 {
-                    throw new Exception("SHA Algorithm Type not supported");
+                    throw new TwinSignatureSHAException("SHA Algorithm Type not supported");
                 }
             }
             catch (Exception ex)

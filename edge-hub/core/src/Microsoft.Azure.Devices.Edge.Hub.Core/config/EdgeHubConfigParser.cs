@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 routes,
                 desiredProperties.StoreAndForwardConfiguration,
                 brokerConfig,
-                null);
+                desiredProperties.Integrity);
         }
 
         static ReadOnlyDictionary<string, RouteConfig> ParseRoutes(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)

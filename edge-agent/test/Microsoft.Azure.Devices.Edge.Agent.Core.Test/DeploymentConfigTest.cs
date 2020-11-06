@@ -426,7 +426,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 ["mod2"] = mod2
             };
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules, null);
-            var integrity = new TwinIntegrity(new TwinHeader(cert1, cert2), new TwinSignature(signature, algo));
+            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(cert1, cert2), new TwinSignature(signature, algo));
             var deploymentConfigWithTwinIntegrity = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), systemModules, modules, integrity);
 
             Assert.Equal("mod1", deploymentConfig.Modules["mod1"].Name);
@@ -439,7 +439,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Equal(edgeAgentModule.Name, moduleSet.Modules["edgeAgent"].Name);
             Assert.Equal(modules["mod1"].Name, moduleSet.Modules["mod1"].Name);
             Assert.Equal(modules["mod2"].Name, moduleSet.Modules["mod2"].Name);
-            Assert.Equal(deploymentConfigWithTwinIntegrity.Integrity, integrity);
+            Assert.Equal(deploymentConfigWithTwinIntegrity.Integrity, Option.Some(integrity));
         }
 
         [Theory]

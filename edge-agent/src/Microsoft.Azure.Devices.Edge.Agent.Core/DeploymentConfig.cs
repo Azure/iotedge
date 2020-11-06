@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class DeploymentConfig : IEquatable<DeploymentConfig>
@@ -14,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             UnknownRuntimeInfo.Instance,
             new SystemModules(UnknownEdgeAgentModule.Instance, UnknownEdgeHubModule.Instance),
             ImmutableDictionary<string, IModule>.Empty,
-            new TwinIntegrity(new TwinHeader(string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty)));
+            null);
 
         static readonly ReadOnlyDictionaryComparer<string, IModule> ModuleDictionaryComparer = new ReadOnlyDictionaryComparer<string, IModule>();
 
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.Runtime = Preconditions.CheckNotNull(runtime, nameof(runtime));
             this.Modules = modules?.ToImmutableDictionary() ?? ImmutableDictionary<string, IModule>.Empty;
             this.UpdateModuleNames();
-            this.Integrity = integrity;
+            this.Integrity = Option.Maybe(integrity);
         }
 
         [JsonProperty("schemaVersion")]
@@ -47,7 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public IImmutableDictionary<string, IModule> Modules { get; }
 
         [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public TwinIntegrity Integrity { get; }
+        [JsonConverter(typeof(OptionConverter<TwinIntegrity>))]
+        public Option<TwinIntegrity> Integrity { get; }
 
         public ModuleSet GetModuleSet()
         {

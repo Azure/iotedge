@@ -92,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 "1.2.0",
                 new Dictionary<string, RouteConfiguration>(),
                 new StoreAndForwardConfiguration(100),
-                brokerProperties);
+                brokerProperties,
+                null);
 
             // assert
             Assert.Throws<InvalidOperationException>(() => configParser.GetEdgeHubConfig(properties));

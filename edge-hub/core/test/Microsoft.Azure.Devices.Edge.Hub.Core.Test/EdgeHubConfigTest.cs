@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var integrity = new TwinIntegrity(new TwinHeader(cert1, cert2), new TwinSignature(signature, algo));
 
             // Act
-            var edgeHubConfig = new EdgeHubConfig("1.0", routes, snfConfig, Option.Some(brokerConfig), integrity);
+            var edgeHubConfig = new EdgeHubConfig("1.0", routes, snfConfig, Option.Some(brokerConfig), Option.Some(integrity));
 
             // Assert
             Assert.NotNull(edgeHubConfig);
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             BrokerConfig brokerConfig)
         {
             // Act & Assert
-            Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration, Option.Some(brokerConfig), null));
+            Assert.ThrowsAny<ArgumentException>(() => new EdgeHubConfig(schemaVersion, routes, configuration, Option.Some(brokerConfig), Option.None<TwinIntegrity>()));
         }
     }
 }

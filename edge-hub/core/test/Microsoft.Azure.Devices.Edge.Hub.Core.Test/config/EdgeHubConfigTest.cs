@@ -120,21 +120,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 Option.Some(new AuthorizationConfig(new List<Statement> { statement3 })));
 
             string version = "1.0";
-            TwinIntegrity integrity = new TwinIntegrity(new TwinHeader(string.Empty, string.Empty), new TwinSignature(string.Empty, string.Empty));
 
-            var edgeHubConfig1 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig2 = new EdgeHubConfig(version, routes2, storeAndForwardConfig1, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig3 = new EdgeHubConfig(version, routes3, storeAndForwardConfig1, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig4 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig5 = new EdgeHubConfig(version, routes1, storeAndForwardConfig2, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig6 = new EdgeHubConfig(version, routes1, storeAndForwardConfig3, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig7 = new EdgeHubConfig(version, routes2, storeAndForwardConfig2, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig8 = new EdgeHubConfig(version, routes2, storeAndForwardConfig3, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig9 = new EdgeHubConfig(version, routes3, storeAndForwardConfig3, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig10 = new EdgeHubConfig(version, routes3, storeAndForwardConfig3, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig11 = new EdgeHubConfig(version, routes3, storeAndForwardConfig4, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig12 = new EdgeHubConfig(version, routes3, storeAndForwardConfig5, Option.Some(brokerConfig1), integrity);
-            var edgeHubConfig13 = new EdgeHubConfig(version, routes3, storeAndForwardConfig6, Option.Some(brokerConfig1), integrity);
+            var edgeHubConfig1 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig2 = new EdgeHubConfig(version, routes2, storeAndForwardConfig1, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig3 = new EdgeHubConfig(version, routes3, storeAndForwardConfig1, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig4 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig5 = new EdgeHubConfig(version, routes1, storeAndForwardConfig2, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig6 = new EdgeHubConfig(version, routes1, storeAndForwardConfig3, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig7 = new EdgeHubConfig(version, routes2, storeAndForwardConfig2, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig8 = new EdgeHubConfig(version, routes2, storeAndForwardConfig3, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig9 = new EdgeHubConfig(version, routes3, storeAndForwardConfig3, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig10 = new EdgeHubConfig(version, routes3, storeAndForwardConfig3, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig11 = new EdgeHubConfig(version, routes3, storeAndForwardConfig4, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig12 = new EdgeHubConfig(version, routes3, storeAndForwardConfig5, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
+            var edgeHubConfig13 = new EdgeHubConfig(version, routes3, storeAndForwardConfig6, Option.Some(brokerConfig1), Option.None<TwinIntegrity>());
 
             yield return new object[] { edgeHubConfig1, edgeHubConfig2, false };
             yield return new object[] { edgeHubConfig2, edgeHubConfig3, false };
@@ -151,8 +150,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             yield return new object[] { edgeHubConfig12, edgeHubConfig13, false };
 
             // authorization config equality check
-            var edgeHubConfig14 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig2), integrity);
-            var edgeHubConfig15 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig3), integrity);
+            var edgeHubConfig14 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig2), Option.None<TwinIntegrity>());
+            var edgeHubConfig15 = new EdgeHubConfig(version, routes1, storeAndForwardConfig1, Option.Some(brokerConfig3), Option.None<TwinIntegrity>());
 
             yield return new object[] { edgeHubConfig1, edgeHubConfig14, false };
             yield return new object[] { edgeHubConfig1, edgeHubConfig15, true };

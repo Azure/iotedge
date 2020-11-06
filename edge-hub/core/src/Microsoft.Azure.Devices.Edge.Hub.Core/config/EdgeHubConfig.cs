@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
+    using Newtonsoft.Json;
 
     /// <summary>
     /// Domain object that represents EdgeHub configuration.
@@ -18,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             IReadOnlyDictionary<string, RouteConfig> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
             Option<BrokerConfig> brokerConfiguration,
-            TwinIntegrity integrity)
+            Option<TwinIntegrity> integrity)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
@@ -35,7 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         public Option<BrokerConfig> BrokerConfiguration { get; }
 
-        public TwinIntegrity Integrity { get; }
+        [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<TwinIntegrity>))]
+        public Option<TwinIntegrity> Integrity { get; }
 
         public static bool operator ==(EdgeHubConfig left, EdgeHubConfig right) => Equals(left, right);
 
