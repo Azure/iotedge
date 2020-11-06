@@ -40,7 +40,6 @@ namespace Diagnostics
 
         static async Task MainAsync(string[] args)
         {
-            await Upstream("192.168.0.183", "443", "http://10.0.0.0");
             var config = new ConfigurationBuilder().AddCommandLine(args).Build();
             switch (args[0])
             {
