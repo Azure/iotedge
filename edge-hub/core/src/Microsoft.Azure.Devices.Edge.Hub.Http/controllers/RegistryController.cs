@@ -531,12 +531,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             this.Response.StatusCode = (int)status;
 
-            if (headers != null)
+            foreach (var header in headers)
             {
-                foreach (var header in headers)
-                {
-                    this.Response.Headers.Add(header.Key, header.Value);
-                }
+                this.Response.Headers.Add(header.Key, header.Value);
             }
 
             if (!string.IsNullOrEmpty(jsonContent))
