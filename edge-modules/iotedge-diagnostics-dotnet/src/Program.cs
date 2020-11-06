@@ -74,8 +74,9 @@ namespace Diagnostics
         static async Task Upstream(string hostname, string port, string proxy)
         {
             var httpClientHandler = new HttpClientHandler();
-            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => {
-                    return true;   //Is valid
+            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+            {
+                    return true; // Is valid
             };
 
             if (proxy != null)
@@ -83,15 +84,15 @@ namespace Diagnostics
                 Environment.SetEnvironmentVariable("https_proxy", proxy);
             }
 
-                var httpClient = new HttpClient(httpClientHandler);
+            var httpClient = new HttpClient(httpClientHandler);
             var logsUrl = string.Format("https://{0}/devices/0000/modules", hostname);
             var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUrl);
             HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
             var keys = httpResponseMessage.Headers.GetValues("iothub-errorcode");
-            if (keys.Contains("InvalidProtocolVersion") == false)
+            if (!keys.Contains("InvalidProtocolVersion"))
             {
-                throw new Exception($"Got bad response");
+                throw new Exception($"Wrong value for iothub-errorcode header");
             }
         }
 
