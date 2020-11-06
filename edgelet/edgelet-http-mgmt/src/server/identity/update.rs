@@ -65,6 +65,7 @@ impl Handler<Parameters> for UpdateIdentity {
                                     .ok_or(ErrorKind::IotHub)
                                     .with_context(|_| ErrorKind::IotHub)?,
                             ),
+                            _ => return Err(Error::from(ErrorKind::InvalidIdentityType))
                         };
 
                         let identity = Identity::new(

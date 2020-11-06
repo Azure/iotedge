@@ -109,6 +109,8 @@ fn get_derived_identity_key_handle(
                 .auth
                 .map(|authinfo| Ok(authinfo.key_handle))
                 .expect("keyhandle missing"),
+            _ => return Err(Error::from(ErrorKind::InvalidIdentityType))
+            
         })
 }
 

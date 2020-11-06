@@ -35,6 +35,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid API version {:?}", _0)]
     InvalidApiVersion(String),
 
+    #[fail(display = "Invalid Identity type")]
+    InvalidIdentityType,
+    
     #[fail(display = "A request to Azure IoT Hub failed")]
     IotHub,
 
@@ -138,6 +141,7 @@ impl IntoResponse for Error {
             } else {
                 match self.kind() {
                     ErrorKind::InvalidApiVersion(_)
+                    | ErrorKind::InvalidIdentityType
                     | ErrorKind::MalformedRequestBody
                     | ErrorKind::MalformedRequestParameter(_)
                     | ErrorKind::MissingRequiredParameter(_) => StatusCode::BAD_REQUEST,

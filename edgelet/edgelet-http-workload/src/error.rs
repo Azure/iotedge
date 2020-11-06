@@ -37,6 +37,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid certificate type")]
     InvalidCertificateType,
 
+    #[fail(display = "Invalid Identity type")]
+    InvalidIdentityType,
+    
     #[fail(display = "Request body is malformed")]
     MalformedRequestBody,
 

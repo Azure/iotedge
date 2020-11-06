@@ -19,7 +19,7 @@ use edgelet_core::module::{
 };
 use edgelet_core::settings::RetryLimit;
 
-use crate::error::{Error, ErrorKind};
+use crate::error::{Error, ErrorKind, InitializeErrorReason};
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
 const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
@@ -246,6 +246,9 @@ where
                     spec.auth
                         .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
                 ),
+                _ => return Err(Error::from(ErrorKind::Initialize(
+                    InitializeErrorReason::InvalidIdentityType,
+                )))
             };
             Ok((module, genid, auth))
         })
