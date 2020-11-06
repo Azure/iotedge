@@ -1,5 +1,5 @@
 # 1.2.0-rc1 (2020-11-06)
-* Preview support for daisy chaining IoT Edge devices in gateway configuration, to allow creation of hierarchies of IoT Edge devices.
+* Preview support for nesting IoT Edge devices in gateway configuration, to allow creation of hierarchies of IoT Edge devices.
 * Preview support for MQTT 3.1.1 compliant broker in EdgeHub. 
 * Updates to `iotedge check` troubleshooting command to work in hierarchical configuration.
 
@@ -19,7 +19,7 @@
 
 ## iotedged
 ### Features
-* Configuration updates to support daisy chaining ([b92785c](https://github.com/Azure/iotedge/commit/b92785c2fa1b123daf3f9a21b5f7c2f4110f9b19))
+* Configuration updates to support nesting IoT Edge devices ([b92785c](https://github.com/Azure/iotedge/commit/b92785c2fa1b123daf3f9a21b5f7c2f4110f9b19))
 * Updates to `iotedge check` troubleshooting command to work in hierarchical configuration ([c0bad52](https://github.com/Azure/iotedge/commit/c0bad527da979fc0d8d1c810474e5078dfee83ca), [24b1c78](https://github.com/Azure/iotedge/commit/24b1c78f835068de7795f960660d45a889b4ae1b))
 
 # 1.0.8 (2019-07-22)
