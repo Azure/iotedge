@@ -1,4 +1,4 @@
-# 1.2.0-rc1 (2020-11-06)
+# 1.2.0-rc1 (2020-11-09)
 * Preview support for nesting IoT Edge devices in gateway configuration, to allow creation of hierarchies of IoT Edge devices.
 * Preview support for MQTT 3.1.1 compliant broker in EdgeHub. 
 * Updates to `iotedge check` troubleshooting command to work in hierarchical configuration.
