@@ -65,17 +65,23 @@ impl<S> StoreMqttEventHandler<S> {
                 // maps if local does not have a value it uses the topic that was received,
                 // else it checks that the received topic starts with local prefix and removes the local prefix
                 .map_or(Some(topic_name), |local_prefix| {
-                    let prefix = format!("{}/", local_prefix);
-                    topic_name.strip_prefix(&prefix)
+                    if local_prefix.is_empty() {
+                        topic_name.strip_prefix(local_prefix)
+                    } else {
+                        topic_name.strip_prefix(format!("{}/", local_prefix).as_str())
+                    }
                 })
                 // match topic without local prefix with the topic filter pattern
                 .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
-                .map(|stripped_topic| {
-                    if let Some(remote_prefix) = mapper.topic_settings.out_prefix() {
-                        format!("{}/{}", remote_prefix, stripped_topic)
-                    } else {
-                        stripped_topic.to_string()
+                .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
+                    Some(remote_prefix) => {
+                        if remote_prefix.is_empty() {
+                            stripped_topic.to_string()
+                        } else {
+                            format!("{}/{}", remote_prefix, stripped_topic)
+                        }
                     }
+                    None => stripped_topic.to_string(),
                 })
         })
     }
@@ -89,9 +95,7 @@ impl<S> StoreMqttEventHandler<S> {
     }
 
     fn update_unsubscribed(&mut self, sub: &str) {
-        if self.topic_mappers_updates.contains_key(sub) {
-            self.topic_mappers.remove(sub);
-        } else {
+        if self.topic_mappers.remove(sub).is_none() {
             warn!("unexpected subscription/rejected ack for {}", sub);
         };
     }
@@ -284,6 +288,62 @@ mod tests {
             ]))
             .await
             .unwrap();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+
+        let mut loader = handler.store.loader();
+
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted1.1, expected);
+    }
+
+    #[tokio::test]
+    async fn message_handler_saves_message_with_empty_local_and_forward_topic() {
+        let batch_size: usize = 5;
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let connection_settings = settings.upstream().unwrap();
+
+        let topics = connection_settings
+            .forwards()
+            .iter()
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
+            })
+            .collect();
+
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "floor2/1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+
+        let expected = Publication {
+            topic_name: "floor2/1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "floor2/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
         let mut loader = handler.store.loader();

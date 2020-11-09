@@ -38,5 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         void SetInactive();
 
         Task<Option<IClientCredentials>> GetUpdatedIdentity();
+
+        bool IsDirectClient { get; }
     }
 }
