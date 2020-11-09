@@ -101,6 +101,9 @@ namespace Diagnostics
             }
             else
             {
+                // The current rust code never put proxy parameter when port is != than 443.
+                // So the code below is never exercised. It was put there to avoid silently ignoring the proxy
+                // if the rust code is changed.
                 if (proxy != null)
                 {
                     Uri proxyUri = new Uri(proxy);
