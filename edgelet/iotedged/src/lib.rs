@@ -341,6 +341,9 @@ fn get_device_info(
         })
         .and_then(|identity| match identity {
             aziot_identity_common::Identity::Aziot(spec) => Ok((spec.hub_name, spec.device_id.0)),
+            aziot_identity_common::Identity::Local(_) => Err(Error::from(ErrorKind::Initialize(
+                InitializeErrorReason::InvalidIdentityType,
+            ))),
         })
 }
 

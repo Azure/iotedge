@@ -109,6 +109,9 @@ fn get_derived_identity_key_handle(
                 .auth
                 .map(|authinfo| Ok(authinfo.key_handle))
                 .expect("keyhandle missing"),
+            aziot_identity_common::Identity::Local(_) => {
+                Err(Error::from(ErrorKind::InvalidIdentityType))
+            }
         })
 }
 
