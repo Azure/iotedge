@@ -120,7 +120,7 @@ impl IdentityClient {
     ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
-            "/identities/modules/{}?api-version={}&type=aziot&type=aziot",
+            "/identities/modules/{}?api-version={}&type=aziot",
             module_name, self.api_version
         );
         let body = serde_json::json! {{ "type": "aziot", "moduleId" : module_name }};
