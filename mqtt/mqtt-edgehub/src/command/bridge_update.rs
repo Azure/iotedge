@@ -15,10 +15,8 @@ pub struct BridgeUpdateCommand {
 }
 
 impl BridgeUpdateCommand {
-    pub fn new(controller_handle: &BridgeControllerHandle) -> Self {
-        Self {
-            controller_handle: controller_handle.clone(),
-        }
+    pub fn new(controller_handle: BridgeControllerHandle) -> Self {
+        Self { controller_handle }
     }
 }
 
@@ -35,7 +33,7 @@ impl Command for BridgeUpdateCommand {
             serde_json::from_slice(&publication.payload).map_err(Error::ParseBridgeUpdate)?;
 
         self.controller_handle
-            .send(update)
+            .send_update(update)
             .map_err(Error::SendBridgeUpdate)?;
         Ok(())
     }

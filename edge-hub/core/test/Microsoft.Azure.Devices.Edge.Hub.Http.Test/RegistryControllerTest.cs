@@ -395,6 +395,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         void SetupControllerContext(Controller controller)
         {
             var httpContext = new DefaultHttpContext();
+            httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
+
             var httpResponse = new DefaultHttpResponse(httpContext);
             httpResponse.Body = new MemoryStream();
             var controllerContext = new ControllerContext();

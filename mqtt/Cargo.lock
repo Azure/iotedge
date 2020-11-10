@@ -943,7 +943,6 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
 dependencies = [
- "owning_ref",
  "scopeguard",
 ]
 
@@ -1144,6 +1143,7 @@ name = "mqtt-broker"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "atty",
  "bincode",
  "bytes",
  "chrono",
@@ -1254,6 +1254,7 @@ dependencies = [
  "mqtt-broker",
  "mqtt3",
  "policy",
+ "proptest",
  "test-case",
  "thiserror",
  "tracing",
@@ -1281,6 +1282,8 @@ name = "mqttd"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
+ "cfg-if 1.0.0",
  "chrono",
  "clap",
  "edgelet-client",
@@ -1429,17 +1432,6 @@ dependencies = [
 
 [[package]]
 name = "parking_lot"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f842b1982eb6c2fe34036a4fbfb06dd185a3f5c8edfaacdf7d1ea10b07de6252"
-dependencies = [
- "lock_api 0.3.4",
- "parking_lot_core 0.6.2",
- "rustc_version",
-]
-
-[[package]]
-name = "parking_lot"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3a704eb390aafdc107b0e392f56a82b668e3a71366993b5340f5833fd62505e"
@@ -1457,21 +1449,6 @@ dependencies = [
  "instant",
  "lock_api 0.4.1",
  "parking_lot_core 0.8.0",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b876b1b9e7ac6e1a74a6da34d25c42e17e8862aa409cbbbdcfc8d86c6f3bc62b"
-dependencies = [
- "cfg-if 0.1.10",
- "cloudabi 0.0.3",
- "libc",
- "redox_syscall",
- "rustc_version",
- "smallvec 0.6.13",
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -2461,7 +2438,6 @@ dependencies = [
  "lazy_static",
  "matchers",
  "owning_ref",
- "parking_lot 0.9.0",
  "regex",
  "smallvec 0.6.13",
  "tracing-core",

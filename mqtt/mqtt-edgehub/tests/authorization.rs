@@ -1,4 +1,5 @@
 use assert_matches::assert_matches;
+use bytes::Bytes;
 use futures_util::StreamExt;
 use mqtt_broker::{auth::authorize_fn_ok, BrokerReady};
 
@@ -38,6 +39,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
                     Authorization::Forbidden("not allowed".to_string())
                 }
             }),
+            "this_edgehub_id".to_string(),
             BrokerReady::new().handle(),
         )))
         .build();
@@ -67,7 +69,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
         packet_identifier: PacketIdentifier::new(1).unwrap(),
         subscribe_to: vec![SubscribeTo {
             // We need to use a post-translation topic here
-            topic_filter: "$edgehub/device-1/inputs/telemetry/#".into(),
+            topic_filter: "$edgehub/device-1/twin/res/#".into(),
             qos: QoS::AtLeastOnce,
         }],
     };
@@ -108,6 +110,7 @@ async fn auth_update_happy_case() {
                     Authorization::Forbidden("not allowed".to_string())
                 }
             }),
+            "this_edgehub_id".to_string(),
             BrokerReady::new().handle(),
         )))
         .build();
@@ -127,7 +130,7 @@ async fn auth_update_happy_case() {
         .build();
 
     let service_identity1 =
-        IdentityUpdate::new("device-1".into(), Some("device-1;$edgehub".into()));
+        IdentityUpdate::new("device-1".into(), Some("device-1;this_edgehub_id".into()));
     let identities = vec![service_identity1];
 
     // EdgeHub sends authorized identities + auth chains to broker
@@ -135,7 +138,7 @@ async fn auth_update_happy_case() {
         .publish_qos1(
             AUTHORIZED_IDENTITIES_TOPIC,
             serde_json::to_string(&identities).expect("unable to serialize identities"),
-            false,
+            true,
         )
         .await;
 
@@ -143,7 +146,7 @@ async fn auth_update_happy_case() {
         packet_identifier: PacketIdentifier::new(1).unwrap(),
         subscribe_to: vec![SubscribeTo {
             // We need to use a post-translation topic here
-            topic_filter: "$edgehub/device-1/inputs/telemetry/#".into(),
+            topic_filter: "$edgehub/device-1/twin/res/#".into(),
             qos: QoS::AtLeastOnce,
         }],
     };
@@ -164,14 +167,10 @@ async fn auth_update_happy_case() {
     assert_matches!(device_client.next().await, Some(Packet::SubAck(_)));
 
     edgehub_client
-        .publish_qos1(
-            "$edgehub/device-1/inputs/telemetry/#",
-            "test_payload",
-            false,
-        )
+        .publish_qos1("$edgehub/device-1/twin/res/#", "test_payload", true)
         .await;
 
-    assert_matches!(device_client.next().await, Some(Packet::Publish(_)));
+    assert_matches!(device_client.next().await, Some(Packet::Publish(p)) if p.payload == Bytes::from("test_payload"));
 
     command_handler_shutdown_handle
         .shutdown()
@@ -196,13 +195,16 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
     // but otherwise passes authorization along to EdgeHubAuthorizer
     let broker = BrokerBuilder::default()
         .with_authorizer(DummyAuthorizer::new(
-            EdgeHubAuthorizer::without_ready_handle(authorize_fn_ok(|activity| {
-                if matches!(activity.operation(), Operation::Connect) {
-                    Authorization::Allowed
-                } else {
-                    Authorization::Forbidden("not allowed".to_string())
-                }
-            })),
+            EdgeHubAuthorizer::without_ready_handle(
+                authorize_fn_ok(|activity| {
+                    if matches!(activity.operation(), Operation::Connect) {
+                        Authorization::Allowed
+                    } else {
+                        Authorization::Forbidden("not allowed".to_string())
+                    }
+                }),
+                "this_edgehub_id".to_string(),
+            ),
         ))
         .build();
     let broker_handle = broker.handle();
@@ -221,7 +223,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
         .build();
 
     let service_identity1 =
-        IdentityUpdate::new("device-1".into(), Some("device-1;$edgehub".into()));
+        IdentityUpdate::new("device-1".into(), Some("device-1;this_edgehub_id".into()));
     let identities = vec![service_identity1];
 
     // EdgeHub sends authorized identities + auth chains to broker
@@ -229,7 +231,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
         .publish_qos1(
             AUTHORIZED_IDENTITIES_TOPIC,
             serde_json::to_string(&identities).expect("unable to serialize identities"),
-            false,
+            true,
         )
         .await;
 
@@ -264,7 +266,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
         .publish_qos1(
             AUTHORIZED_IDENTITIES_TOPIC,
             serde_json::to_string(&identities).expect("unable to serialize identities"),
-            false,
+            true,
         )
         .await;
 

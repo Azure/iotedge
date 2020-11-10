@@ -3,22 +3,22 @@ mod egress;
 mod ingress;
 mod messages;
 
-use std::{collections::HashMap, error::Error as StdError, sync::Arc};
+use std::{collections::HashMap, error::Error as StdError, future::Future, sync::Arc};
 
 pub use builder::Builder;
-use egress::Egress;
+use egress::{Egress, EgressError, EgressShutdownHandle};
+use ingress::{Ingress, IngressError, IngressShutdownHandle};
+pub use messages::PumpMessageHandler;
+use messages::{MessageProcessorError, MessagesProcessor, MessagesProcessorShutdownHandle};
+
 use futures_util::{
     future::{self, Either},
-    pin_mut,
+    join, pin_mut,
 };
-use ingress::Ingress;
-use messages::MessagesProcessor;
-pub use messages::PumpMessageHandler;
-
 use mockall::automock;
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     bridge::BridgeError,
@@ -36,7 +36,7 @@ pub fn channel<M: 'static>() -> (PumpHandle<M>, mpsc::Receiver<PumpMessage<M>>) 
 
 #[derive(Debug, thiserror::Error)]
 pub enum PumpError {
-    #[error("unable to send command to pump")]
+    #[error("unable to send command to pump. channel closed")]
     Send,
 
     #[error("error ocurred when running pump. {0}")]
@@ -122,47 +122,19 @@ where
 
         pin_mut!(egress, ingress, messages);
 
-        match future::select(messages, future::select(egress, ingress)).await {
-            Either::Left((messages, publications)) => {
+        match future::select(&mut messages, future::select(&mut egress, &mut ingress)).await {
+            Either::Left((messages, _)) => {
                 if let Err(e) = &messages {
                     error!(error = %e, "pump messages processor exited with error");
                 } else {
-                    info!("pump messages processor exited");
+                    debug!("pump messages processor exited");
                 }
 
                 debug!("shutting down both ingress and egress...");
-
-                shutdown_ingress.shutdown().await;
-                shutdown_egress.shutdown().await;
-
-                match publications.await {
-                    Either::Left((egress, ingress)) => {
-                        if let Err(e) = egress {
-                            error!(error = %e, "egress processing exited with error");
-                        } else {
-                            info!("egress processing exited");
-                        }
-
-                        if let Err(e) = ingress.await {
-                            error!(error = %e, "ingress processing exited with error");
-                        } else {
-                            info!("ingress processing exited")
-                        }
-                    }
-                    Either::Right((ingress, egress)) => {
-                        if let Err(e) = ingress {
-                            error!(error = %e, "ingress processing exited with error");
-                        } else {
-                            info!("ingress processing exited");
-                        }
-
-                        if let Err(e) = egress.await {
-                            error!(error = %e, "egress processing exited with error");
-                        } else {
-                            info!("egress processing exited")
-                        }
-                    }
-                }
+                join!(
+                    stop_ingress(ingress, shutdown_ingress),
+                    stop_egress(egress, shutdown_egress)
+                );
 
                 messages.map_err(|e| PumpError::Run(e.into()))
             }
@@ -170,24 +142,14 @@ where
                 if let Err(e) = &egress {
                     error!(error = %e, "egress processing exited with error");
                 } else {
-                    info!("egress processing exited");
+                    debug!("egress processing exited");
                 }
 
-                debug!("shutting down ingress...");
-                shutdown_ingress.shutdown().await;
-                if let Err(e) = ingress.await {
-                    error!(error = %e, "ingress processing exited with error");
-                } else {
-                    info!("ingress processing exited")
-                }
-
-                debug!("shutting down pump messages processor...");
-                shutdown_messages.shutdown().await;
-                if let Err(e) = messages.await {
-                    error!(error = %e, "pump messages processor exited with error");
-                } else {
-                    info!("pump messages processor exited");
-                }
+                debug!("shutting down both ingress and messages processor...");
+                join!(
+                    stop_ingress(ingress, shutdown_ingress),
+                    stop_messages(messages, shutdown_messages),
+                );
 
                 egress.map_err(|e| PumpError::Run(e.into()))
             }
@@ -195,24 +157,14 @@ where
                 if let Err(e) = &ingress {
                     error!(error = %e, "ingress processing exited with error");
                 } else {
-                    info!("ingress processing exited");
+                    debug!("ingress processing exited");
                 }
 
-                debug!("shutting down egress...");
-                shutdown_egress.shutdown().await;
-                if let Err(e) = egress.await {
-                    error!(error = %e, "egress processing exited with error");
-                } else {
-                    info!("egress processing exited")
-                }
-
-                debug!("shutting down pump messages processor...");
-                shutdown_messages.shutdown().await;
-                if let Err(e) = messages.await {
-                    error!(error = %e, "pump messages processor exited with error");
-                } else {
-                    info!("pump messages processor exited");
-                }
+                debug!("shutting down both egress and messages processor...");
+                join!(
+                    stop_egress(egress, shutdown_egress),
+                    stop_messages(messages, shutdown_messages)
+                );
 
                 ingress.map_err(|e| PumpError::Run(e.into()))
             }
@@ -220,6 +172,46 @@ where
 
         info!("pump stopped");
         Ok(())
+    }
+}
+
+async fn stop_ingress<F>(ingress: F, shutdown_handle: IngressShutdownHandle)
+where
+    F: Future<Output = Result<(), IngressError>>,
+{
+    let (_, ingress) = join!(shutdown_handle.shutdown(), ingress);
+
+    if let Err(e) = ingress {
+        error!(error = %e, "ingress processing exited with error");
+    } else {
+        debug!("ingress processing exited");
+    }
+}
+
+async fn stop_egress<F>(egress: F, shutdown_handle: EgressShutdownHandle)
+where
+    F: Future<Output = Result<(), EgressError>>,
+{
+    let (_, egress) = join!(shutdown_handle.shutdown(), egress);
+
+    if let Err(e) = egress {
+        error!(error = %e, "egress processing exited with error");
+    } else {
+        debug!("egress processing exited");
+    }
+}
+
+async fn stop_messages<F, M>(messages: F, shutdown_handle: MessagesProcessorShutdownHandle<M>)
+where
+    F: Future<Output = Result<(), MessageProcessorError>>,
+    M: 'static,
+{
+    let (_, messages) = join!(shutdown_handle.shutdown(), messages);
+
+    if let Err(e) = messages {
+        error!(error = %e, "pump messages processor exited with error");
+    } else {
+        debug!("pump messages processor exited");
     }
 }
 
@@ -251,11 +243,12 @@ impl<M: 'static> PumpHandle<M> {
     /// Sends a shutdown control message to a pump.
     pub async fn shutdown(mut self) {
         if let Err(e) = self.send(PumpMessage::Shutdown).await {
-            error!(error = %e, "unable to request shutdown for pump.");
+            warn!(error = %e, "unable to request shutdown for pump. probably the pump is about to exit");
         }
     }
 }
 
+/// Topic settings received as updates from twin or from initial configuration in the default config file
 #[derive(Clone)]
 pub struct TopicMapperUpdates(Arc<Mutex<HashMap<String, TopicMapper>>>);
 
@@ -278,5 +271,13 @@ impl TopicMapperUpdates {
 
     pub fn contains_key(&self, topic_filter: &str) -> bool {
         self.0.lock().contains_key(topic_filter)
+    }
+
+    pub fn subscriptions(&self) -> Vec<String> {
+        self.0
+            .lock()
+            .values()
+            .map(TopicMapper::subscribe_to)
+            .collect()
     }
 }

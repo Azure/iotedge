@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
@@ -147,6 +148,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             try
             {
                 Events.ReceivedRequest(nameof(this.ListModulesAsync), deviceId);
+
+                if (!this.HttpContext.Request.Query.ContainsKey("api-version"))
+                {
+                    Dictionary<string, string> headers = new Dictionary<string, string>();
+                    headers.Add("iothub-errorcode", "InvalidProtocolVersion");
+                    await this.SendResponseAsync(HttpStatusCode.BadRequest, headers, string.Empty);
+                    return;
+                }
 
                 try
                 {
@@ -515,7 +524,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
         async Task SendResponseAsync(HttpStatusCode status, string jsonContent = "")
         {
+            await this.SendResponseAsync(status, new Dictionary<string, string>(), jsonContent);
+        }
+
+        async Task SendResponseAsync(HttpStatusCode status, Dictionary<string, string> headers, string jsonContent = "")
+        {
             this.Response.StatusCode = (int)status;
+
+            foreach (var header in headers)
+            {
+                this.Response.Headers.Add(header.Key, header.Value);
+            }
 
             if (!string.IsNullOrEmpty(jsonContent))
             {
@@ -624,7 +643,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             {
                 Log.LogInformation(
                     (int)EventIds.Authenticated,
-                    $"CompleteRequest in {source}: deviceId={deviceId}, authChain={authChain} {Environment.NewLine} {result.StatusCode}:{result.JsonContent}");
+                    $"CompleteRequest in {source}: deviceId={deviceId}, authChain={authChain}, status={result.StatusCode}");
             }
         }
     }

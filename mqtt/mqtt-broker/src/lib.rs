@@ -20,6 +20,7 @@ mod ready;
 mod server;
 mod session;
 pub mod settings;
+pub mod sidecar;
 mod snapshot;
 mod state_change;
 mod stream;
