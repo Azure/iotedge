@@ -246,9 +246,11 @@ where
                     spec.auth
                         .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
                 ),
-                _ => return Err(Error::from(ErrorKind::Initialize(
-                    InitializeErrorReason::InvalidIdentityType,
-                )))
+                AziotIdentity::Local(_) => {
+                    return Err(Error::from(ErrorKind::Initialize(
+                        InitializeErrorReason::InvalidIdentityType,
+                    )))
+                }
             };
             Ok((module, genid, auth))
         })

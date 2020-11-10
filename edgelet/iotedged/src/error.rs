@@ -279,7 +279,7 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::InvalidIdentityType => {
                 write!(f, "Invalid identity type was received")
             }
-            
+
             InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
 
             InitializeErrorReason::IssuerCAExpiration => {

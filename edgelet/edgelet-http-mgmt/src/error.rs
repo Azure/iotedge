@@ -37,7 +37,7 @@ pub enum ErrorKind {
 
     #[fail(display = "Invalid Identity type")]
     InvalidIdentityType,
-    
+
     #[fail(display = "A request to Azure IoT Hub failed")]
     IotHub,
 

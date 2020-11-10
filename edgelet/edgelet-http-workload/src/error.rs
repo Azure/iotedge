@@ -39,7 +39,7 @@ pub enum ErrorKind {
 
     #[fail(display = "Invalid Identity type")]
     InvalidIdentityType,
-    
+
     #[fail(display = "Request body is malformed")]
     MalformedRequestBody,
 

@@ -57,7 +57,9 @@ impl Handler<Parameters> for CreateIdentity {
                                     .ok_or(ErrorKind::IotHub)
                                     .with_context(|_| ErrorKind::IotHub)?,
                             ),
-                            _ => return Err(Error::from(ErrorKind::InvalidIdentityType))
+                            AziotIdentity::Local(_) => {
+                                return Err(Error::from(ErrorKind::InvalidIdentityType))
+                            }
                         };
 
                         let identity = Identity::new(

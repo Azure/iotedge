@@ -55,8 +55,12 @@ impl Handler<Parameters> for ListIdentities {
                                         .ok_or(ErrorKind::IotHub)
                                         .with_context(|_| ErrorKind::IotHub),
                                 ),
-                                _ => (Err(ErrorKind::InvalidIdentityType).with_context(|_| ErrorKind::InvalidIdentityType),
-                                Err(ErrorKind::InvalidIdentityType).with_context(|_| ErrorKind::InvalidIdentityType))
+                                AziotIdentity::Local(_) => (
+                                    Err(ErrorKind::InvalidIdentityType)
+                                        .with_context(|_| ErrorKind::InvalidIdentityType),
+                                    Err(ErrorKind::InvalidIdentityType)
+                                        .with_context(|_| ErrorKind::InvalidIdentityType),
+                                ),
                             };
 
                             let module_id = module_id.expect("failed to get module_id");
