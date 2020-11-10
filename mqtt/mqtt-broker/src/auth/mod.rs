@@ -84,3 +84,9 @@ impl PartialEq<ClientId> for Identity {
         self.as_str() == other.as_str()
     }
 }
+
+impl PartialEq<String> for &Identity {
+    fn eq(&self, other: &String) -> bool {
+        self.as_str() == other
+    }
+}

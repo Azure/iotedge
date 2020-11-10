@@ -40,6 +40,7 @@ async fn publish_not_allowed_identity_not_in_cache() {
                 }
             }),
             "this_edgehub_id".to_string(),
+            "myhub.azure-devices.net".to_string(),
             BrokerReady::new().handle(),
         )))
         .build();
@@ -111,6 +112,7 @@ async fn auth_update_happy_case() {
                 }
             }),
             "this_edgehub_id".to_string(),
+            "myhub.azure-devices.net".to_string(),
             BrokerReady::new().handle(),
         )))
         .build();
@@ -204,6 +206,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
                     }
                 }),
                 "this_edgehub_id".to_string(),
+                "myhub.azure-devices.net".to_string(),
             ),
         ))
         .build();
