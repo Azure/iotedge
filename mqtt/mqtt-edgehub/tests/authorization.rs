@@ -46,7 +46,10 @@ async fn publish_not_allowed_identity_not_in_cache() {
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
+    let server_handle = start_server(
+        broker,
+        DummyAuthenticator::with_id("myhub.azure-devices.net/device-1"),
+    );
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
@@ -118,7 +121,10 @@ async fn auth_update_happy_case() {
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
+    let server_handle = start_server(
+        broker,
+        DummyAuthenticator::with_id("myhub.azure-devices.net/device-1"),
+    );
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
@@ -212,7 +218,10 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
+    let server_handle = start_server(
+        broker,
+        DummyAuthenticator::with_id("myhub.azure-devices.net/device-1"),
+    );
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
