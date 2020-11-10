@@ -63,6 +63,7 @@ where
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
+            .append_pair("type", "aziot")
             .finish();
         let uri_str = format!(
             "/identities/{name}?{}",
@@ -128,6 +129,7 @@ where
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
+            .append_pair("type", "aziot")
             .finish();
         let uri_str = format!(
             "/identities/{name}?{}",
@@ -182,6 +184,7 @@ where
 
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
+            .append_pair("type", "aziot")
             .finish();
         let uri_str = format!("/identities/?{}", query);
 
