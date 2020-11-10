@@ -6,7 +6,7 @@ pr:
       - release/*
   paths:
     include:
-      - "mqtt/*"
+      - "edge-hub/watchdog/*"
       - "builds/*"
 
 jobs:
