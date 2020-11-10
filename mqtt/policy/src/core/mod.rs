@@ -130,7 +130,7 @@ where
                                 result = effect;
                             }
                         }
-                        // continue to look for other variable rules
+                        // continue to look for other identity variable rules
                         // if no resources matched the current one.
                         if result == &EffectOrd::undefined() {
                             continue;
@@ -714,9 +714,10 @@ pub(crate) mod tests {
     /// - Have two variable rules (deny and allow) for an identity, such that
     ///   both rules match a given request identity.
     /// - But the two rules must be different in resources.
+    /// - Make a request to the allowed resource.
     /// - The deny rule resources do not match the request.
     /// - The allow rule resources do match the request.
-    /// - Expected: "allow" the request.
+    /// - Expected: request allowed.
     ///
     /// This case is created as a result of a discovered bug.
     #[test]
