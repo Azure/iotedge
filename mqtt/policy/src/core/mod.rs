@@ -83,8 +83,8 @@ where
             Some(operations) => match operations.0.get(&request.operation) {
                 // operation exists.
                 Some(resources) => {
-                    // Iterate over and match resources.
-                    // We need to go through all resources and find one with highest priority (smallest order).
+                    // iterate over and match resources.
+                    // we need to go through all resources and find one with highest priority (smallest order).
                     let mut result = &EffectOrd::undefined();
                     for (resource, effect) in &resources.0 {
                         if effect.order < result.order // check the order
@@ -115,8 +115,8 @@ where
                 return match operations.0.get(&request.operation) {
                     // operation exists.
                     Some(resources) => {
-                        // Iterate over and match resources.
-                        // We need to go through all resources and find one with highest priority (smallest order).
+                        // iterate over and match resources.
+                        // we need to go through all resources and find one with highest priority (smallest order).
                         let mut result = &EffectOrd::undefined();
                         for (resource, effect) in &resources.0 {
                             let resource = self.substituter.visit_resource(resource, request)?;
@@ -130,9 +130,16 @@ where
                                 result = effect;
                             }
                         }
+                        // continue to look for other variable rules
+                        // if no resources matched the current one.
+                        if result == &EffectOrd::undefined() {
+                            continue;
+                        }
                         Ok(*result)
                     }
-                    None => Ok(EffectOrd::undefined()),
+                    // continue to look for other identity variable rules
+                    // if no operation found for the current one.
+                    None => continue,
                 };
             }
         }
@@ -433,7 +440,7 @@ pub(crate) mod tests {
                 {
                     "effect": "allow",
                     "identities": [
-                        "contoso.azure-devices.net/some_device"
+                        "actor_a"
                     ],
                     "operations": [
                         "write"
@@ -525,7 +532,7 @@ pub(crate) mod tests {
 
         let policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Denied)
-            .with_substituter(TestSubstituter)
+            .with_substituter(TestIdentitySubstituter)
             .build()
             .expect("Unable to build policy from json.");
 
@@ -592,7 +599,7 @@ pub(crate) mod tests {
 
         let policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Denied)
-            .with_substituter(TestSubstituter)
+            .with_substituter(TestIdentitySubstituter)
             .build()
             .expect("Unable to build policy from json.");
 
@@ -647,7 +654,7 @@ pub(crate) mod tests {
 
         let policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Denied)
-            .with_substituter(TestSubstituter)
+            .with_substituter(TestIdentitySubstituter)
             .with_matcher(StartWithMatcher)
             .build()
             .expect("Unable to build policy from json.");
@@ -692,7 +699,7 @@ pub(crate) mod tests {
 
         let policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Denied)
-            .with_substituter(TestSubstituter)
+            .with_substituter(TestIdentitySubstituter)
             .with_matcher(StartWithMatcher)
             .build()
             .expect("Unable to build policy from json.");
@@ -702,25 +709,130 @@ pub(crate) mod tests {
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
 
-    /// `TestSubstituter` replaces any value with the corresponding identity or resource
-    /// from the request, thus making the variable rule to always match the request.
-    struct TestSubstituter;
+    /// Scenario:
+    /// - Have a policy with a custom identity matcher
+    /// - Have two variable rules (deny and allow) for an identity, such that
+    ///   both rules match a given request identity.
+    /// - But the two rules must be different in resources.
+    /// - The deny rule resources do not match the request.
+    /// - The allow rule resources do match the request.
+    /// - Expected: "allow" the request.
+    ///
+    /// This case is created as a result of a discovered bug.
+    #[test]
+    fn all_identity_variable_rules_must_be_evaluated_resources_do_not_match() {
+        let json = r###"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "deny",
+                    "identities": [
+                        "{{any}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/b"
+                    ]
+                },
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "{{identity}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/a"
+                    ]
+                }
+            ]
+        }"###;
 
-    impl Substituter for TestSubstituter {
+        let policy = PolicyBuilder::from_json(json)
+            .with_default_decision(Decision::Denied)
+            .with_substituter(TestIdentitySubstituter)
+            .with_matcher(DefaultResourceMatcher)
+            .build()
+            .expect("Unable to build policy from json.");
+
+        let request = Request::new("actor_a", "write", "hello/a").unwrap();
+
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
+    /// Scenario:
+    /// - The same as test case above,
+    ///   but statement operations are different.
+    ///
+    /// This case is created as a result of a discovered bug.
+    #[test]
+    fn all_identity_variable_rules_must_be_evaluated_operations_do_not_match() {
+        let json = r###"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "deny",
+                    "identities": [
+                        "{{any}}"
+                    ],
+                    "operations": [
+                        "read"
+                    ],
+                    "resources": [
+                        "hello/b"
+                    ]
+                },
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "{{identity}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/a"
+                    ]
+                }
+            ]
+        }"###;
+
+        let policy = PolicyBuilder::from_json(json)
+            .with_default_decision(Decision::Denied)
+            .with_substituter(TestIdentitySubstituter)
+            .with_matcher(DefaultResourceMatcher)
+            .build()
+            .expect("Unable to build policy from json.");
+
+        let request = Request::new("actor_a", "write", "hello/a").unwrap();
+
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
+    /// `TestSubstituter` replaces any value with the corresponding identity
+    /// from the request, thus making the variable rule to always match the request.
+    #[derive(Debug)]
+    struct TestIdentitySubstituter;
+
+    impl Substituter for TestIdentitySubstituter {
         type Context = ();
 
         fn visit_identity(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
             Ok(context.identity.clone())
         }
 
-        fn visit_resource(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
-            Ok(context.resource.clone())
+        fn visit_resource(&self, value: &str, _context: &Request<Self::Context>) -> Result<String> {
+            Ok(value.into())
         }
     }
 
     /// `StartWithMatcher` matches resources that start with requested value. For
     /// example, if a policy defines a resource "hello/world", then request for "hello/"
     /// will match.
+    #[derive(Debug)]
     struct StartWithMatcher;
 
     impl ResourceMatcher for StartWithMatcher {
