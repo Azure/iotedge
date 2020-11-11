@@ -67,7 +67,10 @@ impl IdentityClient {
         module_name: &str,
     ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = Error> + Send> {
         let client = self.client.clone();
-        let uri = format!("/identities/modules?api-version={}", self.api_version);
+        let uri = format!(
+            "/identities/modules?api-version={}&type=aziot",
+            self.api_version
+        );
         let body = serde_json::json! {{ "type": "aziot", "moduleId" : module_name }};
 
         let identity = build_request_uri(&self.host, &uri)
@@ -83,7 +86,7 @@ impl IdentityClient {
     ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
-            "/identities/modules/{}?api-version={}",
+            "/identities/modules/{}?api-version={}&type=aziot",
             module_name, self.api_version
         );
         let body = serde_json::json! {{ "type": "aziot", "moduleId" : module_name }};
@@ -101,7 +104,7 @@ impl IdentityClient {
     ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
-            "/identities/modules/{}?api-version={}",
+            "/identities/modules/{}?api-version={}&type=aziot",
             module_name, self.api_version
         );
 
@@ -120,7 +123,7 @@ impl IdentityClient {
     ) -> Box<dyn Future<Item = aziot_identity_common::Identity, Error = Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
-            "/identities/modules/{}?api-version={}",
+            "/identities/modules/{}?api-version={}&type=aziot",
             module_name, self.api_version
         );
         let body = serde_json::json! {{ "type": "aziot", "moduleId" : module_name }};
@@ -136,7 +139,10 @@ impl IdentityClient {
         &self,
     ) -> Box<dyn Future<Item = Vec<aziot_identity_common::Identity>, Error = Error> + Send> {
         let client = self.client.clone();
-        let uri = format!("/identities/modules?api-version={}", self.api_version);
+        let uri = format!(
+            "/identities/modules?api-version={}&type=aziot",
+            self.api_version
+        );
 
         let identities = build_request_uri(&self.host, &uri)
             .into_future()
