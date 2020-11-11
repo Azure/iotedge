@@ -46,7 +46,10 @@ pub fn start(
     .context("Could not create cert monitor client")?;
 
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
-        loop {
+        let new_trust_bundle = false;
+
+        //Loop until trust bundle is received.
+        while(new_trust_bundle == false) {
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
 
@@ -61,7 +64,7 @@ pub fn start(
             };
 
             //Check for rotation. If rotated then we notify.
-            let new_trust_bundle = match cert_monitor.get_new_trust_bundle().await {
+            new_trust_bundle = match cert_monitor.get_new_trust_bundle().await {
                 Ok(Some(trust_bundle)) => {
                     //If we have a new cert, we need to write it in file system
                     file::write_binary_to_file(
@@ -75,6 +78,24 @@ pub fn start(
                     error!("Error while trying to get trust bundle {}", err);
                     false
                 }
+            };
+        }
+
+        //Trust bundle just received. Request for a reset of the API proxy.
+        notify_certs_rotated.notify();
+
+        loop {
+            let wait_shutdown = shutdown_signal.notified();
+            futures::pin_mut!(wait_shutdown);
+
+            match futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
+                .await
+            {
+                Either::Right(_) => {
+                    warn!("Shutting down certs monitor!");
+                    return Ok(());
+                }
+                Either::Left(_) => {}
             };
 
             //Same thing as above but for private key and server cert
@@ -98,30 +119,7 @@ pub fn start(
                 }
             };
 
-            //Same thing as above but for private key and identity cert
-            let _new_identity_cert = match cert_monitor
-                .need_to_rotate_identity_cert(Utc::now())
-                .await
-            {
-                Ok(Some((identity_cert, private_key))) => {
-                    //If we have a new cert, we need to write it in file system
-                    file::write_binary_to_file(identity_cert.as_bytes(), PROXY_IDENTITY_CERT_PATH)?;
-
-                    //If we have a new cert, we need to write it in file system
-                    file::write_binary_to_file(
-                        private_key.as_bytes(),
-                        PROXY_IDENTITY_PRIVATE_KEY_PATH,
-                    )?;
-                    true
-                }
-                Ok(None) => false,
-                Err(err) => {
-                    error!("Error while trying to get server cert {}", err);
-                    false
-                }
-            };
-
-            if new_trust_bundle | new_server_cert {
+            if new_server_cert {
                 notify_certs_rotated.notify();
             }
         }
