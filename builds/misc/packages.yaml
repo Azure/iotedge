@@ -126,6 +126,44 @@ jobs:
         condition: succeededOrFailed()
 
 ################################################################################
+  - job: CBL-Mariner Linux
+################################################################################
+    displayName: CBL-Mariner Linux
+    pool:
+      vmImage: 'ubuntu-18.04'
+    strategy:
+      matrix:
+        Mariner1.0-amd64:
+          arch: amd64
+          os: mariner
+          target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+    steps:
+      - bash: |
+          BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+
+          echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+          echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
+        displayName: Set Version
+      - script: edgelet/build/linux/package-mariner.sh
+        displayName: Create libiothsm and iotedged packages
+      - task: CopyFiles@2
+        displayName: Copy iotedged and libiothsm Files to Artifact Staging
+        inputs:
+          SourceFolder: out/RPMS/x86_64
+          Contents: |
+            *.deb
+            *.rpm
+          TargetFolder: '$(build.artifactstagingdirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Artifacts
+        inputs:
+          PathtoPublish: '$(build.artifactstagingdirectory)'
+          ArtifactName: 'iotedged-$(os)-$(arch)'
+        condition: succeededOrFailed()
+
+################################################################################
   - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
