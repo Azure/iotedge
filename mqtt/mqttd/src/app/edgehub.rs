@@ -37,6 +37,7 @@ use mqtt_edgehub::{
 use super::{shutdown, Bootstrap};
 
 const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
+const IOTHUB_HOSTNAME_ENV: &str = "IOTEDGE_IOTHUBHOSTNAME";
 
 #[derive(Default)]
 pub struct EdgeHubBootstrap {
@@ -68,10 +69,12 @@ impl Bootstrap for EdgeHubBootstrap {
         info!("state loaded.");
 
         let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
+        let iothub_id = env::var(IOTHUB_HOSTNAME_ENV).context(IOTHUB_HOSTNAME_ENV)?;
 
         let authorizer = LocalAuthorizer::new(EdgeHubAuthorizer::new(
             PolicyAuthorizer::new(device_id.clone(), self.broker_ready.handle()),
             device_id,
+            iothub_id,
             self.broker_ready.handle(),
         ));
 
