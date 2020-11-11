@@ -6,6 +6,7 @@ namespace Diagnostics
     using System.IO;
     using System.Net;
     using System.Net.Sockets;
+    using System.Runtime.InteropServices;
     using System.Text;
 
     public class GetSocket
@@ -15,7 +16,12 @@ namespace Diagnostics
             string request = $"GET {endpoint} HTTP/1.1\r\nHost: {server}\r\nConnection: Close\r\n\r\n";
             byte[] bytesSent = Encoding.ASCII.GetBytes(request);
             byte[] bytesReceived = new byte[256];
-            server = server.Replace("unix://", string.Empty).Trim('/');
+            server = server.Replace("unix://", string.Empty);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                server = server.TrimStart('/');
+            }
 
             // Create a socket connection with the specified server and port.
             using (Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP))
