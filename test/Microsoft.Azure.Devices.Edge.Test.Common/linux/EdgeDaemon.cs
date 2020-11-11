@@ -82,12 +82,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     properties = properties.Append(p).ToArray();
                 });
 
-            //TODO: Temporarily disable installing newly built packages till e2e automation
+            // TODO: Temporarily disable installing newly built packages till e2e automation
             //      is modified to handle Identity Service pre-test configuration.
             // string[] commands = packagesPath.Match(
             //     p => this.packageManagement.GetInstallCommandsFromLocal(p),
             //     () => this.packageManagement.GetInstallCommandsFromMicrosoftProd(proxy));
-
             string[] commands = this.packageManagement.GetInstallCommandsFromMicrosoftProd(proxy);
 
             await Profiler.Run(
