@@ -1,6 +1,6 @@
 Summary:        Azure IoT Edge Security Daemon
 Name:           azure-iotedge
-Version:        1.0.10
+Version:        1.0.9.1
 Release:        2%{?dist}
 
 # A buildable azure-iotedge environments needs functioning submodules that do not work from the archive download

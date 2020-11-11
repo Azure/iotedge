@@ -1,6 +1,6 @@
 {
  "Signatures": {
-  "azure-iotedge-1.0.10-cargo.tar.gz": "4f54b136cd5ec4782409f355163c3b3c8c924fba5397dec2060e634549b2c137",
-  "azure-iotedge-1.0.10.tar.gz": "1eb4bff9cdfcf903314a3c2432ad342c9ff2ac43ee4b96bf289f451879585bd8"
+  "azure-iotedge-1.0.9.1-cargo.tar.gz": "db986a96ad465e9aa0efcfae1f1cdb11a5501c73a5cf496d5314d67f5b0e69e0",
+  "azure-iotedge-1.0.9.1.tar.gz": "323a5709b19c19664811c057cfef646ec02515362e2ef4dbaa6e009726447c7d"
  }
 }
