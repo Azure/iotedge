@@ -6,21 +6,22 @@ namespace Diagnostics
     using System.IO;
     using System.Net;
     using System.Net.Sockets;
+    using System.Runtime.InteropServices;
     using System.Text;
 
     public class GetSocket
     {
         public static string GetSocketResponse(string server, string endpoint)
         {
+            Uri uri = new Uri(server);
             string request = $"GET {endpoint} HTTP/1.1\r\nHost: {server}\r\nConnection: Close\r\n\r\n";
             byte[] bytesSent = Encoding.ASCII.GetBytes(request);
             byte[] bytesReceived = new byte[256];
-            server = server.Replace("unix://", string.Empty).Trim('/');
 
             // Create a socket connection with the specified server and port.
             using (Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP))
             {
-                socket.Connect(new UnixDomainSocketEndPoint(server));
+                socket.Connect(new UnixDomainSocketEndPoint(uri.LocalPath));
 
                 // Send request to the server.
                 socket.Send(bytesSent, bytesSent.Length, 0);
