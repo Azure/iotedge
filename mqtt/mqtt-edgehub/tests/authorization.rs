@@ -40,12 +40,16 @@ async fn publish_not_allowed_identity_not_in_cache() {
                 }
             }),
             "this_edgehub_id".to_string(),
+            "myhub.azure-devices.net".to_string(),
             BrokerReady::new().handle(),
         )))
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
+    let server_handle = start_server(
+        broker,
+        DummyAuthenticator::with_id("myhub.azure-devices.net/device-1"),
+    );
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
@@ -111,12 +115,16 @@ async fn auth_update_happy_case() {
                 }
             }),
             "this_edgehub_id".to_string(),
+            "myhub.azure-devices.net".to_string(),
             BrokerReady::new().handle(),
         )))
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
+    let server_handle = start_server(
+        broker,
+        DummyAuthenticator::with_id("myhub.azure-devices.net/device-1"),
+    );
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
@@ -204,12 +212,16 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
                     }
                 }),
                 "this_edgehub_id".to_string(),
+                "myhub.azure-devices.net".to_string(),
             ),
         ))
         .build();
     let broker_handle = broker.handle();
 
-    let server_handle = start_server(broker, DummyAuthenticator::with_id("device-1"));
+    let server_handle = start_server(
+        broker,
+        DummyAuthenticator::with_id("myhub.azure-devices.net/device-1"),
+    );
 
     // start command handler with AuthorizedIdentitiesCommand
     let command = AuthorizedIdentitiesCommand::new(&broker_handle);
