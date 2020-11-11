@@ -267,10 +267,15 @@ impl TopicRule {
     }
 
     pub fn subscribe_to(&self) -> String {
-        if let Some(local) = &self.in_prefix {
-            format!("{}/{}", local, self.topic)
-        } else {
-            self.topic.clone()
+        match &self.in_prefix {
+            Some(local) => {
+                if local.is_empty() {
+                    self.topic.clone()
+                } else {
+                    format!("{}/{}", local, self.topic)
+                }
+            }
+            None => self.topic.clone(),
         }
     }
 }
