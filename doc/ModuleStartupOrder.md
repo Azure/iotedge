@@ -58,7 +58,7 @@ The following sample deployment manifest illustrates how startupOrder values of 
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-agent:1.0.10",
+              "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
               "createOptions": ""
             }
           },
@@ -116,8 +116,8 @@ The following sample deployment manifest illustrates how startupOrder values of 
 
 In the sample deployment manifest shown above:
 
-* The '$edgeAgent' schemaVersion has been set to 1.1 (or later).
-* The 'edgeAgent' module's image is 1.0.10 (or later).
+* The `$edgeAgent` schemaVersion has been set to 1.1 (or later).
+* The `edgeAgent` module always starts first.  It does not support the `startupOrder` property.
 * The `edgeHub` module has been assigned a `startupOrder` value of 0.
 * The `SimulatedTemperatureSensor` module has been assigned a `startupOrder` value of 1.
 * The `filtermodule` module has not been assigned any `startupOrder` value which means that it will by default assume the value of 4294967295. It will be created and started after all others.
