@@ -245,7 +245,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         e
                     })
                     .map(move |client| {
-                        let mut system_resources = System::new_all();
+                        let mut system_resources = System::new();
                         system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
                         DockerModuleRuntime {
@@ -700,7 +700,10 @@ impl ModuleRuntime for DockerModuleRuntime {
             })
             .unwrap_or_default();
 
-        let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
+        let used_cpu = system_resources.get_processor_list()
+                                       .iter()
+                                       .find(|p| p.get_name() == "cpu")
+                                       .map_or_else(|| -1.0, |p| p.get_cpu_usage());
 
         let total_memory = system_resources.get_total_memory() * 1000;
         let used_memory = system_resources.get_used_memory() * 1000;
