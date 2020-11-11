@@ -51,15 +51,13 @@ pub fn start(
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
 
-            match futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
-                .await
+            if let Either::Right(_) =
+                futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
+                    .await
             {
-                Either::Right(_) => {
-                    warn!("Shutting down certs monitor!");
-                    return Ok(());
-                }
-                Either::Left(_) => {}
-            };
+                warn!("Shutting down certs monitor!");
+                return Ok(());
+            }
 
             //Check for rotation. If rotated then we notify.
             new_trust_bundle = match cert_monitor.get_new_trust_bundle().await {
@@ -89,15 +87,13 @@ pub fn start(
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
 
-            match futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
-                .await
+            if let Either::Right(_) =
+                futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
+                    .await
             {
-                Either::Right(_) => {
-                    warn!("Shutting down certs monitor!");
-                    return Ok(());
-                }
-                Either::Left(_) => {}
-            };
+                warn!("Shutting down certs monitor!");
+                return Ok(());
+            }
 
             //Same thing as above but for private key and server cert
             let new_server_cert = match cert_monitor.need_to_rotate_server_cert(Utc::now()).await {
