@@ -14,8 +14,6 @@ use shutdown_handle::ShutdownHandle;
 const PROXY_SERVER_TRUSTED_CA_PATH: &str = "/app/trustedCA.crt";
 const PROXY_SERVER_CERT_PATH: &str = "/app/server.crt";
 const PROXY_SERVER_PRIVATE_KEY_PATH: &str = "/app/private_key_server.pem";
-const PROXY_IDENTITY_CERT_PATH: &str = "/app/identity.crt";
-const PROXY_IDENTITY_PRIVATE_KEY_PATH: &str = "/app/private_key_identity.pem";
 
 const PROXY_SERVER_VALIDITY_DAYS: i64 = 90;
 
@@ -46,10 +44,10 @@ pub fn start(
     .context("Could not create cert monitor client")?;
 
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
-        let new_trust_bundle = false;
+        let mut new_trust_bundle = false;
 
         //Loop until trust bundle is received.
-        while(new_trust_bundle == false) {
+        while !new_trust_bundle {
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
 
@@ -84,6 +82,9 @@ pub fn start(
         //Trust bundle just received. Request for a reset of the API proxy.
         notify_certs_rotated.notify();
 
+        //Loop to check if server certificate expired.
+        //It is implemented as a polling instead of a delay until certificate expiry, because clocks are unreliable.
+        //If the system clock gets readjusted while the task is sleeping, the system might wake up after the certificate expiry.
         loop {
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
@@ -135,7 +136,6 @@ struct CertificateMonitor {
     bundle_of_trust_hash: String,
     work_load_api_client: edgelet_client::WorkloadClient,
     server_cert_expiration_date: Option<DateTime<Utc>>,
-    identity_cert_expiration_date: Option<DateTime<Utc>>,
     validity_days: Duration,
 }
 
@@ -149,7 +149,6 @@ impl CertificateMonitor {
     ) -> Result<Self, Error> {
         //Create expiry date in the past so cert has to be rotated now.
         let server_cert_expiration_date = None;
-        let identity_cert_expiration_date = None;
 
         let work_load_api_client =
             edgelet_client::workload(&workload_url).context("Could not get workload client")?;
@@ -161,7 +160,6 @@ impl CertificateMonitor {
             bundle_of_trust_hash: String::default(),
             work_load_api_client,
             server_cert_expiration_date,
-            identity_cert_expiration_date,
             validity_days,
         })
     }
@@ -194,32 +192,6 @@ impl CertificateMonitor {
         let (certificates, expiration_date) =
             unwrap_certificate_response(&resp).context("could not extract server certificates")?;
         self.server_cert_expiration_date = Some(expiration_date);
-
-        Ok(Some(certificates))
-    }
-
-    async fn need_to_rotate_identity_cert(
-        &mut self,
-        current_date: DateTime<Utc>,
-    ) -> Result<Option<(String, String)>, anyhow::Error> {
-        //If certificates are not expired, we don't need to make a query
-        if let Some(expiration_date) = self.identity_cert_expiration_date {
-            if current_date < expiration_date {
-                return Ok(None);
-            }
-        }
-        let new_expiration_date = Utc::now()
-            .checked_add_signed(self.validity_days)
-            .context("Could not compute new expiration date for certificate")?;
-
-        let resp = self
-            .work_load_api_client
-            .create_identity_cert(&self.module_id, new_expiration_date)
-            .await?;
-
-        let (certificates, expiration_date) =
-            unwrap_certificate_response(&resp).context("could not extract server certificates")?;
-        self.identity_cert_expiration_date = Some(expiration_date);
 
         Ok(Some(certificates))
     }
@@ -310,58 +282,6 @@ mod tests {
         //Try again, certificate should be rotated in memory.
         let result = client
             .need_to_rotate_server_cert(current_date)
-            .await
-            .unwrap();
-
-        assert!(result.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_get_identity_certs() {
-        let expiration = Utc::now() + Duration::days(PROXY_SERVER_VALIDITY_DAYS);
-        let res = json!(
-            {
-                "privateKey": { "type": "key", "bytes": "PRIVATE KEY" },
-                "certificate": "CERTIFICATE",
-                "expiration": expiration.to_rfc3339()
-            }
-        );
-
-        let module_id = String::from("api_proxy");
-        let generation_id = String::from("0000");
-        let gateway_hostname = String::from("dummy");
-        let workload_url = mockito::server_url();
-
-        let mut client = CertificateMonitor::new(
-            module_id,
-            generation_id,
-            gateway_hostname,
-            &workload_url,
-            Duration::days(PROXY_SERVER_VALIDITY_DAYS),
-        )
-        .unwrap();
-
-        let current_date = Utc::now();
-
-        let _m = mock(
-            "POST",
-            "/modules/api_proxy/certificate/identity?api-version=2019-01-30",
-        )
-        .with_status(201)
-        .with_body(serde_json::to_string(&res).unwrap())
-        .create();
-        let (identity_cert, private_key) = client
-            .need_to_rotate_identity_cert(current_date)
-            .await
-            .unwrap()
-            .unwrap();
-
-        assert_eq!(identity_cert, "CERTIFICATE");
-        assert_eq!(private_key, "PRIVATE KEY");
-
-        //Try again, certificate should be rotated in memory.
-        let result = client
-            .need_to_rotate_identity_cert(current_date)
             .await
             .unwrap();
 
