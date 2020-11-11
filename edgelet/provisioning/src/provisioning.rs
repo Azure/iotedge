@@ -40,11 +40,20 @@ pub enum ProvisioningStatus {
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
-    DeviceDataNotUpdated,
-    DeviceDataUpdated,
-    InitialAssignment,
+    // DPS provisioning substatuses.
+    //
+    // Ref: The `substatus` field in https://docs.microsoft.com/en-us/rest/api/iot-dps/runtimeregistration/registerdevice
     DeviceDataMigrated,
     DeviceDataReset,
+    InitialAssignment,
+    ReprovisionedToInitialAssignment,
+
+    // A synthetic reprovisioning status that's used when
+    //
+    // - DPS is not being used
+    // - DPS is being used but could not be contacted but there was an error during the provisioning and we can fall back to the backup
+    // - DPS provisioning returned "reprovisionedToInitialAssignment" and it matches the backup we already have
+    DeviceDataNotUpdated,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -120,13 +129,18 @@ impl Credentials {
 
 impl From<&str> for ReprovisioningStatus {
     fn from(s: &str) -> ReprovisioningStatus {
-        // TODO: check with DPS substatus value for DeviceDataUpdated when it is implemented on service side
         match s {
             "deviceDataMigrated" => ReprovisioningStatus::DeviceDataMigrated,
             "deviceDataReset" => ReprovisioningStatus::DeviceDataReset,
             "initialAssignment" => ReprovisioningStatus::InitialAssignment,
+            "reprovisionedToInitialAssignment" => {
+                ReprovisioningStatus::ReprovisionedToInitialAssignment
+            }
             _ => {
-                debug!("Provisioning result substatus {}", s);
+                debug!(
+                    r#"Unidentified provisioning result substatus {:?} will be treated as "initialAssignment""#,
+                    s
+                );
                 ReprovisioningStatus::InitialAssignment
             }
         }
@@ -836,12 +850,15 @@ where
                     move |mut prov_result| {
                         debug!("Provisioning result {:?}", prov_result);
                         let reconfigure = match prov_result.reconfigure {
-                            ReprovisioningStatus::DeviceDataUpdated => {
+                            ReprovisioningStatus::ReprovisionedToInitialAssignment => {
                                 if Self::diff_with_backup(&path, &prov_result) {
-                                    info!("Provisioning credentials were changed.");
+                                    info!("\
+                                        Device registration is unchanged in Azure but does not match local provisioning backup, \
+                                        so provisioning result substatus \"reprovisionedToInitialAssignment\" will be treated as \"initialAssignment\".\
+                                    ");
                                     ReprovisioningStatus::InitialAssignment
                                 } else {
-                                    info!("No changes to device reprovisioning.");
+                                    info!(r#"Device registration is unchanged in Azure and matches local provisioning backup."#);
                                     ReprovisioningStatus::DeviceDataNotUpdated
                                 }
                             }
@@ -908,7 +925,7 @@ mod tests {
             Box::new(future::ok(ProvisioningResult {
                 device_id: "TestDevice".to_string(),
                 hub_name: "TestHub".to_string(),
-                reconfigure: ReprovisioningStatus::DeviceDataUpdated,
+                reconfigure: ReprovisioningStatus::ReprovisionedToInitialAssignment,
                 sha256_thumbprint: None,
                 credentials: None,
             }))
@@ -931,7 +948,7 @@ mod tests {
             Box::new(future::ok(ProvisioningResult {
                 device_id: "TestDevice".to_string(),
                 hub_name: "TestHubUpdated".to_string(),
-                reconfigure: ReprovisioningStatus::DeviceDataUpdated,
+                reconfigure: ReprovisioningStatus::ReprovisionedToInitialAssignment,
                 sha256_thumbprint: None,
                 credentials: None,
             }))
