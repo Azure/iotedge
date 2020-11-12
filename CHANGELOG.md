@@ -1,3 +1,9 @@
+# 1.0.10.2 (2020-11-11)
+## iotedged
+### Bug Fixes
+* Recognize the new DPS registration substatus that indicates cloud identity did not change [2321509](https://github.com/Azure/iotedge/commit/23215094cdd11fd5170d42798ebac509b132a8fd)
+* Fix an error in the management endpoint URL built by the diagnostics module ('connect-management-uri' check) [dfa0967](https://github.com/Azure/iotedge/commit/dfa0967ade21d49d4059ca8a1dc602e80b5d22a2)
+
 # 1.0.10.1 (2020-11-04)
 ## Edge Agent
 ### Bug Fixes
