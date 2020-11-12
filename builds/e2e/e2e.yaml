@@ -157,6 +157,55 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
+  - job: windows_amd64_proxy
+################################################################################
+    displayName: Windows amd64 behind a proxy
+
+    pool:
+      name: $(pool.name)
+      demands:
+        - new-e2e-proxy
+        - Agent.OS -equals Windows_NT
+        - Agent.OSArchitecture -equals X64
+
+    variables:
+      os: windows
+      arch: amd64
+      artifactName: iotedged-windows
+      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
+      'agent.disablelogplugin.testfilepublisherplugin': true
+      'agent.disablelogplugin.testresultlogplugin': true
+
+    timeoutInMinutes: 120
+
+    steps:
+    - pwsh: |
+        Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
+        Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
+      displayName: Clean up HSM previous run artifacts
+    - template: templates/e2e-setup.yaml
+
+    - pwsh: |
+        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+          -ArgumentList 'Root', 'LocalMachine'
+        $store.Open('ReadWrite')
+        $store.Add($cert)
+      displayName: Install CAB signing root cert
+      env:
+        PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+    - pwsh: |
+        Write-Output '>>> BEFORE:'
+        netsh interface ipv6 show prefixpolicies
+        netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+        Write-Output '>>> AFTER:'
+        netsh interface ipv6 show prefixpolicies
+      displayName: Prefer IPv4
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
   - job: EFLOW_amd64
 ################################################################################
     displayName: EFLOW amd64
