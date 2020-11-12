@@ -126,7 +126,7 @@ jobs:
         condition: succeededOrFailed()
 
 ################################################################################
-  - job: mariner-linux
+  - job: mariner_linux
 ################################################################################
     displayName: CBL-Mariner Linux
     pool:
