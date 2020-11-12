@@ -146,6 +146,13 @@ jobs:
           echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
           echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
         displayName: Set Version
+      - task: AzureKeyVault@1
+        displayName: Get secrets
+        inputs:
+          azureSubscription: $(az.subscription)
+          keyVaultName: $(kv.name)
+          secretsFilter: >-
+            marineriotedge-key
       - script: edgelet/build/linux/package-mariner.sh
         displayName: Create libiothsm and iotedged packages
       - task: CopyFiles@2
