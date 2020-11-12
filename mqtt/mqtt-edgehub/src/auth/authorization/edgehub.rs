@@ -71,6 +71,7 @@ where
             // allow only those clients whose auth_id and client_id identical
             AuthId::Identity(identity) => {
                 let actor_id = format!("{}/{}", self.iothub_id, activity.client_id());
+
                 if *identity == actor_id {
                     // delegate to inner authorizer.
                     self.inner.authorize(activity)
