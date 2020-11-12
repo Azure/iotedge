@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             bool result;
             try
             {
-                var currentTime = DateTime.Now.ToUniversalTime();
+                var currentTime = DateTime.UtcNow;
                 var overwrittenLockTokenDate = Option.None<DateTime>();
                 this.pendingMessages.AddOrUpdate(
                         currentLockToken,
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void CleanTokens(object _)
         {
-            var now = DateTime.Now.ToUniversalTime();
+            var now = DateTime.UtcNow;
             var keys = this.pendingMessages.Keys.ToArray();
 
             foreach (var key in keys)
