@@ -262,8 +262,8 @@ translate_c2d! {
     // Module-to-Module inputs
     module_to_module_inputs {
         to_internal {
-            format!("devices/{}/modules/{}/(?P<path>.+)", DEVICE_ID, MODULE_ID),
-            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/+/inputs/{}", &captures["device_id"], &captures["module_id"], &captures["path"])}
+            format!("devices/{}/modules/{}/#", DEVICE_ID, MODULE_ID),
+            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/{}/+/inputs/#", &captures["device_id"], &captures["module_id"])}
         },
         to_external {
             format!("\\$edgehub/{}/{}/[^/]+/inputs/(?P<path>.+)", DEVICE_ID, MODULE_ID),
@@ -509,13 +509,6 @@ mod tests {
         assert_eq!(
             c2d.to_internal("devices/device_1/modules/module_a/#", &client_id),
             Some("$edgehub/device_1/module_a/+/inputs/#".to_owned())
-        );
-        assert_eq!(
-            c2d.to_internal(
-                "devices/device_1/modules/module_a/messages/events/%24.uid=test",
-                &client_id
-            ),
-            Some("$edgehub/device_1/module_a/messages/events/%24.uid=test".to_owned())
         );
 
         // M2M incoming
