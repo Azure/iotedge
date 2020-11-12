@@ -69,11 +69,11 @@ impl<P> PublicationDelivery<P> {
 }
 
 fn match_m2m_publish(packet: &Packet) -> Option<(proto::PacketIdentifier, String)> {
-    const ANYTHING_BUT_NOT_SLASH: &str = r"[^/]+";
+    const ANYTHING_BUT_SLASH: &str = r"[^/]+";
     lazy_static! {
         static ref M2M_PUBLISH_PATTERN: Regex = Regex::new(&format!(
-            "\\$edgehub/{}/{}/inputs/.+",
-            ANYTHING_BUT_NOT_SLASH, ANYTHING_BUT_NOT_SLASH
+            "\\$edgehub/{}/{}/{}/inputs/.+",
+            ANYTHING_BUT_SLASH, ANYTHING_BUT_SLASH, ANYTHING_BUT_SLASH
         ))
         .expect("failed to create new Regex from pattern");
     }

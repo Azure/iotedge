@@ -38,7 +38,7 @@ async fn it_sends_delivery_confirmation_for_m2m_messages() {
         .build();
 
     // subscribe to module inputs
-    let inputs = "devices/device-1/modules/module-1/telemetry/#";
+    let inputs = "devices/device-1/modules/module-1/#";
     module.subscribe(inputs, QoS::AtLeastOnce).await;
 
     let mut edgehub = TestClientBuilder::new(server_handle.address())
@@ -50,13 +50,14 @@ async fn it_sends_delivery_confirmation_for_m2m_messages() {
     edgehub.subscribe(confirmation, QoS::AtLeastOnce).await;
 
     // publish a message to module-1
-    let inputs = "$edgehub/device-1/module-1/inputs/telemetry/?rid=1";
+    let inputs = "$edgehub/device-1/module-1/c1906616-e64f-4cf0-96eb-33a40a2535c3/inputs/telemetry/%24.uid=something";
     edgehub.publish_qos1(inputs, "message", false).await;
 
     assert_eq!(
         module.publications().next().await,
         Some(ReceivedPublication {
-            topic_name: "devices/device-1/modules/module-1/inputs/telemetry/?rid=1".into(),
+            topic_name: "devices/device-1/modules/module-1/inputs/telemetry/%24.uid=something"
+                .into(),
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
@@ -71,7 +72,7 @@ async fn it_sends_delivery_confirmation_for_m2m_messages() {
             dup: false,
             qos: QoS::AtLeastOnce,
             retain: false,
-            payload: "\"$edgehub/device-1/module-1/inputs/telemetry/?rid=1\"".into()
+            payload: "\"$edgehub/device-1/module-1/c1906616-e64f-4cf0-96eb-33a40a2535c3/inputs/telemetry/%24.uid=something\"".into()
         })
     );
 
