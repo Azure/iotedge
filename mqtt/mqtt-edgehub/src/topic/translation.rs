@@ -512,10 +512,10 @@ mod tests {
         );
         assert_eq!(
             c2d.to_internal(
-                "devices/device_1/modules/module_a/telemetry/?rid=1",
+                "devices/device_1/modules/module_a/messages/events/%24.uid=test",
                 &client_id
             ),
-            Some("$edgehub/device_1/module_a/inputs/telemetry/?rid=1".to_owned())
+            Some("$edgehub/device_1/module_a/messages/events/%24.uid=test".to_owned())
         );
 
         // M2M incoming
