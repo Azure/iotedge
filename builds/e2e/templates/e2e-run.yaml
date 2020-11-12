@@ -18,7 +18,7 @@ steps:
       # Unfortunately CentOs has some failing test that need to be worked on.
       if ('$(Agent.Name)'.Contains('centos'))
       {
-        sudo --preserve-env dotnet test $testFile --logger:trx --filter "TestCategory=CentOsSafe"
+        sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Category=CentOsSafe'
       }
       else
       {
@@ -35,16 +35,20 @@ steps:
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
+    http_proxy: $(Agent.ProxyUrl)
+    https_proxy: $(Agent.ProxyUrl)
 
 - task: PublishTestResults@2
   displayName: Publish test results
   inputs:
-    testResultsFormat: vstest
+    testRunner: vstest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/TestResults
-    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
+    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
     buildPlatform: $(arch)
-  condition: succeededOrFailed()
+  # This task takes 15 min when behind a proxy, so disable it
+  # see https://github.com/microsoft/azure-pipelines-tasks/issues/11831
+  condition: and(succeededOrFailed(), not(variables['Agent.ProxyUrl']))
 
 - pwsh: |
     $logDir = '$(Build.ArtifactStagingDirectory)/logs'
@@ -63,5 +67,5 @@ steps:
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)-$(artifactName)
+    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(System.PhaseName)
   condition: succeededOrFailed()
