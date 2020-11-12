@@ -670,7 +670,7 @@ mod tests {
 
     #[test]
     fn server_register_with_sym_key_auth_success() {
-        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2018-11-01";
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2019-04-15";
         let handler = move |req: Request<Body>| {
             let (
                 http::request::Parts {
@@ -734,7 +734,7 @@ mod tests {
 
     #[test]
     fn server_register_with_x509_auth_success() {
-        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2018-11-01";
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope/registrations/reg/register?api-version=2019-04-15";
         let handler = move |req: Request<Body>| {
             let (
                 http::request::Parts {
@@ -1203,7 +1203,7 @@ mod tests {
 
     #[test]
     fn get_operation_status_success() {
-        let expected_uri = "https://global.azure-devices-provisioning.net/scope_id/registrations/reg/operations/operation?api-version=2018-11-01";
+        let expected_uri = "https://global.azure-devices-provisioning.net/scope_id/registrations/reg/operations/operation?api-version=2019-04-15";
         let handler = move |req: Request<Body>| {
             let (http::request::Parts { method, uri, .. }, _body) = req.into_parts();
             assert_eq!(uri, expected_uri);

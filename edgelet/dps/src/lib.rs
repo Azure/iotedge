@@ -10,7 +10,6 @@
     clippy::use_self
 )]
 
-pub mod dps;
 pub mod error;
 mod model;
 pub mod registration;
@@ -22,4 +21,4 @@ pub use model::{
 };
 pub use registration::{DpsClient, DpsTokenSource};
 
-pub const DPS_API_VERSION: &str = "2018-11-01";
+pub const DPS_API_VERSION: &str = "2019-04-15";
