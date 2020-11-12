@@ -46,19 +46,13 @@
               "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
-              "CollectMetrics": {
+              "experimentalFeatures__enabled": {
                 "value": "true"
               },
-              "experimentalfeatures__enabled": {
+              "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "true"
               },
-              "experimentalfeatures__enableMetrics": {
-                "value": "true"
-              },
-              "NestedEdgeEnabled": {
-                "value": "true"
-              },
-              "mqttBrokerSettings:enabled": {
+              "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
               }
             },
@@ -771,6 +765,22 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
+        },
+        "mqttBroker": {
+          "authorizations": [
+            {
+              "identities": [
+                  "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                      "mqtt:connect"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       }
     },
