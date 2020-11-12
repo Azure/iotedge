@@ -508,7 +508,7 @@ mod tests {
         // M2M subscription
         assert_eq!(
             c2d.to_internal("devices/device_1/modules/module_a/#", &client_id),
-            Some("$edgehub/device_1/module_a/inputs/#".to_owned())
+            Some("$edgehub/device_1/module_a/+/inputs/#".to_owned())
         );
         assert_eq!(
             c2d.to_internal(
