@@ -35,10 +35,6 @@ async fn main() -> Result<()> {
         .shutdown_handle()
         .context("Could not create Shutdown handle")?;
 
-    let report_twin_state_handle = client.report_twin_state_handle();
-
-    let (twin_state_poll_handle, twin_state_poll_shutdown_handle) =
-        config_monitor::report_twin_state(report_twin_state_handle);
     let (config_monitor_handle, config_monitor_shutdown_handle) =
         config_monitor::start(client, notify_config_reload_api_proxy.clone())
             .context("Failed running config monitor")?;
@@ -61,7 +57,6 @@ async fn main() -> Result<()> {
         .context("Fatal, could not shut down SDK")?;
 
     cert_monitor_shutdown_handle.shutdown().await;
-    twin_state_poll_shutdown_handle.shutdown().await;
     config_monitor_shutdown_handle.shutdown().await;
     nginx_controller_shutdown_handle.shutdown().await;
 
@@ -70,9 +65,6 @@ async fn main() -> Result<()> {
     }
     if let Err(e) = config_monitor_handle.await {
         error!("error on finishing config monitor: {}", e);
-    }
-    if let Err(e) = twin_state_poll_handle.await {
-        error!("error on finishing twin state monitor: {}", e);
     }
 
     info!("Api proxy stopped");
