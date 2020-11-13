@@ -239,7 +239,7 @@ async fn disconnect_client_on_auth_update_reevaluates_subscriptions() {
         packet_identifier: PacketIdentifier::new(1).unwrap(),
         subscribe_to: vec![SubscribeTo {
             // We need to use a post-translation topic here
-            topic_filter: "$edgehub/device-1/inputs/telemetry/#".into(),
+            topic_filter: "$edgehub/device-1/+/inputs/#".into(),
             qos: QoS::AtLeastOnce,
         }],
     };
