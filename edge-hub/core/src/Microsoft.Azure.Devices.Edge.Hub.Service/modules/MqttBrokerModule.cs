@@ -74,6 +74,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<MqttBrokerProtocolHead>()
                     .SingleInstance();
 
+            // The purpose of this setting is to setup a cleanup timer throwing away unanswered message tokens to
+            // prevent memory leak. Giving a big enough multiplier to avoid deleting tokens in use, but also
+            // not to spin the clean cycle too much, even if the timeout value is short
+            var ackTimeout = Math.Max(this.config.GetValue("MessageAckTimeoutSecs", 30), 30);
+            builder.RegisterInstance(new ModuleToModuleResponseTimeout(TimeSpan.FromSeconds(ackTimeout * 10)))
+                   .SingleInstance();
+
             base.Load(builder);
         }
 
