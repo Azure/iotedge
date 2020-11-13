@@ -4,8 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -13,24 +15,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class ModuleToModuleMessageHandler : MessageConfirmingHandler, IModuleToModuleMessageHandler, IMessageProducer, IMessageConsumer
+    public class ModuleToModuleMessageHandler : MessageConfirmingHandler, IModuleToModuleMessageHandler, IMessageProducer, IMessageConsumer, IDisposable
     {
         const string MessageDelivered = "$edgehub/delivered";
         const string MessageDeliveredSubscription = MessageDelivered + "/#";
-        const string ModuleToModleSubscriptionPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/inputs/\#$";
-        const string FeedbackMessagePattern = @"^\""\$edgehub/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/inputs/";
-        const string ModuleToModleTopicTemplate = @"{0}/{1}/{2}/inputs/{3}/{4}";
+        const string ModuleToModleSubscriptionPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/\+/inputs/\#$";
+        const string FeedbackMessagePattern = @"^\""\$edgehub/(?<id1>[^/\+\#]+)/(?<id2>[^/\+\#]+)/(?<token>[^/\+\#]+)/inputs/";
+        const string ModuleToModleTopicTemplate = @"{0}/{1}/{2}/{3}/inputs/{4}/{5}";
 
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(ModuleToModleSubscriptionPattern, DeviceSubscription.ModuleMessages) };
 
+        readonly Timer timer;
+        readonly TimeSpan tokenCleanupPeriod;
+
         IMqttBrokerConnector connector;
         IIdentityProvider identityProvider;
-        ConcurrentDictionary<IIdentity, string> pendingMessages = new ConcurrentDictionary<IIdentity, string>();
+        ConcurrentDictionary<string, DateTime> pendingMessages = new ConcurrentDictionary<string, DateTime>();
 
-        public ModuleToModuleMessageHandler(IConnectionRegistry connectionRegistry, IIdentityProvider identityProvider)
+        public ModuleToModuleMessageHandler(IConnectionRegistry connectionRegistry, IIdentityProvider identityProvider, ModuleToModuleResponseTimeout responseTimeout)
             : base(connectionRegistry)
         {
             this.identityProvider = Preconditions.CheckNotNull(identityProvider);
+            this.tokenCleanupPeriod = responseTimeout;
+            this.timer = new Timer(this.CleanTokens, null, responseTimeout, responseTimeout);
         }
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
@@ -50,10 +57,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     {
                         var id1 = match.Groups["id1"];
                         var id2 = match.Groups["id2"];
+                        var lockToken = match.Groups["token"].Value;
 
                         var identity = this.identityProvider.Create(id1.Value, id2.Value);
 
-                        if (this.pendingMessages.TryRemove(identity, out var lockToken))
+                        if (this.pendingMessages.TryRemove(lockToken, out var _))
                         {
                             await this.ConfirmMessageAsync(lockToken, identity);
                         }
@@ -85,13 +93,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             bool result;
-            var topic = string.Empty;
             try
             {
+                var currentTime = DateTime.UtcNow;
+                var overwrittenLockTokenDate = Option.None<DateTime>();
+                this.pendingMessages.AddOrUpdate(
+                        currentLockToken,
+                        currentTime,
+                        (i, t) =>
+                        {
+                            overwrittenLockTokenDate = Option.Some(t);
+                            return currentTime;
+                        });
+
+                overwrittenLockTokenDate.ForEach(t => Events.OverwritingPendingMessage(identity.Id, currentLockToken, t));
+
                 var topicPrefix = isDirectClient ? MqttBrokerAdapterConstants.DirectTopicPrefix : MqttBrokerAdapterConstants.IndirectTopicPrefix;
                 var propertyBag = GetPropertyBag(message);
                 result = await this.connector.SendAsync(
-                                                GetMessageToMessageTopic(identity, input, propertyBag, topicPrefix),
+                                                GetMessageToMessageTopic(identity, input, propertyBag, topicPrefix, currentLockToken),
                                                 message.Body);
             }
             catch (Exception e)
@@ -103,29 +123,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             if (result)
             {
                 Events.ModuleToModuleMessage(identity.Id, message.Body.Length);
-
-                var overwrittenLockToken = default(string);
-                this.pendingMessages.AddOrUpdate(
-                        identity,
-                        currentLockToken,
-                        (i, t) =>
-                        {
-                            overwrittenLockToken = t;
-                            return currentLockToken;
-                        });
-
-                if (overwrittenLockToken != null)
-                {
-                    Events.OverwritingPendingMessage(identity.Id, overwrittenLockToken);
-                }
             }
             else
             {
+                this.pendingMessages.TryRemove(currentLockToken, out var _);
                 Events.ModuleToModuleMessageFailed(identity.Id, message.Body.Length);
             }
         }
 
-        static string GetMessageToMessageTopic(IIdentity identity, string input, string propertyBag, string topicPrefix)
+        public void Dispose()
+        {
+            this.timer.Dispose();
+        }
+
+        void CleanTokens(object _)
+        {
+            var now = DateTime.UtcNow;
+            var keys = this.pendingMessages.Keys.ToArray();
+
+            foreach (var key in keys)
+            {
+                if (this.pendingMessages.TryGetValue(key, out DateTime issued))
+                {
+                    if (now - issued > this.tokenCleanupPeriod)
+                    {
+                        Events.RemovingExpiredToken(key);
+                        this.pendingMessages.TryRemove(key, out var _);
+                    }
+                }
+            }
+        }
+
+        static string GetMessageToMessageTopic(IIdentity identity, string input, string propertyBag, string topicPrefix, string lockToken)
         {
             switch (identity)
             {
@@ -134,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     throw new ArgumentException($"Cannot send Module To Module message to {identity.Id}, because it is not a module but a device");
 
                 case IModuleIdentity moduleIdentity:
-                    return string.Format(ModuleToModleTopicTemplate, topicPrefix, moduleIdentity.DeviceId, moduleIdentity.ModuleId, input, propertyBag);
+                    return string.Format(ModuleToModleTopicTemplate, topicPrefix, moduleIdentity.DeviceId, moduleIdentity.ModuleId, lockToken, input, propertyBag);
 
                 default:
                     Events.BadIdentityFormat(identity.Id);
@@ -159,6 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 OverwritingPendingMessage,
                 CannotFindMessageToConfirm,
                 NoLockToken,
+                RemovingExpiredToken
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
@@ -168,9 +198,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void CannotSendM2MToDevice(string id) => Log.LogError((int)EventIds.CannotSendM2MToDevice, $"Cannot send Module to Module message to device {id}");
             public static void CannotDecodeConfirmation(Exception e) => Log.LogError((int)EventIds.CannotDecodeConfirmation, e, $"Cannot decode Module to Module message confirmation");
-            public static void OverwritingPendingMessage(string identity, string messageId) => Log.LogWarning((int)EventIds.OverwritingPendingMessage, $"New M2M message is being sent for {identity} while the previous has not been acknowledged with msg id {messageId}");
+            public static void OverwritingPendingMessage(string identity, string messageId, DateTime time) => Log.LogWarning((int)EventIds.OverwritingPendingMessage, $"New M2M message is being sent for {identity} with msg id {messageId}, but it has been sent already with the same id at {time}");
             public static void CannotFindMessageToConfirm(string identity) => Log.LogWarning((int)EventIds.CannotFindMessageToConfirm, $"M2M confirmation has received for {identity} but no message can be found");
             public static void NoLockToken(string identity) => Log.LogError((int)EventIds.NoLockToken, $"Cannot send M2M message for {identity} because it does not have lock token in its system properties");
+            public static void RemovingExpiredToken(string token) => Log.LogWarning((int)EventIds.RemovingExpiredToken, $"M2M confirmation has not been received for token {token}, removing");
         }
     }
 }
