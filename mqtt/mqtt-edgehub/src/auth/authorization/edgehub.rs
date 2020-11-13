@@ -184,7 +184,7 @@ fn get_actor_id(topic: &str) -> Option<ClientId> {
             // - to extract device_id and module_id.
             //
             // format! is for ease of reading only.
-            &format!(r"^(\$edgehub|\$iothub)/(?P<device_id>[^/\+\#]+)(/(?P<module_id>[^/\+\#]+))?/({}|{}|{}|{}|{}|{}|{}|{}|{}|{})",
+            &format!(r"^(\$edgehub|\$iothub)/(?P<device_id>[^/\+\#]+)(/(?P<module_id>[^/\+\#]+))?/({}|{}|{}|{}|{}|{}|{}|{}|{})",
                 "messages/events",
                 "messages/c2d/post",
                 "twin/desired",
@@ -193,8 +193,7 @@ fn get_actor_id(topic: &str) -> Option<ClientId> {
                 "twin/res",
                 "methods/post",
                 "methods/res",
-                "inputs",
-                "outputs")
+                "\\+/inputs")
         ).expect("failed to create new Regex from pattern");
     }
 
@@ -394,8 +393,7 @@ mod tests {
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/twin/get"); "edge module twin request")]
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/methods/post"); "module DM request")]
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/methods/res"); "module DM response")]
-    #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/inputs/route1"); "edge module access M2M inputs")]
-    #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/outputs/route1"); "edge module access M2M outputs")]
+    #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/+/inputs/route1"); "edge module access M2M inputs")]
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/messages/events"); "iothub telemetry with moduleId")]
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/messages/c2d/post"); "iothub c2d messages with moduleId")]
     #[test_case(&tests::subscribe_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/twin/desired"); "iothub update desired properties with moduleId")]
@@ -595,8 +593,6 @@ mod tests {
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/twin/res"); "edge module twin response")]
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/methods/post"); "module DM request")]
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/methods/res"); "module DM response")]
-    #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/outputs/route1"); "edge module access M2M outputs")]
-    #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$edgehub/edge-1/module-a/inputs/route1"); "edge module access M2M inputs")]
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/messages/events"); "iothub telemetry with moduleId")]
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/messages/c2d/post"); "iothub c2d messages with moduleId")]
     #[test_case(&tests::publish_activity("edge-1/$edgeHub", "edge-1/$edgeHub", "$iothub/edge-1/module-a/twin/desired"); "iothub update desired properties with moduleId")]
