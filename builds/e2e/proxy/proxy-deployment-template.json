@@ -6,9 +6,13 @@
 			"type": "string",
 			"defaultValue": "[concat('e2e-', uniqueString(resourceGroup().id), '-')]"
 		},
-		"runner_count": {
+		"linux_runner_count": {
 			"type": "int",
 			"defaultValue": 1
+		},
+		"windows_runner_count": {
+			"type": "int",
+			"defaultValue": "1"
 		},
 		"key_vault_access_objectid": {
 			"type": "string"
@@ -29,16 +33,24 @@
 			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create-linux-vm-template.json",
 			"type": "string"
 		},
+		"windows_vm_creation_template_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create-windows-vm-template.json",
+			"type": "string"
+		},
 		"proxy_config_script_uri": {
 			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_proxy.sh",
 			"type": "string"
 		},
-		"runner_config_script_uri": {
+		"linux_runner_config_script_uri": {
 			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/configure_runner.sh",
 			"type": "string"
 		},
-		"create_ssh_keys_script_uri": {
-			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create_ssh_keys.sh",
+		"windows_runner_config_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/ConfigureRunner.ps1",
+			"type": "string"
+		},
+		"create_secrets_script_uri": {
+			"defaultValue": "https://raw.githubusercontent.com/Azure/iotedge/master/builds/e2e/proxy/create_secrets.sh",
 			"type": "string"
 		}
 	},
@@ -46,11 +58,12 @@
 		"key_vault_name": "[concat(parameters('resource_prefix'), 'kv')]",
 		"contributor_id": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
 		"keygen_identity_name": "[concat(parameters('resource_prefix'), 'uaid')]",
-		"keygen_script_name": "create_ssh_keys",
+		"secretgen_script_name": "create_secrets",
 		"role_definition_name": "[guid(variables('keygen_identity_name'), variables('contributor_id'))]",
 		"proxy_vm_name": "[concat(parameters('resource_prefix'), 'proxy-vm')]",
 		"proxy_nsg_name": "[concat(parameters('resource_prefix'), 'proxy-nsg')]",
-		"runner_prefix": "[concat(parameters('resource_prefix'), 'runner')]",
+		"linux_runner_prefix": "[concat(parameters('resource_prefix'), 'runner-l')]",
+		"windows_runner_prefix": "[concat(parameters('resource_prefix'), 'runner-w')]",
 		"runner_nsg_name": "[concat(parameters('resource_prefix'), 'runner-nsg')]",
 		"vnet_name": "[concat(parameters('resource_prefix'), 'vnet')]",
 		"vnet_address_prefix": "10.0.0.0/24",
@@ -105,7 +118,7 @@
 		]
 	}, {
 		"type": "Microsoft.Resources/deploymentScripts",
-		"name": "[variables('keygen_script_name')]",
+		"name": "[variables('secretgen_script_name')]",
 		"apiVersion": "2019-10-01-preview",
 		"location": "[resourceGroup().location]",
 		"identity": {
@@ -118,8 +131,8 @@
 		"properties": {
 			"azCliVersion": "2.9.1",
 			"cleanupPreference": "OnSuccess",
-			"arguments": "[add(parameters('runner_count'), 1)]",
-			"primaryScriptUri": "[parameters('create_ssh_keys_script_uri')]",
+			"arguments": "[add(parameters('linux_runner_count'), 1)] [parameters('windows_runner_count')]",
+			"primaryScriptUri": "[parameters('create_secrets_script_uri')]",
 			"timeout": "PT30M",
 			"retentionInterval": "P1D"
 		},
@@ -128,11 +141,11 @@
 		]
 	}, {
 		"type": "Microsoft.Resources/deployments",
-		"name": "[concat('store_ssh_keys', copyIndex())]",
+		"name": "[concat('store_linux_secrets', copyIndex())]",
 		"apiVersion": "2020-06-01",
 		"copy": {
-			"name": "store_ssh_keys_copy",
-			"count": "[add(parameters('runner_count'), 1)]"
+			"name": "store_linux_secrets_copy",
+			"count": "[add(parameters('linux_runner_count'), 1)]"
 		},
 		"properties": {
 			"mode": "Incremental",
@@ -142,10 +155,10 @@
 				"resources": [
 					{
 						"type": "Microsoft.KeyVault/vaults/secrets",
-						"name": "[if(equals(copyIndex(), 0), concat(variables('key_vault_name'), '/', variables('proxy_vm_name'), '-ssh-private-key'), concat(variables('key_vault_name'), '/', variables('runner_prefix'), copyIndex(), '-ssh-private-key'))]",
+						"name": "[if(equals(copyIndex(), 0), concat(variables('key_vault_name'), '/', variables('proxy_vm_name'), '-ssh-private-key'), concat(variables('key_vault_name'), '/', variables('linux_runner_prefix'), copyIndex(), '-ssh-private-key'))]",
 						"apiVersion": "2019-09-01",
 						"properties": {
-							"value": "[reference(variables('keygen_script_name')).outputs.keyinfo[copyIndex()].privateKey]"
+							"value": "[reference(variables('secretgen_script_name')).outputs.keyinfo[copyIndex()].privateKey]"
 						}
 					}
 				]
@@ -153,9 +166,38 @@
 		},
 		"dependsOn": [
 			"[variables('key_vault_name')]",
-			"[variables('keygen_script_name')]"
+			"[variables('secretgen_script_name')]"
 		]
-	}, {
+		}, {
+			"type": "Microsoft.Resources/deployments",
+			"name": "[concat('store_windows_secrets', copyIndex())]",
+			"apiVersion": "2020-06-01",
+			"copy": {
+				"name": "store_windows_secrets_copy",
+				"count": "[parameters('windows_runner_count')]"
+			},
+			"properties": {
+				"mode": "Incremental",
+				"template": {
+					"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+					"contentVersion": "1.0.0.0",
+					"resources": [
+						{
+							"type": "Microsoft.KeyVault/vaults/secrets",
+							"name": "[concat(variables('key_vault_name'), '/', variables('windows_runner_prefix'), copyIndex(), '-password'))]",
+							"apiVersion": "2019-09-01",
+							"properties": {
+								"value": "[reference(variables('secretgen_script_name')).outputs.passwords[copyIndex()]]"
+							}
+						}
+					]
+				}
+			},
+			"dependsOn": [
+				"[variables('key_vault_name')]",
+				"[variables('secretgen_script_name')]"
+			]
+		}, {
 		"type": "Microsoft.Network/virtualNetworks",
 		"name": "[variables('vnet_name')]",
 		"apiVersion": "2020-05-01",
@@ -360,7 +402,7 @@
 					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('proxy_nsg_name'))]"
 				},
 				"ssh_public_key": {
-					"value": "[reference(variables('keygen_script_name')).outputs.keyinfo[0].publicKey]"
+					"value": "[reference(variables('secretgen_script_name')).outputs.keyinfo[0].publicKey]"
 				},
 				"vm_name": {
 					"value": "[variables('proxy_vm_name')]"
@@ -376,11 +418,11 @@
 		"dependsOn": [
 			"[variables('proxy_nsg_name')]",
 			"[variables('vnet_name')]",
-			"[variables('keygen_script_name')]"
+			"[variables('secretgen_script_name')]"
 		]
 	}, {
 		"type": "Microsoft.Resources/deployments",
-		"name": "[concat('create_runner_vm', copyIndex(1))]",
+		"name": "[concat('create_linux_runner_vm', copyIndex(1))]",
 		"apiVersion": "2020-06-01",
 		"properties": {
 			"mode": "Incremental",
@@ -392,19 +434,19 @@
 					"value": "[variables('username')]"
 				},
 				"extension_command": {
-					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', variables('proxy_vm_name'), ':3128 ', parameters('runner_config_script_uri'), ' | sudo bash -s -- ', variables('proxy_vm_name'), '\"')]"
+					"value": "[concat('/bin/bash -c \"set -euo pipefail && curl -x ', variables('proxy_vm_name'), ':3128 ', parameters('linux_runner_config_script_uri'), ' | sudo bash -s -- ', variables('proxy_vm_name'), '\"')]"
 				},
 				"nic_name": {
-					"value": "[concat(variables('runner_prefix'), copyIndex(1), '-nic')]"
+					"value": "[concat(variables('linux_runner_prefix'), copyIndex(1), '-nic')]"
 				},
 				"nsg_id": {
 					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('runner_nsg_name'))]"
 				},
 				"ssh_public_key": {
-					"value": "[reference(variables('keygen_script_name')).outputs.keyinfo[copyIndex(1)].publicKey]"
+					"value": "[reference(variables('secretgen_script_name')).outputs.keyinfo[copyIndex(1)].publicKey]"
 				},
 				"vm_name": {
-					"value": "[concat(variables('runner_prefix'), copyIndex(1), '-vm')]"
+					"value": "[concat(variables('linux_runner_prefix'), copyIndex(1), '-vm')]"
 				},
 				"vm_size": {
 					"value": "[parameters('runner_vm_size')]"
@@ -413,18 +455,67 @@
 					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), variables('subnet_name'))]"
 				},
 				"ip_addr_name": {
-					"value": "[if(parameters('create_runner_public_ip'), concat(variables('runner_prefix'), copyIndex(1), '-ip'), '!')]"
+					"value": "[if(parameters('create_runner_public_ip'), concat(variables('linux_runner_prefix'), copyIndex(1), '-ip'), '!')]"
 				}
 			}
 		},
 		"copy": {
-			"name": "runner_vm_copy",
-			"count": "[parameters('runner_count')]"
+			"name": "linux_runner_vm_copy",
+			"count": "[parameters('linux_runner_count')]"
 		},
 		"dependsOn": [
 			"[variables('runner_nsg_name')]",
 			"[variables('vnet_name')]",
-			"[variables('keygen_script_name')]",
+			"[variables('secretgen_script_name')]",
+			"create_proxy_vm"
+		]
+	}, {
+		"type": "Microsoft.Resources/deployments",
+		"name": "[concat('create_windows_runner_vm', copyIndex(1))]",
+		"apiVersion": "2020-06-01",
+		"properties": {
+			"mode": "Incremental",
+			"templateLink": {
+				"uri": "[parameters('windows_vm_creation_template_uri')]"
+			},
+			"parameters": {
+				"admin_user": {
+					"value": "[variables('username')]"
+				},
+				"admin_password": {
+					"value": "[reference(variables('secretgen_script_name')).outputs.passwords[copyIndex()]]"
+				},
+				"extension_command": {
+					"value": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"& { . { Invoke-WebRequest -UseBasicParsing -Proxy http://', parameters('proxy_vm_name'), ':3128 -Uri ', variables('windows_runner_config_script_uri'), ' } | Invoke-Expression; Initialize-WindowsVM -ProxyHostname ', parameters('proxy_vm_name'), ' }\"')]"
+				},
+				"nic_name": {
+					"value": "[concat(variables('windows_runner_prefix'), copyIndex(1), '-nic')]"
+				},
+				"nsg_id": {
+					"value": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('runner_nsg_name'))]"
+				},
+				"vm_name": {
+					"value": "[concat(variables('windows_runner_prefix'), copyIndex(1), '-vm')]"
+				},
+				"vm_size": {
+					"value": "[parameters('runner_vm_size')]"
+				},
+				"vnet_subnet_id": {
+					"value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnet_name'), variables('subnet_name'))]"
+				},
+				"ip_addr_name": {
+					"value": "[if(parameters('create_runner_public_ip'), concat(variables('windows_runner_prefix'), copyIndex(1), '-ip'), '!')]"
+				}
+			}
+		},
+		"copy": {
+			"name": "windows_runner_vm_copy",
+			"count": "[parameters('windows_runner_count')]"
+		},
+		"dependsOn": [
+			"[variables('runner_nsg_name')]",
+			"[variables('vnet_name')]",
+			"[variables('secretgen_script_name')]",
 			"create_proxy_vm"
 		]
 	}]
