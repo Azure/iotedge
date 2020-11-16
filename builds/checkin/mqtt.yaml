@@ -50,7 +50,7 @@ jobs:
         displayName: Publish test results
         inputs:
           testResultsFormat: "JUnit"
-          testResultsFiles: "test-results.xml"
+          testResultsFiles: "**/test-results.xml"
         condition: succeededOrFailed()
 
   ################################################################################
