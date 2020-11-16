@@ -28,6 +28,7 @@ usage()
     echo ""
     echo "options"
     echo " -h, --help          Print this help and exit."
+    echo " -t, --target        Target architecture."
     echo " -r, --release       Release build? (flag, default: false)"
     echo " --report            Optional. Generates the xml test report with specified name."
     exit 1;
@@ -57,6 +58,7 @@ process_args()
                 "-r" | "--release" ) RELEASE="--release";;
                 "-c" | "--cargo" ) save_next_arg=2;;
                 "--report" ) save_next_arg=3;;
+                * ) usage;;
             esac
         fi
     done
