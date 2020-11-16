@@ -29,6 +29,7 @@ usage()
     echo "options"
     echo " -h, --help          Print this help and exit."
     echo " -r, --release       Release build? (flag, default: false)"
+    echo " --report            Optional. Generates the xml test report with specified name."
     exit 1;
 }
 
@@ -44,18 +45,18 @@ process_args()
             TARGET="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
-            RELEASE="true"
+            CARGO="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 3 ]; then
-            CARGO="$arg"
+            REPORT="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
                 "-t" | "--target" ) save_next_arg=1;;
-                "-r" | "--release" ) save_next_arg=2;;
-                "-c" | "--cargo" ) save_next_arg=3;;
-                * ) usage;;
+                "-r" | "--release" ) RELEASE="--release";;
+                "-c" | "--cargo" ) save_next_arg=2;;
+                "--report" ) save_next_arg=3;;
             esac
         fi
     done
@@ -63,14 +64,18 @@ process_args()
 
 process_args "$@"
 
-# Get cargo2junit to report test results to Azure Pipelines
-$CARGO install cargo2junit
-
-if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && $CARGO test --no-fail-fast --workspace --all-features --target "$TARGET" -- -Z unstable-options --format json | tee test-result.json
+if [[ -z ${REPORT} ]]; then
+    echo  $CARGO test --no-fail-fast --workspace --all-features --target "$TARGET" "$RELEASE"
+    cd "$PROJECT_ROOT" && $CARGO test --no-fail-fast --workspace --all-features \
+        --target "$TARGET" "$RELEASE"
 else
-    cd "$PROJECT_ROOT" && $CARGO test --no-fail-fast --workspace --all-features --release --target "$TARGET" -- -Z unstable-options --format json | tee test-result.json
-fi
+    # Get cargo2junit to report test results to Azure Pipelines
+    $CARGO install cargo2junit
 
-# Convert test results to junit format.
-cat test-result.json | cargo2junit > test-results.xml
+    cd "$PROJECT_ROOT" && $CARGO test --no-fail-fast --workspace --all-features \
+        --target "$TARGET" "$RELEASE" \
+        -- -Z unstable-options --format json | tee test-result.json
+
+    # Convert test results to junit format.
+    cat test-result.json | cargo2junit > $REPORT
+fi

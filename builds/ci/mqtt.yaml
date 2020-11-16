@@ -55,7 +55,7 @@ jobs:
       - task: Bash@3
         displayName: Test
         inputs:
-          filePath: mqtt/build/linux/test.sh
+          filePath: mqtt/build/linux/test.sh --report test-results.xml
       - task: PublishTestResults@2
         displayName: Publish test results
         inputs:
@@ -102,7 +102,7 @@ jobs:
         displayName: Test
         inputs:
           filePath: mqtt/build/linux/test.sh
-          arguments: --target armv7-unknown-linux-gnueabihf --cargo cross
+          arguments: --target armv7-unknown-linux-gnueabihf --cargo cross --report test-results.xml
       - task: PublishTestResults@2
         displayName: Publish test results
         inputs:
