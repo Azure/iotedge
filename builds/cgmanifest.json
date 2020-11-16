@@ -1,0 +1,28 @@
+{
+    "Registrations": [
+        {
+            "Component": {
+                "DevelopmentDependency": "false",
+                "Type": "linux",
+                "linux": {
+                    "Distribution": "Ubuntu",
+                    "Name": "libseccomp2",
+                    "Release": "18.04",
+                    "Version": "2.4.3-1ubuntu3.18.04.3"
+                }
+            }
+        },
+        {
+            "Component": {
+                "DevelopmentDependency": "false",
+                "Type": "linux",
+                "linux": {
+                    "Distribution": "Ubuntu",
+                    "Name": "pigz",
+                    "Release": "18.04",
+                    "Version": "2.4-1"
+                }
+            }
+        },
+    ]
+}
