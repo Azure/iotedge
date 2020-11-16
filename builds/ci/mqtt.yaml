@@ -13,6 +13,9 @@ jobs:
     pool:
       vmImage: "ubuntu-16.04"
     steps:
+      - checkout: self
+        submodules: false
+        fetchDepth: 1
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|mqtt)'
           if [[ $? == 0 ]]; then
@@ -50,7 +53,12 @@ jobs:
         displayName: Test
         inputs:
           filePath: mqtt/build/linux/test.sh
-
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: "JUnit"
+          testResultsFiles: "test-results.xml"
+        condition: succeededOrFailed()
+        
 ################################################################################
   - job: linux_arm32v7
 ################################################################################
@@ -73,12 +81,12 @@ jobs:
       - script: cargo install cross --version 0.1.16
         displayName: Install cross
       - task: Bash@3
-        displayName: Build
+        displayName: Build with no default features
         inputs:
           filePath: scripts/linux/generic-rust/build.sh
           arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --no-default-features --features "generic" --target armv7-unknown-linux-gnueabihf --cargo cross
       - task: Bash@3
-        displayName: Build
+        displayName: Build with default features
         inputs:
           filePath: scripts/linux/generic-rust/build.sh
           arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --target armv7-unknown-linux-gnueabihf --cargo cross
@@ -87,27 +95,8 @@ jobs:
         inputs:
           filePath: mqtt/build/linux/test.sh
           arguments: --target armv7-unknown-linux-gnueabihf --cargo cross
-
-################################################################################
-  - job: style_check
-################################################################################
-    displayName: Style Check
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    pool:
-      vmImage: 'ubuntu-16.04'
-    steps:
-      - task: Bash@3
-        displayName: Install Rust
+      - task: PublishTestResults@2
         inputs:
-          filePath: scripts/linux/generic-rust/install.sh
-          arguments: --project-root "mqtt"
-      - task: Bash@3
-        displayName: Format Code
-        inputs:
-          filePath: scripts/linux/generic-rust/format.sh
-          arguments: --project-root "mqtt"
-      - task: Bash@3
-        displayName: Clippy
-        inputs:
-          filePath: mqtt/build/linux/clippy.sh
+          testResultsFormat: "JUnit"
+          testResultsFiles: "test-results.xml"
+        condition: succeededOrFailed()

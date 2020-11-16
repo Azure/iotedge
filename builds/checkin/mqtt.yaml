@@ -5,7 +5,6 @@ pr:
       - master
       - release/*
 jobs:
-
   ################################################################################
   - job: check_run_pipeline
     ################################################################################
@@ -13,6 +12,9 @@ jobs:
     pool:
       vmImage: "ubuntu-16.04"
     steps:
+      - checkout: self
+        submodules: false
+        fetchDepth: 1
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|mqtt)'
           if [[ $? == 0 ]]; then
@@ -41,6 +43,11 @@ jobs:
         displayName: Build with default features
       - bash: mqtt/build/linux/test.sh
         displayName: Test
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: "JUnit"
+          testResultsFiles: "test-results.xml"
+        condition: succeededOrFailed()
 
   ################################################################################
   - job: style_check
