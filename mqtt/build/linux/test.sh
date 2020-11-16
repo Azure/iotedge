@@ -63,8 +63,14 @@ process_args()
 
 process_args "$@"
 
+# Get cargo2junit to report test results to Azure Pipelines
+$CARGO install cargo2junit
+
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && $CARGO test --workspace --all-features --target "$TARGET"
+    cd "$PROJECT_ROOT" && $CARGO test --no-fail-fast --workspace --all-features --target "$TARGET" -- -Z unstable-options --format json | tee test-result.json
 else
-    cd "$PROJECT_ROOT" && $CARGO test --workspace --all-features --release --target "$TARGET"
+    cd "$PROJECT_ROOT" && $CARGO test --no-fail-fast --workspace --all-features --release --target "$TARGET" -- -Z unstable-options --format json | tee test-result.json
 fi
+
+# Convert test results to junit format.
+cat test-result.json | cargo2junit > test-result.xml
