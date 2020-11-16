@@ -57,9 +57,11 @@ jobs:
         inputs:
           filePath: mqtt/build/linux/test.sh
       - task: PublishTestResults@2
+        displayName: Publish test results
         inputs:
           testResultsFormat: "JUnit"
           testResultsFiles: "**/test-results.xml"
+          failTaskOnFailedTests: true
         condition: succeededOrFailed()
 
 ################################################################################
@@ -106,4 +108,5 @@ jobs:
         inputs:
           testResultsFormat: "JUnit"
           testResultsFiles: "**/test-results.xml"
+          failTaskOnFailedTests: true
         condition: succeededOrFailed()
