@@ -73,4 +73,4 @@ else
 fi
 
 # Convert test results to junit format.
-cat test-result.json | cargo2junit > test-result.xml
+cat test-result.json | cargo2junit > test-results.xml
