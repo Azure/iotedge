@@ -7,7 +7,7 @@ use crate::errors::Result;
 use crate::{substituter::Substituter, Error, ResourceMatcher};
 
 mod builder;
-pub use builder::{PolicyBuilder, PolicyDefinition, Statement};
+pub use builder::{Effect, PolicyBuilder, PolicyDefinition, Statement};
 
 /// Policy engine. Represents a read-only set of rules and can
 /// evaluate `Request` based on those rules.
@@ -38,12 +38,12 @@ where
         match self.eval_static_rules(request) {
             // static rules not defined. Need to check variable rules.
             Ok(EffectOrd {
-                effect: Effect::Undefined,
+                effect: EffectImpl::Undefined,
                 ..
             }) => match self.eval_variable_rules(request) {
                 // variable rules undefined as well. Return default decision.
                 Ok(EffectOrd {
-                    effect: Effect::Undefined,
+                    effect: EffectImpl::Undefined,
                     ..
                 }) => Ok(self.default_decision),
                 // variable rules defined. Return the decision.
@@ -55,7 +55,7 @@ where
                 match self.eval_variable_rules(request) {
                     // variable rules undefined. Proceed with static rule decision.
                     Ok(EffectOrd {
-                        effect: Effect::Undefined,
+                        effect: EffectImpl::Undefined,
                         ..
                     }) => Ok(static_effect.into()),
                     // variable rules defined. Compare priority and return.
@@ -304,18 +304,18 @@ pub enum Decision {
     Denied,
 }
 
-impl From<Effect> for Decision {
-    fn from(effect: Effect) -> Self {
+impl From<EffectImpl> for Decision {
+    fn from(effect: EffectImpl) -> Self {
         match effect {
-            Effect::Allow => Decision::Allowed,
-            Effect::Deny => Decision::Denied,
-            Effect::Undefined => Decision::Denied,
+            EffectImpl::Allow => Decision::Allowed,
+            EffectImpl::Deny => Decision::Denied,
+            EffectImpl::Undefined => Decision::Denied,
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
-enum Effect {
+enum EffectImpl {
     Allow,
     Deny,
     Undefined,
@@ -324,18 +324,18 @@ enum Effect {
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct EffectOrd {
     order: usize,
-    effect: Effect,
+    effect: EffectImpl,
 }
 
 impl EffectOrd {
-    pub fn new(effect: Effect, order: usize) -> Self {
+    pub fn new(effect: EffectImpl, order: usize) -> Self {
         Self { order, effect }
     }
 
     pub fn undefined() -> Self {
         Self {
             order: usize::MAX,
-            effect: Effect::Undefined,
+            effect: EffectImpl::Undefined,
         }
     }
 
@@ -358,9 +358,9 @@ impl PartialOrd for EffectOrd {
 impl From<EffectOrd> for Decision {
     fn from(effect: EffectOrd) -> Self {
         match effect.effect {
-            Effect::Allow => Decision::Allowed,
-            Effect::Deny => Decision::Denied,
-            Effect::Undefined => Decision::Denied,
+            EffectImpl::Allow => Decision::Allowed,
+            EffectImpl::Deny => Decision::Denied,
+            EffectImpl::Undefined => Decision::Denied,
         }
     }
 }
@@ -368,8 +368,8 @@ impl From<EffectOrd> for Decision {
 impl From<&Statement> for EffectOrd {
     fn from(statement: &Statement) -> Self {
         match statement.effect() {
-            builder::Effect::Allow => EffectOrd::new(Effect::Allow, statement.order()),
-            builder::Effect::Deny => EffectOrd::new(Effect::Deny, statement.order()),
+            builder::Effect::Allow => EffectOrd::new(EffectImpl::Allow, statement.order()),
+            builder::Effect::Deny => EffectOrd::new(EffectImpl::Deny, statement.order()),
         }
     }
 }
