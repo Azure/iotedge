@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public static (string, uint) ParseMessageQueueId(string messageQueueId)
         {
-            var idx = messageQueueId.LastIndexOf('.');
+            var idx = messageQueueId.LastIndexOf(MessageQueueIdDelimiter);
             if (idx < 0)
             {
                 return (messageQueueId, RouteFactory.DefaultPriority);
