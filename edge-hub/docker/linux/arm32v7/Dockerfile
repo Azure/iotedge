@@ -1,4 +1,4 @@
-ARG base_tag=1.0.6.3-linux-arm32v7
+ARG base_tag=1.0.6.4-linux-arm32v7
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
 ADD ./watchdog/target/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
