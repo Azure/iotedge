@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test
 {
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using System;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class MessageQueueIdHelperTest

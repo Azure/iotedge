@@ -193,8 +193,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        
-
         async Task SendMessagesPump()
         {
             try

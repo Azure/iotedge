@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         // We use the default priority (2,000,000,000) for this, which means the store ID is just the endpoint ID.
         public static string GetMessageQueueId(string endpointId, uint priority) => priority == RouteFactory.DefaultPriority ? endpointId : $"{endpointId}{MessageQueueIdDelimiter}{priority}";
 
-        public static(string, uint) ParseMessageQueueId(string messageQueueId)
+        public static (string, uint) ParseMessageQueueId(string messageQueueId)
         {
             var idx = messageQueueId.LastIndexOf('.');
             if (idx < 0)

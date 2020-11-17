@@ -277,10 +277,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             int cleanupEntityStoreCount = 0;
 
                             // If cleanup just peek head, message counts is tailOffset-headOffset+1
-                            // otherwise count while iterating over the queue, 
+                            // otherwise count while iterating over the queue.
                             var headOffset = 0L;
                             var tailOffset = sequentialStore.GetTailOffset(CancellationToken.None);
-                            var messageCounts = 0L; 
+                            var messageCounts = 0L;
 
                             async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                             {
