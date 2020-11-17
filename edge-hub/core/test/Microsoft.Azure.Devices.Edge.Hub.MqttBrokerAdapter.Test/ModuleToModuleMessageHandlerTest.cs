@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
@@ -26,12 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                 .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
+            using var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider, GetAckTimeout());
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity, true);
 
-            Assert.Equal("$edgehub/device_id/module_id/inputs/some_input/", capture.Topic);
+            Assert.Equal("$edgehub/device_id/module_id/12345/inputs/some_input/", capture.Topic);
         }
 
         [Fact]
@@ -48,12 +49,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                 .SetSystemProperties(new Dictionary<string, string>() { ["userId"] = "userid", ["cid"] = "corrid", [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
+            using var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider, GetAckTimeout());
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity, true);
 
-            Assert.StartsWith("$edgehub/device_id/module_id/inputs/some_input/", capture.Topic);
+            Assert.StartsWith("$edgehub/device_id/module_id/12345/inputs/some_input/", capture.Topic);
             Assert.Contains("prop1=value1", capture.Topic);
             Assert.Contains("prop2=value2", capture.Topic);
             Assert.Contains("%24.uid=userid", capture.Topic);
@@ -73,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                 .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
+            using var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider, GetAckTimeout());
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity, true);
@@ -103,11 +104,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                 .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
+            using var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider, GetAckTimeout());
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity, true);
-            await sut.HandleAsync(new MqttPublishInfo("$edgehub/delivered", Encoding.UTF8.GetBytes(@"""$edgehub/device_id/module_id/inputs/""")));
+            await sut.HandleAsync(new MqttPublishInfo("$edgehub/delivered", Encoding.UTF8.GetBytes(@"""$edgehub/device_id/module_id/12345/inputs/""")));
 
             Assert.Equal("12345", capturedLockId);
             Assert.Equal(FeedbackStatus.Complete, capturedStatus);
@@ -126,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var identityProvider = new IdentityProvider("hub");
 
-            var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider);
+            using var sut = new ModuleToModuleMessageHandler(connectionRegistry, identityProvider, GetAckTimeout());
             sut.SetConnector(connector);
 
             await sut.SendModuleToModuleMessageAsync(message, "some_input", identity, true);
@@ -134,5 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Mock.Get(connector)
                 .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
+
+        ModuleToModuleResponseTimeout GetAckTimeout() => new ModuleToModuleResponseTimeout(TimeSpan.FromSeconds(30));
     }
 }
