@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     new
                                     {
-                                        identities = new[] { deviceId1 },
+                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId1}" },
                                         allow = new[]
                                         {
                                             new
@@ -203,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                     },
                                     new
                                     {
-                                        identities = new[] { deviceId2 },
+                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId2}" },
                                         deny = new[]
                                         {
                                             new
