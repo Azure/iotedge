@@ -18,6 +18,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         }
 
         [Fact]
+        public void TestGetMessageQueueId()
+        {
+            // Message queue with non-default priority should combain endpoint id and priority with MessageQueueIdHelper.MessageQueueIdDelimiter
+            var endpointId = "abc";
+            uint priority = 1234;
+            var expectMessageQueueId = $"abc_Pri1234";
+
+            var messageQueueId = MessageQueueIdHelper.GetMessageQueueId(endpointId, priority);
+
+            Assert.Equal(expectMessageQueueId, messageQueueId);
+        }
+
+        [Fact]
         public void TestGetMessageQueueIdWithNonDefaultPriority()
         {
             // Message queue with non-default priority should combain endpoint id and priority with MessageQueueIdHelper.MessageQueueIdDelimiter
