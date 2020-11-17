@@ -86,6 +86,14 @@ pub struct PolicyUpdate {
     definition: String,
 }
 
+impl PolicyUpdate {
+    pub fn new(definition: impl Into<String>) -> Self {
+        Self {
+            definition: definition.into(),
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("An error occurred authorizing the request: {0}")]
