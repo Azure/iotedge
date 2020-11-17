@@ -23,11 +23,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             var endpointId = messageQueueId.Substring(0, idx);
             var priority = messageQueueId.Substring(idx + MessageQueueIdDelimiter.Length);
-            try
+            if (uint.TryParse(priority, out var priorityNum))
             {
-                return (endpointId, Convert.ToUInt32(priority));
+                return (endpointId, priorityNum);
             }
-            catch (Exception e) when (e is FormatException || e is OverflowException)
+            else
             {
                 return (messageQueueId, RouteFactory.DefaultPriority);
             }

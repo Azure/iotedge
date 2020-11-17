@@ -276,11 +276,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             Events.CleanupCheckpointState(messageQueueId, checkpointData);
                             int cleanupEntityStoreCount = 0;
 
-                            // If cleanup just peek head, message counts is tailOffset-headOffset+1
+                            // If checkEntireQueueOnCleanup is set to false, we only peek the head, message counts is tailOffset-headOffset+1
                             // otherwise count while iterating over the queue.
                             var headOffset = 0L;
                             var tailOffset = sequentialStore.GetTailOffset(CancellationToken.None);
-                            var messageCounts = 0L;
+                            var messageCount = 0L;
 
                             async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                             {
@@ -288,7 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 if (offset > checkpointData.Offset && expiry > DateTime.UtcNow)
                                 {
                                     // message is not sent and not expired, increase message counts
-                                    messageCounts++;
+                                    messageCount++;
                                     return false;
                                 }
 
@@ -358,11 +358,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                     cleanupCount++;
                                 }
 
-                                messageCounts = tailOffset - headOffset + 1;
+                                messageCount = tailOffset - headOffset + 1;
                             }
 
                             // update Metrics for message counts
-                            Checkpointer.Metrics.QueueLength.Set(messageCounts, new[] { endpointId, priority.ToString() });
+                            Checkpointer.Metrics.QueueLength.Set(messageCount, new[] { endpointId, priority.ToString() });
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
