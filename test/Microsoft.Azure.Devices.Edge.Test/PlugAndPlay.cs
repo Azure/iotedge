@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Ignore("Temporarily disabling flaky test while we figure out what is wrong")]
         public async Task PlugAndPlayDeviceClient()
         {
             CancellationToken token = this.TestToken;

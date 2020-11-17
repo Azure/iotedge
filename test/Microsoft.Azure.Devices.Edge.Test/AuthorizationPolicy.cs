@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Validate that new device can't connect (unauthorized).
         /// </summary>
         [Test]
+        [Ignore("Temporarily disabling flaky test while we figure out what is wrong")]
         public async Task AuthorizationPolicyUpdateTest()
         {
             CancellationToken token = this.TestToken;
@@ -168,6 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Create devices and validate that they can/cannot connect.
         /// </summary>
         [Test]
+        [Ignore("Temporarily disabling flaky test while we figure out what is wrong")]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
             CancellationToken token = this.TestToken;
