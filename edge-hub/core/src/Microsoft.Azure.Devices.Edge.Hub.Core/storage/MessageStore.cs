@@ -261,6 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 {
                     foreach (KeyValuePair<string, ISequentialStore<MessageRef>> endpointSequentialStore in this.messageStore.endpointSequentialStores)
                     {
+                        var messageQueueId = endpointSequentialStore.Key;
                         try
                         {
                             if (this.cancellationTokenSource.IsCancellationRequested)
@@ -268,21 +269,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 return;
                             }
 
-                            Events.CleanupTaskStarted(endpointSequentialStore.Key);
-                            CheckpointData checkpointData = await this.messageStore.checkpointStore.GetCheckpointDataAsync(endpointSequentialStore.Key, CancellationToken.None);
+                            var (endpointId, priority) = MessageQueueIdHelper.ParseMessageQueueId(messageQueueId);
+                            Events.CleanupTaskStarted(messageQueueId);
+                            CheckpointData checkpointData = await this.messageStore.checkpointStore.GetCheckpointDataAsync(messageQueueId, CancellationToken.None);
                             ISequentialStore<MessageRef> sequentialStore = endpointSequentialStore.Value;
-                            Events.CleanupCheckpointState(endpointSequentialStore.Key, checkpointData);
+                            Events.CleanupCheckpointState(messageQueueId, checkpointData);
                             int cleanupEntityStoreCount = 0;
+
+                            // If cleanup just peek head, message counts is tailOffset-headOffset+1
+                            // otherwise count while iterating over the queue, 
+                            var headOffset = 0L;
+                            var tailOffset = sequentialStore.GetTailOffset(CancellationToken.None);
+                            var messageCounts = 0L; 
 
                             async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                             {
-                                var enqueuedTime = DateTime.UtcNow - messageRef.TimeStamp;
-                                if (checkpointData.Offset < offset &&
-                                     enqueuedTime < messageRef.TimeToLive)
+                                var expiry = messageRef.TimeStamp + messageRef.TimeToLive;
+                                if (offset > checkpointData.Offset && expiry > DateTime.UtcNow)
                                 {
+                                    // message is not sent and not expired, increase message counts
+                                    messageCounts++;
                                     return false;
                                 }
 
+                                headOffset = Math.Max(headOffset, offset);
                                 bool deleteMessage = false;
 
                                 // Decrement ref count.
@@ -305,10 +315,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                                 if (deleteMessage)
                                 {
-                                    if (checkpointData.Offset < offset && enqueuedTime >= messageRef.TimeToLive)
-                                    {
-                                        this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString } );
-                                    }
+                                    this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString } );
 
                                     await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
                                     cleanupEntityStoreCount++;
@@ -340,7 +347,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                         }
                                     }
 
-                                    offset = offset + CleanupBatchSize;
+                                    offset += CleanupBatchSize;
                                 }
                                 while (batch.Any());
                             }
@@ -350,16 +357,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 {
                                     cleanupCount++;
                                 }
+
+                                messageCounts = tailOffset - headOffset + 1;
                             }
 
+                            // update Metrics for message counts
+                            Checkpointer.Metrics.QueueLength.Set(messageCounts, new[] { endpointId, priority.ToString() });
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
-                            Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
+                            Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
                             await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
                         }
                         catch (Exception ex)
                         {
-                            Events.ErrorCleaningMessagesForEndpoint(ex, endpointSequentialStore.Key);
+                            Events.ErrorCleaningMessagesForEndpoint(ex, messageQueueId);
                         }
                     }
 
