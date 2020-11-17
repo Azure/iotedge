@@ -5,10 +5,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+
+    [Unit]
     public class MessageQueueIdHelperTest
     {
         [Fact]
-        [Unit]
         public void TestGetMessageQueueIdWithDefaultPriority()
         {
             // Message queue with default priority should remain as endpoint id
@@ -18,7 +19,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         }
 
         [Fact]
-        [Unit]
         public void TestGetMessageQueueIdWithNonDefaultPriority()
         {
             // Message queue with non-default priority should combain endpoint id and priority with MessageQueueIdHelper.MessageQueueIdDelimiter
@@ -32,7 +32,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         }
 
         [Fact]
-        [Unit]
         public void TestParseMessageQueueIdWithoutPriority()
         {
             // Message queue id without priority should return default priority
@@ -47,7 +46,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         }
 
         [Fact]
-        [Unit]
         public void TestParseMessageQueueIdWithPriority()
         {
             // Message queue id with priority should return its priority
@@ -62,7 +60,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         }
 
         [Fact]
-        [Unit]
         public void TestParseMessageQueueIdWithPriorityAndDelimiterInEndpointId()
         {
             // Endpoint id with delimiter should be ignored
@@ -77,7 +74,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         }
 
         [Fact]
-        [Unit]
         public void TestParseMessageQueueIdWithDefaultPriorityAndInvalidSuffixInEndpointId()
         {
             // Endpoint id with delimiter should be ignored
