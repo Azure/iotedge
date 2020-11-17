@@ -97,6 +97,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "aziot-edge"
+version = "0.1.0"
+dependencies = [
+ "aziot-cert-common-http",
+ "aziot-identity-common",
+ "aziot-identity-common-http",
+ "aziot-key-client",
+ "aziot-key-common",
+ "aziot-key-common-http",
+ "aziot-key-openssl-engine",
+ "base64 0.9.3",
+ "cert-client",
+ "chrono",
+ "clap",
+ "docker",
+ "edgelet-core",
+ "edgelet-docker",
+ "edgelet-http",
+ "edgelet-http-mgmt",
+ "edgelet-http-workload",
+ "edgelet-test-utils",
+ "edgelet-utils",
+ "env_logger",
+ "failure",
+ "foreign-types-shared",
+ "futures",
+ "http-common",
+ "hyper 0.12.35",
+ "hyper-tls",
+ "identity-client",
+ "lazy_static",
+ "log",
+ "native-tls",
+ "openssl",
+ "openssl-sys2",
+ "openssl2",
+ "rand 0.5.6",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempdir",
+ "tokio 0.1.22",
+ "tokio-signal",
+ "url 2.1.1",
+ "url_serde",
+]
+
+[[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
 dependencies = [
@@ -1250,54 +1298,6 @@ dependencies = [
  "typed-headers",
  "url 2.1.1",
  "zip",
-]
-
-[[package]]
-name = "iotedged"
-version = "0.1.0"
-dependencies = [
- "aziot-cert-common-http",
- "aziot-identity-common",
- "aziot-identity-common-http",
- "aziot-key-client",
- "aziot-key-common",
- "aziot-key-common-http",
- "aziot-key-openssl-engine",
- "base64 0.9.3",
- "cert-client",
- "chrono",
- "clap",
- "docker",
- "edgelet-core",
- "edgelet-docker",
- "edgelet-http",
- "edgelet-http-mgmt",
- "edgelet-http-workload",
- "edgelet-test-utils",
- "edgelet-utils",
- "env_logger",
- "failure",
- "foreign-types-shared",
- "futures",
- "http-common",
- "hyper 0.12.35",
- "hyper-tls",
- "identity-client",
- "lazy_static",
- "log",
- "native-tls",
- "openssl",
- "openssl-sys2",
- "openssl2",
- "rand 0.5.6",
- "serde",
- "serde_json",
- "sha2",
- "tempdir",
- "tokio 0.1.22",
- "tokio-signal",
- "url 2.1.1",
- "url_serde",
 ]
 
 [[package]]

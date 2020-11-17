@@ -146,7 +146,7 @@ where
             .and_then(|s| s.write_system_log("aziot-keyd", "aziot-keyd"))
             .and_then(|s| s.write_system_log("aziot-certd", "aziot-certd"))
             .and_then(|s| s.write_system_log("aziot-identityd", "aziot-identityd"))
-            .and_then(|s| s.write_system_log("iotedged", "iotedge"))
+            .and_then(|s| s.write_system_log("aziot-edged", "aziot-edged"))
             .and_then(|s| s.write_system_log("docker", "docker"))
             .and_then(Self::write_all_inspects)
             .and_then(Self::write_all_network_inspects)
@@ -323,7 +323,7 @@ where
         self.print_verbose("Calling iotedge check");
 
         let mut iotedge = env::args().next().unwrap();
-        if iotedge.contains("iotedged") {
+        if iotedge.contains("aziot-edged") {
             self.print_verbose("Calling iotedge check from edgelet, using iotedge from path");
             iotedge = "iotedge".to_string();
         }
@@ -554,7 +554,7 @@ mod tests {
         assert_eq!("Roses are redviolets are blue", mod_log);
 
         for name in &[
-            "iotedged",
+            "aziot-edge",
             "aziot-certd",
             "aziot-keyd",
             "aziot-identityd",
