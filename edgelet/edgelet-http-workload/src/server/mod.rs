@@ -5,6 +5,7 @@ mod decrypt;
 mod encrypt;
 mod sign;
 mod trust_bundle;
+mod manifest_trust_bundle;
 
 use aziot_key_client::Client as KeyClient;
 use aziot_key_common::KeyHandle;
@@ -63,8 +64,8 @@ impl WorkloadService {
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/certificate/identity"            => IdentityCertHandler::new(key_client.clone(), cert_client.clone(), config.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(key_client, cert_client.clone(), config),
 
-            get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client),
-            get   Version2018_06_28 runtime Policy::Anonymous => "/manifest-trust-bundle" => ManifestTrustBundleHandler::new(cert_client),
+            get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client.clone()),
+            get   Version2018_06_28 runtime Policy::Anonymous => "/manifest-trust-bundle" => ManifestTrustBundleHandler::new(cert_client.clone()),
         );
 
         router.new_service().then(|inner| {

@@ -11,7 +11,7 @@ use hyper::{Body, Request, Response, StatusCode};
 use cert_client::client::CertificateClient;
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
-use workload::models::TrustBundleResponse;
+use workload::models::ManifestTrustBundleResponse;
 
 use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
