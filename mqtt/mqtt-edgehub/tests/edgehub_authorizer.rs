@@ -5,18 +5,14 @@ use bytes::Bytes;
 use futures_util::StreamExt;
 use tokio::time;
 
-use mqtt3::{
-    proto::ClientId,
-    proto::ConnectReturnCode,
-    proto::Packet,
-    proto::PacketIdentifier,
-    proto::QoS,
-    proto::SubAckQos,
-    proto::Subscribe,
-    proto::{PacketIdentifierDupQoS, Publish, SubscribeTo},
+use mqtt3::proto::{
+    ClientId, ConnectReturnCode, Packet, PacketIdentifier, PacketIdentifierDupQoS, Publish, QoS,
+    SubAckQos, Subscribe, SubscribeTo,
 };
-use mqtt_broker::auth::authorize_fn_ok;
-use mqtt_broker::{auth::Authorization, auth::Operation, BrokerBuilder};
+use mqtt_broker::{
+    auth::{authorize_fn_ok, Authorization, Operation},
+    BrokerBuilder,
+};
 use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     packet_stream::PacketStream,

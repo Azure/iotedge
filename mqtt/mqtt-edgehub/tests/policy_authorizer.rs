@@ -5,15 +5,9 @@ use bytes::Bytes;
 use futures_util::StreamExt;
 use tokio::time;
 
-use mqtt3::{
-    proto::ClientId,
-    proto::ConnectReturnCode,
-    proto::Packet,
-    proto::PacketIdentifier,
-    proto::QoS,
-    proto::SubAckQos,
-    proto::Subscribe,
-    proto::{ConnectionRefusedReason, PacketIdentifierDupQoS, Publish, SubscribeTo},
+use mqtt3::proto::{
+    ClientId, ConnectReturnCode, ConnectionRefusedReason, Packet, PacketIdentifier,
+    PacketIdentifierDupQoS, Publish, QoS, SubAckQos, Subscribe, SubscribeTo,
 };
 use mqtt_broker::BrokerBuilder;
 use mqtt_broker_tests_util::{
@@ -22,8 +16,7 @@ use mqtt_broker_tests_util::{
     server::{start_server, DummyAuthenticator},
 };
 use mqtt_edgehub::{
-    auth::PolicyAuthorizer,
-    auth::PolicyUpdate,
+    auth::{PolicyAuthorizer, PolicyUpdate},
     command::{PolicyUpdateCommand, POLICY_UPDATE_TOPIC},
 };
 
@@ -37,7 +30,6 @@ use common::DummyAuthorizer;
 /// verify client can't connect, since policy haven't been sent.
 #[tokio::test]
 async fn connect_not_allowed_policy_not_set() {
-    mqtt_broker_tests_util::init_logging();
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to PolicyAuthorizer
     let broker = BrokerBuilder::default()
