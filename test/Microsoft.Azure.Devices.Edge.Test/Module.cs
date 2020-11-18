@@ -101,10 +101,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Ignore("Temporarily disabling flaky test while we figure out what is wrong")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
+            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             if (OsPlatform.IsArm() && OsPlatform.Is64Bit())
             {
                 Assert.Ignore("TempFilterFunc is disabled for arm64 because azureiotedge-functions-filter does not exist for arm64");
