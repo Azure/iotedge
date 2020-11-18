@@ -1,9 +1,6 @@
-use std::time::Duration;
-
 use assert_matches::assert_matches;
 use bytes::Bytes;
 use futures_util::StreamExt;
-use tokio::time;
 
 use mqtt3::proto::{
     ClientId, ConnectReturnCode, ConnectionRefusedReason, Packet, PacketIdentifier,
@@ -67,11 +64,11 @@ async fn connect_not_allowed_policy_not_set() {
 async fn auth_policy_happy_case() {
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to PolicyAuthorizer
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::new(
-            PolicyAuthorizer::without_ready_handle("this_edgehub_id".to_string()),
-        ))
-        .build();
+    let mut authorizer = DummyAuthorizer::new(PolicyAuthorizer::without_ready_handle(
+        "this_edgehub_id".to_string(),
+    ));
+    let mut policy_ready = authorizer.update_signal();
+    let broker = BrokerBuilder::default().with_authorizer(authorizer).build();
     let broker_handle = broker.handle();
 
     let server_handle = start_server(
@@ -121,7 +118,7 @@ async fn auth_policy_happy_case() {
         .await;
 
     // let policy update sink in...
-    time::delay_for(Duration::from_secs(1)).await;
+    policy_ready.recv().await;
 
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
@@ -192,11 +189,11 @@ async fn policy_update_reevaluates_sessions() {
     mqtt_broker_tests_util::init_logging();
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to PolicyAuthorizer
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::new(
-            PolicyAuthorizer::without_ready_handle("this_edgehub_id".to_string()),
-        ))
-        .build();
+    let mut authorizer = DummyAuthorizer::new(PolicyAuthorizer::without_ready_handle(
+        "this_edgehub_id".to_string(),
+    ));
+    let mut policy_update_signal = authorizer.update_signal();
+    let broker = BrokerBuilder::default().with_authorizer(authorizer).build();
     let broker_handle = broker.handle();
 
     let server_handle = start_server(
@@ -241,7 +238,7 @@ async fn policy_update_reevaluates_sessions() {
         .await;
 
     // let policy update sink in...
-    time::delay_for(Duration::from_secs(1)).await;
+    policy_update_signal.recv().await;
 
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
@@ -284,7 +281,7 @@ async fn policy_update_reevaluates_sessions() {
         .await;
 
     // let policy update sink in...
-    time::delay_for(Duration::from_secs(1)).await;
+    policy_update_signal.recv().await;
 
     // assert client disconnected
     assert_matches!(device_client.next().await, None);
