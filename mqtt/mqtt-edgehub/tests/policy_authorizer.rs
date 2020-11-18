@@ -67,7 +67,7 @@ async fn auth_policy_happy_case() {
     let mut authorizer = DummyAuthorizer::new(PolicyAuthorizer::without_ready_handle(
         "this_edgehub_id".to_string(),
     ));
-    let mut policy_update_signal = authorizer.update_signal();
+    let mut policy_ready = authorizer.update_signal();
     let broker = BrokerBuilder::default().with_authorizer(authorizer).build();
     let broker_handle = broker.handle();
 
@@ -118,7 +118,7 @@ async fn auth_policy_happy_case() {
         .await;
 
     // let policy update sink in...
-    policy_update_signal.recv().await;
+    policy_ready.recv().await;
 
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
