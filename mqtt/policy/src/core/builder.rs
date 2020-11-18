@@ -243,7 +243,7 @@ enum Source {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyDefinition {
-    statements: Vec<Statement>,
+    pub(super) statements: Vec<Statement>,
 }
 
 impl PolicyDefinition {
@@ -264,14 +264,14 @@ impl PolicyDefinition {
 #[serde(rename_all = "camelCase")]
 pub struct Statement {
     #[serde(default)]
-    order: usize,
+    pub(super) order: usize,
     #[serde(default)]
-    description: String,
-    effect: Effect,
-    identities: Vec<String>,
-    operations: Vec<String>,
+    pub(super) description: String,
+    pub(super) effect: Effect,
+    pub(super) identities: Vec<String>,
+    pub(super) operations: Vec<String>,
     #[serde(default)]
-    resources: Vec<String>,
+    pub(super) resources: Vec<String>,
 }
 
 impl Statement {
