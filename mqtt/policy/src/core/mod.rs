@@ -844,79 +844,96 @@ pub(crate) mod tests {
         }
     }
 
-    use crate::{Decision, Effect, PolicyBuilder, PolicyDefinition, Request, Statement};
-    use proptest::{collection::vec, prelude::*};
+    #[cfg(feature = "proptest")]
+    mod proptests {
+        use crate::{Decision, Effect, PolicyBuilder, PolicyDefinition, Request, Statement};
+        use proptest::{collection::vec, prelude::*};
+        proptest! {
+            /// The goal of this test is to verify the following scenarios:
+            /// - PolicyBuilder does not crash.
+            /// - All combinations of identity/operation/resource in a statement in the definition
+            ///   should produce expected result.
+            ///   Since some statements can be overridden by the previous ones,
+            ///   we can only safely verify the very first statement.
+            #[test]
+            fn policy_engine_proptest(definition in arb_policy_definition()){
+                use itertools::Itertools;
 
-    proptest! {
-        #[test]
-        fn policy_builder_does_not_crash(definition in arb_policy_definition()){
-            let statement = &definition.statements()[0];
+                // take very first statement, which should have top priority.
+                let statement = &definition.statements()[0];
+                let expected = match statement.effect() {
+                    Effect::Allow => Decision::Allowed,
+                    Effect::Deny => Decision::Denied,
+                };
 
-            let request = Request::new(
-                &statement.identities()[0],
-                &statement.operations()[0],
-                &statement.resources()[0],
-            ).expect("unable to create a request");
+                // collect all combos of identity/operation/resource
+                // in the statement.
+                let requests = statement.identities()
+                    .iter()
+                    .cartesian_product(statement.operations())
+                    .cartesian_product(statement.resources())
+                    .map(|item| Request::new(item.0.0, item.0.1, item.1)
+                                .expect("unable to create a request")
+                        ).collect::<Vec<_>>();
 
-            let expected = match statement.effect() {
-                Effect::Allow => Decision::Allowed,
-                Effect::Deny => Decision::Denied
-            };
+                let policy = PolicyBuilder::from_definition(definition)
+                    .build()
+                    .expect("unable to build policy from definition");
 
-            let policy = PolicyBuilder::from_definition(definition)
-                .build()
-                .expect("unable to build policy from definition");
-
-            assert_eq!(policy.evaluate(&request).unwrap(), expected);
-        }
-    }
-
-    prop_compose! {
-        pub fn arb_policy_definition()(
-            statements in vec(arb_statement(), 1..3)
-        ) -> PolicyDefinition {
-            PolicyDefinition {
-                statements
+                // evaluate and assert.
+                for request in requests {
+                    assert_eq!(policy.evaluate(&request).unwrap(), expected);
+                }
             }
         }
-    }
 
-    prop_compose! {
-        pub fn arb_statement()(
-            description in arb_description(),
-            effect in arb_effect(),
-            identities in vec(arb_identity(), 1..3),
-            operations in vec(arb_operation(), 1..3),
-            resources in vec(arb_resource(), 1..3),
-        ) -> Statement {
-            Statement{
-                order: 0,
-                description,
-                effect,
-                identities,
-                operations,
-                resources,
+        prop_compose! {
+            pub fn arb_policy_definition()(
+                statements in vec(arb_statement(), 1..5)
+            ) -> PolicyDefinition {
+                PolicyDefinition {
+                    statements
+                }
             }
         }
-    }
 
-    pub fn arb_effect() -> impl Strategy<Value = Effect> {
-        prop_oneof![Just(Effect::Allow), Just(Effect::Deny)]
-    }
+        prop_compose! {
+            pub fn arb_statement()(
+                description in arb_description(),
+                effect in arb_effect(),
+                identities in vec(arb_identity(), 1..5),
+                operations in vec(arb_operation(), 1..5),
+                resources in vec(arb_resource(), 1..5),
+            ) -> Statement {
+                Statement{
+                    order: 0,
+                    description,
+                    effect,
+                    identities,
+                    operations,
+                    resources,
+                }
+            }
+        }
 
-    pub fn arb_description() -> impl Strategy<Value = String> {
-        "\\PC+"
-    }
+        pub fn arb_effect() -> impl Strategy<Value = Effect> {
+            prop_oneof![Just(Effect::Allow), Just(Effect::Deny)]
+        }
 
-    pub fn arb_identity() -> impl Strategy<Value = String> {
-        "(\\PC+)|(\\{\\{\\PC+\\}\\})"
-    }
+        pub fn arb_description() -> impl Strategy<Value = String> {
+            "\\PC+"
+        }
 
-    pub fn arb_operation() -> impl Strategy<Value = String> {
-        "\\PC+"
-    }
+        pub fn arb_identity() -> impl Strategy<Value = String> {
+            "(\\PC+)|(\\{\\{\\PC+\\}\\})"
+        }
 
-    pub fn arb_resource() -> impl Strategy<Value = String> {
-        "\\PC+(/(\\PC+|\\{\\{\\PC+\\}\\}))*"
+        pub fn arb_operation() -> impl Strategy<Value = String> {
+            "\\PC+"
+        }
+
+        pub fn arb_resource() -> impl Strategy<Value = String> {
+            "\\PC+(/(\\PC+|\\{\\{\\PC+\\}\\}))*"
+        }
     }
 }

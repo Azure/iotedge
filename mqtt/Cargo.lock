@@ -1546,6 +1546,7 @@ dependencies = [
 name = "policy"
 version = "0.1.0"
 dependencies = [
+ "itertools",
  "lazy_static",
  "matches",
  "proptest",
