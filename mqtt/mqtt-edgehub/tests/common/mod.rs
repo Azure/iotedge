@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 use std::{any::Any, error::Error as StdError};
 
-use tokio::{sync::mpsc::UnboundedReceiver, sync::mpsc::UnboundedSender, task::JoinHandle};
+use tokio::{
+    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+    task::JoinHandle,
+};
 
 use mqtt3::ShutdownError;
 use mqtt_broker::{
@@ -29,7 +32,7 @@ where
     Z: Authorizer,
 {
     pub fn new(inner: Z) -> Self {
-        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
+        let (sender, receiver) = mpsc::unbounded_channel();
         Self {
             inner,
             receiver: Some(receiver),
