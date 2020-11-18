@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             this.expectedConfig = expectedConfig;
             this.moduleImages = moduleImages;
             this.ModuleNames = moduleNames
-                .Select(id => id.StartsWith('$') ? id.Substring(1) : id)
+                .Select(id => id)
                 .ToArray();
         }
 
