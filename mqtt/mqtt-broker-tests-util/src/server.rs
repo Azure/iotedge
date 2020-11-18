@@ -77,7 +77,7 @@ where
     P: MakePacketProcessor + Clone + Send + Sync + 'static,
 {
     lazy_static! {
-        static ref PORT: AtomicU32 = AtomicU32::new(5555);
+        static ref PORT: AtomicU32 = AtomicU32::new(8889);
     }
 
     let port = PORT.fetch_add(1, Ordering::SeqCst);
