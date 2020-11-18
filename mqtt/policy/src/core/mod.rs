@@ -304,16 +304,6 @@ pub enum Decision {
     Denied,
 }
 
-impl From<EffectImpl> for Decision {
-    fn from(effect: EffectImpl) -> Self {
-        match effect {
-            EffectImpl::Allow => Decision::Allowed,
-            EffectImpl::Deny => Decision::Denied,
-            EffectImpl::Undefined => Decision::Denied,
-        }
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 enum EffectImpl {
     Allow,
@@ -848,6 +838,7 @@ pub(crate) mod tests {
     mod proptests {
         use crate::{Decision, Effect, PolicyBuilder, PolicyDefinition, Request, Statement};
         use proptest::{collection::vec, prelude::*};
+
         proptest! {
             /// The goal of this test is to verify the following scenarios:
             /// - PolicyBuilder does not crash.
