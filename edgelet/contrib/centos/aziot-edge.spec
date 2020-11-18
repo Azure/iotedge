@@ -83,14 +83,14 @@ fi
 exit 0
 
 %post
-sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/iotedge/config.yaml
+sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/aziot/edged/config.yaml
 echo "==============================================================================="
 echo ""
 echo "                              Azure IoT Edge"
 echo ""
 echo "  IMPORTANT: Please update the configuration file located at:"
 echo ""
-echo "    /etc/iotedge/config.yaml"
+echo "    /etc/aziot/edged/config.yaml"
 echo ""
 echo "  with your container runtime configuration."
 echo ""
@@ -118,7 +118,7 @@ echo "==========================================================================
 
 # bins
 %{_bindir}/iotedge
-%{_bindir}/iotedged
+%{_bindir}/aziot-edged
 
 # config
 %attr(400, %{iotedge_user}, %{iotedge_group}) %config(noreplace) %{iotedge_confdir}/config.yaml
@@ -126,7 +126,7 @@ echo "==========================================================================
 
 # man
 %{_mandir}/man1/iotedge.1.gz
-%{_mandir}/man8/iotedged.8.gz
+%{_mandir}/man8/aziot-edged.8.gz
 
 # systemd
 %{_unitdir}/%{name}.service

@@ -97,7 +97,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "aziot-edge"
+name = "aziot-edged"
 version = "0.1.0"
 dependencies = [
  "aziot-cert-common-http",

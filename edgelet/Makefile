@@ -36,7 +36,6 @@ rpmbuilddir?=$(HOME)/rpmbuild
 vendordir?=vendor
 
 CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
-KUBE_CARGOFLAGS=--manifest-path=$(srcdir)/iotedged/Cargo.toml
 DPKGFLAGS=-b -rfakeroot -us -uc -i
 RPMBUILDFLAGS=-v -bb --clean
 
@@ -58,7 +57,7 @@ all:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
 
 release:
-	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release -p iotedged -p iotedge
+	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release -p aziot-edged -p iotedge
 
 dist:
 	$(MKDIR_P) $(TARGET)
@@ -79,12 +78,12 @@ distclean:
 
 deb8: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 deb8: release
-	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
+	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(TARGET)/$(PACKAGE)/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(TARGET)/$(PACKAGE)/debian/iotedge.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
-	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml.template
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(TARGET)/$(PACKAGE)/man/aziot-edged.8
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.yaml.template
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
@@ -97,14 +96,14 @@ deb8: release
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
 deb: release
-	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(TARGET)/$(PACKAGE)/iotedged
+	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(TARGET)/$(PACKAGE)/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.service $(TARGET)/$(PACKAGE)/debian/iotedge.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.socket $(TARGET)/$(PACKAGE)/debian/iotedge.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/debian/iotedge.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
-	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml.template
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(TARGET)/$(PACKAGE)/man/aziot-edged.8
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.yaml.template
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
@@ -135,15 +134,15 @@ rpm-dist:
 	rm -f $(TARGET)/$(PACKAGE).tar
 
 install: release
-	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
+	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(DESTDIR)$(bindir)/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(DESTDIR)$(unitdir)/iotedge.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
 	$(GZIP) $(DESTDIR)$(man1)/iotedge.1
-	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(DESTDIR)$(man8)/iotedged.8
-	$(GZIP) $(DESTDIR)$(man8)/iotedged.8
+	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(DESTDIR)$(man8)/aziot-edged.8
+	$(GZIP) $(DESTDIR)$(man8)/aziot-edged.8
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/iotedge
 	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/mgmt.sock
@@ -155,10 +154,10 @@ install: release
 	$(GZIP) $(DESTDIR)$(docdir)/ThirdPartyNotices
 
 uninstall:
-	rm -f $(DESTDIR)$(bindir)/iotedged
+	rm -f $(DESTDIR)$(bindir)/aziot-edged
 	rm -f $(DESTDIR)$(bindir)/iotedge
 	-rm -f $(DESTDIR)$(man1)/iotedge.1
-	-rm -f $(DESTDIR)$(man8)/iotedged.8
+	-rm -f $(DESTDIR)$(man8)/aziot-edged.8
 	-rm $(DESTDIR)$(systconfdir)/iotedge/config.yaml
 	-rm $(DESTDIR)$(systconfdir)/logrotate.d/iotedge
 	-rm $(DESTDIR)$(docdir)/LICENSE

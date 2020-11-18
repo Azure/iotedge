@@ -33,7 +33,7 @@ fn create_app(default_config_file: &OsStr) -> App<'_, '_> {
 }
 
 fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
-    let default_config_file = OsString::from("/etc/iotedge/config.yaml");
+    let default_config_file = OsString::from("/etc/aziot/edged/config.yaml");
 
     let matches = create_app(&default_config_file).get_matches();
 
@@ -42,11 +42,7 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
         logging::init();
     }
 
-    if cfg!(feature = "runtime-kubernetes") {
-        info!("Starting Azure IoT Edge Security Daemon - Kubernetes mode");
-    } else {
-        info!("Starting Azure IoT Edge Security Daemon");
-    };
+    info!("Starting Azure IoT Edge Module Runtime");
     info!("Version - {}", edgelet_core::version_with_source_version());
 
     let config_file: PathBuf = matches

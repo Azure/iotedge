@@ -12,7 +12,7 @@ Below are steps used to test API endpoints of iotedged running on Linux; and I w
 
 1. Create your IoT Edge device in Azure Portal.
 2. Prepare config.yaml file.
-	- Create config.yaml by cloning from `<iotedge repo local path>`/edgelet/contrib/config/linux to anywhere; e.g. /etc/iotedge/.
+	- Create config.yaml by cloning from `<iotedge repo local path>`/edgelet/contrib/config/linux to anywhere; e.g. /etc/aziot/edged/.
 	- Open it by `sudo nano <config.yaml file path>`.
 	- Update `hostname` in config.yaml.
 	- Copy connection string from your IoT Edge device in Azure Portal created in step 1; and update `device_connection_string` in config.yaml.
@@ -48,10 +48,10 @@ Unhandled Exception: System.AggregateException: One or more errors occurred. (Pe
 **Output from iotedged:**
 ```
     Finished dev [unoptimized + debuginfo] target(s) in 0.21s
-     Running `/home/iotedgeuser/git/iotedge/edgelet/target/debug/iotedged -c /etc/iotedge/config.yaml`
+     Running `/home/iotedgeuser/git/iotedge/edgelet/target/debug/iotedged -c /etc/aziot/edged/config.yaml`
 2018-10-11T16:29:01Z [INFO] - Starting Azure IoT Edge Security Daemon
 2018-10-11T16:29:01Z [INFO] - Version - 0.1.0
-2018-10-11T16:29:01Z [INFO] - Using config file: /etc/iotedge/config.yaml
+2018-10-11T16:29:01Z [INFO] - Using config file: /etc/aziot/edged/config.yaml
 2018-10-11T16:29:01Z [INFO] - Using runtime network id azure-iot-edge
 2018-10-11T16:29:01Z [INFO] - Initializing the module runtime...
 2018-10-11T16:29:01Z [INFO] - Finished initializing the module runtime.

@@ -3,8 +3,8 @@ set -e
 
 case "$1" in
     purge)
-        if [ -f /etc/iotedge/config.yaml ]; then
-            rm /etc/iotedge/config.yaml
+        if [ -f /etc/aziot/edged/config.yaml ]; then
+            rm /etc/aziot/edged/config.yaml
         fi
         if [ -d /var/lib/iotedge ]; then
             rm -rf /var/lib/iotedge

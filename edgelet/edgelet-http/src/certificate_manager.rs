@@ -228,7 +228,7 @@ mod tests {
 
         let edgelet_cert_props = CertificateProperties::new(
             123_456,
-            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            "AZIOT_EDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),
         );
@@ -248,7 +248,7 @@ mod tests {
 
         let edgelet_cert_props = CertificateProperties::new(
             1, // 150 second validity
-            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            "AZIOT_EDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),
         );
@@ -263,7 +263,7 @@ mod tests {
 
         let edgelet_cert_props = CertificateProperties::new(
             50, // 50 second validity
-            "IOTEDGED_TLS_COMMONNAME".to_string(),
+            "AZIOT_EDGED_TLS_COMMONNAME".to_string(),
             CertificateType::Server,
             "iotedge-tls".to_string(),
         );
@@ -339,7 +339,7 @@ mod tests {
         }
 
         fn get_common_name(&self) -> Result<String, CoreError> {
-            Ok("IOTEDGED_TLS_COMMONNAME".to_string())
+            Ok("AZIOT_EDGED_TLS_COMMONNAME".to_string())
         }
     }
 }

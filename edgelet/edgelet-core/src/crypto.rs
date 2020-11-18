@@ -8,7 +8,7 @@ use crate::certificate_properties::{CertificateIssuer, CertificateProperties};
 use crate::error::Error;
 
 /// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
-pub const IOTEDGED_CA_ALIAS: &str = "iotedged-device-ca";
+pub const AZIOT_EDGED_CA_ALIAS: &str = "aziot-edged-device-ca";
 
 pub trait Signature {
     fn as_bytes(&self) -> &[u8];

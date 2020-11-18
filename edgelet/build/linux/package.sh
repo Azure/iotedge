@@ -295,7 +295,7 @@ docker run --rm \
         curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
         . ~/.cargo/env &&
 
-        # iotedged
+        # aziot-edged
         cd /project/edgelet &&
         $RUST_TARGET_COMMAND
         $MAKE_COMMAND
