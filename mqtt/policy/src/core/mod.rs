@@ -848,7 +848,7 @@ pub(crate) mod tests {
             ///   we can only safely verify the very first statement.
             #[test]
             fn policy_engine_proptest(definition in arb_policy_definition()){
-                use itertools::Itertools;
+                use itertools::iproduct;
 
                 // take very first statement, which should have top priority.
                 let statement = &definition.statements()[0];
@@ -859,13 +859,13 @@ pub(crate) mod tests {
 
                 // collect all combos of identity/operation/resource
                 // in the statement.
-                let requests = statement.identities()
-                    .iter()
-                    .cartesian_product(statement.operations())
-                    .cartesian_product(statement.resources())
-                    .map(|item| Request::new(item.0.0, item.0.1, item.1)
-                                .expect("unable to create a request")
-                        ).collect::<Vec<_>>();
+                let requests = iproduct!(
+                    statement.identities(),
+                    statement.operations(),
+                    statement.resources()
+                )
+                .map(|item| Request::new(item.0, item.1, item.2).expect("unable to create a request"))
+                .collect::<Vec<_>>();
 
                 let policy = PolicyBuilder::from_definition(definition)
                     .build()

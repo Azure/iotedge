@@ -24,7 +24,7 @@ pub struct PolicyBuilder<V, M, S> {
 }
 
 impl PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter> {
-    /// Constructs a `PolicyBuilder` from provided json policy definition and
+    /// Constructs a `PolicyBuilder` from provided json policy definition, with
     /// default configuration.
     ///
     /// Call to this method does not parse or validate the json, all heavy work
@@ -41,6 +41,11 @@ impl PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter>
         }
     }
 
+    /// Constructs a `PolicyBuilder` from provided policy definition struct, with
+    /// default configuration.
+    ///
+    /// Call to this method does not validate the definition, all heavy work
+    /// is done in `build` method.
     pub fn from_definition(
         definition: PolicyDefinition,
     ) -> PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter> {
