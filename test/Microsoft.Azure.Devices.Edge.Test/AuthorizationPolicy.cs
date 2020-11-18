@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task AuthorizationPolicyUpdateTest()
         {
+            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -170,6 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
+            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             CancellationToken token = this.TestToken;
 
             string deviceId1 = DeviceId.Current.Generate();
