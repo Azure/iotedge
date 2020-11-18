@@ -26,9 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Validate that new device can't connect (unauthorized).
         /// </summary>
         [Test]
-        [Ignore("Temporarily disabling flaky test while we figure out what is wrong")]
         public async Task AuthorizationPolicyUpdateTest()
         {
+            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -169,9 +169,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Create devices and validate that they can/cannot connect.
         /// </summary>
         [Test]
-        [Ignore("Temporarily disabling flaky test while we figure out what is wrong")]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
+            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             CancellationToken token = this.TestToken;
 
             string deviceId1 = DeviceId.Current.Generate();

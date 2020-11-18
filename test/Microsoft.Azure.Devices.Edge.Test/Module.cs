@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
-        [Ignore("Temporarily disabling flaky test while we figure out what is wrong")]
         public async Task TempSensor()
         {
+            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
             CancellationToken token = this.TestToken;
 
