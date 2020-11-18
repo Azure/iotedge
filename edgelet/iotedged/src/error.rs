@@ -153,6 +153,7 @@ pub enum InitializeErrorReason {
     InvalidDeviceCertCredentials,
     InvalidDeviceConfig,
     InvalidHubConfig,
+    InvalidIdentityType,
     InvalidProxyUri,
     IssuerCAExpiration,
     LoadSettings,
@@ -273,6 +274,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::InvalidHubConfig => {
                 write!(f, "Invalid IoT hub configuration was provided")
+            }
+
+            InitializeErrorReason::InvalidIdentityType => {
+                write!(f, "Invalid identity type was received")
             }
 
             InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
