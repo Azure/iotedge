@@ -1,3 +1,16 @@
+# 1.2.0-rc1 (2020-11-19)
+## Edge Agent
+### Bug Fixes
+* Connect to parent IoT Edge device in a hierarchical configuration. ([b92785c](https://github.com/Azure/iotedge/commit/b92785c2fa1b123daf3f9a21b5f7c2f4110f9b19))
+* Fix vulnerability issues in ARM-based docker images ([383aee3](https://github.com/Azure/iotedge/commit/383aee305aed93fd82bde1224d9843914612882d))
+
+## Edge Hub
+### Bug Fixes
+* Improve M2M feedback handling ([b1eceeb](https://github.com/Azure/iotedge/commit/b1eceebc09ef0c696baee60926b31de3abc55f2f))
+* Fix Policy Engine issue where not all variable rules are evaluated ([d83850c](https://github.com/Azure/iotedge/commit/d83850c6261444006e2aa091909eedf1fcfeb8b6))
+* Use fully qualified name for the authenticated identity on MQTT broker ([cfed086](https://github.com/Azure/iotedge/commit/cfed086299f4cd716d8ab49c6e09847b5c45c828))
+* Fix vulnerability issues in ARM-based docker images ([383aee3](https://github.com/Azure/iotedge/commit/383aee305aed93fd82bde1224d9843914612882d))
+
 # 1.2.0-rc1 (2020-11-09)
 * Preview support for nesting IoT Edge devices in gateway configuration, to allow creation of hierarchies of IoT Edge devices.
 * Preview support for MQTT 3.1.1 compliant broker in EdgeHub. 
