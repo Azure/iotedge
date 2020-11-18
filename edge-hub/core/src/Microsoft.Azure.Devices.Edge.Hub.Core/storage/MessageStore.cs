@@ -36,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         readonly CleanupProcessor messagesCleaner;
         readonly ICheckpointStore checkpointStore;
         readonly IStoreProvider storeProvider;
-        readonly long messageCount = 0;
         TimeSpan timeToLive;
 
         public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool checkEntireQueueOnCleanup = false)
@@ -114,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 using (MetricsV0.SequentialStoreLatency(endpointId))
                 {
                     long offset = await sequentialStore.Append(new MessageRef(edgeMessageId, timeToLive));
-                    Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
+                    Events.MessageAdded(offset, edgeMessageId, endpointId);
                     return new MessageWithOffset(message, offset);
                 }
             }
@@ -315,7 +314,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                                 if (deleteMessage)
                                 {
-                                    this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString } );
+                                    if (offset > checkpointData.Offset && expiry <= DateTime.UtcNow)
+                                    {
+                                        this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString });
+                                    }
 
                                     await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
                                     cleanupEntityStoreCount++;
@@ -482,12 +484,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 Log.LogDebug((int)EventIds.CleanupCheckpointState, Invariant($"Checkpoint for endpoint {endpointId} is {checkpointData.Offset}"));
             }
 
-            internal static void MessageAdded(long offset, string edgeMessageId, string endpointId, long messageCount)
+            internal static void MessageAdded(long offset, string edgeMessageId, string endpointId)
             {
                 // Print only after every 1000th message to avoid flooding logs.
                 if (offset % 1000 == 0)
                 {
-                    Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset} - messageCount = {messageCount}"));
+                    Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset}."));
                 }
             }
         }
