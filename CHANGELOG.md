@@ -1,3 +1,12 @@
+# 1.0.10.3 (2020-11-18)
+## Edge Agent
+### Bug Fixes
+* Fix vulnerability issues in ARM-based docker images [6603778](https://github.com/Azure/iotedge/commit/6603778d2c4dbb63aea4627f66feb5920eede3c6)
+
+## Edge Hub
+### Bug Fixes
+* Fix vulnerability issues in ARM-based docker images [6603778](https://github.com/Azure/iotedge/commit/6603778d2c4dbb63aea4627f66feb5920eede3c6)
+
 # 1.0.10.2 (2020-11-11)
 ## iotedged
 ### Bug Fixes
