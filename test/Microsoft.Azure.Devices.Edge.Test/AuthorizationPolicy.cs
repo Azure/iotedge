@@ -27,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task AuthorizationPolicyUpdateTest()
         {
-            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             CancellationToken token = this.TestToken;
 
             string deviceId1 = DeviceId.Current.Generate();
@@ -187,7 +186,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
-            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             CancellationToken token = this.TestToken;
 
             string deviceId1 = DeviceId.Current.Generate();
