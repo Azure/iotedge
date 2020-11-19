@@ -60,3 +60,9 @@ stages:
 - stage: RunTest
   dependsOn: SetupVM
   variables:
+    varFromSetup: $[ stageDependencies.SetupVM.SetupVM_job1.outputs['setvarStep.myOutputVar'] ]
+  jobs:
+  - job: RunTest1
+    steps:
+    - script: echo $(myVarFromJobADebug)
+      name: echovar
