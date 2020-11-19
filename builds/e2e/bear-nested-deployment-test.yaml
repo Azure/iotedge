@@ -38,7 +38,7 @@ jobs:
         name: var1
       - script: echo $(var1.readyAgent)
         name: printingVar1
-      - bash: echo "##vso[agent.name]"
+      - bash: echo "$(Agent.Name)"
         name: agent_name
 
       - task: Bash@3
