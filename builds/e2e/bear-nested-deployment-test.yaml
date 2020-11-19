@@ -15,14 +15,14 @@ jobs:
     strategy:
       matrix:
         L4:
-          testrun.vmTier: 4
-          testrun.waitTime: 4
+          testrun.vmTier: L4
+          testrun.waitTimeMin: 4
         L3.5:
-          testrun.vmTier: 3.5
-          testrun.waitTime: 2
+          testrun.vmTier: L3.5
+          testrun.waitTimeMin: 2
         L3:
-          testrun.vmTier: 3
-          testrun.waitTime: 1
+          testrun.vmTier: L3
+          testrun.waitTimeMin: 1
 
     pool:
       name: $(pool.name)
@@ -31,7 +31,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true
-        - vmTier -equals $(testrun.vmTier)
+        - nested-edge -equals $(testrun.vmTier)
 
     steps:
       - bash: echo "##vso[task.setvariable variable=readyAgent;isOutput=true]##vso[task.getVariable variable=Agent.Name;isOutput=true]"
@@ -49,6 +49,6 @@ jobs:
 
             #echo "##vso[task.setvariable variable=readyAgent;isOutput=true]##vso[task.getVariable variable=Agent.Name;isOutput=true]"
 
-            echo "%NAME% is sleeping for $(testrun.vmTier)"
+            echo "%NAME% is sleeping for $(testrun.waitTimeMin)m"
             sleep $(testrun.vmTier)
             echo "%NAME% is waking up"
