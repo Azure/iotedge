@@ -38,8 +38,8 @@ jobs:
         name: var1
       - script: echo $(var1.readyAgent)
         name: printingVar1
-      - bash: echo "##vso[task.getVariable variable=Agent.Name;isOutput=true]"
-        name: getVariable
+      - bash: echo "##vso[agent.name]"
+        name: agent_name
 
       - task: Bash@3
         name: setting_up
