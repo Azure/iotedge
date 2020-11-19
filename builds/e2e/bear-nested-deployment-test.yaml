@@ -76,12 +76,20 @@ stages:
       #      exit
       #    name: WaitingToBeFreed2
 
+        - script: |
+            echo $(L4agent) $(L3_5agent) $(L3agent)
+            echo $[ dependencies.SetupVM_job1.outputs['L4.var1.readyAgent'] ] 
+            echo $[ dependencies.SetupVM_job1.L3_5.outputs['var1.readyAgent'] ] 
+            echo $[ dependencies.SetupVM_job1.L3.outputs['L3.var1.readyAgent'] ] 
+            sleep 1m
+          name: getAllAgentName
+
 - stage: RunTest
   dependsOn: SetupVM
   variables:
-    L4agent: $[ stageDependencies.SetupVM.SetupVM_job1.L4.outputs['setvarStep.myOutputVar'] ]
-    L3_5agent: $[ stageDependencies.SetupVM.SetupVM_job1.L4.outputs['setvarStep.myOutputVar'] ]
-    L3agent: $[ stageDependencies.SetupVM.SetupVM_job1.L4.outputs['setvarStep.myOutputVar'] ]
+    L4agent: $[ stageDependencies.SetupVM.SetupVM_job1.outputs['L4.setvarStep.myOutputVar'] ]
+    L3_5agent: $[ stageDependencies.SetupVM.SetupVM_job1.outputs['L3_5.setvarStep.myOutputVar'] ]
+    L3agent: $[ stageDependencies.SetupVM.SetupVM_job1.outputs['L3.setvarStep.myOutputVar'] ]
   jobs:
   - job: RunTest1
     pool:
