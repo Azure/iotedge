@@ -60,19 +60,20 @@ impl SessionSnapshot {
     }
 }
 
+#[derive(Debug)]
 enum Event {
     State(BrokerSnapshot),
     Shutdown,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct StateSnapshotHandle(Sender<Event>);
 
 impl StateSnapshotHandle {
     pub fn try_send(&mut self, state: BrokerSnapshot) -> Result<(), Error> {
         self.0
             .try_send(Event::State(state))
-            .map_err(|_| Error::SendSnapshotMessage)?;
+            .map_err(|e| Error::SendSnapshotMessage(e.into()))?;
         Ok(())
     }
 }
@@ -85,7 +86,7 @@ impl ShutdownHandle {
         self.0
             .send(Event::Shutdown)
             .await
-            .map_err(|_| Error::SendSnapshotMessage)?;
+            .map_err(|e| Error::SendSnapshotMessage(e.into()))?;
         Ok(())
     }
 }
