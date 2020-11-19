@@ -40,7 +40,7 @@ stages:
       steps:
         - bash: echo "##vso[task.setvariable variable=${{testrun.vmTier}}.readyAgent;isOutput=true]$(Agent.Name)"
           name: var1
-        - script: echo $(var1.readyAgent)
+        - script: echo $(var1.${{testrun.vmTier}}.readyAgent)
           name: agent_name
 
         - task: Bash@3
