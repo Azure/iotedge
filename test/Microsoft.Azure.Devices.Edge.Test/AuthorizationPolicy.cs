@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using NUnit.Framework;
 
     [EndToEnd]
@@ -134,34 +135,25 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-            EdgeModule edgeHub2 = deployment2.Modules[ModuleName.EdgeHub];
-            await edgeHub2.WaitForReportedPropertyUpdatesAsync(
-                new
-                {
-                    properties = new
-                    {
-                        reported = new
-                        {
-                            lastDesiredStatus = new
-                            {
-                                code = 200,
-                                description = string.Empty
-                            }
-                        }
-                    }
-                },
-                token);
-
-            var leaf = await LeafDevice.CreateAsync(
-                deviceId2,
-                Protocol.Mqtt,
-                AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
-                false,
-                CertificateAuthority.GetQuickstart(),
-                this.iotHub,
-                token,
-                Option.None<string>());
+            // There is no reliable way to signal when the policy
+            // is updated in $edgehub, so need to retry several times.
+            //
+            // DefaultProgressive => 55 sec max.
+            LeafDevice leaf = null;
+            await RetryPolicy.DefaultProgressive.ExecuteAsync(
+                async () =>
+            {
+                leaf = await LeafDevice.CreateAsync(
+                    deviceId2,
+                    Protocol.Mqtt,
+                    AuthenticationType.Sas,
+                    Option.Some(this.runtime.DeviceId),
+                    false,
+                    CertificateAuthority.GetQuickstart(),
+                    this.iotHub,
+                    token,
+                    Option.None<string>());
+            }, token);
 
             // verify device is authorized after policy update.
             await TryFinally.DoAsync(
