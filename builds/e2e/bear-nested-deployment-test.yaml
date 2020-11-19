@@ -43,9 +43,6 @@ stages:
         - script: echo $(var1.$(testrun.vmTier).readyAgent)
           name: agent_name
 
-        - bash: echo "##vso[task.setvariable variable=myStageOutputVar;isOutput=true]this is a simple var stage output var"
-          name: simpleVar
-
         - task: Bash@3
           name: setting_up
           displayName: 'Setting up $(testrun.vmTier)'
@@ -68,9 +65,9 @@ stages:
               sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
             else
               # Run Test here
-              echo $(var1.L4.readyAgent)
+              echo $(stageDependencies.SetupVM.SetupVM_job1.var1.L4.readyAgent)
               echo $(var1.L3_5.readyAgent)
-              echo $(var1.L3.readyAgent)
+              echo $(stageDependencies.SetupVM.SetupVM_job1.var1.L3.readyAgent)
             fi
           name: RunTest
 
@@ -88,10 +85,9 @@ stages:
 - stage: RunTest
   dependsOn: SetupVM
   variables:
-    myVarfromStageA: $[ stageDependencies.SetupVM.SetupVM_job1.outputs['simpleVar.myStageOutputVar'] ]
-    L4agent: $[ stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
-    L3_5agent: $[ stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3_5.readyAgent'] ]
-    L3agent: $[ stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] ]
+    L4agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L4.readyAgent'] ]
+    L3_5agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L3_5.readyAgent'] ]
+    L3agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L3.readyAgent'] ]
   jobs:
   - job: RunTest1
     pool:
@@ -105,10 +101,6 @@ stages:
         - nested-edge -equals $(testrun.vmTier)
     steps:
     - script: |
-        echo $(myVarfromStageA)
         echo $(L4agent) $(L3_5agent) $(L3agent)
         sleep 1m
       name: getAllAgentName
-
-  - job: Cleanup
-    dependsOn: RunTest1
