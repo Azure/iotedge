@@ -115,9 +115,8 @@ const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
 /// This is the key for the edge runtime mode.
 const EDGE_RUNTIME_MODE_KEY: &str = "Mode";
 
-/// This is the edge runtime mode - it should be aziot-edged, when aziot-edged starts edge runtime in single node mode.
-#[cfg(feature = "runtime-docker")]
-const EDGE_RUNTIME_MODE: &str = "aziot-edged";
+/// This is the edge runtime mode - it should be iotedged, when aziot-edged starts edge runtime in single node mode.
+const EDGE_RUNTIME_MODE: &str = "iotedged";
 
 /// The HSM lib expects this variable to be set with home directory of the daemon.
 const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";

@@ -1,11 +1,11 @@
 %define iotedge_user iotedge
 %define iotedge_group %{iotedge_user}
-%define iotedge_home %{_localstatedir}/lib/iotedge
-%define iotedge_logdir %{_localstatedir}/log/iotedge
-%define iotedge_confdir %{_sysconfdir}/iotedge
-%define iotedge_datadir %{_datadir}/iotedge
+%define iotedge_home %{_localstatedir}/lib/aziot/edged
+%define iotedge_logdir %{_localstatedir}/log/aziot/edged
+%define iotedge_confdir %{_sysconfdir}/aziot-edged
+%define iotedge_datadir %{_datadir}/aziot-edged
 
-Name:           iotedge
+Name:           aziot-edged
 Version:        @version@
 Release:        @release@%{?dist}
 
@@ -17,7 +17,7 @@ URL:            https://github.com/azure/iotedge
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
 Requires:       aziot-identity-service >= @version@-@release@
-Source0:        iotedge-%{version}.tar.gz
+Source0:        aziot-edged-%{version}.tar.gz
 
 %description
 Azure IoT Edge Security Daemon
@@ -100,18 +100,18 @@ echo "    'aziot init'"
 echo ""
 echo "  To restart all services for provisioning changes to take effect, use:"
 echo ""
-echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd iotedge'"
+echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd aziot-edged'"
 echo ""
 echo "  These commands may need to be run with sudo depending on your environment."
 echo ""
 echo "==============================================================================="
-%systemd_post iotedge.service
+%systemd_post aziot-edged.service
 
 %preun
-%systemd_preun iotedge.service
+%systemd_preun aziot-edged.service
 
 %postun
-%systemd_postun_with_restart iotedge.service
+%systemd_postun_with_restart aziot-edged.service
 
 %files
 %defattr(-, root, root, -)
@@ -132,8 +132,8 @@ echo "==========================================================================
 %{_unitdir}/%{name}.service
 
 # sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
-%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/workload.sock
+%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.mgmt.socket
+%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.workload.sock
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}

@@ -144,15 +144,15 @@ To build the project, use:
 ```sh
 cd edgelet/
 
-cargo build -p iotedged -p iotedge
+cargo build -p aziot-edged -p iotedge
 ```
 
-This will create `iotedged` and `iotedge` binaries under `edgelet/target/debug`
+This will create `aziot-edged` and `iotedge` binaries under `edgelet/target/debug`
 
 
 ### Run
 
-To run `iotedged` locally:
+To run `aziot-edged` locally:
 
 1. Create a directory that it will use as its home directory, such as `~/iotedge`
 
@@ -175,7 +175,7 @@ To run `iotedged` locally:
 1. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
 
     ```sh
-    cargo run -p iotedged -- -c /absolute/path/to/config.yaml
+    cargo run -p aziot-edged -- -c /absolute/path/to/config.yaml
     ```
 
 

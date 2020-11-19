@@ -32,7 +32,7 @@ All of the accompanying files in the debian package can be found in the `contrib
 #### Config files
 [config.yaml](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/debian/config.yaml) installed as `/etc/aziot/edged/config.yaml` with mode/user `400 iotedge:iotedge`
 
-[logrotate](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/logrotate) installed as `/etc/logrotate.d/iotedge` with mode/user `644 root:root`
+[logrotate](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/logrotate) installed as `/etc/logrotate.d/aziot-edged` with mode/user `644 root:root`
 
 #### Man Pages
 [iotedge.1](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/man/man1/iotedge.1) installed as `/usr/share/man/man1/iotedge.1.gz` with mode/user `644 root:root`
@@ -68,7 +68,7 @@ All of the accompanying files in the debian package can be found in the `contrib
 
 ### Directories
 
-The `/var/lib/iotedge` and `/var/log/iotedge` directories are both created with mode/user `755 iotedge:iotedge`.
+The `/var/lib/aziot/edged` and `/var/log/aziot/edged` directories are both created with mode/user `755 iotedge:iotedge`.
 
 ### Pre-install script
 The pre-install script is [here](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/preinst).

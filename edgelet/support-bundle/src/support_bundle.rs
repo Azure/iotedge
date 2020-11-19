@@ -554,7 +554,7 @@ mod tests {
         assert_eq!("Roses are redviolets are blue", mod_log);
 
         for name in &[
-            "aziot-edge",
+            "aziot-edged",
             "aziot-certd",
             "aziot-keyd",
             "aziot-identityd",
