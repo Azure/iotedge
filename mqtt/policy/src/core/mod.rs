@@ -602,6 +602,21 @@ pub(crate) mod tests {
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
 
+    #[test]
+    fn evaluate_definition_no_statements() {
+        let json = r#"{
+            "schemaVersion": "2020-10-30",
+            "statements": [ ]
+        }"#;
+
+        let policy = build_policy(json);
+
+        let request = Request::new("actor_a", "connect", "").unwrap();
+
+        // default decision expected.
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Denied));
+    }
+
     /// Scenario:
     /// - Have a policy with a custom resource matcher
     /// - Have conflicting rules for resources that
