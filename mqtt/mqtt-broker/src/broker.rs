@@ -732,9 +732,7 @@ where
     }
 
     fn get_session_mut(&mut self, client_id: &ClientId) -> Result<&mut Session, NoSessionError> {
-        self.sessions
-            .get_mut(client_id)
-            .ok_or_else(|| NoSessionError)
+        self.sessions.get_mut(client_id).ok_or(NoSessionError)
     }
 
     fn open_session(&mut self, auth_id: AuthId, connreq: ConnReq) -> Result<OpenSession, Error> {
