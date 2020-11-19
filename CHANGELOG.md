@@ -1,4 +1,7 @@
 # 1.2.0-rc1 (2020-11-19)
+This is only container image update. We do not publish edgelet artifact in this release. 
+Please use the edgelet artifacts from release 1.2.0-rc1.
+
 ## Edge Agent
 ### Bug Fixes
 * Connect to parent IoT Edge device in a hierarchical configuration. ([b92785c](https://github.com/Azure/iotedge/commit/b92785c2fa1b123daf3f9a21b5f7c2f4110f9b19))
@@ -14,6 +17,7 @@
 ## Other modules
 ### Bug Fixes
 * Only apply proxy setting only for http protocol ([dd8b529](https://github.com/Azure/iotedge/commit/dd8b529d67fcc0fc5adaa92ecf4d1758dfed4eaf))
+* Fix vulnerability issues in ARM-based docker images ([383aee3](https://github.com/Azure/iotedge/commit/383aee305aed93fd82bde1224d9843914612882d))
 
 # 1.2.0-rc1 (2020-11-09)
 * Preview support for nesting IoT Edge devices in gateway configuration, to allow creation of hierarchies of IoT Edge devices.
