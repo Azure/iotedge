@@ -1,4 +1,4 @@
-# 1.2.0-rc1 (2020-11-19)
+# 1.2.0-rc2 (2020-11-19)
 This is only container image update. We do not publish edgelet artifact in this release. 
 Please use the edgelet artifacts from release 1.2.0-rc1.
 
