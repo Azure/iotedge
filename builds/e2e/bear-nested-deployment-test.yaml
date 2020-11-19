@@ -37,7 +37,9 @@ jobs:
       - bash: echo "##vso[task.setvariable variable=readyAgent;isOutput=true]##vso[task.getVariable variable=Agent.Name;isOutput=true]"
         name: var1
       - script: echo $(var1.readyAgent)
-        name: var2
+        name: printingVar1
+      - bash: echo "##vso[task.getVariable variable=Agent.Name;isOutput=true]"
+        name: getVariable
 
       - task: Bash@3
         name: setting_up
@@ -49,6 +51,6 @@ jobs:
 
             #echo "##vso[task.setvariable variable=readyAgent;isOutput=true]##vso[task.getVariable variable=Agent.Name;isOutput=true]"
 
-            echo "%NAME% is sleeping for $(testrun.waitTimeMin)m"
-            sleep $(testrun.vmTier)
+            echo "%NAME% is sleeping for $(testrun.waitTimeMin)"
+            sleep $(testrun.waitTimeMin)m
             echo "%NAME% is waking up"
