@@ -32,7 +32,7 @@ All of the accompanying files in the debian package can be found in the `contrib
 #### Config files
 [config.yaml](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/debian/config.yaml) installed as `/etc/aziot/edged/config.yaml` with mode/user `400 iotedge:iotedge`
 
-[logrotate](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/logrotate) installed as `/etc/logrotate.d/aziot-edged` with mode/user `644 root:root`
+[logrotate](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/logrotate) installed as `/etc/logrotate.d/aziot-edge` with mode/user `644 root:root`
 
 #### Man Pages
 [iotedge.1](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/man/man1/iotedge.1) installed as `/usr/share/man/man1/iotedge.1.gz` with mode/user `644 root:root`
@@ -62,9 +62,9 @@ All of the accompanying files in the debian package can be found in the `contrib
 
 #### SysV Init
 
-[iotedge.init](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/iotedge.init) installed as `/etc/init.d/iotedge` with mode/user `755 root:root`
+[aziot-edged.init](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/aziot-edged.init) installed as `/etc/init.d/aziot-edged` with mode/user `755 root:root`
 
-[iotedge.default](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/iotedge.default) installed as `/etc/default/iotedge` with mode/user `644 root:root`
+[aziot-edged.default](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/aziot-edged.default) installed as `/etc/default/aziot-edged` with mode/user `644 root:root`
 
 ### Directories
 

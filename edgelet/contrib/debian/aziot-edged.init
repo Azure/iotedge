@@ -19,7 +19,7 @@ USER=iotedge
 GROUP=iotedge
 NAME=aziot-edged             # Introduce the short server's name here
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-LOGFILE=/var/log/$NAME/$NAME.log
+LOGFILE=/var/log/aziot/$NAME.log
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 

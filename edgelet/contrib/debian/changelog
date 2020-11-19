@@ -1,4 +1,4 @@
-aziot-edged (@version@-@revision@) unstable; urgency=low
+aziot-edge (@version@-@revision@) unstable; urgency=low
 
   * Initial release
 

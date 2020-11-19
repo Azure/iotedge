@@ -2,4 +2,4 @@ iotedge usr/bin
 aziot-edged usr/libexec/aziot
 debian/aziot-edged.mgmt.socket lib/systemd/system
 etc/aziot/edged/config.yaml.template
-etc/logrotate.d/aziot-edged
+etc/logrotate.d/aziot-edge

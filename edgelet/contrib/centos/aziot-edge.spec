@@ -2,25 +2,24 @@
 %define iotedge_group %{iotedge_user}
 %define iotedge_home %{_localstatedir}/lib/aziot/edged
 %define iotedge_logdir %{_localstatedir}/log/aziot/edged
-%define iotedge_confdir %{_sysconfdir}/aziot-edged
-%define iotedge_datadir %{_datadir}/aziot-edged
+%define iotedge_confdir %{_sysconfdir}/aziot/edged
 
-Name:           aziot-edged
+Name:           aziot-edge
 Version:        @version@
 Release:        @release@%{?dist}
 
 License:        Proprietary
-Summary:        Azure IoT Edge Security Daemon
+Summary:        Azure IoT Edge Module Runtime
 URL:            https://github.com/azure/iotedge
 
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
 Requires:       aziot-identity-service >= @version@-@release@
-Source0:        aziot-edged-%{version}.tar.gz
+Source0:        aziot-edge-%{version}.tar.gz
 
 %description
-Azure IoT Edge Security Daemon
+Azure IoT Edge Module Runtime
 Azure IoT Edge is a fully managed service that delivers cloud intelligence
 locally by deploying and running artificial intelligence (AI), Azure services,
 and custom logic directly on cross-platform IoT devices. Run your IoT solution
@@ -118,7 +117,7 @@ echo "==========================================================================
 
 # bins
 %{_bindir}/iotedge
-%{_bindir}/aziot-edged
+%{_libexecdir}/aziot/aziot-edged
 
 # config
 %attr(400, %{iotedge_user}, %{iotedge_group}) %config(noreplace) %{iotedge_confdir}/config.yaml
@@ -129,10 +128,12 @@ echo "==========================================================================
 %{_mandir}/man8/aziot-edged.8.gz
 
 # systemd
-%{_unitdir}/%{name}.service
+%{_unitdir}/aziot-edged.mgmt.socket
+%{_unitdir}/aziot-edged.workload.socket
+%{_unitdir}/aziot-edged.service
 
 # sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.mgmt.socket
+%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.mgmt.sock
 %attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.workload.sock
 
 # dirs

@@ -76,7 +76,7 @@ distclean:
 	rm -rf .cargo
 	rm -rf $(vendordir)
 
-deb8: HOST_URI_OPTION=IOTEDGE_HOST=unix:///run/aziot/edged/aziot-edged.mgmt.socket
+deb8: HOST_URI_OPTION=IOTEDGE_HOST=unix:///run/aziot/edged/aziot-edged.mgmt.sock
 deb8: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(TARGET)/$(PACKAGE)/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
@@ -84,7 +84,7 @@ deb8: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(TARGET)/$(PACKAGE)/man/aziot-edged.8
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.yaml.template
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/aziot-edged
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
@@ -104,7 +104,7 @@ deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(TARGET)/$(PACKAGE)/man/aziot-edged.8
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.yaml.template
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/aziot-edged
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(TARGET)/$(PACKAGE)$(docdir)/trademark
@@ -113,7 +113,7 @@ deb: release
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/control > $(TARGET)/$(PACKAGE)/debian/control
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
-rpm: HOST_URI_OPTION=IOTEDGE_HOST=unix:///run/aziot/edged/aziot-edged.mgmt.socket
+rpm: HOST_URI_OPTION=IOTEDGE_HOST=unix:///run/aziot/edged/aziot-edged.mgmt.sock
 rpm:
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
 	$(HOST_URI_OPTION) rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
@@ -137,7 +137,7 @@ install: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(DESTDIR)$(bindir)/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/aziot-edged
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/aziot-edged.service $(DESTDIR)$(unitdir)/aziot-edged.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
 	$(GZIP) $(DESTDIR)$(man1)/iotedge.1
@@ -159,7 +159,7 @@ uninstall:
 	-rm -f $(DESTDIR)$(man1)/iotedge.1
 	-rm -f $(DESTDIR)$(man8)/aziot-edged.8
 	-rm $(DESTDIR)$(systconfdir)/iotedge/config.yaml
-	-rm $(DESTDIR)$(systconfdir)/logrotate.d/aziot-edged
+	-rm $(DESTDIR)$(systconfdir)/logrotate.d/aziot-edge
 	-rm $(DESTDIR)$(docdir)/LICENSE
 	-rm $(DESTDIR)$(docdir)/ThirdPartyNotices
 	-rm $(DESTDIR)$(docdir)/trademark
