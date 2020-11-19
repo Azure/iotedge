@@ -22,7 +22,7 @@ stages:
             testrun.vmTier: L4
             testrun.waitTimeMin: 4
           L3_5:
-            testrun.vmTier: L3.5
+            testrun.vmTier: L3_5
             testrun.waitTimeMin: 2
           L3:
             testrun.vmTier: L3
@@ -38,7 +38,7 @@ stages:
           - nested-edge -equals $(testrun.vmTier)
 
       steps:
-        - bash: echo "##vso[task.setvariable variable=readyAgent;isOutput=true]$(Agent.Name)"
+        - bash: echo "##vso[task.setvariable variable=${{testrun.vmTier}}.readyAgent;isOutput=true]$(Agent.Name)"
           name: var1
         - script: echo $(var1.readyAgent)
           name: agent_name
@@ -61,10 +61,15 @@ stages:
 
         #Method 1 -- sleep until it's time
         - script: |
-            if [[ "$(testrun.vmTier)" != "L3.5" ]]; then
+            if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
               sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
+            else
+              # Run Test here
+              echo $[ dependencies.SetupVM_job1.outputs['L4.var1.readyAgent'] ] 
+              echo $[ dependencies.SetupVM_job1.L3_5.outputs['var1.readyAgent'] ] 
+              echo $[ dependencies.SetupVM_job1.L3.outputs['L3.var1.readyAgent'] ] 
             fi
-          name: WaitingToBeFreed
+          name: RunTest
 
         #Method 2 -- Wait until a file is set
       #  - script:  |
@@ -76,13 +81,6 @@ stages:
       #      exit
       #    name: WaitingToBeFreed2
 
-        - script: |
-            echo $(L4agent) $(L3_5agent) $(L3agent)
-            echo $[ dependencies.SetupVM_job1.outputs['L4.var1.readyAgent'] ] 
-            echo $[ dependencies.SetupVM_job1.L3_5.outputs['var1.readyAgent'] ] 
-            echo $[ dependencies.SetupVM_job1.L3.outputs['L3.var1.readyAgent'] ] 
-            sleep 1m
-          name: getAllAgentName
 
 - stage: RunTest
   dependsOn: SetupVM
