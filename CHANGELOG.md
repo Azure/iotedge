@@ -11,6 +11,10 @@
 * Use fully qualified name for the authenticated identity on MQTT broker ([cfed086](https://github.com/Azure/iotedge/commit/cfed086299f4cd716d8ab49c6e09847b5c45c828))
 * Fix vulnerability issues in ARM-based docker images ([383aee3](https://github.com/Azure/iotedge/commit/383aee305aed93fd82bde1224d9843914612882d))
 
+## Other modules
+### Bug Fixes
+* Only apply proxy setting only for http protocol ([dd8b529](https://github.com/Azure/iotedge/commit/dd8b529d67fcc0fc5adaa92ecf4d1758dfed4eaf))
+
 # 1.2.0-rc1 (2020-11-09)
 * Preview support for nesting IoT Edge devices in gateway configuration, to allow creation of hierarchies of IoT Edge devices.
 * Preview support for MQTT 3.1.1 compliant broker in EdgeHub. 
