@@ -47,7 +47,7 @@ jobs:
           script: |
             # Use sleep to pretend it is a setup time
 
-            echo "##vso[task.setvariable variable=readyAgent;isOutput=true]##vso[task.getVariable variable=Agent.Name;isOutput=true]"
+            #echo "##vso[task.setvariable variable=readyAgent;isOutput=true]##vso[task.getVariable variable=Agent.Name;isOutput=true]"
 
             echo "%NAME% is sleeping for $(testrun.vmTier)"
             sleep $(testrun.vmTier)
