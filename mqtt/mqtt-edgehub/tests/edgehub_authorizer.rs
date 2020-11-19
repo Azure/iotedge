@@ -1,16 +1,13 @@
-use std::time::Duration;
-
 use assert_matches::assert_matches;
 use bytes::Bytes;
 use futures_util::StreamExt;
-use tokio::time;
 
 use mqtt3::proto::{
     ClientId, ConnectReturnCode, Packet, PacketIdentifier, PacketIdentifierDupQoS, Publish, QoS,
     SubAckQos, Subscribe, SubscribeTo,
 };
 use mqtt_broker::{
-    auth::{authorize_fn_ok, Authorization, Operation},
+    auth::{authorize_fn_ok, Authorization, Authorizer, Operation},
     BrokerBuilder,
 };
 use mqtt_broker_tests_util::{
@@ -36,19 +33,7 @@ async fn pub_sub_not_allowed_identity_not_in_cache() {
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to EdgeHubAuthorizer
     let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::new(
-            EdgeHubAuthorizer::without_ready_handle(
-                authorize_fn_ok(|activity| {
-                    if matches!(activity.operation(), Operation::Connect) {
-                        Authorization::Allowed
-                    } else {
-                        Authorization::Forbidden("not allowed".to_string())
-                    }
-                }),
-                "this_edgehub_id".to_string(),
-                "myhub.azure-devices.net".to_string(),
-            ),
-        ))
+        .with_authorizer(authorizer())
         .build();
     let server_handle = start_server(
         broker,
@@ -112,21 +97,9 @@ async fn pub_sub_not_allowed_identity_not_in_cache() {
 async fn auth_update_happy_case() {
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to EdgeHubAuthorizer
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::new(
-            EdgeHubAuthorizer::without_ready_handle(
-                authorize_fn_ok(|activity| {
-                    if matches!(activity.operation(), Operation::Connect) {
-                        Authorization::Allowed
-                    } else {
-                        Authorization::Forbidden("not allowed".to_string())
-                    }
-                }),
-                "this_edgehub_id".to_string(),
-                "myhub.azure-devices.net".to_string(),
-            ),
-        ))
-        .build();
+    let mut authorizer = authorizer();
+    let mut identities_ready = authorizer.update_signal();
+    let broker = BrokerBuilder::default().with_authorizer(authorizer).build();
     let broker_handle = broker.handle();
 
     let server_handle = start_server(
@@ -159,7 +132,7 @@ async fn auth_update_happy_case() {
         .await;
 
     // let authorizer update sink in...
-    time::delay_for(Duration::from_secs(1)).await;
+    identities_ready.recv().await;
 
     let s = Subscribe {
         packet_identifier: PacketIdentifier::new(1).unwrap(),
@@ -212,21 +185,9 @@ async fn auth_update_happy_case() {
 async fn authorization_update_reevaluates_sessions() {
     // Start broker with DummyAuthorizer that allows everything from CommandHandler and $edgeHub,
     // but otherwise passes authorization along to EdgeHubAuthorizer
-    let broker = BrokerBuilder::default()
-        .with_authorizer(DummyAuthorizer::new(
-            EdgeHubAuthorizer::without_ready_handle(
-                authorize_fn_ok(|activity| {
-                    if matches!(activity.operation(), Operation::Connect) {
-                        Authorization::Allowed
-                    } else {
-                        Authorization::Forbidden("not allowed".to_string())
-                    }
-                }),
-                "this_edgehub_id".to_string(),
-                "myhub.azure-devices.net".to_string(),
-            ),
-        ))
-        .build();
+    let mut authorizer = authorizer();
+    let mut identities_ready = authorizer.update_signal();
+    let broker = BrokerBuilder::default().with_authorizer(authorizer).build();
     let broker_handle = broker.handle();
 
     let server_handle = start_server(
@@ -259,7 +220,7 @@ async fn authorization_update_reevaluates_sessions() {
         .await;
 
     // let authorizer update sink in...
-    time::delay_for(Duration::from_secs(1)).await;
+    identities_ready.recv().await;
 
     let s = Subscribe {
         packet_identifier: PacketIdentifier::new(1).unwrap(),
@@ -297,7 +258,7 @@ async fn authorization_update_reevaluates_sessions() {
         .await;
 
     // let authorizer update sink in...
-    time::delay_for(Duration::from_secs(1)).await;
+    identities_ready.recv().await;
 
     // next() will return None only if the client is disconnected, so this
     // asserts that the subscription has been re-evaluated and disconnected by broker.
@@ -311,4 +272,18 @@ async fn authorization_update_reevaluates_sessions() {
     join_handle.await.unwrap();
 
     edgehub_client.shutdown().await;
+}
+
+fn authorizer() -> DummyAuthorizer<impl Authorizer> {
+    DummyAuthorizer::new(EdgeHubAuthorizer::without_ready_handle(
+        authorize_fn_ok(|activity| {
+            if matches!(activity.operation(), Operation::Connect) {
+                Authorization::Allowed
+            } else {
+                Authorization::Forbidden("not allowed".to_string())
+            }
+        }),
+        "this_edgehub_id".to_string(),
+        "myhub.azure-devices.net".to_string(),
+    ))
 }
