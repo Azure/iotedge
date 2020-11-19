@@ -158,6 +158,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public bool IsActive => this.isActive;
 
+            public bool IsDirectClient => true;
+
             public IIdentity Identity { get; }
 
             public Task CloseAsync(Exception ex)

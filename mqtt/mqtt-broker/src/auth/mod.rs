@@ -6,7 +6,7 @@ pub use authentication::{
     DynAuthenticator,
 };
 pub use authorization::{
-    authorize_fn_ok, Activity, AllowAll, Authorization, Authorizer, Connect, DenyAll, Operation,
+    authorize_fn_ok, Activity, AllowAll, Authorization, Authorizer, DenyAll, Operation,
     Publication, Publish, Subscribe,
 };
 
@@ -16,8 +16,6 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-
-use crate::ClientId;
 
 /// Authenticated MQTT client identity.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -79,8 +77,8 @@ impl Display for Identity {
     }
 }
 
-impl PartialEq<ClientId> for Identity {
-    fn eq(&self, other: &ClientId) -> bool {
-        self.as_str() == other.as_str()
+impl<T: AsRef<str>> PartialEq<T> for Identity {
+    fn eq(&self, other: &T) -> bool {
+        self.as_str() == other.as_ref()
     }
 }

@@ -5,8 +5,6 @@ use mqtt_broker::{BrokerHandle, Message, SystemEvent};
 
 use crate::{auth::PolicyUpdate, command::Command};
 
-const POLICY_UPDATE_TOPIC: &str = "$internal/authorization/policy";
-
 /// `PolicyUpdateCommand` is executed when `EdgeHub` sends a special packet
 /// to notify the broker that the customer authorization policy has changed,
 /// and that we need to update the authorizer in the broker.
@@ -26,7 +24,7 @@ impl Command for PolicyUpdateCommand {
     type Error = Error;
 
     fn topic(&self) -> &str {
-        POLICY_UPDATE_TOPIC
+        super::POLICY_UPDATE_TOPIC
     }
 
     fn handle(&mut self, publication: &ReceivedPublication) -> Result<(), Self::Error> {

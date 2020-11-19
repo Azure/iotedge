@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             try
             {
                 var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(brokerServiceIdentities));
-                await this.connector.SendAsync(Topic, payload);
+                await this.connector.SendAsync(Topic, payload, retain: true);
             }
             catch (Exception ex)
             {

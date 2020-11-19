@@ -1,57 +1,34 @@
-#[cfg(any(test, feature = "proptest"))]
+#![cfg(any(test, feature = "proptest"))]
 use std::{net::IpAddr, net::SocketAddr, time::Duration};
 
 use bytes::Bytes;
 use mqtt3::proto;
 use proptest::{
     bool,
-    collection::{hash_map, hash_set, vec, vec_deque},
+    collection::{hash_map, vec, vec_deque},
     num,
     prelude::*,
 };
 
 use crate::{
-    session::identifiers::{IdentifiersInUse, PacketIdentifiers},
     AuthId, BrokerSnapshot, ClientId, ClientInfo, Publish, Segment, SessionSnapshot, Subscription,
     TopicFilter,
 };
 
 prop_compose! {
     pub fn arb_broker_snapshot()(
-        retained in hash_map(arb_topic(), arb_publication(), 0..20),
-        sessions in vec(arb_session_snapshot(), 0..10),
+        retained in hash_map(arb_topic(), arb_publication(), 0..5),
+        sessions in vec(arb_session_snapshot(), 0..5),
     ) -> BrokerSnapshot {
         BrokerSnapshot::new(retained, sessions)
     }
 }
 
 prop_compose! {
-    pub(crate) fn arb_packet_identifiers()(
-        in_use in arb_identifiers_in_use(),
-        previous in arb_packet_identifier(),
-    ) -> PacketIdentifiers {
-        PacketIdentifiers::new(in_use, previous)
-    }
-}
-
-pub(crate) fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
-    vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
-        let mut array = [0; PacketIdentifiers::SIZE];
-        let nums = &v[..array.len()];
-        array.copy_from_slice(nums);
-        IdentifiersInUse(Box::new(array))
-    })
-}
-
-prop_compose! {
     pub fn arb_session_snapshot()(
         client_info in arb_client_info(),
-        subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
-        _packet_identifiers in arb_packet_identifiers(),
-        waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
-        _waiting_to_be_released in hash_map(arb_packet_identifier(), arb_proto_publish(), 0..10),
-        _waiting_to_be_acked in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
-        _waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
+        subscriptions in hash_map(arb_topic(), arb_subscription(), 0..5),
+        waiting_to_be_sent in vec_deque(arb_publication(), 0..5),
     ) -> SessionSnapshot {
         SessionSnapshot::from_parts(
             client_info,
@@ -81,7 +58,7 @@ prop_compose! {
 prop_compose! {
     pub fn arb_subscribe()(
         packet_identifier in arb_packet_identifier(),
-        subscribe_to in proptest::collection::vec(arb_subscribe_to(), 1..10)
+        subscribe_to in proptest::collection::vec(arb_subscribe_to(), 1..5)
     ) -> proto::Subscribe {
         proto::Subscribe {
             packet_identifier,
@@ -105,7 +82,7 @@ prop_compose! {
 prop_compose! {
     pub fn arb_unsubscribe()(
         packet_identifier in arb_packet_identifier(),
-        unsubscribe_from in proptest::collection::vec(arb_topic_filter_weighted(), 1..10)
+        unsubscribe_from in proptest::collection::vec(arb_topic_filter_weighted(), 1..5)
     ) -> proto::Unsubscribe {
         proto::Unsubscribe {
             packet_identifier,
@@ -194,7 +171,7 @@ pub fn arb_topic() -> impl Strategy<Value = String> {
 }
 
 pub fn arb_payload() -> impl Strategy<Value = Bytes> {
-    vec(num::u8::ANY, 0..1024).prop_map(Bytes::from)
+    vec(num::u8::ANY, 0..128).prop_map(Bytes::from)
 }
 
 prop_compose! {

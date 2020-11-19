@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static object GetAuthResult(bool isAuthenticated, Option<IClientCredentials> credentials)
         {
             // note, that if authenticated, then these values are present, and defaults never apply
-            var id = credentials.Map(c => c.Identity.Id).GetOrElse("anonymous");
+            var id = credentials.Map(c => $"{c.Identity.IotHubHostname}/{c.Identity.Id}").GetOrElse("anonymous");
 
             if (isAuthenticated)
             {
