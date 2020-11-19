@@ -4,6 +4,7 @@ pr: none
 variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
+  totalTimeMin: 6
 
 stages:
 - stage: SetupVM
@@ -57,14 +58,12 @@ stages:
         - bash: echo $(setvarStep.myOutputVar)
           name: echovar
 
-        # Wait Dobby...
+        #Method 1 -- sleep until it's time
         - script: |
-            until [ -f /tmp/oldSock ]
-            do
-                sleep 1
-            done
-            echo "Dobby is free!"
-            exit
+            sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
+          name: WaitingToBeFreed
+
+        #Method 2 -- Use VSTS variable to track when to wake them up
 
 - stage: RunTest
   dependsOn: SetupVM
@@ -84,9 +83,10 @@ stages:
         - run-idle -equals true
         - nested-edge -equals $(testrun.vmTier)
     steps:
-    - script: touch /tmp/oldSock
-      name: freeDobby
     - script: |
         echo $(L4agent) $(L3_5agent) $(L3agent)
         sleep 1m
       name: getAllAgentName
+
+  - job: Cleanup
+    dependsOn: RunTest1
