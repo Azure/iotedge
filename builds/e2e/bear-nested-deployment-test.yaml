@@ -10,7 +10,7 @@ jobs:
   - job: idle_waitTime
 ################################################################################
     displayName: Setting up across multiple VMs
-    condition: and(eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
+    condition: ne(variables['agent.group'], '')
     timeoutInMinutes: 180
     strategy:
       matrix:
