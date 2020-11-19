@@ -1,11 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
@@ -20,15 +19,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         /// <summary>
         /// Scenario:
-        /// - Create a deployment with broker and default authorization policy.
-        /// - Create a device and validate that it can connect.
-        /// - Update deployment with new blank authorization policy.
-        /// - Validate that new device can't connect (unauthorized).
+        /// - Create a deployment with broker and a policy that denies the connection.
+        /// - Create a device and validate that it cannot connect.
+        /// - Update deployment with new policy that allows the connection.
+        /// - Validate that new device can connect.
         /// </summary>
         [Test]
         public async Task AuthorizationPolicyUpdateTest()
         {
             CancellationToken token = this.TestToken;
+
+            string deviceId1 = DeviceId.Current.Generate();
+            string deviceId2 = DeviceId.Current.Generate();
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
@@ -39,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("experimentalFeatures__enabled", "true"),
                             ("experimentalFeatures__mqttBrokerEnabled", "true"),
                         })
+                        // deploy with deny policy
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -47,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     new
                                     {
-                                        identities = new[] { "{{iot:identity}}" },
-                                        allow = new[]
+                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId1}" },
+                                        deny = new[]
                                         {
                                             new
                                             {
@@ -80,31 +83,25 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-            var leaf = await LeafDevice.CreateAsync(
-                DeviceId.Current.Generate(),
-                Protocol.Mqtt,
-                AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
-                false,
-                CertificateAuthority.GetQuickstart(),
-                this.iotHub,
-                token,
-                Option.None<string>());
+            // verify devices are not authorized after policy update.
+            Assert.ThrowsAsync<UnauthorizedException>(async () =>
+            {
+                var leaf = await LeafDevice.CreateAsync(
+                    deviceId1,
+                    Protocol.Mqtt,
+                    AuthenticationType.Sas,
+                    Option.Some(this.runtime.DeviceId),
+                    false,
+                    CertificateAuthority.GetQuickstart(),
+                    this.iotHub,
+                    token,
+                    Option.None<string>());
+                DateTime seekTime = DateTime.Now;
+                await leaf.SendEventAsync(token);
+                await leaf.WaitForEventsReceivedAsync(seekTime, token);
+            });
 
-            // verify devices are authorized.
-            await TryFinally.DoAsync(
-                 async () =>
-                 {
-                     DateTime seekTime = DateTime.Now;
-                     await leaf.SendEventAsync(token);
-                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                 },
-                 async () =>
-                 {
-                     await leaf.DeleteIdentityAsync(token);
-                 });
-
-            // deploy new blank policy
+            // deploy new allow policy
             EdgeDeployment deployment2 = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
@@ -118,7 +115,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ["mqttBroker"] = new
                             {
-                                authorizations = new object[] { }
+                                authorizations = new[]
+                                {
+                                    new
+                                    {
+                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId2}" },
+                                        allow = new[]
+                                        {
+                                            new
+                                            {
+                                                operations = new[] { "mqtt:connect" }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         });
                 },
@@ -142,23 +152,29 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-            // verify devices are not authorized after policy update.
-            Assert.ThrowsAsync<UnauthorizedException>(async () =>
-            {
-                var leaf = await LeafDevice.CreateAsync(
-                    DeviceId.Current.Generate(),
-                    Protocol.Mqtt,
-                    AuthenticationType.Sas,
-                    Option.Some(this.runtime.DeviceId),
-                    false,
-                    CertificateAuthority.GetQuickstart(),
-                    this.iotHub,
-                    token,
-                    Option.None<string>());
-                DateTime seekTime = DateTime.Now;
-                await leaf.SendEventAsync(token);
-                await leaf.WaitForEventsReceivedAsync(seekTime, token);
-            });
+            var leaf = await LeafDevice.CreateAsync(
+                deviceId2,
+                Protocol.Mqtt,
+                AuthenticationType.Sas,
+                Option.Some(this.runtime.DeviceId),
+                false,
+                CertificateAuthority.GetQuickstart(),
+                this.iotHub,
+                token,
+                Option.None<string>());
+
+            // verify device is authorized after policy update.
+            await TryFinally.DoAsync(
+                 async () =>
+                 {
+                     DateTime seekTime = DateTime.Now;
+                     await leaf.SendEventAsync(token);
+                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
+                 },
+                 async () =>
+                 {
+                     await leaf.DeleteIdentityAsync(token);
+                 });
         }
 
         /// <summary>
