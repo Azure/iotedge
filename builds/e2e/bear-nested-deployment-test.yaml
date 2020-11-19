@@ -4,6 +4,7 @@ pr: none
 variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
+  #Method 1
   totalTimeMin: 6
 
 stages:
@@ -60,10 +61,20 @@ stages:
 
         #Method 1 -- sleep until it's time
         - script: |
-            sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
+            if [[ "$(testrun.vmTier)" != "L3.5" ]]; then
+              sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
+            fi
           name: WaitingToBeFreed
 
-        #Method 2 -- Use VSTS variable to track when to wake them up
+        #Method 2 -- Wait until a file is set
+      #  - script:  |
+      #      until [ -f /tmp/oldSock ]
+      #      do
+      #          sleep 1
+      #      done
+      #      echo "Dobby is free"
+      #      exit
+      #    name: WaitingToBeFreed2
 
 - stage: RunTest
   dependsOn: SetupVM
