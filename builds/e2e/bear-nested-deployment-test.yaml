@@ -65,9 +65,11 @@ stages:
               sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
             else
               # Run Test here
-              echo $(stageDependencies.SetupVM.SetupVM_job1.var1.L4.readyAgent)
+              # dependencies.JOB.outputs['TASK.VARIABLE']
+              echo $[ dependencies.SetupVM_job1.outputs['SetupVM_job1.var1.L4.readyAgent'] ]
               echo $(var1.L3_5.readyAgent)
-              echo $(stageDependencies.SetupVM.SetupVM_job1.var1.L3.readyAgent)
+              # stageDependencies.STAGE.JOB.outputs['TASK.VARIABLE']
+              echo $[ stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] ]
             fi
           name: RunTest
 
