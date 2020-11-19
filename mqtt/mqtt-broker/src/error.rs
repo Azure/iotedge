@@ -13,19 +13,19 @@ use crate::Message;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("An error occurred sending a message to the broker.")]
+    #[error("An error occurred sending a message to the broker. {0}")]
     SendBrokerMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
 
-    #[error("An error occurred sending a message to a connection.")]
+    #[error("An error occurred sending a message to a connection. {0}")]
     SendConnectionMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
 
-    #[error("An error occurred sending a message to a snapshotter.")]
-    SendSnapshotMessage,
+    #[error("An error occurred sending a message to a snapshotter. {0:?}")]
+    SendSnapshotMessage(#[source] Box<dyn StdError + Send + Sync>),
 
-    #[error("An error occurred decoding a packet.")]
+    #[error("An error occurred decoding a packet. {0}")]
     DecodePacket(#[from] mqtt3::proto::DecodeError),
 
-    #[error("An error occurred encoding a packet.")]
+    #[error("An error occurred encoding a packet. {0}")]
     EncodePacket(#[from] mqtt3::proto::EncodeError),
 
     #[error("Expected CONNECT packet as first packet, received {0:?}")]
@@ -46,28 +46,28 @@ pub enum Error {
     #[error("All packet identifiers are exhausted.")]
     PacketIdentifiersExhausted,
 
-    #[error("An error occurred joining a task.")]
+    #[error("An error occurred joining a task. {0}")]
     TaskJoin(#[from] tokio::task::JoinError),
 
-    #[error("An error occurred signaling the event loop of a thread shutdown.")]
+    #[error("An error occurred signaling the event loop of a thread shutdown. {0}")]
     ThreadShutdown(#[from] tokio::sync::oneshot::error::RecvError),
 
-    #[error("An error occurred persisting state")]
+    #[error("An error occurred persisting state. {0}")]
     Persist(#[from] crate::persist::PersistError),
 
-    #[error("Unable to obtain peer certificate.")]
+    #[error("Unable to obtain peer certificate. {0}")]
     PeerCertificate(#[source] Box<dyn StdError + Send + Sync>),
 
-    #[error("Unable to obtain peer address.")]
+    #[error("Unable to obtain peer address. {0}")]
     PeerAddr(#[source] std::io::Error),
 
-    #[error("Unable to start broker.")]
+    #[error("Unable to start broker. {0}")]
     InitializeBroker(#[from] InitializeBrokerError),
 
     #[error("An error occurred when constructing state change: {0}")]
     StateChange(#[from] serde_json::Error),
 
-    #[error("An error occurred when processing packet")]
+    #[error("An error occurred when processing packet. {0}")]
     PacketProcessing(#[source] Box<dyn StdError + Send + Sync>),
 }
 
@@ -83,13 +83,13 @@ pub enum InitializeBrokerError {
     #[error("An error occurred binding the server's listening socket on {0}.")]
     BindServer(SocketAddr, #[source] std::io::Error),
 
-    #[error("An error occurred getting local address.")]
+    #[error("An error occurred getting local address. {0}")]
     ConnectionLocalAddress(#[source] tokio::io::Error),
 
     #[error("An error occurred loading identity from file {0}.")]
     LoadIdentity(PathBuf, #[source] std::io::Error),
 
-    #[error("An error occurred  bootstrapping TLS")]
+    #[error("An error occurred  bootstrapping TLS. {0}")]
     Tls(#[from] openssl::error::ErrorStack),
 }
 
