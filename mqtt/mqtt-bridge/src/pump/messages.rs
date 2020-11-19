@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, fmt::Debug};
 
 use async_trait::async_trait;
 use futures_util::stream::StreamExt;
@@ -135,7 +135,7 @@ where
 /// Messages processor shutdown handle.
 pub(crate) struct MessagesProcessorShutdownHandle<M>(Option<PumpHandle<M>>);
 
-impl<M: 'static> MessagesProcessorShutdownHandle<M> {
+impl<M: Debug + Send + 'static> MessagesProcessorShutdownHandle<M> {
     /// Sends a signal to shutdown message processor.
     pub(crate) async fn shutdown(mut self) {
         if let Some(mut sender) = self.0.take() {
