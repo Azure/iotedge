@@ -140,7 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             //
             // DefaultProgressive => 55 sec max.
             LeafDevice leaf = null;
-            await RetryPolicy.DefaultProgressive.ExecuteAsync(async () =>
+            await RetryPolicy.DefaultProgressive.ExecuteAsync(
+                async () =>
             {
                 leaf = await LeafDevice.CreateAsync(
                     deviceId2,
