@@ -28,6 +28,18 @@
     {
       "placeholder": "1234",
       "_justification": "This private key password (defined in /tools/CACertificates/ca-certs.ps1 and /tools/CACertificates/certGen.sh) is intended only to help demonstrate and prototype CA certs and warnings are provided to not use in production."
+    },
+    {
+      "placeholder": "pass",
+      "_justification": "This is a fake password used in the mqtt-bridge tests (mqtt/mqtt-bridge/tests/config.json)"
+    },
+    {
+      "file": "mqtt\\mqtt-broker\\test\\tls\\pkey.pem",
+      "_justification": "A synthetic key file used by the mqtt-broker tests"
+    },
+    {
+      "file": "http_proxy_io_requirements.md",
+      "_justification": "A file in a submodule repo, which we don't control, and which contains a fake password for illustration purposes"
     }
   ]
 }
