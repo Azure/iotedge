@@ -249,7 +249,7 @@ where
             }
         }
 
-        for mut session in sessions {
+        for session in sessions {
             if let Err(e) = session.send(ClientEvent::DropConnection) {
                 warn!(error = %e, message = "an error occurred closing the session", client_id = %session.client_id());
             }
@@ -378,7 +378,7 @@ where
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
                 self.publish_all(subscriptions)?;
             }
-            OpenSession::DuplicateSession(mut old_session, ack) => {
+            OpenSession::DuplicateSession(old_session, ack) => {
                 // Drop the old connection
                 old_session.send(ClientEvent::DropConnection)?;
 
@@ -393,7 +393,7 @@ where
                     session.send(ClientEvent::DropConnection)?;
                 }
             }
-            OpenSession::ProtocolViolation(mut old_session) => {
+            OpenSession::ProtocolViolation(old_session) => {
                 old_session.send(ClientEvent::DropConnection)?
             }
         }
@@ -404,7 +404,7 @@ where
 
     fn process_disconnect(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
-        if let Some(mut session) = self.close_session(client_id)? {
+        if let Some(session) = self.close_session(client_id)? {
             session.send(ClientEvent::Disconnect(proto::Disconnect))?;
         } else {
             debug!("no session for {}", client_id);
@@ -419,7 +419,7 @@ where
 
     fn drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
-        if let Some(mut session) = self.close_session(client_id)? {
+        if let Some(session) = self.close_session(client_id)? {
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will

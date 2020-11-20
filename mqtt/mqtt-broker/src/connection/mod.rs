@@ -59,7 +59,7 @@ impl ConnectionHandle {
         Self::new(Uuid::new_v4(), sender)
     }
 
-    pub fn send(&mut self, message: Message) -> Result<(), Error> {
+    pub fn send(&self, message: Message) -> Result<(), Error> {
         self.sender
             .send(message)
             .map_err(Error::SendConnectionMessage)
