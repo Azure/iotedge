@@ -39,8 +39,8 @@ mod checks;
 //     WindowsHostVersion,
 // };
 use checks::{
-    AziotEdgedVersion, ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
-    ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
+    AziotEdgedVersion, ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6,
+    ContainerEngineInstalled, ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
     ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted, HostLocalTime,
     Hostname, ParentHostname, PullAgentFromUpstream, WellFormedConfig,
 };
@@ -112,7 +112,9 @@ impl Check {
         verbose: bool,
         warnings_as_errors: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
-        let latest_versions = if let Some(expected_aziot_edged_version) = expected_aziot_edged_version {
+        let latest_versions = if let Some(expected_aziot_edged_version) =
+            expected_aziot_edged_version
+        {
             future::Either::A(future::ok::<_, Error>(LatestVersions {
                 aziot_edged: expected_aziot_edged_version,
             }))
@@ -211,7 +213,7 @@ impl Check {
                 container_engine_config_path,
                 diagnostics_image_name,
                 dont_run,
-                aziot_edged: aziot_edged,
+                aziot_edged,
                 latest_versions: latest_versions.map_err(Some),
                 ntp_server,
                 output_format,
@@ -660,7 +662,7 @@ mod tests {
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
                     Some("1.0.0".to_owned()), // unused for this test
-                    "aziot-edged".into(),        // unused for this test
+                    "aziot-edged".into(),     // unused for this test
                     // None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
@@ -731,7 +733,7 @@ mod tests {
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
                     Some("1.0.0".to_owned()), // unused for this test
-                    "aziot-edged".into(),        // unused for this test
+                    "aziot-edged".into(),     // unused for this test
                     // None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
@@ -802,7 +804,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
-                "aziot-edged".into(),        // unused for this test
+                "aziot-edged".into(),     // unused for this test
                 // None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
@@ -1021,7 +1023,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
-                "aziot-edged".into(),             // unused for this test
+                "aziot-edged".into(),          // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
@@ -1074,7 +1076,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
-                "aziot-edged".into(),        // unused for this test
+                "aziot-edged".into(),     // unused for this test
                 // None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
