@@ -57,8 +57,13 @@ pub trait WorkloadApi {
     ) -> Box<dyn Future<Item = crate::models::EncryptResponse, Error = Error<serde_json::Value>>>;
     fn manifest_trust_bundle(
         &self,
-        api_version: &str
-    ) -> Box<dyn Future<Item = crate::models::ManifestTrustBundleResponse, Error = Error<serde_json::Value>>>;
+        api_version: &str,
+    ) -> Box<
+        dyn Future<
+            Item = crate::models::ManifestTrustBundleResponse,
+            Error = Error<serde_json::Value>,
+        >,
+    >;
     fn sign(
         &self,
         api_version: &str,
@@ -358,9 +363,13 @@ where
 
     fn manifest_trust_bundle(
         &self,
-        api_version: &str
-    ) -> Box<dyn Future<Item = crate::models::ManifestTrustBundleResponse, Error = Error<serde_json::Value>>> 
-    {
+        api_version: &str,
+    ) -> Box<
+        dyn Future<
+            Item = crate::models::ManifestTrustBundleResponse,
+            Error = Error<serde_json::Value>,
+        >,
+    > {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -383,7 +392,6 @@ where
         let req = req
             .body(hyper::Body::empty())
             .expect("could not build hyper::Request");
-
 
         // send request
         Box::new(
@@ -409,7 +417,7 @@ where
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
-            )
+        )
     }
 
     fn sign(

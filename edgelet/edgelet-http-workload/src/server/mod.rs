@@ -3,9 +3,9 @@
 mod cert;
 mod decrypt;
 mod encrypt;
+mod manifest_trust_bundle;
 mod sign;
 mod trust_bundle;
-mod manifest_trust_bundle;
 
 use aziot_key_client::Client as KeyClient;
 use aziot_key_common::KeyHandle;
@@ -30,9 +30,9 @@ use std::sync::{Arc, Mutex};
 use self::cert::{IdentityCertHandler, ServerCertHandler};
 use self::decrypt::DecryptHandler;
 use self::encrypt::EncryptHandler;
+use self::manifest_trust_bundle::ManifestTrustBundleHandler;
 use self::sign::SignHandler;
 use self::trust_bundle::TrustBundleHandler;
-use self::manifest_trust_bundle::ManifestTrustBundleHandler;
 use crate::error::{Error, ErrorKind};
 
 #[derive(Clone)]
