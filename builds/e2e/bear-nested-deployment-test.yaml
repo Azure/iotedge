@@ -70,6 +70,8 @@ stages:
               # dependencies.JOB.outputs['TASK.VARIABLE']
               # echo $[ dependencies.outputs['var1.L4.readyAgent'] ]
               echo $(var1.L3_5.readyAgent)
+
+              # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
             fi
           name: RunTest
 
