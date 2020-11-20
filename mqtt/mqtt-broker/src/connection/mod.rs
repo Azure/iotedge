@@ -59,7 +59,7 @@ impl ConnectionHandle {
         Self::new(Uuid::new_v4(), sender)
     }
 
-    pub fn send(&mut self, message: Message) -> Result<(), Error> {
+    pub fn send(&self, message: Message) -> Result<(), Error> {
         self.sender
             .send(message)
             .map_err(Error::SendConnectionMessage)
@@ -86,7 +86,7 @@ impl PartialEq for ConnectionHandle {
 pub async fn process<I, N, P>(
     io: I,
     remote_addr: SocketAddr,
-    mut broker_handle: BrokerHandle,
+    broker_handle: BrokerHandle,
     authenticator: &N,
     make_processor: P,
 ) -> Result<(), Error>
@@ -250,7 +250,7 @@ where
 async fn incoming_task<S, P>(
     client_id: ClientId,
     mut incoming: S,
-    mut broker: BrokerHandle,
+    broker: BrokerHandle,
     mut processor: P,
 ) -> Result<(), Error>
 where
@@ -286,7 +286,7 @@ where
 async fn outgoing_task<S, P>(
     mut messages: UnboundedReceiver<Message>,
     mut outgoing: S,
-    mut broker: BrokerHandle,
+    broker: BrokerHandle,
     mut processor: P,
 ) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
