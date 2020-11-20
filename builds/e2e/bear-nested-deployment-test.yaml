@@ -54,23 +54,21 @@ stages:
               sleep $(testrun.waitTimeMin)m
               echo "$(Agent.Name) is waking up"
 
-        - bash: echo "##vso[task.setvariable variable=myOutputVar;isOutput=true]this is the $(testrun.waitTimeMin) value"
-          name: setvarStep
-        - bash: echo $(setvarStep.myOutputVar)
-          name: echovar
-
         #Method 1 -- sleep until it's time
         - script: |
             if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
               sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
             else
-              # Run Test here
-              # stageDependencies.STAGE.JOB.outputs['TASK.VARIABLE']
-              # echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
-              # dependencies.JOB.outputs['TASK.VARIABLE']
-              # echo $[ dependencies.outputs['var1.L4.readyAgent'] ]
-              echo $(var1.L3_5.readyAgent)
+              # Testing to get a variable from other test agent via pipeline variable
 
+              # (Not working) Trying to get the value of "var1.L3.readyAgent" in L3_5 test agent usying syntax: stageDependencies.STAGE.JOB.outputs['TASK.VARIABLE']
+              echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
+
+              # (Not working) Trying to get the value of "var1.L4.readyAgent" in L3_5 test agent usying syntax: dependencies.JOB.outputs['TASK.VARIABLE']
+              echo $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
+
+              # This works
+              echo $(var1.L3_5.readyAgent)
               # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
             fi
           name: RunTest
@@ -85,6 +83,7 @@ stages:
       #      exit
       #    name: WaitingToBeFreed2
 
+##########################################################################################
 
 - stage: RunTest
   dependsOn: SetupVM
