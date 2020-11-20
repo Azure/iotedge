@@ -96,7 +96,7 @@ impl Bootstrap for EdgeHubBootstrap {
         config: Self::Settings,
         broker: Broker<Self::Authorizer>,
     ) -> Result<BrokerSnapshot> {
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         let sidecars = make_sidecars(&broker_handle, &config)?;
 
         info!("starting server...");

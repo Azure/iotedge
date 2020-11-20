@@ -41,7 +41,7 @@ pub async fn start_snapshotter(
 
 async fn tick_snapshot(
     period: Duration,
-    mut broker_handle: BrokerHandle,
+    broker_handle: BrokerHandle,
     snapshot_handle: StateSnapshotHandle,
 ) {
     info!("persisting state every {:?}", period);
@@ -66,7 +66,7 @@ mod imp {
 
     #[cfg(unix)]
     pub(super) async fn snapshot(
-        mut broker_handle: BrokerHandle,
+        broker_handle: BrokerHandle,
         snapshot_handle: StateSnapshotHandle,
     ) {
         let mut stream = match signal(SignalKind::user_defined1()) {

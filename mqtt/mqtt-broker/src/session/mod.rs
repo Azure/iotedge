@@ -190,11 +190,11 @@ impl Session {
         }
     }
 
-    pub fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    pub fn send(&self, event: ClientEvent) -> Result<(), Error> {
         match self {
-            Self::Transient(ref mut connected) => connected.send(event),
-            Self::Persistent(ref mut connected) => connected.send(event),
-            Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event),
+            Self::Transient(connected) => connected.send(event),
+            Self::Persistent(connected) => connected.send(event),
+            Self::Disconnecting(disconnecting) => disconnecting.send(event),
             _ => Err(Error::SessionOffline),
         }
     }
