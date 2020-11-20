@@ -1,7 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 
 use anyhow::{Context, Error, Result};
-use chrono::Utc;
 use futures_util::future::Either;
 use log::{error, warn};
 use regex::Regex;
@@ -9,9 +8,7 @@ use tokio::{sync::Notify, task::JoinHandle};
 
 use super::file;
 use super::shutdown_handle;
-use azure_iot_mqtt::{
-    module::Client, ReportTwinStateHandle, ReportTwinStateRequest, Transport::Tcp, TwinProperties,
-};
+use azure_iot_mqtt::{module::Client, Transport::Tcp, TwinProperties};
 use shutdown_handle::ShutdownHandle;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
@@ -25,9 +22,8 @@ const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[
     ("IOTEDGE_PARENTAPIPROXYNAME", "IOTEDGE_MODULEID"),
 ];
 
-const TWIN_STATE_POLL_INTERVAL: Duration = Duration::from_secs(5);
 const TWIN_CONFIG_MAX_BACK_OFF: Duration = Duration::from_secs(30);
-const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_secs(5);
+const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_secs(300);
 
 pub fn get_sdk_client() -> Result<Client, Error> {
     let client = match Client::new_for_edge_module(
@@ -253,55 +249,6 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     let str = re.replace_all(&str, "").to_string();
 
     Ok(str)
-}
-
-pub fn report_twin_state(
-    mut report_twin_state_handle: ReportTwinStateHandle,
-) -> (JoinHandle<Result<()>>, ShutdownHandle) {
-    use futures_util::StreamExt;
-
-    let shutdown_signal = Arc::new(tokio::sync::Notify::new());
-    let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
-
-    let mut interval = tokio::time::interval(TWIN_STATE_POLL_INTERVAL);
-    let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
-        report_twin_state_handle
-            .report_twin_state(ReportTwinStateRequest::Replace(
-                vec![("start-time".to_string(), Utc::now().to_string().into())]
-                    .into_iter()
-                    .collect(),
-            ))
-            .await
-            .context("couldn't report initial twin state")?;
-
-        loop {
-            let wait_shutdown = shutdown_signal.notified();
-            futures::pin_mut!(wait_shutdown);
-            match futures::future::select(wait_shutdown, interval.next()).await {
-                Either::Left(_) => {
-                    warn!("Shutting down twin state polling!");
-                    return Ok(());
-                }
-                Either::Right((result, _)) => {
-                    if result.is_some() {
-                        report_twin_state_handle
-                            .report_twin_state(ReportTwinStateRequest::Patch(
-                                vec![("current-time".to_string(), Utc::now().to_string().into())]
-                                    .into_iter()
-                                    .collect(),
-                            ))
-                            .await
-                            .context("couldn't report twin state patch")?;
-                    } else {
-                        warn!("Shutting down twin state polling!");
-                        //Should send a ctrl c event here?
-                        return Ok(());
-                    }
-                }
-            };
-        }
-    });
-    (monitor_loop, shutdown_handle)
 }
 
 #[cfg(test)]

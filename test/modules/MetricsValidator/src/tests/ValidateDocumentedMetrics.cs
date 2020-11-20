@@ -36,11 +36,6 @@ namespace MetricsValidator.Tests
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
 
             var expected = this.GetExpectedMetrics();
-            if (RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64)
-            {
-                // Docker doesn't return this on arm
-                expected.Remove("edgeAgent_created_pids_total");
-            }
 
             if (OsPlatform.IsWindows())
             {

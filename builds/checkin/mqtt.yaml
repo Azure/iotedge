@@ -5,14 +5,16 @@ pr:
       - master
       - release/*
 jobs:
-
   ################################################################################
   - job: check_run_pipeline
-    ################################################################################
+  ################################################################################
     displayName: Check pipeline preconditions (changes ARE in builds or mqtt)
     pool:
       vmImage: "ubuntu-16.04"
     steps:
+      - checkout: self
+        submodules: false
+        fetchDepth: 3
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|mqtt)'
           if [[ $? == 0 ]]; then
@@ -24,13 +26,16 @@ jobs:
 
   ################################################################################
   - job: linux_amd64
-    ################################################################################
+  ################################################################################
     displayName: Linux amd64
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: "ubuntu-16.04"
     steps:
+      - checkout: self
+        submodules: false # mqtt broker does not use submodules
+        fetchDepth: 3
       - script: echo "##vso[task.setvariable variable=RUST_BACKTRACE;]1"
         displayName: Set env variables
       - bash: scripts/linux/generic-rust/install.sh --project-root "mqtt"
@@ -39,18 +44,28 @@ jobs:
         displayName: Build with no default features
       - bash: scripts/linux/generic-rust/build.sh --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path
         displayName: Build with default features
-      - bash: mqtt/build/linux/test.sh
+      - bash: mqtt/build/linux/test.sh --report test-results.xml
         displayName: Test
+      - task: PublishTestResults@2
+        displayName: Publish test results
+        inputs:
+          testResultsFormat: "JUnit"
+          testResultsFiles: "**/test-results.xml"
+          failTaskOnFailedTests: true
+        condition: succeededOrFailed()
 
   ################################################################################
   - job: style_check
-    ################################################################################
+  ################################################################################
     displayName: Style Check
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: "ubuntu-16.04"
     steps:
+      - checkout: self
+        submodules: false # mqtt broker does not use submodules
+        fetchDepth: 3
       - bash: scripts/linux/generic-rust/install.sh --project-root "mqtt"
         displayName: Install Rust
       - bash: scripts/linux/generic-rust/format.sh --project-root "mqtt"

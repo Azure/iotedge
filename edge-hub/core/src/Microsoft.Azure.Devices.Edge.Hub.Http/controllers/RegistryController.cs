@@ -643,7 +643,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             {
                 Log.LogInformation(
                     (int)EventIds.Authenticated,
-                    $"CompleteRequest in {source}: deviceId={deviceId}, authChain={authChain} {Environment.NewLine} {result.StatusCode}:{result.JsonContent}");
+                    $"CompleteRequest in {source}: deviceId={deviceId}, authChain={authChain}, status={result.StatusCode}");
             }
         }
     }

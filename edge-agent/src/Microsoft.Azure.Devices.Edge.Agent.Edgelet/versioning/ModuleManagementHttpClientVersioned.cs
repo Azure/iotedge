@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
-                string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri);
+                string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
                 var logsUrl = new StringBuilder();
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
                 tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));

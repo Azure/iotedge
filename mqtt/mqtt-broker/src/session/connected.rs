@@ -130,7 +130,7 @@ impl ConnectedSession {
         Ok(unsuback)
     }
 
-    pub fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    pub fn send(&self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.state.client_id().clone(), event);
         self.handle.send(message)
     }
