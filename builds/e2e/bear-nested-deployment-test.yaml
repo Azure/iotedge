@@ -1,0 +1,110 @@
+trigger: none
+pr: none
+
+variables:
+  images.artifact.name.linux: 'core-linux'
+  vsts.project: $(System.TeamProjectId)
+  #Method 1
+  totalTimeMin: 6
+
+stages:
+- stage: SetupVM
+  jobs:
+################################################################################
+    - job: SetupVM_job1
+################################################################################
+      displayName: Setting up across multiple VMs
+      condition: ne(variables['agent.group'], '')
+      timeoutInMinutes: 180
+      strategy:
+        matrix:
+          L4:
+            testrun.vmTier: L4
+            testrun.waitTimeMin: 4
+          L3_5:
+            testrun.vmTier: L3_5
+            testrun.waitTimeMin: 2
+          L3:
+            testrun.vmTier: L3
+            testrun.waitTimeMin: 1
+            # BEARWASHERE -- BRB rename
+
+      pool:
+        name: $(pool.name)
+        demands:
+          - agent-group -equals $(agent.group)
+          - Agent.OS -equals Linux
+          - Agent.OSArchitecture -equals X64
+          - run-idle -equals true
+          - nested-edge -equals $(testrun.vmTier)
+
+      steps:
+        - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
+          name: var1
+        - script: echo $(var1.$(testrun.vmTier).readyAgent)
+          name: agent_name
+
+        - task: Bash@3
+          name: setting_up
+          displayName: 'Setting up $(testrun.vmTier)'
+          inputs:
+            targetType: inline
+            script: |
+              # Use sleep to pretend it is a setup time
+              echo "$(Agent.Name) is sleeping for $(testrun.waitTimeMin)"
+              sleep $(testrun.waitTimeMin)m
+              echo "$(Agent.Name) is waking up"
+
+        #Method 1 -- sleep until it's time
+        - script: |
+            if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
+              sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
+            else
+              # Testing to get a variable from other test agent via pipeline variable
+
+              # (Not working) Trying to get the value of "var1.L3.readyAgent" in L3_5 test agent usying syntax: stageDependencies.STAGE.JOB.outputs['TASK.VARIABLE']
+              #echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
+
+              # (Not working) Trying to get the value of "var1.L4.readyAgent" in L3_5 test agent usying syntax: dependencies.JOB.outputs['TASK.VARIABLE']
+              #echo $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
+
+              # This works
+              echo $(var1.L3_5.readyAgent)
+              # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
+            fi
+          name: RunTest
+
+        #Method 2 -- Wait until a file is set
+      #  - script:  |
+      #      until [ -f /tmp/oldSock ]
+      #      do
+      #          sleep 1
+      #      done
+      #      echo "Dobby is free"
+      #      exit
+      #    name: WaitingToBeFreed2
+
+##########################################################################################
+
+- stage: RunTest
+  dependsOn: SetupVM
+  variables:
+    L4agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L4.readyAgent'] ]
+    L3_5agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L3_5.readyAgent'] ]
+    L3agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L3.readyAgent'] ]
+  jobs:
+  - job: RunTest1
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - Agent.Name -equals $(L3_5agent)
+        - run-idle -equals true
+        - nested-edge -equals $(testrun.vmTier)
+    steps:
+    - script: |
+        echo $(L4agent) $(L3_5agent) $(L3agent)
+        sleep 1m
+      name: getAllAgentName
