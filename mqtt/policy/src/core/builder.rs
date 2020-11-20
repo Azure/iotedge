@@ -306,7 +306,7 @@ impl Statement {
 }
 
 /// Represents an effect on a statement.
-#[derive(Debug, Deserialize, Copy, Clone)]
+#[derive(Debug, Deserialize, Copy, Clone, PartialOrd, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum Effect {
     Allow,
@@ -320,7 +320,7 @@ mod tests {
     use matches::assert_matches;
 
     use crate::{
-        core::{tests::build_policy, EffectImpl, EffectOrd},
+        core::{tests::build_policy, Effect, EffectOrd},
         validator::ValidatorError,
     };
 
@@ -573,7 +573,7 @@ mod tests {
         assert_eq!(
             EffectOrd {
                 order: 0,
-                effect: EffectImpl::Allow
+                effect: Effect::Allow
             },
             policy.static_rules["actor_a"].0["write"].0["events/telemetry"]
         );
@@ -582,7 +582,7 @@ mod tests {
         assert_eq!(
             EffectOrd {
                 order: 2,
-                effect: EffectImpl::Allow
+                effect: Effect::Allow
             },
             policy.variable_rules["actor_a"].0["read"].0["{{variable}}/#"]
         );
@@ -620,28 +620,28 @@ mod tests {
         assert_eq!(
             policy.static_rules["actor_a"].0["write"].0["events/telemetry"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.static_rules["actor_a"].0["read"].0["events/telemetry"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.static_rules["actor_b"].0["write"].0["events/telemetry"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.static_rules["actor_b"].0["read"].0["events/telemetry"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
@@ -651,42 +651,42 @@ mod tests {
         assert_eq!(
             policy.variable_rules["actor_a"].0["write"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["actor_a"].0["read"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["actor_b"].0["write"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["actor_b"].0["read"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["{{var_actor}}"].0["write"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["{{var_actor}}"].0["read"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: EffectImpl::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
@@ -712,7 +712,7 @@ mod tests {
                 {
                     "effect": "allow",
                     "identities": [
-                        "contoso.azure-devices.net/monitor"
+                        "monitor"
                     ],
                     "operations": [
                         "read"
