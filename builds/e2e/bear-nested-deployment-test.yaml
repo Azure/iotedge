@@ -66,9 +66,9 @@ stages:
             else
               # Run Test here
               # stageDependencies.STAGE.JOB.outputs['TASK.VARIABLE']
-              echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
+              # echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
               # dependencies.JOB.outputs['TASK.VARIABLE']
-              echo $[ dependencies.outputs['var1.L4.readyAgent'] ]
+              # echo $[ dependencies.outputs['var1.L4.readyAgent'] ]
               echo $(var1.L3_5.readyAgent)
             fi
           name: RunTest
