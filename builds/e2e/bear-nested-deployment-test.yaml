@@ -27,6 +27,7 @@ stages:
           L3:
             testrun.vmTier: L3
             testrun.waitTimeMin: 1
+            # BEARWASHERE -- BRB rename
 
       pool:
         name: $(pool.name)
@@ -62,10 +63,10 @@ stages:
               # Testing to get a variable from other test agent via pipeline variable
 
               # (Not working) Trying to get the value of "var1.L3.readyAgent" in L3_5 test agent usying syntax: stageDependencies.STAGE.JOB.outputs['TASK.VARIABLE']
-              echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
+              #echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
 
               # (Not working) Trying to get the value of "var1.L4.readyAgent" in L3_5 test agent usying syntax: dependencies.JOB.outputs['TASK.VARIABLE']
-              echo $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
+              #echo $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
 
               # This works
               echo $(var1.L3_5.readyAgent)
