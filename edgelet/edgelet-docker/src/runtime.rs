@@ -1285,11 +1285,11 @@ mod tests {
             },
             "hostname": "zoo",
             "connect": {
-                "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.socket",
+                "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.sock",
                 "workload_uri": "unix:///run/aziot/edged/aziot-edged.workload.sock"
             },
             "listen": {
-                "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.socket",
+                "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.sock",
                 "workload_uri": "unix:///run/aziot/edged/aziot-edged.workload.sock"
             },
             "homedir": tmp_dir.path(),

@@ -60,11 +60,11 @@ fn make_settings(merge_json: Option<JsonValue>) -> Settings {
         },
         "hostname": "zoo",
         "connect": {
-            "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.socket",
+            "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.sock",
             "workload_uri": "unix:///run/aziot/edged/aziot-edged.workload.sock"
         },
         "listen": {
-            "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.socket",
+            "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.sock",
             "workload_uri": "unix:///run/aziot/edged/aziot-edged.workload.sock"
         },
         "homedir": "/var/lib/aziot/edged",

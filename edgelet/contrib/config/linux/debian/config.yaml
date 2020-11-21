@@ -122,7 +122,7 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 
 connect:
-  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.socket"
+  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.sock"
   workload_uri: "unix:///run/aziot/edged/aziot-edged.workload.sock"
 
 ###############################################################################
@@ -147,7 +147,7 @@ connect:
 ###############################################################################
 
 listen:
-  management_uri: "fd://aziot-edged.mgmt.socket"
+  management_uri: "fd://aziot-edged.mgmt.sock"
   workload_uri: "fd://aziot-edged.workload.socket"
 
 ###############################################################################
