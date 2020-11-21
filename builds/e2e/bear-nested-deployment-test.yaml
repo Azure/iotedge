@@ -90,9 +90,20 @@ stages:
           - nested-edge -equals L3_5
       steps:
         - bash: |
-            echo $(L3)
-            echo $(L3_5)
-            echo $(L4)
+            echo "L3: $(L3)"
+            echo "L3_5: $(L3_5)"
+            echo "L4: $(L4)"
+          name: expansion
+        
+        - bash: |
+            echo "L3: $L3"
+            echo "L3_5: $L3_5"
+            echo "L4: $L4"
+          name: EnvVar
+          env:
+            L3: $(L3)
+            L3_5: $(L3_5)
+            L4: $(L4)
 
         #Method 2 -- Wait until a file is set
       #  - script:  |
