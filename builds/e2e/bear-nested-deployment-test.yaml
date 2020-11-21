@@ -73,8 +73,10 @@ stages:
         #Method 1 -- sleep until it's time
         - script: |
 
-          
-            echo $(VM.lvl3_5IP) 
+            echo $(agent_name.$(VM.lvl3IP))         
+            echo $(agent_name.$(VM.lvl3_5IP)) 
+            echo $(agent_name.$(VM.lvl4IP))
+
             if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
               
               sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
