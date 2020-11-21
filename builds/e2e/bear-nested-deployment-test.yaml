@@ -22,7 +22,6 @@ stages:
           L3_5:
             testrun.vmTier: L3_5
             testrun.waitTimeMin: 2
-            3_test: <inValid>
           L3:
             testrun.vmTier: L3
             testrun.waitTimeMin: 1
@@ -41,6 +40,9 @@ stages:
           - nested-edge -equals $(testrun.vmTier)
 
       steps:
+        - script: echo $(Agent.JobName))
+          displayName: echo $(Agent.JobName))
+
         - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
           name: var1
         - script: echo $(var1.$(testrun.vmTier).readyAgent)
