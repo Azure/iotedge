@@ -17,9 +17,9 @@ stages:
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
       variables:
-        VM.lvl4IP: tbd
-        VM.lvl3_5IP: tbd
-        VM.lvl3IP: tbd
+        lvl4IP: tbd
+        lvl3_5IP: tbd
+        lvl3IP: tbd
       strategy:
         matrix:
           L4:
@@ -46,17 +46,17 @@ stages:
         - script: |
             echo "##vso[task.setvariable variable=test;isoutput=true]$(hostname)"
             if [[ "$(testrun.vmTier)" == "L3" ]]; then
-              echo "##vso[task.setvariable variable=VM.lvl3IP;isoutput=true]$(hostname)"
+              echo "##vso[task.setvariable variable=lvl3IP;isoutput=true]$(hostname)"
             fi
 
             if [[ "$(testrun.vmTier)" == "L3_5" ]]; then
               echo setting variable for l3.5
-              echo "##vso[task.setvariable variable=VM.lvl3_5IP;isoutput=true]$(hostname)"
+              echo "##vso[task.setvariable variable=lvl3_5IP;isoutput=true]$(hostname)"
               #wait L4
             fi
 
             if [[ "$(testrun.vmTier)" == "L4" ]]; then
-              echo "##vso[task.setvariable variable=VM.lvl4IP;isoutput=true]$(hostname)"
+              echo "##vso[task.setvariable variable=lvl4IP;isoutput=true]$(hostname)"
             fi
           name: agent_name
 
@@ -74,9 +74,9 @@ stages:
         #Method 1 -- sleep until it's time
         - script: |
             echo $(agent_name.test) 
-            echo $(agent_name.VM.lvl3IP)         
-            echo $(agent_name.VM.lvl3_5IP) 
-            echo $(agent_name.VM.lvl4IP)
+            echo $(agent_name.lvl3IP)         
+            echo $(agent_name.lvl3_5IP) 
+            echo $(agent_name.lvl4IP)
 
             if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
               
