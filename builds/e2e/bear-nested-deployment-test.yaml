@@ -40,7 +40,7 @@ stages:
           - nested-edge -equals $(testrun.vmTier)
 
       steps:
-        - script: echo "JobName:$(Agent.JobName))"
+        - script: echo "JobName:$(Agent.JobName)"
           displayName: jobName
 
         - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
