@@ -11,7 +11,7 @@ stages:
 - stage: SetupVM
   jobs:
     - job: SetupVM_job1
-      #displayName: Setting up across multiple VMs
+      displayName: Setting up across multiple VMs
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
       strategy:
@@ -40,7 +40,7 @@ stages:
           - nested-edge -equals $(testrun.vmTier)
 
       steps:
-        - script: echo \"JobName:$(Agent.JobName))\"
+        - script: echo ""JobName:$(Agent.JobName))""
           displayName: jobName
 
         - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
