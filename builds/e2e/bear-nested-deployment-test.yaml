@@ -24,13 +24,13 @@ stages:
         matrix:
           L4:
             testrun.vmTier: L4
-            testrun.waitTimeMin: 1
+            testrun.waitTimeSec: 10
           L3_5:
             testrun.vmTier: L3_5
-            testrun.waitTimeMin: 0
+            testrun.waitTimeSec: 10
           L3:
             testrun.vmTier: L3
-            testrun.waitTimeMin: 1
+            testrun.waitTimeSec: 10
             # BEARWASHERE -- BRB rename
 
       pool:
@@ -73,10 +73,9 @@ stages:
         
         #Method 1 -- sleep until it's time
         - script: |
-            echo $(agent_name.test) 
-            echo $(agent_name.lvl3IP)         
-            echo $(agent_name.lvl3_5IP) 
-            echo $(agent_name.lvl4IP)
+            echo $(lvl3IP)         
+            echo $(lvl3_5IP) 
+            echo $(lvl4IP)
 
           name: RunTest
 
