@@ -41,7 +41,7 @@ stages:
 
       steps:
         - script: echo $(Agent.JobName))
-          displayName: echo $(Agent.JobName))
+          displayName: echo "JobName:$(Agent.JobName))"
 
         - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
           name: var1
