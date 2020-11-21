@@ -76,7 +76,7 @@ stages:
               echo $(var1.L3.readyAgent)
               echo $(var1.L3_5.readyAgent)
               echo $(var1.L4.readyAgent)
-              echo "var1.L3= $(dependencies.'SetupVM_job1 L3'.outputs['var1.L3.readyAgent'])"
+              echo "var1.L3= $(dependencies.'SettingUp L3'.outputs['var1.L3.readyAgent'])"
               echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3_5.readyAgent'])"
               # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
             fi
@@ -85,9 +85,9 @@ stages:
     - job: SetupVM_job2
       dependsOn: SetupVM_job1
       variables:
-        L3: $[ dependencies.SetupVM_job1.outputs['var1.L3.readyAgent'] ]
+        L3: $[ dependencies.'SetupVM_job1 L3'.outputs['var1.L3.readyAgent'] ]
         L3_5: $[ dependencies.SetupVM_job1.outputs['var1.L3_5.readyAgent'] ]
-        L4: $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
+        L4: $[ dependencies.'SettingUp L4'.outputs['var1.L4.readyAgent'] ]
       pool:
         name: $(pool.name)
         demands:
