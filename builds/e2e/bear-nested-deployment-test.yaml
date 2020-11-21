@@ -16,6 +16,9 @@ stages:
       displayName: Setting up across multiple VMs
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
+      VM.lvl4IP: tbd
+      VM.lvl3_5IP: tbd
+      VM.lvl3IP: tbd
       strategy:
         matrix:
           L4:
@@ -39,9 +42,11 @@ stages:
           - nested-edge -equals $(testrun.vmTier)
 
       steps:
-        - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
-          name: var1
-        - script: echo $(var1.$(testrun.vmTier).readyAgent)
+        - script: |
+            
+            if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
+              echo "##vso[task.setvariable VM.lvl3_5IP=$(hostname);]Getting hostname."
+            fi
           name: agent_name
 
         - task: Bash@3
@@ -54,10 +59,12 @@ stages:
               echo "$(Agent.Name) is sleeping for $(testrun.waitTimeMin)"
               sleep $(testrun.waitTimeMin)m
               echo "$(Agent.Name) is waking up"
-
+        
         #Method 1 -- sleep until it's time
         - script: |
+
             if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
+              echo $VM.lvl3_5IP
               sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
             else
               # Testing to get a variable from other test agent via pipeline variable
