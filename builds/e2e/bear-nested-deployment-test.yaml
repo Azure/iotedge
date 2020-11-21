@@ -39,12 +39,11 @@ stages:
         #Method 1 -- sleep until it's time
         - script: |
               # This works
-              echo $(var1.L3.readyAgent)
-              echo $(var1.L3_5.readyAgent)
-              echo $(var1.L4.readyAgent)
-              echo "SetupVM_job135= $(dependencies.SetupVM_job135.outputs['var1.L3_5.readyAgent'])"
-              echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3_5.readyAgent'])"
-              # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
+              echo "var1.L3.readyAgent= $(var1.L3.readyAgent)"
+              echo "var1.L3_5.readyAgent= $(var1.L3_5.readyAgent)"
+              echo "var1.L4.readyAgent= $(var1.L4.readyAgent)"
+              echo "SetupVM_job13= $(dependencies.SetupVM_job13.outputs['var1.L3.readyAgent'])"
+              echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3.readyAgent'])"
           name: RunTest
 
     - job: SetupVM_job13
@@ -85,9 +84,9 @@ stages:
         #Method 1 -- sleep until it's time
         - script: |
               # This works
-              echo $(var1.L3.readyAgent)
-              echo $(var1.L3_5.readyAgent)
-              echo $(var1.L4.readyAgent)
+              echo "var1.L3.readyAgent= $(var1.L3.readyAgent)"
+              echo "var1.L3_5.readyAgent= $(var1.L3_5.readyAgent)"
+              echo "var1.L4.readyAgent= $(var1.L4.readyAgent)"
               echo "SetupVM_job13= $(dependencies.SetupVM_job13.outputs['var1.L3.readyAgent'])"
               echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3.readyAgent'])"
           name: RunTest
