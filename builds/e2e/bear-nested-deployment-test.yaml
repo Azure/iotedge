@@ -107,26 +107,3 @@ stages:
       #    name: WaitingToBeFreed2
 
 ##########################################################################################
-
-- stage: RunTest
-  dependsOn: SetupVM
-  variables:
-    L4agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L4.readyAgent'] ]
-    L3_5agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L3_5.readyAgent'] ]
-    L3agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L3.readyAgent'] ]
-  jobs:
-  - job: RunTest1
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - Agent.Name -equals $(L3_5agent)
-        - run-idle -equals true
-        - nested-edge -equals $(testrun.vmTier)
-    steps:
-    - script: |
-        echo $(L4agent) $(L3_5agent) $(L3agent)
-        sleep 1m
-      name: getAllAgentName
