@@ -10,9 +10,7 @@ variables:
 stages:
 - stage: SetupVM
   jobs:
-################################################################################
     - job: SetupVM_job1
-################################################################################
       displayName: Setting up across multiple VMs
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
@@ -69,10 +67,32 @@ stages:
               #echo $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
 
               # This works
+              echo $(var1.L3.readyAgent)
               echo $(var1.L3_5.readyAgent)
+              echo $(var1.L4.readyAgent)
               # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
             fi
           name: RunTest
+
+    - job: SetupVM_job2
+      dependsOn: SetupVM_job1
+      variables:
+        L3: $[ dependencies.SetupVM_job1.outputs['var1.L3.readyAgent'] ]
+        L3_5: $[ dependencies.SetupVM_job1.outputs['var1.L3_5.readyAgent'] ]
+        L4: $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
+      pool:
+        name: $(pool.name)
+        demands:
+          - agent-group -equals $(agent.group)
+          - Agent.OS -equals Linux
+          - Agent.OSArchitecture -equals X64
+          - run-idle -equals true
+          - nested-edge -equals L3_5
+      steps:
+        - bash: |
+            echo $(L3)
+            echo $(L3_5)
+            echo $(L4)
 
         #Method 2 -- Wait until a file is set
       #  - script:  |
