@@ -64,11 +64,13 @@ stages:
               echo "##vso[task.setvariable variable=lvl4IP;isoutput=true]$(hostname)"
             fi
 
-          echo ${{ variables.one }} # outputs initialValue
-          echo $(one)
+            echo ${{ variables.one }} # outputs initialValue
+            echo $(one)
           name: agent_name
+
         - bash: echo '##vso[task.setvariable variable=one]secondValue'
           displayName: Set new variable value
+
         #Method 1 -- sleep until it's time
         - script: |
             echo ${{ variables.one }} # outputs initialValue
