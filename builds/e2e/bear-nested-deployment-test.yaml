@@ -76,8 +76,8 @@ stages:
               echo $(var1.L3.readyAgent)
               echo $(var1.L3_5.readyAgent)
               echo $(var1.L4.readyAgent)
-              echo "var1.L3= $(dependencies.'SetupVM_job1 L3_5'.outputs['var1.L3.readyAgent'])"
-              echo "var1.L3= $(dependencies.SetupVM_job1 L3_5.outputs['var1.L3.readyAgent'])"
+              echo "var1.L3= $(dependencies.'SetupVM_job1 L3'.outputs['var1.L3.readyAgent'])"
+              echo "var1.L3= $(dependencies.SetupVM_job1 L3.outputs['var1.L3.readyAgent'])"
               # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
             fi
           name: RunTest
