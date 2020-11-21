@@ -17,9 +17,12 @@ stages:
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
       variables:
-        lvl4IP: tbd
-        lvl3_5IP: tbd
-        lvl3IP: tbd
+        - lvl4IP: one
+        value: initialValue 
+        - lvl3_5IP: one
+        value: initialValue 
+        - lvl3IP: one
+        value: initialValue 
       strategy:
         matrix:
           L4:
