@@ -62,24 +62,12 @@ stages:
               echo "##vso[task.setvariable variable=lvl4IP;isoutput=true]$(hostname)"
             fi
           name: agent_name
-
-        - task: Bash@3
-          name: setting_up
-          displayName: 'Setting up $(testrun.vmTier)'
-          inputs:
-            targetType: inline
-            script: |
-              # Use sleep to pretend it is a setup time
-              echo "$(Agent.Name) is sleeping for $(testrun.waitTimeMin)"
-              sleep $(testrun.waitTimeMin)m
-              echo "$(Agent.Name) is waking up"
-        
+                
         #Method 1 -- sleep until it's time
         - script: |
             echo $(lvl3IP)         
             echo $(lvl3_5IP) 
             echo $(lvl4IP)
-
           name: RunTest
 
         #Method 2 -- Wait until a file is set
