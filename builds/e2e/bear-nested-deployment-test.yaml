@@ -14,10 +14,6 @@ stages:
       displayName: SettingUp
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
-      dependsOn:
-        - SetupVM_job1 L3
-        - SetupVM_job1 L3_5
-        - SetupVM_job1 L4
       strategy:
         matrix:
           L4:
@@ -26,6 +22,10 @@ stages:
           L3_5:
             testrun.vmTier: L3_5
             testrun.waitTimeMin: 1
+            dependsOn:
+              - SetupVM_job1 L3
+              - SetupVM_job1 L3_5
+              - SetupVM_job1 L4
           L3:
             testrun.vmTier: L3
             testrun.waitTimeMin: 1
