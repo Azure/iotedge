@@ -13,7 +13,7 @@ mod container_resolve_parent_hostname;
 mod host_local_time;
 mod hostname;
 // mod identity_certificate_expiry;
-mod iotedged_version;
+mod aziot_edged_version;
 mod parent_hostname;
 mod pull_agent_from_upstream;
 mod storage_mounted_from_host;
@@ -35,7 +35,7 @@ pub(crate) use self::container_resolve_parent_hostname::ContainerResolveParentHo
 pub(crate) use self::host_local_time::HostLocalTime;
 pub(crate) use self::hostname::Hostname;
 // pub(crate) use self::identity_certificate_expiry::IdentityCertificateExpiry;
-pub(crate) use self::iotedged_version::IotedgedVersion;
+pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::parent_hostname::ParentHostname;
 pub(crate) use self::pull_agent_from_upstream::PullAgentFromUpstream;
 pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};

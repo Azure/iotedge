@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "aziot-edge",
+    "aziot-edged",
     "docker-rs",
     "cert-client",
     "edgelet-core",

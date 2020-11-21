@@ -122,13 +122,13 @@ hostname: "<ADD HOSTNAME HERE>"
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match
 # the path of the underlying socket in the systemd socket files
-# (iotedge.socket and iotedge.mgmt.socket).
+# (aziot-edged.workload.sock and aziot-edged.mgmt.sock).
 #
 ###############################################################################
 
 connect:
-  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
-  workload_uri: "unix:///var/lib/iotedge/workload.sock"
+  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///run/aziot/edged/aziot-edged.workload.sock"
 
 ###############################################################################
 # Listen settings
@@ -147,18 +147,18 @@ connect:
 # These values can be different from the connect URIs. For instance, when
 # using the fd:// scheme for systemd:
 #     listen address is fd://iotedge.workload,
-#     connect address is unix:///var/run/iotedge/workload.sock
+#     connect address is unix:///run/aziot/edged/aziot-edged.workload.sock
 #
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match
 # the path of the underlying socket in the systemd socket files
-# (iotedge.socket and iotedge.mgmt.socket).
+# (aziot-edged.workload.sock and aziot-edged.mgmt.sock).
 #
 ###############################################################################
 
 listen:
-  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
-  workload_uri: "unix:///var/lib/iotedge/workload.sock"
+  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///run/aziot/edged/aziot-edged.workload.sock"
 
 ###############################################################################
 # Home Directory
@@ -168,7 +168,7 @@ listen:
 #
 ###############################################################################
 
-homedir: "/var/lib/iotedge"
+homedir: "/var/lib/aziot/edged"
 
 ###############################################################################
 # Moby Container Runtime settings

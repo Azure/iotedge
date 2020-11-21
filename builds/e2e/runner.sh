@@ -23,7 +23,7 @@ mkdir -p /etc/systemd/system/docker.service.d/
 cp ~/proxy-env.override.conf /etc/systemd/system/docker.service.d/
 
 # Make proxy-env.override.conf available in $user's home directory so tests can
-# apply the same proxy settings to the iotedge service
+# apply the same proxy settings to the aziot-edge service
 home="$(eval echo ~$user)"
 cp ~/proxy-env.override.conf "$home/"
 chown -R "$user:$user" "$home/proxy-env.override.conf"

@@ -10,7 +10,7 @@ use sysinfo::{DiskExt, SystemExt};
 #[derive(Clone, Debug, serde_derive::Serialize)]
 pub(super) struct AdditionalInfo {
     pub(super) docker_version: Option<String>,
-    pub(super) iotedged_version: Option<String>,
+    pub(super) aziot_edged_version: Option<String>,
     now: chrono::DateTime<chrono::Utc>,
     os: OsInfo,
     system_info: SystemInfo,
@@ -20,7 +20,7 @@ impl AdditionalInfo {
     pub(super) fn new() -> Self {
         AdditionalInfo {
             docker_version: None,
-            iotedged_version: None,
+            aziot_edged_version: None,
             now: chrono::Utc::now(),
             os: OsInfo::new(),
             system_info: SystemInfo::new(),

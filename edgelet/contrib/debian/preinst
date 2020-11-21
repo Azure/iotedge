@@ -4,7 +4,7 @@ set -e
 add_groups()
 {
     if ! getent passwd iotedge >/dev/null; then
-        adduser --system iotedge --home /var/lib/iotedge --shell /bin/false
+        adduser --system iotedge --home /var/lib/aziot/edged --shell /bin/false
     fi
 
     if ! getent group iotedge >/dev/null; then

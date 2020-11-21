@@ -34,7 +34,7 @@ pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
     Certificate, CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, KeyBytes,
-    PrivateKey, IOTEDGED_CA_ALIAS,
+    PrivateKey, AZIOT_EDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
@@ -96,5 +96,5 @@ impl UrlExt for Url {
 
 pub const UNIX_SCHEME: &str = "unix";
 
-/// This is the name of the network created by the iotedged
+/// This is the name of the network created by the aziot-edged
 pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";

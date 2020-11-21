@@ -1,12 +1,11 @@
 [Unit]
 Description=Azure IoT Edge daemon
-After=network-online.target docker.service iotedge.socket iotedge.mgmt.socket
-Requires=iotedge.socket iotedge.mgmt.socket
+After=network-online.target docker.service
 Wants=network-online.target docker.service
-Documentation=man:iotedged(8)
+Documentation=man:aziot-edged(8)
 
 [Service]
-ExecStart=/usr/bin/iotedged -c /etc/iotedge/config.yaml
+ExecStart=/usr/libexec/aziot/aziot-edged -c /etc/aziot/edged/config.yaml
 KillMode=process
 TimeoutStartSec=600
 TimeoutStopSec=40
@@ -17,4 +16,3 @@ Group=iotedge
 
 [Install]
 WantedBy=multi-user.target
-Also=iotedge.socket iotedge.mgmt.socket

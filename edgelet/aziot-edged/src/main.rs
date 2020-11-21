@@ -4,8 +4,8 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 fn main() {
-    if let Err(e) = aziot_edge::unix::run() {
-        aziot_edge::logging::log_error(&e);
+    if let Err(e) = aziot_edged::unix::run() {
+        aziot_edged::logging::log_error(&e);
         std::process::exit(i32::from(e.kind()));
     }
 }

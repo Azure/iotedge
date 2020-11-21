@@ -1,26 +1,25 @@
 %define iotedge_user iotedge
 %define iotedge_group %{iotedge_user}
-%define iotedge_home %{_localstatedir}/lib/iotedge
-%define iotedge_logdir %{_localstatedir}/log/iotedge
-%define iotedge_confdir %{_sysconfdir}/iotedge
-%define iotedge_datadir %{_datadir}/iotedge
+%define iotedge_home %{_localstatedir}/lib/aziot/edged
+%define iotedge_logdir %{_localstatedir}/log/aziot/edged
+%define iotedge_confdir %{_sysconfdir}/aziot/edged
 
-Name:           iotedge
+Name:           aziot-edge
 Version:        @version@
 Release:        @release@%{?dist}
 
 License:        Proprietary
-Summary:        Azure IoT Edge Security Daemon
+Summary:        Azure IoT Edge Module Runtime
 URL:            https://github.com/azure/iotedge
 
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
 Requires:       aziot-identity-service >= @version@-@release@
-Source0:        iotedge-%{version}.tar.gz
+Source0:        aziot-edge-%{version}.tar.gz
 
 %description
-Azure IoT Edge Security Daemon
+Azure IoT Edge Module Runtime
 Azure IoT Edge is a fully managed service that delivers cloud intelligence
 locally by deploying and running artificial intelligence (AI), Azure services,
 and custom logic directly on cross-platform IoT devices. Run your IoT solution
@@ -83,14 +82,14 @@ fi
 exit 0
 
 %post
-sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/iotedge/config.yaml
+sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/aziot/edged/config.yaml
 echo "==============================================================================="
 echo ""
 echo "                              Azure IoT Edge"
 echo ""
 echo "  IMPORTANT: Please update the configuration file located at:"
 echo ""
-echo "    /etc/iotedge/config.yaml"
+echo "    /etc/aziot/edged/config.yaml"
 echo ""
 echo "  with your container runtime configuration."
 echo ""
@@ -100,25 +99,25 @@ echo "    'aziot init'"
 echo ""
 echo "  To restart all services for provisioning changes to take effect, use:"
 echo ""
-echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd iotedge'"
+echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd aziot-edged'"
 echo ""
 echo "  These commands may need to be run with sudo depending on your environment."
 echo ""
 echo "==============================================================================="
-%systemd_post iotedge.service
+%systemd_post aziot-edged.service
 
 %preun
-%systemd_preun iotedge.service
+%systemd_preun aziot-edged.service
 
 %postun
-%systemd_postun_with_restart iotedge.service
+%systemd_postun_with_restart aziot-edged.service
 
 %files
 %defattr(-, root, root, -)
 
 # bins
 %{_bindir}/iotedge
-%{_bindir}/iotedged
+%{_libexecdir}/aziot/aziot-edged
 
 # config
 %attr(400, %{iotedge_user}, %{iotedge_group}) %config(noreplace) %{iotedge_confdir}/config.yaml
@@ -126,14 +125,16 @@ echo "==========================================================================
 
 # man
 %{_mandir}/man1/iotedge.1.gz
-%{_mandir}/man8/iotedged.8.gz
+%{_mandir}/man8/aziot-edged.8.gz
 
 # systemd
-%{_unitdir}/%{name}.service
+%{_unitdir}/aziot-edged.mgmt.socket
+%{_unitdir}/aziot-edged.workload.socket
+%{_unitdir}/aziot-edged.service
 
 # sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
-%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/workload.sock
+%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.mgmt.sock
+%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.workload.sock
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}
