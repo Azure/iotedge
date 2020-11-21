@@ -84,9 +84,9 @@ stages:
 
     - job: SetupVM_job2
       dependsOn:
-        - SetupVM_job1 L3
-        - SetupVM_job1 L3_5
-        - SetupVM_job1 L4
+        - 'SetupVM_job1 L3'
+        - 'SetupVM_job1 L3_5'
+        - 'SetupVM_job1 L4'
       variables:
         L3: $[ dependencies.'SetupVM_job1 L3'.outputs['var1.L3.readyAgent'] ]
         L3_5: $[ dependencies.'SetupVM_job1 L3_5'.outputs['var1.L3_5.readyAgent'] ]
