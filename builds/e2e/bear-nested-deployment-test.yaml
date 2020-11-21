@@ -18,9 +18,9 @@ stages:
       timeoutInMinutes: 180
       variables:
       - name: lvl4IP
-      value: initialValue 
+        value: initialValue 
       - name: lvl3_5IP
-      value: initialValue 
+        value: initialValue 
       - name: lvl3IP
         value: initialValue 
       strategy:
