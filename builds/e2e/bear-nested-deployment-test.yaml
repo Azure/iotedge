@@ -54,11 +54,6 @@ stages:
               echo "##vso[task.setvariable variable=lvl3IP;isoutput=true]$(hostname)"
             fi
 
-#            if [[ "$(testrun.vmTier)" == "L3_5" ]]; then
-#              echo setting variable for l3.5
-#              echo "##vso[task.setvariable variable=lvl3_5IP;isoutput=true]$(hostname)"
-#            fi
-
             if [[ "$(testrun.vmTier)" == "L4" ]]; then
               echo "##vso[task.setvariable variable=lvl4IP;isoutput=true]$(hostname)"
             fi
