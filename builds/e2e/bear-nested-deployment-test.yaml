@@ -5,7 +5,7 @@ variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
   #Method 1
-  totalTimeMin: 6
+  totalTimeMin: 2.5
 
 stages:
 - stage: SetupVM
@@ -18,13 +18,13 @@ stages:
         matrix:
           L4:
             testrun.vmTier: L4
-            testrun.waitTimeMin: 4
+            testrun.waitTimeMin: 1
           L3_5:
             testrun.vmTier: L3_5
-            testrun.waitTimeMin: 2
+            testrun.waitTimeMin: 1.5
           L3:
             testrun.vmTier: L3
-            testrun.waitTimeMin: 1
+            testrun.waitTimeMin: 2
             # BEARWASHERE -- BRB rename
       #variables:
       #  testrun.vmTier: L3_5
