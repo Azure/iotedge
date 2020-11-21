@@ -73,7 +73,7 @@ stages:
         - script: |
 
           
-            echo $VM.lvl3_5IP 
+            echo $(VM.lvl3_5IP) 
             if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
               
               sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
