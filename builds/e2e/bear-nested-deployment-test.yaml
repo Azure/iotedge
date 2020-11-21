@@ -22,6 +22,7 @@ stages:
           L3_5:
             testrun.vmTier: L3_5
             testrun.waitTimeMin: 2
+            3_test: <inValid>
           L3:
             testrun.vmTier: L3
             testrun.waitTimeMin: 1
