@@ -14,6 +14,10 @@ stages:
       displayName: SettingUp
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
+      dependsOn:
+        - SetupVM_job1 L3
+        - SetupVM_job1 L3_5
+        - SetupVM_job1 L4
       strategy:
         matrix:
           L4:
@@ -73,11 +77,11 @@ stages:
               #echo $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
 
               # This works
-              echo $(var1.L3.readyAgent)
-              echo $(var1.L3_5.readyAgent)
-              echo $(var1.L4.readyAgent)
-              echo "var1.L3= $(dependencies.'SettingUp L3'.outputs['var1.L3.readyAgent'])"
-              echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3_5.readyAgent'])"
+              echo "var1.L3.readyAgent= $(var1.L3.readyAgent)"
+              echo "var1.L3_5.readyAgent= $(var1.L3_5.readyAgent)"
+              echo "var1.L4.readyAgent= $(var1.L4.readyAgent)"
+              #echo "var1.L3= $(dependencies.'SettingUp L3'.outputs['var1.L3.readyAgent'])"
+              #echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3_5.readyAgent'])"
               # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
             fi
           name: RunTest
