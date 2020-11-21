@@ -5,7 +5,7 @@ variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
   #Method 1
-  totalTimeMin: 2.5
+  totalTimeMin: 3
 
 stages:
 - stage: SetupVM
@@ -21,7 +21,7 @@ stages:
             testrun.waitTimeMin: 1
           L3_5:
             testrun.vmTier: L3_5
-            testrun.waitTimeMin: 1.5
+            testrun.waitTimeMin: 1
           L3:
             testrun.vmTier: L3
             testrun.waitTimeMin: 2
