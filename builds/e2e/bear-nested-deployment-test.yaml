@@ -1,13 +1,34 @@
+trigger: none
+pr: none
+
+variables:
+  images.artifact.name.linux: 'core-linux'
+  vsts.project: $(System.TeamProjectId)
+  #Method 1
+  totalTimeMin: 1
+
 stages:
 - stage: SetupVM
   jobs:
-    - job: SetupVM_job135
+    - job: SetupVM_job1
       displayName: SettingUp
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
-      variables:
-        testrun.vmTier: L3_5
-        testrun.waitTimeMin: 1
+      strategy:
+        matrix:
+          L4:
+            testrun.vmTier: L4
+            testrun.waitTimeMin: 1
+          L3_5:
+            testrun.vmTier: L3_5
+            testrun.waitTimeMin: 1
+          L3:
+            testrun.vmTier: L3
+            testrun.waitTimeMin: 1
+            # BEARWASHERE -- BRB rename
+      #variables:
+      #  testrun.vmTier: L3_5
+      #  testrun.waitTimeMin: 2
 
       pool:
         name: $(pool.name)
@@ -24,6 +45,8 @@ stages:
 
         - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
           name: var1
+        - script: echo $(var1.$(testrun.vmTier).readyAgent)
+          name: agent_name
 
         - task: Bash@3
           name: setting_up
@@ -38,66 +61,36 @@ stages:
 
         #Method 1 -- sleep until it's time
         - script: |
+            if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
+              sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
+            else
+              # Testing to get a variable from other test agent via pipeline variable
+
+              # (Not working) Trying to get the value of "var1.L3.readyAgent" in L3_5 test agent usying syntax: stageDependencies.STAGE.JOB.outputs['TASK.VARIABLE']
+              #echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
+
+              # (Not working) Trying to get the value of "var1.L4.readyAgent" in L3_5 test agent usying syntax: dependencies.JOB.outputs['TASK.VARIABLE']
+              #echo $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
+
               # This works
-              echo "var1.L3.readyAgent= $(var1.L3.readyAgent)"
-              echo "var1.L3_5.readyAgent= $(var1.L3_5.readyAgent)"
-              echo "var1.L4.readyAgent= $(var1.L4.readyAgent)"
-              echo "SetupVM_job13= $(dependencies.SetupVM_job13.outputs['var1.L3.readyAgent'])"
-              echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3.readyAgent'])"
-          name: RunTest
-
-    - job: SetupVM_job13
-      displayName: SettingUp
-      condition: ne(variables['agent.group'], '')
-      timeoutInMinutes: 180
-      variables:
-        testrun.vmTier: L3
-        testrun.waitTimeMin: 1
-
-      pool:
-        name: $(pool.name)
-        demands:
-          - agent-group -equals $(agent.group)
-          - Agent.OS -equals Linux
-          - Agent.OSArchitecture -equals X64
-          - run-idle -equals true
-          - nested-edge -equals $(testrun.vmTier)
-
-      steps:
-        - script: echo "JobName:$(Agent.JobName)"
-          displayName: jobName
-
-        - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
-          name: var1
-
-        - task: Bash@3
-          name: setting_up
-          displayName: 'Setting up $(testrun.vmTier)'
-          inputs:
-            targetType: inline
-            script: |
-              # Use sleep to pretend it is a setup time
-              echo "$(Agent.Name) is sleeping for $(testrun.waitTimeMin)"
-              sleep $(testrun.waitTimeMin)m
-              echo "$(Agent.Name) is waking up"
-
-        #Method 1 -- sleep until it's time
-        - script: |
-              # This works
-              echo "var1.L3.readyAgent= $(var1.L3.readyAgent)"
-              echo "var1.L3_5.readyAgent= $(var1.L3_5.readyAgent)"
-              echo "var1.L4.readyAgent= $(var1.L4.readyAgent)"
-              echo "SetupVM_job13= $(dependencies.SetupVM_job13.outputs['var1.L3.readyAgent'])"
-              echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3.readyAgent'])"
+              echo $(var1.L3.readyAgent)
+              echo $(var1.L3_5.readyAgent)
+              echo $(var1.L4.readyAgent)
+              echo "var1.L3= $(dependencies.'SettingUp L3'.outputs['var1.L3.readyAgent'])"
+              echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3_5.readyAgent'])"
+              # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
+            fi
           name: RunTest
 
     - job: SetupVM_job2
       dependsOn:
-        - SetupVM_job13
-        - SetupVM_job135
+        - SetupVM_job1 L3
+        - SetupVM_job1 L3_5
+        - SetupVM_job1 L4
       variables:
-        L3: $[ dependencies.SetupVM_job13.outputs['var1.L3.readyAgent'] ]
-        L3_5: $[ dependencies.SetupVM_job135.outputs['var1.L3_5.readyAgent'] ]
+        L3: $[ dependencies.'SetupVM_job1 L3'.outputs['var1.L3.readyAgent'] ]
+        L3_5: $[ dependencies.'SetupVM_job1 L3_5'.outputs['var1.L3_5.readyAgent'] ]
+        L4: $[ dependencies.'SettingUp L4'.outputs['var1.L4.readyAgent'] ]
       pool:
         name: $(pool.name)
         demands:
@@ -110,12 +103,50 @@ stages:
         - bash: |
             echo "L3: $(L3)"
             echo "L3_5: $(L3_5)"
+            echo "L4: $(L4)"
           name: expansion
         
         - bash: |
             echo "L3: $L3"
             echo "L3_5: $L3_5"
+            echo "L4: $L4"
           name: EnvVar
           env:
             L3: $(L3)
             L3_5: $(L3_5)
+            L4: $(L4)
+
+        #Method 2 -- Wait until a file is set
+      #  - script:  |
+      #      until [ -f /tmp/oldSock ]
+      #      do
+      #          sleep 1
+      #      done
+      #      echo "Dobby is free"
+      #      exit
+      #    name: WaitingToBeFreed2
+
+##########################################################################################
+
+- stage: RunTest
+  dependsOn: SetupVM
+  variables:
+    L4agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L4.readyAgent'] ]
+    L3_5agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L3_5.readyAgent'] ]
+    L3agent: $[ dependencies.SetupVM.outputs['SetupVM_job1.var1.L3.readyAgent'] ]
+  jobs:
+  - job: RunTest1
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - Agent.Name -equals $(L3_5agent)
+        - run-idle -equals true
+        - nested-edge -equals $(testrun.vmTier)
+    steps:
+    - script: |
+        echo $(L4agent) $(L3_5agent) $(L3agent)
+        sleep 1m
+      name: getAllAgentName
