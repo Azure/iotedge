@@ -78,22 +78,6 @@ stages:
             echo $(agent_name.lvl3_5IP) 
             echo $(agent_name.lvl4IP)
 
-            if [[ "$(testrun.vmTier)" != "L3_5" ]]; then
-              
-              sleep $(($(totalTimeMin)-$(testrun.waitTimeMin)))m
-            else
-              # Testing to get a variable from other test agent via pipeline variable
-
-              # (Not working) Trying to get the value of "var1.L3.readyAgent" in L3_5 test agent usying syntax: stageDependencies.STAGE.JOB.outputs['TASK.VARIABLE']
-              #echo $( stageDependencies.SetupVM.SetupVM_job1.outputs['var1.L3.readyAgent'] )
-
-              # (Not working) Trying to get the value of "var1.L4.readyAgent" in L3_5 test agent usying syntax: dependencies.JOB.outputs['TASK.VARIABLE']
-              #echo $[ dependencies.SetupVM_job1.outputs['var1.L4.readyAgent'] ]
-
-              # This works
-              echo $(var1.L3_5.readyAgent)
-              # BEARWASHERE -- Figure out how to get the IP Addr of the other test agents.
-            fi
           name: RunTest
 
         #Method 2 -- Wait until a file is set
