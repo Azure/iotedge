@@ -16,9 +16,10 @@ stages:
       displayName: Setting up across multiple VMs
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
-      VM.lvl4IP: tbd
-      VM.lvl3_5IP: tbd
-      VM.lvl3IP: tbd
+      variables:
+        VM.lvl4IP: tbd
+        VM.lvl3_5IP: tbd
+        VM.lvl3IP: tbd
       strategy:
         matrix:
           L4:
