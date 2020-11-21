@@ -49,16 +49,20 @@ stages:
 
       steps:
         - script: |
-            echo "##vso[task.setvariable variable=test;isoutput=true]$(hostname)"
             if [[ "$(testrun.vmTier)" == "L3" ]]; then
-              echo "##vso[task.setvariable variable=lvl3IP;isoutput=true]$(hostname)"
+              echo "##vso[task.setvariable variable=lvl3IP]$(hostname)"
+            fi
+
+            if [[ "$(testrun.vmTier)" == "L3_5" ]]; then
+              echo setting variable for l3.5
+              echo "##vso[task.setvariable variable=lvl3_5IP]$(hostname)"
             fi
 
             if [[ "$(testrun.vmTier)" == "L4" ]]; then
-              echo "##vso[task.setvariable variable=lvl4IP;isoutput=true]$(hostname)"
+              echo "##vso[task.setvariable variable=lvl4IP]$(hostname)"
             fi
 
-            echo "##vso[task.setvariable variable=lvl3_5IP]$(hostname)"
+            #echo "##vso[task.setvariable variable=lvl3_5IP]secondValue"
             echo '##vso[task.setvariable variable=one]secondValue'
             echo ${{ variables.one }} # outputs initialValue
             echo $(one)
