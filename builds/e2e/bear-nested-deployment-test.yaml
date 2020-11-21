@@ -44,6 +44,7 @@ stages:
 
       steps:
         - script: |
+            echo "##vso[task.setvariable variable=test;isoutput=true]$(hostname)"
             if [[ "$(testrun.vmTier)" == "L3" ]]; then
               echo "##vso[task.setvariable variable=VM.lvl3IP;isoutput=true]$(hostname)"
             fi
@@ -72,7 +73,7 @@ stages:
         
         #Method 1 -- sleep until it's time
         - script: |
-
+            echo $(agent_name.$(test)) 
             echo $(agent_name.$(VM.lvl3IP))         
             echo $(agent_name.$(VM.lvl3_5IP)) 
             echo $(agent_name.$(VM.lvl4IP))
