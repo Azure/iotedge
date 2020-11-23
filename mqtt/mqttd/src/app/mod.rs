@@ -1,3 +1,4 @@
+mod cleanup;
 mod shutdown;
 mod snapshot;
 
