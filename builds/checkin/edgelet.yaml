@@ -39,7 +39,7 @@ jobs:
         displayName: Install Rust
       - bash: edgelet/build/linux/check-submodules.sh
         displayName: Check submodules
-      - bash: scripts/linux/generic-rust/build.sh --project-root "edgelet" --packages "iotedged" --reduced-linker
+      - bash: scripts/linux/generic-rust/build.sh --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker
         displayName: Build
       - bash: edgelet/build/linux/test.sh
         displayName: Test

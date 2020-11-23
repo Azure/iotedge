@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "aziot-edged",
     "docker-rs",
     "cert-client",
     "edgelet-core",
@@ -11,7 +12,6 @@ members = [
     "edgelet-utils",
     "identity-client",
     "iotedge",
-    "iotedged",
     "management",
     "mini-sntp",
     "systemd",

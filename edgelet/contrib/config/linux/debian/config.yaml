@@ -122,8 +122,8 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 
 connect:
-  management_uri: "unix:///var/run/iotedge/mgmt.sock"
-  workload_uri: "unix:///var/run/iotedge/workload.sock"
+  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///run/aziot/edged/aziot-edged.workload.sock"
 
 ###############################################################################
 # Listen settings
@@ -142,13 +142,13 @@ connect:
 # These values can be different from the connect URIs. For instance, when
 # using the fd:// scheme for systemd:
 #     listen address is fd://iotedge.workload,
-#     connect address is unix:///var/run/iotedge/workload.sock
+#     connect address is unix:///run/aziot/edged/aziot-edged.workload.sock
 #
 ###############################################################################
 
 listen:
-  management_uri: "fd://iotedge.mgmt.socket"
-  workload_uri: "fd://iotedge.socket"
+  management_uri: "fd://aziot-edged.mgmt.sock"
+  workload_uri: "fd://aziot-edged.workload.socket"
 
 ###############################################################################
 # Home Directory
@@ -158,7 +158,7 @@ listen:
 #
 ###############################################################################
 
-homedir: "/var/lib/iotedge"
+homedir: "/var/lib/aziot/edged"
 
 ###############################################################################
 # Moby Container Runtime settings

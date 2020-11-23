@@ -1,3 +1,0 @@
-embedded-library usr/bin/iotedged: libyaml
-new-package-should-close-itp-bug
-

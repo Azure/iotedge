@@ -1,15 +1,15 @@
 [Unit]
 Description=Azure IoT Edge daemon management socket
-Documentation=man:iotedged(8)
-PartOf=iotedge.service
+Documentation=man:aziot-edged(8)
+PartOf=aziot-edged.service
 
 [Socket]
-ListenStream=/var/run/iotedge/mgmt.sock
+ListenStream=/run/aziot/edged/aziot-edged.mgmt.sock
 SocketMode=0660
 DirectoryMode=0755
 SocketUser=iotedge
 SocketGroup=iotedge
-Service=iotedge.service
+Service=aziot-edged.service
 
 [Install]
 WantedBy=sockets.target

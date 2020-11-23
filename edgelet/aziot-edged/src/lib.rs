@@ -50,7 +50,8 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use edgelet_core::crypto::{
-    CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, Signature, IOTEDGED_CA_ALIAS,
+    CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, Signature,
+    AZIOT_EDGED_CA_ALIAS,
 };
 use edgelet_core::{
     Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
@@ -97,13 +98,13 @@ const DEVICEID_KEY: &str = "IOTEDGE_DEVICEID";
 const MODULEID_KEY: &str = "IOTEDGE_MODULEID";
 
 /// This variable holds the URI to use for connecting to the workload endpoint
-/// in iotedged. This is used by the edge agent to connect to the workload API
+/// in aziot-edged. This is used by the edge agent to connect to the workload API
 /// for its own needs and is also used for volume mounting into module
 /// containers when the URI refers to a Unix domain socket.
 const WORKLOAD_URI_KEY: &str = "IOTEDGE_WORKLOADURI";
 
 /// This variable holds the URI to use for connecting to the management
-/// endpoint in iotedged. This is used by the edge agent for managing module
+/// endpoint in aziot-edged. This is used by the edge agent for managing module
 /// lifetimes and module identities.
 const MANAGEMENT_URI_KEY: &str = "IOTEDGE_MANAGEMENTURI";
 
@@ -115,8 +116,7 @@ const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
 /// This is the key for the edge runtime mode.
 const EDGE_RUNTIME_MODE_KEY: &str = "Mode";
 
-/// This is the edge runtime mode - it should be iotedged, when iotedged starts edge runtime in single node mode.
-#[cfg(feature = "runtime-docker")]
+/// This is the edge runtime mode - it should be iotedged, when aziot-edged starts edge runtime in single node mode.
 const EDGE_RUNTIME_MODE: &str = "iotedged";
 
 /// The HSM lib expects this variable to be set with home directory of the daemon.
@@ -160,21 +160,6 @@ const EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME: &str = "id_cert";
 /// This is the name of the identity X509 private key file
 const EDGE_EXTERNAL_PROVISIONING_ID_KEY_FILENAME: &str = "id_key";
 
-/// Size in bytes of the master identity key
-/// The length has been chosen to be compliant with the underlying
-/// default implementation of the HSM lib encryption algorithm. In the future
-/// should this need to change, both IDENTITY_MASTER_KEY_LEN_BYTES and
-/// IOTEDGED_CRYPTO_IV_LEN_BYTES lengths must be considered and modified appropriately.
-const IDENTITY_MASTER_KEY_LEN_BYTES: usize = 32;
-/// Size in bytes of the initialization vector
-/// The length has been chosen to be compliant with the underlying
-/// default implementation of the HSM lib encryption algorithm. In the future
-/// should this need to change, both IDENTITY_MASTER_KEY_LEN_BYTES and
-/// IOTEDGED_CRYPTO_IV_LEN_BYTES lengths must be considered and modified appropriately.
-const IOTEDGED_CRYPTO_IV_LEN_BYTES: usize = 16;
-/// Identity to be used for various crypto operations
-const IOTEDGED_CRYPTO_ID: &str = "$iotedge";
-
 /// This is the name of the cache subdirectory for settings state
 const EDGE_SETTINGS_SUBDIR: &str = "cache";
 
@@ -188,14 +173,12 @@ const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
 /// This is used for both DPS attestation and manual authentication modes.
 const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
-const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
-const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
-// 5 mins
-const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 5 * 60;
+const AZIOT_EDGED_COMMONNAME: &str = "iotedged workload ca";
+const AZIOT_EDGED_TLS_COMMONNAME: &str = "iotedged";
 // 2 hours
-const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
+const AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
 // 90 days
-const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 90 * 24 * 3600;
+const AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 90 * 24 * 3600;
 
 const STOP_TIME: Duration = Duration::from_secs(30);
 
@@ -281,8 +264,8 @@ where
 
             info!("Finished provisioning edge device.");
 
-            // Normally iotedged will stop all modules when it shuts down. But if it crashed,
-            // modules will continue to run. On Linux systems where iotedged is responsible for
+            // Normally aziot-edged will stop all modules when it shuts down. But if it crashed,
+            // modules will continue to run. On Linux systems where aziot-edged is responsible for
             // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
             // support systemd socket activation), modules will be left holding stale file
             // descriptors for the workload and management APIs and calls on these APIs will
@@ -306,8 +289,8 @@ where
                 hub,
                 settings.parent_hostname().map(String::from),
                 device_id,
-                IOTEDGE_ID_CERT_MAX_DURATION_SECS,
-                IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
+                AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
+                AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,
             );
 
             let (code, should_reprovision) = start_api::<_, _, M>(
@@ -380,7 +363,7 @@ where
 
     let edgelet_cert_props = CertificateProperties::new(
         0,
-        IOTEDGED_TLS_COMMONNAME.to_string(),
+        AZIOT_EDGED_TLS_COMMONNAME.to_string(),
         CertificateType::Server,
         "iotedge-tls".to_string(),
     )
@@ -709,7 +692,6 @@ mod tests {
         ErrorKind, ExternalProvisioningErrorReason, Fail, File, Future, GetIssuerAlias,
         InitializeErrorReason, Main, MakeModuleRuntime, RuntimeSettings, Sha256, Uri, Write,
         EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-        IDENTITY_MASTER_KEY_LEN_BYTES, IOTEDGED_CRYPTO_IV_LEN_BYTES,
     };
     use docker::models::ContainerCreateBody;
 

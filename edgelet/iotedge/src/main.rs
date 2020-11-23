@@ -71,8 +71,8 @@ fn run() -> Result<(), Error> {
             )
         } else {
             (
-                Cow::Borrowed("unix:///var/run/iotedge/mgmt.sock"),
-                Cow::Borrowed(Path::new("/etc/iotedge/config.yaml")),
+                Cow::Borrowed("unix:///run/aziot/edged/aziot-edged.mgmt.sock"),
+                Cow::Borrowed(Path::new("/etc/aziot/edged/config.yaml")),
                 Cow::Borrowed(Path::new("/etc/docker/daemon.json")),
             )
         };
@@ -140,21 +140,19 @@ fn run() -> Result<(), Error> {
                         .possible_values(&possible_check_id_values),
                 )
                 .arg(
-                    Arg::with_name("expected-iotedged-version")
-                        .long("expected-iotedged-version")
+                    Arg::with_name("expected-aziot-edged-version")
+                        .long("expected-aziot-edged-version")
                         .value_name("VERSION")
-                        .help("Sets the expected version of the iotedged binary. Defaults to the value contained in <http://aka.ms/latest-iotedge-stable>")
+                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <http://aka.ms/latest-iotedge-stable>")
                         .takes_value(true),
                 )
                 .arg(
-                    Arg::with_name("iotedged")
-                        .long("iotedged")
-                        .value_name("PATH_TO_IOTEDGED")
-                        .help("Sets the path of the iotedged binary.")
+                    Arg::with_name("aziot-edged")
+                        .long("aziot-edged")
+                        .value_name("PATH_TO_AZIOT_EDGED")
+                        .help("Sets the path of the aziot-edged binary.")
                         .takes_value(true)
-                        .default_value(
-                            if cfg!(windows) { r"C:\Program Files\iotedge\iotedged.exe" } else { "/usr/bin/iotedged" }
-                        ),
+                        .default_value("/usr/libexec/aziot/aziot-edged"),
                 )
                 .arg(
                     Arg::with_name("iothub-hostname")
@@ -331,9 +329,9 @@ fn run() -> Result<(), Error> {
                     .flatten()
                     .map(ToOwned::to_owned)
                     .collect(),
-                args.value_of("expected-iotedged-version")
+                args.value_of("expected-aziot-edged-version")
                     .map(ToOwned::to_owned),
-                args.value_of_os("iotedged")
+                args.value_of_os("aziot-edged")
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),

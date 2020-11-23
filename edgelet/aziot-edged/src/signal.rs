@@ -28,7 +28,7 @@ mod imp {
                 .into_future()
                 .map(move |_| {
                     info!(
-                        target: "iotedged::signal",
+                        target: "aziot-edged::signal",
                         "Received {}, starting shutdown",
                         DisplaySignal(sig),
                     );
@@ -68,7 +68,7 @@ mod imp {
             .into_future()
             .map(|_| {
                 info!(
-                    target: "iotedged::signal",
+                    target: "aziot-edged::signal",
                     "Received Ctrl+C, starting shutdown",
                 );
             })

@@ -699,7 +699,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
-        // Provisioning information is no longer available in iotedged. This information should
+        // Provisioning information is no longer available in aziot-edged. This information should
         // be emitted from Identity Service
         let provisioning = ProvisioningInfo {
             r#type: "ProvisioningType".into(),
@@ -1285,12 +1285,12 @@ mod tests {
             },
             "hostname": "zoo",
             "connect": {
-                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/run/iotedge/workload.sock"
+                "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.sock",
+                "workload_uri": "unix:///run/aziot/edged/aziot-edged.workload.sock"
             },
             "listen": {
-                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/run/iotedge/workload.sock"
+                "management_uri": "unix:///run/aziot/edged/aziot-edged.mgmt.sock",
+                "workload_uri": "unix:///run/aziot/edged/aziot-edged.workload.sock"
             },
             "homedir": tmp_dir.path(),
             "moby_runtime": {

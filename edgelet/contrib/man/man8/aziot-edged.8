@@ -1,19 +1,19 @@
 .\" (C) Copyright 2018 Microsoft. All rights reserved.
-.TH IOTEDGED 8 "Azure IoT Edge User Manuals" "June 2018"
+.TH AZIOT-EDGED 8 "Azure IoT Edge User Manuals" "June 2018"
 
 .SH NAME
-iotedged \- Azure IoT Edge Security Daemon
+aziot-edged \- Azure IoT Edge Module Runtime
 .SH SYNOPSIS
 .PP
-\fBiotedged\fP
+\fBaziot-edged\fP
 [\fB\-h\fP|\fB\-\-help\fP]
 [\fB\-v\fP|\fB\-\-version\fP]
 [\fB\-c\fP \fIFILE\fP|\fB\-\-config\-file\fP=\fIFILE\fP]
 .br
 .SH DESCRIPTION
-This manual page documents the \fBiotedged\fP.
+This manual page documents the \fBaziot-edged\fP.
 .PP
-The IoT Edge Security Daemon (iotedged) manages provisioning of the edge device,
+The IoT Edge Module Runtime (aziot-edged) manages provisioning of the edge device,
 creation of sas tokens and certificates for connecting to IoT Hub, and access control to any hardware security module on the device.
 .PP
 In order to achieve this, it must be the component that executes the modules. Module lifecycle is performed via this daemon by the Edge Agent. The daemon serves two APIs, the management API and workload API.
