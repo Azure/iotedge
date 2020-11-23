@@ -252,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Disabling to unblock CI while we investigate")]
+        [Fact]
         public async Task EdgeAgentConnectionBasicTest()
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -340,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Disabling to unblock CI while we investigate")]
+        [Fact]
         public async Task EdgeAgentConnectionConfigurationTest()
         {
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
@@ -416,7 +416,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Disabling to unblock CI while we investigate")]
+        [Fact]
         public async Task EdgeAgentConnectionBaseAddOnConfigurationTest()
         {
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
@@ -1043,7 +1043,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Investigating. Temporarily disabled to unblock CI pipeline.")]
+        [Fact]
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
