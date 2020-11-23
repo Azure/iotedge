@@ -146,9 +146,9 @@ where
             .collect::<Vec<_>>();
 
         for activity in disconnecting {
-            if let Err(reason) = self.process_drop_connection(activity.client_id()) {
+            if let Err(reason) = self.drop_session(activity.client_id()) {
                 warn!(
-                    "error dropping connection for client {}. Reason {}",
+                    "error dropping session for client {}; reason: {}",
                     activity.client_id(),
                     reason
                 );
@@ -573,11 +573,11 @@ where
                 }
                 Ok(Authorization::Forbidden(reason)) => {
                     warn!("not authorized: {}; reason: {}", &activity, reason);
-                    self.drop_session(&client_id)?;
+                    self.process_drop_connection(&client_id)?;
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
-                    self.drop_session(&client_id)?;
+                    self.process_drop_connection(&client_id)?;
                 }
             }
         } else {
