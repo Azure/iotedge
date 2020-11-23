@@ -53,7 +53,7 @@ Provide a detailed set of steps to reproduce the bug.
 * Container OS [e.g. Linux containers, Windows containers]: 
 
 ### Runtime Versions
-* iotedged [run `iotedge version`]: 
+* aziot-edged [run `iotedge version`]: 
 * Edge Agent [image tag (e.g. 1.0.0)]: 
 * Edge Hub [image tag (e.g. 1.0.0)]: 
 * Docker/Moby [run `docker version`]: 
@@ -68,7 +68,7 @@ Don't forget to remove any connection string information!
 -->
 
 <details>
-<summary>iotedged logs</summary>
+<summary>aziot-edged logs</summary>
 
 ```
 

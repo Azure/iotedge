@@ -1,5 +1,5 @@
-iotedge (@version@-@revision@) unstable; urgency=low
+aziot-edge (@version@-@revision@) unstable; urgency=low
 
   * Initial release
 
- -- "Azure IoT Edge Devs" <>  Fri, 18 May 2018 15:48:59 +0000
+ -- "Azure IoT Edge Devs" <>  Fri, 1 Dec 2020 15:48:59 +0000

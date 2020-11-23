@@ -6,9 +6,9 @@ function clean_up() {
     stop_iotedge_service || true
 
     echo 'Remove IoT Edge and config file'
-    rm -rf /var/lib/iotedge/
-    rm -rf /var/run/iotedge/
-    rm -rf /etc/iotedge/config.yaml
+    rm -rf /run/aziot/edged/
+    rm -rf /run/aziot/edged/
+    rm -rf /etc/aziot/edged/config.yaml
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
@@ -24,9 +24,9 @@ function clean_up() {
 
 function create_iotedge_service_config {
     print_highlighted_message 'Create IoT Edge service config'
-    mkdir /etc/systemd/system/iotedge.service.d/ || true
+    mkdir /etc/systemd/system/aziot-edged.service.d/ || true
     bash -c "echo '[Service]
-Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
+Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/aziot-edged.service.d/override.conf"
 }
 
 function get_connectivity_deployment_artifact_file() {
@@ -136,7 +136,7 @@ function print_highlighted_message() {
 
 function stop_iotedge_service() {
     echo 'Stop IoT Edge services'
-    systemctl stop iotedge.socket iotedge.mgmt.socket || true
+    systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
     systemctl kill iotedge || true
     systemctl stop iotedge || true
 }

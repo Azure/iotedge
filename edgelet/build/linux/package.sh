@@ -248,15 +248,6 @@ case "$PACKAGE_OS" in
         ;;
 
     *)
-        case "$PACKAGE_OS" in
-            debian8)
-                MAKE_TARGET='deb8'
-                ;;
-            *)
-                MAKE_TARGET='deb'
-                ;;
-        esac
-
         case "$PACKAGE_ARCH" in
             amd64)
                 ;;
@@ -272,7 +263,7 @@ case "$PACKAGE_OS" in
                 ;;
         esac
 
-        MAKE_COMMAND="make $MAKE_TARGET 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
+        MAKE_COMMAND="make deb 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
         ;;
 esac
 
@@ -295,7 +286,7 @@ docker run --rm \
         curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
         . ~/.cargo/env &&
 
-        # iotedged
+        # aziot-edged
         cd /project/edgelet &&
         $RUST_TARGET_COMMAND
         $MAKE_COMMAND

@@ -9,14 +9,14 @@ function clean_up() {
     print_highlighted_message 'Clean up'
 
     echo 'Stop IoT Edge services'
-    systemctl stop iotedge.socket iotedge.mgmt.socket || true
-    systemctl kill iotedge || true
-    systemctl stop iotedge || true
+    systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
+    systemctl kill aziot-edged || true
+    systemctl stop aziot-edged || true
 
     echo 'Remove IoT Edge and config file'
-    rm -rf /var/lib/iotedge/
-    rm -rf /var/run/iotedge/
-    rm -rf /etc/iotedge/config.yaml
+    rm -rf /run/aziot/edged/
+    rm -rf /run/aziot/edged/
+    rm -rf /etc/aziot/edged/config.yaml
 
     echo 'Remove docker containers'
     docker rm -f $(docker ps -aq) || true
@@ -32,9 +32,9 @@ function clean_up() {
 
 function create_iotedge_service_config {
     print_highlighted_message 'Create IoT Edge service config'
-    mkdir /etc/systemd/system/iotedge.service.d/ || true
+    mkdir /etc/systemd/system/aziot-edged.service.d/ || true
     bash -c "echo '[Service]
-Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
+Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/aziot-edged.service.d/override.conf"
 }
 
 function set_certificate_generation_tools_dir() {
@@ -247,7 +247,7 @@ function print_logs() {
 
     print_highlighted_message 'Print logs'
     print_highlighted_message 'LOGS FROM IOTEDGED'
-    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
+    journalctl -u aziot-edged -u docker --since "$test_start_time" --no-pager || true
 
     print_highlighted_message 'EDGE AGENT LOGS'
     docker logs edgeAgent || true
@@ -851,7 +851,7 @@ function run_quickstartcerts_test() {
         $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
-    declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
+    declare -a certs=( /run/aziot/edged/hsm/certs/edge_owner_ca*.pem )
     echo "cert: ${certs[0]}"
     # Workaround for multiple certificates in the x509store - remove this after quick start certs have Authority Key Identifier
     rm -rf ~/.dotnet/corefx/cryptography/x509stores/root/

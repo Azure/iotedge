@@ -1,6 +1,6 @@
 # IPv6 support in IoT Edge (Linux only)
 
-IoT Edge can be configured to work on Linux devices that are on IPv6 networks. On Linux devices, a user-defined network named 'azure-iot-edge' is created by `iotedged`. All modules, including Edge Agent and Edge Hub, are deployed to this network.
+IoT Edge can be configured to work on Linux devices that are on IPv6 networks. On Linux devices, a user-defined network named 'azure-iot-edge' is created by `aziot-edged`. All modules, including Edge Agent and Edge Hub, are deployed to this network.
 
 To learn more about IoT Edge networking, please refer to the [networking](./networking.md) documentation.
 
@@ -157,7 +157,7 @@ Sample config changes:
 * Restart the docker service for the changes made above to take effect
 
   ```bash
-  systemctl restart iotedge
+  systemctl restart aziot-edged
   ```
 
 IoT Edge will subsequently start up and create the `azure-iot-edge` network with IPv6 configuration as specified in the config.yaml file. Modules deployed to this network will have IPv6 addresses from within the specified subnet and IP range.
