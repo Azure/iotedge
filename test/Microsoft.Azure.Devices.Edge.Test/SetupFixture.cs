@@ -96,6 +96,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         await device.MaybeDeleteIdentityAsync(token);
                     }
+
+                    // Remove packages installed by this run.
+                    await this.daemon.UninstallAsync(token);
                 },
                 "Completed end-to-end test teardown"),
             () =>
