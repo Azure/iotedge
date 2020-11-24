@@ -1,42 +1,28 @@
+#TODO:
+# 1. Turn {SetupVM_job135, SetupVM_job13} into a template and use it in a yaml as a known job name
+# 2. In a task, before the test agent run template from (1), have the pipeline appends "_$(Build.BuildId)" to "nested-edge" userCapabilities.
+#    This will prevent the test agent from being picked up by other run instance of the pipeline
+#    This can be done using https://docs.microsoft.com/en-us/rest/api/azure/devops/distributedtask/agents/update?view=azure-devops-rest-6.0 [userCapabilities]
+# 3. Run test on whatever machine you want
+# 4. Once the test is done, reverse the capability from (2) by removing the "_$(Build.BuildId)" from "nested-edge" userCapabilities.
+# Note: For LongHaul, we can even have a pipeline selection to execute the Rest API to undo the capability suffix which enables the damn thing.
 trigger: none
 pr: none
 
 variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
-  #Method 1
-  totalTimeMin: 6
 
 stages:
 - stage: SetupVM
   jobs:
-################################################################################
-    - job: SetupVM_job1
-################################################################################
-      displayName: Setting up across multiple VMs
+    - job: SetupVM_job135
+      displayName: SettingUp
       condition: ne(variables['agent.group'], '')
       timeoutInMinutes: 180
       variables:
-      - name: lvl4IP
-        value: initialValue 
-      - name: lvl3_5IP
-        value: initialValue 
-      - name: lvl3IP
-        value: initialValue 
-      - name: one
-        value: initialValue        
-      strategy:
-        matrix:
-          L4:
-            testrun.vmTier: L4
-            testrun.waitTimeSec: 10
-          L3_5:
-            testrun.vmTier: L3_5
-            testrun.waitTimeSec: 10
-          L3:
-            testrun.vmTier: L3
-            testrun.waitTimeSec: 10
-            # BEARWASHERE -- BRB rename
+        testrun.vmTier: L3_5
+        testrun.waitTimeMin: 1
 
       pool:
         name: $(pool.name)
@@ -48,44 +34,9 @@ stages:
           - nested-edge -equals $(testrun.vmTier)
 
       steps:
-        - script: |
-            if [[ "$(testrun.vmTier)" == "L3" ]]; then
-              echo "##vso[task.setvariable variable=lvl3IP]$(hostname)"
-            fi
+        - script: echo "JobName:$(Agent.JobName)"
+          displayName: jobName
 
-            if [[ "$(testrun.vmTier)" == "L3_5" ]]; then
-              echo setting variable for l3.5
-              echo "##vso[task.setvariable variable=lvl3_5IP]$(hostname)"
-            fi
-
-            if [[ "$(testrun.vmTier)" == "L4" ]]; then
-              echo "##vso[task.setvariable variable=lvl4IP]$(hostname)"
-            fi
-
-            #echo "##vso[task.setvariable variable=lvl3_5IP]secondValue"
-            echo '##vso[task.setvariable variable=one]secondValue'
-            echo ${{ variables.one }} # outputs initialValue
-            echo $(one)
-          name: agent_name
-
-        #Method 1 -- sleep until it's time
-        - script: |
-            echo ${{ variables.one }} # outputs initialValue
-            echo $(one) # outputs secondValue
-
-            echo $(lvl3IP)         
-            echo $(lvl3_5IP) 
-            echo $(lvl4IP)
-          name: RunTest
-
-        #Method 2 -- Wait until a file is set
-      #  - script:  |
-      #      until [ -f /tmp/oldSock ]
-      #      do
-      #          sleep 1
-      #      done
-      #      echo "Dobby is free"
-      #      exit
-      #    name: WaitingToBeFreed2
-
-##########################################################################################
+        - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
+          name: var1
+        - template: templates/nested_connectivity-deploy.yaml
