@@ -17,8 +17,7 @@ use mqtt_broker::sidecar::{Sidecar, SidecarShutdownHandle, SidecarShutdownHandle
 
 use crate::{
     bridge::{Bridge, BridgeError},
-    config_update::BridgeControllerUpdate,
-    config_update::BridgeUpdate,
+    config_update::{BridgeControllerUpdate, BridgeUpdate},
     settings::BridgeSettings,
 };
 
