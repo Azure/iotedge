@@ -1,3 +1,6 @@
+variables:
+  edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+
 steps:
   - template: set-run-flag.yaml
   - task: CopyFiles@2
