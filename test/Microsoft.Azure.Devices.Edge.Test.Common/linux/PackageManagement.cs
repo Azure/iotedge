@@ -25,7 +25,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             this.packageExtension = extension;
             this.IotedgeServices = extension switch
             {
-                SupportedPackageExtension.Deb => "iotedge.mgmt.socket iotedge.socket iotedge.service",
+                SupportedPackageExtension.Deb => String.Join(" ",
+                    "aziot-keyd.service", "aziot-keyd.socket",
+                    "aziot-certd.service", "aziot-certd.socket",
+                    "aziot-identityd.service", "aziot-identityd.socket",
+                    "aziot-edged.mgmt.socket", "aziot-edged.workload.socket", "aziot-edged.service"
+                ),
                 SupportedPackageExtension.Rpm => "iotedge.service",
                 _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
             };
@@ -35,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             string[] packages = Directory
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
-                .Where(p => !p.Contains("debug"))
+                .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
 
             return this.packageExtension switch
