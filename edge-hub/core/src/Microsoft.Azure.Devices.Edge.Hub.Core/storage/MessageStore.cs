@@ -38,14 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         readonly IStoreProvider storeProvider;
         TimeSpan timeToLive;
 
-        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool checkEntireQueueOnCleanup = false)
+        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool checkEntireQueueOnCleanup = false, int messageCleanupIntervalSecs = -1)
         {
             this.storeProvider = Preconditions.CheckNotNull(storeProvider);
             this.messageEntityStore = this.storeProvider.GetEntityStore<string, MessageWrapper>(Constants.MessageStorePartitionKey);
             this.endpointSequentialStores = new ConcurrentDictionary<string, ISequentialStore<MessageRef>>();
             this.timeToLive = timeToLive;
             this.checkpointStore = Preconditions.CheckNotNull(checkpointStore, nameof(checkpointStore));
-            this.messagesCleaner = new CleanupProcessor(this, checkEntireQueueOnCleanup);
+            this.messagesCleaner = new CleanupProcessor(this, checkEntireQueueOnCleanup, messageCleanupIntervalSecs);
             Events.MessageStoreCreated();
         }
 
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         }
 
         /// <summary>
-        /// Class that contains the message and is stored in the message store
+        /// Class that contains the message and is stored in the message store.
         /// </summary>
         internal class MessageWrapper
         {
@@ -198,15 +198,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             readonly Timer ensureCleanupTaskTimer;
             readonly CancellationTokenSource cancellationTokenSource;
             readonly bool checkEntireQueueOnCleanup;
+            readonly int messageCleanupIntervalSecs;
             readonly IMetricsCounter expiredCounter;
             Task cleanupTask;
 
-            public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup)
+            public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup, int messageCleanupIntervalSecs)
             {
                 this.messageStore = messageStore;
                 this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
                 this.cancellationTokenSource = new CancellationTokenSource();
                 this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
+                this.messageCleanupIntervalSecs = messageCleanupIntervalSecs;
                 this.expiredCounter = Metrics.Instance.CreateCounter(
                    "messages_dropped",
                    "Messages cleaned up because of TTL expired",
@@ -368,7 +370,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
-                            await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
                         }
                         catch (Exception ex)
                         {
@@ -380,9 +381,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
             }
 
-            TimeSpan GetCleanupTaskSleepTime() => this.messageStore.timeToLive.TotalSeconds / 2 < CleanupTaskFrequency.TotalSeconds
-                ? TimeSpan.FromSeconds(this.messageStore.timeToLive.TotalSeconds / 2)
-                : CleanupTaskFrequency;
+            TimeSpan GetCleanupTaskSleepTime()
+            {
+                if (this.messageCleanupIntervalSecs > -1)
+                {
+                    // Must wait MinCleanupSleepTime if given interval is lower.
+                    return TimeSpan.FromSeconds(Math.Max(this.messageCleanupIntervalSecs, MinCleanupSleepTime.TotalSeconds));
+                }
+                else
+                {
+                    // If MessageCleanupIntervalSecs isn't given, we will wait TTL/2 or 30 min - whichever is lesser
+                    // But we have a hard cap floor of MinCleanupSleepTime as the minimum interval
+                    double seconds = this.messageStore.timeToLive.TotalSeconds / 2 < CleanupTaskFrequency.TotalSeconds
+                        ? this.messageStore.timeToLive.TotalSeconds / 2
+                        : CleanupTaskFrequency.TotalSeconds;
+                    return TimeSpan.FromSeconds(Math.Max(seconds, MinCleanupSleepTime.TotalSeconds));
+                }
+            }
         }
 
         static class Events

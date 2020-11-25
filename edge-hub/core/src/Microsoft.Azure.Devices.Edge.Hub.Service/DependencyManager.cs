@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
-            int messageCleanupInterval = this.configuration.GetValue("MessageCleanupIntervalSecs", -1);
+            int messageCleanupIntervalSecs = this.configuration.GetValue("MessageCleanupIntervalSecs", -1);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
 
             bool isLegacyUpstream = !experimentalFeatures.Enabled
@@ -245,6 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     encryptTwinStore,
                     configUpdateFrequency,
                     checkEntireQueueOnCleanup,
+                    messageCleanupIntervalSecs,
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
                     experimentalFeatures.EnableNestedEdge,
