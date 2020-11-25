@@ -364,7 +364,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             }
 
                             // update Metrics for message counts
-                            Checkpointer.Metrics.QueueLength.Set(messageCount, new[] { endpointId, priority.ToString() });
+                            Checkpointer.Metrics.QueueLength.Set(messageCount, new[] { endpointId, priority.ToString(), bool.TrueString });
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
