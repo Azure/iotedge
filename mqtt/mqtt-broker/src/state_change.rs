@@ -401,7 +401,7 @@ mod tests {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut state = SessionState::new(client_info.clone(), default_config(), Utc::now());
+        let mut state = SessionState::new(client_info.clone(), default_config());
 
         for topic_filter in subscriptions {
             state.update_subscription(
@@ -425,7 +425,7 @@ mod tests {
                 state,
             )
         } else {
-            Session::new_offline(state)
+            Session::new_offline(state, Utc::now())
         }
     }
 

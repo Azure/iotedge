@@ -166,7 +166,7 @@ where
             .sessions
             .values()
             .filter_map(|session| match session {
-                Session::Offline(session) if session.last_active() < &expiration => {
+                Session::Offline(session) if session.last_active() < expiration => {
                     Some(session.client_id())
                 }
                 _ => None,
@@ -738,8 +738,7 @@ where
                 let (new_session, events, session_present) =
                     if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                         debug!("moving offline session to online for {}", client_id);
-                        if let Ok((mut state, events)) = offline.into_online() {
-                            state.set_last_active(Utc::now());
+                        if let Ok((state, events)) = offline.into_online() {
                             let new_session = Session::new_persistent(connreq, state);
                             (new_session, events, true)
                         } else {
@@ -749,11 +748,7 @@ where
                         }
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let state = SessionState::new(
-                            client_info,
-                            self.config.session().clone(),
-                            Utc::now(),
-                        );
+                        let state = SessionState::new(client_info, self.config.session().clone());
                         let new_session = Session::new_transient(connreq, state);
                         (new_session, vec![], false)
                     };
@@ -772,8 +767,7 @@ where
             }
             None => {
                 // No session present - create a new one.
-                let state =
-                    SessionState::new(client_info, self.config.session().clone(), Utc::now());
+                let state = SessionState::new(client_info, self.config.session().clone());
 
                 let new_session = match connreq.connect().client_id {
                     proto::ClientId::IdWithExistingSession(_) => {
@@ -847,14 +841,13 @@ where
                     client_id
                 );
                 state.set_client_info(client_info);
-                state.set_last_active(Utc::now());
                 let new_session = Session::new_persistent(connreq, state);
                 (new_session, true)
             } else {
                 info!("cleaning session for {}", client_id);
                 let new_session = Session::new_transient(
                     connreq,
-                    SessionState::new(client_info, self.config.session().clone(), Utc::now()),
+                    SessionState::new(client_info, self.config.session().clone()),
                 );
                 (new_session, false)
             };
@@ -894,10 +887,9 @@ where
                 info!("moving persistent session to offline for {}", client_id);
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
 
-                let (mut state, will, handle) = connected.into_parts();
-                state.set_last_active(Utc::now());
+                let (state, will, handle) = connected.into_parts();
                 let client_info = state.client_info().clone();
-                let new_session = Session::new_offline(state);
+                let new_session = Session::new_offline(state, Utc::now());
                 self.sessions.insert(client_id.clone(), new_session);
                 Some(Session::new_disconnecting(client_info, will, handle))
             }
@@ -1088,7 +1080,12 @@ where
                 let sessions = sessions
                     .into_iter()
                     .map(|snapshot| SessionState::from_snapshot(snapshot, config.session().clone()))
-                    .map(|state| (state.client_id().clone(), Session::new_offline(state)))
+                    .map(|(state, last_active)| {
+                        (
+                            state.client_id().clone(),
+                            Session::new_offline(state, last_active),
+                        )
+                    })
                     .collect::<HashMap<ClientId, Session>>();
                 (retained, sessions)
             }

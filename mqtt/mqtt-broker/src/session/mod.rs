@@ -4,6 +4,7 @@ pub(crate) mod identifiers;
 mod offline;
 mod state;
 
+use chrono::{DateTime, Utc};
 pub use connected::ConnectedSession;
 use disconnecting::DisconnectingSession;
 use offline::OfflineSession;
@@ -38,8 +39,8 @@ impl Session {
         Self::Persistent(connected)
     }
 
-    pub fn new_offline(state: SessionState) -> Self {
-        let offline = OfflineSession::new(state);
+    pub fn new_offline(state: SessionState, last_active: DateTime<Utc>) -> Self {
+        let offline = OfflineSession::new(state, last_active);
         Self::Offline(offline)
     }
 
@@ -263,7 +264,7 @@ mod tests {
         let auth_id: AuthId = "auth-id1".into();
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
         let client_info = ClientInfo::new(client_id, socket, auth_id);
-        let state = SessionState::new(client_info, default_config(), Utc::now());
+        let state = SessionState::new(client_info, default_config());
         let mut session = Session::new_transient(req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -315,7 +316,7 @@ mod tests {
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
         let req1 = ConnReq::new(client_id, peer_addr(), connect1, Auth::Unknown, handle1);
-        let state = SessionState::new(client_info, default_config(), Utc::now());
+        let state = SessionState::new(client_info, default_config());
         let mut session = Session::new_transient(req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/#/#".to_string(),
@@ -337,7 +338,7 @@ mod tests {
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
         let req1 = ConnReq::new(client_id, peer_addr(), connect1, Auth::Unknown, handle1);
-        let state = SessionState::new(client_info, default_config(), Utc::now());
+        let state = SessionState::new(client_info, default_config());
         let mut session = Session::new_transient(req1, state);
 
         let subscribe_to = proto::SubscribeTo {
@@ -391,7 +392,7 @@ mod tests {
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
         let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let mut session =
-            Session::new_offline(SessionState::new(client_info, default_config(), Utc::now()));
+            Session::new_offline(SessionState::new(client_info, default_config()), Utc::now());
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -408,7 +409,7 @@ mod tests {
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
         let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
         let mut session =
-            Session::new_offline(SessionState::new(client_info, default_config(), Utc::now()));
+            Session::new_offline(SessionState::new(client_info, default_config()), Utc::now());
 
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),
