@@ -23,7 +23,7 @@ stages:
       variables:
         testrun.vmTier: L3_5
         testrun.waitTimeMin: 1
-
+        edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'  
       pool:
         name: $(pool.name)
         demands:
@@ -32,8 +32,6 @@ stages:
           - Agent.OSArchitecture -equals X64
           - run-idle -equals true
           - nested-edge -equals $(testrun.vmTier)
-      variables:
-        edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'         
       steps:
         - script: echo "JobName:$(Agent.JobName)"
           displayName: jobName
