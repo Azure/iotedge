@@ -64,14 +64,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
         {
-            string configYamlPath =
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
+            // These tests do not run on Windows; use empty file paths.
+            ConfigFilePaths paths = new ConfigFilePaths
+            {
+                keyd = "",
+                certd = "",
+                identityd = "",
+                edged = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml"
+            };
 
             Profiler profiler = Profiler.Start();
 
             await this.InternalStopAsync(token);
 
-            var yaml = new DaemonConfiguration(configYamlPath, this.bootstrapAgentImage, this.bootstrapRegistry);
+            var yaml = new DaemonConfiguration(paths, this.bootstrapAgentImage, this.bootstrapRegistry);
             (string message, object[] properties) = await config(yaml);
 
             if (restart)

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
     using System.ComponentModel;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
@@ -107,7 +108,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-                    var yaml = new DaemonConfiguration("/etc/aziot/edged/config.yaml", this.bootstrapAgentImage, this.bootstrapRegistry);
+
+                    ConfigFilePaths paths = new ConfigFilePaths
+                    {
+                        keyd = "/etc/aziot/keyd/config.toml",
+                        certd = "/etc/aziot/certd/config.toml",
+                        identityd = "/etc/aziot/identityd/config.toml",
+                        edged = "/etc/aziot/edged/config.yaml"
+                    };
+
+                    CreateConfigFile(paths.keyd, paths.keyd + ".default", "aziotks");
+                    CreateConfigFile(paths.certd, paths.certd + ".default", "aziotcs");
+                    CreateConfigFile(paths.identityd, paths.identityd + ".default", "aziotid");
+                    CreateConfigFile(paths.edged, paths.edged + ".template", "iotedge");
+
+                    var yaml = new DaemonConfiguration(paths, this.bootstrapAgentImage, this.bootstrapRegistry);
                     (string msg, object[] props) = await config(yaml);
 
                     message += $" {msg}";
@@ -197,6 +212,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                 await Task.Delay(250, token).ConfigureAwait(false);
             }
+        }
+
+        static void CreateConfigFile(string configFile, string defaultFile, string owner)
+        {
+            // If the config file does not exist, create it from the default file.
+            // If the default file does not exist, create an empty config file.
+            if(!File.Exists(configFile))
+            {
+                if(File.Exists(defaultFile))
+                {
+                    File.Copy(defaultFile, configFile);
+                }
+                else
+                {
+                    File.Create(configFile).Dispose();
+                }
+            }
+
+            // Change owner of config file.
+            System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {configFile}");
         }
     }
 }
