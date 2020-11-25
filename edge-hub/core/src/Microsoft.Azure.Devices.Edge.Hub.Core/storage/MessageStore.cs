@@ -213,6 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                    "messages_dropped",
                    "Messages cleaned up because of TTL expired",
                    new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
+                Events.CreatedCleanupProcessor(checkEntireQueueOnCleanup, messageCleanupIntervalSecs);
             }
 
             public void Dispose()
@@ -366,7 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             }
 
                             // update Metrics for message counts
-                            Checkpointer.Metrics.QueueLength.Set(messageCount, new[] { endpointId, priority.ToString() });
+                            Checkpointer.Metrics.QueueLength.Set(messageCount, new[] { endpointId, priority.ToString(), bool.TrueString });
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
@@ -420,7 +421,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 ObtainedNextBatch,
                 CleanupCheckpointState,
                 MessageAdded,
-                ErrorGettingMessagesBatch
+                ErrorGettingMessagesBatch,
+                CreatedCleanupProcessor
             }
 
             public static void MessageStoreCreated()
@@ -505,6 +507,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 if (offset % 1000 == 0)
                 {
                     Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset}."));
+                }
+            }
+
+            internal static void CreatedCleanupProcessor(bool checkEntireQueueOnCleanup, int cleanupInterval)
+            {
+                if (cleanupInterval == -1)
+                {
+                    Log.LogDebug((int)EventIds.CreatedCleanupProcessor, $"Created cleanup processor with checkEntireQueueLength set to {checkEntireQueueOnCleanup} ");
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.CreatedCleanupProcessor, $"Created cleanup processor with checkEntireQueueOnCleanup set to {checkEntireQueueOnCleanup} and messageCleanupIntervalSecs set to {cleanupInterval}");
                 }
             }
         }
