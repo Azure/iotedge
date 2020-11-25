@@ -39,3 +39,18 @@ stages:
         - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
           name: var1
         - template: templates/nested_connectivity-deploy.yaml
+        - task: Bash@3
+          condition: and(succeeded(), eq(variables['run.flag'], 1))
+          displayName: 'Run Connectivity Deployment'
+          inputs:
+            targetType: inline
+            script: |
+              declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+              . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+              chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/install.sh
+              
+              sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/install.sh \
+                -connectionString=$(ConnectivityNestedEdge-ConnectionString)
+                -s=$(azure.subscription)
+                -hubrg=$(ressourcegroup)
+
