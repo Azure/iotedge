@@ -32,7 +32,8 @@ stages:
           - Agent.OSArchitecture -equals X64
           - run-idle -equals true
           - nested-edge -equals $(testrun.vmTier)
-
+      variables:
+        edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'         
       steps:
         - script: echo "JobName:$(Agent.JobName)"
           displayName: jobName
