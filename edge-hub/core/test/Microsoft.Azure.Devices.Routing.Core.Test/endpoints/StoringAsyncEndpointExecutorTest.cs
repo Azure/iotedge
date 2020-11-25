@@ -393,7 +393,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 Assert.True(count < 8);
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 retryAttempts++;
-                Assert.True(retryAttempts < 6, "Too many retry attempts. Failed because test is taking too long.");
+                Assert.True(retryAttempts < 8, "Too many retry attempts. Failed because test is taking too long.");
                 count = endpoint.Processed.Count();
             }
 
