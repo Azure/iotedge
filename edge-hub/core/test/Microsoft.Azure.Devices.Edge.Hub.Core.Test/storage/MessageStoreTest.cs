@@ -263,7 +263,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                         int retryAttempts = 0;
                         while (await result.inMemoryDbStore.Contains(messageIdsExpired[i].ToBytes()))
                         {
-                            Assert.True(retryAttempts < 9, "Test is taking too long and is considered a failure.");
+                            Assert.True(retryAttempts < 10, "Test is taking too long and is considered a failure.");
                             retryAttempts++;
                             await Task.Delay(TimeSpan.FromSeconds(10));
                         }
