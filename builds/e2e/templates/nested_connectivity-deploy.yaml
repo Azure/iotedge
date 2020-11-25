@@ -13,45 +13,45 @@ steps:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
       CleanTargetFolder: true
-      - task: AzureKeyVault@1
-        condition: eq(variables['run.flag'], 1)
-        displayName: 'EdgeBuild Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: edgebuildkv
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
-      - task: AzureKeyVault@1
-        condition: eq(variables['run.flag'], 1)
-        displayName: 'Nested Edge Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: edgebuildkv
-          SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString'
-      - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download Edgelet Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(edgelet.artifact.name)
-      - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download Images Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(images.artifact.name.linux)
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-            $(images.artifact.name.linux)/scripts/connectivityTest.sh
-            $(images.artifact.name.linux)/scripts/testHelper.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
+  - task: AzureKeyVault@1
+    condition: eq(variables['run.flag'], 1)
+    displayName: 'EdgeBuild Azure Key Vault'
+    inputs:
+      azureSubscription: $(azure.subscription)
+      KeyVaultName: edgebuildkv
+      SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
+  - task: AzureKeyVault@1
+    condition: eq(variables['run.flag'], 1)
+    displayName: 'Nested Edge Azure Key Vault'
+    inputs:
+      azureSubscription: $(azure.subscription)
+      KeyVaultName: edgebuildkv
+      SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString'
+  - task: DownloadBuildArtifacts@0
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Download Edgelet Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(edgelet.package.build)
+      branchName: $(edgelet.package.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(edgelet.artifact.name)
+  - task: DownloadBuildArtifacts@0
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Download Images Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(images.build)
+      branchName: $(images.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(images.artifact.name.linux)
+      itemPattern: |
+        $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
+        $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
+        $(images.artifact.name.linux)/scripts/connectivityTest.sh
+        $(images.artifact.name.linux)/scripts/testHelper.sh
+        $(images.artifact.name.linux)/artifactInfo.txt
