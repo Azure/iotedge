@@ -2,10 +2,12 @@
 ///! of the broker (like config, storage, cleanup, etc...).
 ///!
 ///! For tests related to MQTT protocol please use `compliance.rs`.
-use std::{any::Any, convert::Infallible};
+use std::{any::Any, convert::Infallible, time::Duration};
 
+use chrono::Utc;
 use mqtt3::{proto::ClientId, ConnectionError, Event};
 use mqtt_broker::{
+    auth::AllowAll,
     auth::{Activity, Authorization, Authorizer},
     BrokerBuilder, Message, SystemEvent,
 };
@@ -13,6 +15,61 @@ use mqtt_broker_tests_util::{
     client::TestClientBuilder,
     server::{start_server, DummyAuthenticator},
 };
+
+/// Validates the case when offline session is dropped if expired.
+#[tokio::test]
+async fn drop_session_on_expiry() {
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+
+    let broker_handle = broker.handle();
+    let mut server_handle = start_server(broker, DummyAuthenticator::with_id("device_1"));
+
+    // connect a client with persistent session.
+    let mut offline_client = TestClientBuilder::new(server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("offline_client".into()))
+        .build();
+
+    // connect another client with persistent session that is always connected.
+    let mut online_client = TestClientBuilder::new(server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("online_client".into()))
+        .build();
+
+    // assert clients connected
+    assert_eq!(
+        offline_client.connections().recv().await,
+        Some(Event::NewConnection {
+            reset_session: true
+        })
+    );
+    assert_eq!(
+        online_client.connections().recv().await,
+        Some(Event::NewConnection {
+            reset_session: true
+        })
+    );
+
+    // disconnect client and bring its session to offline state.
+    offline_client.shutdown().await;
+
+    // let broker process disconnect.
+    tokio::time::delay_for(Duration::from_secs(1)).await;
+
+    // send cleanup signal that should remove the offline session.
+    let expiration = Utc::now();
+    dbg!(&expiration);
+    broker_handle
+        .send(Message::System(SystemEvent::SessionCleanup(expiration)))
+        .expect("unable to send cleanup signal");
+
+    // assert that offline session is removed.
+    // and only "online" client's session remains.
+    let (_, mut sessions) = server_handle.shutdown().await.into_parts();
+    dbg!(&sessions);
+    assert_eq!(1, sessions.len());
+
+    let (client_info, _, _, _) = sessions.remove(0).into_parts();
+    assert_eq!("online_client", client_info.client_id().as_str());
+}
 
 /// Validates the case when authorization rules change leads to some
 /// existing sessions (connected or offline) being unauthorized and dropped.
@@ -31,13 +88,19 @@ async fn drop_sessions_on_reauthorize() {
         .build();
 
     // connect another client with persistent session that is always authorized.
-    let root = TestClientBuilder::new(server_handle.address())
+    let mut root_client = TestClientBuilder::new(server_handle.address())
         .with_client_id(ClientId::IdWithExistingSession("root".into()))
         .build();
 
-    // assert client connected
+    // assert clients connected
     assert_eq!(
         client.connections().recv().await,
+        Some(Event::NewConnection {
+            reset_session: true
+        })
+    );
+    assert_eq!(
+        root_client.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: true
         })
@@ -65,7 +128,7 @@ async fn drop_sessions_on_reauthorize() {
 
     // dispose a client.
     client.shutdown().await;
-    root.shutdown().await;
+    root_client.shutdown().await;
 }
 
 struct BooleanAuthorizer(bool);
