@@ -255,6 +255,7 @@ mod tests {
             settings.broker().session(),
             &SessionConfig::new(
                 Duration::from_secs(60 * DAYS),
+                Duration::from_secs(DAYS), // 1d
                 Some(HumanSize::new_kilobytes(256).expect("256kb")),
                 17,
                 1001,
@@ -281,6 +282,7 @@ mod tests {
                     RetainedMessagesConfig::new(1000, Duration::from_secs(60 * DAYS)),
                     SessionConfig::new(
                         Duration::from_secs(60 * DAYS),
+                        Duration::from_secs(DAYS), // 1d
                         Some(HumanSize::new_kilobytes(256).expect("256kb")),
                         16,
                         1000,

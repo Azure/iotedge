@@ -36,9 +36,9 @@ use std::{
     fmt::{Debug, Display, Formatter, Result as FmtResult},
     net::SocketAddr,
     sync::Arc,
-    time::Instant,
 };
 
+use chrono::{DateTime, Utc};
 use proto::Publication;
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
@@ -389,7 +389,7 @@ pub enum SystemEvent {
 
     /// An event for a broker to go through offline sessions
     /// and clean up ones that past provided expiration time.
-    SessionCleanup(Instant),
+    SessionCleanup(DateTime<Utc>),
 }
 
 impl Debug for SystemEvent {

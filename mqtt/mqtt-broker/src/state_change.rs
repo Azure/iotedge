@@ -95,6 +95,8 @@ mod tests {
         str::FromStr,
     };
 
+    use chrono::Utc;
+
     use mqtt3::proto;
 
     use crate::{
@@ -399,7 +401,7 @@ mod tests {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut state = SessionState::new(client_info.clone(), default_config());
+        let mut state = SessionState::new(client_info.clone(), default_config(), Utc::now());
 
         for topic_filter in subscriptions {
             state.update_subscription(

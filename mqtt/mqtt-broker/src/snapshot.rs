@@ -1,5 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
+use chrono::{DateTime, Utc};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{info, warn};
 
@@ -30,6 +31,7 @@ pub struct SessionSnapshot {
     client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
     waiting_to_be_sent: VecDeque<Publication>,
+    last_active: DateTime<Utc>,
 }
 
 impl SessionSnapshot {
@@ -37,11 +39,13 @@ impl SessionSnapshot {
         client_info: ClientInfo,
         subscriptions: HashMap<String, Subscription>,
         waiting_to_be_sent: VecDeque<Publication>,
+        last_active: DateTime<Utc>,
     ) -> Self {
         Self {
             client_info,
             subscriptions,
             waiting_to_be_sent,
+            last_active,
         }
     }
 
@@ -51,11 +55,13 @@ impl SessionSnapshot {
         ClientInfo,
         HashMap<String, Subscription>,
         VecDeque<proto::Publication>,
+        DateTime<Utc>,
     ) {
         (
             self.client_info,
             self.subscriptions,
             self.waiting_to_be_sent,
+            self.last_active,
         )
     }
 }

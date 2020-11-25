@@ -1,5 +1,6 @@
 use std::{collections::HashMap, convert::TryInto, panic};
 
+use chrono::{DateTime, Utc};
 use futures_util::StreamExt;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, info_span, warn};
@@ -97,6 +98,10 @@ where
                                 debug!("successfully send publication");
                             }
                         }
+                        SystemEvent::SessionCleanup(expiration) => {
+                            self.cleanup_sessions(expiration);
+                            debug!("session cleanup completed");
+                        }
                     }
                 }
             }
@@ -151,6 +156,29 @@ where
                     "error dropping session for client {}; reason: {}",
                     activity.client_id(),
                     reason
+                );
+            }
+        }
+    }
+
+    fn cleanup_sessions(&mut self, expiration: DateTime<Utc>) {
+        let sessions = self
+            .sessions
+            .values()
+            .filter_map(|session| match session {
+                Session::Offline(session) if session.last_active() < &expiration => {
+                    Some(session.client_id())
+                }
+                _ => None,
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+
+        for client_id in sessions {
+            if let Err(reason) = self.drop_session(&client_id) {
+                warn!(
+                    "error dropping session for client {}; reason: {}",
+                    client_id, reason
                 );
             }
         }
@@ -710,7 +738,8 @@ where
                 let (new_session, events, session_present) =
                     if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                         debug!("moving offline session to online for {}", client_id);
-                        if let Ok((state, events)) = offline.into_online() {
+                        if let Ok((mut state, events)) = offline.into_online() {
+                            state.set_last_active(Utc::now());
                             let new_session = Session::new_persistent(connreq, state);
                             (new_session, events, true)
                         } else {
@@ -720,7 +749,11 @@ where
                         }
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let state = SessionState::new(client_info, self.config.session().clone());
+                        let state = SessionState::new(
+                            client_info,
+                            self.config.session().clone(),
+                            Utc::now(),
+                        );
                         let new_session = Session::new_transient(connreq, state);
                         (new_session, vec![], false)
                     };
@@ -739,16 +772,18 @@ where
             }
             None => {
                 // No session present - create a new one.
-                let new_session = if let proto::ClientId::IdWithExistingSession(_) =
-                    connreq.connect().client_id
-                {
-                    info!("creating new persistent session for {}", client_id);
-                    let state = SessionState::new(client_info, self.config.session().clone());
-                    Session::new_persistent(connreq, state)
-                } else {
-                    info!("creating new transient session for {}", client_id);
-                    let state = SessionState::new(client_info, self.config.session().clone());
-                    Session::new_transient(connreq, state)
+                let state =
+                    SessionState::new(client_info, self.config.session().clone(), Utc::now());
+
+                let new_session = match connreq.connect().client_id {
+                    proto::ClientId::IdWithExistingSession(_) => {
+                        info!("creating new persistent session for {}", client_id);
+                        Session::new_persistent(connreq, state)
+                    }
+                    proto::ClientId::ServerGenerated | proto::ClientId::IdWithCleanSession(_) => {
+                        info!("creating new transient session for {}", client_id);
+                        Session::new_transient(connreq, state)
+                    }
                 };
 
                 let subscription_change =
@@ -804,21 +839,22 @@ where
         let (mut state, _will, handle) = current_connected.into_parts();
         let old_session = Session::new_disconnecting(state.client_info().clone(), None, handle);
         let client_id = connreq.client_id().clone();
-        let new_client_info = ClientInfo::new(client_id.clone(), connreq.peer_addr(), auth_id);
+        let client_info = ClientInfo::new(client_id.clone(), connreq.peer_addr(), auth_id);
         let (new_session, session_present) =
             if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                 debug!(
                     "moving persistent session to this connection for {}",
                     client_id
                 );
-                state.set_client_info(new_client_info);
+                state.set_client_info(client_info);
+                state.set_last_active(Utc::now());
                 let new_session = Session::new_persistent(connreq, state);
                 (new_session, true)
             } else {
                 info!("cleaning session for {}", client_id);
                 let new_session = Session::new_transient(
                     connreq,
-                    SessionState::new(new_client_info, self.config.session().clone()),
+                    SessionState::new(client_info, self.config.session().clone(), Utc::now()),
                 );
                 (new_session, false)
             };
@@ -858,7 +894,8 @@ where
                 info!("moving persistent session to offline for {}", client_id);
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
 
-                let (state, will, handle) = connected.into_parts();
+                let (mut state, will, handle) = connected.into_parts();
+                state.set_last_active(Utc::now());
                 let client_info = state.client_info().clone();
                 let new_session = Session::new_offline(state);
                 self.sessions.insert(client_id.clone(), new_session);

@@ -2,6 +2,7 @@ mod map;
 mod queue;
 mod set;
 
+use chrono::{DateTime, Utc};
 use map::SmallIndexMap;
 use queue::BoundedQueue;
 use set::SmallIndexSet;
@@ -35,10 +36,11 @@ pub struct SessionState {
     waiting_to_be_acked_qos0: SmallIndexMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_completed: SmallIndexSet<proto::PacketIdentifier>,
     config: SessionConfig,
+    last_active: DateTime<Utc>,
 }
 
 impl SessionState {
-    pub fn new(client_info: ClientInfo, config: SessionConfig) -> Self {
+    pub fn new(client_info: ClientInfo, config: SessionConfig, last_active: DateTime<Utc>) -> Self {
         Self {
             client_info,
             subscriptions: HashMap::new(),
@@ -55,11 +57,12 @@ impl SessionState {
             waiting_to_be_released: SmallIndexMap::new(),
             waiting_to_be_completed: SmallIndexSet::new(),
             config,
+            last_active,
         }
     }
 
     pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
-        let (client_info, subscriptions, queued_publications) = snapshot.into_parts();
+        let (client_info, subscriptions, queued_publications, last_active) = snapshot.into_parts();
 
         let mut waiting_to_be_sent = BoundedQueue::new(
             config.max_queued_messages(),
@@ -79,6 +82,7 @@ impl SessionState {
             waiting_to_be_acked_qos0: SmallIndexMap::new(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
             config,
+            last_active,
         }
     }
 
@@ -96,6 +100,14 @@ impl SessionState {
 
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
         &self.subscriptions
+    }
+
+    pub fn last_active(&self) -> &DateTime<Utc> {
+        &self.last_active
+    }
+
+    pub fn set_last_active(&mut self, last_active: DateTime<Utc>) {
+        self.last_active = last_active;
     }
 
     pub(super) fn waiting_to_be_acked(&self) -> &SmallIndexMap<proto::PacketIdentifier, Publish> {
@@ -350,6 +362,7 @@ impl From<SessionState> for SessionSnapshot {
             state.client_info,
             state.subscriptions,
             state.waiting_to_be_sent.into_inner(),
+            state.last_active,
         )
     }
 }
@@ -359,6 +372,7 @@ mod tests {
     use std::{net::IpAddr, net::Ipv4Addr, net::SocketAddr, time::Duration};
 
     use bytes::Bytes;
+    use chrono::Utc;
     use matches::assert_matches;
 
     use mqtt3::proto;
@@ -380,6 +394,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -387,7 +402,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 
@@ -411,6 +426,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -418,7 +434,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 
@@ -443,6 +459,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -450,7 +467,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 
@@ -488,6 +505,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             0,
@@ -495,7 +513,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 
@@ -532,6 +550,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -539,7 +558,7 @@ mod tests {
             QueueFullAction::DropOld,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 
@@ -577,6 +596,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             0,
@@ -584,7 +604,7 @@ mod tests {
             QueueFullAction::DropOld,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 
@@ -622,6 +642,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -629,7 +650,7 @@ mod tests {
             QueueFullAction::DropOld,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 
@@ -667,6 +688,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -674,7 +696,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 
@@ -699,6 +721,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -706,7 +729,7 @@ mod tests {
             QueueFullAction::DropNew,
         );
 
-        let mut session = SessionState::new(client_info, config);
+        let mut session = SessionState::new(client_info, config, Utc::now());
 
         subscribe_to(topic, &mut session);
 

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use tracing::debug;
 
 use mqtt3::proto;
@@ -33,6 +34,10 @@ impl OfflineSession {
 
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
         self.state.subscriptions()
+    }
+
+    pub fn last_active(&self) -> &DateTime<Utc> {
+        self.state.last_active()
     }
 
     pub fn publish_to(
