@@ -20,18 +20,25 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public PackageManagement(string os, string version, SupportedPackageExtension extension)
         {
+            string commonPackages = String.Join(" ",
+                "aziot-keyd.service", "aziot-keyd.socket",
+                "aziot-certd.service", "aziot-certd.socket",
+                "aziot-identityd.service", "aziot-identityd.socket"
+            );
+
             this.os = os;
             this.version = version;
             this.packageExtension = extension;
             this.IotedgeServices = extension switch
             {
                 SupportedPackageExtension.Deb => String.Join(" ",
-                    "aziot-keyd.service", "aziot-keyd.socket",
-                    "aziot-certd.service", "aziot-certd.socket",
-                    "aziot-identityd.service", "aziot-identityd.socket",
+                    commonPackages,
                     "aziot-edged.mgmt.socket", "aziot-edged.workload.socket", "aziot-edged.service"
                 ),
-                SupportedPackageExtension.Rpm => "iotedge.service",
+                SupportedPackageExtension.Rpm => String.Join(" ",
+                    commonPackages,
+                    "aziot-edged.service"
+                ),
                 _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
             };
         }
@@ -55,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     "set -e",
                     $"rpm --nodeps -i {string.Join(' ', packages)}",
-                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                    "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
                     "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
                     "sudo systemctl daemon-reload"
