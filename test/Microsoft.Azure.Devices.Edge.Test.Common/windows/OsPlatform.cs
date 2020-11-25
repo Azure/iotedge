@@ -93,5 +93,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
             return string.Join(";", commands);
         }
+
+        public void SetFileOwner(string filePath, string owner)
+        {
+            // Tests on this branch do not run on Windows.
+            throw new NotImplementedException("Function not implemented on Windows.");
+        }
     }
 }

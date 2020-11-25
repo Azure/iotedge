@@ -61,5 +61,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         static string BuildCertCommand(string command, string scriptPath) =>
             $"-c \"FORCE_NO_PROD_WARNING=true '{Path.Combine(scriptPath, "certGen.sh")}' {command}\"";
+
+        public void SetFileOwner(string filePath, string owner)
+        {
+            System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {filePath}");
+        }
     }
 }

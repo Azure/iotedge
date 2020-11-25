@@ -36,5 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token);
 
         void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs);
+
+        void SetFileOwner(string filePath, string owner);
     }
 }
