@@ -33,6 +33,10 @@ impl OfflineSession {
         self.state.clone().into_snapshot(self.last_active)
     }
 
+    pub fn into_snapshot(self) -> SessionSnapshot {
+        self.state.into_snapshot(Utc::now())
+    }
+
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
         self.state.subscriptions()
     }

@@ -38,6 +38,10 @@ impl ConnectedSession {
         self.state.clone().into_snapshot(Utc::now())
     }
 
+    pub fn into_snapshot(self) -> SessionSnapshot {
+        self.state.into_snapshot(Utc::now())
+    }
+
     pub fn state(&self) -> &SessionState {
         &self.state
     }

@@ -2,13 +2,13 @@ mod map;
 mod queue;
 mod set;
 
-use chrono::{DateTime, Utc};
 use map::SmallIndexMap;
 use queue::BoundedQueue;
 use set::SmallIndexSet;
 
 use std::{cmp, collections::HashMap};
 
+use chrono::{DateTime, Utc};
 use tracing::{debug, info};
 
 use mqtt3::proto;

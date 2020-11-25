@@ -108,7 +108,7 @@ where
         }
 
         info!("broker is shutdown.");
-        Ok(self.snapshot())
+        Ok(self.into_snapshot())
     }
 
     fn prepare_activities(session: &Session) -> Vec<Activity> {
@@ -197,6 +197,20 @@ where
             .collect();
 
         BrokerSnapshot::new(retained, sessions)
+    }
+
+    fn into_snapshot(self) -> BrokerSnapshot {
+        let sessions = self
+            .sessions
+            .into_iter()
+            .filter_map(|(_, session)| match session {
+                Session::Persistent(c) => Some(c.into_snapshot()),
+                Session::Offline(o) => Some(o.into_snapshot()),
+                _ => None,
+            })
+            .collect();
+
+        BrokerSnapshot::new(self.retained, sessions)
     }
 
     #[cfg(any(test, feature = "proptest"))]
