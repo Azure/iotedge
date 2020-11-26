@@ -57,7 +57,7 @@ The following is a cumulative JSON representation of the data using sample data:
         "platform": "Linux",
         "os": {
             "name": "Ubuntu",
-            "version: "16.04"
+            "version": "16.04"
         }
     }
 }
