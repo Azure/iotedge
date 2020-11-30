@@ -146,9 +146,9 @@ where
             .collect::<Vec<_>>();
 
         for activity in disconnecting {
-            if let Err(reason) = self.process_drop_connection(activity.client_id()) {
+            if let Err(reason) = self.drop_session(activity.client_id()) {
                 warn!(
-                    "error dropping connection for client {}. Reason {}",
+                    "error dropping session for client {}; reason: {}",
                     activity.client_id(),
                     reason
                 );
@@ -414,10 +414,6 @@ where
     }
 
     fn process_drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
-        self.drop_connection(client_id)
-    }
-
-    fn drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
         if let Some(session) = self.close_session(client_id)? {
             session.send(ClientEvent::DropConnection)?;
@@ -577,11 +573,11 @@ where
                 }
                 Ok(Authorization::Forbidden(reason)) => {
                     warn!("not authorized: {}; reason: {}", &activity, reason);
-                    self.drop_connection(&client_id)?;
+                    self.process_drop_connection(&client_id)?;
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
-                    self.drop_connection(&client_id)?;
+                    self.process_drop_connection(&client_id)?;
                 }
             }
         } else {
@@ -836,6 +832,7 @@ where
         OpenSession::DuplicateSession(old_session, ack)
     }
 
+    /// Transition session to a closed state. Persist the session if needed.
     fn close_session(&mut self, client_id: &ClientId) -> Result<Option<Session>, Error> {
         let new_session = match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
@@ -862,13 +859,10 @@ where
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
 
                 let (state, will, handle) = connected.into_parts();
-                let new_session = Session::new_offline(state.clone());
+                let client_info = state.client_info().clone();
+                let new_session = Session::new_offline(state);
                 self.sessions.insert(client_id.clone(), new_session);
-                Some(Session::new_disconnecting(
-                    state.client_info().clone(),
-                    will,
-                    handle,
-                ))
+                Some(Session::new_disconnecting(client_info, will, handle))
             }
             Some(Session::Offline(offline)) => {
                 debug!("closing already offline session for {}", client_id);
@@ -880,6 +874,23 @@ where
         };
 
         Ok(new_session)
+    }
+
+    /// Hard drop the session, even if it is persistent. Usually due to authorization violations.
+    fn drop_session(&mut self, client_id: &ClientId) -> Result<(), Error> {
+        if let Some(session) = self.sessions.remove(client_id) {
+            info!("dropping session for {}", client_id);
+            self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
+            self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
+            self.publish_all(StateChange::new_subscription_change(client_id, None).try_into()?)?;
+
+            // Ungraceful drop session - send the will
+            if let Some(will) = session.into_will() {
+                self.publish_all(will)?;
+            }
+        };
+
+        Ok(())
     }
 
     fn publish_all(&mut self, mut publication: proto::Publication) -> Result<(), Error> {
