@@ -39,51 +39,13 @@ stages:
         - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
           name: var1
         - template: templates/nested_connectivity-deploy.yaml
-          parameters:
-            release.label: 'ct$(agent.group)'
-            test.buildNumber: '$(Build.BuildNumber)'
-            test.buildId: '$(Build.BuildId)'
-            build.source.branch: '$(Build.SourceBranchName)'
-            edgelet.source.branch: '$(edgelet.package.branchName)'
-            images.source.branch: '$(images.branchName)'
-            edgelet.artifact.name: '$(edgelet.artifact.name)'
-            images.artifact.name: '$(images.artifact.name.linux)'
-            container.registry: '$(container.registry)'
-            container.registry.username: '$(edgebuilds-azurecr-io-username)'
-            container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-            iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
-            eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
-            deploymentFileName: '$(deploymentFileName)'
-            upstream.protocol: '$(upstream.protocol)'
-            loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-            edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
-            edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
-            testDuration: '$(testrun.duration)'
-            testStartDelay: '$(testStartDelay)'
-            networkController.frequencies: '$(testrun.network.frequencies)'
-            networkController.runProfile: '$(testrun.network.runProfile)'
-            networkController.description: '$(testrun.network.description)'
-            logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
-            logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
-            testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
-            testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
-            testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
-            metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-            metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-            metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-            metricsCollector.hostPlatform: 'linux_amd64_moby'
-            edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
-            customEdgeAgent.image: '$(customEdgeAgent.image)'
-            customEdgeHub.image: '$(customEdgeHub.image)'
-            test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-
         - task: Bash@3
           condition: and(succeeded(), eq(variables['run.flag'], 1))
           displayName: 'Run Connectivity Deployment'
           inputs:
             targetType: inline
             script: |
-              declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+              declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
               . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
               chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/install.sh
               
