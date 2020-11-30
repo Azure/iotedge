@@ -2,10 +2,10 @@ use core::{convert::TryInto, num::TryFromIntError};
 use std::{
     io::{Error, ErrorKind},
     pin::Pin,
+    result::Result,
     str,
 };
 
-use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::future::{self, BoxFuture};
@@ -30,7 +30,7 @@ pub trait ClientIo: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
 impl<I> ClientIo for I where I: AsyncRead + AsyncWrite + Send + Sync + 'static {}
 
-type BridgeIoSourceFuture =
+type ClientIoSourceFuture =
     BoxFuture<'static, Result<(Pin<Box<dyn ClientIo>>, Option<String>), Error>>;
 
 #[derive(Clone)]
@@ -77,7 +77,7 @@ impl IoSource for ClientIoSource {
 }
 
 impl ClientIoSource {
-    fn get_tcp_source(connection_settings: TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
+    fn get_tcp_source(connection_settings: TcpConnection<SasTokenSource>) -> ClientIoSourceFuture {
         let address = connection_settings.address;
         let token_source = connection_settings.token_source;
 
@@ -109,7 +109,7 @@ impl ClientIoSource {
         })
     }
 
-    fn get_tls_source(connection_settings: TcpConnection<SasTokenSource>) -> BridgeIoSourceFuture {
+    fn get_tls_source(connection_settings: TcpConnection<SasTokenSource>) -> ClientIoSourceFuture {
         let address = connection_settings.address.clone();
         let token_source = connection_settings.token_source.as_ref().cloned();
         let trust_bundle_source = connection_settings.trust_bundle_source;
