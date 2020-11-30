@@ -5,6 +5,8 @@ use std::{path::Path, time::Duration, vec::Vec};
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
 
+use mqtt_util::client_io::{CredentialProviderSettings, Credentials};
+
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
 
@@ -81,7 +83,8 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             name: "$upstream".into(),
             address: format!(
                 "{}:{}",
-                nested_bridge.gateway_hostname, DEFAULT_UPSTREAM_PORT
+                nested_bridge.gateway_hostname(),
+                DEFAULT_UPSTREAM_PORT
             ),
             subscriptions: upstream.subscriptions,
             credentials: Credentials::Provider(nested_bridge),
@@ -153,92 +156,6 @@ impl ConnectionSettings {
 
     pub fn clean_session(&self) -> bool {
         self.clean_session
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(untagged)]
-pub enum Credentials {
-    Anonymous(String),
-    PlainText(AuthenticationSettings),
-    Provider(CredentialProviderSettings),
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
-pub struct AuthenticationSettings {
-    client_id: String,
-
-    username: String,
-
-    password: String,
-}
-
-impl AuthenticationSettings {
-    pub fn new(client_id: String, username: String, password: String) -> Self {
-        Self {
-            client_id,
-            username,
-            password,
-        }
-    }
-
-    pub fn client_id(&self) -> &str {
-        &self.client_id
-    }
-
-    pub fn username(&self) -> &str {
-        &self.username
-    }
-
-    pub fn password(&self) -> &str {
-        &self.password
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct CredentialProviderSettings {
-    #[serde(rename = "iotedge_iothubhostname")]
-    iothub_hostname: String,
-
-    #[serde(rename = "iotedge_gatewayhostname")]
-    gateway_hostname: String,
-
-    #[serde(rename = "iotedge_deviceid")]
-    device_id: String,
-
-    #[serde(rename = "iotedge_moduleid")]
-    module_id: String,
-
-    #[serde(rename = "iotedge_modulegenerationid")]
-    generation_id: String,
-
-    #[serde(rename = "iotedge_workloaduri")]
-    workload_uri: String,
-}
-
-impl CredentialProviderSettings {
-    pub fn iothub_hostname(&self) -> &str {
-        &self.iothub_hostname
-    }
-
-    pub fn gateway_hostname(&self) -> &str {
-        &self.gateway_hostname
-    }
-
-    pub fn device_id(&self) -> &str {
-        &self.device_id
-    }
-
-    pub fn module_id(&self) -> &str {
-        &self.module_id
-    }
-
-    pub fn generation_id(&self) -> &str {
-        &self.generation_id
-    }
-
-    pub fn workload_uri(&self) -> &str {
-        &self.workload_uri
     }
 }
 
