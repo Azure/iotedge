@@ -2,7 +2,7 @@ use std::time::Duration as StdDuration;
 
 use anyhow::Result;
 use chrono::{Duration, Utc};
-use tokio::time::Instant;
+use tokio::time::{self, Instant};
 use tracing::{info, warn};
 
 use mqtt_broker::{BrokerHandle, Message, SystemEvent};
@@ -24,7 +24,7 @@ pub async fn start_cleanup(
 async fn tick_cleanup(period: StdDuration, expiration: Duration, broker_handle: BrokerHandle) {
     info!("cleaning up expired sessions every {:?}", period);
     let start = Instant::now() + period;
-    let mut interval = tokio::time::interval_at(start, period);
+    let mut interval = time::interval_at(start, period);
     loop {
         interval.tick().await;
         if let Err(e) = broker_handle.send(Message::System(SystemEvent::SessionCleanup(
