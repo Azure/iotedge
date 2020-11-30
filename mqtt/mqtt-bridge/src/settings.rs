@@ -1,5 +1,3 @@
-#![allow(dead_code)] // TODO remove when ready
-
 use std::{path::Path, time::Duration, vec::Vec};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
@@ -176,11 +174,11 @@ impl TopicRule {
     }
 
     pub fn out_prefix(&self) -> Option<&str> {
-        self.out_prefix.as_deref()
+        self.out_prefix.as_deref().filter(|s| !s.is_empty())
     }
 
     pub fn in_prefix(&self) -> Option<&str> {
-        self.in_prefix.as_deref()
+        self.in_prefix.as_deref().filter(|s| !s.is_empty())
     }
 
     pub fn subscribe_to(&self) -> String {
