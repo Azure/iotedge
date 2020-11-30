@@ -20,13 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
+        readonly IMetadataStore metadataStore;
 
-        public AuthAgentController(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory, ISystemComponentIdProvider systemComponentIdProvider)
+        public AuthAgentController(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory, ISystemComponentIdProvider systemComponentIdProvider, IMetadataStore metadataStore)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider, nameof(systemComponentIdProvider));
+            this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
         }
 
         [HttpPost]
@@ -57,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                     async creds => (await this.AuthenticateAsync(creds), Option.Some(creds)),
                                     () => Task.FromResult((false, Option.None<IClientCredentials>())));
 
-                return this.Json(GetAuthResult(isAuthenticated, credentials));
+                return this.Json(GetAuthResult(isAuthenticated, credentials, this.metadataStore));
             }
             catch (Exception e)
             {
@@ -146,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return false;
         }
 
-        static object GetAuthResult(bool isAuthenticated, Option<IClientCredentials> credentials)
+        static object GetAuthResult(bool isAuthenticated, Option<IClientCredentials> credentials, IMetadataStore metadataStore)
         {
             // note, that if authenticated, then these values are present, and defaults never apply
             var id = credentials.Map(c => $"{c.Identity.IotHubHostname}/{c.Identity.Id}").GetOrElse("anonymous");
@@ -154,6 +156,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             if (isAuthenticated)
             {
                 Events.AuthSucceeded(id);
+                credentials.ForEach(c =>
+                {
+                    metadataStore.SetMetadata(c.Identity.Id, c.ProductInfo, c.ModelId);
+                });
                 return new
                 {
                     result = AuthAgentConstants.Authenticated,
