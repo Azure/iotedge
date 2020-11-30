@@ -150,9 +150,7 @@ async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
         bridges.send_update(bridge_update).await;
     } else {
         dbg!("{} bridge update is empty", UPSTREAM);
-        bridges
-            .send_update(BridgeUpdate::new(UPSTREAM, vec![], vec![]))
-            .await;
+        bridges.send_update(BridgeUpdate::new(UPSTREAM)).await;
     }
 }
 

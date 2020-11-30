@@ -129,16 +129,10 @@ pub struct BridgeUpdate {
 }
 
 impl BridgeUpdate {
-    pub fn new(name: impl Into<String>, subs: Vec<TopicRule>, forwards: Vec<TopicRule>) -> Self {
-        let subscriptions = subs
-            .into_iter()
-            .map(Direction::In)
-            .chain(forwards.into_iter().map(Direction::Out))
-            .collect();
-
+    pub fn new(name: impl Into<String>) -> Self {
         Self {
             endpoint: name.into(),
-            subscriptions,
+            subscriptions: vec![],
         }
     }
 
