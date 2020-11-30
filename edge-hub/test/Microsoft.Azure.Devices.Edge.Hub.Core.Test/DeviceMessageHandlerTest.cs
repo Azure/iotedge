@@ -323,6 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             await deviceMessageHandler.ProcessMessageFeedbackAsync(Guid.NewGuid().ToString(), FeedbackStatus.Complete);
 
+            await Task.Delay(TimeSpan.FromSeconds(1));
             Assert.False(sendMessageTask.IsCompleted);
         }
 
@@ -389,6 +390,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // send message to x509 device
             Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
             await deviceMessageHandler.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
             Assert.True(messageReceived);
             Assert.True(sendMessageTask.IsCompletedSuccessfully);
         }
