@@ -46,10 +46,10 @@ stages:
             targetType: inline
             script: |
               declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
-              . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-              chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/install.sh
+              . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
+              chmod +x $(Agent.HomeDirectory)/../artifacts$(images.artifact.name.linux)/scripts/install.sh
               
-              sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/install.sh \
+              sudo $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/scripts/install.sh \
                 -connectionString=$(ConnectivityNestedEdge-ConnectionString)
                 -s=$(azure.subscription)
                 -hubrg=$(ressourcegroup)
