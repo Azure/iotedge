@@ -146,9 +146,9 @@ where
             .collect::<Vec<_>>();
 
         for activity in disconnecting {
-            if let Err(reason) = self.process_drop_connection(activity.client_id()) {
+            if let Err(reason) = self.drop_session(activity.client_id()) {
                 warn!(
-                    "error dropping connection for client {}. Reason {}",
+                    "error dropping session for client {}; reason: {}",
                     activity.client_id(),
                     reason
                 );
@@ -249,7 +249,7 @@ where
             }
         }
 
-        for mut session in sessions {
+        for session in sessions {
             if let Err(e) = session.send(ClientEvent::DropConnection) {
                 warn!(error = %e, message = "an error occurred closing the session", client_id = %session.client_id());
             }
@@ -378,7 +378,7 @@ where
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
                 self.publish_all(subscriptions)?;
             }
-            OpenSession::DuplicateSession(mut old_session, ack) => {
+            OpenSession::DuplicateSession(old_session, ack) => {
                 // Drop the old connection
                 old_session.send(ClientEvent::DropConnection)?;
 
@@ -393,7 +393,7 @@ where
                     session.send(ClientEvent::DropConnection)?;
                 }
             }
-            OpenSession::ProtocolViolation(mut old_session) => {
+            OpenSession::ProtocolViolation(old_session) => {
                 old_session.send(ClientEvent::DropConnection)?
             }
         }
@@ -404,7 +404,7 @@ where
 
     fn process_disconnect(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
-        if let Some(mut session) = self.close_session(client_id)? {
+        if let Some(session) = self.close_session(client_id)? {
             session.send(ClientEvent::Disconnect(proto::Disconnect))?;
         } else {
             debug!("no session for {}", client_id);
@@ -414,12 +414,8 @@ where
     }
 
     fn process_drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
-        self.drop_connection(client_id)
-    }
-
-    fn drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
-        if let Some(mut session) = self.close_session(client_id)? {
+        if let Some(session) = self.close_session(client_id)? {
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
@@ -577,11 +573,11 @@ where
                 }
                 Ok(Authorization::Forbidden(reason)) => {
                     warn!("not authorized: {}; reason: {}", &activity, reason);
-                    self.drop_connection(&client_id)?;
+                    self.process_drop_connection(&client_id)?;
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
-                    self.drop_connection(&client_id)?;
+                    self.process_drop_connection(&client_id)?;
                 }
             }
         } else {
@@ -836,6 +832,7 @@ where
         OpenSession::DuplicateSession(old_session, ack)
     }
 
+    /// Transition session to a closed state. Persist the session if needed.
     fn close_session(&mut self, client_id: &ClientId) -> Result<Option<Session>, Error> {
         let new_session = match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
@@ -862,13 +859,10 @@ where
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
 
                 let (state, will, handle) = connected.into_parts();
-                let new_session = Session::new_offline(state.clone());
+                let client_info = state.client_info().clone();
+                let new_session = Session::new_offline(state);
                 self.sessions.insert(client_id.clone(), new_session);
-                Some(Session::new_disconnecting(
-                    state.client_info().clone(),
-                    will,
-                    handle,
-                ))
+                Some(Session::new_disconnecting(client_info, will, handle))
             }
             Some(Session::Offline(offline)) => {
                 debug!("closing already offline session for {}", client_id);
@@ -880,6 +874,23 @@ where
         };
 
         Ok(new_session)
+    }
+
+    /// Hard drop the session, even if it is persistent. Usually due to authorization violations.
+    fn drop_session(&mut self, client_id: &ClientId) -> Result<(), Error> {
+        if let Some(session) = self.sessions.remove(client_id) {
+            info!("dropping session for {}", client_id);
+            self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
+            self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
+            self.publish_all(StateChange::new_subscription_change(client_id, None).try_into()?)?;
+
+            // Ungraceful drop session - send the will
+            if let Some(will) = session.into_will() {
+                self.publish_all(will)?;
+            }
+        };
+
+        Ok(())
     }
 
     fn publish_all(&mut self, mut publication: proto::Publication) -> Result<(), Error> {
@@ -1077,7 +1088,7 @@ pub struct BrokerHandle {
 }
 
 impl BrokerHandle {
-    pub fn send(&mut self, message: Message) -> Result<(), Error> {
+    pub fn send(&self, message: Message) -> Result<(), Error> {
         let sender = match &message {
             Message::Client(_, ClientEvent::PubAck0(_))
             | Message::Client(_, ClientEvent::PubAck(_))
@@ -1159,7 +1170,7 @@ pub(crate) mod tests {
     async fn test_double_connect_protocol_violation() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -1229,7 +1240,7 @@ pub(crate) mod tests {
     async fn test_double_connect_drop_first_transient() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -1304,7 +1315,7 @@ pub(crate) mod tests {
     async fn test_invalid_protocol_name() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -1345,7 +1356,7 @@ pub(crate) mod tests {
     async fn test_invalid_protocol_level() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -1396,7 +1407,7 @@ pub(crate) mod tests {
     async fn test_connect_auth_succeeded() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -1441,7 +1452,7 @@ pub(crate) mod tests {
     async fn test_connect_unknown_client() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -1493,7 +1504,7 @@ pub(crate) mod tests {
     async fn test_connect_authentication_failed() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -1549,7 +1560,7 @@ pub(crate) mod tests {
             }))
             .build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -1603,7 +1614,7 @@ pub(crate) mod tests {
             .with_authorizer(|_: &Activity| Err(AuthorizeError))
             .build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
         let connect1 = proto::Connect {
@@ -2069,10 +2080,10 @@ pub(crate) mod tests {
             }))
             .build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (client_id, mut rx) = connect_client("pub", &mut broker_handle).await.unwrap();
+        let (client_id, mut rx) = connect_client("pub", &broker_handle).await.unwrap();
 
         let publish = proto::Publish {
             packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
@@ -2107,10 +2118,10 @@ pub(crate) mod tests {
             }))
             .build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (client_id, mut rx1) = connect_client("sub", &mut broker_handle).await.unwrap();
+        let (client_id, mut rx1) = connect_client("sub", &broker_handle).await.unwrap();
 
         let subscribe = proto::Subscribe {
             packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
@@ -2148,15 +2159,13 @@ pub(crate) mod tests {
     async fn test_notify_state_change_single_connection() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
-            .await
-            .unwrap();
+        let (a_id, mut a_rx) = connect_client("client_a", &broker_handle).await.unwrap();
 
         send_subscribe(
-            &mut broker_handle,
+            &broker_handle,
             &mut a_rx,
             a_id.clone(),
             &["$edgehub/connected"],
@@ -2187,22 +2196,16 @@ pub(crate) mod tests {
     async fn test_notify_state_change_multiple_connection() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
-            .await
-            .unwrap();
+        let (a_id, mut a_rx) = connect_client("client_a", &broker_handle).await.unwrap();
 
-        connect_client("client_b", &mut broker_handle)
-            .await
-            .unwrap();
-        connect_client("client_c", &mut broker_handle)
-            .await
-            .unwrap();
+        connect_client("client_b", &broker_handle).await.unwrap();
+        connect_client("client_c", &broker_handle).await.unwrap();
 
         send_subscribe(
-            &mut broker_handle,
+            &broker_handle,
             &mut a_rx,
             a_id.clone(),
             &["$edgehub/connected"],
@@ -2216,22 +2219,16 @@ pub(crate) mod tests {
     async fn test_notify_state_change_add_remove_connection() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
-            .await
-            .unwrap();
+        let (a_id, mut a_rx) = connect_client("client_a", &broker_handle).await.unwrap();
 
-        connect_client("client_b", &mut broker_handle)
-            .await
-            .unwrap();
-        connect_client("client_c", &mut broker_handle)
-            .await
-            .unwrap();
+        connect_client("client_b", &broker_handle).await.unwrap();
+        connect_client("client_c", &broker_handle).await.unwrap();
 
         send_subscribe(
-            &mut broker_handle,
+            &broker_handle,
             &mut a_rx,
             a_id.clone(),
             &["$edgehub/connected"],
@@ -2239,12 +2236,10 @@ pub(crate) mod tests {
         .await;
         check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
 
-        connect_client("client_d", &mut broker_handle)
-            .await
-            .unwrap();
+        connect_client("client_d", &broker_handle).await.unwrap();
         check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c", "client_d"]).await;
 
-        disconnect_client("client_c", &mut broker_handle).await;
+        disconnect_client("client_c", &broker_handle).await;
         check_notify_received(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
     }
 
@@ -2252,19 +2247,15 @@ pub(crate) mod tests {
     async fn test_notify_state_change_add_remove_subscription() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
-            .await
-            .unwrap();
+        let (a_id, mut a_rx) = connect_client("client_a", &broker_handle).await.unwrap();
 
-        let (b_id, mut b_rx) = connect_client("client_b", &mut broker_handle)
-            .await
-            .unwrap();
+        let (b_id, mut b_rx) = connect_client("client_b", &broker_handle).await.unwrap();
 
         send_subscribe(
-            &mut broker_handle,
+            &broker_handle,
             &mut a_rx,
             a_id.clone(),
             &["$edgehub/client_b/subscriptions"],
@@ -2272,13 +2263,13 @@ pub(crate) mod tests {
         .await;
         check_notify_received(&mut a_rx, &[]).await;
 
-        send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
+        send_subscribe(&broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
         check_notify_received(&mut a_rx, &["foo"]).await;
 
-        send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["bar"]).await;
+        send_subscribe(&broker_handle, &mut b_rx, b_id.clone(), &["bar"]).await;
         check_notify_received(&mut a_rx, &["foo", "bar"]).await;
 
-        send_unsubscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
+        send_unsubscribe(&broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
         check_notify_received(&mut a_rx, &["bar"]).await;
     }
 
@@ -2286,19 +2277,15 @@ pub(crate) mod tests {
     async fn test_notify_state_change_add_remove_multiple_subscriptions() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
-            .await
-            .unwrap();
+        let (a_id, mut a_rx) = connect_client("client_a", &broker_handle).await.unwrap();
 
-        let (b_id, mut b_rx) = connect_client("client_b", &mut broker_handle)
-            .await
-            .unwrap();
+        let (b_id, mut b_rx) = connect_client("client_b", &broker_handle).await.unwrap();
 
         send_subscribe(
-            &mut broker_handle,
+            &broker_handle,
             &mut a_rx,
             a_id.clone(),
             &["$edgehub/client_b/subscriptions"],
@@ -2307,7 +2294,7 @@ pub(crate) mod tests {
         check_notify_received(&mut a_rx, &[]).await;
 
         send_subscribe(
-            &mut broker_handle,
+            &broker_handle,
             &mut b_rx,
             b_id.clone(),
             &["foo", "bar", "baz"],
@@ -2315,7 +2302,7 @@ pub(crate) mod tests {
         .await;
         check_notify_received(&mut a_rx, &["foo", "bar", "baz"]).await;
 
-        send_unsubscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo", "baz"]).await;
+        send_unsubscribe(&broker_handle, &mut b_rx, b_id.clone(), &["foo", "baz"]).await;
         check_notify_received(&mut a_rx, &["bar"]).await;
     }
 
@@ -2323,21 +2310,17 @@ pub(crate) mod tests {
     async fn test_notify_state_change_existing_subscriptions() {
         let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
-        let mut broker_handle = broker.handle();
+        let broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
-            .await
-            .unwrap();
+        let (a_id, mut a_rx) = connect_client("client_a", &broker_handle).await.unwrap();
 
-        let (b_id, mut b_rx) = connect_client("client_b", &mut broker_handle)
-            .await
-            .unwrap();
+        let (b_id, mut b_rx) = connect_client("client_b", &broker_handle).await.unwrap();
 
-        send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo", "bar"]).await;
-        send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["baz"]).await;
+        send_subscribe(&broker_handle, &mut b_rx, b_id.clone(), &["foo", "bar"]).await;
+        send_subscribe(&broker_handle, &mut b_rx, b_id.clone(), &["baz"]).await;
         send_subscribe(
-            &mut broker_handle,
+            &broker_handle,
             &mut a_rx,
             a_id.clone(),
             &["$edgehub/client_b/subscriptions"],
@@ -2353,7 +2336,7 @@ pub(crate) mod tests {
 
     async fn connect_client(
         client_id: &str,
-        broker_handle: &mut BrokerHandle,
+        broker_handle: &BrokerHandle,
     ) -> Result<(ClientId, UnboundedReceiver<Message>), Error> {
         let connect = persistent_connect(client_id.into());
 
@@ -2384,7 +2367,7 @@ pub(crate) mod tests {
         Ok((client_id, rx))
     }
 
-    async fn disconnect_client(client_id: &str, broker_handle: &mut BrokerHandle) {
+    async fn disconnect_client(client_id: &str, broker_handle: &BrokerHandle) {
         let event = ClientEvent::Disconnect(proto::Disconnect {});
 
         broker_handle
@@ -2393,7 +2376,7 @@ pub(crate) mod tests {
     }
 
     async fn send_subscribe(
-        handle: &mut BrokerHandle,
+        handle: &BrokerHandle,
         rx: &mut UnboundedReceiver<Message>,
         client_id: ClientId,
         topics: &[&str],
@@ -2419,7 +2402,7 @@ pub(crate) mod tests {
     }
 
     async fn send_unsubscribe(
-        handle: &mut BrokerHandle,
+        handle: &BrokerHandle,
         rx: &mut UnboundedReceiver<Message>,
         client_id: ClientId,
         topics: &[&str],

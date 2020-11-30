@@ -43,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
                 dynamic response = await PostAsync(content, URL);
@@ -94,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
                 content.certificate = ThumbprintTestCert;
 
@@ -134,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 dynamic content = new ExpandoObject();
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
                 dynamic response = await PostAsync(content, URL);
@@ -154,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic content = new ExpandoObject();
                 content.version = "2017-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
                 dynamic response = await PostAsync(content, URL);
@@ -175,6 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "bad_token";
 
                 dynamic response = await PostAsync(content, URL);
@@ -254,6 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
                 var response = await PostAsync(content, URL);
@@ -274,6 +280,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/module/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
                 var response = await PostAsync(content, URL);
