@@ -252,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Disabling to unblock CI while we investigate")]
+        [Fact]
         public async Task EdgeAgentConnectionBasicTest()
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -340,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Disabling to unblock CI while we investigate")]
+        [Fact]
         public async Task EdgeAgentConnectionConfigurationTest()
         {
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
@@ -416,7 +416,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Disabling to unblock CI while we investigate")]
+        [Fact]
         public async Task EdgeAgentConnectionBaseAddOnConfigurationTest()
         {
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
@@ -1042,8 +1042,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Never);
         }
 
+        // Connection state is only updated for telemetry path. Since EdgeAgent doesn’t
+        // send any telemetry, it will show as not connected. It is a long standing PBI
+        // for hub to update connection state for twin operations, but has never been
+        // prioritized.
         [Integration]
-        [Fact(Skip = "Investigating. Temporarily disabled to unblock CI pipeline.")]
+        [Fact(Skip = "Disabled to unblock CI pipeline.")]
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
