@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     // Nett does not provide a function to easily add table subkeys.
                     // A hack workaround is to serialize the table, append the new table as a string, then deserialize.
-                    // This only needs to be done once to create the new subtable
+                    // This only needs to be done once to create the new subtable.
                     // After that, Nett functions can be used to modify the subtable.
                     string tableName = string.Join(".", segments.Take(segments.Length - 1));
                     AddTable(tableName, segments[segments.Length - 1], value);

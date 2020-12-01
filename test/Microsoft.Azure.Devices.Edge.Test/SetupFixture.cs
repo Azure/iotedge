@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Text;
@@ -18,6 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class SetupFixture
     {
         IEdgeDaemon daemon;
+
+        private string[] configFiles =
+        {
+            "/etc/aziot/keyd/config.toml",
+            "/etc/aziot/certd/config.toml",
+            "/etc/aziot/identityd/config.toml",
+            "/etc/aziot/edged/config.yaml"
+        };
 
         [OneTimeSetUp]
         public async Task BeforeAllAsync()
@@ -48,6 +57,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
                     await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
+
+                    // Create a directory for the tests to store certs, keys, etc.
+                    Directory.CreateDirectory("/etc/aziot/e2e_tests");
+
+                    // Backup any existing service config files.
+                    foreach(string file in this.configFiles)
+                    {
+                        if(File.Exists(file))
+                        {
+                            File.Copy(file, file + ".backup", true);
+                        }
+                    }
 
                     await this.daemon.ConfigureAsync(
                         config =>
@@ -99,6 +120,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Remove packages installed by this run.
                     await this.daemon.UninstallAsync(token);
+
+                    // Delete test certs, keys, etc.
+                    Directory.Delete("/etc/aziot/e2e_tests", true);
+
+                    // Restore backed up config files.
+                    foreach(string file in this.configFiles)
+                    {
+                        string backupFile = file + ".backup";
+
+                        if(File.Exists(backupFile))
+                        {
+                            File.Copy(backupFile, file, true);
+                            File.Delete(backupFile);
+                        }
+                    }
                 },
                 "Completed end-to-end test teardown"),
             () =>

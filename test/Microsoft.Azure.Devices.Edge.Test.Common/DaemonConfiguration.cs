@@ -95,11 +95,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Edged].document.ReplaceOrAdd("provisioning.scope_id", idScope);
         }
 
-        public void SetDeviceConnectionString(string connectionString)
+        public void SetManualSasProvisioning(string hubHostname, string deviceId, string preloadedKey)
         {
-            this.config[Service.Edged].document.RemoveIfExists("provisioning");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.source", "manual");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.device_connection_string", connectionString);
+            this.config[Service.Identityd].document.ReplaceOrAdd("hostname", deviceId);
+            this.config[Service.Edged].document.ReplaceOrAdd("hostname", deviceId);
+
+            this.config[Service.Identityd].document.RemoveIfExists("provisioning");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.source", "manual");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.device_id", deviceId);
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.authentication.method", "sas");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.authentication.device_id_pk", preloadedKey);
         }
 
         public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identity_pk_path)
@@ -173,6 +179,43 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     File.SetAttributes(path, attr);
                 }
             }
+        }
+
+        public void CreatePreloadedKey(string name, string value)
+        {
+            // The document ReplaceOrAdd and RemoveIfExists functions use '.' in their dottedKey parameter
+            // to separate levels in the config document. Therefore, key names cannot contain '.'
+            if(name.Contains('.'))
+            {
+                throw new ArgumentException("Key name cannot contain .");
+            }
+
+            string filePath = $"/etc/aziot/e2e_tests/{name}.key";
+
+            File.WriteAllText(filePath, value);
+            OsPlatform.Current.SetFileOwner(filePath, "aziotks");
+
+            this.config[Service.Keyd].document.ReplaceOrAdd($"preloaded_keys.{name}", "file://" + filePath);
+        }
+
+        public static void CreateConfigFile(string configFile, string defaultFile, string owner)
+        {
+            // If the config file does not exist, create it from the default file.
+            // If the default file does not exist, create an empty config file.
+            if(!File.Exists(configFile))
+            {
+                if(File.Exists(defaultFile))
+                {
+                    File.Copy(defaultFile, configFile);
+                }
+                else
+                {
+                    File.Create(configFile).Dispose();
+                }
+            }
+
+            // Change owner of config file.
+            OsPlatform.Current.SetFileOwner(configFile, owner);
         }
     }
 }
