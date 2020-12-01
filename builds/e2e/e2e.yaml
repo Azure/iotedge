@@ -5,7 +5,7 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: master
+    branch: iiot
     trigger:
       branches:
       - master
@@ -14,7 +14,7 @@ resources:
       - preview/iiot
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: master
+    branch: iiot
     trigger:
       branches:
       - master
@@ -37,6 +37,8 @@ jobs:
       os: linux
       arch: arm32v7
       artifactName: iotedged-debian9-arm32v7
+      identityServiceArtifactName: packages_debian-9-slim_arm32v7
+      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
 
     timeoutInMinutes: 120
 
@@ -52,37 +54,40 @@ jobs:
     displayName: Linux amd64
 
     pool:
-      vmImage: ubuntu-16.04
+      vmImage: ubuntu-20.04
 
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu16.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
 
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
-################################################################################		
-  - job: centos7_amd64	
-################################################################################		
-    displayName: CentOs7 amd64	
+################################################################################
+  - job: centos7_amd64
+################################################################################
+    displayName: CentOs7 amd64
 
-    pool:	
-      name: $(pool.name)	
-      demands:	
-        - Agent.OS -equals Linux	
-        - Agent.OSArchitecture -equals X64	
-        - run-new-e2e-tests -equals true	
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-new-e2e-tests -equals true
 
-    variables:	
-      os: linux	
-      arch: amd64	
-      artifactName: iotedged-centos7-amd64	
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-centos7-amd64
+      identityServiceArtifactName: packages_centos-7_amd64
+      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
 
-    steps:	
-    - template: templates/e2e-clean-directory.yaml	
-    - template: templates/e2e-setup.yaml	
-    - template: templates/e2e-clear-docker-cached-images.yaml	
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
-

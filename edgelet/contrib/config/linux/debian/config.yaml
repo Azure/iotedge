@@ -69,8 +69,8 @@ hostname: "<ADD HOSTNAME HERE>"
 # Nested Edge parent hostname
 ###############################################################################
 #
-# Optional. This entry should only be specified for the host name of the 
-# parent edge device for nested edge sceanrio. This value is injected into 
+# Optional. This entry should only be specified for the host name of the
+# parent edge device for nested edge sceanrio. This value is injected into
 # Edge Agent and Edge Hub modules as environment value 'IOTEDGE_GATEWAYHOSTNAME',
 # and injected into other module as environment value 'IOTEDGE_PARENTHOSTNAME'.
 # The parent_hostname value is converted to lower case before it is used.
@@ -147,8 +147,8 @@ connect:
 ###############################################################################
 
 listen:
-  management_uri: "fd://aziot-edged.mgmt.sock"
-  workload_uri: "fd://aziot-edged.workload.socket"
+  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///run/aziot/edged/aziot-edged.workload.sock"
 
 ###############################################################################
 # Home Directory

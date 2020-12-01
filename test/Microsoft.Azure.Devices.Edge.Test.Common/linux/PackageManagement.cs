@@ -20,13 +20,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public PackageManagement(string os, string version, SupportedPackageExtension extension)
         {
+            string commonPackages = string.Join(
+                " ",
+                "aziot-keyd.service",
+                "aziot-keyd.socket",
+                "aziot-certd.service",
+                "aziot-certd.socket",
+                "aziot-identityd.service",
+                "aziot-identityd.socket");
+
             this.os = os;
             this.version = version;
             this.packageExtension = extension;
             this.IotedgeServices = extension switch
             {
-                SupportedPackageExtension.Deb => "iotedge.mgmt.socket iotedge.socket iotedge.service",
-                SupportedPackageExtension.Rpm => "iotedge.service",
+                SupportedPackageExtension.Deb => string.Join(
+                    " ",
+                    commonPackages,
+                    "aziot-edged.mgmt.socket",
+                    "aziot-edged.workload.socket",
+                    "aziot-edged.service"),
+                SupportedPackageExtension.Rpm => string.Join(
+                    " ",
+                    commonPackages,
+                    "aziot-edged.service"),
                 _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
             };
         }
@@ -35,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             string[] packages = Directory
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
-                .Where(p => !p.Contains("debug"))
+                .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
 
             return this.packageExtension switch
@@ -49,8 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.Rpm => new[]
                 {
                     "set -e",
-                    $"yum install -y {string.Join(' ', packages)}",
-                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                    $"rpm --nodeps -i {string.Join(' ', packages)}",
+                    "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
                     "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
                     "sudo systemctl daemon-reload"
@@ -88,11 +105,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             SupportedPackageExtension.Deb => new[]
             {
-                "apt-get purge --yes libiothsm-std iotedge"
+                "dpkg --purge libiothsm-std aziot-edge aziot-identity-service iotedge"
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y --remove-leaves libiothsm-std iotedge"
+                "yum remove -y --remove-leaves libiothsm-std aziot-edge aziot-identity-service iotedge"
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };

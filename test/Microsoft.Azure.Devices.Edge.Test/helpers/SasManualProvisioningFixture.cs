@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Collections.Generic;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -47,10 +49,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Context.Current.OptimizeForPerformance,
                     this.iotHub);
 
+                (string hubHostname, string deviceId, string key) = this.ParseConnectionString(device.ConnectionString);
+
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
-                        config.SetDeviceConnectionString(device.ConnectionString);
+                        // Due to '.' being used as a delimiter for config file tables, key names cannot contain '.'
+                        // Use the device ID as the key name, but strip non-alphanumeric characters except for '-'
+                        string keyName = Regex.Replace(deviceId, "[^A-Za-z0-9 -]", string.Empty);
+                        config.CreatePreloadedKey(keyName, key);
+
+                        config.SetManualSasProvisioning(hubHostname, deviceId, keyName);
                         config.Update();
                         return Task.FromResult((
                             "with connection string for device '{Identity}'",
@@ -60,6 +69,46 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     startTime,
                     token);
             }
+        }
+
+        (string, string, string) ParseConnectionString(string connectionString)
+        {
+            const string HOST_NAME = "HostName";
+            const string DEVICE_ID = "DeviceId";
+            const string ACCESS_KEY = "SharedAccessKey";
+
+            Dictionary<string, string> parts = new Dictionary<string, string>()
+            {
+                { HOST_NAME, string.Empty },
+                { DEVICE_ID, string.Empty },
+                { ACCESS_KEY, string.Empty }
+            };
+
+            string[] parameters = connectionString.Split(";");
+
+            foreach (string p in parameters)
+            {
+                string[] parameter = p.Split("=");
+
+                if (parts.ContainsKey(parameter[0]))
+                {
+                    parts[parameter[0]] = parameter[1];
+                }
+                else
+                {
+                    throw new System.InvalidOperationException($"Bad connection string {connectionString}");
+                }
+            }
+
+            foreach (KeyValuePair<string, string> i in parts)
+            {
+                if (string.IsNullOrEmpty(i.Value))
+                {
+                    throw new System.InvalidOperationException($"Bad connection string {connectionString}");
+                }
+            }
+
+            return (parts[HOST_NAME], parts[DEVICE_ID], parts[ACCESS_KEY]);
         }
     }
 }

@@ -14,9 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class OsPlatform
     {
-        public static readonly IOsPlatform Current = IsWindows() ? new Windows.OsPlatform() as IOsPlatform : new Linux.OsPlatform();
-
-        public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        public static readonly IOsPlatform Current = new Linux.OsPlatform();
 
         public static bool Is64Bit() => RuntimeInformation.OSArchitecture == Architecture.X64 || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
