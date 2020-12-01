@@ -192,8 +192,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         class CleanupProcessor : IDisposable
         {
             const int CleanupBatchSize = 10;
-            static readonly TimeSpan CleanupTaskFrequency = TimeSpan.FromMinutes(30); // Run once every 30 mins.
-            static readonly TimeSpan MinCleanupSleepTime = TimeSpan.FromSeconds(30); // Sleep for 30 secs
+            static readonly TimeSpan CleanupTaskFrequency = TimeSpan.FromMinutes(30); // Check every 30 min that it is still running
+            static readonly TimeSpan MinCleanupSleepTime = TimeSpan.FromSeconds(30); // Sleep for 30 secs minimum between clean up loops
             readonly MessageStore messageStore;
             readonly Timer ensureCleanupTaskTimer;
             readonly CancellationTokenSource cancellationTokenSource;
@@ -206,13 +206,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
                 this.messageStore = messageStore;
-                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
                 this.cancellationTokenSource = new CancellationTokenSource();
                 this.messageCleanupIntervalSecs = messageCleanupIntervalSecs;
                 this.expiredCounter = Metrics.Instance.CreateCounter(
                    "messages_dropped",
                    "Messages cleaned up because of TTL expired",
                    new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
+                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
                 Events.CreatedCleanupProcessor(checkEntireQueueOnCleanup, messageCleanupIntervalSecs);
             }
 
