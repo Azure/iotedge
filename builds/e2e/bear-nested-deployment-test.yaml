@@ -50,7 +50,7 @@ stages:
 
               chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh
              
-              sudo $(Build.Repository.LocalPath)test/connectivity/scripts/install.sh \
+              sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh \
                 -connectionString=$(ConnectivityNestedEdge-ConnectionString) \
                 -s=$(azure.subscription) \
                 -hubrg=$(ressourcegroup)
