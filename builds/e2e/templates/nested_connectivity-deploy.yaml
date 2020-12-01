@@ -1,19 +1,5 @@
 steps:
   - template: set-run-flag.yaml
-  - task: CopyFiles@2
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
-    displayName: 'Copy Edgelet Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/$(edgelet.artifact.name)"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)"
-      CleanTargetFolder: true
-  - task: CopyFiles@2
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
-    displayName: 'Copy Images Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/$(images.artifact.name.linux)"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
-      CleanTargetFolder: true
   - task: AzureKeyVault@1
     condition: eq(variables['run.flag'], 1)
     displayName: 'EdgeBuild Azure Key Vault'
@@ -27,7 +13,7 @@ steps:
     inputs:
       azureSubscription: $(service.connections)
       KeyVaultName: edgebuildkv
-      SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString'
+      SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString'  
   - task: DownloadBuildArtifacts@0
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Download Edgelet Artifacts'
@@ -55,7 +41,21 @@ steps:
         $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
         $(images.artifact.name.linux)/scripts/connectivityTest.sh
         $(images.artifact.name.linux)/scripts/testHelper.sh
-        $(images.artifact.name.linux)/artifactInfo.txt
+        $(images.artifact.name.linux)/artifactInfo.txt  
+  - task: CopyFiles@2
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/$(edgelet.artifact.name)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/$(images.artifact.name.linux)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
+      CleanTargetFolder: true
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
