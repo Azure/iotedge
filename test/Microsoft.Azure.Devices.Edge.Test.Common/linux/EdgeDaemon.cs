@@ -111,16 +111,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     ConfigFilePaths paths = new ConfigFilePaths
                     {
-                        keyd = "/etc/aziot/keyd/config.toml",
-                        certd = "/etc/aziot/certd/config.toml",
-                        identityd = "/etc/aziot/identityd/config.toml",
-                        edged = "/etc/aziot/edged/config.yaml"
+                        Keyd = "/etc/aziot/keyd/config.toml",
+                        Certd = "/etc/aziot/certd/config.toml",
+                        Identityd = "/etc/aziot/identityd/config.toml",
+                        Edged = "/etc/aziot/edged/config.yaml"
                     };
 
-                    DaemonConfiguration.CreateConfigFile(paths.keyd, paths.keyd + ".default", "aziotks");
-                    DaemonConfiguration.CreateConfigFile(paths.certd, paths.certd + ".default", "aziotcs");
-                    DaemonConfiguration.CreateConfigFile(paths.identityd, paths.identityd + ".default", "aziotid");
-                    DaemonConfiguration.CreateConfigFile(paths.edged, paths.edged + ".template", "iotedge");
+                    DaemonConfiguration.CreateConfigFile(paths.Keyd, paths.Keyd + ".default", "aziotks");
+                    DaemonConfiguration.CreateConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
+                    DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
+                    DaemonConfiguration.CreateConfigFile(paths.Edged, paths.Edged + ".template", "iotedge");
 
                     var yaml = new DaemonConfiguration(paths, this.bootstrapAgentImage, this.bootstrapRegistry);
                     (string msg, object[] props) = await config(yaml);

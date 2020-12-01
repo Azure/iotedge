@@ -49,14 +49,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Context.Current.OptimizeForPerformance,
                     this.iotHub);
 
-                (string hubHostname, string deviceId, string key) = parseConnectionString(device.ConnectionString);
+                (string hubHostname, string deviceId, string key) = this.ParseConnectionString(device.ConnectionString);
 
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
                         // Due to '.' being used as a delimiter for config file tables, key names cannot contain '.'
                         // Use the device ID as the key name, but strip non-alphanumeric characters except for '-'
-                        string keyName = Regex.Replace(deviceId, "[^A-Za-z0-9 -]", "");
+                        string keyName = Regex.Replace(deviceId, "[^A-Za-z0-9 -]", string.Empty);
                         config.CreatePreloadedKey(keyName, key);
 
                         config.SetManualSasProvisioning(hubHostname, deviceId, keyName);
@@ -71,25 +71,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
         }
 
-        (string, string, string) parseConnectionString(string connectionString) {
+        (string, string, string) ParseConnectionString(string connectionString)
+        {
             const string HOST_NAME = "HostName";
             const string DEVICE_ID = "DeviceId";
             const string ACCESS_KEY = "SharedAccessKey";
 
             Dictionary<string, string> parts = new Dictionary<string, string>()
             {
-                {HOST_NAME, String.Empty},
-                {DEVICE_ID, String.Empty},
-                {ACCESS_KEY, String.Empty}
+                { HOST_NAME, string.Empty },
+                { DEVICE_ID, string.Empty },
+                { ACCESS_KEY, string.Empty }
             };
 
             string[] parameters = connectionString.Split(";");
 
-            foreach(string p in parameters)
+            foreach (string p in parameters)
             {
                 string[] parameter = p.Split("=");
 
-                if(parts.ContainsKey(parameter[0]))
+                if (parts.ContainsKey(parameter[0]))
                 {
                     parts[parameter[0]] = parameter[1];
                 }
@@ -99,9 +100,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 }
             }
 
-            foreach(KeyValuePair<string, string> i in parts)
+            foreach (KeyValuePair<string, string> i in parts)
             {
-                if(String.IsNullOrEmpty(i.Value))
+                if (string.IsNullOrEmpty(i.Value))
                 {
                     throw new System.InvalidOperationException($"Bad connection string {connectionString}");
                 }

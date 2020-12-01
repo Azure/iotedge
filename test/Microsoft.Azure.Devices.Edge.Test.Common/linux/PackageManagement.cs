@@ -20,25 +20,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public PackageManagement(string os, string version, SupportedPackageExtension extension)
         {
-            string commonPackages = String.Join(" ",
-                "aziot-keyd.service", "aziot-keyd.socket",
-                "aziot-certd.service", "aziot-certd.socket",
-                "aziot-identityd.service", "aziot-identityd.socket"
-            );
+            string commonPackages = string.Join(
+                " ",
+                "aziot-keyd.service",
+                "aziot-keyd.socket",
+                "aziot-certd.service",
+                "aziot-certd.socket",
+                "aziot-identityd.service",
+                "aziot-identityd.socket");
 
             this.os = os;
             this.version = version;
             this.packageExtension = extension;
             this.IotedgeServices = extension switch
             {
-                SupportedPackageExtension.Deb => String.Join(" ",
+                SupportedPackageExtension.Deb => string.Join(
+                    " ",
                     commonPackages,
-                    "aziot-edged.mgmt.socket", "aziot-edged.workload.socket", "aziot-edged.service"
-                ),
-                SupportedPackageExtension.Rpm => String.Join(" ",
+                    "aziot-edged.mgmt.socket",
+                    "aziot-edged.workload.socket",
+                    "aziot-edged.service"),
+                SupportedPackageExtension.Rpm => string.Join(
+                    " ",
                     commonPackages,
-                    "aziot-edged.service"
-                ),
+                    "aziot-edged.service"),
                 _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
             };
         }

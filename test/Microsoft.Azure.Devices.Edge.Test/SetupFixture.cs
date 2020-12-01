@@ -62,9 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Directory.CreateDirectory("/etc/aziot/e2e_tests");
 
                     // Backup any existing service config files.
-                    foreach(string file in this.configFiles)
+                    foreach (string file in this.configFiles)
                     {
-                        if(File.Exists(file))
+                        if (File.Exists(file))
                         {
                             File.Copy(file, file + ".backup", true);
                         }
@@ -125,11 +125,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Directory.Delete("/etc/aziot/e2e_tests", true);
 
                     // Restore backed up config files.
-                    foreach(string file in this.configFiles)
+                    foreach (string file in this.configFiles)
                     {
                         string backupFile = file + ".backup";
 
-                        if(File.Exists(backupFile))
+                        if (File.Exists(backupFile))
                         {
                             File.Copy(backupFile, file, true);
                             File.Delete(backupFile);

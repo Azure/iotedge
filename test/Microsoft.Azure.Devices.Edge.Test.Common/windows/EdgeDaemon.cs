@@ -67,10 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             // These tests do not run on Windows; use empty file paths.
             ConfigFilePaths paths = new ConfigFilePaths
             {
-                keyd = "",
-                certd = "",
-                identityd = "",
-                edged = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml"
+                Keyd = string.Empty,
+                Certd = string.Empty,
+                Identityd = string.Empty,
+                Edged = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml"
             };
 
             Profiler profiler = Profiler.Start();
