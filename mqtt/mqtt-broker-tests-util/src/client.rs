@@ -1,5 +1,5 @@
 #![allow(clippy::mut_mut)]
-use std::time::Duration;
+use std::{env, time::Duration};
 
 use bytes::Bytes;
 use futures::{future::FutureExt, select, stream::StreamExt};
@@ -17,6 +17,11 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle,
 };
+use mqtt_util::client_io::{
+    ClientIoSource, CredentialProviderSettings, Credentials, SasTokenSource, TcpConnection,
+    TrustBundleSource,
+};
+use tracing::info;
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
@@ -291,4 +296,71 @@ where
             event_loop_handle,
         }
     }
+}
+
+pub fn create_client_from_module_env() -> Client<ClientIoSource> {
+    let provider_settings = get_provider_settings_from_env();
+    let io_source = io_source_from_provider(provider_settings.clone());
+
+    let client_id = format!(
+        "{}/{}",
+        provider_settings.device_id().to_owned(),
+        provider_settings.module_id().to_owned()
+    );
+
+    let api_version = "2010-01-01";
+    let username = Some(format!(
+        "{}/{}/{}/?api-version={}",
+        provider_settings.iothub_hostname().to_owned(),
+        provider_settings.device_id().to_owned(),
+        provider_settings.module_id().to_owned(),
+        api_version.to_owned()
+    ));
+
+    info!(
+        "creating client with client id ({:?}) and username ({:?})",
+        client_id, username,
+    );
+
+    let max_reconnect_backoff = Duration::from_secs(60);
+    let keep_alive = Duration::from_secs(60);
+    Client::new(
+        Some(client_id),
+        username,
+        None,
+        io_source,
+        max_reconnect_backoff,
+        keep_alive,
+    )
+}
+
+fn get_provider_settings_from_env() -> CredentialProviderSettings {
+    let iothub_hostname = env::var("IOTEDGE_IOTHUBHOSTNAME").unwrap();
+    let gateway_hostname = env::var("IOTEDGE_GATEWAYHOSTNAME").unwrap();
+    let device_id = env::var("IOTEDGE_DEVICEID").unwrap();
+    let module_id = env::var("IOTEDGE_MODULEID").unwrap();
+    let generation_id = env::var("IOTEDGE_MODULEGENERATIONID").unwrap();
+    let workload_uri = env::var("IOTEDGE_WORKLOADURI").unwrap();
+
+    CredentialProviderSettings::new(
+        iothub_hostname,
+        gateway_hostname,
+        device_id,
+        module_id,
+        generation_id,
+        workload_uri,
+    )
+}
+
+fn io_source_from_provider(
+    credential_provider_settings: CredentialProviderSettings,
+) -> ClientIoSource {
+    let credentials = Credentials::Provider(credential_provider_settings);
+    let trust_bundle_source = TrustBundleSource::new(credentials.clone());
+    let token_source = SasTokenSource::new(credentials.clone());
+    let addr = "edgeHub:8883";
+    let tcp_connection = TcpConnection::new(addr, Some(token_source), Some(trust_bundle_source));
+    let io_source = ClientIoSource::Tls(tcp_connection);
+
+    io_source
 }
