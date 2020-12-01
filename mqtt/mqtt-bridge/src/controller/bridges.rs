@@ -63,7 +63,7 @@ impl Bridges {
                 error!("error sending bridge update {:?}", e);
             }
         } else {
-            dbg!("config for {} not found", update.name());
+            debug!("config for {} not found", update.name());
         }
     }
 

@@ -140,7 +140,6 @@ async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
 
     let mut bridge_updates = update
         .into_inner()
-        .drain(..)
         .into_iter()
         .map(|update| (update.name().to_owned(), update))
         .collect::<HashMap<_, _>>();
@@ -149,7 +148,7 @@ async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
     if let Some(bridge_update) = bridge_updates.remove(UPSTREAM) {
         bridges.send_update(bridge_update).await;
     } else {
-        dbg!("{} bridge update is empty", UPSTREAM);
+        debug!("{} bridge update is empty", UPSTREAM);
         bridges.send_update(BridgeUpdate::new(UPSTREAM)).await;
     }
 }
