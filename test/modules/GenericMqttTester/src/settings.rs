@@ -43,7 +43,7 @@ impl<'de> serde::Deserialize<'de> for Settings {
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Debug, serde_derive::Deserialize)]
+        #[derive(Debug, Deserialize)]
         struct Inner {
             test_scenario: TestScenario,
         }
