@@ -44,12 +44,13 @@ stages:
           displayName: 'Run Connectivity Deployment'
           inputs:
             targetType: inline
+            #@TODO change Build.Repository.LocalPath to use artifact.
             script: |
               declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
 
-              chmod +x $(Build.ArtifactStagingDirectory)/test/connectivity/scripts/install.sh
+              chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh
              
-              sudo $(Build.ArtifactStagingDirectory)test/connectivity/scripts/install.sh \
+              sudo $(Build.Repository.LocalPath)test/connectivity/scripts/install.sh \
                 -connectionString=$(ConnectivityNestedEdge-ConnectionString) \
                 -s=$(azure.subscription) \
                 -hubrg=$(ressourcegroup)
