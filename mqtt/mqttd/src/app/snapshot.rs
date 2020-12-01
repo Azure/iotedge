@@ -1,6 +1,6 @@
 use tokio::{
     task::JoinHandle,
-    time::{Duration, Instant},
+    time::{self, Duration, Instant},
 };
 use tracing::{info, warn};
 
@@ -46,7 +46,7 @@ async fn tick_snapshot(
 ) {
     info!("persisting state every {:?}", period);
     let start = Instant::now() + period;
-    let mut interval = tokio::time::interval_at(start, period);
+    let mut interval = time::interval_at(start, period);
     loop {
         interval.tick().await;
         if let Err(e) = broker_handle.send(Message::System(SystemEvent::StateSnapshot(

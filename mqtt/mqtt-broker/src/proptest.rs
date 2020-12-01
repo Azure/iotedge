@@ -2,13 +2,15 @@
 use std::{net::IpAddr, net::SocketAddr, time::Duration};
 
 use bytes::Bytes;
-use mqtt3::proto;
+use chrono::Utc;
 use proptest::{
     bool,
     collection::{hash_map, vec, vec_deque},
     num,
     prelude::*,
 };
+
+use mqtt3::proto;
 
 use crate::{
     AuthId, BrokerSnapshot, ClientId, ClientInfo, Publish, Segment, SessionSnapshot, Subscription,
@@ -34,6 +36,7 @@ prop_compose! {
             client_info,
             subscriptions,
             waiting_to_be_sent,
+            Utc::now()
         )
     }
 }

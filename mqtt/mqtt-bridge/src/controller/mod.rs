@@ -5,8 +5,8 @@ use bridges::Bridges;
 use async_trait::async_trait;
 use futures_util::{
     future::{self, Either},
-    stream::Fuse,
-    FusedStream, StreamExt,
+    stream::{Fuse, FusedStream},
+    StreamExt,
 };
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, warn};

@@ -6,8 +6,8 @@ use std::{
 
 use futures_util::{
     future::{self, BoxFuture},
-    stream::{FuturesUnordered, Stream},
-    FusedStream, FutureExt, StreamExt,
+    stream::{FusedStream, FuturesUnordered, Stream},
+    FutureExt, StreamExt,
 };
 use tokio::task::JoinError;
 use tracing::{debug, error, info_span, warn};
