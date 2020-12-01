@@ -89,10 +89,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         void SetBasicDpsParam(string idScope)
         {
-            this.config[Service.Edged].document.RemoveIfExists("provisioning");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.source", "dps");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.scope_id", idScope);
+            this.config[Service.Identityd].document.RemoveIfExists("provisioning");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.source", "dps");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.scope_id", idScope);
         }
 
         public void SetManualSasProvisioning(string hubHostname, string deviceId, string preloadedKey)
@@ -110,21 +110,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Uri certUri = new Uri(identityCertPath, UriKind.Absolute);
             Uri pKeyUri = new Uri(identity_pk_path, UriKind.Absolute);
 
-            this.config[Service.Edged].document.RemoveIfExists("provisioning");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.source", "manual");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.authentication.method", "x509");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.authentication.iothub_hostname", hubhostname);
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.authentication.device_id", deviceId);
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.authentication.identity_cert", certUri.ToString());
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.authentication.identity_pk", pKeyUri.ToString());
+            this.config[Service.Identityd].document.RemoveIfExists("provisioning");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.source", "manual");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.device_id", deviceId);
+
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.authentication.method", "x509");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.authentication.identity_cert", certUri.ToString());
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.authentication.identity_pk", pKeyUri.ToString());
         }
 
         public void SetDpsSymmetricKey(string idScope, string registrationId, string deviceKey)
         {
             this.SetBasicDpsParam(idScope);
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
         }
 
         public void SetDpsX509(string idScope, string registrationId, IdCertificates cert)
@@ -133,10 +134,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Uri pKeyUri = new Uri(cert.KeyPath, UriKind.Absolute);
 
             this.SetBasicDpsParam(idScope);
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.attestation.method", "x509");
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.attestation.identity_cert", certUri.ToString());
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.attestation.identity_pk", pKeyUri.ToString());
-            this.config[Service.Edged].document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.attestation.method", "x509");
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.attestation.identity_cert", certUri.ToString());
+            this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.attestation.identity_pk", pKeyUri.ToString());
         }
 
         public void SetDeviceHostname(string value)
@@ -152,14 +153,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetCertificates(CaCertificates certs)
         {
-            this.config[Service.Edged].document.ReplaceOrAdd("certificates.device_ca_cert", certs.CertificatePath);
-            this.config[Service.Edged].document.ReplaceOrAdd("certificates.device_ca_pk", certs.KeyPath);
-            this.config[Service.Edged].document.ReplaceOrAdd("certificates.trusted_ca_certs", certs.TrustedCertificatesPath);
+            this.config[Service.Certd].document.ReplaceOrAdd("preloaded_certs.iotedge-device-ca", certs.CertificatePath);
+            this.config[Service.Keyd].document.ReplaceOrAdd("preloaded_keys.iotedge-device-ca", certs.KeyPath);
+            this.config[Service.Certd].document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", certs.TrustedCertificatesPath);
         }
 
         public void RemoveCertificates()
         {
-            this.config[Service.Edged].document.RemoveIfExists("certificates");
+            this.config[Service.Certd].document.RemoveIfExists("preloaded_certs.iotedge-device-ca");
+            this.config[Service.Keyd].document.RemoveIfExists("preloaded_keys.iotedge-device-ca");
+            this.config[Service.Certd].document.RemoveIfExists("preloaded_certs.iotedge-trust-bundle");
         }
 
         public void Update()
