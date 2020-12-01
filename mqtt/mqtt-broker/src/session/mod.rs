@@ -4,6 +4,7 @@ pub(crate) mod identifiers;
 mod offline;
 mod state;
 
+use chrono::{DateTime, Utc};
 pub use connected::ConnectedSession;
 use disconnecting::DisconnectingSession;
 use offline::OfflineSession;
@@ -38,8 +39,8 @@ impl Session {
         Self::Persistent(connected)
     }
 
-    pub fn new_offline(state: SessionState) -> Self {
-        let offline = OfflineSession::new(state);
+    pub fn new_offline(state: SessionState, last_active: DateTime<Utc>) -> Self {
+        let offline = OfflineSession::new(state, last_active);
         Self::Offline(offline)
     }
 
@@ -204,6 +205,7 @@ impl Session {
 mod tests {
     use std::{net::IpAddr, net::Ipv4Addr, net::SocketAddr, time::Duration};
 
+    use chrono::Utc;
     use matches::assert_matches;
     use tokio::sync::mpsc;
     use uuid::Uuid;
@@ -236,6 +238,7 @@ mod tests {
 
     fn default_config() -> SessionConfig {
         SessionConfig::new(
+            Duration::default(),
             Duration::default(),
             None,
             16,
@@ -388,7 +391,8 @@ mod tests {
         let client_id = ClientId::from(id);
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
         let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
-        let mut session = Session::new_offline(SessionState::new(client_info, default_config()));
+        let mut session =
+            Session::new_offline(SessionState::new(client_info, default_config()), Utc::now());
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -404,7 +408,8 @@ mod tests {
         let client_id = ClientId::from(id);
         let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
         let client_info = ClientInfo::new(client_id, socket, AuthId::from("authId1"));
-        let mut session = Session::new_offline(SessionState::new(client_info, default_config()));
+        let mut session =
+            Session::new_offline(SessionState::new(client_info, default_config()), Utc::now());
 
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),
