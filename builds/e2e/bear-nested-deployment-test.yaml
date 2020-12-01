@@ -47,9 +47,9 @@ stages:
             script: |
               declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
 
-              chmod +x $(Agent.BuildDirectory)/scripts/install.sh
+              chmod +x $(Agent.BuildDirectory)/test/connectivity/scripts/install.sh
              
-              sudo $(Agent.BuildDirectory)/scripts/install.sh \
+              sudo $(Agent.BuildDirectory)test/connectivity/scripts/install.sh \
                 -connectionString=$(ConnectivityNestedEdge-ConnectionString) \
                 -s=$(azure.subscription) \
                 -hubrg=$(ressourcegroup)
