@@ -464,8 +464,7 @@ function test_setup() {
     validate_test_parameters && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
     
-    clean_up && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+    clean_up
     
     prepare_test_from_artifacts && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
