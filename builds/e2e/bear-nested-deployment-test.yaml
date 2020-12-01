@@ -39,19 +39,5 @@ stages:
         - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
           name: var1
         - template: templates/nested_connectivity-deploy.yaml
-        - task: Bash@3
-          condition: and(succeeded(), eq(variables['run.flag'], 1))
-          displayName: 'Run Connectivity Deployment'
-          inputs:
-            targetType: inline
-            #@TODO change Build.Repository.LocalPath to use artifact.
-            script: |
-              declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
 
-              chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh
-             
-              sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh \
-                -connectionString=$(ConnectivityNestedEdge-ConnectionString) \
-                -s=$(azure.subscription) \
-                -hubrg=$(ressourcegroup)
 
