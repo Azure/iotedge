@@ -11,6 +11,7 @@
         },
         "session": {
             "expiration": "60d",
+            "cleanup_interval": "1d",
             "max_message_size": "256kb",
             "max_inflight_messages": 16,
             "max_queued_messages": 1000,
