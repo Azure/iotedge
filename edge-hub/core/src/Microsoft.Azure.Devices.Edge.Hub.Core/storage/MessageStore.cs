@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         readonly IStoreProvider storeProvider;
         TimeSpan timeToLive;
 
-        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool checkEntireQueueOnCleanup = false, int messageCleanupIntervalSecs = -1)
+        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool checkEntireQueueOnCleanup, int messageCleanupIntervalSecs)
         {
             this.storeProvider = Preconditions.CheckNotNull(storeProvider);
             this.messageEntityStore = this.storeProvider.GetEntityStore<string, MessageWrapper>(Constants.MessageStorePartitionKey);
@@ -204,10 +204,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup, int messageCleanupIntervalSecs)
             {
+                this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
                 this.messageStore = messageStore;
                 this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
                 this.cancellationTokenSource = new CancellationTokenSource();
-                this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
                 this.messageCleanupIntervalSecs = messageCleanupIntervalSecs;
                 this.expiredCounter = Metrics.Instance.CreateCounter(
                    "messages_dropped",
