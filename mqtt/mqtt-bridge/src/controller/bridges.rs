@@ -62,6 +62,8 @@ impl Bridges {
             if let Err(e) = config.send_update(update).await {
                 error!("error sending bridge update {:?}", e);
             }
+        } else {
+            debug!("config for {} not found", update.name());
         }
     }
 
