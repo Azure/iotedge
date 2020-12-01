@@ -122,8 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
                     DaemonConfiguration.CreateConfigFile(paths.Edged, paths.Edged + ".template", "iotedge");
 
-                    var yaml = new DaemonConfiguration(paths, this.bootstrapAgentImage, this.bootstrapRegistry);
-                    (string msg, object[] props) = await config(yaml);
+                    DaemonConfiguration conf = new DaemonConfiguration(paths, this.bootstrapAgentImage, this.bootstrapRegistry);
+                    (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
                     properties = properties.Concat(props).ToArray();
