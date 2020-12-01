@@ -97,9 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetManualSasProvisioning(string hubHostname, string deviceId, string preloadedKey)
         {
-            this.config[Service.Identityd].document.ReplaceOrAdd("hostname", deviceId);
-            this.config[Service.Edged].document.ReplaceOrAdd("hostname", deviceId);
-
             this.config[Service.Identityd].document.RemoveIfExists("provisioning");
             this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
@@ -145,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public void SetDeviceHostname(string value)
         {
             this.config[Service.Edged].document.ReplaceOrAdd("hostname", value);
+            this.config[Service.Identityd].document.ReplaceOrAdd("hostname", value);
         }
 
         public void SetParentHostname(string value)
