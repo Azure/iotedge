@@ -74,7 +74,6 @@ steps:
         testInfo="$testInfo,EdgeletSourceBranch=$(edgelet.package.branchName)"
         testInfo="$testInfo,ImagesSourceBranch$(images.branchName)"
         testInfo="$testInfo,HostPlatform=linux_amd64_moby"
-        testInfo="$testInfo,NetworkDescription=$(testrun.network.description)"
         testInfo="$testInfo,TestName=$testName"
         testInfo="$testInfo,CustomEdgeAgentImage=$(customEdgeAgent.image)"
         testInfo="$testInfo,CustomEdgeHubImage=$(customEdgeHub.image)"
@@ -89,11 +88,7 @@ steps:
           -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
           -eventHubConnectionString "$(ConnectivityNestedEdge-EventHubConnectionString)" \
           -upstreamProtocol "$(upstream.protocol)" \
-          -testDuration "$(testrun.duration)" \
-          -testStartDelay "$(testStartDelay)" \
           -loadGenMessageFrequency "$(loadGen.message.frequency.amd64)" \
-          -networkControllerFrequency "$(testrun.network.frequencies)" \
-          -networkControllerRunProfile "$(testrun.network.runProfile)" \
           -logAnalyticsWorkspaceId "$(kvLogAnalyticWorkspaceId)" \
           -logAnalyticsSharedKey "$(kvLogAnalyticSharedKey)" \
           -logAnalyticsLogType "$(testResultCoordinator.logAnalyticsLogType)" \
@@ -110,7 +105,6 @@ steps:
           -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
           -customEdgeAgentImage "$(customEdgeAgent.image)" \
           -customEdgeHubImage "$(customEdgeHub.image)" \
-          -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
           -testInfo "$testInfo" \
           -waitForTestComplete \
           -cleanAll
@@ -118,13 +112,4 @@ steps:
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"
         exit $scriptExitCode
-
-
-        declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
-
-        chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh
-        
-        sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh \
-          -connectionString=$(ConnectivityNestedEdge-ConnectionString) \
-          -s=$(azure.subscription) \
-          -hubrg=$(ressourcegroup)        
+     
