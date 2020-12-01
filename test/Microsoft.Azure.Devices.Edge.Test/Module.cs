@@ -146,11 +146,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {
-            if (OsPlatform.IsWindows() && (protocol == Protocol.AmqpWs || protocol == Protocol.MqttWs))
-            {
-                Assert.Ignore("Module-to-module direct methods don't work over WebSocket on Windows");
-            }
-
             string senderImage = Context.Current.MethodSenderImage.Expect(() => new InvalidOperationException("Missing Direct Method Sender image"));
             string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new InvalidOperationException("Missing Direct Method Receiver image"));
             string methodSender = $"methodSender-{protocol.ToString()}";
