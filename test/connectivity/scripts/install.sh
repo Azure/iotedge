@@ -12,10 +12,6 @@ function prepare_test_from_artifacts() {
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
 
-    echo 'Extract quickstart to working folder'
-    mkdir -p "$quickstart_working_folder"
-    tar -C "$quickstart_working_folder" -xzf "$iotedge_quickstart_artifact_file"
-
     echo "Copy deployment file from $connectivity_deployment_artifact_file"
     cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
     
