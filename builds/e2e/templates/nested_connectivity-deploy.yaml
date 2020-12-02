@@ -105,6 +105,7 @@ steps:
           -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
           -customEdgeAgentImage "$(customEdgeAgent.image)" \
           -customEdgeHubImage "$(customEdgeHub.image)" \
+          -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
           -testInfo "$testInfo" \
           -waitForTestComplete \
           -cleanAll
