@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+set -e
+
+# Import test-related functions
+. $(dirname "$0")/testHelper.sh
+
 while :; do
     case $1 in
         -h|-\?|--help)
@@ -42,7 +47,7 @@ while :; do
 done
 hubname=$(echo $connectionString | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
 
-local funcRet=0
+funcRet=0
 
 clean_up && funcRet=$? || funcRet=$?
 if [ $funcRet -ne 0 ]; then return $funcRet; fi
