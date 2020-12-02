@@ -215,7 +215,7 @@ function process_args() {
                 '-customEdgeHubImage' ) saveNextArg=33;;
                 '-testRuntimeLogLevel' ) saveNextArg=34;;
                 '-testInfo' ) saveNextArg=35;;
-                '-subscription' ) subscription=36;;
+                '-subscription' ) saveNextArg=36;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
