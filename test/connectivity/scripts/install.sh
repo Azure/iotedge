@@ -274,7 +274,7 @@ set -e
 . $(dirname "$0")/testHelper.sh
 
 is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
-if [ $is_build_canceled -eq 1 ]; then
+if [ "$is_build_canceled" -eq 1 ]; then
     print_highlighted_message "build is canceled."
     exit 3
 fi
@@ -297,7 +297,7 @@ az account set --subscription $SUBSCRIPTION
 iotEdgeDevicesName="level${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
 
 echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${hubname}"
-if [ $LEVEL -eq 5 ]; then
+if [ "$LEVEL" -eq 5 ]; then
     az iot hub device-identity create -n $iotHubName -d $iotEdgeDevicesName --output none
 else
     az iot hub device-identity create -n $iotHubName -d $iotEdgeDevicesName --ee --pd ${PARENT_IOTEDGE_NAME} --output none
