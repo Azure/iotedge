@@ -70,14 +70,18 @@ stages:
               newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["nested-edge"]) |= sub("$"; "_$(Build.BuildId)")')
 
               # Update the user capability on the agent pool for this agent
-              curl -s -u :$PAT \
+              responseCapabilities=$(curl -s -u :$PAT \
               --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
               -H "Content-Type:application/json" \
               -H "Accept: application/json;api-version=5.0;" \
               --data @<(cat <<EOF
               $newAgentUserCapabilities
               EOF
-              )
+              ))
+
+              # Validate the capability update was successful
+              responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
+              [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
 
         #Method 1 -- sleep until it's time
         - script: |
