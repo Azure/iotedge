@@ -96,9 +96,9 @@ steps:
           -customEdgeHubImage "$(customEdgeHub.image)" \
           -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
           -testInfo "$testInfo" \
-          -subscription "$(azure.subscription)"
-          -level "5"         
-          -parentIoTedgeName ""
+          -subscription "$(azure.subscription)" \
+          -level "5" \         
+          -parentIoTedgeName "" \
           -waitForTestComplete \
           -cleanAll  
 # - task: Bash@3
