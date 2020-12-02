@@ -57,18 +57,18 @@ steps:
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
       CleanTargetFolder: true
   - task: DownloadBuildArtifacts@0
-  condition: and(succeeded(), eq(variables['run.flag'], 1))
-  displayName: 'Download Images Artifacts'
-  inputs:
-    buildType: specific
-    project: $(vsts.project)
-    pipeline: $(images.build)
-    branchName: $(images.branchName)
-    buildVersionToDownload: latestFromBranch
-    downloadPath: '$(Build.StagingDirectory)'
-    artifactName: $(images.artifact.name.linux)
-    itemPattern: |
-      $(images.artifact.name.linux)/scripts/install.sh     
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Download Images Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(images.build)
+      branchName: $(images.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(images.artifact.name.linux)
+      itemPattern: |
+        $(images.artifact.name.linux)/scripts/install.sh     
 # - task: Bash@3
 #   condition: and(succeeded(), eq(variables['run.flag'], 1))
 #   displayName: 'Run Connectivity Deployment'
