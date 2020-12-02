@@ -81,6 +81,7 @@ stages:
 
               # Validate the capability update was successful
               responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
+              echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
               [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
 
         - task: Bash@3
@@ -104,41 +105,41 @@ stages:
               echo "[$(Agent.JobName)]= $(dependencies.$(Agent.JobName).outputs['var1.L3.readyAgent'])"
           name: RunTest
 
-        - task: Bash@3
-          name: unlock_test_agent
-          displayName: 'Release $(Agent.Name)'
-          env:
-            POOL_ID: 123
-            API_VER: 6.0
-            PAT: $(IotEdge1.PAT)
-          inputs:
-            targetType: inline
-            script: |
-              # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
-              agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?api-version=$API_VER")
+        #- task: Bash@3
+        #  name: unlock_test_agent
+        #  displayName: 'Release $(Agent.Name)'
+        #  env:
+        #    POOL_ID: 123
+        #    API_VER: 6.0
+        #    PAT: $(IotEdge1.PAT)
+        #  inputs:
+        #    targetType: inline
+        #    script: |
+        #      # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
+        #      agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?api-version=$API_VER")
 
-              # Filter test agent ID given the name
-              agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$(Agent.Name)") | .id')
+        #      # Filter test agent ID given the name
+        #      agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$(Agent.Name)") | .id')
 
-              # Get test agent's capabilities
-              agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        #      # Get test agent's capabilities
+        #      agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
 
-              # Filter for user capabilities, access "nested-edge" field and append buildId as a suffix
-              newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["nested-edge"]) |= sub("_$(Build.BuildId)$"; "")')
+        #      # Filter for user capabilities, access "nested-edge" field and append buildId as a suffix
+        #      newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["nested-edge"]) |= sub("_$(Build.BuildId)$"; "")')
 
-              # Update the user capability on the agent pool for this agent
-              responseCapabilities=$(curl -s -u :$PAT \
-              --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
-              -H "Content-Type:application/json" \
-              -H "Accept: application/json;api-version=5.0;" \
-              --data @<(cat <<EOF
-              $newAgentUserCapabilities
-              EOF
-              ))
+        #      # Update the user capability on the agent pool for this agent
+        #      responseCapabilities=$(curl -s -u :$PAT \
+        #      --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
+        #      -H "Content-Type:application/json" \
+        #      -H "Accept: application/json;api-version=5.0;" \
+        #      --data @<(cat <<EOF
+        #      $newAgentUserCapabilities
+        #      EOF
+        #      ))
 
-              # Validate the capability update was successful
-              responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
-              [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
+        #      # Validate the capability update was successful
+        #      responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
+        #      [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
 
     - job: SetupVM_job13
       displayName: SettingUp
@@ -192,6 +193,7 @@ stages:
       variables:
         L3: $[ dependencies.SetupVM_job13.outputs['var1.L3.readyAgent'] ]
         L3_5: $[ dependencies.SetupVM_job135.outputs['var1.L3_5.readyAgent'] ]
+        targetAgentName: $[ dependencies.SetupVM_job135.outputs['lock_test_agent.agentName'] ]
       pool:
         name: $(pool.name)
         demands:
@@ -199,7 +201,6 @@ stages:
           - Agent.OS -equals Linux
           - Agent.OSArchitecture -equals X64
           - run-idle -equals true
-          - nested-edge -equals L3_5
       steps:
         - bash: |
             echo "L3: $(L3)"
@@ -213,3 +214,53 @@ stages:
           env:
             L3: $(L3)
             L3_5: $(L3_5)
+
+        - task: Bash@3
+          name: unlock_test_agent
+          displayName: 'Release Test Agent'
+          env:
+            POOL_ID: 123
+            API_VER: 6.0
+            PAT: $(IotEdge1.PAT)
+            targetAgentName: $(targetAgentName)
+          inputs:
+            targetType: inline
+            script: |
+              # Install pre-requisite 'jq'
+              CMD=jq
+              if ! command -v $CMD &> /dev/null
+              then
+                echo "Command '$CMD' not found, Installing '$CMD'"
+                sudo add-apt-repository universe
+                sudo apt-get update
+                sudo apt-get install -y $CMD
+              fi
+
+              # Print out the test agent name
+              echo "Releasing $(targetAgentName)"
+
+              # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
+              agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?api-version=$API_VER")
+
+              # Filter test agent ID given the name
+              agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$(targetAgentName)") | .id')
+
+              # Get test agent's capabilities
+              agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+
+              # Filter for user capabilities, access "nested-edge" field and append buildId as a suffix
+              newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["nested-edge"]) |= sub("_$(Build.BuildId)$"; "")')
+
+              # Update the user capability on the agent pool for this agent
+              responseCapabilities=$(curl -s -u :$PAT \
+              --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
+              -H "Content-Type:application/json" \
+              -H "Accept: application/json;api-version=5.0;" \
+              --data @<(cat <<EOF
+              $newAgentUserCapabilities
+              EOF
+              ))
+
+              # Validate the capability update was successful
+              responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
+              [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
