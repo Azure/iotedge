@@ -66,6 +66,21 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
 }
 
+function test_setup() {
+    local funcRet=0
+
+    validate_test_parameters && funcRet=$? || funcRet=$?
+    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+    
+    clean_up && funcRet=$? || funcRet=$?
+    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+    
+    prepare_test_from_artifacts && funcRet=$? || funcRet=$?
+    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+    
+    create_iotedge_service_config && funcRet=$? || funcRet=$?
+    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+}
 set -e
 
 # Import test-related functions
@@ -113,16 +128,7 @@ while :; do
 done
 hubname=$(echo $connectionString | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
 
-funcRet=0
-
-clean_up && funcRet=$? || funcRet=$?
-if [ $funcRet -ne 0 ]; then return $funcRet; fi
-
-prepare_test_from_artifacts && funcRet=$? || funcRet=$?
-if [ $funcRet -ne 0 ]; then return $funcRet; fi
-
-create_iotedge_service_config && funcRet=$? || funcRet=$?
-if [ $funcRet -ne 0 ]; then return $funcRet; fi
+test_setup
 
 az account set --subscription $subscription
 source ${scriptFolder}/parseConfigFile.sh $configFilePath
