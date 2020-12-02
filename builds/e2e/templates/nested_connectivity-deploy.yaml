@@ -56,61 +56,74 @@ steps:
       SourceFolder: "$(Build.StagingDirectory)/$(images.artifact.name.linux)"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
       CleanTargetFolder: true
-  - task: Bash@3
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
-    displayName: 'Run Connectivity Deployment'
-    inputs:
-      targetType: inline
-      #@TODO change Build.Repository.LocalPath to use artifact.
-      script: |
-        . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
-        chmod +x $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/scripts/testHelper.sh
-        chmod +x $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/scripts/connectivityTest.sh
-        testName="Connectivity"
-
-        testInfo="TestBuildNumber=$(Build.BuildNumber)"
-        testInfo="$testInfo,TestBuildId=$(Build.BuildId)"
-        testInfo="$testInfo,BuildSourceBranch=$(Build.SourceBranchName)"
-        testInfo="$testInfo,EdgeletSourceBranch=$(edgelet.package.branchName)"
-        testInfo="$testInfo,ImagesSourceBranch$(images.branchName)"
-        testInfo="$testInfo,HostPlatform=linux_amd64_moby"
-        testInfo="$testInfo,TestName=$testName"
-        testInfo="$testInfo,CustomEdgeAgentImage=$(customEdgeAgent.image)"
-        testInfo="$testInfo,CustomEdgeHubImage=$(customEdgeHub.image)"
-        
-        sudo $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/scripts/connectivityTest.sh \
-          -testDir "$(Agent.HomeDirectory)/.." \
-          -releaseLabel "ct$(agent.group)" \
-          -artifactImageBuildNumber "$BuildNumber" \
-          -containerRegistry "$(container.registry)" \
-          -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
-          -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
-          -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
-          -eventHubConnectionString "$(ConnectivityNestedEdge-EventHubConnectionString)" \
-          -upstreamProtocol "$(upstream.protocol)" \
-          -loadGenMessageFrequency "$(loadGen.message.frequency.amd64)" \
-          -logAnalyticsWorkspaceId "$(kvLogAnalyticWorkspaceId)" \
-          -logAnalyticsSharedKey "$(kvLogAnalyticSharedKey)" \
-          -logAnalyticsLogType "$(testResultCoordinator.logAnalyticsLogType)" \
-          -verificationDelay "$(testResultCoordinator.verificationDelay)" \
-          -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
-          -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
-          -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
-          -deploymentFileName "$(deploymentFileName)" \
-          -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
-          -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
-          -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
-          -devOpsAccessToken "$(System.AccessToken)" \
-          -devOpsBuildId "$(Build.BuildId)" \
-          -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
-          -customEdgeAgentImage "$(customEdgeAgent.image)" \
-          -customEdgeHubImage "$(customEdgeHub.image)" \
-          -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
-          -testInfo "$testInfo" \
-          -waitForTestComplete \
-          -cleanAll
-
-        scriptExitCode=$?
-        echo "script exit code=$scriptExitCode"
-        exit $scriptExitCode
+  - task: DownloadBuildArtifacts@0
+  condition: and(succeeded(), eq(variables['run.flag'], 1))
+  displayName: 'Download Images Artifacts'
+  inputs:
+    buildType: specific
+    project: $(vsts.project)
+    pipeline: $(images.build)
+    branchName: $(images.branchName)
+    buildVersionToDownload: latestFromBranch
+    downloadPath: '$(Build.StagingDirectory)'
+    artifactName: $(images.artifact.name.linux)
+    itemPattern: |
+      $(images.artifact.name.linux)/scripts/install.sh     
+# - task: Bash@3
+#   condition: and(succeeded(), eq(variables['run.flag'], 1))
+#   displayName: 'Run Connectivity Deployment'
+#   inputs:
+#     targetType: inline
+#     #@TODO change Build.Repository.LocalPath to use artifact.
+#     script: |
+#       . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
+#       chmod +x $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/scripts/testHelper.sh
+#       chmod +x $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/scripts/connectivityTest.sh
+#       testName="Connectivity"
+#
+#       testInfo="TestBuildNumber=$(Build.BuildNumber)"
+#       testInfo="$testInfo,TestBuildId=$(Build.BuildId)"
+#       testInfo="$testInfo,BuildSourceBranch=$(Build.SourceBranchName)"
+#       testInfo="$testInfo,EdgeletSourceBranch=$(edgelet.package.branchName)"
+#       testInfo="$testInfo,ImagesSourceBranch$(images.branchName)"
+#       testInfo="$testInfo,HostPlatform=linux_amd64_moby"
+#       testInfo="$testInfo,TestName=$testName"
+#       testInfo="$testInfo,CustomEdgeAgentImage=$(customEdgeAgent.image)"
+#       testInfo="$testInfo,CustomEdgeHubImage=$(customEdgeHub.image)"
+#       
+#       sudo $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/scripts/connectivityTest.sh \
+#         -testDir "$(Agent.HomeDirectory)/.." \
+#         -releaseLabel "ct$(agent.group)" \
+#         -artifactImageBuildNumber "$BuildNumber" \
+#         -containerRegistry "$(container.registry)" \
+#         -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
+#         -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
+#         -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
+#         -eventHubConnectionString "$(ConnectivityNestedEdge-EventHubConnectionString)" \
+#         -upstreamProtocol "$(upstream.protocol)" \
+#         -loadGenMessageFrequency "$(loadGen.message.frequency.amd64)" \
+#         -logAnalyticsWorkspaceId "$(kvLogAnalyticWorkspaceId)" \
+#         -logAnalyticsSharedKey "$(kvLogAnalyticSharedKey)" \
+#         -logAnalyticsLogType "$(testResultCoordinator.logAnalyticsLogType)" \
+#         -verificationDelay "$(testResultCoordinator.verificationDelay)" \
+#         -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
+#         -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
+#         -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
+#         -deploymentFileName "$(deploymentFileName)" \
+#         -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
+#         -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
+#         -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
+#         -devOpsAccessToken "$(System.AccessToken)" \
+#         -devOpsBuildId "$(Build.BuildId)" \
+#         -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
+#         -customEdgeAgentImage "$(customEdgeAgent.image)" \
+#         -customEdgeHubImage "$(customEdgeHub.image)" \
+#         -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
+#         -testInfo "$testInfo" \
+#         -waitForTestComplete \
+#         -cleanAll
+#
+#       scriptExitCode=$?
+#       echo "script exit code=$scriptExitCode"
+#       exit $scriptExitCode
      
