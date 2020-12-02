@@ -69,8 +69,8 @@ function prepare_test_from_artifacts() {
 function test_setup() {
     local funcRet=0
 
-    validate_test_parameters && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+    #validate_test_parameters && funcRet=$? || funcRet=$?
+    #if [ $funcRet -ne 0 ]; then return $funcRet; fi
     
     clean_up && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
