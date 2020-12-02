@@ -236,6 +236,7 @@ function process_args() {
     done
 
     # Required parameters
+    [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
     [[ -z "$RELEASE_LABEL" ]] && { print_error 'Release label is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
@@ -275,7 +276,7 @@ set -e
 . $(dirname "$0")/testHelper.sh
 
 is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
-if [ "$is_build_canceled" -eq 1 ]; then
+if [ "$is_build_canceled" -eq "1" ]; then
     print_highlighted_message "build is canceled."
     exit 3
 fi
