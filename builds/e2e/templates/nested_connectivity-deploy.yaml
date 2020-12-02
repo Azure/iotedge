@@ -68,9 +68,36 @@ steps:
         chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh
         
         sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh \
-          -connectionString=$(ConnectivityNestedEdge-ConnectionString) \
-          -s=$(azure.subscription) \
-          -hubrg=$(ressourcegroup)    
+          -testDir "$(Agent.HomeDirectory)/.." \
+          -releaseLabel "ct$(agent.group)" \
+          -artifactImageBuildNumber "$BuildNumber" \
+          -containerRegistry "$(container.registry)" \
+          -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
+          -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
+          -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
+          -eventHubConnectionString "$(ConnectivityNestedEdge-EventHubConnectionString)" \
+          -upstreamProtocol "$(upstream.protocol)" \
+          -loadGenMessageFrequency "$(loadGen.message.frequency.amd64)" \
+          -logAnalyticsWorkspaceId "$(kvLogAnalyticWorkspaceId)" \
+          -logAnalyticsSharedKey "$(kvLogAnalyticSharedKey)" \
+          -logAnalyticsLogType "$(testResultCoordinator.logAnalyticsLogType)" \
+          -verificationDelay "$(testResultCoordinator.verificationDelay)" \
+          -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
+          -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
+          -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
+          -deploymentFileName "$(deploymentFileName)" \
+          -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
+          -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
+          -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
+          -devOpsAccessToken "$(System.AccessToken)" \
+          -devOpsBuildId "$(Build.BuildId)" \
+          -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
+          -customEdgeAgentImage "$(customEdgeAgent.image)" \
+          -customEdgeHubImage "$(customEdgeHub.image)" \
+          -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
+          -testInfo "$testInfo" \
+          -waitForTestComplete \
+          -cleanAll  
 # - task: Bash@3
 #   condition: and(succeeded(), eq(variables['run.flag'], 1))
 #   displayName: 'Run Connectivity Deployment'
