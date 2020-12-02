@@ -217,7 +217,7 @@ stages:
 
         - task: Bash@3
           name: unlock_test_agent
-          displayName: 'Release $(Agent.Name)'
+          displayName: 'Release Test Agent'
           env:
             POOL_ID: 123
             API_VER: 6.0
@@ -226,6 +226,18 @@ stages:
           inputs:
             targetType: inline
             script: |
+              # Install pre-requisite 'jq'
+              CMD=jq
+              if ! command -v $CMD &> /dev/null
+              then
+                echo "Command '$CMD' not found, Installing '$CMD'"
+                sudo add-apt-repository universe
+                sudo apt-get update
+                sudo apt-get install -y $CMD
+              fi
+
+              echo "Releasing $(echo $RESPONSE_CAPABILITY | jq '.systemCapabilities | .["Agent.Name"]')"
+
               # Filter for user capabilities, access "nested-edge" field and append buildId as a suffix
               newAgentUserCapabilities=$(echo $RESPONSE_CAPABILITY | jq '.userCapabilities | (.["nested-edge"]) |= sub("_$(Build.BuildId)$"; "")')
 
