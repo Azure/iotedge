@@ -276,7 +276,7 @@ set -e
 . $(dirname "$0")/testHelper.sh
 
 is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
-if [ "$is_build_canceled" -eq "1" ]; then
+if [ "$is_build_canceled" -eq 1 ]; then
     print_highlighted_message "build is canceled."
     exit 3
 fi
