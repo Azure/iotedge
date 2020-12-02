@@ -59,7 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                     async creds => (await this.AuthenticateAsync(creds), Option.Some(creds)),
                                     () => Task.FromResult((false, Option.None<IClientCredentials>())));
 
-                var authResult = await GetAuthResult(isAuthenticated, credentials, this.metadataStore);
+                var authResult = GetAuthResult(isAuthenticated, credentials);
+                if (isAuthenticated)
+                {
+                    await credentials.ForEachAsync(async c => await this.metadataStore.SetMetadata(c.Identity.Id, c.ProductInfo, c.ModelId));
+                }
+
                 return this.Json(authResult);
             }
             catch (Exception e)
@@ -149,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return false;
         }
 
-        static async Task<object> GetAuthResult(bool isAuthenticated, Option<IClientCredentials> credentials, IMetadataStore metadataStore)
+        static object GetAuthResult(bool isAuthenticated, Option<IClientCredentials> credentials)
         {
             // note, that if authenticated, then these values are present, and defaults never apply
             var id = credentials.Map(c => $"{c.Identity.IotHubHostname}/{c.Identity.Id}").GetOrElse("anonymous");
@@ -157,10 +162,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             if (isAuthenticated)
             {
                 Events.AuthSucceeded(id);
-                await credentials.ForEachAsync(async c =>
-                {
-                    await metadataStore.SetMetadata(c.Identity.Id, c.ProductInfo, c.ModelId);
-                });
                 return new
                 {
                     result = AuthAgentConstants.Authenticated,

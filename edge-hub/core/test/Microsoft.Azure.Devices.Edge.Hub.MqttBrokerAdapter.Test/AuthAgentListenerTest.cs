@@ -27,8 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     public class AuthAgentHeadTest
     {
         const string HOST = "localhost";
-        const int PORT = 7120;
-        const string URL = "http://localhost:7120/authenticate/";
+        const int PORT = 7122;
+        const string URL = "http://localhost:7122/authenticate/";
 
         readonly AuthAgentProtocolHeadConfig config = new AuthAgentProtocolHeadConfig(PORT, "/authenticate/");
 
@@ -353,13 +353,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("productInfo");
             var metadataStore = new MetadataStore(store, "productInfo");
+            string modelIdString = "dtmi:test:modelId;1";
             using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
-                content.username = "testhub/device/api-version=2018-06-30&model-id=dtmi:test:modelId;1";
+                content.username = $"testhub/device/api-version=2018-06-30&model-id={modelIdString}";
                 // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
@@ -368,6 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 Assert.Equal(200, (int)response.result);
                 var modelId = (await metadataStore.GetMetadata("device")).ModelId;
                 Assert.True(modelId.HasValue);
+                Assert.Equal(modelIdString, modelId.GetOrElse("impossibleValue"));
             }
         }
 
