@@ -177,7 +177,13 @@ function process_args() {
         elif [ $saveNextArg -eq 36 ]; then
             SUBSCRIPTION="$arg"
             saveNextArg=0
-        else       
+        elif [ $saveNextArg -eq 37 ]; then
+            LEVEL="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 38 ]; then
+            PARENT_IOTEDGE_NAME="$arg"
+            saveNextArg=0
+        else              
             case "$arg" in
                 '-h' | '--help' ) usage;;
                 '-testDir' ) saveNextArg=1;;
@@ -216,6 +222,8 @@ function process_args() {
                 '-testRuntimeLogLevel' ) saveNextArg=34;;
                 '-testInfo' ) saveNextArg=35;;
                 '-subscription' ) saveNextArg=36;;
+                '-level' ) saveNextArg=37;;
+                '-parentIoTedgeName' ) saveNextArg=38;;                
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
@@ -285,11 +293,13 @@ test_setup
 
 hubname=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
 
-echo "creating iotedge identities"
 az account set --subscription $SUBSCRIPTION
+iotEdgeDevicesName="level${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
 
-source test/connectivity/scripts/parseConfigFile.sh $configFilePath
-az iot hub device-identity create -n $iotHubName -d ${iotEdgeDevices[i]} --ee --pd ${iotEdgeParentDevices[i]} --output none
-echo "$iotHubName"
-echo "${iotEdgeDevices[i]}"
-echo "${iotEdgeParentDevices[i]}"
+echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${hubname}"
+if [ $LEVEL -eq 5 ]; then
+    az iot hub device-identity create -n $iotHubName -d $iotEdgeDevicesName --output none
+else
+    az iot hub device-identity create -n $iotHubName -d $iotEdgeDevicesName --ee --pd ${PARENT_IOTEDGE_NAME} --output none
+fi
+
