@@ -358,10 +358,9 @@ fn io_source_from_provider(
 ) -> ClientIoSource {
     let credentials = Credentials::Provider(credential_provider_settings);
     let trust_bundle_source = TrustBundleSource::new(credentials.clone());
-    let token_source = SasTokenSource::new(credentials.clone());
+    let token_source = SasTokenSource::new(credentials);
     let addr = "edgeHub:8883";
     let tcp_connection = TcpConnection::new(addr, Some(token_source), Some(trust_bundle_source));
-    let io_source = ClientIoSource::Tls(tcp_connection);
 
-    io_source
+    ClientIoSource::Tls(tcp_connection)
 }
