@@ -285,6 +285,10 @@ test_setup
 
 hubname=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
 
+echo "creating iotedge identities"
 az account set --subscription $SUBSCRIPTION
-source ${scriptFolder}/parseConfigFile.sh $configFilePath
+source parseConfigFile.sh $configFilePath
 az iot hub device-identity create -n $iotHubName -d ${iotEdgeDevices[i]} --ee --pd ${iotEdgeParentDevices[i]} --output none
+echo "$iotHubName"
+echo "${iotEdgeDevices[i]}"
+echo "${iotEdgeParentDevices[i]}"
