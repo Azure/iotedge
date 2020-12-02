@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 function prepare_test_from_artifacts() {
+    
     print_highlighted_message 'Prepare test from artifacts'
 
     echo 'Remove working folder'
@@ -272,9 +273,17 @@ fi
 
 process_args "$@"
 
-hubname=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
+working_folder="$E2E_TEST_DIR/working"
+iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
+iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
+connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
+deployment_working_file="$working_folder/deployment.json"
+
+get_image_architecture_label
 
 test_setup
+
+hubname=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
 
 az account set --subscription $subscription
 source ${scriptFolder}/parseConfigFile.sh $configFilePath
