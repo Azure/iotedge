@@ -353,7 +353,6 @@ name = "generic_mqtt_tester"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bytes",
  "config",
  "edgelet-client",
  "futures-util",
@@ -361,7 +360,6 @@ dependencies = [
  "mqtt-util",
  "mqtt3",
  "serde",
- "serde_bytes",
  "serde_derive",
  "serde_json",
  "thiserror",
@@ -1152,15 +1150,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b88fa983de7720629c9387e9f517353ed404164b1e482c970a90c1a4aaf7dc1a"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde_bytes"
-version = "0.11.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16ae07dd2f88a366f15bd0632ba725227018c69a1c8550a927324f8eb8368bb9"
-dependencies = [
- "serde",
 ]
 
 [[package]]
