@@ -97,6 +97,8 @@ steps:
           -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
           -testInfo "$testInfo" \
           -subscription "$(azure.subscription)"
+          -level "5"         
+          -parentIoTedgeName ""
           -waitForTestComplete \
           -cleanAll  
 # - task: Bash@3
