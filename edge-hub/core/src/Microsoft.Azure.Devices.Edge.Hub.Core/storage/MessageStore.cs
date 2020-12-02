@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         class CleanupProcessor : IDisposable
         {
             const int CleanupBatchSize = 10;
-            static readonly TimeSpan DefaultCleanupTaskFrequency = TimeSpan.FromMinutes(30); // Check every 30 min that it is still running
+            static readonly TimeSpan CheckCleanupTaskInterval = TimeSpan.FromMinutes(30); // Check every 30 min that cleanup task is still running
             static readonly TimeSpan MinCleanupSleepTime = TimeSpan.FromSeconds(30); // Sleep for 30 secs minimum between clean up loops
             readonly MessageStore messageStore;
             readonly Timer ensureCleanupTaskTimer;
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                    "messages_dropped",
                    "Messages cleaned up because of TTL expired",
                    new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
-                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, DefaultCleanupTaskFrequency);
+                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CheckCleanupTaskInterval);
                 Events.CreatedCleanupProcessor(checkEntireQueueOnCleanup, messageCleanupIntervalSecs);
             }
 
@@ -384,20 +384,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             TimeSpan GetCleanupTaskSleepTime()
             {
-                if (this.messageCleanupIntervalSecs > -1)
-                {
-                    // Must wait MinCleanupSleepTime, even if given interval is lower.
-                    return TimeSpan.FromSeconds(Math.Max(this.messageCleanupIntervalSecs, MinCleanupSleepTime.TotalSeconds));
-                }
-                else
-                {
-                    // If MessageCleanupIntervalSecs isn't given, we will wait TTL/2 or 30 min - whichever is lesser
-                    // But we have a hard cap floor of MinCleanupSleepTime as the minimum interval
-                    double seconds = this.messageStore.timeToLive.TotalSeconds / 2 < DefaultCleanupTaskFrequency.TotalSeconds
-                        ? this.messageStore.timeToLive.TotalSeconds / 2
-                        : DefaultCleanupTaskFrequency.TotalSeconds;
-                    return TimeSpan.FromSeconds(Math.Max(seconds, MinCleanupSleepTime.TotalSeconds));
-                }
+                // Must wait MinCleanupSleepTime, even if given interval is lower.
+                return TimeSpan.FromSeconds(Math.Max(this.messageCleanupIntervalSecs, MinCleanupSleepTime.TotalSeconds));
             }
         }
 
