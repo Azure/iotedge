@@ -6,12 +6,14 @@ use mqtt3::ShutdownError;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
+use mqtt_util::client_io::Credentials;
+
 use crate::{
     client::{ClientError, MqttClientConfig},
     config_update::BridgeDiff,
     persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
-    settings::{ConnectionSettings, Credentials},
+    settings::ConnectionSettings,
     upstream::{
         ConnectivityError, LocalUpstreamMqttEventHandler, LocalUpstreamPumpEvent,
         LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler, RemoteUpstreamPumpEvent,
