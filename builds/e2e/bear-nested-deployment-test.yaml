@@ -201,7 +201,6 @@ stages:
           - Agent.OS -equals Linux
           - Agent.OSArchitecture -equals X64
           - run-idle -equals true
-          - nested-edge -equals L3_5
       steps:
         - bash: |
             echo "L3: $(L3)"
