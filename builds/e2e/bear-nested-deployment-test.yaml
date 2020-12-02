@@ -54,7 +54,7 @@ stages:
                 echo "Command '$CMD' not found, Installing '$CMD'"
                 sudo add-apt-repository universe
                 sudo apt-get update
-                sudo apt-get install $CMD
+                sudo apt-get install -y $CMD
               fi
 
               # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
