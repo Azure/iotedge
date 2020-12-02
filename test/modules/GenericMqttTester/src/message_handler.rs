@@ -1,4 +1,4 @@
-use mpsc::UnboundedSender;
+use mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::{sync::mpsc, task::JoinHandle};
 
 use mqtt3::{PublishHandle, ReceivedPublication};
@@ -34,13 +34,14 @@ impl MessageHandler for ReportResultMessageHandler {
 }
 
 /// Responsible for receiving publications and sending them back to the downstream edge.
-pub struct SendBackMessageHandler {
+pub struct RelayingMessageHandler {
     publication_sender: UnboundedSender<ReceivedPublication>,
+    publication_receiver: UnboundedReceiver<ReceivedPublication>,
     shutdown_handle: ShutdownHandle,
     publish_handle: PublishHandle,
 }
 
-impl SendBackMessageHandler {
+impl RelayingMessageHandler {
     pub fn new(publish_handle: PublishHandle) -> Self {
         let (publication_sender, publication_receiver) =
             mpsc::unbounded_channel::<ReceivedPublication>();
@@ -49,13 +50,18 @@ impl SendBackMessageHandler {
 
         Self {
             publication_sender,
+            publication_receiver,
             shutdown_handle,
             publish_handle,
         }
     }
+
+    async fn relay_message(self) -> Result<(), MessageTesterError> {
+        todo!()
+    }
 }
 
-impl MessageHandler for SendBackMessageHandler {
+impl MessageHandler for RelayingMessageHandler {
     fn run(self) -> (JoinHandle<Result<(), MessageTesterError>>, ShutdownHandle) {
         todo!()
     }

@@ -12,13 +12,16 @@ pub mod tester;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MessageTesterError {
-    #[error("could not get client publish handle")]
+    #[error("could not parse expected module environment vars")]
     ParseEnvironment(#[source] VarError),
 
     #[error("could not get client publish handle")]
     PublishHandle(#[source] PublishError),
 
-    #[error("could not get client publish handle")]
+    #[error("failed to publish")]
+    Publish(#[source] PublishError),
+
+    #[error("could not send signal to shutdown message handler")]
     ShutdownMessageHandler(#[source] SendError<()>),
 }
 

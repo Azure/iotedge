@@ -6,7 +6,7 @@ use mqtt_broker_tests_util::client;
 use mqtt_util::client_io::ClientIoSource;
 
 use crate::{
-    message_handler::{MessageHandler, ReportResultMessageHandler, SendBackMessageHandler},
+    message_handler::{MessageHandler, RelayingMessageHandler, ReportResultMessageHandler},
     settings::{Settings, TestScenario},
     MessageTesterError, ShutdownHandle,
 };
@@ -38,7 +38,7 @@ impl MessageTester {
             .map_err(MessageTesterError::PublishHandle)?;
 
         let message_handler: Box<dyn MessageHandler> = match settings.test_scenario() {
-            TestScenario::Initiate => Box::new(SendBackMessageHandler::new(publish_handle.clone())),
+            TestScenario::Initiate => Box::new(RelayingMessageHandler::new(publish_handle.clone())),
             TestScenario::Relay => Box::new(ReportResultMessageHandler::new()),
         };
 
