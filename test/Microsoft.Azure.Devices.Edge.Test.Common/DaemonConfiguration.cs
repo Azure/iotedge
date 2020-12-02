@@ -232,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             string filePath = $"/etc/aziot/e2e_tests/{name}.key";
 
-            File.WriteAllText(filePath, value);
+            File.WriteAllBytes(filePath, Convert.FromBase64String(value));
             OsPlatform.Current.SetFileOwner(filePath, "aziotks");
 
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{name}", "file://" + filePath);
