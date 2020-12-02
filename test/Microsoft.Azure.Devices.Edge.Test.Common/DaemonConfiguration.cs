@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -96,29 +97,37 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.scope_id", idScope);
         }
 
-        public void SetManualSasProvisioning(string hubHostname, string deviceId, string preloadedKey)
+        public void SetManualSasProvisioning(string hubHostname, string deviceId, string key)
         {
+            string keyName = DaemonConfiguration.SanitizeName(deviceId);
+            this.CreatePreloadedKey(keyName, key);
+
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.method", "sas");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.device_id_pk", preloadedKey);
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.device_id_pk", keyName);
         }
 
-        public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identity_pk_path)
+        public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identityPkPath)
         {
-            Uri certUri = new Uri(identityCertPath, UriKind.Absolute);
-            Uri pKeyUri = new Uri(identity_pk_path, UriKind.Absolute);
-
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
 
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.method", "x509");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.identity_cert", certUri.ToString());
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.identity_pk", pKeyUri.ToString());
+
+            string certFileName = Path.GetFileName(identityCertPath);
+            string certName = DaemonConfiguration.SanitizeName(certFileName);
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.identity_cert", certName);
+            this.config[Service.Certd].Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + identityCertPath);
+
+            string keyFileName = Path.GetFileName(identityPkPath);
+            string keyName = DaemonConfiguration.SanitizeName(keyFileName);
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.identity_pk", keyName);
+            this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
         }
 
         public void SetDpsSymmetricKey(string idScope, string registrationId, string deviceKey)
@@ -126,19 +135,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.SetBasicDpsParam(idScope);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
+
+            string keyName = DaemonConfiguration.SanitizeName($"dps-symmetric-key-{registrationId}");
+            this.CreatePreloadedKey(keyName, deviceKey);
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", keyName);
         }
 
         public void SetDpsX509(string idScope, string registrationId, IdCertificates cert)
         {
-            Uri certUri = new Uri(cert.CertificatePath, UriKind.Absolute);
-            Uri pKeyUri = new Uri(cert.KeyPath, UriKind.Absolute);
-
             this.SetBasicDpsParam(idScope);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.method", "x509");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_cert", certUri.ToString());
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", pKeyUri.ToString());
+
+            string certFileName = Path.GetFileName(cert.CertificatePath);
+            string certName = DaemonConfiguration.SanitizeName(certFileName);
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_cert", certName);
+            this.config[Service.Certd].Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + cert.CertificatePath);
+
+            string keyFileName = Path.GetFileName(cert.KeyPath);
+            string keyName = DaemonConfiguration.SanitizeName(keyFileName);
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", keyName);
+            this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + cert.KeyPath);
         }
 
         public void SetDeviceHostname(string value)
@@ -183,23 +200,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
-        public void CreatePreloadedKey(string name, string value)
-        {
-            // The Document ReplaceOrAdd and RemoveIfExists functions use '.' in their dottedKey parameter
-            // to separate levels in the config Document. Therefore, key names cannot contain '.'
-            if (name.Contains('.'))
-            {
-                throw new ArgumentException("Key name cannot contain .");
-            }
-
-            string filePath = $"/etc/aziot/e2e_tests/{name}.key";
-
-            File.WriteAllText(filePath, value);
-            OsPlatform.Current.SetFileOwner(filePath, "aziotks");
-
-            this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{name}", "file://" + filePath);
-        }
-
         public static void CreateConfigFile(string configFile, string defaultFile, string owner)
         {
             // If the config file does not exist, create it from the default file.
@@ -218,6 +218,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             // Change owner of config file.
             OsPlatform.Current.SetFileOwner(configFile, owner);
+        }
+
+        private static string SanitizeName(string name)
+        {
+            // Due to '.' being used as a delimiter for config file tables, names cannot contain '.'
+            // Strip non-alphanumeric characters except for '-' for a safe name.
+            return Regex.Replace(name, "[^A-Za-z0-9 -]", string.Empty);
+        }
+
+        // All names passed to this function must be sanitized with DaemonConfiguration.SanitizeName
+        private void CreatePreloadedKey(string name, string value)
+        {
+            string filePath = $"/etc/aziot/e2e_tests/{name}.key";
+
+            File.WriteAllText(filePath, value);
+            OsPlatform.Current.SetFileOwner(filePath, "aziotks");
+
+            this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{name}", "file://" + filePath);
         }
     }
 }

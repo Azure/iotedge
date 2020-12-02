@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
     using System.Collections.Generic;
-    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -54,12 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
-                        // Due to '.' being used as a delimiter for config file tables, key names cannot contain '.'
-                        // Use the device ID as the key name, but strip non-alphanumeric characters except for '-'
-                        string keyName = Regex.Replace(deviceId, "[^A-Za-z0-9 -]", string.Empty);
-                        config.CreatePreloadedKey(keyName, key);
-
-                        config.SetManualSasProvisioning(hubHostname, deviceId, keyName);
+                        config.SetManualSasProvisioning(hubHostname, deviceId, key);
                         config.Update();
                         return Task.FromResult((
                             "with connection string for device '{Identity}'",
@@ -88,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             foreach (string p in parameters)
             {
-                string[] parameter = p.Split("=");
+                string[] parameter = p.Split("=", 2);
 
                 if (parts.ContainsKey(parameter[0]))
                 {
