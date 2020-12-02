@@ -6,8 +6,8 @@ use std::{
 
 use futures_util::{
     future::{self, BoxFuture},
-    stream::{FuturesUnordered, Stream},
-    FusedStream, FutureExt, StreamExt,
+    stream::{FusedStream, FuturesUnordered, Stream},
+    FutureExt, StreamExt,
 };
 use tokio::task::JoinError;
 use tracing::{debug, error, info_span, warn};
@@ -62,6 +62,8 @@ impl Bridges {
             if let Err(e) = config.send_update(update).await {
                 error!("error sending bridge update {:?}", e);
             }
+        } else {
+            debug!("config for {} not found", update.name());
         }
     }
 

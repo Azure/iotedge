@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{time::Duration, fs, path::{Path, PathBuf}};
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -53,8 +50,16 @@ impl Bootstrap for GenericBootstrap {
         Ok((broker, persistor))
     }
 
-    fn snapshot_interval(&self, settings: &Self::Settings) -> std::time::Duration {
+    fn snapshot_interval(&self, settings: &Self::Settings) -> Duration {
         settings.broker().persistence().time_interval()
+    }
+
+    fn session_expiration(&self, settings: &Self::Settings) -> Duration {
+        settings.broker().session().expiration()
+    }
+
+    fn session_cleanup_interval(&self, settings: &Self::Settings) -> Duration {
+        settings.broker().session().cleanup_interval()
     }
 
     async fn run(

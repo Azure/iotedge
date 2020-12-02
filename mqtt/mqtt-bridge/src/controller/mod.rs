@@ -1,12 +1,14 @@
 mod bridges;
 
+use std::collections::HashMap;
+
 use bridges::Bridges;
 
 use async_trait::async_trait;
 use futures_util::{
     future::{self, Either},
-    stream::Fuse,
-    FusedStream, StreamExt,
+    stream::{Fuse, FusedStream},
+    StreamExt,
 };
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, warn};
@@ -15,7 +17,7 @@ use mqtt_broker::sidecar::{Sidecar, SidecarShutdownHandle, SidecarShutdownHandle
 
 use crate::{
     bridge::{Bridge, BridgeError},
-    config_update::BridgeControllerUpdate,
+    config_update::{BridgeControllerUpdate, BridgeUpdate},
     settings::BridgeSettings,
 };
 
@@ -136,17 +138,18 @@ impl Sidecar for BridgeController {
 async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
     debug!("received updated config: {:?}", update);
 
-    for bridge_update in update.into_inner() {
-        // for now only supports upstream bridge.
-        if bridge_update.name() != UPSTREAM {
-            warn!(
-                "updates for {} bridge is not supported",
-                bridge_update.name()
-            );
-            continue;
-        }
+    let mut bridge_updates = update
+        .into_inner()
+        .into_iter()
+        .map(|update| (update.name().to_owned(), update))
+        .collect::<HashMap<_, _>>();
 
+    // for now only supports upstream bridge.
+    if let Some(bridge_update) = bridge_updates.remove(UPSTREAM) {
         bridges.send_update(bridge_update).await;
+    } else {
+        debug!("{} bridge update is empty", UPSTREAM);
+        bridges.send_update(BridgeUpdate::new(UPSTREAM)).await;
     }
 }
 

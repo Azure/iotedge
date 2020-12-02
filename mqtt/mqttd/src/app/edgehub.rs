@@ -2,6 +2,7 @@ use std::{
     env, fs,
     future::Future,
     path::{Path, PathBuf},
+    time::Duration as StdDuration,
 };
 
 use anyhow::{bail, Context, Result};
@@ -87,8 +88,16 @@ impl Bootstrap for EdgeHubBootstrap {
         Ok((broker, persistor))
     }
 
-    fn snapshot_interval(&self, settings: &Self::Settings) -> std::time::Duration {
+    fn snapshot_interval(&self, settings: &Self::Settings) -> StdDuration {
         settings.broker().persistence().time_interval()
+    }
+
+    fn session_expiration(&self, settings: &Self::Settings) -> StdDuration {
+        settings.broker().session().expiration()
+    }
+
+    fn session_cleanup_interval(&self, settings: &Self::Settings) -> StdDuration {
+        settings.broker().session().cleanup_interval()
     }
 
     async fn run(
