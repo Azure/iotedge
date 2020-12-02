@@ -174,7 +174,10 @@ function process_args() {
         elif [ $saveNextArg -eq 35 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
-        else
+        elif [ $saveNextArg -eq 36 ]; then
+            SUBSCRIPTION="$arg"
+            saveNextArg=0
+        else       
             case "$arg" in
                 '-h' | '--help' ) usage;;
                 '-testDir' ) saveNextArg=1;;
@@ -212,6 +215,7 @@ function process_args() {
                 '-customEdgeHubImage' ) saveNextArg=33;;
                 '-testRuntimeLogLevel' ) saveNextArg=34;;
                 '-testInfo' ) saveNextArg=35;;
+                '-subscription' ) subscription=36;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
@@ -281,6 +285,6 @@ test_setup
 
 hubname=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
 
-az account set --subscription $subscription
+az account set --subscription $SUBSCRIPTION
 source ${scriptFolder}/parseConfigFile.sh $configFilePath
 az iot hub device-identity create -n $iotHubName -d ${iotEdgeDevices[i]} --ee --pd ${iotEdgeParentDevices[i]} --output none

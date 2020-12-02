@@ -96,6 +96,7 @@ steps:
           -customEdgeHubImage "$(customEdgeHub.image)" \
           -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
           -testInfo "$testInfo" \
+          -subscription "$(azure.subscription)"
           -waitForTestComplete \
           -cleanAll  
 # - task: Bash@3
