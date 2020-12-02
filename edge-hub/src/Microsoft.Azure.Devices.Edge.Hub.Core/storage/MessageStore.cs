@@ -204,13 +204,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup)
             {
                 this.messageStore = messageStore;
-                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
                 this.cancellationTokenSource = new CancellationTokenSource();
                 this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
                 this.expiredCounter = Metrics.Instance.CreateCounter(
                    "messages_dropped",
                    "Messages cleaned up because of TTL expired",
                    new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
+                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
             }
 
             public void Dispose()
