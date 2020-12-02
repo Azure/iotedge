@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         readonly AuthAgentProtocolHeadConfig config = new AuthAgentProtocolHeadConfig(PORT, "/authenticate/");
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task StartsUpAndServes()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -52,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task CannotStartTwice()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }                
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesNoPasswordNorCertificate()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -83,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesBothPasswordAndCertificate()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -105,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesBadCertificateFormat()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -125,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesNoVersion()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -145,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesBadVersion()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -166,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsGoodTokenDeniesBadToken()
         {
             (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -192,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsGoodThumbprintDeniesBadThumbprint()
         {
             (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -217,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsGoodCaDeniesBadCa()
         {
             (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -247,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task ReturnsDeviceIdentity()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -268,7 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task ReturnsModuleIdentity()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -289,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsRequestWithContentLength()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -303,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsRequestWithNoContentLength()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -317,7 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesMalformedJsonRequest()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -331,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesBadContentLengthLongBody()
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
@@ -342,6 +343,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length - 10);
 
                 Assert.StartsWith(@"{""result"":403,", result);
+            }
+        }
+
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        public async Task StoresMetadataCorrectly()
+        {
+            (var authenticator, _, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+            IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("productInfo");
+            var metadataStore = new MetadataStore(store, "productInfo");
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            {
+                await sut.StartAsync();
+
+                dynamic content = new ExpandoObject();
+                content.version = "2020-04-20";
+                content.username = "testhub/device/api-version=2018-06-30&model-id=dtmi:test:modelId;1";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
+                content.password = "somepassword";
+
+                dynamic response = await PostAsync(content, URL);
+
+                Assert.Equal(200, (int)response.result);
+                var modelId = (await metadataStore.GetMetadata("device")).ModelId;
+                Assert.True(modelId.HasValue);
             }
         }
 
