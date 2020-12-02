@@ -97,10 +97,10 @@ steps:
           -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
           -testInfo "$testInfo" \
           -subscription "$(azure.subscription)" \
-          -level "5" \         
+          -level "5" \
           -parentIoTedgeName \
           -waitForTestComplete \
-          -cleanAll  
+          -cleanAll
 # - task: Bash@3
 #   condition: and(succeeded(), eq(variables['run.flag'], 1))
 #   displayName: 'Run Connectivity Deployment'
