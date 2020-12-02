@@ -81,7 +81,7 @@ stages:
 
               # Validate the capability update was successful
               responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
-              [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
+              [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && return 0 || return -1
 
         #Method 1 -- sleep until it's time
         - script: |
