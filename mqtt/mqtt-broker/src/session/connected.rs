@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::Utc;
 use tracing::warn;
 
 use mqtt3::proto;
@@ -34,7 +35,11 @@ impl ConnectedSession {
     }
 
     pub fn snapshot(&self) -> SessionSnapshot {
-        self.state.clone().into()
+        self.state.clone().into_snapshot(Utc::now())
+    }
+
+    pub fn into_snapshot(self) -> SessionSnapshot {
+        self.state.into_snapshot(Utc::now())
     }
 
     pub fn state(&self) -> &SessionState {

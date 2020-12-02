@@ -382,13 +382,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            void RemoveAuthChain()
+            void RemoveAuthChain() => this.RemoveAuthChainRecursive(0);
+
+            void RemoveAuthChainRecursive(int traveled)
             {
+                if (traveled >= 2 * MaxNestingDepth)
+                {
+                    // The max length of a nested chain we can temporarily achieve
+                    // occurs when we try to stitch together two full hierarchies.
+                    // Anything past that is not valid and we can stop recursing.
+                    return;
+                }
+
                 this.AuthChain = Option.None<string>();
                 Events.AuthChainRemoved(this.Identity.Id);
 
                 // Recursively remove the authchains of children
-                this.children.ForEach(child => child.RemoveAuthChain());
+                this.children.ForEach(child => child.RemoveAuthChainRecursive(traveled + 1));
             }
 
             string MakeAuthChainFromParent(string parentAuthChain)
