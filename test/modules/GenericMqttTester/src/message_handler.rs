@@ -1,15 +1,16 @@
 use mpsc::UnboundedSender;
 use tokio::{sync::mpsc, task::JoinHandle};
 
-use mqtt3::ReceivedPublication;
+use mqtt3::{PublishHandle, ReceivedPublication};
 
 use crate::{MessageTesterError, ShutdownHandle};
 
-/// Responsible for receiving publications and taking some action. Exposes
-/// a shutdown handle to clean up tasks running in separate threads.
+/// Responsible for receiving publications and taking some action.
 pub trait MessageHandler {
+    /// Starts handling messages sent to the handler
     fn run(self) -> (JoinHandle<Result<(), MessageTesterError>>, ShutdownHandle);
 
+    /// Sends a publication to be handled by the message handler
     fn publication_sender_handle(&self) -> UnboundedSender<ReceivedPublication>;
 }
 
@@ -36,10 +37,11 @@ impl MessageHandler for ReportResultMessageHandler {
 pub struct SendBackMessageHandler {
     publication_sender: UnboundedSender<ReceivedPublication>,
     shutdown_handle: ShutdownHandle,
+    publish_handle: PublishHandle,
 }
 
 impl SendBackMessageHandler {
-    pub fn new() -> Self {
+    pub fn new(publish_handle: PublishHandle) -> Self {
         let (publication_sender, publication_receiver) =
             mpsc::unbounded_channel::<ReceivedPublication>();
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
@@ -48,6 +50,7 @@ impl SendBackMessageHandler {
         Self {
             publication_sender,
             shutdown_handle,
+            publish_handle,
         }
     }
 }

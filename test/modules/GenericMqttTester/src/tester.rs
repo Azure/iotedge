@@ -38,7 +38,7 @@ impl MessageTester {
             .map_err(MessageTesterError::PublishHandle)?;
 
         let message_handler: Box<dyn MessageHandler> = match settings.test_scenario() {
-            TestScenario::Initiate => Box::new(SendBackMessageHandler::new()),
+            TestScenario::Initiate => Box::new(SendBackMessageHandler::new(publish_handle.clone())),
             TestScenario::Relay => Box::new(ReportResultMessageHandler::new()),
         };
 
