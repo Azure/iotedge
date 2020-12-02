@@ -70,7 +70,7 @@ steps:
         sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
-          -artifactImageBuildNumber "$BuildNumber" \
+          -artifactImageBuildNumber "$(Build.BuildNumber)" \
           -containerRegistry "$(container.registry)" \
           -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
           -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
