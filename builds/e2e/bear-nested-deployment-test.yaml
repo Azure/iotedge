@@ -238,9 +238,11 @@ stages:
 
               echo "Releasing $(echo $RESPONSE_CAPABILITY | jq '.systemCapabilities | .["Agent.Name"]')"
 
+              echo "nestedEdge=$(echo $RESPONSE_CAPABILITY | jq '.userCapabilities | .["nested-edge"]')"
               # Filter for user capabilities, access "nested-edge" field and append buildId as a suffix
               newAgentUserCapabilities=$(echo $RESPONSE_CAPABILITY | jq '.userCapabilities | (.["nested-edge"]) |= sub("_$(Build.BuildId)$"; "")')
 
+              echo $newAgentUserCapabilities
               # Update the user capability on the agent pool for this agent
               responseCapabilities=$(curl -s -u :$PAT \
               --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
