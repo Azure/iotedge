@@ -83,6 +83,17 @@ stages:
               responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
               [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
 
+        - task: Bash@3
+          name: setting_up
+          displayName: 'Setting up $(testrun.vmTier)'
+          inputs:
+            targetType: inline
+            script: |
+              # Use sleep to pretend it is a setup time
+              echo "$(Agent.Name) is sleeping for $(testrun.waitTimeMin)"
+              sleep $(testrun.waitTimeMin)m
+              echo "$(Agent.Name) is waking up"
+
         #Method 1 -- sleep until it's time
         - script: |
               # This works
