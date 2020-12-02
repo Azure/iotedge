@@ -31,7 +31,8 @@ pub struct MessageTester {
 
 impl MessageTester {
     pub fn new(settings: Settings) -> Result<Self, MessageTesterError> {
-        let client = client::create_client_from_module_env();
+        let client = client::create_client_from_module_env()
+            .map_err(MessageTesterError::ParseEnvironment)?;
         let publish_handle = client
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;

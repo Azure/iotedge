@@ -1,6 +1,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(unused_variables, dead_code)] // TODO: remove when module complete
+use std::env::VarError;
 
 use mqtt3::PublishError;
 use tokio::sync::mpsc::{error::SendError, Sender};
@@ -11,6 +12,9 @@ pub mod tester;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MessageTesterError {
+    #[error("could not get client publish handle")]
+    ParseEnvironment(#[source] VarError),
+
     #[error("could not get client publish handle")]
     PublishHandle(#[source] PublishError),
 

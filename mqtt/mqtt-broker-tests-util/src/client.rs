@@ -2,6 +2,7 @@
 use std::{env, time::Duration};
 
 use bytes::Bytes;
+use env::VarError;
 use futures::{future::FutureExt, select, stream::StreamExt};
 use tokio::{
     net::ToSocketAddrs,
@@ -11,6 +12,7 @@ use tokio::{
     },
     task::JoinHandle,
 };
+use tracing::info;
 
 use mqtt3::{
     proto::{ClientId, Publication, QoS, SubscribeTo},
@@ -21,7 +23,6 @@ use mqtt_util::client_io::{
     ClientIoSource, CredentialProviderSettings, Credentials, SasTokenSource, TcpConnection,
     TrustBundleSource,
 };
-use tracing::info;
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
@@ -298,8 +299,8 @@ where
     }
 }
 
-pub fn create_client_from_module_env() -> Client<ClientIoSource> {
-    let provider_settings = get_provider_settings_from_env();
+pub fn create_client_from_module_env() -> Result<Client<ClientIoSource>, VarError> {
+    let provider_settings = get_provider_settings_from_env()?;
     let io_source = io_source_from_provider(provider_settings.clone());
 
     let client_id = format!(
@@ -324,32 +325,32 @@ pub fn create_client_from_module_env() -> Client<ClientIoSource> {
 
     let max_reconnect_backoff = Duration::from_secs(60);
     let keep_alive = Duration::from_secs(60);
-    Client::new(
+    Ok(Client::new(
         Some(client_id),
         username,
         None,
         io_source,
         max_reconnect_backoff,
         keep_alive,
-    )
+    ))
 }
 
-fn get_provider_settings_from_env() -> CredentialProviderSettings {
-    let iothub_hostname = env::var("IOTEDGE_IOTHUBHOSTNAME").unwrap();
-    let gateway_hostname = env::var("IOTEDGE_GATEWAYHOSTNAME").unwrap();
-    let device_id = env::var("IOTEDGE_DEVICEID").unwrap();
-    let module_id = env::var("IOTEDGE_MODULEID").unwrap();
-    let generation_id = env::var("IOTEDGE_MODULEGENERATIONID").unwrap();
-    let workload_uri = env::var("IOTEDGE_WORKLOADURI").unwrap();
+fn get_provider_settings_from_env() -> Result<CredentialProviderSettings, VarError> {
+    let iothub_hostname = env::var("IOTEDGE_IOTHUBHOSTNAME")?;
+    let gateway_hostname = env::var("IOTEDGE_GATEWAYHOSTNAME")?;
+    let device_id = env::var("IOTEDGE_DEVICEID")?;
+    let module_id = env::var("IOTEDGE_MODULEID")?;
+    let generation_id = env::var("IOTEDGE_MODULEGENERATIONID")?;
+    let workload_uri = env::var("IOTEDGE_WORKLOADURI")?;
 
-    CredentialProviderSettings::new(
+    Ok(CredentialProviderSettings::new(
         iothub_hostname,
         gateway_hostname,
         device_id,
         module_id,
         generation_id,
         workload_uri,
-    )
+    ))
 }
 
 fn io_source_from_provider(
