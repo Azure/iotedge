@@ -5,14 +5,14 @@ steps:
     displayName: 'EdgeBuild Azure Key Vault'
     inputs:
       azureSubscription: $(service.connections)
-      KeyVaultName: edgebuildkv
+      KeyVaultName: $(azure.keyVault)
       SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
   - task: AzureKeyVault@1
     condition: eq(variables['run.flag'], 1)
     displayName: 'Nested Edge Azure Key Vault'
     inputs:
       azureSubscription: $(service.connections)
-      KeyVaultName: edgebuildkv
+      KeyVaultName: $(azure.keyVault)
       SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString'  
   - task: DownloadBuildArtifacts@0
     condition: and(succeeded(), eq(variables['run.flag'], 1))
