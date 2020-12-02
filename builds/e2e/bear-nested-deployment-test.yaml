@@ -241,9 +241,10 @@ stages:
 
               # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
               agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?api-version=$API_VER")
+              echo "agentsInfo=$agentsInfo"
 
               # Filter test agent ID given the name
-              agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$targetAgentName") | .id')
+              agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$(targetAgentName)") | .id')
               echo "agentId=$agentId"
 
               # Get test agent's capabilities
