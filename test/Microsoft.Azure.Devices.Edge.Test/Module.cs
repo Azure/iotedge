@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using NUnit.Framework;
 
     [EndToEnd]
-    [NonParallelizable]
     public class Module : SasManualProvisioningFixture
     {
         const string SensorName = "tempSensor";
