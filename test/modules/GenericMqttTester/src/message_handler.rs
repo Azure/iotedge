@@ -1,4 +1,4 @@
-use mpsc::{UnboundedReceiver, UnboundedSender};
+use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 use tokio::{sync::mpsc, task::JoinHandle};
 
 use mqtt3::{PublishHandle, ReceivedPublication};
@@ -38,6 +38,7 @@ pub struct RelayingMessageHandler {
     publication_sender: UnboundedSender<ReceivedPublication>,
     publication_receiver: UnboundedReceiver<ReceivedPublication>,
     shutdown_handle: ShutdownHandle,
+    shutdown_recv: Receiver<()>,
     publish_handle: PublishHandle,
 }
 
@@ -52,6 +53,7 @@ impl RelayingMessageHandler {
             publication_sender,
             publication_receiver,
             shutdown_handle,
+            shutdown_recv,
             publish_handle,
         }
     }
