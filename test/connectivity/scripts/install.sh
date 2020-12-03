@@ -21,9 +21,11 @@ function create_certificates() {
 
 function install_and_setup_iotedge() {
     echo "Install and setup iotedge"
+
     echo "  Install artifacts"
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
-    iotedge_package="${pkg_list[*]}"
+    iotedge_package="${pkg_list[*]}" 
+    sudo dpkg -i --force-confnew ${iotedge_package}
 
     echo "  Updating IoT Edge configuration file to use the newly installed certificcates"
     device_ca_cert_path="/certs/certs/certs/iot-edge-device-$deviceId-full-chain.cert.pem"
@@ -43,8 +45,6 @@ function prepare_test_from_artifacts() {
     echo 'Remove working folder'
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
-
-    sudo dpkg -i --force-confnew ${iotedge_package}
 
     echo "Copy deployment file from $connectivity_deployment_artifact_file"
     cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
