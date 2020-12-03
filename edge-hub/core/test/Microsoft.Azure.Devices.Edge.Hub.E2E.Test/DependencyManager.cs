@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             if (!int.TryParse(this.configuration["messageCleanupIntervalSecs"], out int messageCleanupIntervalSecs))
             {
-                messageCleanupIntervalSecs = -1;
+                messageCleanupIntervalSecs = 1800;
             }
 
             builder.RegisterModule(
