@@ -286,7 +286,7 @@ process_args "$@"
 working_folder="$E2E_TEST_DIR/working"
 #@TODO remove hardcoding
 #connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
-connectivity_deployment_artifact_file="edgeDeployments/$DEPLOYMENT_FILE_NAME"
+connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
 get_image_architecture_label
