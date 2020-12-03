@@ -25,13 +25,6 @@ steps:
       buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(edgelet.artifact.name)
-  - task: DownloadRootCA@0
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
-    displayName: 'Run Connectivity Deployment'
-    inputs:
-      targetType: inline
-      script: |
-        az storage blob download --file ../here --container-name test-certificates --name test-certs.tar.bz2 --connection-string $(edgebuild-blob-core-connection-string)     
   - task: DownloadBuildArtifacts@0
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Download Images Artifacts'
@@ -107,6 +100,7 @@ steps:
           -testInfo "$testInfo" \
           -subscription "$(azure.subscription)" \
           -level "5" \
+          -blobstorageConnectionString "$(edgebuild-blob-core-connection-string)" \
           -parentIoTedgeName \
           -waitForTestComplete \
           -cleanAll

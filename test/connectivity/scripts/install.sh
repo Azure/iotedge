@@ -1,5 +1,30 @@
 #!/usr/bin/env bash
 
+function install_certificates() {
+    echo "Installing test root certificate bundle."
+    az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${BLOB_STORAGE_CONNECTION_STRING}
+    sudo tar -xjvf rootCA.tar.bz2
+    
+    cd ./certs
+
+    echo "Generating edge device certificate"
+    ./certGen.sh create_edge_device_certificate $deviceId
+    cd ./certs
+    sudo cp azure-iot-test-only.root.ca.cert.pem /usr/local/share/ca-certificates/azure-iot-test-only.root.ca.cert.pem.crt
+    sudo update-ca-certificates
+
+    echo "Updating IoT Edge configuration file to use the newly installed certificcates"
+    device_ca_cert_path="/certs/certs/certs/iot-edge-device-$deviceId-full-chain.cert.pem"
+    device_ca_pk_path="/certs/certs/private/iot-edge-device-$deviceId.key.pem"
+    trusted_ca_certs_path="/certs/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+    sudo sed -i "165s|.*|certificates:|" /etc/iotedge/config.yaml
+    sudo sed -i "166s|.*|  device_ca_cert: \""$device_ca_cert_path"\"|" /etc/iotedge/config.yaml
+    sudo sed -i "167s|.*|  device_ca_pk: \""$device_ca_pk_path"\"|" /etc/iotedge/config.yaml
+    sudo sed -i "168s|.*|  trusted_ca_certs: \""$trusted_ca_certs_path"\"|" /etc/iotedge/config.yaml
+
+    echo "Done."
+}
+
 function prepare_test_from_artifacts() {
     
     print_highlighted_message 'Prepare test from artifacts'
@@ -179,8 +204,11 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 37 ]; then
             LEVEL="$arg"
-            saveNextArg=0   
+            saveNextArg=0
         elif [ $saveNextArg -eq 38 ]; then
+            BLOB_STORAGE_CONNECTION_STRING="$arg"
+            saveNextArg=0             
+        elif [ $saveNextArg -eq 39 ]; then
             PARENT_IOTEDGE_NAME="$arg"
             saveNextArg=0         
         else              
@@ -222,8 +250,9 @@ function process_args() {
                 '-testRuntimeLogLevel' ) saveNextArg=34;;
                 '-testInfo' ) saveNextArg=35;;
                 '-subscription' ) saveNextArg=36;;
-                '-level' ) saveNextArg=37;;                
-                '-parentIoTedgeName' ) saveNextArg=38;;               
+                '-level' ) saveNextArg=37;;
+                '-blobstorageConnectionString' ) saveNextArg=38;;                 
+                '-parentIoTedgeName' ) saveNextArg=39;;               
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
@@ -236,6 +265,7 @@ function process_args() {
     done
 
     # Required parameters
+    [[ -z "$BLOB_STORAGE_CONNECTION_STRING" ]] && { print_error 'BLOB_STORAGE_CONNECTION_STRING is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
     [[ -z "$RELEASE_LABEL" ]] && { print_error 'Release label is required.'; exit 1; }
@@ -308,6 +338,9 @@ if [ "$LEVEL" = "5" ]; then
 else
     az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_IOTEDGE_NAME} --output none
 fi
+
+install_certificates
+
 
 az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
 
