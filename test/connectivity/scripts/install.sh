@@ -2,6 +2,7 @@
 
 function install_certificates() {
     echo "Installing test root certificate bundle."
+    echo "az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${BLOB_STORAGE_CONNECTION_STRING}"
     az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${BLOB_STORAGE_CONNECTION_STRING}
     sudo tar -xjvf rootCA.tar.bz2
     
