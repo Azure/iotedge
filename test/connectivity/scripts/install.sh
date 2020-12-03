@@ -296,18 +296,21 @@ test_setup
 #extract full hub name
 tmp=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
 #remove the .azure-devices.net  from it.
-hubname=$(echo andsmi-iotedgequickstart-hub.azure-devices.net | sed -n 's/\(.?*\)\..*/\1/p')
+iotHubName=$(echo andsmi-iotedgequickstart-hub.azure-devices.net | sed -n 's/\(.?*\)\..*/\1/p')
 
 az account set --subscription $SUBSCRIPTION
 iotEdgeDevicesName="level_${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
 
-echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${hubname}, in subscription $SUBSCRIPTION"
+echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${iotHubName}, in subscription $SUBSCRIPTION"
 if [ "$LEVEL" = "5" ]; then
-    az iot hub device-identity create -n ${hubname} -d ${iotEdgeDevicesName} --ee --output none
-
+    az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --output none
+    
 else
-    az iot hub device-identity create -n ${hubname} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_IOTEDGE_NAME} --output none
+    az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_IOTEDGE_NAME} --output none
 fi
 
+
+az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deploymentFilePath} --output none
+
 #clean up
-az iot hub device-identity delete -n ${hubname} -d ${iotEdgeDevicesName} --ee --output none
+az iot hub device-identity delete -n ${iotHubName} -d ${iotEdgeDevicesName}
