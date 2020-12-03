@@ -181,11 +181,11 @@ function process_args() {
             LEVEL="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 38 ]; then
-            PARENT_IOTEDGE_NAME="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 39 ]; then
             BLOB_STORAGE_CONNECTION_STRING="$arg"
-            saveNextArg=0            
+            saveNextArg=0             
+        elif [ $saveNextArg -eq 39 ]; then
+            PARENT_IOTEDGE_NAME="$arg"
+            saveNextArg=0         
         else              
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -226,8 +226,8 @@ function process_args() {
                 '-testInfo' ) saveNextArg=35;;
                 '-subscription' ) saveNextArg=36;;
                 '-level' ) saveNextArg=37;;
-                '-parentIoTedgeName' ) saveNextArg=38;;    
-                '-blobstorageConnectionString' ) saveNextArg=39;;             
+                '-blobstorageConnectionString' ) saveNextArg=38;;                 
+                '-parentIoTedgeName' ) saveNextArg=39;;               
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
