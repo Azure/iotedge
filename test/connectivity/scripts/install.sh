@@ -39,6 +39,27 @@ function install_and_setup_iotedge() {
     echo "Done."
 }
 
+function create_iotedge_identities() {
+    #extract full hub name
+    tmp=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
+    #remove the .azure-devices.net  from it.
+    iotHubName=$(echo andsmi-iotedgequickstart-hub.azure-devices.net | sed -n 's/\(.?*\)\..*/\1/p')
+
+    az account set --subscription $SUBSCRIPTION
+    iotEdgeDevicesName="level_${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
+
+    echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${iotHubName}, in subscription $SUBSCRIPTION"
+    if [ "$LEVEL" = "5" ]; then
+        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --output none
+        
+    else
+        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_IOTEDGE_NAME} --output none
+    fi
+    connectionString=$(az iot hub device-identity connection-string show -d ${iotEdgeDevicesName} -n ${iotHubName} --query 'connectionString' -o tsv)
+    echo "${connectionString}"
+    az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
+}
+
 function prepare_test_from_artifacts() {   
     print_highlighted_message 'Prepare test from artifacts'
 
@@ -331,31 +352,10 @@ iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
-
-
 test_setup
-
-#extract full hub name
-tmp=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
-#remove the .azure-devices.net  from it.
-iotHubName=$(echo andsmi-iotedgequickstart-hub.azure-devices.net | sed -n 's/\(.?*\)\..*/\1/p')
-
-az account set --subscription $SUBSCRIPTION
-iotEdgeDevicesName="level_${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
-
-echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${iotHubName}, in subscription $SUBSCRIPTION"
-if [ "$LEVEL" = "5" ]; then
-    az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --output none
-    
-else
-    az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_IOTEDGE_NAME} --output none
-fi
-az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
-
+create_iotedge_identities
 create_certificates
 install_and_setup_iotedge
-
-
 
 #clean up
 #az iot hub device-identity delete -n ${iotHubName} -d ${iotEdgeDevicesName}
