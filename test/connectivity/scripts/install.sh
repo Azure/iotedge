@@ -304,7 +304,10 @@ iotEdgeDevicesName="level_${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
 echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${hubname}, in subscription $SUBSCRIPTION"
 if [ "$LEVEL" = "5" ]; then
     az iot hub device-identity create -n ${hubname} -d ${iotEdgeDevicesName} --ee --output none
+
 else
     az iot hub device-identity create -n ${hubname} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_IOTEDGE_NAME} --output none
 fi
 
+#clean up
+az iot hub device-identity delete -n ${hubname} -d ${iotEdgeDevicesName} --ee --output none
