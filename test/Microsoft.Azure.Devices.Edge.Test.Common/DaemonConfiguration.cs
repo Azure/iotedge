@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             // Change owner of config file.
-            OsPlatform.Current.SetFileOwner(configFile, owner);
+            OsPlatform.Current.SetFileOwner(configFile, owner, "644");
         }
 
         private static string SanitizeName(string name)
@@ -233,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string filePath = $"/etc/aziot/e2e_tests/{name}.key";
 
             File.WriteAllBytes(filePath, Convert.FromBase64String(value));
-            OsPlatform.Current.SetFileOwner(filePath, "aziotks");
+            OsPlatform.Current.SetFileOwner(filePath, "aziotks", "600");
 
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{name}", "file://" + filePath);
         }

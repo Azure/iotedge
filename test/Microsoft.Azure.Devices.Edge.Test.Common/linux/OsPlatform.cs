@@ -44,9 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return new CaCertificates(deviceId, scriptPath);
         }
 
-        public CaCertificates GetEdgeQuickstartCertificates() =>
-            this.GetEdgeQuickstartCertificates("/var/lib/iotedge/hsm");
-
         public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
             this.InstallTrustedCertificates(certs, StoreName.Root);
 
@@ -62,11 +59,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         static string BuildCertCommand(string command, string scriptPath) =>
             $"-c \"FORCE_NO_PROD_WARNING=true '{Path.Combine(scriptPath, "certGen.sh")}' {command}\"";
 
-        public void SetFileOwner(string filePath, string owner)
+        public void SetFileOwner(string filePath, string owner, string permissions)
         {
-            var process = System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {filePath}");
-            process.WaitForExit();
-            process.Close();
+            var chown = System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {filePath}");
+            chown.WaitForExit();
+            chown.Close();
+
+            var chmod = System.Diagnostics.Process.Start("chmod", $"{permissions} {filePath}");
+            chmod.WaitForExit();
+            chmod.Close();
         }
     }
 }

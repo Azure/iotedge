@@ -25,9 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public sealed class QuickStartCaCert
         {
-            public static string Cert(string basePath) => Directory.GetFiles(Path.Combine(basePath, "certs"), "device_ca_alias*.pem")[0];
-            public static string Key(string basePath) => Directory.GetFiles(Path.Combine(basePath, "cert_keys"), "device_ca_alias*.pem")[0];
-            public static string TrustCert(string basePath) => Directory.GetFiles(Path.Combine(basePath, "certs"), "edge_owner_ca*.pem")[0];
+            private static string BasePath(string deviceId) => $"/etc/aziot/e2e_tests/{deviceId}";
+
+            public static string Cert(string deviceId) => Path.Combine(BasePath(deviceId), "device_ca_cert.pem");
+            public static string Key(string deviceId) => Path.Combine(BasePath(deviceId), "device_ca_cert_key.pem");
+            public static string TrustCert(string deviceId) => Path.Combine(BasePath(deviceId), "trust_bundle.pem");
         }
     }
 }

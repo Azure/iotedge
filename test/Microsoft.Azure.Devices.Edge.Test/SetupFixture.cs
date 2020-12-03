@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
@@ -145,5 +146,47 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Log.CloseAndFlush();
             });
+    }
+
+    // Generates a test CA cert, test CA key, and trust bundle.
+    // TODO: Remove this once iotedge init is finished?
+    public class TestCertificates
+    {
+        private string deviceId;
+        private CaCertificates certs;
+
+        TestCertificates(string deviceId, CaCertificates certs)
+        {
+            this.deviceId = deviceId;
+            this.certs = certs;
+        }
+
+        public static async Task<TestCertificates> GenerateCertsAsync(string deviceId, CancellationToken token)
+        {
+            string scriptPath = Context.Current.CaCertScriptPath.Expect(
+                () => new System.InvalidOperationException("Missing CA cert script path"));
+
+            CaCertificates certs = await OsPlatform.Current.GenerateCaCertificatesAsync(deviceId, scriptPath, token);
+
+            return new TestCertificates(deviceId, certs);
+        }
+
+        public void AddCertsToConfig(DaemonConfiguration config)
+        {
+            string path = $"/etc/aziot/e2e_tests/{this.deviceId}";
+            string certPath = $"{path}/device_ca_cert.pem";
+            string keyPath = $"{path}/device_ca_cert_key.pem";
+            string trustBundlePath = $"{path}/trust_bundle.pem";
+
+            Directory.CreateDirectory(path);
+            File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);
+            OsPlatform.Current.SetFileOwner(trustBundlePath, "aziotcs", "644");
+            File.Copy(this.certs.CertificatePath, certPath);
+            OsPlatform.Current.SetFileOwner(certPath, "aziotcs", "644");
+            File.Copy(this.certs.KeyPath, keyPath);
+            OsPlatform.Current.SetFileOwner(keyPath, "aziotks", "600");
+
+            config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
+        }
     }
 }
