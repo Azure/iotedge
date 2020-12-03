@@ -17,13 +17,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class AuthAgentController : Controller
     {
         readonly IAuthenticator authenticator;
+        readonly IMetadataStore metadataStore;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
 
-        public AuthAgentController(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory, ISystemComponentIdProvider systemComponentIdProvider)
+        public AuthAgentController(IAuthenticator authenticator, IMetadataStore metadataStore, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory, ISystemComponentIdProvider systemComponentIdProvider)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider, nameof(systemComponentIdProvider));
@@ -57,7 +59,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                     async creds => (await this.AuthenticateAsync(creds), Option.Some(creds)),
                                     () => Task.FromResult((false, Option.None<IClientCredentials>())));
 
-                return this.Json(GetAuthResult(isAuthenticated, credentials));
+                var authResult = GetAuthResult(isAuthenticated, credentials);
+                if (isAuthenticated)
+                {
+                    await credentials.ForEachAsync(async c => await this.metadataStore.SetMetadata(c.Identity.Id, c.ProductInfo, c.ModelId));
+                }
+
+                return this.Json(authResult);
             }
             catch (Exception e)
             {
