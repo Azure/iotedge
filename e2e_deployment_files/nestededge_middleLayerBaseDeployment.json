@@ -1,0 +1,77 @@
+{
+  "modulesContent": {
+    "$edgeAgent": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "runtime": {
+          "type": "docker",
+          "settings": {
+            "minDockerVersion": "v1.25",
+            "loggingOptions": "",
+            "registryCredentials": {
+            }
+          }
+        },
+        "systemModules": {
+          "edgeAgent": {
+            "type": "docker",
+            "settings": {
+              "image": "$upstream:443/azureiotedge-agent:1.2.0-rc1-linux-amd64",
+              "createOptions": "{}"
+            }
+          },
+          "edgeHub": {
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "$upstream:443/azureiotedge-hub:1.2.0-rc1-linux-amd64",
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5671\/tcp\": [{\"HostPort\": \"5671\"}],\"8883\/tcp\": [{\"HostPort\": \"8883\"}]}}}"
+            },	
+            "env": {	
+              "experimentalFeatures:enabled": {	
+                "value": true
+              },
+              "experimentalFeatures:nestedEdgeEnabled": {	
+                "value": true
+              }
+            }
+          }
+        },
+        "modules": {
+          "iotedgeApiProxy": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "$upstream:443/azureiotedge-api-proxy:latest",
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
+            },
+            "env": {
+              "NGINX_DEFAULT_PORT": {
+                "value": "443"
+              }
+            }
+          }
+        }
+      }
+    },
+    "$edgeHub": {
+      "properties.desired": {
+        "schemaVersion": "1.1",
+        "routes": {
+          "ToUpstream": "FROM /messages/* INTO $upstream"
+        },
+        "storeAndForwardConfiguration": {
+          "timeToLiveSecs": 7200
+        }
+      }
+    },
+    "iotedgeApiProxy": {
+      "properties.desired": {
+          "proxy_config": "ZXZlbnRzIHsgfQoKCmh0dHAgewogICAgcHJveHlfYnVmZmVycyAzMiAxNjBrOyAgCiAgICBwcm94eV9idWZmZXJfc2l6ZSAxNjBrOwogICAgcHJveHlfcmVhZF90aW1lb3V0IDM2MDA7CiAgICBlcnJvcl9sb2cgL2Rldi9zdGRvdXQgaW5mbzsKICAgIGFjY2Vzc19sb2cgL2Rldi9zdGRvdXQ7CgogICAgc2VydmVyIHsKICAgICAgICBsaXN0ZW4gJHtOR0lOWF9ERUZBVUxUX1BPUlR9IHNzbCBkZWZhdWx0X3NlcnZlcjsKCiAgICAgICAgY2h1bmtlZF90cmFuc2Zlcl9lbmNvZGluZyBvbjsKCiAgICAgICAgc3NsX2NlcnRpZmljYXRlICAgICAgICBzZXJ2ZXIuY3J0OwogICAgICAgIHNzbF9jZXJ0aWZpY2F0ZV9rZXkgICAgcHJpdmF0ZV9rZXlfc2VydmVyLnBlbTsgCiAgICAgICAgc3NsX2NsaWVudF9jZXJ0aWZpY2F0ZSB0cnVzdGVkQ0EuY3J0OwogICAgICAgICNzc2xfdmVyaWZ5X2RlcHRoIDc7CiAgICAgICAgc3NsX3ZlcmlmeV9jbGllbnQgb3B0aW9uYWxfbm9fY2E7CgogICAgICAgICNpZl90YWcgJHtCTE9CX1VQTE9BRF9ST1VURV9BRERSRVNTfQogICAgICAgIGlmICgkaHR0cF94X21zX3ZlcnNpb24pCiAgICAgICAgewogICAgICAgICAgICByZXdyaXRlIF4oLiopJCAvc3RvcmFnZSQxIGxhc3Q7CiAgICAgICAgfQogICAgICAgICNlbmRpZl90YWcgJHtCTE9CX1VQTE9BRF9ST1VURV9BRERSRVNTfSAKICAgICAgICAjaWZfdGFnICEke0JMT0JfVVBMT0FEX1JPVVRFX0FERFJFU1N9CiAgICAgICAgaWYgKCRodHRwX3hfbXNfdmVyc2lvbikKICAgICAgICB7CiAgICAgICAgICAgIHJld3JpdGUgXiguKikkIC9wYXJlbnQkMSBsYXN0OwogICAgICAgIH0KICAgICAgICAjZW5kaWZfdGFnICR7QkxPQl9VUExPQURfUk9VVEVfQUREUkVTU30gICAgICAgICAgCgogICAgICAgICNpZl90YWcgJHtET0NLRVJfUkVRVUVTVF9ST1VURV9BRERSRVNTfQogICAgICAgIGlmICgkdXJpIH4gXi92MiouKQogICAgICAgIHsKICAgICAgICAgICAgcmV3cml0ZSBeKC4qKSQgL3JlZ2lzdHJ5JDEgbGFzdDsKICAgICAgICB9CiAgICAgICAgI2VuZGlmX3RhZyAke0RPQ0tFUl9SRVFVRVNUX1JPVVRFX0FERFJFU1N9CiAgICAgICAgI2lmX3RhZyAhJHtET0NLRVJfUkVRVUVTVF9ST1VURV9BRERSRVNTfQogICAgICAgIGlmICgkdXJpIH4gXi92MiouKQogICAgICAgIHsKICAgICAgICAgICAgcmV3cml0ZSBeKC4qKSQgL3BhcmVudCQxIGxhc3Q7CiAgICAgICAgfQogICAgICAgICNlbmRpZl90YWcgJHtET0NLRVJfUkVRVUVTVF9ST1VURV9BRERSRVNTfSAgICAgICAgCgogICAgICAgICNpZl90YWcgJHtET0NLRVJfUkVRVUVTVF9ST1VURV9BRERSRVNTfQogICAgICAgIGxvY2F0aW9uIH5eL3JlZ2lzdHJ5LyguKikgewogICAgICAgICAgICBwcm94eV9odHRwX3ZlcnNpb24gMS4xOwogICAgICAgICAgICByZXNvbHZlciAxMjcuMC4wLjExOwogICAgICAgICAgICBwcm94eV9wYXNzICAgICAgICAgIGh0dHA6Ly8ke0RPQ0tFUl9SRVFVRVNUX1JPVVRFX0FERFJFU1N9LyQxJGlzX2FyZ3MkYXJnczsKICAgICAgICB9CiAgICAgICAgI2VuZGlmX3RhZyAke0RPQ0tFUl9SRVFVRVNUX1JPVVRFX0FERFJFU1N9CgogICAgICAgICNpZl90YWcgJHtCTE9CX1VQTE9BRF9ST1VURV9BRERSRVNTfQogICAgICAgIGxvY2F0aW9uIH5eL3N0b3JhZ2UvKC4qKXsKICAgICAgICAgICAgcmVzb2x2ZXIgMTI3LjAuMC4xMTsKICAgICAgICAgICAgcHJveHlfaHR0cF92ZXJzaW9uIDEuMTsKICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICBodHRwOi8vJHtCTE9CX1VQTE9BRF9ST1VURV9BRERSRVNTfS8kMSRpc19hcmdzJGFyZ3M7CiAgICAgICAgfQogICAgICAgICNlbmRpZl90YWcgJHtCTE9CX1VQTE9BRF9ST1VURV9BRERSRVNTfSAgICAgICAgCgogICAgICAgICNpZl90YWcgJHtJT1RFREdFX1BBUkVOVEhPU1ROQU1FfSAgICAgIAogICAgICAgIGxvY2F0aW9uIH5eL3BhcmVudC8oLiopIHsKICAgICAgICAgICAgcHJveHlfaHR0cF92ZXJzaW9uIDEuMTsKICAgICAgICAgICAgcmVzb2x2ZXIgMTI3LjAuMC4xMTsKICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICBodHRwczovLyR7SU9URURHRV9QQVJFTlRIT1NUTkFNRX06JHtOR0lOWF9ERUZBVUxUX1BPUlR9LyQxJGlzX2FyZ3MkYXJnczsKICAgICAgICB9CiAgICAgICAgI2VuZGlmX3RhZyAke0lPVEVER0VfUEFSRU5USE9TVE5BTUV9CgogICAgICAgIGxvY2F0aW9uIH5eL2RldmljZXN8dHdpbnMvIHsKICAgICAgICAgICAgcHJveHlfaHR0cF92ZXJzaW9uICAxLjE7CiAgICAgICAgICAgIHByb3h5X3NzbF92ZXJpZnkgICAgb2ZmOwogICAgICAgICAgICBwcm94eV9zZXRfaGVhZGVyICAgIHgtbXMtZWRnZS1jbGllbnRjZXJ0ICAgICRzc2xfY2xpZW50X2VzY2FwZWRfY2VydDsKICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICBodHRwczovL2VkZ2VIdWI7CiAgICAgICAgfQogICAgfQp9"
+        }
+    }
+  }
+}
