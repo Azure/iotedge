@@ -1,17 +1,22 @@
+use async_trait::async_trait;
 use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
-use tokio::{sync::mpsc, task::JoinHandle};
+use tokio::sync::mpsc;
 
 use mqtt3::{PublishHandle, ReceivedPublication};
 
 use crate::{MessageTesterError, ShutdownHandle};
 
 /// Responsible for receiving publications and taking some action.
+#[async_trait]
 pub trait MessageHandler {
     /// Starts handling messages sent to the handler
-    fn run(self) -> (JoinHandle<Result<(), MessageTesterError>>, ShutdownHandle);
+    async fn run(self) -> Result<(), MessageTesterError>;
 
     /// Sends a publication to be handled by the message handler
     fn publication_sender_handle(&self) -> UnboundedSender<ReceivedPublication>;
+
+    // Get the shutdown handle to stop the run() method
+    fn shutdown_handle(&self) -> ShutdownHandle;
 }
 
 /// Responsible for receiving publications and reporting result to the TRC.
@@ -23,12 +28,17 @@ impl ReportResultMessageHandler {
     }
 }
 
+#[async_trait]
 impl MessageHandler for ReportResultMessageHandler {
-    fn run(self) -> (JoinHandle<Result<(), MessageTesterError>>, ShutdownHandle) {
+    async fn run(mut self) -> Result<(), MessageTesterError> {
         todo!()
     }
 
     fn publication_sender_handle(&self) -> UnboundedSender<ReceivedPublication> {
+        todo!()
+    }
+
+    fn shutdown_handle(&self) -> ShutdownHandle {
         todo!()
     }
 }
@@ -57,18 +67,19 @@ impl RelayingMessageHandler {
             publish_handle,
         }
     }
-
-    async fn relay_message(self) -> Result<(), MessageTesterError> {
-        todo!()
-    }
 }
 
+#[async_trait]
 impl MessageHandler for RelayingMessageHandler {
-    fn run(self) -> (JoinHandle<Result<(), MessageTesterError>>, ShutdownHandle) {
+    async fn run(mut self) -> Result<(), MessageTesterError> {
         todo!()
     }
 
     fn publication_sender_handle(&self) -> UnboundedSender<ReceivedPublication> {
+        todo!()
+    }
+
+    fn shutdown_handle(&self) -> ShutdownHandle {
         todo!()
     }
 }

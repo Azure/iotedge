@@ -1,5 +1,5 @@
 use mpsc::Receiver;
-use tokio::{sync::mpsc, task::JoinHandle};
+use tokio::sync::mpsc;
 
 use mqtt3::{Client, PublishHandle};
 use mqtt_broker_tests_util::client;
@@ -55,7 +55,11 @@ impl MessageTester {
         })
     }
 
-    pub fn run() -> (JoinHandle<Result<(), MessageTesterError>>, ShutdownHandle) {
+    pub fn run() -> Result<(), MessageTesterError> {
         todo!()
+    }
+
+    pub fn shutdown_handle(&self) -> ShutdownHandle {
+        self.shutdown_handle.clone()
     }
 }
