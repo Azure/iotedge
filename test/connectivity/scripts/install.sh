@@ -322,6 +322,7 @@ fi
 
 process_args "$@"
 
+get_image_architecture_label
 working_folder="$E2E_TEST_DIR/working"
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 
@@ -330,7 +331,7 @@ iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
-get_image_architecture_label
+
 
 test_setup
 
