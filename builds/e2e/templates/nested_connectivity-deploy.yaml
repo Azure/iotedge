@@ -62,6 +62,8 @@ steps:
     inputs:
       targetType: inline
       #@TODO change Build.Repository.LocalPath to use artifact.
+      #@TODO remove hard coding of deploymentFileName
+      #@TODO remove hard coding of level and parent
       script: |
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
 
@@ -85,7 +87,7 @@ steps:
           -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
           -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
           -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
-          -deploymentFileName "$(deploymentFileName)" \
+          -deploymentFileName "e2e_deployment_files/nestededge_topLayerBaseDeploymentItProxy.json" \
           -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
           -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
           -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
