@@ -2,7 +2,7 @@
 
 function install_certificates() {
     echo "Installing test root certificate bundle."
-    echo "az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${BLOB_STORAGE_CONNECTION_STRING}"
+
     az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${BLOB_STORAGE_CONNECTION_STRING}
     sudo tar -xjvf rootCA.tar.bz2
     
@@ -22,7 +22,7 @@ function install_certificates() {
     sudo sed -i "166s|.*|  device_ca_cert: \""$device_ca_cert_path"\"|" /etc/iotedge/config.yaml
     sudo sed -i "167s|.*|  device_ca_pk: \""$device_ca_pk_path"\"|" /etc/iotedge/config.yaml
     sudo sed -i "168s|.*|  trusted_ca_certs: \""$trusted_ca_certs_path"\"|" /etc/iotedge/config.yaml
-
+    sudo cat /etc/iotedge/config.yaml
     echo "Done."
 }
 
