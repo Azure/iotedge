@@ -87,7 +87,7 @@ steps:
           -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
           -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
           -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
-          -deploymentFileName "nestededge_topLayerBaseDeploymentItProxy.json" \
+          -deploymentFileName "nestededge_topLayerBaseDeploymentProxy.json" \
           -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
           -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
           -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
