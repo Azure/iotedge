@@ -134,6 +134,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             File.Copy(backupFile, file, true);
                             File.Delete(backupFile);
                         }
+                        else
+                        {
+                            File.Delete(file);
+                        }
                     }
                 },
                 "Completed end-to-end test teardown"),
