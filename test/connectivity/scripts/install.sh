@@ -293,7 +293,10 @@ get_image_architecture_label
 
 test_setup
 
-hubname=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
+#extract full hub name
+tmp=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
+#remove the .azure-devices.net  from it.
+hubname=$(echo andsmi-iotedgequickstart-hub.azure-devices.net | sed -n 's/\(.?*\)\..*/\1/p')
 
 az account set --subscription $SUBSCRIPTION
 iotEdgeDevicesName="level_${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
