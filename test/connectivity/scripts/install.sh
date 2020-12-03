@@ -10,11 +10,10 @@ function install_certificates() {
 
     echo "Generating edge device certificate"
     hostname=$(hostname)
-    echo "  Hostname: ${hostname}"   
     hostname_fqdn=$(az vm show -d  -g "iotedge-deploy" -n ${hostname} --query fqdns)
     echo "  Hostname FQDN: ${hostname_fqdn}" 
 
-    ./certGen.sh create_edge_device_certificate $deviceId
+    ./certGen.sh create_edge_device_certificate ${hostname_fqdn}
     cd ./certs
     sudo cp azure-iot-test-only.root.ca.cert.pem /usr/local/share/ca-certificates/azure-iot-test-only.root.ca.cert.pem.crt
     sudo update-ca-certificates
