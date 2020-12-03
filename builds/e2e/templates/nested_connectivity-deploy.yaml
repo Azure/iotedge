@@ -100,7 +100,7 @@ steps:
           -testInfo "$testInfo" \
           -subscription "$(azure.subscription)" \
           -level "5" \
-          -blobstorageConnectionString "$(edgebuild-blob-core-connection-string)" \          
+          -blobstorageConnectionString "$(edgebuild-blob-core-connection-string)" \
           -parentIoTedgeName \
           -waitForTestComplete \
           -cleanAll
