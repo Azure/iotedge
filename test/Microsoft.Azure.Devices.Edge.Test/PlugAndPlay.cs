@@ -108,6 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     });
                 },
                 token);
+
             EdgeModule filter = deployment.Modules[LoadGenModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
             await this.ValidateModule(this.runtime.DeviceId, LoadGenModuleName, TestModelId);
@@ -129,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             new
                             {
-                                 identities = new[] { $"{{iot:identity}}" },
+                                 identities = new[] { "{{iot:identity}}" },
                                  allow = new[]
                                  {
                                      new
