@@ -52,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         this.AddBrokerToDeployment(builder);
                     }
+
                     builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                 },
                 token);
@@ -97,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         this.AddBrokerToDeployment(builder);
                     }
+
                     builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                     builder.AddModule(LoadGenModuleName, loadGenImage)
                     .WithEnvironment(new[]
