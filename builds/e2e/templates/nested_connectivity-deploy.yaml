@@ -13,7 +13,7 @@ steps:
     inputs:
       azureSubscription: $(service.connections)
       KeyVaultName: $(azure.keyVault)
-      SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString'  
+      SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString,edgebuild-blob-core-connection-string'  
   - task: DownloadBuildArtifacts@0
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Download Edgelet Artifacts'
@@ -101,6 +101,7 @@ steps:
           -subscription "$(azure.subscription)" \
           -level "5" \
           -parentIoTedgeName \
+          -blobstorageConnectionString "$edgebuild-blob-core-connection-string" \          
           -waitForTestComplete \
           -cleanAll
 # - task: Bash@3
