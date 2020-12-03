@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -26,17 +27,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     public class AuthAgentHeadTest
     {
         const string HOST = "localhost";
-        const int PORT = 7120;
-        const string URL = "http://localhost:7120/authenticate/";
+        const int PORT = 7122;
+        const string URL = "http://localhost:7122/authenticate/";
 
         readonly AuthAgentProtocolHeadConfig config = new AuthAgentProtocolHeadConfig(PORT, "/authenticate/");
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task StartsUpAndServes()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -51,24 +52,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task CannotStartTwice()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 await Assert.ThrowsAsync<InvalidOperationException>(async () => await sut.StartAsync());
             }                
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesNoPasswordNorCertificate()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -82,12 +83,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesBothPasswordAndCertificate()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -103,12 +104,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesBadCertificateFormat()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -123,12 +124,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesNoVersion()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -142,12 +143,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesBadVersion()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -162,13 +163,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsGoodTokenDeniesBadToken()
         {
-            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodToken("good_token");
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -187,13 +188,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsGoodThumbprintDeniesBadThumbprint()
         {
-            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodThumbprint(ThumbprintTestCertThumbprint2);
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -212,16 +213,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsGoodCaDeniesBadCa()
         {
-            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
             var goodCa = new X509Certificate2(Encoding.ASCII.GetBytes(CaTestRoot2));
 
             var authenticator = SetupAcceptGoodCa(goodCa);
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -242,12 +243,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task ReturnsDeviceIdentity()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -262,12 +263,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task ReturnsModuleIdentity()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -282,12 +283,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsRequestWithContentLength()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody);
@@ -296,12 +297,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task AcceptsRequestWithNoContentLength()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, withContentLength: false);
@@ -310,12 +311,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesMalformedJsonRequest()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(NonJSONRequestBody);
@@ -324,17 +325,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
         public async Task DeniesBadContentLengthLongBody()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length - 10);
 
                 Assert.StartsWith(@"{""result"":403,", result);
+            }
+        }
+
+        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        public async Task StoresMetadataCorrectly()
+        {
+            (var authenticator, _, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+            IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("productInfo");
+            var metadataStore = new MetadataStore(store, "productInfo");
+            string modelIdString = "dtmi:test:modelId;1";
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            {
+                await sut.StartAsync();
+
+                dynamic content = new ExpandoObject();
+                content.version = "2020-04-20";
+                content.username = $"testhub/device/api-version=2018-06-30&model-id={modelIdString}";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
+                content.password = "somepassword";
+
+                dynamic response = await PostAsync(content, URL);
+
+                Assert.Equal(200, (int)response.result);
+                var modelId = (await metadataStore.GetMetadata("device")).ModelId;
+                Assert.True(modelId.HasValue);
+                Assert.Equal(modelIdString, modelId.GetOrElse("impossibleValue"));
             }
         }
 
@@ -447,9 +475,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         private bool IsTimeout(DateTime startTime) => DateTime.Now - startTime > TimeSpan.FromSeconds(5);
 
-        private (IAuthenticator, IUsernameParser, IClientCredentialsFactory, ISystemComponentIdProvider) SetupAcceptEverything(string hubname = "testhub")
+        private (IAuthenticator, IMetadataStore, IUsernameParser, IClientCredentialsFactory, ISystemComponentIdProvider) SetupAcceptEverything(string hubname = "testhub")
         {
             var authenticator = Mock.Of<IAuthenticator>();
+            var metadataStore = Mock.Of<IMetadataStore>();
             var usernameParser = new MqttUsernameParser();
             var credFactory = new ClientCredentialsFactory(new IdentityProvider(hubname));
             var sysIdProvider = Mock.Of<ISystemComponentIdProvider>();
@@ -457,7 +486,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).Returns(Task.FromResult(true));
             Mock.Get(sysIdProvider).Setup(a => a.EdgeHubBridgeId).Returns("testdev/$edgeHub/$bridge");
 
-            return (authenticator, usernameParser, credFactory, sysIdProvider);
+            return (authenticator, metadataStore, usernameParser, credFactory, sysIdProvider);
         }
 
         private IAuthenticator SetupAcceptGoodToken(string goodToken) => SetupAccept(

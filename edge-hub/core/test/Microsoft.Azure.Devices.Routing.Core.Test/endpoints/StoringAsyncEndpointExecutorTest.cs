@@ -320,7 +320,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             iterator.VerifyAll();
         }
 
-        [Fact(Skip = "Disabling to unblock CI while we investigate")]
+        [Fact]
         public async Task MessagePrioritiesTest()
         {
             // Arrange
@@ -386,7 +386,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             // Re-enable the endpoint and let the queues drain
             endpoint.CanProcess = true;
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            int retryAttempts = 0;
+            int count = endpoint.Processed.Count();
+            while (count != 8)
+            {
+                Assert.True(count < 8);
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                retryAttempts++;
+                Assert.True(retryAttempts < 8, "Too many retry attempts. Failed because test is taking too long.");
+                count = endpoint.Processed.Count();
+            }
 
             // Assert - Make sure the endpoint received all the messages
             // in the right priority order:
