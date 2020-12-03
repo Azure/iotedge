@@ -146,6 +146,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             string[] output = await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
+
+            // Waiting for the processes to enter the "Running" state doesn't guarantee that
+            // they are fully started and ready to accept requests. Therefore, this function
+            // must wait until a request can be processed.
+            while (true)
+            {
+                var request = System.Diagnostics.Process.Start("iotedge", "list");
+
+                if (request.WaitForExit(1000))
+                {
+                    request.Close();
+                    Log.Verbose("aziot-edged ready for requests");
+                    break;
+                }
+                else
+                {
+                    request.Kill(true);
+                    request.WaitForExit();
+                    request.Close();
+                    Log.Verbose("aziot-edged not yet ready");
+                }
+            }
         }
 
         public Task StopAsync(CancellationToken token) => Profiler.Run(
@@ -195,22 +217,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         static async Task WaitForStatusAsync(ServiceControllerStatus desired, CancellationToken token)
         {
-            while (true)
-            {
-                Func<string, bool> stateMatchesDesired = desired switch
-                {
-                    ServiceControllerStatus.Running => s => s == "active",
-                    ServiceControllerStatus.Stopped => s => s == "inactive" || s == "failed",
-                    _ => throw new NotImplementedException($"No handler for {desired}"),
-                };
-                string[] output = await Process.RunAsync("systemctl", "-p ActiveState show aziot-edged", token);
-                Log.Verbose(output.First());
-                if (stateMatchesDesired(output.First().Split("=").Last()))
-                {
-                    break;
-                }
+            string[] processes = {"aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged"};
 
-                await Task.Delay(250, token).ConfigureAwait(false);
+            foreach (string process in processes)
+            {
+                while (true)
+                {
+                    Func<string, bool> stateMatchesDesired = desired switch
+                    {
+                        ServiceControllerStatus.Running => s => s == "active",
+                        ServiceControllerStatus.Stopped => s => s == "inactive" || s == "failed",
+                        _ => throw new NotImplementedException($"No handler for {desired}"),
+                    };
+
+                    string[] output = await Process.RunAsync("systemctl", $"-p ActiveState show {process}", token);
+                    Log.Verbose($"{process}: {output.First()}");
+
+                    if (stateMatchesDesired(output.First().Split("=").Last()))
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(250, token).ConfigureAwait(false);
+                }
             }
         }
     }

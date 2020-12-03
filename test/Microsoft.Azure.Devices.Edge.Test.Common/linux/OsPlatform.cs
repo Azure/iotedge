@@ -64,7 +64,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public void SetFileOwner(string filePath, string owner)
         {
-            System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {filePath}").WaitForExit();
+            var process = System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {filePath}");
+            process.WaitForExit();
+            process.Close();
         }
     }
 }
