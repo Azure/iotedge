@@ -310,7 +310,7 @@ else
 fi
 
 
-az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${DEPLOYMENT_FILE_NAME} --output none
+az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
 
 #clean up
 #az iot hub device-identity delete -n ${iotHubName} -d ${iotEdgeDevicesName}
