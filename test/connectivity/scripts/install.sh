@@ -298,7 +298,7 @@ hubname=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAcce
 az account set --subscription $SUBSCRIPTION
 iotEdgeDevicesName="level_${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
 
-echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${hubname}"
+echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${hubname}, in subscription $SUBSCRIPTION"
 if [ "$LEVEL" = "5" ]; then
     az iot hub device-identity create -n ${hubname} -d ${iotEdgeDevicesName} --ee --output none
 else
