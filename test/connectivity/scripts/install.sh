@@ -9,11 +9,10 @@ function create_certificates() {
     cd ./certs
 
     echo "Generating edge device certificate"
-    hostname=$(hostname)
-    hostname_fqdn=$(az vm show -d  -g "iotedge-deploy" -n ${hostname} --query fqdns)
-    echo "  Hostname FQDN: ${hostname_fqdn}" 
+    device_name=$(az vm show -d  -g "iotedge-deploy" -n $(hostname) --query fqdns)
+    echo "  Hostname FQDN: ${device_name}" 
 
-    ./certGen.sh create_edge_device_certificate ${hostname_fqdn}
+    ./certGen.sh create_edge_device_certificate ${device_name}
     cd ./certs
     sudo cp azure-iot-test-only.root.ca.cert.pem /usr/local/share/ca-certificates/azure-iot-test-only.root.ca.cert.pem.crt
     sudo update-ca-certificates
@@ -35,8 +34,19 @@ function install_and_setup_iotedge() {
     sudo sed -i "166s|.*|  device_ca_cert: \""$device_ca_cert_path"\"|" /etc/iotedge/config.yaml
     sudo sed -i "167s|.*|  device_ca_pk: \""$device_ca_pk_path"\"|" /etc/iotedge/config.yaml
     sudo sed -i "168s|.*|  trusted_ca_certs: \""$trusted_ca_certs_path"\"|" /etc/iotedge/config.yaml
+
+    echo "Updating the device connection string"
+    sudo sed -i "s#\(device_connection_string: \).*#\1\"$connectionString\"#g" /etc/iotedge/config.yaml
+
+    echo "Updating the device hostname"
+    sudo sed -i "224s/.*/hostname: \"$device_name\"/" /etc/iotedge/config.yaml
+
+    if [ ! -z $PARENT_NAME ]; then
+        echo "Updating the parent hostname"
+        sudo sed -i "237s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/iotedge/config.yaml
+    fi
+
     sudo cat /etc/iotedge/config.yaml
-    echo "Done."
 }
 
 function create_iotedge_identities() {
@@ -53,10 +63,9 @@ function create_iotedge_identities() {
         az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --output none
         
     else
-        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_IOTEDGE_NAME} --output none
+        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_NAME} --output none
     fi
     connectionString=$(az iot hub device-identity connection-string show -d ${iotEdgeDevicesName} -n ${iotHubName} --query 'connectionString' -o tsv)
-    echo "${connectionString}"
     az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
 }
 
@@ -239,7 +248,7 @@ function process_args() {
             BLOB_STORAGE_CONNECTION_STRING="$arg"
             saveNextArg=0             
         elif [ $saveNextArg -eq 39 ]; then
-            PARENT_IOTEDGE_NAME="$arg"
+            PARENT_NAME="$arg"
             saveNextArg=0         
         else              
             case "$arg" in
