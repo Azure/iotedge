@@ -171,15 +171,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetCertificates(CaCertificates certs)
         {
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-device-ca", certs.CertificatePath);
-            this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.iotedge-device-ca", certs.KeyPath);
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", certs.TrustedCertificatesPath);
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-device-ca", "file://" + certs.CertificatePath);
+            this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-device-ca", "file://" + certs.KeyPath);
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", "file://" + certs.TrustedCertificatesPath);
         }
 
         public void RemoveCertificates()
         {
-            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.iotedge-device-ca");
-            this.config[Service.Keyd].Document.RemoveIfExists("preloaded_keys.iotedge-device-ca");
+            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-device-ca");
+            this.config[Service.Keyd].Document.RemoveIfExists("preloaded_keys.aziot-edged-device-ca");
             this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.iotedge-trust-bundle");
         }
 
