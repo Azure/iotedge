@@ -16,9 +16,9 @@ stages:
     - template: templates/nested-agent-lock-and-deploy.yaml
       parameters:
         level: '5'
-    - template: templates/nested-agent-lock-and-deploy.yaml
-      parameters:
-        level: '4'
+#    - template: templates/nested-agent-lock-and-deploy.yaml
+#      parameters:
+#        level: '4'
 #TODO:
 # 1. Turn {SetupVM_job135, SetupVM_job13} into a template and use it in a yaml as a known job name
 # 2. In a task, before the test agent run template from (1), have the pipeline appends "_$(Build.BuildId)" to "nested-edge" userCapabilities.
