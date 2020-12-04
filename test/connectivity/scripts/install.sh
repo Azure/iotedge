@@ -10,6 +10,7 @@ function create_certificates() {
 
     echo "Generating edge device certificate"
     device_name=$(az vm show -d  -g "iotedge-deploy" -n $(hostname) --query fqdns)
+    eval device_name=device_name
     echo "  Hostname FQDN: ${device_name}" 
 
     ./certGen.sh create_edge_device_certificate ${device_name}
@@ -39,11 +40,11 @@ function install_and_setup_iotedge() {
     sudo sed -i "s#\(device_connection_string: \).*#\1\"$connectionString\"#g" /etc/iotedge/config.yaml
 
     echo "Updating the device and parent hostname"
-    sudo sed -i "224s/.*/hostname: $device_name/" /etc/iotedge/config.yaml
+    sudo sed -i "224s/.*/hostname: \"$device_name\"/" /etc/iotedge/config.yaml
 
     if [ ! -z $PARENT_NAME ]; then
         echo "Updating the parent hostname"
-        sudo sed -i "237s/.*/parent_hostname: $PARENT_NAME/" /etc/iotedge/config.yaml
+        sudo sed -i "237s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/iotedge/config.yaml
     fi
 
     echo "Updating edge Agent"
