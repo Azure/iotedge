@@ -369,7 +369,7 @@ process_args "$@"
 
 get_image_architecture_label
 
-if [ ! -z $CUSTOM_EDGE_AGENT_IMAGE ]; then
+if [ -z $CUSTOM_EDGE_AGENT_IMAGE ]; then
     CUSTOM_EDGE_AGENT_IMAGE="$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
 fi
 working_folder="$E2E_TEST_DIR/working"
