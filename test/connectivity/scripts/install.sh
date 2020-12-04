@@ -10,7 +10,7 @@ function create_certificates() {
 
     echo "Generating edge device certificate"
     device_name=$(az vm show -d  -g "iotedge-deploy" -n $(hostname) --query fqdns)
-    eval device_name=device_name
+    eval device_name=${device_name}
     echo "  Hostname FQDN: ${device_name}" 
 
     ./certGen.sh create_edge_device_certificate ${device_name}
