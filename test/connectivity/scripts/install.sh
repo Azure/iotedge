@@ -48,12 +48,7 @@ function install_and_setup_iotedge() {
     fi
 
     echo "Updating edge Agent"
-    if [ ! -z $PARENT_NAME ]; then
-        edgeAgentImage="${PARENT_NAME}:443/microsoft/azureiotedge-agent:${CUSTOM_EDGE_AGENT_IMAGE}"
-    else
-        edgeAgentImage="${CONTAINER_REGISTRY}/microsoft/azureiotedge-agent:${CUSTOM_EDGE_AGENT_IMAGE}"
-    fi
-    sudo sed -i "207s|.*|    image: \"${edgeAgentImage}\"|" /etc/iotedge/config.yaml
+    sudo sed -i "207s|.*|    image: \"${CUSTOM_EDGE_AGENT_IMAGE}\"|" /etc/iotedge/config.yaml
 
     if [ -z $PARENT_NAME ]; then
         sudo sed -i "208s|.*|    auth:|" /etc/iotedge/config.yaml
@@ -374,10 +369,18 @@ process_args "$@"
 get_image_architecture_label
 
 if [ -z $CUSTOM_EDGE_AGENT_IMAGE ]; then
-    CUSTOM_EDGE_AGENT_IMAGE="$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
+    if [ ! -z $PARENT_NAME ]; then
+        CUSTOM_EDGE_AGENT_IMAGE="${PARENT_NAME}:443/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
+    else
+        CUSTOM_EDGE_AGENT_IMAGE="${CONTAINER_REGISTRY}/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
+    fi
 fi
 if [ -z $CUSTOM_EDGE_HUB_IMAGE ]; then
-    CUSTOM_EDGE_HUB_IMAGE="$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
+    if [ ! -z $PARENT_NAME ]; then
+        CUSTOM_EDGE_HUB_IMAGE="${PARENT_NAME}:443/microsoft/azureiotedge-hub:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
+    else
+        CUSTOM_EDGE_HUB_IMAGE="${CONTAINER_REGISTRY}/microsoft/azureiotedge-hub:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
+    fi
 fi
 working_folder="$E2E_TEST_DIR/working"
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
