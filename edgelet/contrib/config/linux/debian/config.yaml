@@ -147,8 +147,8 @@ connect:
 ###############################################################################
 
 listen:
-  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///run/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "fd://aziot-edged.mgmt.socket"
+  workload_uri: "fd://aziot-edged.workload.socket"
 
 ###############################################################################
 # Home Directory
