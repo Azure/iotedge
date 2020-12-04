@@ -25,10 +25,10 @@ function install_and_setup_iotedge() {
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
     iotedge_package="${pkg_list[*]}" 
     sudo dpkg -i --force-confnew ${iotedge_package}
-    sudo cat /etc/iotedge/config.yaml
+ 
     echo "  Updating IoT Edge configuration file to use the newly installed certificcates"
-    device_ca_cert_path="/certs/certs/certs/iot-edge-device-${device_name}-full-chain.cert.pem"
-    device_ca_pk_path="/certs/certs/private/iot-edge-device-${device_name}.key.pem"
+    device_ca_cert_path="/certs/certs/certs/iot-edge-device-"${device_name}"-full-chain.cert.pem"
+    device_ca_pk_path="/certs/certs/private/iot-edge-device-"${device_name}".key.pem"
     trusted_ca_certs_path="/certs/certs/certs/azure-iot-test-only.root.ca.cert.pem"
     sudo sed -i "165s|.*|certificates:|" /etc/iotedge/config.yaml
     sudo sed -i "166s|.*|  device_ca_cert: \""$device_ca_cert_path"\"|" /etc/iotedge/config.yaml
@@ -62,6 +62,9 @@ function install_and_setup_iotedge() {
     fi
 
     sudo cat /etc/iotedge/config.yaml
+
+    echo "Start IoT edge"
+    sudo systemctl restart iotedge
 }
 
 function create_iotedge_identities() {
