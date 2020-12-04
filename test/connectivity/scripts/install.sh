@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# This script is intended to be used for nested edge tests. It deploy level 4 and level 5.
+# Level 3 is deveployed by specialized script for connectivity/long haul and quick start.
 
 function create_certificates() {
     echo "Installing test root certificate bundle."    
@@ -17,7 +19,7 @@ function create_certificates() {
     cd ../../
     sudo cp -r certs /certs
 }
-
+#@TODO this might not be compatible for CENTOS
 function install_and_setup_iotedge() {
     echo "Install and setup iotedge"
 
