@@ -49,9 +49,9 @@ function install_and_setup_iotedge() {
 
     echo "Updating edge Agent"
     if [ ! -z $PARENT_NAME ]; then
-        edgeAgentImage="$PARENT_NAME:443/${CUSTOM_EDGE_AGENT_IMAGE}"
+        edgeAgentImage="${PARENT_NAME}:443/microsoft/azureiotedge-agent:${CUSTOM_EDGE_AGENT_IMAGE}"
     else
-        edgeAgentImage="iotedgeforiiot.azurecr.io/microsoft/azureiotedge-agent:${CUSTOM_EDGE_AGENT_IMAGE}"
+        edgeAgentImage="${CONTAINER_REGISTRY}/microsoft/azureiotedge-agent:${CUSTOM_EDGE_AGENT_IMAGE}"
     fi
     sudo sed -i "207s|.*|    image: \"${edgeAgentImage}\"|" /etc/iotedge/config.yaml
 
