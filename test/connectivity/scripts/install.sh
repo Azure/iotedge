@@ -36,14 +36,14 @@ function install_and_setup_iotedge() {
     sudo sed -i "168s|.*|  trusted_ca_certs: \""$trusted_ca_certs_path"\"|" /etc/iotedge/config.yaml
 
     echo "Updating the device connection string"
-    sudo sed -i "s#\(device_connection_string: \).*#\1$connectionString#g" /etc/iotedge/config.yaml
+    sudo sed -i "s#\(device_connection_string: \).*#\1\"$connectionString\"#g" /etc/iotedge/config.yaml
 
     echo "Updating the device and parent hostname"
-    sudo sed -i "224s/.*/hostname: \"$device_name\"/" /etc/iotedge/config.yaml
+    sudo sed -i "224s/.*/hostname: $device_name/" /etc/iotedge/config.yaml
 
     if [ ! -z $PARENT_NAME ]; then
         echo "Updating the parent hostname"
-        sudo sed -i "237s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/iotedge/config.yaml
+        sudo sed -i "237s/.*/parent_hostname: $PARENT_NAME/" /etc/iotedge/config.yaml
     fi
 
     echo "Updating edge Agent"
@@ -319,6 +319,7 @@ function process_args() {
     done
 
     # Required parameters
+    [[ -z "$CUSTOM_EDGE_AGENT_IMAGE" ]] && { print_error 'CUSTOM_EDGE_AGENT_IMAGE is required.'; exit 1; }   
     [[ -z "$BLOB_STORAGE_CONNECTION_STRING" ]] && { print_error 'BLOB_STORAGE_CONNECTION_STRING is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
