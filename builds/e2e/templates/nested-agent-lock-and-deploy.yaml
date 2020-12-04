@@ -1,12 +1,13 @@
-variables:
-  images.artifact.name.linux: 'core-linux'
-  edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
-  vsts.project: $(System.TeamProjectId)
+
 
 parameters:
   level: ''
 
 jobs:
+variables:
+  images.artifact.name.linux: 'core-linux'
+  edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+  vsts.project: $(System.TeamProjectId)
   - job:  SetupVM_level${{ parameters.level }}
     displayName: SettingUp level ${{ parameters.level }}
     condition: ne(variables['agent.group'], '')
