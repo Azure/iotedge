@@ -318,8 +318,7 @@ function process_args() {
         fi
     done
 
-    # Required parameters
-    [[ -z "$CUSTOM_EDGE_AGENT_IMAGE" ]] && { print_error 'CUSTOM_EDGE_AGENT_IMAGE is required.'; exit 1; }   
+    # Required parameters  
     [[ -z "$BLOB_STORAGE_CONNECTION_STRING" ]] && { print_error 'BLOB_STORAGE_CONNECTION_STRING is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
@@ -369,6 +368,10 @@ fi
 process_args "$@"
 
 get_image_architecture_label
+
+if [ ! -z $PARENT_NAME ]; then
+    CUSTOM_EDGE_HUB_IMAGE="$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
+fi
 working_folder="$E2E_TEST_DIR/working"
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 
