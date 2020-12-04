@@ -27,13 +27,13 @@ function install_and_setup_iotedge() {
     sudo dpkg -i --force-confnew ${iotedge_package}
  
     echo "  Updating IoT Edge configuration file to use the newly installed certificcates"
-    device_ca_cert_path="/certs/certs/certs/iot-edge-device-"${device_name}"-full-chain.cert.pem"
-    device_ca_pk_path="/certs/certs/private/iot-edge-device-"${device_name}".key.pem"
+    device_ca_cert_path="/certs/certs/certs/iot-edge-device-${device_name}-full-chain.cert.pem"
+    device_ca_pk_path="/certs/certs/private/iot-edge-device-${device_name}.key.pem"
     trusted_ca_certs_path="/certs/certs/certs/azure-iot-test-only.root.ca.cert.pem"
     sudo sed -i "165s|.*|certificates:|" /etc/iotedge/config.yaml
-    sudo sed -i "166s|.*|  device_ca_cert: \""$device_ca_cert_path"\"|" /etc/iotedge/config.yaml
-    sudo sed -i "167s|.*|  device_ca_pk: \""$device_ca_pk_path"\"|" /etc/iotedge/config.yaml
-    sudo sed -i "168s|.*|  trusted_ca_certs: \""$trusted_ca_certs_path"\"|" /etc/iotedge/config.yaml
+    sudo sed -i "166s|.*|  device_ca_cert: \"$device_ca_cert_path\"|" /etc/iotedge/config.yaml
+    sudo sed -i "167s|.*|  device_ca_pk: \"$device_ca_pk_path\"|" /etc/iotedge/config.yaml
+    sudo sed -i "168s|.*|  trusted_ca_certs: \"$trusted_ca_certs_path\"|" /etc/iotedge/config.yaml
 
     echo "Updating the device connection string"
     sudo sed -i "s#\(device_connection_string: \).*#\1\"$connectionString\"#g" /etc/iotedge/config.yaml
