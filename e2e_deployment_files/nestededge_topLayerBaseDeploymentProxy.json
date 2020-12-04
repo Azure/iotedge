@@ -54,7 +54,7 @@
             },
             "env": {
               "REGISTRY_PROXY_REMOTEURL": {
-                "value": "<Container_Registry>:443"
+                "value": "https://<Container_Registry>:443"
               },
               "REGISTRY_PROXY_USERNAME": {
                 "value": "<CR.Username>"
