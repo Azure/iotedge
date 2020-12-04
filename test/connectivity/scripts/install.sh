@@ -13,6 +13,8 @@ function create_certificates() {
     cd ./certs
     sudo cp azure-iot-test-only.root.ca.cert.pem /usr/local/share/ca-certificates/azure-iot-test-only.root.ca.cert.pem.crt
     sudo update-ca-certificates
+
+    sudo cp -r ./certs /certs
 }
 
 function install_and_setup_iotedge() {
