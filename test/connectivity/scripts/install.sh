@@ -20,7 +20,7 @@ function create_certificates() {
 
 function install_and_setup_iotedge() {
     echo "Install and setup iotedge"
-
+    sudo cat /etc/iotedge/config.yaml
     echo "  Install artifacts"
     declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
     iotedge_package="${pkg_list[*]}" 
