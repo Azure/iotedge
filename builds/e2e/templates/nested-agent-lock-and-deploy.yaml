@@ -2,7 +2,7 @@ parameters:
   level: ''
 
 jobs:
-  - job: "SetupVM_level_$(level)"
+  - job: "SetupVM_level$(level)"
     displayName: SettingUp
     condition: ne(variables['agent.group'], '')
     timeoutInMinutes: 180
