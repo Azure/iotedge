@@ -49,10 +49,22 @@ function install_and_setup_iotedge() {
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
     fi
-    
-    if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
-        sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
-    fi   
+
+
+    echo "Updating edge Agent"
+    if [ ! -z $PARENT_NAME ]; then
+        edgeAgentImage="$PARENT_NAME:443/$CUSTOM_EDGE_AGENT_IMAGE"
+    else
+        edgeAgentImage="iotedgeforiiot.azurecr.io/$CUSTOM_EDGE_AGENT_IMAGE"
+    fi
+    sudo sed -i "207s|.*|    image: \"${edgeAgentImage}\"|" /etc/iotedge/config.yaml
+
+    if [ -z $PARENT_NAME ]; then
+        sudo sed -i "208s|.*|    auth:|" /etc/iotedge/config.yaml
+        sed -i "209i\      serveraddress: \"${CONTAINER_REGISTRY}\"" /etc/iotedge/config.yaml
+        sed -i "210i\      username: \"${CONTAINER_REGISTRY_USERNAME}\"" /etc/iotedge/config.yaml
+        sed -i "211i\      password: \"${CONTAINER_REGISTRY_PASSWORD}\"" /etc/iotedge/config.yaml
+    fi
 
     sudo cat /etc/iotedge/config.yaml
 }
