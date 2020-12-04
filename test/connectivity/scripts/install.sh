@@ -36,9 +36,9 @@ function install_and_setup_iotedge() {
     sudo sed -i "168s|.*|  trusted_ca_certs: \""$trusted_ca_certs_path"\"|" /etc/iotedge/config.yaml
 
     echo "Updating the device connection string"
-    sudo sed -i "s#\(device_connection_string: \).*#\1\"$connectionString\"#g" /etc/iotedge/config.yaml
+    sudo sed -i "s#\(device_connection_string: \).*#\1$connectionString#g" /etc/iotedge/config.yaml
 
-    echo "Updating the device hostname"
+    echo "Updating the device and parent hostname"
     sudo sed -i "224s/.*/hostname: \"$device_name\"/" /etc/iotedge/config.yaml
 
     if [ ! -z $PARENT_NAME ]; then
@@ -46,16 +46,11 @@ function install_and_setup_iotedge() {
         sudo sed -i "237s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/iotedge/config.yaml
     fi
 
-    if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
-        sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
-    fi
-
-
     echo "Updating edge Agent"
     if [ ! -z $PARENT_NAME ]; then
-        edgeAgentImage="$PARENT_NAME:443/$CUSTOM_EDGE_AGENT_IMAGE"
+        edgeAgentImage="$PARENT_NAME:443/${CUSTOM_EDGE_AGENT_IMAGE}"
     else
-        edgeAgentImage="iotedgeforiiot.azurecr.io/$CUSTOM_EDGE_AGENT_IMAGE"
+        edgeAgentImage="iotedgeforiiot.azurecr.io/${CUSTOM_EDGE_AGENT_IMAGE}"
     fi
     sudo sed -i "207s|.*|    image: \"${edgeAgentImage}\"|" /etc/iotedge/config.yaml
 
