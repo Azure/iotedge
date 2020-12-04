@@ -16,7 +16,6 @@ stages:
     - template: templates/nested-agent-lock-and-deploy.yaml
       parameters:
         level: '5'
-    - template: templates/nested-agent-lock-and-deploy.yaml
 
 #TODO:
 # 1. Turn {SetupVM_job135, SetupVM_job13} into a template and use it in a yaml as a known job name
