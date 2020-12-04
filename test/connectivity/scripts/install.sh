@@ -24,8 +24,8 @@ function install_and_setup_iotedge() {
     sudo dpkg -i --force-confnew ${iotedge_package}
  
     echo "  Updating IoT Edge configuration file to use the newly installed certificcates"
-    device_ca_cert_path="/certs/certs/certs/iot-edge-device-L4-edge-full-chain.cert.pem"
-    device_ca_pk_path="/certs/certs/private/iot-edge-device-L4-edge.key.pem"
+    device_ca_cert_path="/certs/certs/certs/iot-edge-device-${device_name}-edge-full-chain.cert.pem"
+    device_ca_pk_path="/certs/certs/private/iot-edge-device-${device_name}-edge.key.pem"
     trusted_ca_certs_path="/certs/certs/certs/azure-iot-test-only.root.ca.cert.pem"
     sudo sed -i "165s|.*|certificates:|" /etc/iotedge/config.yaml
     sudo sed -i "166s|.*|  device_ca_cert: \"$device_ca_cert_path\"|" /etc/iotedge/config.yaml
