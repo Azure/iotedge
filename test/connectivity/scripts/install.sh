@@ -51,7 +51,7 @@ function install_and_setup_iotedge() {
     if [ ! -z $PARENT_NAME ]; then
         edgeAgentImage="$PARENT_NAME:443/${CUSTOM_EDGE_AGENT_IMAGE}"
     else
-        edgeAgentImage="iotedgeforiiot.azurecr.io/${CUSTOM_EDGE_AGENT_IMAGE}"
+        edgeAgentImage="iotedgeforiiot.azurecr.io/edgebuilds.azurecr.io/microsoft/azureiotedge-agent:${CUSTOM_EDGE_AGENT_IMAGE}"
     fi
     sudo sed -i "207s|.*|    image: \"${edgeAgentImage}\"|" /etc/iotedge/config.yaml
 
@@ -375,6 +375,9 @@ get_image_architecture_label
 
 if [ -z $CUSTOM_EDGE_AGENT_IMAGE ]; then
     CUSTOM_EDGE_AGENT_IMAGE="$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
+fi
+if [ -z $CUSTOM_EDGE_HUB_IMAGE ]; then
+    CUSTOM_EDGE_HUB_IMAGE="$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
 fi
 working_folder="$E2E_TEST_DIR/working"
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
