@@ -2,8 +2,8 @@ parameters:
   level: ''
 
 jobs:
-  - job: "SetupVM_level$(level)"
-    displayName: SettingUp
+  - job:  SetupVM_job135
+    displayName: SettingUp level ${{level}}
     condition: ne(variables['agent.group'], '')
     timeoutInMinutes: 180
     variables:
