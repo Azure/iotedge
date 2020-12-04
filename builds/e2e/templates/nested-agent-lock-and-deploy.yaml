@@ -93,7 +93,7 @@ jobs:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
+          project: $(System.TeamProjectId)
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
           buildVersionToDownload: latestFromBranch
@@ -104,7 +104,7 @@ jobs:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
+          project: $(System.TeamProjectId)
           pipeline: $(images.build)
           branchName: $(images.branchName)
           buildVersionToDownload: latestFromBranch
