@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y --remove-leaves libiothsm-std aziot-edge aziot-identity-service iotedge"
+                "yum remove -y libiothsm-std aziot-edge aziot-identity-service iotedge"
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };
