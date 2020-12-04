@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 
 function create_certificates() {
-    echo "Installing test root certificate bundle."
-
-    az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${BLOB_STORAGE_CONNECTION_STRING}
-    sudo tar -xjvf rootCA.tar.bz2
-    
+    echo "Installing test root certificate bundle."    
     cd ./certs
 
     echo "Generating edge device certificate"
