@@ -101,7 +101,6 @@ steps:
           -subscription "$(azure.subscription)" \
           -level "5" \
           -blobstorageConnectionString "$(edgebuild-blob-core-connection-string)" \
-          -parentIoTedgeName \
           -waitForTestComplete \
           -cleanAll
 # - task: Bash@3

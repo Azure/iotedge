@@ -46,6 +46,14 @@ function install_and_setup_iotedge() {
         sudo sed -i "237s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/iotedge/config.yaml
     fi
 
+    if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
+        sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
+    fi
+    
+    if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
+        sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
+    fi   
+
     sudo cat /etc/iotedge/config.yaml
 }
 
