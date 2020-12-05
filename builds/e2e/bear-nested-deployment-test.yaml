@@ -28,10 +28,10 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true 
-      steps:        
-        - template: templates/nested-agent-lock-and-deploy.yaml
-          parameters:
-            level: '5'
+    steps:        
+      - template: templates/nested-agent-lock-and-deploy.yaml
+        parameters:
+          level: '5'
 #=    - template: templates/nested-agent-lock-and-deploy.yaml
 #      parameters:
 #        level: '4'
