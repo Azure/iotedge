@@ -75,10 +75,9 @@ function create_iotedge_identities() {
 
     echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${iotHubName}, in subscription $SUBSCRIPTION"
     if [ "$LEVEL" = "5" ]; then
-        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --output none
-        
+        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --output none       
     else
-        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_NAME} --output none
+        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_CONNECTION_STRING} --output none
     fi
     connectionString=$(az iot hub device-identity connection-string show -d ${iotEdgeDevicesName} -n ${iotHubName} --query 'connectionString' -o tsv)
     az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
@@ -261,7 +260,10 @@ function process_args() {
             saveNextArg=0         
         elif [ $saveNextArg -eq 38 ]; then
             PARENT_NAME="$arg"
-            saveNextArg=0         
+            saveNextArg=0
+        elif [ $saveNextArg -eq 39 ]; then
+            PARENT_CONNECTION_STRING="$arg"
+            saveNextArg=0                          
         else              
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -302,7 +304,8 @@ function process_args() {
                 '-testInfo' ) saveNextArg=35;;
                 '-subscription' ) saveNextArg=36;;
                 '-level' ) saveNextArg=37;;             
-                '-parentIoTedgeName' ) saveNextArg=38;;               
+                '-parentName' ) saveNextArg=38;; 
+                '-parentConnectionString' ) saveNextArg=39;;              
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 

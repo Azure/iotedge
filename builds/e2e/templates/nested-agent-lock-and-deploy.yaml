@@ -1,5 +1,7 @@
 parameters:
   level: ''
+  parentName: ''
+  parentConnectionString: ''
 
 steps:
   - script: echo "JobName:$(Agent.JobName)"
@@ -131,6 +133,7 @@ steps:
     displayName: 'Run Connectivity Deployment'
     inputs:
       targetType: inline
+      name: deployIoTEdge
       #@TODO change Build.Repository.LocalPath to use artifact.
       #@TODO remove hard coding of deploymentFileName: It is also hardcoded in install.sh
       #@TODO remove hard coding of level and parent
@@ -171,5 +174,7 @@ steps:
           -testInfo "$testInfo" \
           -subscription "$(azure.subscription)" \
           -level "5" \
+          -parentName  "$parameters.parentName"\
+          -parentConnectionString "$parameters.parentConnectionString"\
           -waitForTestComplete \
           -cleanAll
