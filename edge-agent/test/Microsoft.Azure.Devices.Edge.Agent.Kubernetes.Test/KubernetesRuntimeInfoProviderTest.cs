@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 new object[]
                 {
                     CreatePodWithPodParametersOnly("Unknown", "Unknown", "Unknown"),
-                    "Module status Unknown reason: Unknown with message: Unknown",
+                    "Module status Unknown reason: Unknown",
                     ModuleStatus.Unknown
                 },
                 new object[]
