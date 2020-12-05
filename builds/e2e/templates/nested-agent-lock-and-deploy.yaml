@@ -7,8 +7,6 @@ jobs:
     condition: ne(variables['agent.group'], '')
     timeoutInMinutes: 180
     variables:
-      testrun.vmTier: L3_5
-      testrun.waitTimeMin: 1
       images.artifact.name.linux: 'core-linux'
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
       vsts.project: $(System.TeamProjectId)
@@ -19,8 +17,6 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true
-        - nested-edge -equals $(testrun.vmTier)
-
     steps:
       - script: echo "JobName:$(Agent.JobName)"
         displayName: jobName
