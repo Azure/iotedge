@@ -159,7 +159,7 @@ steps:
           -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
           -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
           -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
-          -deploymentFileName "$(parameters.deploymentFile)" \
+          -deploymentFileName "${{ parameters['deploymentFile'] }}" \
           -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
           -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
           -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
@@ -171,8 +171,8 @@ steps:
           -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
           -testInfo "$testInfo" \
           -subscription "$(azure.subscription)" \
-          -level "$(parameters.level)" \
-          -parentName  "$(parameters.parentName)"\
-          -parentConnectionString "$(parameters.parentConnectionString)"\
+          -level "${{ parameters['level'] }}" \
+          -parentName  "${{ parameters['parentName'] }}"\
+          -parentConnectionString "${{ parameters['parentConnectionString'] }}"\
           -waitForTestComplete \
           -cleanAll
