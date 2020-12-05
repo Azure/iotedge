@@ -179,11 +179,8 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 37 ]; then
             LEVEL="$arg"
-            saveNextArg=0
+            saveNextArg=0   
         elif [ $saveNextArg -eq 38 ]; then
-            BLOB_STORAGE_CONNECTION_STRING="$arg"
-            saveNextArg=0             
-        elif [ $saveNextArg -eq 39 ]; then
             PARENT_IOTEDGE_NAME="$arg"
             saveNextArg=0         
         else              
@@ -225,9 +222,8 @@ function process_args() {
                 '-testRuntimeLogLevel' ) saveNextArg=34;;
                 '-testInfo' ) saveNextArg=35;;
                 '-subscription' ) saveNextArg=36;;
-                '-level' ) saveNextArg=37;;
-                '-blobstorageConnectionString' ) saveNextArg=38;;                 
-                '-parentIoTedgeName' ) saveNextArg=39;;               
+                '-level' ) saveNextArg=37;;                
+                '-parentIoTedgeName' ) saveNextArg=38;;               
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
@@ -240,7 +236,6 @@ function process_args() {
     done
 
     # Required parameters
-    [[ -z "$BLOB_STORAGE_CONNECTION_STRING" ]] && { print_error 'BLOB_STORAGE_CONNECTION_STRING is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
     [[ -z "$RELEASE_LABEL" ]] && { print_error 'Release label is required.'; exit 1; }
@@ -313,8 +308,6 @@ if [ "$LEVEL" = "5" ]; then
 else
     az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${PARENT_IOTEDGE_NAME} --output none
 fi
-
-az storage blob download --file ../here --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${BLOB_STORAGE_CONNECTION_STRING}
 
 az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
 
