@@ -28,7 +28,7 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true
-        - nested-edge -equals ''
+        - status -equals 'unlocked'
     steps:        
       - template: templates/nested-agent-lock-and-deploy.yaml
         parameters:
