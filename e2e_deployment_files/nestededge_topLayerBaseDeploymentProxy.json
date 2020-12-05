@@ -33,9 +33,15 @@
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "NestedEdgeEnabled": {
-                "value": "false"
-              }
+              "experimentalFeatures__Enabled": {
+                "value": "true"
+              },
+              "experimentalFeatures__nestedEdgeEnabled": {
+                "value": "true"
+              },
+              "experimentalFeatures__EnableMqttBroker": {
+                "value": "true"
+              }                   
             },
             "status": "running",
             "restartPolicy": "always"

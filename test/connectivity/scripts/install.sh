@@ -346,6 +346,12 @@ function test_setup() {
     create_iotedge_service_config && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
 }
+
+function set_output_params() {
+    echo "##vso[task.setvariable variable=parentName;isOutput=true]${device_name}"
+    echo "##vso[task.setvariable variable=parentConnectionString;isOutput=true]${connectionString}"
+}
+
 set -e
 
 # Import test-related functions
