@@ -1,191 +1,175 @@
 parameters:
   level: ''
 
-jobs:
-  - job:  SetupVM_level${{ parameters.level }}
-    displayName: SettingUp level ${{ parameters.level }}
-    condition: ne(variables['agent.group'], '')
-    timeoutInMinutes: 180
-    variables:
-      images.artifact.name.linux: 'core-linux'
-      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
-      vsts.project: $(System.TeamProjectId)
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-idle -equals true
-    steps:
-      - script: echo "JobName:$(Agent.JobName)"
-        displayName: jobName
+steps:
+  - script: echo "JobName:$(Agent.JobName)"
+    displayName: jobName
 
-      - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
-        name: var1
+  - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
+    name: var1
 
-      - task: Bash@3
-        name: lock_test_agent
-        displayName: 'Reserve $(Agent.Name)'
-        env:
-          POOL_ID: 123
-          API_VER: 6.0
-          PAT: $(IotEdge1.PAT)
-        inputs:
-          targetType: inline
-          script: |
-            # Install pre-requisite 'jq'
-            CMD=jq
-            if ! command -v $CMD &> /dev/null
-            then
-              echo "Command '$CMD' not found, Installing '$CMD'"
-              sudo add-apt-repository universe
-              sudo apt-get update
-              sudo apt-get install -y $CMD
-            fi
+  - task: Bash@3
+    name: lock_test_agent
+    displayName: 'Reserve $(Agent.Name)'
+    env:
+      POOL_ID: 123
+      API_VER: 6.0
+      PAT: $(IotEdge1.PAT)
+    inputs:
+      targetType: inline
+      script: |
+        # Install pre-requisite 'jq'
+        CMD=jq
+        if ! command -v $CMD &> /dev/null
+        then
+          echo "Command '$CMD' not found, Installing '$CMD'"
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y $CMD
+        fi
 
-            # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
-            agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?api-version=$API_VER")
+        # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
+        agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?api-version=$API_VER")
 
-            # Filter test agent ID given the name
-            agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$(Agent.Name)") | .id')
+        # Filter test agent ID given the name
+        agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$(Agent.Name)") | .id')
 
-            # Get test agent's capabilities
-            agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        # Get test agent's capabilities
+        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
 
-            # Filter for user capabilities, access "nested-edge" field and append buildId as a suffix
-            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["nested-edge"]) |= sub("$"; "_$(Build.BuildId)")')
+        # Filter for user capabilities, access "nested-edge" field and append buildId as a suffix
+        newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["nested-edge"]) |= sub("$"; "_$(Build.BuildId)")')
 
-            # Update the user capability on the agent pool for this agent
-            responseCapabilities=$(curl -s -u :$PAT \
-            --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
-            -H "Content-Type:application/json" \
-            -H "Accept: application/json;api-version=5.0;" \
-            --data @<(cat <<EOF
-            $newAgentUserCapabilities
-            EOF
-            ))
+        # Update the user capability on the agent pool for this agent
+        responseCapabilities=$(curl -s -u :$PAT \
+        --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
+        -H "Content-Type:application/json" \
+        -H "Accept: application/json;api-version=5.0;" \
+        --data @<(cat <<EOF
+        $newAgentUserCapabilities
+        EOF
+        ))
 
-            # Validate the capability update was successful
-            responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
-            echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
-            [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
+        # Validate the capability update was successful
+        responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
+        echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
+        [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && exit 0 || exit -1
 
-      - template: set-run-flag.yaml
-      - task: AzureKeyVault@1
-        condition: eq(variables['run.flag'], 1)
-        displayName: 'EdgeBuild Azure Key Vault'
-        inputs:
-          azureSubscription: $(service.connections)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
-      - task: AzureKeyVault@1
-        condition: eq(variables['run.flag'], 1)
-        displayName: 'Nested Edge Azure Key Vault'
-        inputs:
-          azureSubscription: $(service.connections)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString,edgebuild-blob-core-connection-string,edgebuild-service-principal-secret' 
-      - task: Bash@3
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Az login'
-        inputs:
-          targetType: inline
-          script: |     
-            az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId) 
-      - task: Bash@3
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Get rootCA'
-        inputs:
-          targetType: inline
-          script: |
-            az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string "$(edgebuild-blob-core-connection-string)"
-            sudo tar -xjvf rootCA.tar.bz2           
-      - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download Edgelet Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(edgelet.artifact.name)
-      - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download Images Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(images.artifact.name.linux)
-          itemPattern: |
-            $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-            $(images.artifact.name.linux)/scripts/connectivityTest.sh
-            $(images.artifact.name.linux)/scripts/testHelper.sh
-            $(images.artifact.name.linux)/artifactInfo.txt  
-      - task: CopyFiles@2
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Copy Edgelet Artifact'
-        inputs:
-          SourceFolder: "$(Build.StagingDirectory)/$(edgelet.artifact.name)"
-          TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)"
-          CleanTargetFolder: true
-      - task: CopyFiles@2
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Copy Images Artifact'
-        inputs:
-          SourceFolder: "$(Build.StagingDirectory)/$(images.artifact.name.linux)"
-          TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
-          CleanTargetFolder: true 
-      - task: Bash@3
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Run Connectivity Deployment'
-        inputs:
-          targetType: inline
-          #@TODO change Build.Repository.LocalPath to use artifact.
-          #@TODO remove hard coding of deploymentFileName: It is also hardcoded in install.sh
-          #@TODO remove hard coding of level and parent
-          script: |
-            declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
-            . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
+  - template: set-run-flag.yaml
+  - task: AzureKeyVault@1
+    condition: eq(variables['run.flag'], 1)
+    displayName: 'EdgeBuild Azure Key Vault'
+    inputs:
+      azureSubscription: $(service.connections)
+      KeyVaultName: $(azure.keyVault)
+      SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
+  - task: AzureKeyVault@1
+    condition: eq(variables['run.flag'], 1)
+    displayName: 'Nested Edge Azure Key Vault'
+    inputs:
+      azureSubscription: $(service.connections)
+      KeyVaultName: $(azure.keyVault)
+      SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString,edgebuild-blob-core-connection-string,edgebuild-service-principal-secret' 
+  - task: Bash@3
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Az login'
+    inputs:
+      targetType: inline
+      script: |     
+        az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId) 
+  - task: Bash@3
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Get rootCA'
+    inputs:
+      targetType: inline
+      script: |
+        az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string "$(edgebuild-blob-core-connection-string)"
+        sudo tar -xjvf rootCA.tar.bz2           
+  - task: DownloadBuildArtifacts@0
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Download Edgelet Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(edgelet.package.build)
+      branchName: $(edgelet.package.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(edgelet.artifact.name)
+  - task: DownloadBuildArtifacts@0
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Download Images Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(images.build)
+      branchName: $(images.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(images.artifact.name.linux)
+      itemPattern: |
+        $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
+        $(images.artifact.name.linux)/scripts/connectivityTest.sh
+        $(images.artifact.name.linux)/scripts/testHelper.sh
+        $(images.artifact.name.linux)/artifactInfo.txt  
+  - task: CopyFiles@2
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/$(edgelet.artifact.name)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/$(images.artifact.name.linux)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
+      CleanTargetFolder: true 
+  - task: Bash@3
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Run Connectivity Deployment'
+    inputs:
+      targetType: inline
+      #@TODO change Build.Repository.LocalPath to use artifact.
+      #@TODO remove hard coding of deploymentFileName: It is also hardcoded in install.sh
+      #@TODO remove hard coding of level and parent
+      script: |
+        declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
+        . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
 
-            chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh
-            
-            sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh \
-              -testDir "$(Agent.HomeDirectory)/.." \
-              -releaseLabel "ct$(agent.group)" \
-              -artifactImageBuildNumber "$BuildNumber" \
-              -containerRegistry "$(container.registry)" \
-              -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
-              -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
-              -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
-              -eventHubConnectionString "$(ConnectivityNestedEdge-EventHubConnectionString)" \
-              -upstreamProtocol "$(upstream.protocol)" \
-              -loadGenMessageFrequency "$(loadGen.message.frequency.amd64)" \
-              -logAnalyticsWorkspaceId "$(kvLogAnalyticWorkspaceId)" \
-              -logAnalyticsSharedKey "$(kvLogAnalyticSharedKey)" \
-              -logAnalyticsLogType "$(testResultCoordinator.logAnalyticsLogType)" \
-              -verificationDelay "$(testResultCoordinator.verificationDelay)" \
-              -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
-              -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
-              -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
-              -deploymentFileName "nestededge_topLayerBaseDeploymentProxy.json" \
-              -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
-              -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
-              -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
-              -devOpsAccessToken "$(System.AccessToken)" \
-              -devOpsBuildId "$(Build.BuildId)" \
-              -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
-              -customEdgeAgentImage "$(customEdgeAgent.image)" \
-              -customEdgeHubImage "$(customEdgeHub.image)" \
-              -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
-              -testInfo "$testInfo" \
-              -subscription "$(azure.subscription)" \
-              -level "5" \
-              -waitForTestComplete \
-              -cleanAll
+        chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh
+        
+        sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/install.sh \
+          -testDir "$(Agent.HomeDirectory)/.." \
+          -releaseLabel "ct$(agent.group)" \
+          -artifactImageBuildNumber "$BuildNumber" \
+          -containerRegistry "$(container.registry)" \
+          -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
+          -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
+          -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
+          -eventHubConnectionString "$(ConnectivityNestedEdge-EventHubConnectionString)" \
+          -upstreamProtocol "$(upstream.protocol)" \
+          -loadGenMessageFrequency "$(loadGen.message.frequency.amd64)" \
+          -logAnalyticsWorkspaceId "$(kvLogAnalyticWorkspaceId)" \
+          -logAnalyticsSharedKey "$(kvLogAnalyticSharedKey)" \
+          -logAnalyticsLogType "$(testResultCoordinator.logAnalyticsLogType)" \
+          -verificationDelay "$(testResultCoordinator.verificationDelay)" \
+          -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
+          -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
+          -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
+          -deploymentFileName "nestededge_topLayerBaseDeploymentProxy.json" \
+          -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
+          -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
+          -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
+          -devOpsAccessToken "$(System.AccessToken)" \
+          -devOpsBuildId "$(Build.BuildId)" \
+          -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
+          -customEdgeAgentImage "$(customEdgeAgent.image)" \
+          -customEdgeHubImage "$(customEdgeHub.image)" \
+          -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
+          -testInfo "$testInfo" \
+          -subscription "$(azure.subscription)" \
+          -level "5" \
+          -waitForTestComplete \
+          -cleanAll

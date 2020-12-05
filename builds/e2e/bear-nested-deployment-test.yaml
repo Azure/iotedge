@@ -13,10 +13,25 @@
 stages:
 - stage: SetupVM
   jobs:
+  - job:  SetupVM_level${{ parameters.level }}
+    displayName: SettingUp level ${{ parameters.level }}
+    condition: ne(variables['agent.group'], '')
+    timeoutInMinutes: 180
+    variables:
+      images.artifact.name.linux: 'core-linux'
+      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+      vsts.project: $(System.TeamProjectId)
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-idle -equals true 
     - template: templates/nested-agent-lock-and-deploy.yaml
       parameters:
         level: '5'
-#    - template: templates/nested-agent-lock-and-deploy.yaml
+#=    - template: templates/nested-agent-lock-and-deploy.yaml
 #      parameters:
 #        level: '4'
 #TODO:
