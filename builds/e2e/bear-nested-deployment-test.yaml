@@ -27,11 +27,13 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-idle -equals true 
+        - run-idle -equals true
+        - nested-edge -equals ''
     steps:        
       - template: templates/nested-agent-lock-and-deploy.yaml
         parameters:
           level: '5'
+          deploymentFile: 'nestededge_topLayerBaseDeploymentProxy.json'
   - job:  SetupVM_level4
     dependsOn: SetupVM_level5
     displayName: SettingUp level 4
@@ -52,6 +54,7 @@ stages:
       - template: templates/nested-agent-lock-and-deploy.yaml
         parameters:
           level: '4'
+          deploymentFile: 'nestededge_topLayerBaseDeploymentProxy.json'
           parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
           parentConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ]        
 #TODO:

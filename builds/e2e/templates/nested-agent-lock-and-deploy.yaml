@@ -2,6 +2,7 @@ parameters:
   level: ''
   parentName: ''
   parentConnectionString: ''
+  deploymentFile: ''
 
 steps:
   - script: echo "JobName:$(Agent.JobName)"
@@ -161,7 +162,7 @@ steps:
           -metricsEndpointsCSV "$(metricsCollector.metricsEndpointsCSV)" \
           -metricsScrapeFrequencyInSecs "$(metricsCollector.scrapeFrequencyInSecs)" \
           -metricsUploadTarget "$(metricsCollector.uploadTarget)" \
-          -deploymentFileName "nestededge_topLayerBaseDeploymentProxy.json" \
+          -deploymentFileName "$parameters.deploymentFile" \
           -EdgeHubRestartTestRestartPeriod "$(edgeHubRestartTest.restartPeriod)" \
           -EdgeHubRestartTestSdkOperationTimeout "$(edgeHubRestartTest.sdkOperationTimeout)" \
           -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
@@ -173,7 +174,7 @@ steps:
           -testRuntimeLogLevel "$(test.runtimeLogLevel)" \
           -testInfo "$testInfo" \
           -subscription "$(azure.subscription)" \
-          -level "5" \
+          -level "$parameters.level" \
           -parentName  "$parameters.parentName"\
           -parentConnectionString "$parameters.parentConnectionString"\
           -waitForTestComplete \
