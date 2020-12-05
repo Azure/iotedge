@@ -14,7 +14,7 @@ stages:
 - stage: SetupVM
   jobs:
   - job:  SetupVM_level5
-    displayName: SettingUp level ${{ parameters.level }}
+    displayName: SettingUp level 5
     condition: ne(variables['agent.group'], '')
     timeoutInMinutes: 180
     variables:
