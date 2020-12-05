@@ -98,8 +98,10 @@ jobs:
         displayName: 'Get rootCA'
         inputs:
           targetType: inline
-          script: |     
-            az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${edgebuild-blob-core-connection-string}
+          script: |
+            echo "az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string ${edgebuild-blob-core-connection-string}"   
+            echo "az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string $(edgebuild-blob-core-connection-string)"               
+            az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string $(edgebuild-blob-core-connection-string)
             sudo tar -xjvf rootCA.tar.bz2           
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -187,6 +189,5 @@ jobs:
               -testInfo "$testInfo" \
               -subscription "$(azure.subscription)" \
               -level "5" \
-              -blobstorageConnectionString "$(edgebuild-blob-core-connection-string)" \
               -waitForTestComplete \
               -cleanAll
