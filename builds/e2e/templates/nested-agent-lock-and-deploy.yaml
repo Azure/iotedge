@@ -11,6 +11,7 @@ jobs:
       testrun.waitTimeMin: 1
       images.artifact.name.linux: 'core-linux'
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+      vsts.project: $(System.TeamProjectId)
     pool:
       name: $(pool.name)
       demands:
