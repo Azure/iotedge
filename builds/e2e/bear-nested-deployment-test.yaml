@@ -21,6 +21,8 @@ stages:
       images.artifact.name.linux: 'core-linux'
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
       vsts.project: $(System.TeamProjectId)
+      level: '5'
+      deploymentFile: 'nestededge_topLayerBaseDeploymentProxy.json'      
     pool:
       name: $(pool.name)
       demands:
@@ -31,9 +33,7 @@ stages:
         - status -equals unlocked
     steps:        
       - template: templates/nested-agent-lock-and-deploy.yaml
-        parameters:
-          level: '5'
-          deploymentFile: 'nestededge_topLayerBaseDeploymentProxy.json'
+
   - job:  SetupVM_level4
     dependsOn: SetupVM_level5
     displayName: SettingUp level 4
@@ -43,6 +43,10 @@ stages:
       images.artifact.name.linux: 'core-linux'
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
       vsts.project: $(System.TeamProjectId)
+      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
+      parentConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ] 
+      deploymentFile: 'nestededge_topLayerBaseDeploymentProxy.json'
+      level: '4'
     pool:
       name: $(pool.name)
       demands:
@@ -53,11 +57,9 @@ stages:
         - status -equals unlocked      
     steps:        
       - template: templates/nested-agent-lock-and-deploy.yaml
-        parameters:
-          level: '4'
-          deploymentFile: 'nestededge_topLayerBaseDeploymentProxy.json'
-          parentName: '$[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]'
-          parentConnectionString: '$[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ]'      
+          
+          
+     
 #TODO:
 # 1. Turn {SetupVM_job135, SetupVM_job13} into a template and use it in a yaml as a known job name
 # 2. In a task, before the test agent run template from (1), have the pipeline appends "_$(Build.BuildId)" to "nested-edge" userCapabilities.
