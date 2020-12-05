@@ -117,7 +117,8 @@ where
         }
     }
 
-    let map : StdResult<HashMap<K, Option<V>>, D::Error> = deserializer.deserialize_map(OptionalValueVisitor::new());
+    let map: StdResult<HashMap<K, Option<V>>, D::Error> =
+        deserializer.deserialize_map(OptionalValueVisitor::new());
     map.map(|mut hashmap| {
         hashmap
             .drain()

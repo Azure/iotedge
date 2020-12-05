@@ -23,9 +23,7 @@ use std::collections::HashMap;
 pub use crate::error::{Error, ErrorKind};
 pub use crate::logging::log_failure;
 pub use crate::macros::ensure_not_empty_with_context;
-pub use crate::ser_de::{
-    deserialize_map_with_default_values, serde_clone, string_or_struct,
-};
+pub use crate::ser_de::{deserialize_map_with_default_values, serde_clone, string_or_struct};
 pub use crate::yaml_file_source::YamlFileSource;
 
 pub fn parse_query(query: &str) -> HashMap<&str, &str> {

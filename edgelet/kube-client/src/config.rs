@@ -336,7 +336,8 @@ fn file_or_data_string(path: Option<&str>, data: Option<&str>) -> Result<String>
 
 #[cfg(test)]
 mod tests {
-    use super::{env, file_or_data_bytes, file_or_data_string, get_host};
+    use super::{env, file_or_data_bytes, file_or_data_string, get_all_certs, get_host};
+    use crate::tls::CertGenerator;
     use std::fs::File;
     use std::io::Write;
     use tempdir::TempDir;

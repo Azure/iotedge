@@ -299,7 +299,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(description, info.Description);
         }
 
-
         [Theory]
         [MemberData(nameof(GetListOfPodsInPendingPhase))]
         public async Task ReturnModuleStatusWhenPodIsPending(V1Pod pod, string description, ModuleStatus status)
@@ -314,7 +313,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(status, info.ModuleStatus);
             Assert.Equal(description, info.Description);
         }
-
 
         [Theory]
         [MemberData(nameof(GetListOfPodsInAbnormalPhase))]
