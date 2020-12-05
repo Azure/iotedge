@@ -337,7 +337,8 @@ function process_args() {
 function test_setup() {
     local funcRet=0
     
-    clean_up
+    #ignore failure here so VM that are used for the first time don't crash
+    clean_up || true
     
     prepare_test_from_artifacts && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
