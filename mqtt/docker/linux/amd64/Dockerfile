@@ -1,4 +1,5 @@
-FROM busybox
+ARG base_tag=3.1.4-alpine3.11
+FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 ADD ./x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 

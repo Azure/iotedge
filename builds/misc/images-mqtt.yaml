@@ -78,7 +78,7 @@ jobs:
         displayName: Build MQTT Broker - arm32
         inputs:
           filePath: scripts/linux/cross-platform-rust-build.sh
-          arguments: --os alpine --arch arm32v7 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
+          arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
 
       - template: templates/move-rust-artifacts.yaml
         parameters:
