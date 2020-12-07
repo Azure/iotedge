@@ -30,7 +30,7 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true
-        - status -equals unlocked
+        - status -equals ""
     steps:        
       - template: templates/nested-agent-lock-and-deploy.yaml
 
@@ -45,7 +45,7 @@ stages:
       vsts.project: $(System.TeamProjectId)
       parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
       parentConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ] 
-      deploymentFile: 'nestededge_topLayerBaseDeploymentProxy.json'
+      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
       level: '4'
     pool:
       name: $(pool.name)
@@ -54,7 +54,7 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true 
-        - status -equals unlocked      
+        - status -equals ""    
     steps:
       - template: templates/nested-agent-lock-and-deploy.yaml
           
