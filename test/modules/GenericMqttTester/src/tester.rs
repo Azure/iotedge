@@ -11,6 +11,8 @@ use crate::{
     MessageTesterError, ShutdownHandle,
 };
 
+const EDGEHUB_CONTAINER_ADDRESS: &str = "edgehub:8883";
+
 /// Abstracts the test logic for this generic mqtt telemetry test module.
 /// It will run in one of two modes. The behavior of this struct depends on this mode.
 ///
@@ -31,7 +33,7 @@ pub struct MessageTester {
 
 impl MessageTester {
     pub fn new(settings: Settings) -> Result<Self, MessageTesterError> {
-        let client = client::create_client_from_module_env()
+        let client = client::create_client_from_module_env(EDGEHUB_CONTAINER_ADDRESS.to_string())
             .map_err(MessageTesterError::ParseEnvironment)?;
         let publish_handle = client
             .publish_handle()

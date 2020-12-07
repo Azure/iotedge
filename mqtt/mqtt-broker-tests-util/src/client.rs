@@ -299,9 +299,9 @@ where
     }
 }
 
-pub fn create_client_from_module_env() -> Result<Client<ClientIoSource>, VarError> {
+pub fn create_client_from_module_env(address: String) -> Result<Client<ClientIoSource>, VarError> {
     let provider_settings = get_provider_settings_from_env()?;
-    let io_source = io_source_from_provider(provider_settings.clone());
+    let io_source = io_source_from_provider(provider_settings.clone(), address);
 
     let client_id = format!(
         "{}/{}",
@@ -355,12 +355,12 @@ fn get_provider_settings_from_env() -> Result<CredentialProviderSettings, VarErr
 
 fn io_source_from_provider(
     credential_provider_settings: CredentialProviderSettings,
+    address: String,
 ) -> ClientIoSource {
     let credentials = Credentials::Provider(credential_provider_settings);
     let trust_bundle_source = TrustBundleSource::new(credentials.clone());
     let token_source = SasTokenSource::new(credentials);
-    let addr = "edgeHub:8883";
-    let tcp_connection = TcpConnection::new(addr, Some(token_source), Some(trust_bundle_source));
+    let tcp_connection = TcpConnection::new(address, Some(token_source), Some(trust_bundle_source));
 
     ClientIoSource::Tls(tcp_connection)
 }

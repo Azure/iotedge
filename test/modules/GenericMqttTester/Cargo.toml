@@ -1,8 +1,9 @@
 [package]
-name = "generic_mqtt_tester"
+name = "generic-mqtt-tester"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 edition = "2018"
+description = "Test module for longhaul / connectivity tests."
 
 [dependencies]
 anyhow = "1.0"
