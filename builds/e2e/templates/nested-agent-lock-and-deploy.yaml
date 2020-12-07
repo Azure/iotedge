@@ -16,7 +16,7 @@ steps:
       azureSubscription: $(service.connections)
       KeyVaultName: $(azure.keyVault)
       SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString,edgebuild-blob-core-connection-string,edgebuild-service-principal-secret,edgebuild-1-PAT' 
-  - template: templates/lock-test-agent.yaml
+  - template: lock-test-agent.yaml
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Az login'
@@ -123,4 +123,4 @@ steps:
           -parentConnectionString "$(parentConnectionString)"\
           -waitForTestComplete \
           -cleanAll
-  - template: templates/unlock-test-agent.yaml
+  - template: unlock-test-agent.yaml
