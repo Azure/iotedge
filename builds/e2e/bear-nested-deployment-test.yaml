@@ -32,10 +32,15 @@ stages:
         - run-idle -equals true
         - status -equals unlocked
     steps:        
-      - script: |
-          chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/test.sh
-          sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/test.sh
-        name: deployIoTEdge    
+      - task: Bash@3
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
+        displayName: 'Run Connectivity Deployment'
+        inputs:
+          targetType: inline
+          name: deployIoTEdge
+          script: |
+            chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/test.sh
+            sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/test.sh   
 #      - template: templates/nested-agent-lock-and-deploy.yaml
 
   - job:  SetupVM_level4
