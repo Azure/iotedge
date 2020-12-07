@@ -292,7 +292,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/run/aziot/edged/aziot-edged.mgmt.sock:/run/aziot/edged/aziot-edged.mgmt.sock\"]}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/lib/aziot/edged/aziot-edged.mgmt.sock:/var/lib/aziot/edged/aziot-edged.mgmt.sock\"]}}"
             }
           },
           "analyzer": {
