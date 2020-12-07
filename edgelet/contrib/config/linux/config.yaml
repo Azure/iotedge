@@ -69,8 +69,8 @@ hostname: "<ADD HOSTNAME HERE>"
 # Nested Edge parent hostname
 ###############################################################################
 #
-# Optional. This entry should only be specified for the host name of the 
-# parent edge device for nested edge sceanrio. This value is injected into 
+# Optional. This entry should only be specified for the host name of the
+# parent edge device for nested edge sceanrio. This value is injected into
 # Edge Agent and Edge Hub modules as environment value 'IOTEDGE_GATEWAYHOSTNAME',
 # and injected into other module as environment value 'IOTEDGE_PARENTHOSTNAME'.
 # The parent_hostname value is converted to lower case before it is used.
@@ -127,8 +127,8 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 
 connect:
-  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///run/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
 
 ###############################################################################
 # Listen settings
@@ -146,8 +146,8 @@ connect:
 #
 # These values can be different from the connect URIs. For instance, when
 # using the fd:// scheme for systemd:
-#     listen address is fd://iotedge.workload,
-#     connect address is unix:///run/aziot/edged/aziot-edged.workload.sock
+#     listen address is fd://aziot-edged.workload.socket,
+#     connect address is unix:///var/lib/aziot/edged/aziot-edged.workload.sock
 #
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match
@@ -157,8 +157,8 @@ connect:
 ###############################################################################
 
 listen:
-  management_uri: "unix:///run/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///run/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
 
 ###############################################################################
 # Home Directory
@@ -180,11 +180,11 @@ homedir: "/var/lib/aziot/edged"
 # Additional container network configuration such as enabling IPv6 networking
 # and providing the IPAM settings can be achieved by specifying the relevant
 # configuration in the network settings.
-# 
-# Content Trust is enabled by specifying the location of root CAs for each registry 
-# using the fields below 
 #
-# content_trust - configuration to enable Content Trust feature 
+# Content Trust is enabled by specifying the location of root CAs for each registry
+# using the fields below
+#
+# content_trust - configuration to enable Content Trust feature
 # ca_certs - CA certs for each registry is specified under this configuration
 #
 # 'contoso1.azurecr.io' - Login server name of registry 1
@@ -197,7 +197,7 @@ homedir: "/var/lib/aziot/edged"
 #   ca_certs :
 #     'contoso1.azurecr.io' : "/path/to/root_ca_contoso1.crt"
 #     'contoso2.azurecr.io' : "/path/to/root_ca_contoso2.crt"
-# 
+#
 # network:
 #   name: "azure-iot-edge"
 #   ipv6: true
@@ -216,7 +216,7 @@ homedir: "/var/lib/aziot/edged"
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
   # content_trust:
-  #   ca_certs: 
+  #   ca_certs:
   #     'contoso1.azurecr.io' : "/path/to/root_ca_contoso1.crt"
   #     'contoso2.azurecr.io' : "/path/to/root_ca_contoso2.crt"
   #

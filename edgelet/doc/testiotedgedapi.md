@@ -24,7 +24,7 @@ Below are steps used to test API endpoints of aziot-edged running on Linux; and 
 
 **Permssion denied when start aziot-edged:**
 ```
-Unhandled Exception: System.AggregateException: One or more errors occurred. (Permission denied /run/aziot/edged/aziot-edged.workload.sock) ---> System.Net.Internals.SocketExceptionFactory+ExtendedSocketException: Permission denied /run/aziot/edged/aziot-edged.workload.sock
+Unhandled Exception: System.AggregateException: One or more errors occurred. (Permission denied /var/lib/aziot/edged/aziot-edged.workload.sock) ---> System.Net.Internals.SocketExceptionFactory+ExtendedSocketException: Permission denied /var/lib/aziot/edged/aziot-edged.workload.sock
    at System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
    at System.Net.Sockets.Socket.Connect(EndPoint remoteEP)
    at System.Net.Sockets.Socket.UnsafeBeginConnect(EndPoint remoteEP, AsyncCallback callback, Object state, Boolean flowContext)
@@ -42,7 +42,7 @@ Unhandled Exception: System.AggregateException: One or more errors occurred. (Pe
    at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
    at Microsoft.Azure.Devices.Edge.Hub.Service.Program.Main() in /home/vsts/work/1/s/edge-hub/src/Microsoft.Azure.Devices.Edge.Hub.Service/Program.cs:line 32
 ```
- 
+
 6. Once aziot-edged can successfully start, you should see similar output as below.
 
 **Output from aziot-edged:**

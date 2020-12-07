@@ -46,7 +46,7 @@ case "$1" in
         echo ""
         echo "  To restart all services for provisioning changes to take effect, use:"
         echo ""
-        echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd iotedge'"
+        echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd aziot-edged'"
         echo ""
         echo "  These commands may need to be run with sudo depending on your environment."
         echo ""
