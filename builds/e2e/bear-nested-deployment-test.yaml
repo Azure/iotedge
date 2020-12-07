@@ -34,9 +34,9 @@ stages:
     steps:        
       - task: Bash@3
         displayName: 'Run Connectivity Deployment'
+        name: deployIoTEdge
         inputs:
           targetType: inline
-          name: deployIoTEdge
           script: |
             chmod +x $(Build.Repository.LocalPath)/test/connectivity/scripts/test.sh
             sudo $(Build.Repository.LocalPath)/test/connectivity/scripts/test.sh   
