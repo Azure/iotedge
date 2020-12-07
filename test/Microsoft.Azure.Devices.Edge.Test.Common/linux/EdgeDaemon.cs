@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         static async Task WaitForStatusAsync(ServiceControllerStatus desired, CancellationToken token)
         {
-            string[] processes = {"aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged"};
+            string[] processes = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
 
             foreach (string process in processes)
             {
