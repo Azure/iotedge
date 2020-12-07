@@ -54,9 +54,6 @@
             "env": {
               "NGINX_DEFAULT_PORT": {
                 "value": "443"
-              },
-              "DOCKER_REQUEST_ROUTE_ADDRESS": {
-                "value": "dockerContainerRegistry:5000"
               }
             }
           }
