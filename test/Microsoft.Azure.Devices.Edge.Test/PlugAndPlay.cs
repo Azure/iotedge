@@ -36,23 +36,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
         }
 
-        [Test]
-        public async Task PlugAndPlayDeviceClient()
+        [TestCase(Protocol.Mqtt, false)]
+        [TestCase(Protocol.Amqp, false)]
+        [TestCase(Protocol.Mqtt, true)]
+        [TestCase(Protocol.Amqp, true)]
+        public async Task PlugAndPlayDeviceClient(Protocol protocol, bool brokerOn)
         {
             Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             CancellationToken token = this.TestToken;
+            string leafDeviceId = DeviceId.Current.Generate();
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", "Mqtt") });
+                    if (brokerOn)
+                    {
+                        this.AddBrokerToDeployment(builder);
+                    }
+
+                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                 },
                 token);
 
-            string leafDeviceId = DeviceId.Current.Generate();
-
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
-                Protocol.Mqtt,
+                protocol,
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
@@ -75,28 +82,69 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
+        [TestCase(Protocol.Mqtt, false)]
+        [TestCase(Protocol.Amqp, false)]
+        [TestCase(Protocol.Mqtt, true)]
+        [TestCase(Protocol.Amqp, true)]
         [Test]
-        public async Task PlugAndPlayModuleClient()
+        public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
         {
             CancellationToken token = this.TestToken;
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", "Mqtt") });
+                    if (brokerOn)
+                    {
+                        this.AddBrokerToDeployment(builder);
+                    }
+
+                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                     builder.AddModule(LoadGenModuleName, loadGenImage)
                     .WithEnvironment(new[]
                     {
                             ("testStartDelay", "00:00:00"),
                             ("messageFrequency", "00:00:00.5"),
-                            ("transportType", Client.TransportType.Mqtt.ToString()),
+                            ("transportType", protocol.ToString()),
                             ("modelId", TestModelId)
                     });
                 },
                 token);
+
             EdgeModule filter = deployment.Modules[LoadGenModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
             await this.ValidateModule(this.runtime.DeviceId, LoadGenModuleName, TestModelId);
+        }
+
+        EdgeConfigBuilder AddBrokerToDeployment(EdgeConfigBuilder builder)
+        {
+            builder.GetModule(ModuleName.EdgeHub)
+                .WithEnvironment(new[]
+                {
+                    ("experimentalFeatures__enabled", "true"),
+                    ("experimentalFeatures__mqttBrokerEnabled", "true"),
+                })
+                .WithDesiredProperties(new Dictionary<string, object>
+                {
+                    ["mqttBroker"] = new
+                    {
+                        authorizations = new[]
+                        {
+                            new
+                            {
+                                 identities = new[] { "{{iot:identity}}" },
+                                 allow = new[]
+                                 {
+                                     new
+                                     {
+                                         operations = new[] { "mqtt:connect" }
+                                     }
+                                 }
+                            }
+                        }
+                    }
+                });
+            return builder;
         }
 
         async Task ValidateModule(string deviceId, string moduleId, string expectedModelId)

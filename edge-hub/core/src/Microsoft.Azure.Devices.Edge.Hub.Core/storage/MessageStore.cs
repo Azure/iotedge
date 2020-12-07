@@ -38,14 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         readonly IStoreProvider storeProvider;
         TimeSpan timeToLive;
 
-        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool checkEntireQueueOnCleanup = false)
+        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool checkEntireQueueOnCleanup, int messageCleanupIntervalSecs)
         {
             this.storeProvider = Preconditions.CheckNotNull(storeProvider);
             this.messageEntityStore = this.storeProvider.GetEntityStore<string, MessageWrapper>(Constants.MessageStorePartitionKey);
             this.endpointSequentialStores = new ConcurrentDictionary<string, ISequentialStore<MessageRef>>();
             this.timeToLive = timeToLive;
             this.checkpointStore = Preconditions.CheckNotNull(checkpointStore, nameof(checkpointStore));
-            this.messagesCleaner = new CleanupProcessor(this, checkEntireQueueOnCleanup);
+            this.messagesCleaner = new CleanupProcessor(this, checkEntireQueueOnCleanup, messageCleanupIntervalSecs);
             Events.MessageStoreCreated();
         }
 
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         }
 
         /// <summary>
-        /// Class that contains the message and is stored in the message store
+        /// Class that contains the message and is stored in the message store.
         /// </summary>
         internal class MessageWrapper
         {
@@ -192,25 +192,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         class CleanupProcessor : IDisposable
         {
             const int CleanupBatchSize = 10;
-            static readonly TimeSpan CleanupTaskFrequency = TimeSpan.FromMinutes(30); // Run once every 30 mins.
-            static readonly TimeSpan MinCleanupSleepTime = TimeSpan.FromSeconds(30); // Sleep for 30 secs
+            static readonly TimeSpan CheckCleanupTaskInterval = TimeSpan.FromMinutes(30); // Check every 30 min that cleanup task is still running
+            static readonly TimeSpan MinCleanupSleepTime = TimeSpan.FromSeconds(30); // Sleep for 30 secs minimum between clean up loops
             readonly MessageStore messageStore;
             readonly Timer ensureCleanupTaskTimer;
             readonly CancellationTokenSource cancellationTokenSource;
             readonly bool checkEntireQueueOnCleanup;
+            readonly int messageCleanupIntervalSecs;
             readonly IMetricsCounter expiredCounter;
             Task cleanupTask;
 
-            public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup)
+            public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup, int messageCleanupIntervalSecs)
             {
-                this.messageStore = messageStore;
-                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
-                this.cancellationTokenSource = new CancellationTokenSource();
                 this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
+                this.messageStore = messageStore;
+                this.cancellationTokenSource = new CancellationTokenSource();
+                this.messageCleanupIntervalSecs = messageCleanupIntervalSecs;
                 this.expiredCounter = Metrics.Instance.CreateCounter(
                    "messages_dropped",
                    "Messages cleaned up because of TTL expired",
                    new List<string> { "reason", "from", "from_route_output", MetricsConstants.MsTelemetry });
+                this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CheckCleanupTaskInterval);
+                Events.CreatedCleanupProcessor(checkEntireQueueOnCleanup, messageCleanupIntervalSecs);
             }
 
             public void Dispose()
@@ -368,7 +371,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
-                            await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
                         }
                         catch (Exception ex)
                         {
@@ -380,9 +382,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
             }
 
-            TimeSpan GetCleanupTaskSleepTime() => this.messageStore.timeToLive.TotalSeconds / 2 < CleanupTaskFrequency.TotalSeconds
-                ? TimeSpan.FromSeconds(this.messageStore.timeToLive.TotalSeconds / 2)
-                : CleanupTaskFrequency;
+            TimeSpan GetCleanupTaskSleepTime()
+            {
+                // Must wait MinCleanupSleepTime, even if given interval is lower.
+                return TimeSpan.FromSeconds(Math.Max(this.messageCleanupIntervalSecs, MinCleanupSleepTime.TotalSeconds));
+            }
         }
 
         static class Events
@@ -405,7 +409,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 ObtainedNextBatch,
                 CleanupCheckpointState,
                 MessageAdded,
-                ErrorGettingMessagesBatch
+                ErrorGettingMessagesBatch,
+                CreatedCleanupProcessor
             }
 
             public static void MessageStoreCreated()
@@ -490,6 +495,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 if (offset % 1000 == 0)
                 {
                     Log.LogDebug((int)EventIds.MessageAdded, Invariant($"Added message {edgeMessageId} to store for {endpointId} at offset {offset}."));
+                }
+            }
+
+            internal static void CreatedCleanupProcessor(bool checkEntireQueueOnCleanup, int cleanupInterval)
+            {
+                if (cleanupInterval == -1)
+                {
+                    Log.LogDebug((int)EventIds.CreatedCleanupProcessor, $"Created cleanup processor with checkEntireQueueLength set to {checkEntireQueueOnCleanup} ");
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.CreatedCleanupProcessor, $"Created cleanup processor with checkEntireQueueOnCleanup set to {checkEntireQueueOnCleanup} and messageCleanupIntervalSecs set to {cleanupInterval}");
                 }
             }
         }
