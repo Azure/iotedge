@@ -71,7 +71,7 @@ fn run() -> Result<(), Error> {
             )
         } else {
             (
-                Cow::Borrowed("unix:///run/aziot/edged/aziot-edged.mgmt.sock"),
+                Cow::Borrowed("unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"),
                 Cow::Borrowed(Path::new("/etc/aziot/edged/config.yaml")),
                 Cow::Borrowed(Path::new("/etc/docker/daemon.json")),
             )
