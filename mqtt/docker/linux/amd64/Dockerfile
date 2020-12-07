@@ -1,3 +1,4 @@
+# Use the same base image as prod edgehub images
 ARG base_tag=3.1.4-alpine3.11
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
