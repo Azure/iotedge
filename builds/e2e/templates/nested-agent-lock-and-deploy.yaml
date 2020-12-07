@@ -123,9 +123,9 @@ steps:
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
+    name: deployIoTEdge
     inputs:
       targetType: inline
-      name: deployIoTEdge
       #@TODO change Build.Repository.LocalPath to use artifact.
       #@TODO remove hard coding of deploymentFileName: It is also hardcoded in install.sh
       #@TODO remove hard coding of level and parent
