@@ -122,7 +122,7 @@ where
     map.map(|mut hashmap| {
         hashmap
             .drain()
-            .map(|(k, v)| (k, v.unwrap_or_else(|| V::default())))
+            .map(|(k, v)| (k, v.unwrap_or_else(V::default)))
             .collect()
     })
 }
