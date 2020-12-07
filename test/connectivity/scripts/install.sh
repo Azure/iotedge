@@ -396,6 +396,7 @@ test_setup
 create_iotedge_identities
 create_certificates
 install_and_setup_iotedge
+set_output_params
 
 #clean up
 #az iot hub device-identity delete -n ${iotHubName} -d ${iotEdgeDevicesName}
