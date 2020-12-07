@@ -488,51 +488,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn runtime_get_system_info_no_rbac() {
-        let more_settings = json!({"has_nodes_rbac" : "false"});
-        let settings = make_settings(Option::Some(more_settings));
-        assert_eq!(settings.has_nodes_rbac(), false);
-        let dispatch_table = routes!(
-            GET "/api/v1/nodes" => list_node_handler(),
-        );
-
-        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
-        let service = service_fn(handler);
-        let runtime = create_runtime(settings, service);
-
-        let task = runtime.system_info();
-
-        let mut runtime = Runtime::new().unwrap();
-        let info = runtime.block_on(task).unwrap();
-
-        assert_eq!(info.architecture(), "Kubernetes");
-    }
-
-    #[test]
-    fn runtime_get_system_info_rbac_set() {
-        let more_settings = json!({"has_nodes_rbac" : "true"});
-        let settings = make_settings(Option::Some(more_settings));
-        assert_eq!(settings.has_nodes_rbac(), true);
-        let dispatch_table = routes!(
-            GET "/api/v1/nodes" => list_node_handler(),
-        );
-
-        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
-        let service = service_fn(handler);
-        let runtime = create_runtime(settings, service);
-
-        let task = runtime.system_info();
-
-        let mut runtime = Runtime::new().unwrap();
-        let info = runtime.block_on(task).unwrap();
-
-        assert_eq!(
-            info.architecture(),
-            "[{\"name\":\"amd64\",\"nodes_count\":2}]"
-        );
-    }
-
     fn list_node_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
         move |_| {
             response(StatusCode::OK, || {
