@@ -123,4 +123,3 @@ steps:
           -parentConnectionString "$(parentConnectionString)"\
           -waitForTestComplete \
           -cleanAll
-  - template: unlock-test-agent.yaml
