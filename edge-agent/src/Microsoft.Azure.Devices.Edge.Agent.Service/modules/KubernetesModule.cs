@@ -216,7 +216,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // KubernetesRuntimeInfoProvider
             builder.Register(c => new KubernetesRuntimeInfoProvider(this.deviceNamespace, c.Resolve<IKubernetes>(), c.Resolve<IModuleManager>()))
-                .As<IRuntimeInfoProvider>()
+                .As<KubernetesRuntimeInfoProvider>()
+                .SingleInstance();
+
+            builder.Register(c => Task.FromResult(c.Resolve<KubernetesRuntimeInfoProvider>() as IRuntimeInfoProvider))
+                .As<Task<IRuntimeInfoProvider>>()
+                .SingleInstance();
+
+            builder.Register(c => c.Resolve<KubernetesRuntimeInfoProvider>() )
                 .As<IRuntimeInfoSource>()
                 .SingleInstance();
 
