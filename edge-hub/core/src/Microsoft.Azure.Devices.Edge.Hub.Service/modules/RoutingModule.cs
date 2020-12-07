@@ -56,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
         readonly bool checkEntireQueueOnCleanup;
+        readonly int messageCleanupIntervalSecs;
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
         readonly bool nestedEdgeEnabled;
@@ -89,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
             bool checkEntireQueueOnCleanup,
+            int messageCleanupIntervalSecs,
             ExperimentalFeatures experimentalFeatures,
             bool closeCloudConnectionOnDeviceDisconnect,
             bool nestedEdgeEnabled,
@@ -121,6 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
+            this.messageCleanupIntervalSecs = messageCleanupIntervalSecs;
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.nestedEdgeEnabled = nestedEdgeEnabled;
@@ -411,7 +414,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive, this.checkEntireQueueOnCleanup);
+                            IMessageStore messageStore = new MessageStore(
+                                storeProvider,
+                                checkpointStore,
+                                this.storeAndForwardConfiguration.TimeToLive,
+                                this.checkEntireQueueOnCleanup,
+                                this.messageCleanupIntervalSecs);
                             return messageStore;
                         })
                     .As<Task<IMessageStore>>()
