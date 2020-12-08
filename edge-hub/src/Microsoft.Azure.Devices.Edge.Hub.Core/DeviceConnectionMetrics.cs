@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static readonly IMetricsCounter ClientsConnectCounter = EdgeMetrics.Instance.CreateCounter(
             "client_connect_success",
-            "Total number of times individual client successfully connect to edgeHub",
+            "Total number of times each client successfully connected to edgeHub",
             new List<string>() { "id" });
 
         public static readonly IMetricsCounter ClientsDiscconnectCounter = EdgeMetrics.Instance.CreateCounter(
