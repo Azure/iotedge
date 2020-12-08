@@ -235,7 +235,7 @@ function set_output_params() {
 set -e
 
 # Import test-related functions
-. $(dirname "$0")/testHelper.sh
+. $(dirname "$0")/NestTestHelper.sh
 
 process_args "$@"
 
