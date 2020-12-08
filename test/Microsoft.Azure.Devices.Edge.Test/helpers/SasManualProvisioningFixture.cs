@@ -11,16 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected EdgeRuntime runtime;
 
-        public SasManualProvisioningFixture()
-            : base()
-        {
-        }
-
-        public SasManualProvisioningFixture(string connectionString, string eventHubEndpoint)
-            : base(connectionString, eventHubEndpoint)
-        {
-        }
-
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
         protected virtual async Task SasProvisionEdgeAsync()
