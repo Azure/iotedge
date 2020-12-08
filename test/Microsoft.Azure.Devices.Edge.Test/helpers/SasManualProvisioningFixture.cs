@@ -14,16 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected EdgeRuntime runtime;
         protected CertificateAuthority ca;
 
-        public SasManualProvisioningFixture()
-            : base()
-        {
-        }
-
-        public SasManualProvisioningFixture(string connectionString, string eventHubEndpoint)
-            : base(connectionString, eventHubEndpoint)
-        {
-        }
-
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
         protected virtual async Task SasProvisionEdgeAsync(bool withCerts = false)
