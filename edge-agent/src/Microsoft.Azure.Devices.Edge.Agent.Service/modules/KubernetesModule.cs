@@ -334,8 +334,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     async c =>
                     {
                         CancellationTokenSource tokenSource = new CancellationTokenSource(SystemInfoTimeout);
-                        var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
-                        IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
+                        var moduleStateStoreTask = c.Resolve<Task<IEntityStore<string, ModuleState>>>();
+                        var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                        var moduleStateStore = await moduleStateStoreTask;
+                        var runtimeInfoProvider = await runtimeInfoProviderTask;
                         IEnvironmentProvider kubernetesEnvironmentProvider = await KubernetesEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, tokenSource.Token);
                         return kubernetesEnvironmentProvider;
                     })
