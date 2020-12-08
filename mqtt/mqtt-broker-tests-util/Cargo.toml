@@ -18,3 +18,4 @@ tracing-subscriber = "0.1"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker = { path = "../mqtt-broker" }
+mqtt-util = { path = "../mqtt-util" }
