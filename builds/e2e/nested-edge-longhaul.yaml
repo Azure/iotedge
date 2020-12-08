@@ -34,7 +34,7 @@ stages:
         - run-idle -equals true
         - status -equals unlocked
     steps:
-      - template: templates/nested-get-secrets.yaml #this need only to be called once             
+      - template: templates/nested-get-secrets.yaml           
       - template: templates/lock-test-agent.yaml    
 #      - template: templates/nested-agent-deploy.yaml
 
@@ -60,6 +60,7 @@ stages:
         - run-idle -equals true 
         - status -equals unlocked    
     steps:
+      - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml    
 #      - template: templates/nested-agent-deploy.yaml
   - job:  Clean_up     
@@ -81,6 +82,7 @@ stages:
     strategy:
       parallel: 3          
     steps:
+      - template: templates/nested-get-secrets.yaml     
       - template: templates/unlock-test-agent.yaml      
           
 #  - job:  Running_tests     
