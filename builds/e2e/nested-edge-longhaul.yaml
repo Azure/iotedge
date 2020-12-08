@@ -22,7 +22,7 @@ stages:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
       vsts.project: $(System.TeamProjectId)
       level: '5'
-      deploymentFile: 'nestededge_topLayerBaseDeploymentProxy.json'      
+      deploymentFile: 'nestededge_topLayerBaseDeployment.json'      
     pool:
       name: $(pool.name)
       demands:
