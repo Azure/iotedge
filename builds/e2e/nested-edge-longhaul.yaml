@@ -59,6 +59,25 @@ stages:
         - status -equals unlocked    
     steps:
       - template: templates/nested-agent-lock-and-deploy.yaml
+  - job:  Clean_up     
+    dependsOn: SetupVM_level4
+    displayName: Clean up identities and unlock VMs
+    deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
+    deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ]     
+    deviceLvl4Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
+    deviceLvl4ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ] 
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-idle -equals true 
+        - status -equals unlocked_$(Build.BuildId)  
+    strategy:
+      parallel: 3          
+    steps:
+      - template: unlock-test-agent.yaml      
           
 #  - job:  Running_tests     
 #    dependsOn: SetupVM_level4  
