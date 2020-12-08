@@ -36,7 +36,7 @@ stages:
     steps:
       - template: templates/nested-get-secrets.yaml           
       - template: templates/lock-test-agent.yaml    
-#      - template: templates/nested-agent-deploy.yaml
+      - template: templates/nested-agent-deploy.yaml
 
   - job:  SetupVM_level4
     dependsOn: SetupVM_level5
@@ -62,7 +62,7 @@ stages:
     steps:
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml    
-#      - template: templates/nested-agent-deploy.yaml
+      - template: templates/nested-agent-deploy.yaml
   - job:  Clean_up     
     dependsOn: SetupVM_level4
     displayName: Clean up identities and unlock VMs
@@ -80,7 +80,7 @@ stages:
         - run-idle -equals true 
         - status -equals unlocked_$(Build.BuildId)  
     strategy:
-      parallel: 3          
+      parallel: 2          
     steps:
       - template: templates/nested-get-secrets.yaml     
       - template: templates/unlock-test-agent.yaml      
