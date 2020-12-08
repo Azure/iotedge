@@ -17,7 +17,7 @@ function create_certificates() {
     sudo update-ca-certificates
 
     cd ../../
-    sudo cp -r certs /certs
+    sudo cp -r certs /
 }
 #@TODO this might not be compatible for CENTOS
 function install_and_setup_iotedge() {
