@@ -34,7 +34,8 @@ stages:
         - run-idle -equals true
         - status -equals unlocked
     steps:        
-      - template: templates/nested-agent-lock-and-deploy.yaml
+      - template: templates/lock-test-agent.yaml    
+#      - template: templates/nested-agent-deploy.yaml
 
   - job:  SetupVM_level4
     dependsOn: SetupVM_level5
@@ -58,7 +59,8 @@ stages:
         - run-idle -equals true 
         - status -equals unlocked    
     steps:
-      - template: templates/nested-agent-lock-and-deploy.yaml
+      - template: templates/lock-test-agent.yaml    
+#      - template: templates/nested-agent-deploy.yaml
   - job:  Clean_up     
     dependsOn: SetupVM_level4
     displayName: Clean up identities and unlock VMs
