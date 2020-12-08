@@ -74,6 +74,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
+        - nope -equals nah
 
     variables:
       os: linux
@@ -93,7 +94,9 @@ jobs:
 
     pool:
       name: $(pool.name)
-      demands: new-e2e-proxy
+      demands: 
+        - new-e2e-proxy -equals true
+        - nope -equals nah
 
     variables:
       os: linux

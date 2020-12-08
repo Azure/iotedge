@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.Net;
+    using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
@@ -179,6 +180,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
             seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
             EventPosition position = EventPosition.FromEnqueuedTime(seekTime);
+            string consumerGroup = "$Default";
+            if (RuntimeInformation.OSArchitecture == Architecture.X64 ||
+                RuntimeInformation.OSArchitecture == Architecture.Arm )
+            {
+                consumerGroup = $"e2e-tests-{RuntimeInformation.OSArchitecture.ToString().ToLower()}";
+            }
+
             PartitionReceiver receiver = client.CreateReceiver("$Default", partition, position);
 
             var result = new TaskCompletionSource<bool>();
