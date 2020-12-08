@@ -15,8 +15,8 @@ steps:
         agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$(Agent.Name)") | .id')
         # Get test agent's capabilities
         agentCapabilities=$(curl -s -u :$(edgebuild-1-PAT) --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        # Filter for user capabilities, access "nested-edge" field and append buildId as a suffix
-        newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["nested-edge"]) |= sub("_$(Build.BuildId)$"; "")')
+        # Filter for user capabilities, access "status" field and append buildId as a suffix
+        newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= sub("_$(Build.BuildId)"; "")')
         # Update the user capability on the agent pool for this agent
         responseCapabilities=$(curl -s -u :$(edgebuild-1-PAT) \
         --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
