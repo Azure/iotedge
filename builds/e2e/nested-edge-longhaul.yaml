@@ -78,7 +78,7 @@ stages:
     strategy:
       parallel: 3          
     steps:
-      - template: unlock-test-agent.yaml      
+      - template: templates/unlock-test-agent.yaml      
           
 #  - job:  Running_tests     
 #    dependsOn: SetupVM_level4  
