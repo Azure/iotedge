@@ -14,14 +14,17 @@ use crate::{
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgehub:8883";
 
 /// Abstracts the test logic for this generic mqtt telemetry test module.
-/// It will run in one of two modes. The behavior of this struct depends on this mode.
+/// This module is designed to test generic (non-iothub) mqtt telemetry in both a single-node and nested environment.
+/// The module will run in one of two modes. The behavior depends on this mode.
 ///
-/// 1: Test module runs on the lowest node in the topology.
-///     - Spawn a thread that publishes messages continuously to upstream edge.
-///     - Receives same message routed back from upstream edge and reports the result to the TRC.
+/// 1: Initiate mode
+/// - If nested scenario, test module runs on the lowest node in the topology.
+/// - Spawn a thread that publishes messages continuously to upstream edge.
+/// - Receives same message routed back from upstream edge and reports the result to the Test Result Coordinator test module.
 ///
-/// 2: Test module runs on middle node in the topology.
-///     - Receives a message from downstream edge and relays it back to downstream edge.
+/// 2: Relay mode
+/// - If nested scenario, test module runs on the middle node in the topology.
+/// - Receives a message from downstream edge and relays it back to downstream edge.
 pub struct MessageTester {
     settings: Settings,
     client: Client<ClientIoSource>,
@@ -40,8 +43,8 @@ impl MessageTester {
             .map_err(MessageTesterError::PublishHandle)?;
 
         let message_handler: Box<dyn MessageHandler> = match settings.test_scenario() {
-            TestScenario::Initiate => Box::new(RelayingMessageHandler::new(publish_handle.clone())),
-            TestScenario::Relay => Box::new(ReportResultMessageHandler::new()),
+            TestScenario::Initiate => Box::new(ReportResultMessageHandler::new()),
+            TestScenario::Relay => Box::new(RelayingMessageHandler::new(publish_handle.clone())),
         };
 
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
