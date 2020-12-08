@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         if (File.Exists(file))
                         {
-                            File.Copy(file, file + ".backup", true);
+                            File.Move(file, file + ".backup", true);
                         }
                     }
 
@@ -132,8 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                         if (File.Exists(backupFile))
                         {
-                            File.Copy(backupFile, file, true);
-                            File.Delete(backupFile);
+                            File.Move(backupFile, file, true);
                         }
                         else
                         {

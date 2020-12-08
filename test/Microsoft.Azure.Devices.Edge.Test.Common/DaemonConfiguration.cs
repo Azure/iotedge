@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Net;
     using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -48,10 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.UpdateAgentImage(
                 agentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.0"),
                 agentRegistry);
-
-            // Set a default hostname. May be overridden by future calls to SetDeviceHostname.
-            string hostname = Dns.GetHostName();
-            this.SetDeviceHostname(hostname);
         }
 
         public void UpdateAgentImage(string agentImage, Option<Registry> agentRegistry)
@@ -207,10 +202,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static void CreateConfigFile(string configFile, string defaultFile, string owner)
         {
-            // Overwrite any existing config file with the default.
-            // Existing config files were backed up in SetupFixture and will be restored
-            // when the tests finish.
-            File.Copy(defaultFile, configFile, true);
+            // If the config file does not exist, create it from the default file.
+            // If the default file does not exist, create an empty config file.
+            if (!File.Exists(configFile))
+            {
+                if (File.Exists(defaultFile))
+                {
+                    File.Copy(defaultFile, configFile);
+                }
+                else
+                {
+                    File.Create(configFile).Dispose();
+                }
+            }
 
             // Change owner of config file.
             OsPlatform.Current.SetFileOwner(configFile, owner, "644");
