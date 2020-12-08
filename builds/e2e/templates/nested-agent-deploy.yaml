@@ -1,30 +1,11 @@
 steps:
-  - script: echo "JobName:$(Agent.JobName)"
-    displayName: jobName
-  - template: set-run-flag.yaml
-  - task: AzureKeyVault@1
-    condition: eq(variables['run.flag'], 1)
-    displayName: 'EdgeBuild Azure Key Vault'
-    inputs:
-      azureSubscription: $(service.connections)
-      KeyVaultName: $(azure.keyVault)
-      SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
-  - task: AzureKeyVault@1
-    condition: eq(variables['run.flag'], 1)
-    displayName: 'Nested Edge Azure Key Vault'
-    inputs:
-      azureSubscription: $(service.connections)
-      KeyVaultName: $(azure.keyVault)
-      SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString,edgebuild-blob-core-connection-string,edgebuild-service-principal-secret,edgebuild-1-PAT' 
   - task: Bash@3
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Az login'
     inputs:
       targetType: inline
       script: |     
         az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId) 
   - task: Bash@3
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Get rootCA'
     inputs:
       targetType: inline
@@ -32,7 +13,6 @@ steps:
         az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string "$(edgebuild-blob-core-connection-string)"
         sudo tar -xjvf rootCA.tar.bz2           
   - task: DownloadBuildArtifacts@0
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Download Edgelet Artifacts'
     inputs:
       buildType: specific
@@ -43,7 +23,6 @@ steps:
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(edgelet.artifact.name)
   - task: DownloadBuildArtifacts@0
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Download Images Artifacts'
     inputs:
       buildType: specific
@@ -59,21 +38,18 @@ steps:
         $(images.artifact.name.linux)/scripts/testHelper.sh
         $(images.artifact.name.linux)/artifactInfo.txt  
   - task: CopyFiles@2
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Copy Edgelet Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/$(edgelet.artifact.name)"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)"
       CleanTargetFolder: true
   - task: CopyFiles@2
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Copy Images Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/$(images.artifact.name.linux)"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
       CleanTargetFolder: true 
   - task: Bash@3
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
     name: deployIoTEdge
     inputs:

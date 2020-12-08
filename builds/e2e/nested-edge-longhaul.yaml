@@ -33,7 +33,8 @@ stages:
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true
         - status -equals unlocked
-    steps:        
+    steps:
+      - template: templates/nested-get-secrets.yaml #this need only to be called once             
       - template: templates/lock-test-agent.yaml    
 #      - template: templates/nested-agent-deploy.yaml
 
