@@ -15,7 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         public async Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
         {
-            string args = string.Join(" ",
+            string args = string.Join(
+                " ",
                 "-u aziot-keyd",
                 "-u aziot-certd",
                 "-u aziot-identityd",
