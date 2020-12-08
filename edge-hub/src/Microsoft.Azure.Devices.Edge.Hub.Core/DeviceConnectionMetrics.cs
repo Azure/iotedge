@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         static readonly string[] EmptyStringArray = new string[0];
         public static readonly IMetricsGauge ConnectedClientsGauge = EdgeMetrics.Instance.CreateGauge(
             "connected_clients",
-            "Current number of connected clients to edge hub",
+            "Current number of clients connected to edgeHub",
             EmptyStringList);
 
         public static readonly IMetricsCounter ClientsConnectCounter = EdgeMetrics.Instance.CreateCounter(
