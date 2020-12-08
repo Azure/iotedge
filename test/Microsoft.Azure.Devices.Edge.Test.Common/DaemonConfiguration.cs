@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -47,6 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.UpdateAgentImage(
                 agentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.0"),
                 agentRegistry);
+
+            // Set a default hostname. May be overridden by future calls to SetDeviceHostname.
+            string hostname = Dns.GetHostName();
+            this.SetDeviceHostname(hostname);
         }
 
         public void UpdateAgentImage(string agentImage, Option<Registry> agentRegistry)

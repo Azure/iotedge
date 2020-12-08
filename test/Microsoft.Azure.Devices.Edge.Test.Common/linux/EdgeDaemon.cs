@@ -117,10 +117,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Edged = "/etc/aziot/edged/config.yaml"
                     };
 
+                    // The name of the default aziot-edged config file differs based on OS.
+                    string edgedDefault = this.packageManagement.GetDefaultEdgedConfig();
+
                     DaemonConfiguration.CreateConfigFile(paths.Keyd, paths.Keyd + ".default", "aziotks");
                     DaemonConfiguration.CreateConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
                     DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
-                    DaemonConfiguration.CreateConfigFile(paths.Edged, paths.Edged + ".template", "iotedge");
+                    DaemonConfiguration.CreateConfigFile(paths.Edged, edgedDefault, "iotedge");
 
                     DaemonConfiguration conf = new DaemonConfiguration(paths, this.bootstrapAgentImage, this.bootstrapRegistry);
                     (string msg, object[] props) = await config(conf);

@@ -76,6 +76,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             };
         }
 
+        public string GetDefaultEdgedConfig()
+        {
+            return this.packageExtension switch
+            {
+                SupportedPackageExtension.Deb => "/etc/aziot/edged/config.yaml.template",
+                SupportedPackageExtension.Rpm => "/etc/aziot/edged/config.yaml.rpmnew",
+                _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'"),
+            };
+        }
+
         public string[] GetInstallCommandsFromMicrosoftProd() => this.packageExtension switch
         {
             SupportedPackageExtension.Deb => new[]
