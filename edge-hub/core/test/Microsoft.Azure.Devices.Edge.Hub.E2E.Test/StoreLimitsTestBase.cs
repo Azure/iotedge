@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ConfigHelper.TestConfig["UsePersistentStorage"] = usePersistentStorage.ToString();
             ConfigHelper.TestConfig["MaxStorageBytes"] = MaxStorageSize.ToString();
             ConfigHelper.TestConfig["TimeToLiveSecs"] = "0";
+            ConfigHelper.TestConfig["messageCleanupIntervalSecs"] = "10";
             ConfigHelper.TestConfig["Routes"] = JsonConvert.SerializeObject(Routes);
             this.protocolHeadFixture = EdgeHubFixtureCollection.GetFixture();
         }
