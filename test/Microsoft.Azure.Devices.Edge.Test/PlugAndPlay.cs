@@ -35,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCase(Protocol.Amqp, true)]
         public async Task PlugAndPlayDeviceClient(Protocol protocol, bool brokerOn)
         {
-            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
