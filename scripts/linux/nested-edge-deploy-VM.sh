@@ -237,6 +237,9 @@ set -e
 # Import test-related functions
 . $(dirname "$0")/NestTestHelper.sh
 
+#necessary to avoid tput error 
+export TERM=linux
+
 process_args "$@"
 
 get_image_architecture_label
