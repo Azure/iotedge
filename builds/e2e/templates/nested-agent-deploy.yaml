@@ -1,0 +1,84 @@
+steps:
+  - task: Bash@3
+    displayName: 'Az login'
+    inputs:
+      targetType: inline
+      script: |     
+        az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId) 
+  - task: Bash@3
+    displayName: 'Get rootCA'
+    inputs:
+      targetType: inline
+      script: |
+        az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string "$(edgebuild-blob-core-connection-string)"
+        sudo tar -xjvf rootCA.tar.bz2           
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Edgelet Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(edgelet.package.build)
+      branchName: $(edgelet.package.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(edgelet.artifact.name)
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Images Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(images.build)
+      branchName: $(images.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(images.artifact.name.linux)
+      itemPattern: |
+        $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
+        $(images.artifact.name.linux)/scripts/connectivityTest.sh
+        $(images.artifact.name.linux)/scripts/testHelper.sh
+        $(images.artifact.name.linux)/artifactInfo.txt  
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/$(edgelet.artifact.name)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/$(images.artifact.name.linux)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
+      CleanTargetFolder: true 
+  - task: Bash@3
+    displayName: 'Run Connectivity Deployment'
+    name: deployIoTEdge
+    inputs:
+      targetType: inline
+      #@TODO change Build.Repository.LocalPath to use artifact.
+      #@TODO remove hard coding of deploymentFileName: It is also hardcoded in install.sh
+      #@TODO remove hard coding of level and parent
+      script: |
+        declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
+        . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
+
+        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-VM.sh
+        
+        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-VM.sh \
+          -testDir "$(Agent.HomeDirectory)/.." \
+          -releaseLabel "ct$(agent.group)" \
+          -artifactImageBuildNumber "$BuildNumber" \
+          -containerRegistry "$(container.registry)" \
+          -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
+          -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
+          -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
+          -deploymentFileName "$(deploymentFile)" \
+          -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
+          -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
+          -customEdgeAgentImage "$(customEdgeAgent.image)" \
+          -customEdgeHubImage "$(customEdgeHub.image)" \
+          -subscription "$(azure.subscription)" \
+          -level "$(level)" \
+          -parentName  "$(parentName)"\
+          -parentConnectionString "$(parentConnectionString)"\
+          -waitForTestComplete \
+          -cleanAll
