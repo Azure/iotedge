@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static readonly IMetricsCounter ClientsDiscconnectCounter = EdgeMetrics.Instance.CreateCounter(
            "client_disconnect",
-           "Total number of times individual client disconnected from edgeHub",
+           "Total number of times each client disconnected from edgeHub",
            new List<string>() { "id" });
 
         public static void UpdateConnectedClients(int connectedClients) => ConnectedClientsGauge.Set(connectedClients, EmptyStringArray);
