@@ -17,40 +17,51 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
         {
-            string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
-            if (platformInfo.Length == 1)
-            {
-                platformInfo = platformInfo[0].Split(' ');
-            }
-
-            string os = platformInfo[0].Trim();
-            string version = platformInfo[1].Trim();
             SupportedPackageExtension packageExtension;
-
-            switch (os)
+            string os, version;
+            string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
+            if (platformInfo.Any(s=> s.Contains("Mariner")))
             {
-                case "Ubuntu":
-                    os = os.ToLower();
-                    packageExtension = SupportedPackageExtension.Deb;
-                    break;
-                case "Raspbian":
-                    os = "debian";
-                    version = "stretch";
-                    packageExtension = SupportedPackageExtension.Deb;
-                    break;
-                case "CentOS":
-                    os = os.ToLower();
-                    version = version.Split('.')[0];
-                    packageExtension = SupportedPackageExtension.Rpm;
+                os = "Mariner";
+                version = "1.0";
+                packageExtension = SupportedPackageExtension.Rpm;
+            }
+            else
+            {
+                platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
+                if (platformInfo.Length == 1)
+                {
+                    platformInfo = platformInfo[0].Split(' ');
+                }
 
-                    if (version != "7")
-                    {
-                        throw new NotImplementedException($"Don't know how to install daemon on operating system '{os} {version}'");
-                    }
+                os = platformInfo[0].Trim();
+                version = platformInfo[1].Trim();
 
-                    break;
-                default:
-                    throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
+                switch (os)
+                {
+                    case "Ubuntu":
+                        os = os.ToLower();
+                        packageExtension = SupportedPackageExtension.Deb;
+                        break;
+                    case "Raspbian":
+                        os = "debian";
+                        version = "stretch";
+                        packageExtension = SupportedPackageExtension.Deb;
+                        break;
+                    case "CentOS":
+                        os = os.ToLower();
+                        version = version.Split('.')[0];
+                        packageExtension = SupportedPackageExtension.Rpm;
+
+                        if (version != "7")
+                        {
+                            throw new NotImplementedException($"Don't know how to install daemon on operating system '{os} {version}'");
+                        }
+
+                        break;
+                    default:
+                        throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
+                }
             }
 
             return new EdgeDaemon(new PackageManagement(os, version, packageExtension));
