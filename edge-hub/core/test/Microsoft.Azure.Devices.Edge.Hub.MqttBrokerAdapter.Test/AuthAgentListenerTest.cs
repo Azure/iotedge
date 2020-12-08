@@ -27,10 +27,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     public class AuthAgentHeadTest
     {
         const string HOST = "localhost";
-        const int PORT = 7122;
-        const string URL = "http://localhost:7122/authenticate/";
 
-        readonly AuthAgentProtocolHeadConfig config = new AuthAgentProtocolHeadConfig(PORT, "/authenticate/");
+        readonly int port;
+        readonly AuthAgentProtocolHeadConfig config;
+        readonly string url;
+
+        public AuthAgentHeadTest()
+        {
+            this.port = AvailableTcpPorts.Next(7122);
+            this.config = new AuthAgentProtocolHeadConfig(this.port, "/authenticate/");
+            this.url = $"http://localhost:{this.port}/authenticate/";
+        }
 
         [Fact]
         public async Task StartsUpAndServes()
@@ -47,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(200, (int)response.result);
             }
@@ -78,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
@@ -100,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.password = "somepassword";
                 content.certificate = ThumbprintTestCert;
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
@@ -120,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.username = "testhub/device/api-version=2018-06-30";
                 content.certificate = new byte[] { 0x30, 0x23, 0x44 };
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
@@ -140,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
@@ -161,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
@@ -183,12 +190,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "bad_token";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
                 Assert.Equal(403, (int)response.result);
 
                 content.password = "good_token";
 
-                response = await PostAsync(content, URL);
+                response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
             }
         }
@@ -208,12 +215,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.username = "testhub/device/api-version=2018-06-30";
                 content.certificate = ThumbprintTestCert;
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
                 Assert.Equal(403, (int)response.result);
 
                 content.certificate = ThumbprintTestCert2;
 
-                response = await PostAsync(content, URL);
+                response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
             }
         }
@@ -237,13 +244,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.certificate = CaTestDevice;
                 content.certificateChain = new List<string>() { CaTestRoot };
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
                 Assert.Equal(403, (int)response.result);
 
                 content.certificate = CaTestDevice2;
                 content.certificateChain = new List<string>() { CaTestRoot2 };
 
-                response = await PostAsync(content, URL);
+                response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
             }
         }
@@ -263,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                var response = await PostAsync(content, URL);
+                var response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
                 Assert.Equal("testhub/device", (string)response.identity);
             }
@@ -284,7 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                var response = await PostAsync(content, URL);
+                var response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
                 Assert.Equal("testhub/device/module", (string)response.identity);
             }
@@ -364,7 +371,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(200, (int)response.result);
                 var modelId = (await metadataStore.GetMetadata("device")).ModelId;
@@ -377,7 +384,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             using (var client = new TcpClient())
             {
-                await client.ConnectAsync(HOST, PORT);
+                await client.ConnectAsync(HOST, this.port);
 
                 using (var stream = client.GetStream())
                 {
