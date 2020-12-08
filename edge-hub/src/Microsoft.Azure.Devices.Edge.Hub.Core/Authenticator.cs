@@ -57,8 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 await this.credentialsCache.Add(clientCredentials);
             }
-            else
+            else if (!reAuthenticating)
             {
+                // only report authentication failure on initial authentication
                 Metrics.AddAuthenticationFailure(clientCredentials.Identity.Id);
             }
 
