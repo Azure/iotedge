@@ -41,7 +41,7 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgehub_client_connect_failed_total`                       | `id` (Device/Module ID)<br> `reason` (not authenticated)<br> 												| Total number of times individual client failed to connect to edgeHub		| counter |                                                              
 | `edgehub_connected_clients`                              	  | 															 												| Current number of clients connected to edgeHub        					| gauge |                                                            
 | `edgehub_client_connect_success_total`                      | `id` (Device/Module ID)<br>																					| Total number of times each client successfully connected to edgeHub   | counter |                                                                                                                                                                    | counter |                                                              
-| `edgehub_client_disconnect_total`                      	  | `id` (Device/Module ID)<br>																					| Total number of times individual client disconnected from edgeHub   		| counter |
+| `edgehub_client_disconnect_total`                      	  | `id` (Device/Module ID)<br>																					| Total number of times each client disconnected from edgeHub   		| counter |
 
 
 ### EdgeAgent
