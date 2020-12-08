@@ -112,6 +112,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identityPkPath)
         {
+            if (!File.Exists(identityCertPath))
+            {
+                throw new InvalidOperationException($"{identityCertPath} does not exist");
+            }
+
+            if (!File.Exists(identityPkPath))
+            {
+                throw new InvalidOperationException($"{identityPkPath} does not exist");
+            }
+
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
@@ -141,8 +151,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", keyName);
         }
 
-        public void SetDpsX509(string idScope, string registrationId, IdCertificates cert)
+        public void SetDpsX509(string idScope, string registrationId, IdCertificates cert, string trustBundle)
         {
+            if (!File.Exists(cert.CertificatePath))
+            {
+                throw new InvalidOperationException($"{cert.CertificatePath} does not exist");
+            }
+
+            if (!File.Exists(cert.KeyPath))
+            {
+                throw new InvalidOperationException($"{cert.KeyPath} does not exist");
+            }
+
+            if (!File.Exists(trustBundle))
+            {
+                throw new InvalidOperationException($"{trustBundle} does not exist");
+            }
+
             this.SetBasicDpsParam(idScope);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.method", "x509");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
@@ -156,6 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string keyName = DaemonConfiguration.SanitizeName(keyFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", keyName);
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + cert.KeyPath);
+
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", "file://" + trustBundle);
         }
 
         public void SetDeviceHostname(string value)
@@ -171,6 +198,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetCertificates(CaCertificates certs)
         {
+            if (!File.Exists(certs.CertificatePath))
+            {
+                throw new InvalidOperationException($"{certs.CertificatePath} does not exist");
+            }
+
+            if (!File.Exists(certs.KeyPath))
+            {
+                throw new InvalidOperationException($"{certs.KeyPath} does not exist");
+            }
+
+            if (!File.Exists(certs.TrustedCertificatesPath))
+            {
+                throw new InvalidOperationException($"{certs.TrustedCertificatesPath} does not exist");
+            }
+
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-device-ca", "file://" + certs.CertificatePath);
             this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-device-ca", "file://" + certs.KeyPath);
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", "file://" + certs.TrustedCertificatesPath);
