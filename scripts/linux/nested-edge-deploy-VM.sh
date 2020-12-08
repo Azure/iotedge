@@ -187,9 +187,9 @@ function process_args() {
                 '-customEdgeAgentImage' ) saveNextArg=11;;
                 '-customEdgeHubImage' ) saveNextArg=12;;
                 '-subscription' ) saveNextArg=13;;
-                '-level' ) saveNextArg=14;;             
-                '-parentName' ) saveNextArg=15;; 
-                '-parentConnectionString' ) saveNextArg=16;;              
+                '-level' ) saveNextArg=14;;
+                '-parentName' ) saveNextArg=15;;
+                '-parentConnectionString' ) saveNextArg=16;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
