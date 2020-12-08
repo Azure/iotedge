@@ -202,19 +202,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static void CreateConfigFile(string configFile, string defaultFile, string owner)
         {
-            // If the config file does not exist, create it from the default file.
-            // If the default file does not exist, create an empty config file.
-            if (!File.Exists(configFile))
-            {
-                if (File.Exists(defaultFile))
-                {
-                    File.Copy(defaultFile, configFile);
-                }
-                else
-                {
-                    File.Create(configFile).Dispose();
-                }
-            }
+            // Overwrite any existing config file with the default.
+            // Existing config files were backed up in SetupFixture and will be restored
+            // when the tests finish.
+            File.Copy(defaultFile, configFile, true);
 
             // Change owner of config file.
             OsPlatform.Current.SetFileOwner(configFile, owner, "644");
