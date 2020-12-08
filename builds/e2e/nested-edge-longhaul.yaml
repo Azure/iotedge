@@ -62,10 +62,11 @@ stages:
   - job:  Clean_up     
     dependsOn: SetupVM_level4
     displayName: Clean up identities and unlock VMs
-    deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
-    deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ]     
-    deviceLvl4Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
-    deviceLvl4ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ] 
+    variables:    
+      deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
+      deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ]     
+      deviceLvl4Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
+      deviceLvl4ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ] 
     pool:
       name: $(pool.name)
       demands:
