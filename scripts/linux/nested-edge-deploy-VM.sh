@@ -60,6 +60,9 @@ function install_and_setup_iotedge() {
 
     sudo cat /etc/iotedge/config.yaml
 
+    #deploy the config in azure portal
+    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
+
     echo "Start IoT edge"
     sudo systemctl restart iotedge
 }
@@ -169,8 +172,11 @@ function process_args() {
             PARENT_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 16 ]; then
-            PARENT_CONNECTION_STRING="$arg"
-            saveNextArg=0                          
+            CONNECTION_STRING="$arg"
+            saveNextArg=0     
+        elif [ $saveNextArg -eq 17 ]; then
+            DEVICE_ID="$arg"
+            saveNextArg=0                                    
         else              
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -189,7 +195,8 @@ function process_args() {
                 '-subscription' ) saveNextArg=13;;
                 '-level' ) saveNextArg=14;;
                 '-parentName' ) saveNextArg=15;;
-                '-parentConnectionString' ) saveNextArg=16;;
+                '-connectionString' ) saveNextArg=16;;
+                '-deviceId' ) saveNextArg=17;;                
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
@@ -201,7 +208,9 @@ function process_args() {
         fi
     done
 
-    # Required parameters  
+    # Required parameters 
+    [[ -z "$CONNECTION_STRING" ]] && { print_error 'CONNECTION_STRING is required.'; exit 1; }
+    [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }    
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
@@ -228,8 +237,7 @@ function test_setup() {
 }
 
 function set_output_params() {
-    echo "##vso[task.setvariable variable=parentName;isOutput=true]${device_name}"
-    echo "##vso[task.setvariable variable=parentConnectionString;isOutput=true]${connectionString}"
+    echo "##vso[task.setvariable variable=deviceName;isOutput=true]${device_name}"
 }
 
 set -e

@@ -50,7 +50,7 @@ steps:
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
       CleanTargetFolder: true 
   - task: Bash@3
-    displayName: 'Run Connectivity Deployment'
+    displayName: 'Deployment iotedge on agent'
     name: deployIoTEdge
     inputs:
       targetType: inline
@@ -80,5 +80,6 @@ steps:
           -level "$(level)" \
           -parentName  "$(parentName)"\
           -parentConnectionString "$(parentConnectionString)"\
+          -deviceId "$(createIdentity.deviceId)"\
           -waitForTestComplete \
           -cleanAll
