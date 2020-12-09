@@ -33,8 +33,8 @@ stages:
         - status -equals unlocked
     steps:        
       - script: |
-          echo "##vso[task.setvariable variable=parentName;isOutput=true]${device_name}" 
-          echo "##vso[task.setvariable variable=parentConnectionString;isOutput=true]${connectionString}"
+          echo "##vso[task.setvariable variable=parentName;isOutput=true]test" 
+          echo "##vso[task.setvariable variable=parentConnectionString;isOutput=true]test"
         name: deployIoTEdge    
 #      - template: templates/nested-agent-lock-and-deploy.yaml
 
