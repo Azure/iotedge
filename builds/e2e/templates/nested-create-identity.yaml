@@ -18,7 +18,7 @@ steps:
         iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
         echo "Found Hub name: ${iotHubName}"
 
-        az account set --subscription $(azure.subscription)
+        az account set --subscription "$(azure.subscription)"
         deviceId="level_$(level)_$(Build.BuildNumber)"
 
         echo "Creating ${deviceId} iotedge in iothub: ${iotHubName}, in subscription $(azure.subscription)"
