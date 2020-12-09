@@ -170,7 +170,7 @@ function process_args() {
                 '-level' ) saveNextArg=14;;
                 '-parentName' ) saveNextArg=15;;
                 '-connectionString' ) saveNextArg=16;;
-                '-deviceId' ) saveNextArg=17;;                
+                '-deviceId' ) saveNextArg=17;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
