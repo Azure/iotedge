@@ -27,7 +27,7 @@ steps:
         else
             echo "Extracting parent deviceId name from parent connection string"
 
-            parentDeviceId=$(echo $PARENT_CONNECTION_STRING | sed -n 's/.*DeviceId=\(.*\);SharedAccessKey.*/\1/p')
+            parentDeviceId=$(echo "$(parentConnectionString)" | sed -n 's/.*DeviceId=\(.*\);SharedAccessKey.*/\1/p')
             echo "Found device Id name: ${parentDeviceId}"
 
             az iot hub device-identity create -n ${iotHubName} -d ${deviceId} --ee --pd ${parentDeviceId} --output none
