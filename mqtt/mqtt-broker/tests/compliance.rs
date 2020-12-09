@@ -1,3 +1,9 @@
+///! This module contains tests that verify MQTT protocol compliance.
+///! (qos, ordering, re-delivery, retained messages, will, etc...)
+///! Only MQTT-protocol related tests should be added here.
+///!
+///! For other tests not related to MQTT protocol (like broker config, storage, cleanup)
+///! please use `integration.rs`.
 use std::time::Duration;
 
 use bytes::Bytes;

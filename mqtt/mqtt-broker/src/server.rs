@@ -110,7 +110,7 @@ where
             listeners,
             make_processor,
         } = self;
-        let mut handle = broker.handle();
+        let handle = broker.handle();
 
         // prepare dispatcher in a separate task
         let broker_task = tokio::spawn(broker.run());
