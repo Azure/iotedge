@@ -30,4 +30,5 @@ steps:
 
         #set output variable
         echo "##vso[task.setvariable variable=connectionString;isOutput=true]${connectionString}"
+        echo "##vso[task.setvariable variable=connectionString]${connectionString}"
         echo "##vso[task.setvariable variable=deviceId]${deviceId}"
