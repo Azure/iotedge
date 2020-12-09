@@ -65,9 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public string Hostname =>
             IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
 
-        public string SharedAccessKey =>
-            IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).SharedAccessKey;
-
         public string EntityPath =>
             new EventHubsConnectionStringBuilder(this.eventHubEndpoint).EntityPath;
 
@@ -113,8 +110,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task<Twin> GetTwinAsync(
             string deviceId,
-            string moduleId,
-            CancellationToken token) => this.RegistryManager.GetTwinAsync(deviceId, moduleId, token);
+            Option<string> moduleId,
+            CancellationToken token)
+        {
+            return moduleId.Match(
+                m => this.RegistryManager.GetTwinAsync(deviceId, m, token),
+                () => this.RegistryManager.GetTwinAsync(deviceId, token));
+        }
 
         public async Task UpdateTwinAsync(
             string deviceId,
@@ -122,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             object twinPatch,
             CancellationToken token)
         {
-            Twin twin = await this.GetTwinAsync(deviceId, moduleId, token);
+            Twin twin = await this.GetTwinAsync(deviceId, Option.Some(moduleId), token);
             string patch = JsonConvert.SerializeObject(twinPatch);
             await this.RegistryManager.UpdateTwinAsync(
                 deviceId,

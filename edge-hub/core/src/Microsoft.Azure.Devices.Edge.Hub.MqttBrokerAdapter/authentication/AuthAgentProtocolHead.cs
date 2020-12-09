@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class AuthAgentProtocolHead : IProtocolHead
     {
         readonly IAuthenticator authenticator;
+        readonly IMetadataStore metadataStore;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
@@ -29,12 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public AuthAgentProtocolHead(
                     IAuthenticator authenticator,
+                    IMetadataStore metadataStore,
                     IUsernameParser usernameParser,
                     IClientCredentialsFactory clientCredentialsFactory,
                     ISystemComponentIdProvider systemComponentIdProvider,
                     AuthAgentProtocolHeadConfig config)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
@@ -57,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     this.host = Option.Some(
                                     CreateWebHostBuilder(
                                         this.authenticator,
+                                        this.metadataStore,
                                         this.usernameParser,
                                         this.clientCredentialsFactory,
                                         this.systemComponentIdProvider,
@@ -102,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static IWebHost CreateWebHostBuilder(
                             IAuthenticator authenticator,
+                            IMetadataStore metadataStore,
                             IUsernameParser usernameParser,
                             IClientCredentialsFactory clientCredentialsFactory,
                             ISystemComponentIdProvider systemComponentIdProvider,
@@ -112,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .UseKestrel(serverOptions => serverOptions.Limits.MaxRequestBufferSize = 64 * 1024)
                           .UseUrls($"http://*:{config.Port}")
                           .ConfigureServices(s => s.TryAddSingleton(authenticator))
+                          .ConfigureServices(s => s.TryAddSingleton(metadataStore))
                           .ConfigureServices(s => s.TryAddSingleton(usernameParser))
                           .ConfigureServices(s => s.TryAddSingleton(clientCredentialsFactory))
                           .ConfigureServices(s => s.TryAddSingleton(systemComponentIdProvider))
