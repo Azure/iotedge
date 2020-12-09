@@ -24,7 +24,7 @@ stages:
       level: '5'
       deploymentFile: 'nestededge_topLayerBaseDeployment.json'
       parentName: ''
-      parentConnectionString: '' 
+      parentConnectionString: ''
     pool:
       name: $(pool.name)
       demands:
@@ -34,8 +34,9 @@ stages:
         - run-idle -equals true
         - status -equals unlocked
     steps:
-      - template: templates/nested-get-secrets.yaml           
-      - template: templates/lock-test-agent.yaml    
+      - template: templates/nested-get-secrets.yaml
+      - template: templates/lock-test-agent.yaml
+      - template: templates/nested-create-identity.yaml   
       - template: templates/nested-agent-deploy.yaml
 
   - job:  SetupVM_level4
@@ -47,8 +48,8 @@ stages:
       images.artifact.name.linux: 'core-linux'
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
       vsts.project: $(System.TeamProjectId)
-      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
-      parentConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ] 
+      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      parentConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ] 
       deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
       level: '4'
     pool:
@@ -61,16 +62,17 @@ stages:
         - status -equals unlocked    
     steps:
       - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml    
+      - template: templates/lock-test-agent.yaml
+      - template: templates/nested-create-identity.yaml          
       - template: templates/nested-agent-deploy.yaml
   - job:  Clean_up     
     dependsOn: SetupVM_level4
-    displayName: Clean up identities and unlock VMs
+    displayName: Clean up identities and unlock agents
     variables:    
-      deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
-      deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ]     
-      deviceLvl4Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentName'] ]
-      deviceLvl4ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.parentConnectionString'] ] 
+      deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ]     
+      deviceLvl4Name: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      deviceLvl4ConnectionString: $[ dependencies.SetupVM_level4.outputs['createIdentity.connectionString'] ] 
     pool:
       name: $(pool.name)
       demands:

@@ -38,7 +38,7 @@ function install_and_setup_iotedge() {
     sudo sed -i "168s|.*|  trusted_ca_certs: \"$trusted_ca_certs_path\"|" /etc/iotedge/config.yaml
 
     echo "Updating the device connection string"
-    sudo sed -i "s#\(device_connection_string: \).*#\1\"$connectionString\"#g" /etc/iotedge/config.yaml
+    sudo sed -i "s#\(device_connection_string: \).*#\1\"${CONNECTION_STRING}\"#g" /etc/iotedge/config.yaml
 
     echo "Updating the device and parent hostname"
     sudo sed -i "224s/.*/hostname: \"$device_name\"/" /etc/iotedge/config.yaml
@@ -60,34 +60,11 @@ function install_and_setup_iotedge() {
 
     sudo cat /etc/iotedge/config.yaml
 
+    #deploy the config in azure portal
+    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
+
     echo "Start IoT edge"
     sudo systemctl restart iotedge
-}
-
-function create_iotedge_identities() {
-    echo "Extracting hub name from connection string"
-    #extract full hub name
-    tmp=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
-    #remove the .azure-devices.net  from it.
-    iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
-    echo "Found Hub name: ${iotHubName}"
-
-    az account set --subscription $SUBSCRIPTION
-    iotEdgeDevicesName="level_${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
-
-    echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${iotHubName}, in subscription $SUBSCRIPTION"
-    if [ "$LEVEL" = "5" ]; then
-        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --output none       
-    else
-        echo "Extracting parent deviceId name from parent connection string"
-
-        parentDeviceId=$(echo $PARENT_CONNECTION_STRING | sed -n 's/.*DeviceId=\(.*\);SharedAccessKey.*/\1/p')
-        echo "Found device Id name: ${parentDeviceId}"
-
-        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${parentDeviceId} --output none
-    fi
-    connectionString=$(az iot hub device-identity connection-string show -d ${iotEdgeDevicesName} -n ${iotHubName} --query 'connectionString' -o tsv)
-    az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
 }
 
 function prepare_test_from_artifacts() {   
@@ -169,8 +146,14 @@ function process_args() {
             PARENT_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 16 ]; then
-            PARENT_CONNECTION_STRING="$arg"
-            saveNextArg=0                          
+            CONNECTION_STRING="$arg"
+            saveNextArg=0     
+        elif [ $saveNextArg -eq 17 ]; then
+            DEVICE_ID="$arg"
+            saveNextArg=0   
+        elif [ $saveNextArg -eq 18 ]; then
+            IOT_HUB_NAME="$arg"
+            saveNextArg=0                                               
         else              
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -189,7 +172,9 @@ function process_args() {
                 '-subscription' ) saveNextArg=13;;
                 '-level' ) saveNextArg=14;;
                 '-parentName' ) saveNextArg=15;;
-                '-parentConnectionString' ) saveNextArg=16;;
+                '-connectionString' ) saveNextArg=16;;
+                '-deviceId' ) saveNextArg=17;;
+                '-iotHubName' ) saveNextArg=18;;                
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
@@ -201,7 +186,9 @@ function process_args() {
         fi
     done
 
-    # Required parameters  
+    # Required parameters 
+    [[ -z "$CONNECTION_STRING" ]] && { print_error 'CONNECTION_STRING is required.'; exit 1; }
+    [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }    
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
@@ -228,8 +215,7 @@ function test_setup() {
 }
 
 function set_output_params() {
-    echo "##vso[task.setvariable variable=parentName;isOutput=true]${device_name}"
-    echo "##vso[task.setvariable variable=parentConnectionString;isOutput=true]${connectionString}"
+    echo "##vso[task.setvariable variable=deviceName;isOutput=true]${device_name}"
 }
 
 set -e
@@ -267,7 +253,6 @@ connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAM
 deployment_working_file="$working_folder/deployment.json"
 
 test_setup
-create_iotedge_identities
 create_certificates
 install_and_setup_iotedge
 set_output_params

@@ -1,11 +1,5 @@
 steps:
   - task: Bash@3
-    displayName: 'Az login'
-    inputs:
-      targetType: inline
-      script: |     
-        az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId) 
-  - task: Bash@3
     displayName: 'Get rootCA'
     inputs:
       targetType: inline
@@ -50,7 +44,7 @@ steps:
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
       CleanTargetFolder: true 
   - task: Bash@3
-    displayName: 'Run Connectivity Deployment'
+    displayName: 'Deployment iotedge on agent'
     name: deployIoTEdge
     inputs:
       targetType: inline
@@ -61,9 +55,9 @@ steps:
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
         . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
 
-        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-VM.sh
-        
-        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-VM.sh \
+        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
+   
+        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
           -artifactImageBuildNumber "$BuildNumber" \
@@ -78,7 +72,9 @@ steps:
           -customEdgeHubImage "$(customEdgeHub.image)" \
           -subscription "$(azure.subscription)" \
           -level "$(level)" \
-          -parentName  "$(parentName)"\
-          -parentConnectionString "$(parentConnectionString)"\
+          -parentName "$(parentName)" \
+          -connectionString "$(connectionString)" \
+          -iotHubName "$(iotHubName)" \
+          -deviceId "$(deviceId)" \
           -waitForTestComplete \
           -cleanAll
