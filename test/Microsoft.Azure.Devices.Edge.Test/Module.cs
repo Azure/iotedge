@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
         [Test]
+        [NonParallelizable]
         [Category("CentOsSafe")]
         public async Task TempSensor()
         {
@@ -65,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [NonParallelizable]
         [Category("CentOsSafe")]
         public async Task TempFilter()
         {
@@ -103,6 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [NonParallelizable]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
