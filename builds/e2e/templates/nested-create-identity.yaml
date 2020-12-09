@@ -16,7 +16,7 @@ steps:
         tmp=$(echo $(ConnectivityNestedEdge-ConnectionString) | sed -n 's/^HostName=\(.*\);SharedAccessKeyName.*/\1/p')
         #remove the .azure-devices.net  from $tmp
         echo $1
-        iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
+        iotHubName=$(echo $tmp | sed -n 's/^HostName=\(.?*\)\..*/\1/p')
         echo "Found Hub name: ${iotHubName}"
 
         az account set --subscription $(azure.subscription)
