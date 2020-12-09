@@ -36,13 +36,8 @@ impl WellFormedConfig {
             if err.kind() == std::io::ErrorKind::PermissionDenied {
                 return Ok(CheckResult::Fatal(
                     err.context(format!(
-                        "Could not open file {}. You might need to run this command as {}.",
+                        "Could not open file {}. You might need to run this command as root.",
                         config_file.display(),
-                        if cfg!(windows) {
-                            "Administrator"
-                        } else {
-                            "root"
-                        },
                     ))
                     .into(),
                 ));

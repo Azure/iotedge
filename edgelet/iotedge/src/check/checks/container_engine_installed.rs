@@ -72,15 +72,6 @@ impl ContainerEngineInstalled {
                             return Ok(CheckResult::Fatal(err.context(error_message).into()));
                         }
                     }
-
-                    #[cfg(windows)]
-                    {
-                        if message.contains("Access is denied") {
-                            error_message +=
-                                "\nYou might need to run this command as Administrator.";
-                            return Ok(CheckResult::Fatal(err.context(error_message).into()));
-                        }
-                    }
                 }
 
                 return Err(err.context(error_message).into());

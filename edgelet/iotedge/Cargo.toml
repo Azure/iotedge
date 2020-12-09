@@ -37,7 +37,6 @@ edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 management = { path = "../management" }
-mini-sntp = { path = "../mini-sntp" }
 support-bundle = { path = "../support-bundle" }
 
 [target.'cfg(unix)'.dependencies]
@@ -48,4 +47,3 @@ sysinfo = "0.14.10"
 [dev-dependencies]
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 tempfile = "3.1.0"
-

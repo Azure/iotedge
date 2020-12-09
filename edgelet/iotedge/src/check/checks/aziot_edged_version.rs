@@ -41,10 +41,6 @@ impl AziotEdgedVersion {
         let mut process = Command::new(&check.aziot_edged);
         process.arg("--version");
 
-        if cfg!(windows) {
-            process.env("IOTEDGE_RUN_AS_CONSOLE", "true");
-        }
-
         let output = process
             .output()
             .context("Could not spawn aziot-edged process")?;

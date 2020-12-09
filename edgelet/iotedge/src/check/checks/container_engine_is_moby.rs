@@ -25,6 +25,7 @@ impl Checker for ContainerEngineIsMoby {
 }
 
 impl ContainerEngineIsMoby {
+    #[allow(clippy::unnecessary_wraps)] // keeps this inner_execute consistent with all other checks
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
             "Device is not using a production-supported container engine (moby-engine).\n\
@@ -37,22 +38,6 @@ impl ContainerEngineIsMoby {
             } else {
                 return Ok(CheckResult::Skipped);
             };
-
-        #[cfg(windows)]
-        {
-            let settings = if let Some(settings) = &check.settings {
-                settings
-            } else {
-                return Ok(CheckResult::Skipped);
-            };
-
-            let moby_runtime_uri = settings.moby_runtime().uri().to_string();
-            self.moby_runtime_uri = Some(moby_runtime_uri.clone());
-
-            if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
-                return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
-            }
-        }
 
         let docker_server_major_version = docker_server_version
             .split('.')

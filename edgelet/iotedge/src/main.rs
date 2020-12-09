@@ -6,7 +6,7 @@
 
 use std::borrow::Cow;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process;
 
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
@@ -40,42 +40,11 @@ fn main() {
 
 #[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
-    let (default_mgmt_uri, default_config_path, default_container_engine_config_path) =
-        if cfg!(windows) {
-            let program_data: PathBuf = std::env::var_os("PROGRAMDATA")
-                .map_or_else(|| r"C:\ProgramData".into(), Into::into);
-
-            let default_mgmt_uri = program_data
-                .to_str()
-                .expect("PROGRAMDATA is not a utf-8 path")
-                .replace('\\', "/");
-            let default_mgmt_uri = format!("unix:///{}/iotedge/mgmt/sock", default_mgmt_uri);
-            let default_mgmt_uri = Cow::Owned(default_mgmt_uri);
-
-            let mut default_config_path = program_data.clone();
-            default_config_path.push("iotedge");
-            default_config_path.push("config.yaml");
-            let default_config_path = Cow::Owned(default_config_path);
-
-            let mut default_container_engine_config_path = program_data;
-            default_container_engine_config_path.push("iotedge-moby");
-            default_container_engine_config_path.push("config");
-            default_container_engine_config_path.push("daemon.json");
-            let default_container_engine_config_path =
-                Cow::Owned(default_container_engine_config_path);
-
-            (
-                default_mgmt_uri,
-                default_config_path,
-                default_container_engine_config_path,
-            )
-        } else {
-            (
-                Cow::Borrowed("unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"),
-                Cow::Borrowed(Path::new("/etc/aziot/edged/config.yaml")),
-                Cow::Borrowed(Path::new("/etc/docker/daemon.json")),
-            )
-        };
+    let (default_mgmt_uri, default_config_path, default_container_engine_config_path) = (
+        Cow::Borrowed("unix:///run/aziot/edged/aziot-edged.mgmt.sock"),
+        Cow::Borrowed(Path::new("/etc/aziot/edged/config.yaml")),
+        Cow::Borrowed(Path::new("/etc/docker/daemon.json")),
+    );
 
     let default_mgmt_uri = option_env!("IOTEDGE_HOST").unwrap_or(&*default_mgmt_uri);
 
@@ -335,10 +304,6 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
-                // args.value_of("iothub-hostname").map(ToOwned::to_owned),
-                args.value_of("ntp-server")
-                    .expect("arg has a default value")
-                    .to_string(),
                 args.value_of("output")
                     .map(|arg| match arg {
                         "json" => OutputFormat::Json,

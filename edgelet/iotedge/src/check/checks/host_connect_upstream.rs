@@ -1,7 +1,9 @@
 use edgelet_core::RuntimeSettings;
 
 use crate::check::{
-    checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
+    tls_handshake::{resolve_and_tls_handshake, resolve_and_tls_handshake_proxy},
+    upstream_protocol_port::UpstreamProtocolPort,
+    Check, CheckResult, Checker,
 };
 
 pub(crate) fn get_host_connect_upstream_tests() -> Vec<Box<dyn Checker>> {
@@ -81,15 +83,13 @@ impl HostConnectUpstream {
             .and_then(|settings| settings.agent().env().get("https_proxy").cloned());
 
         if let Some(proxy) = &self.proxy {
-            runtime.block_on(
-                super::host_connect_dps_endpoint::resolve_and_tls_handshake_proxy(
-                    upstream_hostname.clone(),
-                    Some(self.port_number),
-                    proxy.clone(),
-                ),
-            )?;
+            runtime.block_on(resolve_and_tls_handshake_proxy(
+                upstream_hostname.clone(),
+                Some(self.port_number),
+                proxy.clone(),
+            ))?;
         } else {
-            super::host_connect_dps_endpoint::resolve_and_tls_handshake(
+            resolve_and_tls_handshake(
                 &(&**upstream_hostname, self.port_number),
                 upstream_hostname,
                 &format!("{}:{}", upstream_hostname, self.port_number),
