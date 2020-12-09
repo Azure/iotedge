@@ -15,7 +15,7 @@ steps:
         #extract full hub name
         tmp=$(echo $(ConnectivityNestedEdge-ConnectionString) | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
         #remove the .azure-devices.net  from $tmp
-        echo $tmp
+        echo $1
         iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
         echo "Found Hub name: ${iotHubName}"
 
