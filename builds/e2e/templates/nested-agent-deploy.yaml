@@ -56,9 +56,7 @@ steps:
         . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-VM.sh
-
-        echo "connectionString: $(connectionString), deviceId: $(deviceId)"
-        
+   
         sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-VM.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
@@ -76,7 +74,7 @@ steps:
           -level "$(level)" \
           -parentName "$(parentName)" \
           -connectionString "$(connectionString)" \
-          -iotHubName "$(iotHubName)"
+          -iotHubName "$(iotHubName)" \
           -deviceId "$(deviceId)" \
           -waitForTestComplete \
           -cleanAll
