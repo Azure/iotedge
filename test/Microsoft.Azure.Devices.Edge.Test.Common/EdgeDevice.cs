@@ -105,8 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             if (this.owned)
             {
-                // await this.DeleteIdentityAsync(token);
-                await Task.CompletedTask;
+                await this.DeleteIdentityAsync(token);
             }
             else
             {
