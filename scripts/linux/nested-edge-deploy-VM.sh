@@ -38,7 +38,7 @@ function install_and_setup_iotedge() {
     sudo sed -i "168s|.*|  trusted_ca_certs: \"$trusted_ca_certs_path\"|" /etc/iotedge/config.yaml
 
     echo "Updating the device connection string"
-    sudo sed -i "s#\(device_connection_string: \).*#\1\"$connectionString\"#g" /etc/iotedge/config.yaml
+    sudo sed -i "s#\(device_connection_string: \).*#\1\"${CONNECTION_STRING}\"#g" /etc/iotedge/config.yaml
 
     echo "Updating the device and parent hostname"
     sudo sed -i "224s/.*/hostname: \"$device_name\"/" /etc/iotedge/config.yaml
