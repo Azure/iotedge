@@ -1,16 +1,10 @@
-#![allow(unused_imports)]
-use std::sync::Arc;
-
 use bytes::Bytes;
-use future::{join_all, select_all, Either};
+use future::{select_all, Either};
 use futures_util::{future, pin_mut, stream::StreamExt, stream::TryStreamExt};
 use mpsc::UnboundedSender;
 use time::Duration;
 use tokio::{
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Mutex,
-    },
+    sync::mpsc::{self, Receiver, Sender},
     task::JoinHandle,
     time,
 };
@@ -25,8 +19,7 @@ use mqtt_util::client_io::ClientIoSource;
 
 use crate::{
     message_channel::{
-        MessageChannel, MessageHandler, MessageHandlerShutdownHandle, RelayingMessageHandler,
-        ReportResultMessageHandler,
+        MessageChannel, MessageHandler, RelayingMessageHandler, ReportResultMessageHandler,
     },
     settings::{Settings, TestScenario},
     MessageTesterError, BACKWARDS_TOPIC, FORWARDS_TOPIC,
