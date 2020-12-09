@@ -19,7 +19,7 @@ We added CreateOptions for experimental features on Kubernetes. These options "o
 {
   "k8s-experimental": {
     "volumes": [{...}],
-    "resources": [{...}],
+    "resources": {...},
     "nodeSelector": {...},
     "securityContext": {...},
     "service-options": {...},
