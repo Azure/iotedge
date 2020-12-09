@@ -23,6 +23,7 @@ async fn main() -> Result<()> {
     let tester = MessageTester::new(settings).await?;
     let tester_shutdown = tester.shutdown_handle();
 
+    // TODO: We should be able to change this pattern to spawn only shutdown future (which blocks), but this doesn't work, Need to figure out why.
     let test_join_handle = tokio::spawn(tester.run().instrument(info_span!("tester")));
     let shutdown_fut = listen_for_shutdown().instrument(info_span!("shutdown"));
     pin_mut!(shutdown_fut);
