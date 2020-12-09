@@ -78,8 +78,8 @@ steps:
           -customEdgeHubImage "$(customEdgeHub.image)" \
           -subscription "$(azure.subscription)" \
           -level "$(level)" \
-          -parentName  "$(parentName)"\
-          -parentConnectionString "$(parentConnectionString)"\
-          -deviceId "$(createIdentity.deviceId)"\
+          -parentName  "$(parentName)" \
+          -parentConnectionString "$(parentConnectionString)" \
+          -deviceId "$(deviceId)" \
           -waitForTestComplete \
           -cleanAll
