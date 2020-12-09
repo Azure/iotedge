@@ -79,7 +79,7 @@ steps:
           -subscription "$(azure.subscription)" \
           -level "$(level)" \
           -parentName "$(parentName)" \
-          -parentConnectionString "$(parentConnectionString)" \
+          -connectionString "$(connectionString)" \
           -deviceId "$(deviceId)" \
           -waitForTestComplete \
           -cleanAll

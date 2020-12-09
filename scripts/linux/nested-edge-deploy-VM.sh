@@ -67,32 +67,6 @@ function install_and_setup_iotedge() {
     sudo systemctl restart iotedge
 }
 
-function create_iotedge_identities() {
-    echo "Extracting hub name from connection string"
-    #extract full hub name
-    tmp=$(echo $IOT_HUB_CONNECTION_STRING | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
-    #remove the .azure-devices.net  from it.
-    iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
-    echo "Found Hub name: ${iotHubName}"
-
-    az account set --subscription $SUBSCRIPTION
-    iotEdgeDevicesName="level_${LEVEL}_${EDGE_RUNTIME_BUILD_NUMBER}"
-
-    echo "Creating ${iotEdgeDevicesName} iotedge in iothub: ${iotHubName}, in subscription $SUBSCRIPTION"
-    if [ "$LEVEL" = "5" ]; then
-        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --output none       
-    else
-        echo "Extracting parent deviceId name from parent connection string"
-
-        parentDeviceId=$(echo $PARENT_CONNECTION_STRING | sed -n 's/.*DeviceId=\(.*\);SharedAccessKey.*/\1/p')
-        echo "Found device Id name: ${parentDeviceId}"
-
-        az iot hub device-identity create -n ${iotHubName} -d ${iotEdgeDevicesName} --ee --pd ${parentDeviceId} --output none
-    fi
-    connectionString=$(az iot hub device-identity connection-string show -d ${iotEdgeDevicesName} -n ${iotHubName} --query 'connectionString' -o tsv)
-    az iot edge set-modules --device-id ${iotEdgeDevicesName} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
-}
-
 function prepare_test_from_artifacts() {   
     print_highlighted_message 'Prepare test from artifacts'
 
