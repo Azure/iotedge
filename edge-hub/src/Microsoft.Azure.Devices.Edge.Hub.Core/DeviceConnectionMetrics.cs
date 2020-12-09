@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using EdgeMetrics = Util.Metrics.Metrics;
@@ -8,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public static class DeviceConnectionMetrics
     {
         static readonly List<string> EmptyStringList = new List<string>();
-        static readonly string[] EmptyStringArray = new string[0];
         public static readonly IMetricsGauge ConnectedClientsGauge = EdgeMetrics.Instance.CreateGauge(
             "connected_clients",
             "Current number of clients connected to edgeHub",
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
            "Total number of times each client disconnected from edgeHub",
            new List<string>() { "id" });
 
-        public static void UpdateConnectedClients(int connectedClients) => ConnectedClientsGauge.Set(connectedClients, EmptyStringArray);
+        public static void UpdateConnectedClients(int connectedClients) => ConnectedClientsGauge.Set(connectedClients, Array.Empty<string>());
 
         public static void OnDeviceConnected(string deviceId) => ClientsConnectCounter.Increment(1, new string[] { deviceId });
 
