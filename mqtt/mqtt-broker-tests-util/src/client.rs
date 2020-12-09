@@ -299,7 +299,7 @@ where
     }
 }
 
-pub fn create_client_from_module_env(address: String) -> Result<Client<ClientIoSource>, VarError> {
+pub fn create_client_from_module_env(address: &str) -> Result<Client<ClientIoSource>, VarError> {
     let provider_settings = get_provider_settings_from_env()?;
     let io_source = io_source_from_provider(provider_settings.clone(), address.clone());
 
@@ -358,7 +358,7 @@ fn get_provider_settings_from_env() -> Result<CredentialProviderSettings, VarErr
 
 fn io_source_from_provider(
     credential_provider_settings: CredentialProviderSettings,
-    address: String,
+    address: &str,
 ) -> ClientIoSource {
     let credentials = Credentials::Provider(credential_provider_settings);
     let trust_bundle_source = TrustBundleSource::new(credentials.clone());

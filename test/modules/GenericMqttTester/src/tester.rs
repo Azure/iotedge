@@ -81,7 +81,7 @@ impl MessageTester {
     pub async fn new(settings: Settings) -> Result<Self, MessageTesterError> {
         info!("initializing MessageTester");
 
-        let client = client::create_client_from_module_env(EDGEHUB_CONTAINER_ADDRESS.to_string())
+        let client = client::create_client_from_module_env(EDGEHUB_CONTAINER_ADDRESS)
             .map_err(MessageTesterError::ParseEnvironment)?;
         let publish_handle = client
             .publish_handle()
