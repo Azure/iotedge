@@ -61,7 +61,7 @@ function install_and_setup_iotedge() {
     sudo cat /etc/iotedge/config.yaml
 
     #deploy the config in azure portal
-    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${iotHubName} --content ${deployment_working_file} --output none
+    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 
     echo "Start IoT edge"
     sudo systemctl restart iotedge
