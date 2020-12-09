@@ -296,7 +296,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(expected, broker.Subscriptions.OrderBy(s => s));
         }
 
-        [Fact(Skip = "tests is failing with System.AggregateException : One or more errors occurred. (Cannot stop mqtt-bridge connector when not running)")]
+        [Fact]
         public async Task OfflineSendGetSentAfterReconnect()
         {
             var producer = new ProducerStub();
@@ -310,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Select(endpoint => endpoint.Port)
                 .ToList();
 
-            var port = Enumerable.Range(10883, ushort.MaxValue).First(port => busyPorts.Contains(port));
+            var port = Enumerable.Range(10883, ushort.MaxValue).First(port => !busyPorts.Contains(port));
 
             using (var broker = new MiniMqttServer(port))
             {
