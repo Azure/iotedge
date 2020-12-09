@@ -28,13 +28,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     {
         const string HOST = "localhost";
 
+        static int atomicPort = 7122;
         readonly int port;
         readonly AuthAgentProtocolHeadConfig config;
         readonly string url;
 
         public AuthAgentHeadTest()
         {
-            this.port = AvailableTcpPorts.Next(7122);
+            // assign a new port for each test
+            this.port = Interlocked.Increment(ref atomicPort);
             this.config = new AuthAgentProtocolHeadConfig(this.port, "/authenticate/");
             this.url = $"http://localhost:{this.port}/authenticate/";
         }
