@@ -67,7 +67,7 @@ stages:
       - template: templates/nested-agent-deploy.yaml
   - job:  Clean_up     
     dependsOn: SetupVM_level4
-    displayName: Clean up identities and unlock VMs
+    displayName: Clean up identities and unlock agents
     variables:    
       deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.connectionString'] ]     
