@@ -301,7 +301,7 @@ where
 
 pub fn create_client_from_module_env(address: String) -> Result<Client<ClientIoSource>, VarError> {
     let provider_settings = get_provider_settings_from_env()?;
-    let io_source = io_source_from_provider(provider_settings.clone(), address);
+    let io_source = io_source_from_provider(provider_settings.clone(), address.clone());
 
     let client_id = format!(
         "{}/{}",
@@ -319,20 +319,23 @@ pub fn create_client_from_module_env(address: String) -> Result<Client<ClientIoS
     ));
 
     info!(
-        "creating client with client id ({:?}) and username ({:?})",
-        client_id, username,
+        "creating client with client id ({:?}), username ({:?}), and address ({:?})",
+        client_id, username, address
     );
 
     let max_reconnect_backoff = Duration::from_secs(60);
     let keep_alive = Duration::from_secs(60);
-    Ok(Client::new(
+    let client = Client::new(
         Some(client_id),
         username,
         None,
         io_source,
         max_reconnect_backoff,
         keep_alive,
-    ))
+    );
+
+    info!("successfully created client");
+    Ok(client)
 }
 
 fn get_provider_settings_from_env() -> Result<CredentialProviderSettings, VarError> {
