@@ -76,6 +76,7 @@ steps:
           -level "$(level)" \
           -parentName "$(parentName)" \
           -connectionString "$(connectionString)" \
+          -iotHubName "$(iotHubName)"
           -deviceId "$(deviceId)" \
           -waitForTestComplete \
           -cleanAll

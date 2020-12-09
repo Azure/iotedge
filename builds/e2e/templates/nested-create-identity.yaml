@@ -34,8 +34,10 @@ steps:
         fi
         connectionString=$(az iot hub device-identity connection-string show -d ${deviceId} -n ${iotHubName} --query 'connectionString' -o tsv)
 
-        echo "${connectionString}  ${deviceId}"
-        #set output variable
+        #set output variable outside job
         echo "##vso[task.setvariable variable=connectionString;isOutput=true]${connectionString}"
+
+        #set output variable to use later in the job
         echo "##vso[task.setvariable variable=connectionString]${connectionString}"
         echo "##vso[task.setvariable variable=deviceId]${deviceId}"
+        echo "##vso[task.setvariable variable=iotHubName]${iotHubName}"

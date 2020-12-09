@@ -150,7 +150,10 @@ function process_args() {
             saveNextArg=0     
         elif [ $saveNextArg -eq 17 ]; then
             DEVICE_ID="$arg"
-            saveNextArg=0                                    
+            saveNextArg=0   
+        elif [ $saveNextArg -eq 18 ]; then
+            IOT_HUB_NAME="$arg"
+            saveNextArg=0                                               
         else              
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -171,6 +174,7 @@ function process_args() {
                 '-parentName' ) saveNextArg=15;;
                 '-connectionString' ) saveNextArg=16;;
                 '-deviceId' ) saveNextArg=17;;
+                '-iotHubName' ) saveNextArg=18;;                
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
