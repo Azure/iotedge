@@ -186,7 +186,7 @@ edgeAgent:
     enableK8sServiceCallTracing: false
     
     # Configure edge agent log verbosity
-    runtimeLogLevel: 'debug'
+    runtimeLogLevel: 'info'
 
     # Set this to set the upstream protocol for edgeAgent (default: Amqp with AmpqWs as fallback)
     # upstreamProtocol: 'AmqpWs'
