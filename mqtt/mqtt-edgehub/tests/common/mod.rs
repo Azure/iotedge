@@ -1,6 +1,10 @@
+#![allow(dead_code)]
 use std::{any::Any, error::Error as StdError};
 
-use tokio::task::JoinHandle;
+use tokio::{
+    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+    task::JoinHandle,
+};
 
 use mqtt3::ShutdownError;
 use mqtt_broker::{
@@ -11,18 +15,36 @@ use mqtt_edgehub::command::{Command, CommandHandler, ShutdownHandle};
 
 pub const LOCAL_BROKER_SUFFIX: &str = "$edgeHub/$broker";
 
-// We need a Dummy Authorizer to authorize the command handler and $edgehub
-// LocalAuthorizer currently wraps EdgeHubAuthorizer in production code,
+// We need a `DummyAuthorizer` to authorize the command handler and $edgehub.
+//
+// LocalAuthorizer currently wraps `EdgeHubAuthorizer` and `PolicyAuthorizer` in production code,
 // but LocalAuthorizer would authorize everything in the case of an integ test.
-pub struct DummyAuthorizer<Z>(Z);
+//
+// In addition, `DummyAuthorizer` provides a way to signal when authorizer receives updates.
+pub struct DummyAuthorizer<Z> {
+    inner: Z,
+    receiver: Option<UnboundedReceiver<()>>,
+    sender: UnboundedSender<()>,
+}
 
 impl<Z> DummyAuthorizer<Z>
 where
     Z: Authorizer,
 {
-    #![allow(dead_code)]
-    pub fn new(authorizer: Z) -> Self {
-        Self(authorizer)
+    pub fn new(inner: Z) -> Self {
+        let (sender, receiver) = mpsc::unbounded_channel();
+        Self {
+            inner,
+            receiver: Some(receiver),
+            sender,
+        }
+    }
+
+    /// A receiver that signals when authorizer update has happened.
+    pub fn update_signal(&mut self) -> UnboundedReceiver<()> {
+        self.receiver
+            .take()
+            .expect("You can get only one receiver instance")
     }
 }
 
@@ -42,12 +64,14 @@ where
         {
             Ok(Authorization::Allowed)
         } else {
-            self.0.authorize(activity)
+            self.inner.authorize(activity)
         }
     }
 
     fn update(&mut self, update: Box<dyn Any>) -> Result<(), Self::Error> {
-        self.0.update(update)
+        self.inner.update(update)?;
+        self.sender.send(()).expect("unable to send update signal");
+        Ok(())
     }
 }
 

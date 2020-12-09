@@ -19,12 +19,12 @@ pub struct PolicyBuilder<V, M, S> {
     validator: V,
     matcher: M,
     substituter: S,
-    json: String,
+    source: Source,
     default_decision: Decision,
 }
 
 impl PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter> {
-    /// Constructs a `PolicyBuilder` from provided json policy definition and
+    /// Constructs a `PolicyBuilder` from provided json policy definition, with
     /// default configuration.
     ///
     /// Call to this method does not parse or validate the json, all heavy work
@@ -33,7 +33,24 @@ impl PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter>
         json: impl Into<String>,
     ) -> PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter> {
         PolicyBuilder {
-            json: json.into(),
+            source: Source::Json(json.into()),
+            validator: DefaultValidator,
+            matcher: DefaultResourceMatcher,
+            substituter: DefaultSubstituter,
+            default_decision: Decision::Denied,
+        }
+    }
+
+    /// Constructs a `PolicyBuilder` from provided policy definition struct, with
+    /// default configuration.
+    ///
+    /// Call to this method does not validate the definition, all heavy work
+    /// is done in `build` method.
+    pub fn from_definition(
+        definition: PolicyDefinition,
+    ) -> PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter> {
+        PolicyBuilder {
+            source: Source::Definition(definition),
             validator: DefaultValidator,
             matcher: DefaultResourceMatcher,
             substituter: DefaultSubstituter,
@@ -52,7 +69,7 @@ where
     /// Specifies the `PolicyValidator` to validate the policy definition.
     pub fn with_validator<V1>(self, validator: V1) -> PolicyBuilder<V1, M, S> {
         PolicyBuilder {
-            json: self.json,
+            source: self.source,
             validator,
             matcher: self.matcher,
             substituter: self.substituter,
@@ -63,7 +80,7 @@ where
     /// Specifies the `ResourceMatcher` to use with `Policy`.
     pub fn with_matcher<M1>(self, matcher: M1) -> PolicyBuilder<V, M1, S> {
         PolicyBuilder {
-            json: self.json,
+            source: self.source,
             validator: self.validator,
             matcher,
             substituter: self.substituter,
@@ -74,7 +91,7 @@ where
     /// Specifies the `Substituter` to use with `Policy`.
     pub fn with_substituter<S1>(self, substituter: S1) -> PolicyBuilder<V, M, S1> {
         PolicyBuilder {
-            json: self.json,
+            source: self.source,
             validator: self.validator,
             matcher: self.matcher,
             substituter,
@@ -96,13 +113,26 @@ where
     ///
     /// Any validation errors are collected and returned as `Error::ValidationSummary`.
     pub fn build(self) -> Result<Policy<M, S>> {
-        let mut definition: PolicyDefinition = PolicyDefinition::from_json(&self.json)?;
+        let PolicyBuilder {
+            validator,
+            matcher,
+            substituter,
+            source,
+            default_decision,
+        } = self;
+
+        let mut definition: PolicyDefinition = match source {
+            Source::Json(json) => PolicyDefinition::from_json(&json)?,
+            Source::Definition(definition) => definition,
+        };
 
         for (order, mut statement) in definition.statements.iter_mut().enumerate() {
             statement.order = order;
         }
 
-        self.validate(&definition)?;
+        validator
+            .validate(&definition)
+            .map_err(|e| Error::Validation(e.into()))?;
 
         let mut static_rules = Identities::new();
         let mut variable_rules = Identities::new();
@@ -112,18 +142,12 @@ where
         }
 
         Ok(Policy {
-            default_decision: self.default_decision,
-            resource_matcher: self.matcher,
-            substituter: self.substituter,
+            default_decision,
+            resource_matcher: matcher,
+            substituter,
             static_rules: static_rules.0,
             variable_rules: variable_rules.0,
         })
-    }
-
-    fn validate(&self, definition: &PolicyDefinition) -> Result<()> {
-        self.validator
-            .validate(definition)
-            .map_err(|e| Error::Validation(e.into()))
     }
 }
 
@@ -215,11 +239,16 @@ fn is_variable_rule(value: &str) -> bool {
     VAR_PATTERN.is_match(value)
 }
 
+enum Source {
+    Json(String),
+    Definition(PolicyDefinition),
+}
+
 /// Represents a deserialized policy definition.
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyDefinition {
-    statements: Vec<Statement>,
+    pub(super) statements: Vec<Statement>,
 }
 
 impl PolicyDefinition {
@@ -236,18 +265,18 @@ impl PolicyDefinition {
 }
 
 /// Represents a statement in a policy definition.
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Statement {
     #[serde(default)]
-    order: usize,
+    pub(super) order: usize,
     #[serde(default)]
-    description: String,
-    effect: Effect,
-    identities: Vec<String>,
-    operations: Vec<String>,
+    pub(super) description: String,
+    pub(super) effect: Effect,
+    pub(super) identities: Vec<String>,
+    pub(super) operations: Vec<String>,
     #[serde(default)]
-    resources: Vec<String>,
+    pub(super) resources: Vec<String>,
 }
 
 impl Statement {
@@ -277,7 +306,7 @@ impl Statement {
 }
 
 /// Represents an effect on a statement.
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Debug, Deserialize, Copy, Clone, PartialOrd, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum Effect {
     Allow,
@@ -291,7 +320,7 @@ mod tests {
     use matches::assert_matches;
 
     use crate::{
-        core::{tests::build_policy, Effect as CoreEffect, EffectOrd},
+        core::{tests::build_policy, Effect, EffectOrd},
         validator::ValidatorError,
     };
 
@@ -544,7 +573,7 @@ mod tests {
         assert_eq!(
             EffectOrd {
                 order: 0,
-                effect: CoreEffect::Allow
+                effect: Effect::Allow
             },
             policy.static_rules["actor_a"].0["write"].0["events/telemetry"]
         );
@@ -553,7 +582,7 @@ mod tests {
         assert_eq!(
             EffectOrd {
                 order: 2,
-                effect: CoreEffect::Allow
+                effect: Effect::Allow
             },
             policy.variable_rules["actor_a"].0["read"].0["{{variable}}/#"]
         );
@@ -591,28 +620,28 @@ mod tests {
         assert_eq!(
             policy.static_rules["actor_a"].0["write"].0["events/telemetry"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.static_rules["actor_a"].0["read"].0["events/telemetry"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.static_rules["actor_b"].0["write"].0["events/telemetry"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.static_rules["actor_b"].0["read"].0["events/telemetry"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
@@ -622,42 +651,42 @@ mod tests {
         assert_eq!(
             policy.variable_rules["actor_a"].0["write"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["actor_a"].0["read"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["actor_b"].0["write"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["actor_b"].0["read"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["{{var_actor}}"].0["write"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
         assert_eq!(
             policy.variable_rules["{{var_actor}}"].0["read"].0["devices/{{variable}}/#"],
             EffectOrd {
-                effect: CoreEffect::Allow,
+                effect: Effect::Allow,
                 order: 0
             }
         );
@@ -683,7 +712,7 @@ mod tests {
                 {
                     "effect": "allow",
                     "identities": [
-                        "contoso.azure-devices.net/monitor"
+                        "monitor"
                     ],
                     "operations": [
                         "read"
