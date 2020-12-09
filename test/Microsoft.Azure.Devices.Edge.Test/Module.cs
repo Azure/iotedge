@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.AddModule(SensorName, sensorImage)
+                        .WithDeployment(new[] { ("startupOrder", "10") })
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                 },
                 token);
@@ -80,8 +81,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.AddModule(SensorName, sensorImage)
+                        .WithDeployment(new[] { ("startupOrder", "10") })
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterName, filterImage)
+                        .WithDeployment(new[] { ("startupOrder", "1") })
                         .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
                     builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
@@ -122,8 +125,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.AddModule(SensorName, sensorImage)
+                        .WithDeployment(new[] { ("startupOrder", "10") })
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterFuncName, filterFuncImage)
+                        .WithDeployment(new[] { ("startupOrder", "1") })
                         .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
                     builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>

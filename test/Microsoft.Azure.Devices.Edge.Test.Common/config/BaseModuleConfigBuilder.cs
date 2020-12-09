@@ -31,12 +31,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             };
         }
 
-        protected void WithDeployment(IEnumerable<(string, string)> deployment)
+        public IModuleConfigBuilder WithDeployment(IEnumerable<(string, string)> deployment)
         {
             foreach ((string key, string value) in deployment)
             {
                 this.deployment[key] = value; // for duplicate keys, last save wins!
             }
+
+            return this;
         }
 
         public IModuleConfigBuilder WithSettings(params (string, string)[] settings)
