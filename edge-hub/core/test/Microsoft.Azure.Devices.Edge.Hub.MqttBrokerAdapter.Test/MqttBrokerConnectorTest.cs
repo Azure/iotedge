@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         readonly int port;
 
-        public AuthAgentHeadTest()
+        public MqttBrokerConnectorTest()
         {
             this.port = AvailableTcpPorts.Next(4567);
         }
