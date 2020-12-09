@@ -13,14 +13,6 @@ steps:
       script: |
         echo "Extracting hub name from connection string"
         #extract full hub name
-        echo 'nice12343game' | sed -n 's/nice\(.*\)game/\1/p'
-        echo "$(ConnectivityNestedEdge-ConnectionString)" | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p'
-        echo $(echo "HostName=andsmi-iotedgequickstart-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=AkEV86nqq4FMDEGeBFxUvyCruHxdyypo/lj/ZF/uNtg=" | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
-        echo "$(ConnectivityNestedEdge-ConnectionString)"
-
-
-
-
         tmp=$(echo "$(ConnectivityNestedEdge-ConnectionString)" | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
         #remove the .azure-devices.net  from $tmp
         iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')

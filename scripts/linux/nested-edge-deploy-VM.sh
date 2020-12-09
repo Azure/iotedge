@@ -249,7 +249,6 @@ connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAM
 deployment_working_file="$working_folder/deployment.json"
 
 test_setup
-create_iotedge_identities
 create_certificates
 install_and_setup_iotedge
 set_output_params
