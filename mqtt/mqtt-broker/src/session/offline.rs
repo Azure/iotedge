@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use tracing::debug;
 
 use mqtt3::proto;
@@ -12,11 +13,12 @@ use crate::{
 #[derive(Debug)]
 pub struct OfflineSession {
     state: SessionState,
+    last_active: DateTime<Utc>,
 }
 
 impl OfflineSession {
-    pub fn new(state: SessionState) -> Self {
-        Self { state }
+    pub fn new(state: SessionState, last_active: DateTime<Utc>) -> Self {
+        Self { state, last_active }
     }
 
     pub fn client_id(&self) -> &ClientId {
@@ -28,11 +30,19 @@ impl OfflineSession {
     }
 
     pub fn snapshot(&self) -> SessionSnapshot {
-        self.state.clone().into()
+        self.state.clone().into_snapshot(self.last_active)
+    }
+
+    pub fn into_snapshot(self) -> SessionSnapshot {
+        self.state.into_snapshot(self.last_active)
     }
 
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
         self.state.subscriptions()
+    }
+
+    pub fn last_active(&self) -> DateTime<Utc> {
+        self.last_active
     }
 
     pub fn publish_to(
@@ -45,7 +55,7 @@ impl OfflineSession {
 
     pub fn into_online(self) -> Result<(SessionState, Vec<ClientEvent>), Error> {
         let mut events = Vec::new();
-        let OfflineSession { mut state } = self;
+        let OfflineSession { mut state, .. } = self;
 
         // Drop all outstanding QoS 0 packets
         if !state.waiting_to_be_acked_qos0_mut().is_empty() {

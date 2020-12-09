@@ -14,6 +14,7 @@ use std::{
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
 use fail::fail_point;
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
@@ -195,7 +196,8 @@ impl From<BrokerSnapshot> for ConsolidatedState {
         let sessions = sessions
             .into_iter()
             .map(|session| {
-                let (client_info, subscriptions, waiting_to_be_sent) = session.into_parts();
+                let (client_info, subscriptions, waiting_to_be_sent, last_active) =
+                    session.into_parts();
 
                 #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
                 let waiting_to_be_sent = waiting_to_be_sent
@@ -207,6 +209,7 @@ impl From<BrokerSnapshot> for ConsolidatedState {
                     client_info,
                     subscriptions,
                     waiting_to_be_sent,
+                    last_active,
                 }
             })
             .collect();
@@ -261,6 +264,7 @@ impl From<ConsolidatedState> for BrokerSnapshot {
                     session.client_info,
                     session.subscriptions,
                     waiting_to_be_sent,
+                    session.last_active,
                 )
             })
             .collect();
@@ -274,6 +278,7 @@ struct ConsolidatedSession {
     client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
     waiting_to_be_sent: Vec<SimplifiedPublication>,
+    last_active: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Serialize)]
