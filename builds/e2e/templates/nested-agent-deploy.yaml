@@ -55,9 +55,9 @@ steps:
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
         . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
 
-        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-VM.sh
+        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
    
-        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-VM.sh \
+        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
           -artifactImageBuildNumber "$BuildNumber" \
