@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             static readonly IMetricsCounter AuthCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                     "client_connect_failed",
-                    "Client connection failure",
+                    "Total number of times each client failed to connect to edgeHub",
                     new List<string> { "id", "reason", MetricsConstants.MsTelemetry });
 
             public static void AddAuthenticationFailure(string id) => AuthCounter.Increment(1, new[] { id, "not_authenticated", bool.TrueString });
