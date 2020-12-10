@@ -13,15 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        Option<string> bootstrapAgentImage;
-        Option<Registry> bootstrapRegistry;
         Option<string> scriptDir;
 
-        public EdgeDaemon(Option<string> scriptDir, Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry)
+        public EdgeDaemon(Option<string> scriptDir)
         {
             this.scriptDir = scriptDir;
-            this.bootstrapAgentImage = bootstrapAgentImage;
-            this.bootstrapRegistry = bootstrapRegistry;
         }
 
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
@@ -71,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
             await this.InternalStopAsync(token);
 
-            var yaml = new DaemonConfiguration(configYamlPath, this.bootstrapAgentImage, this.bootstrapRegistry);
+            var yaml = new DaemonConfiguration(configYamlPath);
             (string message, object[] properties) = await config(yaml);
 
             if (restart)

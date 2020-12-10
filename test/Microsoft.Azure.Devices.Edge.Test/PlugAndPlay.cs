@@ -29,13 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
         const string LoadGenModuleName = "loadGenModule";
 
-        public PlugAndPlay()
-            : base(
-            Context.Current.PreviewConnectionString.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview connection string for PlugAndPlay tests.")),
-            Context.Current.PreviewEventHubEndpoint.Expect<ArgumentException>(() => throw new ArgumentException("Must supply preview Event Hub endpoint for PlugAndPlay tests.")))
-        {
-        }
-
         [Test]
         public async Task DeviceClient()
         {

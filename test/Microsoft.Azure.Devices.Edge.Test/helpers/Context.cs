@@ -78,13 +78,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            this.PreviewConnectionString = Option.Maybe(Get("PREVIEW_IOT_HUB_CONNECTION_STRING"));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
-            this.PreviewEventHubEndpoint = Option.Maybe(Get("PREVIEW_EVENT_HUB_ENDPOINT"));
             this.InstallerPath = Option.Maybe(Get("installerPath"));
             this.LogFile = Option.Maybe(Get("logFile"));
             this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
@@ -105,7 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
             this.NetworkControllerImage = Option.Maybe(Get("networkControllerImage"));
-            this.EdgeAgentBootstrapImage = Option.Maybe(Get("edgeAgentBootstrapImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
             this.BlobSasUrl = Option.Maybe(Get("BLOB_STORE_SAS"));
@@ -119,8 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public string ConnectionString { get; }
 
-        public Option<string> PreviewConnectionString { get; }
-
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
 
         public Option<string> DpsIdScope { get; }
@@ -132,8 +127,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> EdgeHubImage { get; }
 
         public string EventHubEndpoint { get; }
-
-        public Option<string> PreviewEventHubEndpoint { get; }
 
         public Option<string> InstallerPath { get; }
 
@@ -174,8 +167,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> RelayerImage { get; }
 
         public Option<string> NetworkControllerImage { get; }
-
-        public Option<string> EdgeAgentBootstrapImage { get; }
 
         public TimeSpan TestTimeout { get; }
 
