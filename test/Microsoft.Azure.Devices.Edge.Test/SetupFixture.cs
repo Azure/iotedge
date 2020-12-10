@@ -164,11 +164,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string scriptPath = Context.Current.CaCertScriptPath.Expect(
                 () => new System.InvalidOperationException("Missing CA cert script path"));
-            (string certPath, string keyPath, string password) = Context.Current.RootCaKeys.Expect(
+            (string, string, string) rootCa = Context.Current.RootCaKeys.Expect(
                 () => new System.InvalidOperationException("Missing root CA"));
 
-            await OsPlatform.Current.InstallRootCertificateAsync(certPath, keyPath, password, scriptPath, token);
-            CaCertificates certs = await OsPlatform.Current.GenerateCaCertificatesAsync(deviceId, scriptPath, token);
+            CertificateAuthority ca = await CertificateAuthority.CreateAsync(deviceId, rootCa, scriptPath, token);
+            CaCertificates certs = await ca.GenerateCaCertificatesAsync(deviceId, token);
 
             return new TestCertificates(deviceId, certs);
         }
