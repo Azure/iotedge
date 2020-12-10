@@ -159,9 +159,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                 if (request.WaitForExit(1000))
                 {
-                    request.Close();
-                    Log.Verbose("aziot-edged ready for requests");
-                    break;
+                    if (request.ExitCode == 0)
+                    {
+                        request.Close();
+                        Log.Verbose("aziot-edged ready for requests");
+                        break;
+                    }
                 }
                 else
                 {
