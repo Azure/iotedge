@@ -98,9 +98,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
-            _ = configUpdater.Init(configSource).ContinueWith(
+            var configDownloadTask = configUpdater.Init(configSource).ContinueWith(
                                                         _ => configUpdaterStartupFailed.SetResult(false),
                                                         TaskContinuationOptions.OnlyOnFaulted);
+
+            if (!IsViaBrokerUpstream(configuration))
+            {
+                // BEARWASHERE -- hold up
+                await configDownloadTask;
+            }
 
             if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)
@@ -136,6 +142,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             handler.ForEach(h => GC.KeepAlive(h));
             logger.LogInformation("Shutdown complete.");
             return 0;
+        }
+
+        static bool IsViaBrokerUpstream(IConfigurationRoot configuration)
+        {
+            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
+
+            // BEARWASHERE -- checking logic
+            bool isLegacyUpstream = !experimentalFeatures.Enabled
+                || !experimentalFeatures.EnableMqttBroker
+                || !experimentalFeatures.EnableNestedEdge
+                || !string.IsNullOrEmpty(configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
+
+            return isLegacyUpstream;
         }
 
         static void LogVersionInfo(ILogger logger)
