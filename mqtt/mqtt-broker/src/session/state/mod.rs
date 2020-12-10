@@ -283,6 +283,14 @@ impl SessionState {
                 let num_inflight = self.waiting_to_be_acked.len()
                     + self.waiting_to_be_acked_qos0.len()
                     + self.waiting_to_be_completed.len();
+                debug!(
+                    "ANCAN allowed to send num_inflight {}, 
+                    waiting_to_be_acked {}, 
+                waiting_to_be_acked_qos0.len {}",
+                    num_inflight,
+                    self.waiting_to_be_acked.len(),
+                    self.waiting_to_be_acked_qos0.len()
+                );
                 num_inflight < limit.get()
             }
             None => true,
