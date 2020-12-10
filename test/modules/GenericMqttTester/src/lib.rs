@@ -1,7 +1,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(unused_variables, dead_code)] // TODO: remove when module complete
-use std::env::VarError;
+use std::{env::VarError, io::Error};
 
 use mqtt3::{PublishError, ReceivedPublication, UpdateSubscriptionError};
 use tokio::{sync::mpsc::error::SendError, task::JoinError};
@@ -44,4 +44,10 @@ pub enum MessageTesterError {
 
     #[error("failure making client subscriptions")]
     UpdateSubscription(#[source] UpdateSubscriptionError),
+
+    #[error("failure creating stream to listen for unix signal")]
+    CreateUnixSignalListener(#[source] Error),
+
+    #[error("received unexpected value from unix signal listener")]
+    ListenForUnixSignal,
 }

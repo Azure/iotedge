@@ -214,9 +214,8 @@ async fn send_initial_messages(
         pin_mut!(publish_fut);
 
         match future::select(shutdown_recv_fut, publish_fut).await {
-            Either::Left((shutdown, publish)) => {
+            Either::Left((shutdown, _)) => {
                 info!("received shutdown signal");
-                publish.await.map_err(MessageTesterError::Publish)?;
                 shutdown.ok_or(MessageTesterError::ListenForShutdown)?;
                 break;
             }

@@ -13,4 +13,4 @@ RUN useradd -ms /bin/bash moduleuser
 USER moduleuser
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-/app/generic-mqtt-tester
+exec /app/generic-mqtt-tester
