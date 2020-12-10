@@ -55,45 +55,61 @@ testProjectRunSerially=( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
 testProjectDllsRunSerially=()
 testProjectDlls=""
 
-while read testDll; do
-  echo "Try to run test project:$testDll"
-    
-  if (for t in "${testProjectRunSerially[@]}"; do [[ $testDll == */$t ]] && exit 0; done)
-  then
-    echo "Run Serially for $testDll"
-    testProjectDllsRunSerially+=($testDll)
-  else
-    testProjectDlls="$testProjectDlls $testDll"
-  fi  
-done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX)
-
 testCommandPrefix="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
 if [ ! -z "$testFilterValue" ]
 then
   testCommandPrefix+=" /TestCaseFilter:"$testFilterValue""
 fi
 
-for testDll in ${testProjectDllsRunSerially[@]}
-do
+while read testDll; do
+  echo ""
+  echo "Try to run test project:$testDll"
   testCommand="$testCommandPrefix $testDll"
-  testCommand=${testCommand/result.trx/$(basename "$testDll" ".dll").trx}
-  echo "Run test command serially:$testCommand"
-  $testCommand
+  testCommand=${testCommand/result.trx/$(basename "$testDll" ".dll").trx} 
+  echo "Run test command:$testCommand"
+
+  $testCommand 
+done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX)
+
+# while read testDll; do
+#   echo "Try to run test project:$testDll"
+    
+#   if (for t in "${testProjectRunSerially[@]}"; do [[ $testDll == */$t ]] && exit 0; done)
+#   then
+#     echo "Run Serially for $testDll"
+#     testProjectDllsRunSerially+=($testDll)
+#   else
+#     testProjectDlls="$testProjectDlls $testDll"
+#   fi  
+# done < <(find $OUTPUT_FOLDER -type f -iname $SUFFIX)
+
+# testCommandPrefix="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
+# if [ ! -z "$testFilterValue" ]
+# then
+#   testCommandPrefix+=" /TestCaseFilter:"$testFilterValue""
+# fi
+
+# for testDll in ${testProjectDllsRunSerially[@]}
+# do
+#   testCommand="$testCommandPrefix $testDll"
+#   testCommand=${testCommand/result.trx/$(basename "$testDll" ".dll").trx}
+#   echo "Run test command serially:$testCommand"
+#   $testCommand
   
-  if [ $? -gt 0 ]
-  then
-    exit 1
-  fi
-done
+#   # if [ $? -gt 0 ]
+#   # then
+#   #   exit 1
+#   # fi
+# done
 
-testCommand="$testCommandPrefix$testProjectDlls"
-testCommand=${testCommand/result.trx/$(mktemp result.XXXXXXXX.trx)}
-echo "Run test command:$testCommand"
-$testCommand
+# testCommand="$testCommandPrefix$testProjectDlls"
+# testCommand=${testCommand/result.trx/$(mktemp result.XXXXXXXX.trx)}
+# echo "Run test command:$testCommand"
+# $testCommand
 
-if [ $? -gt 0 ]
-then
-  exit 1
-fi
+# if [ $? -gt 0 ]
+# then
+#   exit 1
+# fi
 
 exit 0
