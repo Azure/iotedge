@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 || !experimentalFeatures.EnableNestedEdge
                 || !string.IsNullOrEmpty(configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
 
-            return isLegacyUpstream;
+            return !isLegacyUpstream;
         }
 
         static void LogVersionInfo(ILogger logger)
