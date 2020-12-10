@@ -9,6 +9,7 @@ use tokio::{
     time,
 };
 use tracing::{info, info_span};
+use tracing_futures::Instrument;
 
 use mqtt3::{
     proto::{Publication, QoS, SubscribeTo},
@@ -24,7 +25,6 @@ use crate::{
     settings::{Settings, TestScenario},
     MessageTesterError, BACKWARDS_TOPIC, FORWARDS_TOPIC,
 };
-use tracing_futures::Instrument;
 
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
 

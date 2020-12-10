@@ -15,9 +15,9 @@ use mqtt3::{
 use crate::{MessageTesterError, BACKWARDS_TOPIC};
 
 #[derive(Debug, Clone)]
-pub struct MessageHandlerShutdownHandle(Sender<()>);
+pub struct MessageChannelShutdownHandle(Sender<()>);
 
-impl MessageHandlerShutdownHandle {
+impl MessageChannelShutdownHandle {
     pub fn new(sender: Sender<()>) -> Self {
         Self(sender)
     }
@@ -97,7 +97,7 @@ impl MessageHandler for RelayingMessageHandler {
 pub struct MessageChannel<H: ?Sized + MessageHandler + Send> {
     publication_sender: UnboundedSender<ReceivedPublication>,
     publication_receiver: UnboundedReceiver<ReceivedPublication>,
-    shutdown_handle: MessageHandlerShutdownHandle,
+    shutdown_handle: MessageChannelShutdownHandle,
     shutdown_recv: Receiver<()>,
     message_handler: Box<H>,
 }
@@ -110,7 +110,7 @@ where
         let (publication_sender, publication_receiver) =
             mpsc::unbounded_channel::<ReceivedPublication>();
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
-        let shutdown_handle = MessageHandlerShutdownHandle::new(shutdown_send);
+        let shutdown_handle = MessageChannelShutdownHandle::new(shutdown_send);
 
         Self {
             publication_sender,
@@ -154,7 +154,7 @@ where
         self.publication_sender.clone()
     }
 
-    pub fn shutdown_handle(&self) -> MessageHandlerShutdownHandle {
+    pub fn shutdown_handle(&self) -> MessageChannelShutdownHandle {
         self.shutdown_handle.clone()
     }
 }
