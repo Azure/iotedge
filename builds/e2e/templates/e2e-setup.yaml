@@ -67,30 +67,41 @@ steps:
 
 - pwsh: |
     $github_headers = @{'Accept' = 'application/vnd.github.v3+json'; 'Authorization' = 'token $(TestGitHubAccessToken)'}
-
-    # Pagination doesn't seem to work for this call. It will become slower as the
-    # number of runs increases.
-    $actions_runs = Invoke-WebRequest -Headers $github_headers `
-        "https://api.github.com/repos/azure/iot-identity-service/actions/runs?event=push&branch=main" | `
-    ConvertFrom-JSON
-
-    cd $(Build.SourcesDirectory)
     $aziot_commit = git submodule | awk '{print $1;}'
-    $artifacts_link = $actions_runs.workflow_runs | `
+
+    for($page = 1; ; $page++)
+    {
+      $url = "https://api.github.com/repos/azure/iot-identity-service/actions/runs?per_page=100&page=$page"
+      $actions_runs = Invoke-WebRequest -Headers $github_headers $url | ConvertFrom-JSON
+      $actions_size = $actions_runs.workflow_runs | Measure-Object
+
+      if($actions_size.Count -eq 0)
+      {
+        # Searched all pages and could not find artifact for submodule commit.
+        exit 1
+      }
+
+      $artifacts_link = $actions_runs.workflow_runs | `
         where {($_.head_sha -eq $aziot_commit) -and ($_.name -eq 'packages')} | `
         Select-Object -ExpandProperty artifacts_url
 
-    $artifacts = Invoke-WebRequest -Headers $github_headers `
-        $artifacts_link | ConvertFrom-JSON
-    $download_link = $artifacts.artifacts | where {$_.name -eq '$(identityServiceArtifactName)'} | `
+      if([string]::IsNullOrEmpty($artifacts_link))
+      {
+        # Artifact not on this page.
+        continue
+      }
+
+      $artifacts = Invoke-WebRequest -Headers $github_headers $artifacts_link | ConvertFrom-JSON
+      $download_link = $artifacts.artifacts | where {$_.name -eq '$(identityServiceArtifactName)'} | `
         Select-Object -ExpandProperty archive_download_url
+      Invoke-WebRequest -Headers $github_headers $download_link -OutFile iot-identity-service.zip
+      Expand-Archive -Path iot-identity-service.zip -DestinationPath iot-identity-service
 
-    Invoke-WebRequest -Headers $github_headers $download_link -OutFile iot-identity-service.zip
-    Expand-Archive -Path iot-identity-service.zip -DestinationPath iot-identity-service
-
-    $packages = Get-ChildItem -Recurse iot-identity-service -Filter $(identityServicePackageFilter)
-    $packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)'
-    Copy-Item $packages -Destination $packagePath
+      $packages = Get-ChildItem -Recurse iot-identity-service -Filter $(identityServicePackageFilter)
+      $packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)'
+      Copy-Item $packages -Destination $packagePath
+      exit 0
+    }
   displayName: Download iot-identity-service package
 
 - pwsh: |
