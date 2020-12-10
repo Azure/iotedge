@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trustBundle = Path.Combine(
                 caCertScriptPath,
                 "certs",
-                "azure-iot-test-only.intermediate-full-chain.cert.pem");;
+                "azure-iot-test-only.intermediate-full-chain.cert.pem");
 
             await this.daemon.ConfigureAsync(
                 config =>
