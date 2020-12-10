@@ -98,9 +98,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
-            var configDownloadTask = configUpdater.Init(configSource).ContinueWith(
-                                                        _ => configUpdaterStartupFailed.SetResult(false),
-                                                        TaskContinuationOptions.OnlyOnFaulted);
+            var configDownloadTask = configUpdater.Init(configSource);
+
+            _ = configDownloadTask.ContinueWith(
+                                            _ => configUpdaterStartupFailed.SetResult(false),
+                                            TaskContinuationOptions.OnlyOnFaulted);
 
             if (!IsViaBrokerUpstream(configuration))
             {
