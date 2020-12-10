@@ -23,7 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
     using Xunit;
 
-    [Fact(Skip = "this one?")]
     [Integration]
     public class AuthAgentHeadTest
     {
