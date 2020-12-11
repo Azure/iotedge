@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     {
         const string HOST = "localhost";
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public void WhenStartedThenHooksUpToProducers()
         {
             var producers = new[] { new ProducerStub(), new ProducerStub() };
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.All(producers, p => Assert.Equal(sut, p.Connector));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenStartedThenConnectsToServer()
         {
             using var broker = new MiniMqttServer();
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             broker.Dispose();
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenStartedTwiceThenSecondFails()
         {
             using var broker = new MiniMqttServer();
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             broker.Dispose();
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenStartedThenSubscribesForConsumers()
         {
             using var broker = new MiniMqttServer();
