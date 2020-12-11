@@ -1,7 +1,7 @@
 steps:
-- checkout: self
-  clean: true
-  fetchDepth: 100
+#- checkout: self
+#  clean: true
+#  fetchDepth: 100
 
 - task: AzureKeyVault@1
   displayName: Get secrets
