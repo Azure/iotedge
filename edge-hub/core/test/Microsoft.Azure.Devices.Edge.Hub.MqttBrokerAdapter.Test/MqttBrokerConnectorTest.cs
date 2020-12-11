@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             broker.Dispose();
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenMessageHandledThenForwardingLoopBreaks()
         {
             using var broker = new MiniMqttServer();
