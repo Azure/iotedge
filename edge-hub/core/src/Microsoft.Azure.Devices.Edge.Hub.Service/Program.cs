@@ -98,9 +98,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
-            _ = configUpdater.Init(configSource).ContinueWith(
-                                                        _ => configUpdaterStartupFailed.SetResult(false),
-                                                        TaskContinuationOptions.OnlyOnFaulted);
+            var configDownloadTask = configUpdater.Init(configSource);
+
+            _ = configDownloadTask.ContinueWith(
+                                            _ => configUpdaterStartupFailed.SetResult(false),
+                                            TaskContinuationOptions.OnlyOnFaulted);
+
+            if (!IsViaBrokerUpstream(configuration))
+            {
+                await configDownloadTask;
+            }
 
             if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)
@@ -136,6 +143,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             handler.ForEach(h => GC.KeepAlive(h));
             logger.LogInformation("Shutdown complete.");
             return 0;
+        }
+
+        // TODO: Figure out where to put this function as there is a duplication of DependencyManager.RegisterRoutingModule()
+        static bool IsViaBrokerUpstream(IConfigurationRoot configuration)
+        {
+            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
+
+            bool isLegacyUpstream = !experimentalFeatures.Enabled
+                || !experimentalFeatures.EnableMqttBroker
+                || !experimentalFeatures.EnableNestedEdge
+                || !string.IsNullOrEmpty(configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
+
+            return !isLegacyUpstream;
         }
 
         static void LogVersionInfo(ILogger logger)
