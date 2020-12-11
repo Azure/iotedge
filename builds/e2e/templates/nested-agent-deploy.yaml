@@ -1,11 +1,4 @@
-steps:
-  - task: Bash@3
-    displayName: 'Get rootCA'
-    inputs:
-      targetType: inline
-      script: |
-        az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string "$(edgebuild-blob-core-connection-string)"
-        sudo tar -xjvf rootCA.tar.bz2           
+steps:       
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
     inputs:
