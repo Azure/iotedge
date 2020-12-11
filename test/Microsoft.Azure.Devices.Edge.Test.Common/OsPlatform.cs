@@ -20,11 +20,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static bool IsArm() => RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
-        protected CaCertificates GetEdgeQuickstartCertificates(string basePath) =>
+        public CaCertificates GetEdgeQuickstartCertificates(string deviceId) =>
             new CaCertificates(
-                    FixedPaths.QuickStartCaCert.Cert(basePath),
-                    FixedPaths.QuickStartCaCert.Key(basePath),
-                    FixedPaths.QuickStartCaCert.TrustCert(basePath));
+                    FixedPaths.QuickStartCaCert.Cert(deviceId),
+                    FixedPaths.QuickStartCaCert.Key(deviceId),
+                    FixedPaths.QuickStartCaCert.TrustCert(deviceId));
 
         protected async Task InstallRootCertificateAsync(
             string basePath,

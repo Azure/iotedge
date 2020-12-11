@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         //  private/iot-edge-device-{deviceId}.key.pem
         Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, string scriptPath, CancellationToken token);
 
-        CaCertificates GetEdgeQuickstartCertificates();
+        CaCertificates GetEdgeQuickstartCertificates(string deviceId);
 
         void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings);
 
@@ -37,6 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs);
 
-        void SetFileOwner(string filePath, string owner);
+        void SetFileOwner(string filePath, string owner, string permissions);
     }
 }

@@ -15,10 +15,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         public async Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
         {
-            string args = $"-u iotedge -u docker --since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\" --no-pager";
+            string args = string.Join(
+                " ",
+                "-u aziot-keyd",
+                "-u aziot-certd",
+                "-u aziot-identityd",
+                "-u aziot-edged",
+                "-u docker",
+                $"--since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\"",
+                "--no-pager");
             string[] output = await Process.RunAsync("journalctl", args, token);
 
-            string daemonLog = $"{filePrefix}-iotedged.log";
+            string daemonLog = $"{filePrefix}-daemon.log";
             await File.WriteAllLinesAsync(daemonLog, output, token);
 
             return daemonLog;
@@ -44,9 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return new CaCertificates(deviceId, scriptPath);
         }
 
-        public CaCertificates GetEdgeQuickstartCertificates() =>
-            this.GetEdgeQuickstartCertificates("/var/lib/iotedge/hsm");
-
         public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
             this.InstallTrustedCertificates(certs, StoreName.Root);
 
@@ -62,9 +67,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         static string BuildCertCommand(string command, string scriptPath) =>
             $"-c \"FORCE_NO_PROD_WARNING=true '{Path.Combine(scriptPath, "certGen.sh")}' {command}\"";
 
-        public void SetFileOwner(string filePath, string owner)
+        public void SetFileOwner(string filePath, string owner, string permissions)
         {
-            System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {filePath}");
+            var chown = System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {filePath}");
+            chown.WaitForExit();
+            chown.Close();
+
+            var chmod = System.Diagnostics.Process.Start("chmod", $"{permissions} {filePath}");
+            chmod.WaitForExit();
+            chmod.Close();
         }
     }
 }

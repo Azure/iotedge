@@ -76,6 +76,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             };
         }
 
+        public string GetDefaultEdgedConfig()
+        {
+            return this.packageExtension switch
+            {
+                SupportedPackageExtension.Deb => "/etc/aziot/edged/config.yaml.template",
+                SupportedPackageExtension.Rpm => "/etc/aziot/edged/config.yaml.rpmnew",
+                _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'"),
+            };
+        }
+
         public string[] GetInstallCommandsFromMicrosoftProd() => this.packageExtension switch
         {
             SupportedPackageExtension.Deb => new[]
@@ -109,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y --remove-leaves libiothsm-std aziot-edge aziot-identity-service iotedge"
+                "yum remove -y libiothsm-std aziot-edge aziot-identity-service iotedge"
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };
