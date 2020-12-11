@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             broker.Dispose();
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenMessageReceivedThenForwardsToConsumers()
         {
             using var broker = new MiniMqttServer();
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             broker.Dispose();
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenMessageHandledThenForwardingLoopBreaks()
         {
             using var broker = new MiniMqttServer();
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(0, Volatile.Read(ref callCounter));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenConsumerThrowsThenProcessingLoopContinues()
         {
             using var broker = new MiniMqttServer();
@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal("hoo", Encoding.ASCII.GetString(consumers[1].PacketsToHandle.First().Payload));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task ProducersCanSendMessages()
         {
             using var broker = new MiniMqttServer();
