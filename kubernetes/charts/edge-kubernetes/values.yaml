@@ -216,6 +216,9 @@ edgeAgent:
     # must be set to "true".
     enableK8sExtensions: true
 
+    # Enables RQT data for IoT Edge Agent (disabled until metadata is finalized)
+    sendRuntimeQualityTelemetry: false
+
     # Configure default pod security context rule. If set true, it will allow kubernetes to run only non-root containers
     # under the user with uid(1000).
     # false dy default.

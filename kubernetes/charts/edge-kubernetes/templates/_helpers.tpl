@@ -88,6 +88,8 @@ agent:
     ExperimentalFeatures__Enabled: {{ $envval | quote }}
     {{- else if eq $envkey "enableK8sExtensions" }}
     ExperimentalFeatures__EnableK8SExtensions: {{ $envval | quote }}
+    {{- else if eq $envkey "sendRuntimeQualityTelemetry" }}
+    SendRuntimeQualityTelemetry: {{ $envval | quote }}
     {{- else if eq $envkey "runAsNonRoot" }}
     RunAsNonRoot: {{ $envval | quote }}
     {{- else }}
