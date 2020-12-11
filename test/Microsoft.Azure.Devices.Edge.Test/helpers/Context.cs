@@ -122,6 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> PreviewConnectionString { get; }
 
+       public string parentDeviceId { get; }
+       
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
 
         public Option<string> DpsIdScope { get; }

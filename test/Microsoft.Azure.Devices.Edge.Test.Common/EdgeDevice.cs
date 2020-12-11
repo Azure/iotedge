@@ -55,13 +55,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static async Task<Option<EdgeDevice>> GetIdentityAsync(
             string deviceId,
+            Option<string> parentDeviceId,
             IotHub iotHub,
             CancellationToken token,
             bool takeOwnership = false)
         {
             Device device = await iotHub.GetDeviceIdentityAsync(deviceId, token);
+
             if (device != null)
             {
+                if (parentDeviceId.HasValue)
+                {
+                    Device parentDevice =
+                        await iotHub.GetDeviceIdentityAsync(parentDeviceId.GetOrElse(String.Empty), token);
+                    device.ParentScopes = new[] { parentDevice.Scope };
+                }
                 if (!device.Capabilities.IotEdge)
                 {
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
