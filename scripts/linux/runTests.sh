@@ -55,7 +55,7 @@ testProjectRunSerially=( "Microsoft.Azure.Devices.Edge.Agent.Docker.Test.dll" )
 testProjectDllsRunSerially=()
 testProjectDlls=""
 
-testCommandPrefix="$DOTNET_ROOT_PATH/dotnet vstest /Logger:trx;LogFileName=result.trx /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
+testCommandPrefix="$DOTNET_ROOT_PATH/dotnet vstest /Logger:\"console;verbosity=detailed\" /TestAdapterPath:\"$OUTPUT_FOLDER\" /Parallel /InIsolation"
 if [ ! -z "$testFilterValue" ]
 then
   testCommandPrefix+=" /TestCaseFilter:"$testFilterValue""
