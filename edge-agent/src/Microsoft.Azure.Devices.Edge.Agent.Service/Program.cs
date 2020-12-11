@@ -157,7 +157,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
-                        builder.RegisterInstance(new NullMetricsProvider() as IMetricsProvider);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxOpenFiles, storageLogLevel));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat, backupConfigFilePath));
                         break;
@@ -166,7 +165,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
                         string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
-                        builder.RegisterInstance(new NullMetricsProvider() as IMetricsProvider);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
@@ -187,7 +185,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
-                        builder.RegisterInstance(new NullMetricsProvider() as IMetricsProvider);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         // Get additional k8s configuration from the configmap and environment.
                         IConfigurationRoot k8sConfiguration = new ConfigurationBuilder()
