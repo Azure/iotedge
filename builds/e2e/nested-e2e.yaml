@@ -24,7 +24,7 @@ stages:
 #      level: '5'
 #      deploymentFile: 'nestededge_topLayerBaseDeployment.json'
 #      parentName: ''
-#      parentConnectionString: ''
+#      parentDeviceId: ''
 #    pool:
 #      name: $(pool.name)
 #      demands:
@@ -50,7 +50,7 @@ stages:
 #      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
 #      vsts.project: $(System.TeamProjectId)
 #      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-#      parentConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ] 
+#      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
 #      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
 #      level: '4'
 #    pool:
@@ -73,13 +73,14 @@ stages:
     displayName: Set up and run tests
     timeoutInMinutes: 180
     variables:
-#      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-#      parentConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ] 
+#      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+#      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       parentName: nestededgetest002.eastus.cloudapp.azure.com
-      parentConnectionString: HostName=andsmi-iotedgequickstart-hub.azure-devices.net;DeviceId=level_4_20201209.53;SharedAccessKey=97R/XkDdI9GpiHguI23h2+N3AQS4Z9bd4AHfixAJLUQ=
+      parentDeviceId: level_4_20201209.53
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu16.04-amd64      
+      artifactName: iotedged-ubuntu16.04-amd64
+      nestededge: true     
     pool:
       name: $(pool.name)
       demands:

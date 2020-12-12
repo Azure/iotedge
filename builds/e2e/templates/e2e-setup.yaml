@@ -94,6 +94,9 @@ steps:
     $imageTag = "$imageId-$(os)-$(arch)"
 
     $context = @{
+      parentName= '$(parentName)'
+      parentDeviceId = '$(parentDeviceId)'
+      nestededge = '$(nestededge)'
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
