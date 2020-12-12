@@ -18,12 +18,12 @@ use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
 
 pub struct DecryptHandler {
-    key_client: Arc<aziot_key_client::Client>,
+    key_connector: http_common::Connector,
 }
 
 impl DecryptHandler {
-    pub fn new(key_client: Arc<aziot_key_client::Client>) -> Self {
-        DecryptHandler { key_client }
+    pub fn new(key_connector: http_common::Connector) -> Self {
+        DecryptHandler { key_connector }
     }
 }
 
@@ -33,7 +33,7 @@ impl Handler<Parameters> for DecryptHandler {
         req: Request<Body>,
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
-        let key_store = self.key_client.clone();
+        let key_connector = self.key_connector.clone();
 
         let response = params
             .name("name")
@@ -57,14 +57,23 @@ impl Handler<Parameters> for DecryptHandler {
             .into_future()
             .flatten()
             .and_then(move |(id, request)| -> Result<_, Error> {
+                let key_client = {
+                    let key_client = aziot_key_client::Client::new(
+                        aziot_key_common_http::ApiVersion::V2020_09_01,
+                        key_connector,
+                    );
+                    let key_client = Arc::new(key_client);
+                    key_client
+                };
+
                 let plaintext = base64::decode(request.ciphertext())
                     .context(ErrorKind::MalformedRequestBody)?;
                 let initialization_vector = base64::decode(request.initialization_vector())
                     .context(ErrorKind::MalformedRequestBody)?;
-                let ciphertext = get_derived_enc_key_handle(key_store.clone(), id.clone())
+                let ciphertext = get_derived_enc_key_handle(key_client.clone(), id.clone())
                     .and_then(|k| {
                         get_plaintext(
-                            key_store,
+                            key_client,
                             k,
                             initialization_vector,
                             id.into_bytes(),

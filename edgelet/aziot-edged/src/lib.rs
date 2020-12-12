@@ -287,6 +287,10 @@ where
                         hub,
                         settings.parent_hostname().map(String::from),
                         device_id,
+                        settings
+                            .edge_ca_id()
+                            .unwrap_or(AZIOT_EDGED_CA_ALIAS)
+                            .to_string(),
                         AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
                         AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,
                     );
@@ -636,10 +640,6 @@ where
     let identityd_url = settings.endpoints().aziot_identityd_url().clone();
 
     let key_connector = http_common::Connector::new(&keyd_url).expect("Connector");
-    let key_client = Arc::new(aziot_key_client::Client::new(
-        aziot_key_common_http::ApiVersion::V2020_09_01,
-        key_connector,
-    ));
 
     let cert_client = Arc::new(Mutex::new(cert_client::CertificateClient::new(
         aziot_cert_common_http::ApiVersion::V2020_09_01,
@@ -650,7 +650,7 @@ where
         &identityd_url,
     )));
 
-    WorkloadService::new(runtime, identity_client, cert_client, key_client, config)
+    WorkloadService::new(runtime, identity_client, cert_client, key_connector, config)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::WorkloadService,
@@ -700,8 +700,8 @@ mod tests {
     };
     use docker::models::ContainerCreateBody;
 
-    #[cfg(unix)]
     static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.yaml";
+    static GOOD_SETTINGS_EDGE_CA_ID: &str = "test/linux/sample_settings.edge.ca.id.yaml";
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
 
@@ -723,5 +723,13 @@ mod tests {
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
         assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
+    }
+
+    #[test]
+    fn settings_for_edge_ca_id() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EDGE_CA_ID)).unwrap();
+        assert_eq!(settings.edge_ca_id(), Some("iotedge-test-ca"));
     }
 }

@@ -20,18 +20,18 @@ use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
 
 pub struct SignHandler {
-    key_client: Arc<aziot_key_client::Client>,
     identity_client: Arc<Mutex<IdentityClient>>,
+    key_connector: http_common::Connector,
 }
 
 impl SignHandler {
     pub fn new(
-        key_client: Arc<aziot_key_client::Client>,
         identity_client: Arc<Mutex<IdentityClient>>,
+        key_connector: http_common::Connector,
     ) -> Self {
         SignHandler {
-            key_client,
             identity_client,
+            key_connector,
         }
     }
 }
@@ -42,6 +42,8 @@ impl Handler<Parameters> for SignHandler {
         req: Request<Body>,
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let key_connector = self.key_connector.clone();
+
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
@@ -53,7 +55,6 @@ impl Handler<Parameters> for SignHandler {
             })
             .map(|(name, _)| {
                 let id = name.to_string();
-                let key_store = self.key_client.clone();
                 let id_mgr = self.identity_client.clone();
 
                 req.into_body().concat2().then(|body| {
@@ -61,16 +62,16 @@ impl Handler<Parameters> for SignHandler {
                         body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
                     let request: SignRequest =
                         serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
-                    Ok((id, request, key_store, id_mgr))
+                    Ok((id, request, id_mgr))
                 })
             })
             .into_future()
             .flatten()
-            .and_then(|(id, request, key_store, id_mgr)| -> Result<_, Error> {
+            .and_then(|(id, request, id_mgr)| -> Result<_, Error> {
                 let data: Vec<u8> =
                     base64::decode(request.data()).context(ErrorKind::MalformedRequestBody)?;
                 let response = get_derived_identity_key_handle(&id_mgr, &id)
-                    .and_then(move |k| get_signature(&key_store, &k, &data))
+                    .and_then(move |k| get_signature(key_connector, &k, &data))
                     .and_then(|signature| -> Result<_, Error> {
                         let encoded = base64::encode(signature.as_bytes());
                         let response = SignResponse::new(encoded);
@@ -94,10 +95,19 @@ impl Handler<Parameters> for SignHandler {
 }
 
 fn get_signature(
-    key_client: &Arc<aziot_key_client::Client>,
+    key_connector: http_common::Connector,
     key_handle: &KeyHandle,
     data: &[u8],
 ) -> impl Future<Item = Vec<u8>, Error = Error> {
+    let key_client = {
+        let key_client = aziot_key_client::Client::new(
+            aziot_key_common_http::ApiVersion::V2020_09_01,
+            key_connector,
+        );
+        let key_client = Arc::new(key_client);
+        key_client
+    };
+
     key_client
         .sign(
             &key_handle,

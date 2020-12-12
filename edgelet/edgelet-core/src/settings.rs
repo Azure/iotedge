@@ -171,6 +171,7 @@ pub trait RuntimeSettings {
     fn homedir(&self) -> &Path;
     fn watchdog(&self) -> &WatchdogSettings;
     fn endpoints(&self) -> &Endpoints;
+    fn edge_ca_id(&self) -> Option<&str>;
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -191,6 +192,7 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
+    edge_ca_id: Option<String>,
 }
 
 impl<T> RuntimeSettings for Settings<T>
@@ -233,6 +235,10 @@ where
 
     fn endpoints(&self) -> &Endpoints {
         &self.endpoints
+    }
+
+    fn edge_ca_id(&self) -> Option<&str> {
+        self.edge_ca_id.as_deref()
     }
 }
 

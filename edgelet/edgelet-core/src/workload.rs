@@ -8,5 +8,6 @@ pub trait WorkloadConfig {
     fn iot_hub_name(&self) -> &str;
     fn parent_hostname(&self) -> Option<&str>;
     fn device_id(&self) -> &str;
+    fn edge_ca_id(&self) -> &str;
     fn get_cert_max_duration(&self, cert_type: CertificateType) -> i64;
 }

@@ -115,6 +115,10 @@ impl RuntimeSettings for TestSettings {
     fn endpoints(&self) -> &Endpoints {
         unimplemented!()
     }
+
+    fn edge_ca_id(&self) -> Option<&str> {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -129,6 +129,10 @@ impl RuntimeSettings for Settings {
     fn endpoints(&self) -> &Endpoints {
         self.base.endpoints()
     }
+
+    fn edge_ca_id(&self) -> Option<&str> {
+        self.base.edge_ca_id()
+    }
 }
 
 fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {

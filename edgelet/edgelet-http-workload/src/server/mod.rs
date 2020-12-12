@@ -43,7 +43,7 @@ impl WorkloadService {
         runtime: &M,
         identity_client: Arc<Mutex<IdentityClient>>,
         cert_client: Arc<Mutex<CertificateClient>>,
-        key_client: Arc<aziot_key_client::Client>,
+        key_connector: http_common::Connector,
         config: W,
     ) -> impl Future<Item = Self, Error = Error>
     where
@@ -56,11 +56,11 @@ impl WorkloadService {
     {
         let router = router!(
             get   Version2018_06_28 runtime Policy::Anonymous => "/modules" => ListModules::new(runtime.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign"     => SignHandler::new(key_client.clone(), identity_client),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt"  => DecryptHandler::new(key_client.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt"  => EncryptHandler::new(key_client.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/certificate/identity"            => IdentityCertHandler::new(key_client.clone(), cert_client.clone(), config.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(key_client, cert_client.clone(), config),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign"     => SignHandler::new(identity_client, key_connector.clone()),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt"  => DecryptHandler::new(key_connector.clone()),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt"  => EncryptHandler::new(key_connector.clone()),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/certificate/identity"            => IdentityCertHandler::new(cert_client.clone(), key_connector. clone(), config.clone()),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(cert_client.clone(), key_connector, config),
 
             get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client),
         );

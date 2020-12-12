@@ -8,6 +8,7 @@ struct WorkloadConfigData {
     iot_hub_name: String,
     parent_hostname: Option<String>,
     device_id: String,
+    edge_ca_id: String,
     id_cert_max_duration: i64,
     srv_cert_max_duration: i64,
 }
@@ -17,6 +18,7 @@ impl WorkloadConfigData {
         iot_hub_name: String,
         parent_hostname: Option<String>,
         device_id: String,
+        edge_ca_id: String,
         id_cert_max_duration: i64,
         srv_cert_max_duration: i64,
     ) -> Self {
@@ -24,6 +26,7 @@ impl WorkloadConfigData {
             iot_hub_name,
             parent_hostname,
             device_id,
+            edge_ca_id,
             id_cert_max_duration,
             srv_cert_max_duration,
         }
@@ -39,6 +42,10 @@ impl WorkloadConfigData {
 
     pub fn device_id(&self) -> &str {
         &self.device_id
+    }
+
+    pub fn edge_ca_id(&self) -> &str {
+        &self.edge_ca_id
     }
 
     pub fn id_cert_max(&self) -> i64 {
@@ -60,6 +67,7 @@ impl WorkloadData {
         iot_hub_name: String,
         parent_hostname: Option<String>,
         device_id: String,
+        edge_ca_id: String,
         id_cert_max_duration: i64,
         srv_cert_max_duration: i64,
     ) -> Self {
@@ -67,6 +75,7 @@ impl WorkloadData {
             iot_hub_name,
             parent_hostname,
             device_id,
+            edge_ca_id,
             id_cert_max_duration,
             srv_cert_max_duration,
         );
@@ -85,6 +94,10 @@ impl WorkloadConfig for WorkloadData {
 
     fn device_id(&self) -> &str {
         self.data.device_id()
+    }
+
+    fn edge_ca_id(&self) -> &str {
+        self.data.edge_ca_id()
     }
 
     fn get_cert_max_duration(&self, cert_type: CertificateType) -> i64 {

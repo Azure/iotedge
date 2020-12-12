@@ -18,19 +18,19 @@ use crate::IntoResponse;
 
 pub struct IdentityCertHandler<W: WorkloadConfig> {
     cert_client: Arc<Mutex<CertificateClient>>,
-    key_client: Arc<aziot_key_client::Client>,
+    key_connector: http_common::Connector,
     config: W,
 }
 
 impl<W: WorkloadConfig> IdentityCertHandler<W> {
     pub fn new(
-        key_client: Arc<aziot_key_client::Client>,
         cert_client: Arc<Mutex<CertificateClient>>,
+        key_connector: http_common::Connector,
         config: W,
     ) -> Self {
         IdentityCertHandler {
-            key_client,
             cert_client,
+            key_connector,
             config,
         }
     }
@@ -47,7 +47,7 @@ where
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let cfg = self.config.clone();
         let cert_client = self.cert_client.clone();
-        let key_client = self.key_client.clone();
+        let key_connector = self.key_connector.clone();
 
         let response = params
             .name("name")
@@ -95,14 +95,18 @@ where
                     alias.clone(),
                 )
                 .with_dns_san_entries(sans);
-                Ok((alias, props))
+                Ok((alias, props, cfg))
             })
-            .and_then(move |(alias, props)| {
+            .and_then(move |(alias, props, cfg)| {
                 let response = refresh_cert(
-                    &key_client,
+                    &key_connector,
                     cert_client,
                     alias,
                     &props,
+                    super::EdgeCaCertificate {
+                        cert_id: cfg.edge_ca_id().to_string(),
+                        key_id: cfg.edge_ca_id().to_string(),
+                    },
                     ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
                 )
                 .map_err(|_| {
