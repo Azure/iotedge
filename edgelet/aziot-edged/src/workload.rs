@@ -8,7 +8,9 @@ struct WorkloadConfigData {
     iot_hub_name: String,
     parent_hostname: Option<String>,
     device_id: String,
-    edge_ca_id: String,
+    edge_ca_cert: String,
+    edge_ca_key: String,
+    trust_bundle_cert: String,
     id_cert_max_duration: i64,
     srv_cert_max_duration: i64,
 }
@@ -18,7 +20,9 @@ impl WorkloadConfigData {
         iot_hub_name: String,
         parent_hostname: Option<String>,
         device_id: String,
-        edge_ca_id: String,
+        edge_ca_cert: String,
+        edge_ca_key: String,
+        trust_bundle_cert: String,
         id_cert_max_duration: i64,
         srv_cert_max_duration: i64,
     ) -> Self {
@@ -26,7 +30,9 @@ impl WorkloadConfigData {
             iot_hub_name,
             parent_hostname,
             device_id,
-            edge_ca_id,
+            edge_ca_cert,
+            edge_ca_key,
+            trust_bundle_cert,
             id_cert_max_duration,
             srv_cert_max_duration,
         }
@@ -44,8 +50,16 @@ impl WorkloadConfigData {
         &self.device_id
     }
 
-    pub fn edge_ca_id(&self) -> &str {
-        &self.edge_ca_id
+    pub fn edge_ca_cert(&self) -> &str {
+        &self.edge_ca_cert
+    }
+
+    pub fn edge_ca_key(&self) -> &str {
+        &self.edge_ca_key
+    }
+
+    pub fn trust_bundle_cert(&self) -> &str {
+        &self.trust_bundle_cert
     }
 
     pub fn id_cert_max(&self) -> i64 {
@@ -67,7 +81,9 @@ impl WorkloadData {
         iot_hub_name: String,
         parent_hostname: Option<String>,
         device_id: String,
-        edge_ca_id: String,
+        edge_ca_cert: String,
+        edge_ca_key: String,
+        trust_bundle_cert: String,
         id_cert_max_duration: i64,
         srv_cert_max_duration: i64,
     ) -> Self {
@@ -75,7 +91,9 @@ impl WorkloadData {
             iot_hub_name,
             parent_hostname,
             device_id,
-            edge_ca_id,
+            edge_ca_cert,
+            edge_ca_key,
+            trust_bundle_cert,
             id_cert_max_duration,
             srv_cert_max_duration,
         );
@@ -96,8 +114,16 @@ impl WorkloadConfig for WorkloadData {
         self.data.device_id()
     }
 
-    fn edge_ca_id(&self) -> &str {
-        self.data.edge_ca_id()
+    fn edge_ca_cert(&self) -> &str {
+        self.data.edge_ca_cert()
+    }
+
+    fn edge_ca_key(&self) -> &str {
+        self.data.edge_ca_key()
+    }
+
+    fn trust_bundle_cert(&self) -> &str {
+        self.data.trust_bundle_cert()
     }
 
     fn get_cert_max_duration(&self, cert_type: CertificateType) -> i64 {

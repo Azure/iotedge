@@ -245,4 +245,6 @@ moby_runtime:
 # pre-configured manually or by invoking the iotedge init command.
 ###############################################################################
 
-#edge_ca_id: "<ADD EDGE CA ID HERE>"
+#edge_ca_cert: "<ADD EDGE CA CERT ID HERE>"
+#edge_ca_key: "<ADD EDGE CA KEY ID HERE>"
+#trust_bundle_cert: "<ADD TRUST BUNDLE CERT ID HERE>"

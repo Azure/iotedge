@@ -171,7 +171,9 @@ pub trait RuntimeSettings {
     fn homedir(&self) -> &Path;
     fn watchdog(&self) -> &WatchdogSettings;
     fn endpoints(&self) -> &Endpoints;
-    fn edge_ca_id(&self) -> Option<&str>;
+    fn edge_ca_cert(&self) -> Option<&str>;
+    fn edge_ca_key(&self) -> Option<&str>;
+    fn trust_bundle_cert(&self) -> Option<&str>;
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -192,7 +194,9 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
-    edge_ca_id: Option<String>,
+    edge_ca_cert: Option<String>,
+    edge_ca_key: Option<String>,
+    trust_bundle_cert: Option<String>,
 }
 
 impl<T> RuntimeSettings for Settings<T>
@@ -237,8 +241,16 @@ where
         &self.endpoints
     }
 
-    fn edge_ca_id(&self) -> Option<&str> {
-        self.edge_ca_id.as_deref()
+    fn edge_ca_cert(&self) -> Option<&str> {
+        self.edge_ca_cert.as_deref()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        self.edge_ca_key.as_deref()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
+        self.trust_bundle_cert.as_deref()
     }
 }
 

@@ -130,8 +130,16 @@ impl RuntimeSettings for Settings {
         self.base.endpoints()
     }
 
-    fn edge_ca_id(&self) -> Option<&str> {
-        self.base.edge_ca_id()
+    fn edge_ca_cert(&self) -> Option<&str> {
+        self.base.edge_ca_cert()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        self.base.edge_ca_key()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
+        self.base.trust_bundle_cert()
     }
 }
 

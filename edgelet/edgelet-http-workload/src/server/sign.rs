@@ -104,8 +104,7 @@ fn get_signature(
             aziot_key_common_http::ApiVersion::V2020_09_01,
             key_connector,
         );
-        let key_client = Arc::new(key_client);
-        key_client
+        Arc::new(key_client)
     };
 
     key_client

@@ -1668,7 +1668,15 @@ mod tests {
             unimplemented!()
         }
 
-        fn edge_ca_id(&self) -> Option<&str> {
+        fn edge_ca_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn edge_ca_key(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn trust_bundle_cert(&self) -> Option<&str> {
             unimplemented!()
         }
     }

@@ -127,10 +127,10 @@ where
                     alias,
                     &props,
                     super::EdgeCaCertificate {
-                        cert_id: cfg.edge_ca_id().to_string(),
-                        key_id: cfg.edge_ca_id().to_string(),
+                        cert_id: cfg.edge_ca_cert().to_string(),
+                        key_id: cfg.edge_ca_key().to_string(),
                     },
-                    ErrorKind::CertOperation(CertOperation::GetServerCert),
+                    &ErrorKind::CertOperation(CertOperation::GetServerCert),
                 )
                 .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::GetServerCert)));
                 Ok(response)

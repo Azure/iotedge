@@ -100,7 +100,7 @@ fn refresh_cert(
     alias: String,
     new_cert_props: &CertificateProperties,
     edge_ca: EdgeCaCertificate,
-    context: ErrorKind,
+    context: &ErrorKind,
 ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let context = context.clone();
     let key_connector = key_connector.clone();
@@ -118,15 +118,14 @@ fn refresh_cert(
             let edge_ca = edge_ca.clone();
             let context_copy = context.clone();
             prepare_edge_ca(&key_connector, &cert_client, &edge_ca, &context)
-                .map_err(move |e| Error::from(e.context(context_copy.clone())))
+                .map_err(move |e| Error::from(e.context(context_copy)))
                 .and_then(move |_| {
                     let key_client = {
                         let key_client = aziot_key_client::Client::new(
                             aziot_key_common_http::ApiVersion::V2020_09_01,
                             key_connector,
                         );
-                        let key_client = Arc::new(key_client);
-                        key_client
+                        Arc::new(key_client)
                     };
                     key_client
                         .load_key_pair(edge_ca.key_id.as_str())
@@ -144,7 +143,7 @@ fn refresh_cert(
                                         &aziot_edged_ca_key_pair_handle,
                                     )),
                                 )
-                                .map_err(move |e| Error::from(e.context(context_copy.clone())))
+                                .map_err(move |e| Error::from(e.context(context_copy)))
                                 .and_then(move |cert| {
                                     let context_copy = context.clone();
 
@@ -156,9 +155,7 @@ fn refresh_cert(
                                     let body = match serde_json::to_string(&cert) {
                                         Ok(body) => body,
                                         Err(err) => {
-                                            return Err(Error::from(
-                                                err.context(context_copy.clone()),
-                                            ))
+                                            return Err(Error::from(err.context(context_copy)))
                                         }
                                     };
 
@@ -198,7 +195,7 @@ fn generate_local_keypair() -> std::result::Result<
 }
 
 fn load_keypair(
-    ca_key_pair_handle: aziot_key_common::KeyHandle,
+    ca_key_pair_handle: &aziot_key_common::KeyHandle,
     key_engine: &mut openssl2::FunctionalEngine,
 ) -> std::result::Result<
     (
@@ -243,25 +240,25 @@ fn create_csr(
     let mut basic_constraints = openssl::x509::extension::BasicConstraints::new();
     let mut key_usage = openssl::x509::extension::KeyUsage::new();
 
-    match props.certificate_type() {
-        &edgelet_core::CertificateType::Client => {
+    match *props.certificate_type() {
+        edgelet_core::CertificateType::Client => {
             extended_key_usage.client_auth();
-            
+
             extensions.push(extended_key_usage.build()?)?;
         }
-        &edgelet_core::CertificateType::Server => {
+        edgelet_core::CertificateType::Server => {
             extended_key_usage.server_auth();
 
             extensions.push(extended_key_usage.build()?)?;
         }
-        &edgelet_core::CertificateType::Ca => {
+        edgelet_core::CertificateType::Ca => {
             basic_constraints.ca().critical().pathlen(0);
             key_usage.critical().digital_signature().key_cert_sign();
 
             extensions.push(basic_constraints.build()?)?;
             extensions.push(key_usage.build()?)?;
         }
-        _ => {}
+        edgelet_core::CertificateType::Unknown => {}
     }
 
     if props.dns_san_entries().is_some() || props.ip_entries().is_some() {
@@ -325,7 +322,7 @@ fn prepare_edge_ca(
                                 &ca,
                                 &context,
                             )
-                            .map_err(move |e| Error::from(e.context(context.clone())))
+                            .map_err(move |e| Error::from(e.context(context)))
                             .map(|_| ()),
                         ))
                     } else {
@@ -342,7 +339,7 @@ fn prepare_edge_ca(
                             &ca,
                             &context,
                         )
-                        .map_err(move |e| Error::from(e.context(context.clone())))
+                        .map_err(move |e| Error::from(e.context(context)))
                         .map(|_| ()),
                     )
                 }
@@ -389,8 +386,7 @@ fn create_edge_ca_certificate(
             aziot_key_common_http::ApiVersion::V2020_09_01,
             key_connector.clone(),
         );
-        let key_client = Arc::new(key_client);
-        key_client
+        Arc::new(key_client)
     };
 
     //generate new key in Key Service, generate csr for Edge CA certificate, import into Cert Service
@@ -401,12 +397,11 @@ fn create_edge_ca_certificate(
                 .create_key_pair_if_not_exists(ca.key_id.as_str(), Some("rsa-2048:*"))
                 .map_err(|e| Error::from(e.context(context.clone())))
                 .and_then(|ca_key_pair_handle| {
-                    load_keypair(ca_key_pair_handle, &mut key_engine)
+                    load_keypair(&ca_key_pair_handle, &mut key_engine)
                         .map_err(|e| Error::from(e.context(context.clone())))
                         .and_then(|(privkey, pubkey)| {
                             create_csr(&edgelet_ca_props, &privkey, &pubkey)
                                 .map_err(|e| Error::from(e.context(context.clone())))
-                                .and_then(|csr| Ok(csr))
                         })
                 })
         })
