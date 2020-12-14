@@ -5,7 +5,6 @@ use mpsc::UnboundedSender;
 use time::Duration;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
-    task::JoinHandle,
     time,
 };
 use tracing::{info, info_span};
@@ -135,18 +134,16 @@ impl MessageTester {
                 .instrument(info_span!("message channel")),
         );
 
+        let mut tasks = vec![message_channel_join, poll_client_join];
+
         // maybe start message loop depending on mode
-        let mut message_loop_join: Option<JoinHandle<Result<(), MessageTesterError>>> = None;
         if let TestScenario::Initiate = self.settings.test_scenario() {
-            message_loop_join = Some(tokio::spawn(
+            let message_loop = tokio::spawn(
                 send_initial_messages(self.publish_handle.clone(), self.message_loop_shutdown_recv)
                     .instrument(info_span!("initiation message loop")),
-            ));
-        }
+            );
 
-        let mut tasks = vec![message_channel_join, poll_client_join];
-        if let Some(message_loop_join) = message_loop_join {
-            tasks.push(message_loop_join);
+            tasks.push(message_loop);
         }
 
         info!("waiting for tasks to exit");
