@@ -17,10 +17,10 @@ steps:
       TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
-      TestPreviewIotHubConnectionString,
       TestRootCaCertificate,
       TestRootCaKey,
-      TestRootCaPassword
+      TestRootCaPassword,
+      TestBlobStoreSas
 
 - pwsh: |
     $imageBuildId = $(resources.pipeline.images.runID)
@@ -122,6 +122,9 @@ steps:
     $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
+  env:
+    http_proxy: $(Agent.ProxyUrl)
+    https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
     $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
@@ -165,6 +168,11 @@ steps:
       $context['setupTimeoutMinutes'] = 10
       $context['teardownTimeoutMinutes'] = 10
       $context['testTimeoutMinutes'] = 10
+    }
+
+    if ($env:AGENT_PROXYURL)
+    {
+      $context['proxy'] = $env:AGENT_PROXYURL
     }
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'

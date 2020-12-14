@@ -204,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
         }
 
-        [Theory(Skip = "Disabling to unblock CI while we investigate")]
+        [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task NonexistantRemovePropertySuccess(ITransportSettings[] transportSettings)
         {

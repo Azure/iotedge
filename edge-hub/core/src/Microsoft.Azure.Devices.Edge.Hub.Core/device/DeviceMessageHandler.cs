@@ -42,6 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public IIdentity Identity { get; }
 
+        public bool IsDirectClient => this.underlyingProxy.IsDirectClient;
+
         public Task ProcessMethodResponseAsync(IMessage message)
         {
             Preconditions.CheckNotNull(message, nameof(message));

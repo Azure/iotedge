@@ -16,11 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public async Task EncodesDeviceNameInTopic()
         {
             var capture = new SendCapture();
-            var connector = GetConnector(capture);            
+            var connector = GetConnector(capture);
             var connectionRegistry = GetConnectionRegistry();
             var identity = new DeviceIdentity("hub", "device_id");
             var message = new EdgeMessage
                                 .Builder(new byte[] { 0x01, 0x02, 0x03 })
+                                .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var message = new EdgeMessage
                                 .Builder(new byte[] { 0x01, 0x02, 0x03 })
                                 .SetProperties(new Dictionary<string, string>() { ["prop1"] = "value1", ["prop2"] = "value2" })
-                                .SetSystemProperties(new Dictionary<string, string>() { ["userId"] = "userid", ["cid"] = "corrid" })
+                                .SetSystemProperties(new Dictionary<string, string>() { ["userId"] = "userid", ["cid"] = "corrid", [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
@@ -65,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identity = new DeviceIdentity("hub", "device_id");
             var message = new EdgeMessage
                                 .Builder(new byte[] { 0x01, 0x02, 0x03 })
+                                .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
@@ -113,6 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identity = new ModuleIdentity("hub", "device_id", "module_id");
             var message = new EdgeMessage
                                 .Builder(new byte[] { 0x01, 0x02, 0x03 })
+                                .SetSystemProperties(new Dictionary<string, string>() { [SystemProperties.LockToken] = "12345" })
                                 .Build();
 
             var sut = new Cloud2DeviceMessageHandler(connectionRegistry);
@@ -121,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await sut.SendC2DMessageAsync(message, identity, true);
 
             Mock.Get(connector)
-                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()), Times.Never());
+                .Verify(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()), Times.Never());
         }
     }
 }

@@ -91,3 +91,28 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: linux_amd64_proxy
+################################################################################
+    displayName: Linux amd64 behind a proxy
+
+    pool:
+      name: $(pool.name)
+      demands: new-e2e-proxy
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
+      'agent.disablelogplugin.testfilepublisherplugin': true
+      'agent.disablelogplugin.testresultlogplugin': true
+
+    timeoutInMinutes: 120
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml

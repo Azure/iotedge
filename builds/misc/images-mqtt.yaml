@@ -11,7 +11,7 @@ jobs:
 ################################################################################
     displayName: Linux AMD64
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: "ubuntu-latest"
 
     variables:
       os: linux
@@ -33,10 +33,10 @@ jobs:
 
       - template: templates/move-rust-artifacts.yaml
         parameters:
-          should.publish.amd64: 'true'
-          artifact.folder.path: 'mqtt/target'
-          destination.folder.path: 'mqtt/build-context'
-          artifact.name: 'mqttd'
+          should.publish.amd64: "true"
+          artifact.folder.path: "mqtt/target"
+          destination.folder.path: "mqtt/build-context"
+          artifact.name: "mqttd"
 
       - task: Docker@2
         displayName: Build amd64 image
@@ -47,10 +47,10 @@ jobs:
           Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
           buildContext: mqtt/build-context
           tags: $(Build.BuildNumber)-$(os)-$(arch)
-      
+
       - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
         displayName: Create image name
-      
+
       - publish: artifactInfo.txt
         artifact: image-$(arch)
         displayName: Publish image name
@@ -60,7 +60,7 @@ jobs:
 ################################################################################
     displayName: Linux ARM32
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: "ubuntu-latest"
 
     variables:
       os: linux
@@ -82,10 +82,10 @@ jobs:
 
       - template: templates/move-rust-artifacts.yaml
         parameters:
-          should.publish.arm32v7: 'true'
-          artifact.folder.path: 'mqtt/target'
-          destination.folder.path: 'mqtt/build-context'
-          artifact.name: 'mqttd'
+          should.publish.arm32v7: "true"
+          artifact.folder.path: "mqtt/target"
+          destination.folder.path: "mqtt/build-context"
+          artifact.name: "mqttd"
 
       - task: Docker@2
         displayName: Build arm32v7 image
@@ -99,7 +99,7 @@ jobs:
 
       - script: echo $(registry.address)/$(imageName):$(Build.BuildNumber)-$(os)-$(arch) > artifactInfo.txt
         displayName: Create image name
-      
+
       - publish: artifactInfo.txt
         artifact: image-$(arch)
         displayName: Publish image name

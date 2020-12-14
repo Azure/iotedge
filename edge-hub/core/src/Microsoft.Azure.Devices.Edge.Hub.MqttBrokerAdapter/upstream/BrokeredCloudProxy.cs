@@ -15,14 +15,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         BrokeredCloudProxyDispatcher cloudProxyDispatcher;
         IIdentity identity;
+        Action<string, CloudConnectionStatus> connectionStatusChangedHandler;
 
         AtomicBoolean isActive = new AtomicBoolean(true);
         AtomicBoolean twinNeedsSubscribe = new AtomicBoolean(true);
 
-        public BrokeredCloudProxy(IIdentity identity, BrokeredCloudProxyDispatcher cloudProxyDispatcher)
+        public BrokeredCloudProxy(IIdentity identity, BrokeredCloudProxyDispatcher cloudProxyDispatcher, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
             this.identity = Preconditions.CheckNotNull(identity);
             this.cloudProxyDispatcher = Preconditions.CheckNotNull(cloudProxyDispatcher);
+
+            this.connectionStatusChangedHandler = connectionStatusChangedHandler;
+            this.cloudProxyDispatcher.ConnectionStatusChangedEvent += this.ConnectionChangedEventHandler;
         }
 
         public bool IsActive => this.isActive;
@@ -30,6 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public Task<bool> CloseAsync()
         {
             this.isActive.Set(false);
+            this.cloudProxyDispatcher.ConnectionStatusChangedEvent -= this.ConnectionChangedEventHandler;
+
             return Task.FromResult(true);
         }
 
@@ -51,6 +57,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public Task<IMessage> GetTwinAsync()
         {
             return this.cloudProxyDispatcher.GetTwinAsync(this.identity, this.twinNeedsSubscribe.GetAndSet(false));
+        }
+
+        void ConnectionChangedEventHandler(CloudConnectionStatus cloudConnectionStatus)
+        {
+            this.connectionStatusChangedHandler(this.identity.Id, cloudConnectionStatus);
         }
     }
 }
