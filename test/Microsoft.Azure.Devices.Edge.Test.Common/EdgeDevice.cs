@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static Task<EdgeDevice> CreateIdentityAsync(
             string deviceId,
+            Option<string> parentDeviceId,
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
@@ -45,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return Profiler.Run(
                 async () =>
                 {
-                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, authType, x509Thumbprint, token);
+                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, parentDeviceId, authType, x509Thumbprint, token);
                     return new EdgeDevice(device, true, iotHub);
                 },
                 "Created edge device '{Device}' on hub '{IotHub}'",
@@ -101,12 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         iotHub.Hostname);
                     return Task.FromResult(d);
                 },
-                () => CreateIdentityAsync(deviceId, iotHub, authType, x509Thumbprint, token));
-            await parentDeviceId.ForEachAsync(async p =>
-            {
-                Device parentDevice = await iotHub.GetDeviceIdentityAsync(p, token);
-                edgeDevice.device.ParentScopes = new[] { parentDevice.Scope };
-            });
+                () => CreateIdentityAsync(deviceId, parentDeviceId, iotHub, authType, x509Thumbprint, token));
             return edgeDevice;
         }
 
