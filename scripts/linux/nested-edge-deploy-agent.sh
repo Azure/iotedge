@@ -12,11 +12,8 @@ function create_certificates() {
     echo "  Hostname FQDN: ${device_name}" 
 
     ./certGen.sh create_edge_device_certificate ${device_name}
-    cd ./certs
-    sudo cp azure-iot-test-only.root.ca.cert.pem /usr/local/share/ca-certificates/azure-iot-test-only.root.ca.cert.pem.crt
-    sudo update-ca-certificates
 
-    cd ../../
+    cd ../
     sudo cp -r certs /
 }
 #@TODO this might not be compatible for CENTOS

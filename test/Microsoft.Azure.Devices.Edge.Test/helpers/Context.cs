@@ -79,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
             this.PreviewConnectionString = Option.Maybe(Get("PREVIEW_IOT_HUB_CONNECTION_STRING"));
+            this.ParentDeviceId = Option.Maybe(Get("parentDeviceId"));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
@@ -121,6 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public string ConnectionString { get; }
 
         public Option<string> PreviewConnectionString { get; }
+
+        public Option<string> ParentDeviceId { get; }
 
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
 

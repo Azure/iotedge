@@ -1,7 +1,7 @@
 steps:
-- checkout: self
-  clean: true
-  fetchDepth: 100
+#- checkout: self
+#  clean: true
+#  fetchDepth: 100
 
 - task: AzureKeyVault@1
   displayName: Get secrets
@@ -94,6 +94,9 @@ steps:
     $imageTag = "$imageId-$(os)-$(arch)"
 
     $context = @{
+      parentHostname= '$(parentName)'
+      parentDeviceId = '$(parentDeviceId)'
+      nestededge = '$(nestededge)'
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
