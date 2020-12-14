@@ -97,7 +97,7 @@ stages:
       - template: templates/e2e-clean-directory.yaml
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
-      - template: templates/e2e-run.yaml
+      - template: templates/nested-e2e-run.yaml
 #  - job:  Clean_up     
 #    dependsOn: SetupVM_level4
 #    displayName: Clean up identities and unlock agents
