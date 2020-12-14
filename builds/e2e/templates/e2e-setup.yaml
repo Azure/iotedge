@@ -94,7 +94,7 @@ steps:
     $imageTag = "$imageId-$(os)-$(arch)"
 
     $context = @{
-      parentName= '$(parentName)'
+      parentHostname= '$(parentName)'
       parentDeviceId = '$(parentDeviceId)'
       nestededge = '$(nestededge)'
       dpsIdScope = '$(dps.idScope)'
