@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token)
         {
             Option<EdgeDevice> device = await GetIdentityAsync(deviceId, parentDeviceId, iotHub, token);
-            return await device.Match(
+            EdgeDevice edgeDevice = await device.Match(
                 d =>
                 {
                     Log.Information(
@@ -102,6 +102,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     return Task.FromResult(d);
                 },
                 () => CreateIdentityAsync(deviceId, iotHub, authType, x509Thumbprint, token));
+            await parentDeviceId.ForEachAsync(async p =>
+            {
+                Device parentDevice = await iotHub.GetDeviceIdentityAsync(p, token);
+                edgeDevice.device.ParentScopes = new[] { parentDevice.Scope };
+            });
+            return edgeDevice;
         }
 
         public Task DeleteIdentityAsync(CancellationToken token) =>
