@@ -87,10 +87,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
+            Log.Verbose($"Creating edge device identity with parentId: {parentDeviceId.GetOrElse("NO PARENT")}");
             Device edge = await parentDeviceId.Match(
             async p =>
             {
-                Device d = await this.GetDeviceIdentityAsync(p, token);
+                Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
+                Log.Verbose($"Got parent device from id. Parent scope: {parentDevice.Scope}");
                 return new Device(deviceId)
                 {
                     Authentication = new AuthenticationMechanism()
@@ -102,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         IotEdge = true
                     },
-                    ParentScopes = new[] { d.Scope }
+                    ParentScopes = new[] { parentDevice.Scope }
                 };
             },
             () =>
