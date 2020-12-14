@@ -64,12 +64,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (device != null)
             {
-                if (parentDeviceId.HasValue)
+                await parentDeviceId.ForEachAsync(async p =>
                 {
-                    Device parentDevice =
-                        await iotHub.GetDeviceIdentityAsync(parentDeviceId.GetOrElse(String.Empty), token);
+                    Device parentDevice = await iotHub.GetDeviceIdentityAsync(p, token);
                     device.ParentScopes = new[] { parentDevice.Scope };
-                }
+                });
+
                 if (!device.Capabilities.IotEdge)
                 {
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
@@ -85,12 +85,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
             string deviceId,
+            Option<string> parentDeviceId,
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
             CancellationToken token)
         {
-            Option<EdgeDevice> device = await GetIdentityAsync(deviceId, iotHub, token);
+            Option<EdgeDevice> device = await GetIdentityAsync(deviceId, parentDeviceId, iotHub, token);
             return await device.Match(
                 d =>
                 {
