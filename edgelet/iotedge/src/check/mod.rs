@@ -22,7 +22,6 @@ mod stdout;
 use self::stdout::Stdout;
 
 mod hostname_checks_common;
-mod tls_handshake;
 mod upstream_protocol_port;
 
 mod checker;
@@ -30,11 +29,10 @@ use checker::Checker;
 
 mod checks;
 use checks::{
-    get_host_connect_upstream_tests, get_host_container_upstream_tests, AziotEdgedVersion,
-    ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
-    ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
-    ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted, Hostname,
-    ParentHostname, PullAgentFromUpstream, WellFormedConfig,
+    get_host_container_upstream_tests, AziotEdgedVersion, ConnectManagementUri, ContainerEngineDns,
+    ContainerEngineIPv6, ContainerEngineInstalled, ContainerEngineIsMoby, ContainerEngineLogrotate,
+    ContainerLocalTime, ContainerResolveParentHostname, EdgeAgentStorageMounted,
+    EdgeHubStorageMounted, Hostname, ParentHostname, PullAgentFromUpstream, WellFormedConfig,
 };
 
 pub struct Check {
@@ -239,7 +237,6 @@ impl Check {
             ),
             ("Connectivity checks", {
                 let mut tests: Vec<Box<dyn Checker>> = Vec::new();
-                tests.extend(get_host_connect_upstream_tests());
                 tests.extend(get_host_container_upstream_tests());
                 tests
             }),
