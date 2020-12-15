@@ -71,7 +71,8 @@ where
     Ok(output.stdout)
 }
 
-pub(crate) fn all_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
+// built-in checks, as opposed to those that are deferred to `aziot check`
+pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
     /* Note: keep ordering consistent. Later tests may depend on earlier tests. */
     [
         (

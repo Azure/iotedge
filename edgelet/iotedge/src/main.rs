@@ -53,9 +53,6 @@ fn run() -> Result<(), Error> {
         edgelet_core::version().replace("~", "-")
     );
 
-    let mut possible_check_id_values: Vec<_> = Check::possible_ids().collect();
-    possible_check_id_values.sort_unstable();
-
     let matches = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
         .about(crate_description!())
@@ -70,6 +67,16 @@ fn run() -> Result<(), Error> {
                 .global(true)
                 .env("IOTEDGE_HOST")
                 .default_value(default_mgmt_uri),
+        )
+        .arg(
+            Arg::with_name("aziot-bin")
+                .help("path to 'aziot' binary")
+                .long("aziot-bin")
+                .takes_value(true)
+                .value_name("PATH")
+                .global(true)
+                .env("AZIOT_BIN")
+                .default_value("aziot"),
         )
         .subcommand(
             SubCommand::with_name("check")
@@ -106,7 +113,6 @@ fn run() -> Result<(), Error> {
                         .help("Space-separated list of check IDs. The checks listed here will not be run. See 'iotedge check-list' for details of all checks.\n")
                         .multiple(true)
                         .takes_value(true)
-                        .possible_values(&possible_check_id_values),
                 )
                 .arg(
                     Arg::with_name("expected-aziot-edged-version")
@@ -317,7 +323,11 @@ fn run() -> Result<(), Error> {
 
             tokio_runtime.block_on(check)?.execute(&mut tokio_runtime)
         }
-        ("check-list", _) => Check::print_list(),
+        ("check-list", Some(args)) => Check::print_list(
+            args.value_of_os("aziot-bin")
+                .expect("arg has a default value")
+                .to_os_string(),
+        ),
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(

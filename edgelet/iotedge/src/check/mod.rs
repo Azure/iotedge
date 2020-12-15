@@ -206,29 +206,81 @@ impl Check {
         }))
     }
 
-    pub fn possible_ids() -> impl Iterator<Item = &'static str> {
-        let result: Vec<&'static str> = checks::all_checks()
-            .iter()
-            .flat_map(|(_, section_checks)| section_checks)
-            .map(|check| check.id())
-            .collect();
+    pub fn print_list(aziot_bin: std::ffi::OsString) -> Result<(), Error> {
+        // DEVNOTE: keep in sync with aziot CheckerMeta
+        #[derive(serde::Deserialize)]
+        struct CheckerMeta {
+            id: String,
+            description: String,
+        }
 
-        result.into_iter()
-    }
+        let mut all_checks: Vec<(String, Vec<CheckerMeta>)> = Vec::new();
 
-    pub fn print_list() -> Result<(), Error> {
+        // get all the aziot checks by shelling-out to aziot
+        {
+            let aziot_check_out = std::process::Command::new(aziot_bin)
+                .arg("check-list")
+                .arg("-j")
+                .output();
+
+            match aziot_check_out {
+                Err(_) => {
+                    // not being able to access aziot is bad... but we shouldn't fail here,
+                    // as the user may still want to run other iotedge specific checks.
+                    //
+                    // to make sure the user knows that there should me more checks, we add
+                    // this "dummy" entry instead.
+                    all_checks.push((
+                        "(aziot)".into(),
+                        vec![CheckerMeta {
+                            id: "(aziot-error)".into(),
+                            description: "(aziot checks unavailable - could not communicate with 'aziot' binary)".into(),
+                        }]
+                    ));
+                }
+                Ok(out) => {
+                    let aziot_checks: BTreeMap<String, Vec<CheckerMeta>> =
+                        serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
+
+                    all_checks.extend(
+                        aziot_checks
+                            .into_iter()
+                            .map(|(section_name, checks)| (section_name + " (aziot)", checks)),
+                    );
+                }
+            }
+        }
+
+        // get all the built-in checks
+        {
+            let built_in_checks = checks::built_in_checks();
+            let checks = built_in_checks.iter().map(|(section_name, checks)| {
+                (
+                    (*section_name).to_string(),
+                    checks
+                        .iter()
+                        .map(|c| CheckerMeta {
+                            id: c.id().into(),
+                            description: c.description().into(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
+            });
+
+            all_checks.extend(checks);
+        }
+
         // All our text is ASCII, so we can measure text width in bytes rather than using unicode-segmentation to count graphemes.
-        let checks = checks::all_checks();
-        let widest_section_name_len = checks
+        let widest_section_name_len = all_checks
             .iter()
             .map(|(section_name, _)| section_name.len())
             .max()
             .expect("Have at least one section");
         let section_name_column_width = widest_section_name_len + 1;
-        let widest_check_id_len = checks
+        let widest_check_id_len = all_checks
             .iter()
             .flat_map(|(_, section_checks)| section_checks)
-            .map(|check| check.id().len())
+            .map(|check_meta| check_meta.id.len())
             .max()
             .expect("Have at least one check");
         let check_id_column_width = widest_check_id_len + 1;
@@ -242,13 +294,13 @@ impl Check {
         );
         println!();
 
-        for (section_name, section_checks) in &checks {
-            for check in section_checks {
+        for (section_name, section_checks) in all_checks {
+            for check_meta in section_checks {
                 println!(
                     "{:section_name_column_width$}{:check_id_column_width$}{}",
                     section_name,
-                    check.id(),
-                    check.description(),
+                    check_meta.id,
+                    check_meta.description,
                     section_name_column_width = section_name_column_width,
                     check_id_column_width = check_id_column_width,
                 );
@@ -262,7 +314,7 @@ impl Check {
 
     pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
         let mut checks: BTreeMap<&str, CheckOutputSerializable> = Default::default();
-        let mut check_data = checks::all_checks();
+        let mut check_data = checks::built_in_checks();
 
         let mut stdout = Stdout::new(self.output_format);
 
