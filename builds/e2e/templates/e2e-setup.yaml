@@ -104,6 +104,7 @@ steps:
 
     $context = @{
       parentHostname= '$(parentName)'
+      hostname= '$(hostname)'
       parentDeviceId = '$(parentDeviceId)'
       nestededge = '$(nestededge)'
       dpsIdScope = '$(dps.idScope)'
