@@ -92,12 +92,18 @@ steps:
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
 
+    $currentPath = pwd;
+
     if ('$(nestededge)' -eq 'true')
     {
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
+      $rootCaCertificatePath = '$currentPath/certs/certs/azure-iot-test-only.root.ca.cert.pem';
+      $rootCaPrivateKeyPath = '$currentPath/certs/private/azure-iot-test-only.root.ca.key.pem';
     }else
     {
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+      $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
     }
 
     echo "Edge agent image: $imagePrefix-agent:$imageTag"    
@@ -130,8 +136,8 @@ steps:
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
       caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
-      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
-      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+      rootCaCertificatePath = $rootCaCertificatePath;
+      rootCaPrivateKeyPath = $rootCaPrivateKeyPath;
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
 
