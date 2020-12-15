@@ -87,7 +87,7 @@ steps:
     https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
-    if ($(parentHostname))
+    if ('$(nestededge)' -eq 'true')
     {
       $imagePrefix = '\$upstream:443/$(cr.labelPrefix)azureiotedge'
     }else
@@ -104,6 +104,7 @@ steps:
       dpsIdScope = "$(dps.idScope)";
       parentHostname= "$(parentName)";
       parentDeviceId = "$(parentDeviceId)";
+      nestededge = "$(nestededge)";
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
       tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
