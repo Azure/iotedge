@@ -59,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Unstable")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             // TODO: Add ARM.
