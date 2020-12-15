@@ -49,7 +49,7 @@ impl State {
                 match self.waiting_to_be_acked.remove(&packet_identifier) {
                     Some((ack_sender, _)) => {
                         packet_identifiers.discard(packet_identifier);
-
+                        log::debug!("ANCAN puback {}", packet_identifier);
                         match ack_sender.send(()) {
 						Ok(()) => (),
 						Err(()) => log::debug!("could not send ack for publish request because ack receiver has been dropped"),
@@ -187,6 +187,7 @@ impl State {
                         },
                     ));
 
+                    
                     match ack_sender.send(()) {
 						Ok(()) => (),
 						Err(()) => log::debug!("could not send ack for publish request because ack receiver has been dropped"),
