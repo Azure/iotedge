@@ -128,11 +128,20 @@ steps:
         }
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
-      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
-      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
-      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
+
+    if ('$(nestededge)' -eq 'true')
+    {
+      $context['caCertScriptPath'] = Convert-Path '/certs/';
+      $context['rootCaCertificatePath'] = Convert-Path '/certs/certs/azure-iot-test-only.root.ca.cert.pem';
+      $context['rootCaPrivateKeyPath'] = Convert-Path '/certs/private/azure-iot-test-only.root.ca.key.pem';
+    }else
+    {
+      $context['caCertScriptPath'] = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
+      $context['rootCaCertificatePath'] = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      $context['rootCaPrivateKeyPath'] = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+    }    
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
