@@ -87,17 +87,23 @@ steps:
     https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
-    $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+    if ($(parentHostname))
+    {
+      $imagePrefix = '\$upstream:443/$(cr.labelPrefix)azureiotedge'
+    }else
+    {
+      $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+    }
+
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
 
     $context = @{
-      parentHostname= '$(parentName)'
-      parentDeviceId = '$(parentDeviceId)'
-      nestededge = '$(nestededge)'
-      dpsIdScope = '$(dps.idScope)'
+      dpsIdScope = "$(dps.idScope)";
+      parentHostname= "$(parentName)";
+      parentDeviceId = "$(parentDeviceId)";
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
       tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
