@@ -262,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             // capabilities will remain lowercase because there is no backward compatibility issue for those properties supported after 1.0.9
-            string createOptions = "{\"HostConfig\":{\"portBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"runtime\":\"nvidia\",\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
+            string createOptions = "{\"HostConfig\":{\"portBindings\":{\"8883/tcp\":[{\"hostPort\":\"8883\"}]},\"Devices\":[],\"runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
             var module = new Mock<IModule<DockerConfig>>();
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<string>()));
             module.SetupGet(m => m.Name).Returns("mod1");
@@ -293,13 +293,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Assert.Equal(
-                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"Runtime\":\"nvidia\",\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"Devices\":[],\"Runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
                     reserializedHostConfig);
             }
             else
             {
                 Assert.Equal(
-                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"Runtime\":\"nvidia\",\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"Devices\":[],\"Runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
                     reserializedHostConfig);
             }
         }
