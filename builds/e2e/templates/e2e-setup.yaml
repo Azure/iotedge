@@ -94,7 +94,7 @@ steps:
 
     if ('$(nestededge)' -eq 'true')
     {
-      $imagePrefix = '$(parentName):443/$(cr.labelPrefix)azureiotedge'
+      $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
     }else
     {
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'

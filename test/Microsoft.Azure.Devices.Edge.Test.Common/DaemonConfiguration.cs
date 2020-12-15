@@ -78,6 +78,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("provisioning.attestation.identity_pk", pKeyUri.ToString());
             this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
         }
+        public void SetEdgeAgentImage(string value)
+        {
+            this.config.ReplaceOrAdd("agent.config.image", value);
+        }
 
         public void SetDeviceHostname(string value)
         {
