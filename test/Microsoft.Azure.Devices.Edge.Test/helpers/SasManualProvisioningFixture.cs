@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -82,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
             string caCertScriptPath =
                 Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
-            string deviceId = this.runtime.DeviceId;
+            string deviceId = Dns.GetHostName(); // this.runtime.DeviceId;
 
             try
             {
