@@ -95,6 +95,8 @@ steps:
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
     }
 
+    echo "Edge agent image: $imagePrefix-agent:$imageTag"
+
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
