@@ -97,8 +97,8 @@ steps:
     if ('$(nestededge)' -eq 'true')
     {
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
-      $rootCaCertificatePath = '$(currentPath)/certs/certs/azure-iot-test-only.root.ca.cert.pem';
-      $rootCaPrivateKeyPath = '$(currentPath)/certs/private/azure-iot-test-only.root.ca.key.pem';
+      $rootCaCertificatePath = "$currentPath/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+      $rootCaPrivateKeyPath = "$currentPath/certs/private/azure-iot-test-only.root.ca.key.pem"
     }else
     {
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
