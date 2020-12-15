@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
 
-                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.ToString(), @"$upstream", parentHostname);
+                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(""), @"$upstream", parentHostname);
                                 config.SetEdgeAgentImage(edgeAgent);
                             });
 
