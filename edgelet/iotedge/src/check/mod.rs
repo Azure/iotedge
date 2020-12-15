@@ -28,12 +28,6 @@ mod checker;
 use checker::Checker;
 
 mod checks;
-use checks::{
-    get_host_container_upstream_tests, AziotEdgedVersion, ConnectManagementUri, ContainerEngineDns,
-    ContainerEngineIPv6, ContainerEngineInstalled, ContainerEngineIsMoby, ContainerEngineLogrotate,
-    ContainerLocalTime, ContainerResolveParentHostname, EdgeAgentStorageMounted,
-    EdgeHubStorageMounted, Hostname, ParentHostname, PullAgentFromUpstream, WellFormedConfig,
-};
 
 pub struct Check {
     config_file: PathBuf,
@@ -212,39 +206,8 @@ impl Check {
         }))
     }
 
-    fn checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
-        /* Note: keep ordering consistent. Later tests may depend on earlier tests. */
-        [
-            (
-                "Configuration checks",
-                vec![
-                    Box::new(WellFormedConfig::default()),
-                    Box::new(ContainerEngineInstalled::default()),
-                    Box::new(Hostname::default()),
-                    Box::new(ParentHostname::default()),
-                    Box::new(ContainerResolveParentHostname::default()),
-                    Box::new(ConnectManagementUri::default()),
-                    Box::new(AziotEdgedVersion::default()),
-                    Box::new(ContainerLocalTime::default()),
-                    Box::new(ContainerEngineDns::default()),
-                    Box::new(ContainerEngineIPv6::default()),
-                    Box::new(ContainerEngineIsMoby::default()),
-                    Box::new(ContainerEngineLogrotate::default()),
-                    Box::new(EdgeAgentStorageMounted::default()),
-                    Box::new(EdgeHubStorageMounted::default()),
-                    Box::new(PullAgentFromUpstream::default()),
-                ],
-            ),
-            ("Connectivity checks", {
-                let mut tests: Vec<Box<dyn Checker>> = Vec::new();
-                tests.extend(get_host_container_upstream_tests());
-                tests
-            }),
-        ]
-    }
-
     pub fn possible_ids() -> impl Iterator<Item = &'static str> {
-        let result: Vec<&'static str> = Check::checks()
+        let result: Vec<&'static str> = checks::all_checks()
             .iter()
             .flat_map(|(_, section_checks)| section_checks)
             .map(|check| check.id())
@@ -255,7 +218,7 @@ impl Check {
 
     pub fn print_list() -> Result<(), Error> {
         // All our text is ASCII, so we can measure text width in bytes rather than using unicode-segmentation to count graphemes.
-        let checks = Check::checks();
+        let checks = checks::all_checks();
         let widest_section_name_len = checks
             .iter()
             .map(|(section_name, _)| section_name.len())
@@ -299,7 +262,7 @@ impl Check {
 
     pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
         let mut checks: BTreeMap<&str, CheckOutputSerializable> = Default::default();
-        let mut check_data = Check::checks();
+        let mut check_data = checks::all_checks();
 
         let mut stdout = Stdout::new(self.output_format);
 
@@ -608,7 +571,10 @@ struct CheckOutputSerializable {
 
 #[cfg(test)]
 mod tests {
-    use super::{Check, CheckResult, Checker, ContainerEngineIsMoby, Hostname, WellFormedConfig};
+    use super::{
+        checks::{ContainerEngineIsMoby, Hostname, WellFormedConfig},
+        Check, CheckResult, Checker,
+    };
 
     #[test]
     fn config_file_checks_ok() {

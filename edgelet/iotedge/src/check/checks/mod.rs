@@ -35,6 +35,8 @@ use std::process::Command;
 
 use failure::{self, Context, Fail};
 
+use super::Checker;
+
 pub(crate) fn docker<I>(
     docker_host_arg: &str,
     args: I,
@@ -67,4 +69,35 @@ where
     }
 
     Ok(output.stdout)
+}
+
+pub(crate) fn all_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
+    /* Note: keep ordering consistent. Later tests may depend on earlier tests. */
+    [
+        (
+            "Configuration checks",
+            vec![
+                Box::new(WellFormedConfig::default()),
+                Box::new(ContainerEngineInstalled::default()),
+                Box::new(Hostname::default()),
+                Box::new(ParentHostname::default()),
+                Box::new(ContainerResolveParentHostname::default()),
+                Box::new(ConnectManagementUri::default()),
+                Box::new(AziotEdgedVersion::default()),
+                Box::new(ContainerLocalTime::default()),
+                Box::new(ContainerEngineDns::default()),
+                Box::new(ContainerEngineIPv6::default()),
+                Box::new(ContainerEngineIsMoby::default()),
+                Box::new(ContainerEngineLogrotate::default()),
+                Box::new(EdgeAgentStorageMounted::default()),
+                Box::new(EdgeHubStorageMounted::default()),
+                Box::new(PullAgentFromUpstream::default()),
+            ],
+        ),
+        ("Connectivity checks", {
+            let mut tests: Vec<Box<dyn Checker>> = Vec::new();
+            tests.extend(get_host_container_upstream_tests());
+            tests
+        }),
+    ]
 }
