@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             var builder = new EdgeConfigBuilder(this.DeviceId);
             builder.AddRegistries(this.registries);
-            builder.AddEdgeAgent(this.agentImage.OrDefault())
+            builder.AddEdgeAgent("nestededgetest02.eastus2.cloudapp.azure.com:443/microsoft/azureiotedge-agent:20201214.4-linux-amd64")
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
             builder.AddEdgeHub(this.hubImage.OrDefault(), this.optimizeForPerformance)
