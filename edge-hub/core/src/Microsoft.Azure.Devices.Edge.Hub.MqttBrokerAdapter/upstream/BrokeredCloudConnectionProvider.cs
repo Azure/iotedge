@@ -27,10 +27,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return this.Connect(clientCredentials.Identity, connectionStatusChangedHandler);
         }
 
-        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        public async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
+            if (!await this.IsConnected())
+            {
+                return new Try<ICloudConnection>(new Exception("Bridge is not connected upstream"));
+            }
+
             var cloudProxy = new BrokeredCloudProxy(identity, this.cloudProxyDispatcher, connectionStatusChangedHandler);
-            return Task.FromResult(new Try<ICloudConnection>(new BrokeredCloudConnection(cloudProxy)));
+            return new Try<ICloudConnection>(new BrokeredCloudConnection(cloudProxy));
+        }
+
+        async Task<bool> IsConnected()
+        {
+            if (!this.cloudProxyDispatcher.IsConnected)
+            {
+                var cntr = 50;
+                while (--cntr > 0)
+                {
+                    await Task.Delay(100);
+                    if (this.cloudProxyDispatcher.IsConnected)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return this.cloudProxyDispatcher.IsConnected;
         }
     }
 }

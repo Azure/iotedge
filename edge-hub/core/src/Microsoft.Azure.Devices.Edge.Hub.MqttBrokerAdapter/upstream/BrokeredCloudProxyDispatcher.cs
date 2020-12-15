@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly byte[] emptyArray = new byte[0];
 
         long lastRid = 1;
+        AtomicBoolean isConnected = new AtomicBoolean(false);
 
         IEdgeHub edgeHub;
         TaskCompletionSource<IMqttBrokerConnector> connectorGetter = new TaskCompletionSource<IMqttBrokerConnector>();
@@ -58,6 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public event Action<CloudConnectionStatus> ConnectionStatusChangedEvent;
 
         public IReadOnlyCollection<string> Subscriptions => new string[] { DownstreamTopic, ConnectivityTopic };
+
+        public bool IsConnected => this.isConnected.Get();
 
         public void BindEdgeHub(IEdgeHub edgeHub)
         {
@@ -419,10 +422,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         switch (statusAsString)
                         {
                             case "Connected":
+                                this.isConnected.Set(true);
                                 this.CallConnectivityHandlers(true);
                                 break;
 
                             case "Disconnected":
+                                this.isConnected.Set(false);
                                 this.CallConnectivityHandlers(false);
                                 break;
 
@@ -440,7 +445,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void CallConnectivityHandlers(bool isConnected)
         {
-            var currentHandlers = this.ConnectionStatusChangedEvent.GetInvocationList();
+            var currentHandlers = this.ConnectionStatusChangedEvent?.GetInvocationList();
+
+            if (currentHandlers == null)
+            {
+                return;
+            }
 
             foreach (var handler in currentHandlers)
             {
