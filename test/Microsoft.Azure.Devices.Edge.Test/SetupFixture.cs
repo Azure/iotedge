@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
+    using System.Text.RegularExpressions;
 
     [SetUpFixture]
     public class SetupFixture
@@ -24,12 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             CancellationToken token = cts.Token;
-            Option<Registry> bootstrapRegistry = Option.Maybe(Context.Current.Registries.FirstOrDefault());
 
             this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(
                 Context.Current.InstallerPath,
-                Context.Current.EdgeAgentBootstrapImage,
-                bootstrapRegistry,
                 token);
 
             await Profiler.Run(
@@ -65,6 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 config.SetParentHostname(parentHostname);
                                 msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
+
+                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(""), @"\$upstream", parentHostname);
+                                config.SetEdgeAgentImage(edgeAgent);
                             });
 
                             Context.Current.Proxy.ForEach(proxy =>
