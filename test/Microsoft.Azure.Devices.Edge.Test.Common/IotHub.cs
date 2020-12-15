@@ -92,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             async p =>
             {
                 Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
-                Log.Verbose($"Got parent device from id. Parent scope: {parentDevice.Scope}");
+                string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
+                Log.Verbose($"Got parent device from id. Parent scope: {parentDeviceScope}");
                 return new Device(deviceId)
                 {
                     Authentication = new AuthenticationMechanism()
@@ -104,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         IotEdge = true
                     },
-                    ParentScopes = new[] { parentDevice.Scope }
+                    ParentScopes = new[] { parentDeviceScope }
                 };
             },
             () =>

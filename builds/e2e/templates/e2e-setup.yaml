@@ -92,21 +92,30 @@ steps:
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
 
+    $currentPath = pwd;
+
     if ('$(nestededge)' -eq 'true')
     {
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
+      $caCertScriptPath = "$currentPath/certs"
+      $rootCaCertificatePath = "$currentPath/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+      $rootCaPrivateKeyPath = "$currentPath/certs/private/azure-iot-test-only.root.ca.key.pem"
     }else
     {
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+      $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
+      $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
     }
 
     echo "Edge agent image: $imagePrefix-agent:$imageTag"    
 
     $context = @{
-      dpsIdScope = "$(dps.idScope)";
-      parentHostname= "$(parentName)";
-      parentDeviceId = "$(parentDeviceId)";
-      nestededge = "$(nestededge)";
+      parentHostname= '$(parentName)'
+      hostname= '$(hostname)'
+      parentDeviceId = '$(parentDeviceId)'
+      nestededge = '$(nestededge)'
+      dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
       tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
@@ -128,20 +137,11 @@ steps:
         }
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
+      caCertScriptPath = "$caCertScriptPath";
+      rootCaCertificatePath = "$rootCaCertificatePath";
+      rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
-
-    if ('$(nestededge)' -eq 'true')
-    {
-      $context['caCertScriptPath'] = Convert-Path '/certs/';
-      $context['rootCaCertificatePath'] = Convert-Path '/certs/certs/azure-iot-test-only.root.ca.cert.pem';
-      $context['rootCaPrivateKeyPath'] = Convert-Path '/certs/private/azure-iot-test-only.root.ca.key.pem';
-    }else
-    {
-      $context['caCertScriptPath'] = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
-      $context['rootCaCertificatePath'] = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
-      $context['rootCaPrivateKeyPath'] = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
-    }    
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {

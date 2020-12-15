@@ -76,6 +76,7 @@ stages:
 #      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
 #      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       parentName: nestededgetest02.eastus2.cloudapp.azure.com
+      hostname: nestededgetest03.eastus.cloudapp.azure.com
       parentDeviceId: level_4_20201209.53
       os: linux
       arch: amd64
@@ -91,9 +92,9 @@ stages:
         - status -equals unlocked    
     steps:   
       - template: templates/nested-get-secrets.yaml     
-#      - template: templates/lock-test-agent.yaml
-      - template: templates/nested-get-root-ca.yaml     
+#      - template: templates/lock-test-agent.yaml     
       - template: templates/e2e-clean-directory.yaml
+      - template: templates/nested-get-root-ca.yaml
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/nested-e2e-run.yaml
