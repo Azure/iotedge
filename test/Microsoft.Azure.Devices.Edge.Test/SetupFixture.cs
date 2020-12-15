@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();
 
-                            string hostname = Dns.GetHostName();
+                            string hostname = Context.Current.Hostname.GetOrElse(Dns.GetHostName());
                             config.SetDeviceHostname(hostname);
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
