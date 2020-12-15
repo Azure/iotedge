@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
     public class AgentModuleConfigBuilder : BaseModuleConfigBuilder
     {
-        const string DefaultImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
+        const string DefaultImage = "$upstream:443/microsoft/azureiotedge-agent:20201214.4-linux-amd64";
 
         public AgentModuleConfigBuilder(Option<string> image)
             : base(ModuleName.EdgeAgent, image.GetOrElse(DefaultImage))
