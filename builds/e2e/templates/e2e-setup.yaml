@@ -140,8 +140,6 @@ steps:
       caCertScriptPath = "$caCertScriptPath";
       rootCaCertificatePath = "$rootCaCertificatePath";
       rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
-      # rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
-      # rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
 
